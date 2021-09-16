@@ -1,0 +1,259 @@
+﻿// Copyright © KaKush LLC
+// Written By Steven Zawaski
+// Licensed to you under the MIT license
+
+using System;
+using System.Reflection;
+using Zerra.Collections;
+
+namespace Zerra.Reflection
+{
+    public static class TypeAnalyzer
+    {
+        public static T Convert<T>(object obj) { return (T)Convert(obj, typeof(T)); }
+        public static object Convert(object obj, Type type)
+        {
+            if (!TypeLookup.CoreTypeLookup(type, out CoreType coreType))
+                throw new NotImplementedException($"Type convert not available for {type.Name}");
+
+            if (obj == null)
+            {
+                return coreType switch
+                {
+                    CoreType.Boolean => default(bool),
+                    CoreType.Byte => default(byte),
+                    CoreType.SByte => default(sbyte),
+                    CoreType.UInt16 => default(ushort),
+                    CoreType.Int16 => default(short),
+                    CoreType.UInt32 => default(uint),
+                    CoreType.Int32 => default(int),
+                    CoreType.UInt64 => default(ulong),
+                    CoreType.Int64 => default(long),
+                    CoreType.Single => default(float),
+                    CoreType.Double => default(double),
+                    CoreType.Decimal => default(decimal),
+                    CoreType.Char => default(char),
+                    CoreType.DateTime => default(DateTime),
+                    CoreType.DateTimeOffset => default(DateTimeOffset),
+                    CoreType.TimeSpan => default(TimeSpan),
+                    CoreType.Guid => default(Guid),
+                    CoreType.String => default(string),
+                    CoreType.BooleanNullable => null,
+                    CoreType.ByteNullable => null,
+                    CoreType.SByteNullable => null,
+                    CoreType.UInt16Nullable => null,
+                    CoreType.Int16Nullable => null,
+                    CoreType.UInt32Nullable => null,
+                    CoreType.Int32Nullable => null,
+                    CoreType.UInt64Nullable => null,
+                    CoreType.Int64Nullable => null,
+                    CoreType.SingleNullable => null,
+                    CoreType.DoubleNullable => null,
+                    CoreType.DecimalNullable => null,
+                    CoreType.CharNullable => null,
+                    CoreType.DateTimeNullable => null,
+                    CoreType.DateTimeOffsetNullable => null,
+                    CoreType.TimeSpanNullable => null,
+                    CoreType.GuidNullable => null,
+                    _ => throw new NotImplementedException($"Type conversion not available for {type.Name}"),
+                };
+                ;
+            }
+            else
+            {
+                return coreType switch
+                {
+                    CoreType.Boolean => System.Convert.ToBoolean(obj),
+                    CoreType.Byte => System.Convert.ToByte(obj),
+                    CoreType.SByte => System.Convert.ToSByte(obj),
+                    CoreType.UInt16 => System.Convert.ToUInt16(obj),
+                    CoreType.Int16 => System.Convert.ToInt16(obj),
+                    CoreType.UInt32 => System.Convert.ToUInt32(obj),
+                    CoreType.Int32 => System.Convert.ToInt32(obj),
+                    CoreType.UInt64 => System.Convert.ToUInt64(obj),
+                    CoreType.Int64 => System.Convert.ToInt64(obj),
+                    CoreType.Single => System.Convert.ToSingle(obj),
+                    CoreType.Double => System.Convert.ToDouble(obj),
+                    CoreType.Decimal => System.Convert.ToDecimal(obj),
+                    CoreType.Char => System.Convert.ToChar(obj),
+                    CoreType.DateTime => System.Convert.ToDateTime(obj),
+                    CoreType.DateTimeOffset => ConvertToDateTimeOffset(obj),
+                    CoreType.TimeSpan => ConvertToTimeSpan(obj),
+                    CoreType.Guid => ConvertToGuid(obj),
+                    CoreType.String => System.Convert.ToString(obj),
+                    CoreType.BooleanNullable => System.Convert.ToBoolean(obj),
+                    CoreType.ByteNullable => System.Convert.ToByte(obj),
+                    CoreType.SByteNullable => System.Convert.ToSByte(obj),
+                    CoreType.UInt16Nullable => System.Convert.ToUInt16(obj),
+                    CoreType.Int16Nullable => System.Convert.ToInt16(obj),
+                    CoreType.UInt32Nullable => System.Convert.ToUInt32(obj),
+                    CoreType.Int32Nullable => System.Convert.ToInt32(obj),
+                    CoreType.UInt64Nullable => System.Convert.ToUInt64(obj),
+                    CoreType.Int64Nullable => System.Convert.ToInt64(obj),
+                    CoreType.SingleNullable => System.Convert.ToSingle(obj),
+                    CoreType.DoubleNullable => System.Convert.ToDouble(obj),
+                    CoreType.DecimalNullable => System.Convert.ToDecimal(obj),
+                    CoreType.CharNullable => System.Convert.ToChar(obj),
+                    CoreType.DateTimeNullable => System.Convert.ToDateTime(obj),
+                    CoreType.DateTimeOffsetNullable => System.Convert.ToDateTime(obj),
+                    CoreType.TimeSpanNullable => ConvertToTimeSpan(obj),
+                    CoreType.GuidNullable => ConvertToGuid(obj),
+                    _ => throw new NotImplementedException($"Type conversion not available for {type.Name}"),
+                };
+                ;
+            }
+        }
+
+        private static Guid ConvertToGuid(object obj)
+        {
+            if (obj == null)
+                return Guid.Empty;
+            return Guid.Parse(obj.ToString());
+        }
+
+        private static TimeSpan ConvertToTimeSpan(object obj)
+        {
+            if (obj == null)
+                return TimeSpan.MinValue;
+            return TimeSpan.Parse(obj.ToString(), System.Globalization.CultureInfo.CurrentCulture);
+        }
+
+        private static DateTimeOffset ConvertToDateTimeOffset(object obj)
+        {
+            if (obj == null)
+                return DateTimeOffset.MinValue;
+            return DateTimeOffset.Parse(obj.ToString(), System.Globalization.CultureInfo.CurrentCulture);
+        }
+
+        private static readonly ConcurrentFactoryDictionary<Type, TypeDetail> typeInfos = new ConcurrentFactoryDictionary<Type, TypeDetail>();
+        public static TypeDetail GetType(Type type)
+        {
+            var typeInfo = typeInfos.GetOrAdd(type, (key) =>
+            {
+                return new TypeDetail(key);
+            });
+            return typeInfo;
+        }
+
+        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> methodLookups = new ConcurrentFactoryDictionary<TypeKey, MethodDetail>();
+        public static MethodDetail GetMethod(Type type, string name, Type[] parameterTypes = null)
+        {
+            var key = new TypeKey(name, type, parameterTypes);
+            var method = methodLookups.GetOrAdd(key, (keyArg) =>
+            {
+                var typeDetails = GetType(type);
+                foreach (var methodDetail in typeDetails.MethodDetails)
+                {
+                    if (methodDetail.Name == name && (parameterTypes == null || methodDetail.ParametersInfo.Count == parameterTypes.Length))
+                    {
+                        bool match = true;
+                        if (parameterTypes != null)
+                        {
+                            for (var i = 0; i < parameterTypes.Length; i++)
+                            {
+                                if (parameterTypes[i].Name != methodDetail.ParametersInfo[i].ParameterType.Name || parameterTypes[i].Namespace != methodDetail.ParametersInfo[i].ParameterType.Namespace)
+                                {
+                                    match = false;
+                                    break;
+                                }
+                            }
+                        }
+                        if (match)
+                            return methodDetail;
+                    }
+                }
+                return null;
+            });
+            return method;
+        }
+
+        private static readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetails> constructorLookups = new ConcurrentFactoryDictionary<TypeKey, ConstructorDetails>();
+        public static ConstructorDetails GetConstructor(Type type, Type[] parameterTypes = null)
+        {
+            var key = new TypeKey(type, parameterTypes);
+            var constructor = constructorLookups.GetOrAdd(key, (keyArg) =>
+            {
+                var typeDetails = GetType(type);
+                foreach (var constructorDetail in typeDetails.ConstructorDetails)
+                {
+                    if (parameterTypes == null || constructorDetail.ParametersInfo.Count == parameterTypes.Length)
+                    {
+                        bool match = true;
+                        if (parameterTypes != null)
+                        {
+                            for (var i = 0; i < parameterTypes.Length; i++)
+                            {
+                                if (parameterTypes[i] != constructorDetail.ParametersInfo[i].ParameterType)
+                                {
+                                    match = false;
+                                    break;
+                                }
+                            }
+                        }
+                        if (match)
+                            return constructorDetail;
+                    }
+                }
+                return null;
+            });
+            return constructor;
+        }
+
+        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethods = new ConcurrentFactoryDictionary<TypeKey, MethodDetail>();
+        public static MethodDetail GetGenericMethod(MethodInfo method, params Type[] types)
+        {
+            var key = new TypeKey(method.ToString(), types);
+            var genericMethod = genericMethods.GetOrAdd(key, (factoryKey) =>
+            {
+                var generic = method.MakeGenericMethod(types);
+                return new MethodDetail(generic);
+            });
+            return genericMethod;
+        }
+
+        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethodDetails = new ConcurrentFactoryDictionary<TypeKey, MethodDetail>();
+        public static MethodDetail GetGenericMethod(MethodDetail methodDetail, params Type[] types)
+        {
+            var key = new TypeKey(methodDetail.MethodInfo.ToString(), types);
+            var genericMethod = genericMethodDetails.GetOrAdd(key, (factoryKey) =>
+            {
+                return GetGenericMethod(methodDetail.MethodInfo);
+            });
+            return genericMethod;
+        }
+
+        private static readonly ConcurrentFactoryDictionary<TypeKey, TypeDetail> genericTypeDetails = new ConcurrentFactoryDictionary<TypeKey, TypeDetail>();
+        public static TypeDetail GetGenericTypeDetail(TypeDetail typeDetail, params Type[] types)
+        {
+            var key = new TypeKey(typeDetail.Type, types);
+            var genericType = genericTypeDetails.GetOrAdd(key, (factoryKey) =>
+            {
+                var generic = typeDetail.Type.MakeGenericType(types);
+                return GetType(generic);
+            });
+            return genericType;
+        }
+
+        private static readonly ConcurrentFactoryDictionary<TypeKey, Type> genericTypes = new ConcurrentFactoryDictionary<TypeKey, Type>();
+        public static Type GetGenericType(Type type, params Type[] types)
+        {
+            var key = new TypeKey(type, types);
+            var genericType = genericTypes.GetOrAdd(key, (factoryKey) =>
+            {
+                return type.MakeGenericType(types);
+            });
+            return genericType;
+        }
+
+        private static readonly ConcurrentFactoryDictionary<TypeKey, TypeDetail> genericTypeDetailsByType = new ConcurrentFactoryDictionary<TypeKey, TypeDetail>();
+        public static TypeDetail GetGenericTypeDetail(Type type, params Type[] types)
+        {
+            var key = new TypeKey(type, types);
+            var genericTypeDetail = genericTypeDetailsByType.GetOrAdd(key, (factoryKey) =>
+            {
+                return GetType(type.MakeGenericType(types));
+            });
+            return genericTypeDetail;
+        }
+    }
+}

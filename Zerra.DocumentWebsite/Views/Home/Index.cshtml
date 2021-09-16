@@ -1,0 +1,162 @@
+﻿@{
+    ViewData["Title"] = "Zerra Framework";
+}
+
+<h1>Zerra Framework</h1>
+<p class="subtitle">Horizontally expandable, easy, fast, powerful microservice framework</p>
+
+<div class="maintext">
+    <ul>
+        <li>Start with a monolith and easily seperate into services</li>
+        <li>Powerful CQRS engine requires very little wireup</li>
+        <li>Very fast self-hosted services only need a line or two of configuration</li>
+        <li>Front end applications can call commands and queries directly and securely</li>
+        <li>Generate front end models for JavaScript or TypeScript</li>
+        <li>Agnostic ORM repository that currently supports SQL and Event Store but expandable to more.</li>
+        <li>Switch between datastores without changing any code.</li>
+    </ul>
+</div>
+
+<div class="maintext">
+    <h2>Architectures</h2>
+    <p>The Zerra Framework allows applications to be restructured without rewriting business code.  The only prerequisite is that domains and bounded contexts are setup correctly.  To change an architure, such as seperating out a microservice, requires only changing assembly references and configuration.</p>
+    <p>While domains can communicate with each other, it's better practice to minimize this for more independent stability.</p>
+</div>
+
+<hr />
+<div class="row form-group">
+    <div class="col-sm-4">
+        <img src="~/images/Diagram0.jpg" alt="Classic Monolith" class="col-sm-12" />
+    </div>
+    <div class="col-sm-8">
+        <h3>Classic Monolith</h3>
+        <ul>
+            <li>Single application</li>
+            <li>Single database</li>
+            <li>Front-end is generated or independent from application.</li>
+            <li>Only need to seperate domains and bounded contexts.</li>
+            <li>Domains can communicate with each other using formal interfaces.</li>
+        </ul>
+    </div>
+</div>
+
+<hr />
+<div class="row form-group">
+    <div class="col-sm-4">
+        <img src="~/images/Diagram1.jpg" alt="Classic Seperated-Datastores" class="col-sm-12" />
+    </div>
+    <div class="col-sm-8">
+        <h3>Monolith Seperated-Datastores</h3>
+        <ul>
+            <li>Single application</li>
+            <li>Each domain has it's own datastore</li>
+            <li>Front-end is generated or independent from application.</li>
+            <li>Only need to seperate domains and bounded contexts.</li>
+            <li>Domains can communicate with each other using formal interfaces.</li>
+        </ul>
+    </div>
+</div>
+
+<hr />
+<div class="row form-group">
+    <div class="col-sm-4">
+        <img src="~/images/Diagram2.jpg" alt="Microservices with Gateway" class="col-sm-12" />
+    </div>
+    <div class="col-sm-8">
+        <h3>Microservices with Gateway</h3>
+        <ul>
+            <li>Many self-hosted services</li>
+            <li>Each domain has it's own datastore (still could share a datastore)</li>
+            <li>Front-end is generated or independent from application.</li>
+            <li>Gateway facilitates routing from public to internal networks.</li>
+        </ul>
+    </div>
+</div>
+
+<hr />
+<div class="row form-group">
+    <div class="col-sm-4">
+        <img src="~/images/Diagram3.jpg" alt="Microservices with Direct Access" class="col-sm-12" />
+    </div>
+    <div class="col-sm-8">
+        <h3>Microservices with Direct Access</h3>
+        <ul>
+            <li>Many self-hosted services publicly exposed (HTTP)</li>
+            <li>Each domain has it's own datastore (still could share a datastore)</li>
+            <li>Front-end is generated or independent from application.</li>
+            <li>User interface communicates directly with each microservice.</li>
+        </ul>
+    </div>
+</div>
+
+<hr />
+<div class="row form-group">
+    <div class="col-sm-4">
+        <img src="~/images/Diagram4.jpg" alt="Command Query Responsibility Segregation (CQRS) - Shared Store" class="col-sm-12" />
+    </div>
+    <div class="col-sm-8">
+        <h3>Domain Details</h3>
+        <ul>
+            <li>A domain has two components. One to receive commands, the other to repond to queries.</li>
+            <li>They can share the same datastore.</li>
+            <li>Commands by definition are one way and the UI does not get information back.  Typically use GUIDs as identities so the UI can identify entities just created.</li>
+            <li>Commands are also asychronous so the data is not necessarily instantly available but eventually consistent.</li>
+            <li>The query component only reads the database and must not perform any persistance.</li>
+        </ul>
+    </div>
+</div>
+
+<hr />
+<div class="row form-group">
+    <div class="col-sm-4">
+        <img src="~/images/Diagram5.jpg" alt="Command Query Responsibility Segregation (CQRS) - Shared Store" class="col-sm-12" />
+    </div>
+    <div class="col-sm-8">
+        <h3>Domain with Command Query Split - Shared Store</h3>
+        <ul>
+            <li>A domain serivce is split into two services, one to receive commands, the other to repond to queries.</li>
+            <li>They can share the same datastore.</li>
+            <li>The command service writes to the database but can also read when needing information.</li>
+            <li>Commands by definition are one way and the UI does not get information back.  Typically use GUIDs as identities so the UI can identify entities just created.</li>
+            <li>Commands are also asychronous so the data is not necessarily instantly available but eventually consistent.</li>
+            <li>The query service only reads the database and is optimied to serve high volume reads.</li>
+        </ul>
+    </div>
+</div>
+
+<hr />
+<div class="row form-group">
+    <div class="col-sm-4">
+        <img src="~/images/Diagram6.jpg" alt="Command Query Responsibility Segregation (CQRS) - Seperate Store" class="col-sm-12" />
+    </div>
+    <div class="col-sm-8">
+        <h3>Domain with Command Query Split - Seperate Store</h3>
+        <ul>
+            <li>A domain serivce is split into two services, one to receive commands, the other to repond to queries.</li>
+            <li>They each have their own datastore.</li>
+            <li>The command service writes to the database but can also read when needing information.</li>
+            <li>Commands by definition are one way and the UI does not get information back.  Typically use GUIDs as identities so the UI can identify entities just created.</li>
+            <li>Commands are also asychronous so the data is not necessarily instantly available but eventually consistent.</li>
+            <li>The Command service sends Events to the query service.  The query service uses the Events to store it's own data in an optimied manar.</li>
+            <li>The query service can read and write to it's datastore which is optimized for the queries.</li>
+        </ul>
+    </div>
+</div>
+
+<hr />
+<div class="row form-group">
+    <div class="col-sm-4">
+        <img src="~/images/Diagram7.jpg" alt="Command Query Responsibility Segregation (CQRS) - Seperate Store" class="col-sm-12" />
+    </div>
+    <div class="col-sm-8">
+        <h3>Domain with Event Sourcing</h3>
+        <ul>
+            <li>A domain serivce is split into two services, one to receive commands, the other to repond to queries.</li>
+            <li>The command service generates events based off the commands. Events are per entity of each model type usually using a GUID identifier.</li>
+            <li>Events are stored in an EventStore. </li>
+            <li>Aggregates are models that replay the events to get an entity to a desired state.</li>
+            <li>The query service uses the aggregates to build the data and retured the desired information.</li>
+            <li>The command service sometimes needs to use the aggregate as well to validate data.</li>
+        </ul>
+    </div>
+</div>

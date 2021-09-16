@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Framework\Zerra.Repository\Zerra.Repository.csproj" />
+    <ProjectReference Include="..\ZerraDemo.Domain\ZerraDemo.Domain.csproj" />
+    <ProjectReference Include="..\ZerraDemo.Common\ZerraDemo.Common.csproj" />
+  </ItemGroup>
+
+</Project>

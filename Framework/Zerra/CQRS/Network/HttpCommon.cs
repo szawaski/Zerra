@@ -1,0 +1,454 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading.Tasks;
+using Zerra.IO;
+
+namespace Zerra.CQRS.Network
+{
+    public static class HttpCommon
+    {
+        public const int BufferLength = 1024 * 8; //Limits max header size
+
+        private const string okResponse = "HTTP/1.1 200 OK";
+        private const string notFoundResponse = "HTTP/1.1 404 Not Found";
+        private const string serverErrorResponse = "HTTP/1.1 500 Server Error";
+        private const string optionsHeader = "OPTIONS";
+
+        private const string contentLengthHeader = "Content-Length";
+        private const string contentTypeHeader = "Content-Type";
+        private const string providerTypeHeader = "Provider-Type";
+        private const string transferEncodingHeader = "Transfer-Encoding";
+        private const string originHeader = "Origin";
+
+        public const string RelayServiceHeader = "Relay-Service";
+        public const string RelayKeyHeader = "Relay-Key";
+        public const string RelayServiceAdd = "add";
+        public const string RelayServiceRemove = "remove";
+
+        private const string contentTypeBytes = "application/octet-stream";
+        private const string contentTypeJson = "application/json; charset=utf-8";
+        private const string contentTypeJsonNameless = "application/jsonnameless; charset=utf-8";
+        private const string transferEncodingChunked = "chunked";
+
+        private const string headerSplit = ": ";
+        private const string newLine = "\r\n";
+
+        private static readonly Encoding encoding = Encoding.UTF8;
+
+        private static readonly byte[] okHeaderBytes = encoding.GetBytes(okResponse);
+        private static readonly byte[] notFoundHeaderBytes = encoding.GetBytes(notFoundResponse);
+        private static readonly byte[] serverErrorHeaderBytes = encoding.GetBytes(serverErrorResponse);
+        private static readonly byte[] transferEncodingChunckedBytes = encoding.GetBytes("Transfer-Encoding: chunked");
+        private static readonly byte[] providerTypeHeaderBytes = encoding.GetBytes($"{providerTypeHeader}{headerSplit}");
+
+        private static readonly byte[] contentTypeBytesHeaderBytes = encoding.GetBytes($"{contentTypeHeader}{headerSplit}{contentTypeBytes}");
+        private static readonly byte[] contentTypeJsonHeaderBytes = encoding.GetBytes($"{contentTypeHeader}{headerSplit}{contentTypeJson}");
+        private static readonly byte[] contentTypeJsonNamelessHeaderBytes = encoding.GetBytes($"{contentTypeHeader}{headerSplit}{contentTypeJsonNameless}");
+
+        private static readonly byte[] headerSplitBytes = encoding.GetBytes(headerSplit);
+        private static readonly byte[] newLineBytes = encoding.GetBytes(newLine);
+
+        private static readonly byte[] corsOriginHeadersBytes = encoding.GetBytes("Origin: ");
+        private static readonly byte[] corsAllowOriginHeadersBytes = encoding.GetBytes("Access-Control-Allow-Origin: ");
+        private static readonly byte[] corsAllOriginsHeadersBytes = encoding.GetBytes("Access-Control-Allow-Origin: *");
+        private static readonly byte[] corsAllowHeadersBytes = encoding.GetBytes("Access-Control-Allow-Methods: *\r\nAccess-Control-Allow-Headers: *");
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static unsafe (IList<string>, IDictionary<string, IList<string>>) ParseHeaders(ReadOnlySpan<char> chars)
+        {
+            var declarations = new List<string>();
+            var headers = new Dictionary<string, IList<string>>();
+
+            int start = 0;
+            int length = 0;
+
+            bool firstLineDone = false;
+            fixed (char* pChars = chars)
+            {
+                for (var index = 0; index < chars.Length; index++)
+                {
+                    var c = pChars[index];
+                    switch (c)
+                    {
+                        case ' ':
+                            {
+#if NETSTANDARD2_0
+                                var value = new String(chars.Slice(start, length).ToArray());
+#else
+                                var value = chars.Slice(start, length).ToString();
+#endif
+                                declarations.Add(value);
+                                start = index + 1;
+                                length = 0;
+                                break;
+                            }
+                        case '\r':
+                        case '\n':
+                            {
+#if NETSTANDARD2_0
+                                var value = new String(chars.Slice(start, length).ToArray());
+#else
+                                var value = chars.Slice(start, length).ToString();
+#endif
+                                declarations.Add(value);
+                                start = index + 1;
+                                length = 0;
+                                firstLineDone = true;
+                                break;
+                            }
+                        default:
+                            length++;
+                            break;
+                    }
+                    if (firstLineDone)
+                        break;
+                }
+
+                string key = null;
+                bool keyPartDone = false;
+                for (var index = start; index < chars.Length; index++)
+                {
+                    var c = pChars[index];
+                    switch (c)
+                    {
+                        case ':':
+                            if (!keyPartDone)
+                            {
+#if NETSTANDARD2_0
+                                key = new String(chars.Slice(start, length).ToArray());
+#else
+                                key = chars.Slice(start, length).ToString();
+#endif
+                                keyPartDone = true;
+                                start = index + 1;
+                                length = 0;
+                            }
+                            else
+                            {
+                                length++;
+                            }
+                            break;
+                        case ' ':
+                            if (keyPartDone && length == 0)
+                            {
+                                start = index + 1;
+                            }
+                            else
+                            {
+                                length++;
+                            }
+                            break;
+                        case '\r':
+                        case '\n':
+                            if (keyPartDone)
+                            {
+#if NETSTANDARD2_0
+                                var value = new String(chars.Slice(start, length).ToArray());
+#else
+                                var value = chars.Slice(start, length).ToString();
+#endif
+                                if (headers.TryGetValue(key, out IList<string> values))
+                                {
+                                    values.Add(value);
+                                }
+                                else
+                                {
+                                    values = new List<string>();
+                                    values.Add(value);
+                                    headers.Add(key, values);
+                                }
+                                key = null;
+                                keyPartDone = false;
+                            }
+                            start = index + 1;
+                            length = 0;
+                            break;
+                        default:
+                            length++;
+                            break;
+                    }
+                }
+            }
+            return (declarations, headers);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static HttpRequestHeader ReadHeader(ReadOnlyMemory<byte> buffer, int position, int length)
+        {
+#if NETSTANDARD2_0
+            var chars = encoding.GetChars(buffer.Span.Slice(0, position).ToArray());
+            var charsLength = chars.Length;
+#else
+            var chars = BufferArrayPool<char>.Rent(encoding.GetMaxCharCount(position));
+            try
+            {
+                var charsLength = encoding.GetChars(buffer.Span.Slice(0, position), chars.AsSpan());
+#endif
+                (var declarations, var headers) = ParseHeaders(chars.AsSpan().Slice(0, charsLength));
+
+                if (declarations.Count == 0 || headers.Count == 0)
+                    throw new Exception("Invalid Header");
+
+                var headerInfo = new HttpRequestHeader()
+                {
+                    Declarations = declarations,
+                    Headers = headers
+                };
+
+                headerInfo.IsError = declarations[0].StartsWith(serverErrorResponse);
+
+                if (headers.TryGetValue(contentTypeHeader, out IList<string> contentTypeHeaderValue))
+                    if (String.Equals(contentTypeHeaderValue[0], contentTypeBytes, StringComparison.InvariantCultureIgnoreCase))
+                        headerInfo.ContentType = ContentType.Bytes;
+                    else if (String.Equals(contentTypeHeaderValue[0], contentTypeJson, StringComparison.InvariantCultureIgnoreCase))
+                        headerInfo.ContentType = ContentType.Json;
+                    else if (String.Equals(contentTypeHeaderValue[0], contentTypeJsonNameless, StringComparison.InvariantCultureIgnoreCase))
+                        headerInfo.ContentType = ContentType.JsonNameless;
+                    else
+                        throw new Exception("Invalid Header");
+
+                if (headers.TryGetValue(contentLengthHeader, out IList<string> contentLengthHeaderValue))
+                    if (int.TryParse(contentLengthHeaderValue[0], out int contentLengthHeaderValueParsed))
+                        headerInfo.ContentLength = contentLengthHeaderValueParsed;
+
+                if (headers.TryGetValue(transferEncodingHeader, out IList<string> transferEncodingHeaderValue))
+                    if (transferEncodingHeaderValue[0] == transferEncodingChunked)
+                        headerInfo.Chuncked = true;
+
+                if (headers.TryGetValue(providerTypeHeader, out IList<string> providerTypeHeaderValue))
+                    headerInfo.ProviderType = providerTypeHeaderValue[0];
+
+                if (headers.TryGetValue(originHeader, out IList<string> originHeaderValue))
+                    headerInfo.Origin = originHeaderValue[0];
+
+                if (declarations.Count > 0 && declarations[0] == optionsHeader)
+                    headerInfo.Preflight = true;
+
+                if (headers.TryGetValue(RelayServiceHeader, out IList<string> relayServiceHeaderValue))
+                    if (relayServiceHeaderValue[0] == RelayServiceAdd)
+                        headerInfo.RelayServiceAddRemove = true;
+                    else if (relayServiceHeaderValue[0] == RelayServiceRemove)
+                        headerInfo.RelayServiceAddRemove = false;
+
+                if (headers.TryGetValue(RelayKeyHeader, out IList<string> relayKeyHeaderValue))
+                    headerInfo.RelayKey = relayKeyHeaderValue[0];
+
+                headerInfo.BodyStartBuffer = buffer.Slice(position, length - position);
+
+                return headerInfo;
+#if !NETSTANDARD2_0
+            }
+            finally
+            {
+                BufferArrayPool<char>.Return(chars);
+            }
+#endif
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe bool ReadToHeaderEnd(Memory<byte> buffer, ref int position, int length)
+        {
+            var headerEndSequence = 0;
+            fixed (byte* pHeaderBuffer = buffer.Span)
+            {
+                while (position < length)
+                {
+                    var b = pHeaderBuffer[position];
+                    if (b == (headerEndSequence % 2 == 0 ? '\r' : '\n'))
+                        headerEndSequence++;
+                    else
+                        headerEndSequence = b == '\r' ? 1 : 0;
+
+                    if (headerEndSequence == 4)
+                    {
+                        position++;
+                        return true;
+                    }
+                    position++;
+                }
+            }
+            position -= 3; //back off minimum for reattempt
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe bool ReadToBreak(Memory<byte> buffer, ref int position, int length)
+        {
+            var headerEndSequence = 0;
+            fixed (byte* pHeaderBuffer = buffer.Span)
+            {
+                while (position < length)
+                {
+                    var b = pHeaderBuffer[position];
+                    if (b == (headerEndSequence % 2 == 0 ? '\r' : '\n'))
+                        headerEndSequence++;
+                    else
+                        headerEndSequence = b == '\r' ? 1 : 0;
+
+                    if (headerEndSequence == 2)
+                    {
+                        position++;
+                        return true;
+                    }
+                    position++;
+                }
+            }
+            position -= 1; //back off minimum for reattempt
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int BufferPreflight(Memory<byte> buffer, string origin)
+        {
+            var headerBuffer = new ByteWriter(buffer.Span, encoding);
+
+            headerBuffer.Write(okHeaderBytes);
+            headerBuffer.Write(newLineBytes);
+
+            if (!String.IsNullOrWhiteSpace(origin))
+            {
+                var allowOriginBytes = encoding.GetBytes(origin);
+                headerBuffer.Write(corsAllowOriginHeadersBytes);
+                headerBuffer.Write(allowOriginBytes);
+                headerBuffer.Write(newLineBytes);
+            }
+            else
+            {
+                headerBuffer.Write(corsAllOriginsHeadersBytes);
+            }
+            headerBuffer.Write(corsAllowHeadersBytes);
+
+            headerBuffer.Write(newLineBytes);
+
+            return headerBuffer.Position;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int BufferHeader(Memory<byte> buffer, string providerType, ContentType? contentType, string origin, HttpAuthHeaders authHeaders)
+        {
+            var headerBuffer = new ByteWriter(buffer.Span, encoding);
+
+            headerBuffer.Write(okHeaderBytes);
+            headerBuffer.Write(newLineBytes);
+
+            if (!String.IsNullOrWhiteSpace(providerType))
+            {
+                var providerTypeBytes = encoding.GetBytes(providerType);
+                headerBuffer.Write(providerTypeHeaderBytes);
+                headerBuffer.Write(providerTypeBytes);
+                headerBuffer.Write(newLineBytes);
+            }
+
+            if (contentType.HasValue)
+            {
+                switch (contentType.Value)
+                {
+                    case ContentType.Bytes:
+                        headerBuffer.Write(contentTypeBytesHeaderBytes);
+                        break;
+                    case ContentType.Json:
+                        headerBuffer.Write(contentTypeJsonHeaderBytes);
+                        break;
+                    case ContentType.JsonNameless:
+                        headerBuffer.Write(contentTypeJsonNamelessHeaderBytes);
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
+                headerBuffer.Write(newLineBytes);
+            }
+
+            if (authHeaders != null)
+            {
+                foreach (var authHeader in authHeaders)
+                {
+                    foreach (var authHeaderValue in authHeader.Value)
+                    {
+                        headerBuffer.Write(encoding.GetBytes(authHeader.Key));
+                        headerBuffer.Write(headerSplitBytes);
+                        headerBuffer.Write(encoding.GetBytes(authHeaderValue));
+                        headerBuffer.Write(newLineBytes);
+                    }
+                }
+            }
+
+            if (!String.IsNullOrWhiteSpace(origin))
+            {
+                var allowOriginBytes = encoding.GetBytes(origin);
+                headerBuffer.Write(corsAllowOriginHeadersBytes);
+                headerBuffer.Write(allowOriginBytes);
+                headerBuffer.Write(newLineBytes);
+            }
+            else
+            {
+                headerBuffer.Write(corsAllOriginsHeadersBytes);
+                headerBuffer.Write(newLineBytes);
+            }
+            headerBuffer.Write(corsAllowHeadersBytes);
+            headerBuffer.Write(newLineBytes);
+
+            headerBuffer.Write(transferEncodingChunckedBytes);
+            headerBuffer.Write(newLineBytes);
+            headerBuffer.Write(newLineBytes);
+
+            return headerBuffer.Position;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int BufferErrorHeader(Memory<byte> buffer, string origin)
+        {
+            var headerBuffer = new ByteWriter(buffer.Span, encoding);
+
+            headerBuffer.Write(serverErrorHeaderBytes);
+            headerBuffer.Write(newLineBytes);
+
+            if (!String.IsNullOrWhiteSpace(origin))
+            {
+                var allowOriginBytes = encoding.GetBytes(origin);
+                headerBuffer.Write(corsAllowOriginHeadersBytes);
+                headerBuffer.Write(allowOriginBytes);
+                headerBuffer.Write(newLineBytes);
+            }
+            else
+            {
+                headerBuffer.Write(corsAllOriginsHeadersBytes);
+                headerBuffer.Write(newLineBytes);
+            }
+            headerBuffer.Write(corsAllowHeadersBytes);
+            headerBuffer.Write(newLineBytes);
+
+            headerBuffer.Write(transferEncodingChunckedBytes);
+            headerBuffer.Write(newLineBytes);
+            headerBuffer.Write(newLineBytes);
+
+            return headerBuffer.Position;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int BufferOkHeader(Memory<byte> buffer)
+        {
+            var headerBuffer = new ByteWriter(buffer.Span, encoding);
+
+            headerBuffer.Write(okHeaderBytes);
+            headerBuffer.Write(newLineBytes);
+            headerBuffer.Write(newLineBytes);
+
+            return headerBuffer.Position;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int BufferNotFoundHeader(Memory<byte> buffer)
+        {
+            var headerBuffer = new ByteWriter(buffer.Span, encoding);
+
+            headerBuffer.Write(notFoundHeaderBytes);
+            headerBuffer.Write(newLineBytes);
+            headerBuffer.Write(newLineBytes);
+
+            return headerBuffer.Position;
+        }
+    }
+}

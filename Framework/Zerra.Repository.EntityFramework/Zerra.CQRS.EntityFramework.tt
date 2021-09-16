@@ -1,0 +1,960 @@
+<#@ template language="C#" debug="true" hostspecific="true" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Data" #>
+<#@ assembly name="System.Data.Linq" #>
+<#@ assembly name="System.Xml" #>
+<#@ assembly name="System.Xml.Linq" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.Diagnostics" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Xml" #>
+<#@ import namespace="System.Xml.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+
+<# 
+	//(project path);
+	//------------------------------------------
+	//LoadFiles("BART.Data.EntityFramework");
+
+	//(project path, sub directory, namespace, model namespace);
+	//------------------------------------------
+	//GenerateInterfaces("BART.Data", "Repository", "BART.Data.Repository");
+	//GenerateNameDictionary("BART.Data.EntityFramework", null, "BART.Data.EntityFramework");
+	//GenerateModels("BART.Data", "Repository", "BART.Data");
+	//GenerateDomainModels("BART.Data", null, "BART.Data");
+	//GenerateProviders("BART.Data.EntityFramework", null, "BART.Data.EntityFramework", "BART.Data");
+	//GenerateEncryptionProviders("BART.Data.Layers", null, "BART.Data.Layers");
+	//GenerateCompressionProviders("BART.Data.Layers", null, "BART.Data.Layers");
+	//GenerateProviderShortcuts("BART.Data", null, "BART.Data");
+	//GenerateProviderRules("BART.Data.Domain.Rules", null, "BART.Data.Domain.Rules");
+	//GenerateProviderDomain("BART.Data.EntityFramework", null, "BART.Data.Repository.EntityFramework", "BART.Data.Repository");
+	//GenerateProviderDomainFiles("BART.Data.Domain", "Repository", "BART.Data.Repository.Domain", "BART.Data.Repository");
+#>
+//Generated (having the default output file prevents error message)
+<#+
+#>
+<#+
+
+	string modelNameSuffix = "DTO";
+	string domainModelNameSuffix = "DTO";
+	string domainProviderSuffix = "DTORepositoryProvider";
+	string domainQueryProviderSuffix = "DTORepositoryQueryProvider";
+	string domainCommandProviderSuffix = "DTORepositoryCommandProvider";
+	string providerQueryProviderSuffix = "DTOQueryProvider";
+	string providerPersistProviderSuffix = "DTOPersistProvider";
+
+	//Custom table renaming
+	string FilterName(string name)
+	{
+		return name.Replace("tbl", String.Empty);
+    }
+
+	string[] files = null;
+	void LoadFiles(string projectPath)
+	{
+		string filePath = string.IsNullOrEmpty(projectPath) ? Path.GetDirectoryName(Host.TemplateFile) : (Directory.GetParent(Path.GetDirectoryName(Host.TemplateFile)).FullName + "\\" + projectPath);
+		files = Directory.GetFiles(filePath, "*.edmx");
+	}
+
+	void GenerateInterfaces(string projectPath, string outputDirectory, string namespaceString)
+	{
+#>using Zerra;
+
+namespace <#=namespaceString#>
+{
+<#+
+
+		foreach (string file in files)
+		{
+			XDocument xd = XDocument.Load(file);
+			string nSpaceEdmx = "http://schemas.microsoft.com/ado/2009/11/edmx";
+			string nSpaceEdm = "http://schemas.microsoft.com/ado/2009/11/edm";
+			XName xnameRuntime = XName.Get("Runtime", nSpaceEdmx);
+			XName xnameConceptualModels = XName.Get("ConceptualModels", nSpaceEdmx);
+			XName xnameEntityContainer = XName.Get("EntityContainer", nSpaceEdm);
+			XName xnameSchema = XName.Get("Schema", nSpaceEdm);
+			XName xnameEntityType = XName.Get("EntityType", nSpaceEdm);
+
+			XElement root = xd.Root.Element(xnameRuntime).Element(xnameConceptualModels).Element(xnameSchema);
+			//string contextName = root.Element(xnameEntityContainer).Attribute("Name").Value;
+
+			foreach (XElement nodeEntity in root.Elements(xnameEntityType))
+			{
+				string entityName = nodeEntity.Attribute("Name").Value;
+				string modelName = FilterName(nodeEntity.Attribute("Name").Value) + modelNameSuffix;
+				string queryInterfaceName = "I" + FilterName(nodeEntity.Attribute("Name").Value) + providerQueryProviderSuffix;
+				string commandInterfaceName = "I" + FilterName(nodeEntity.Attribute("Name").Value) + providerPersistProviderSuffix;
+
+				if (Char.IsDigit(modelName[0]))
+					modelName = "_" + modelName;
+					
+#>
+	public partial interface <#= queryInterfaceName #> : IQueryProvider<<#= modelName #>> { }
+	public partial interface <#= commandInterfaceName #> : IPersistProvider<<#= modelName #>> { }
+<#+ 
+
+				
+  			}
+		}
+
+#>
+}
+<#+ 
+
+		SaveOutput(projectPath, outputDirectory, "IProvidersGenerated.cs", true);
+	}
+	
+	void GenerateModels(string projectPath, string outputDirectory, string namespaceString)
+	{
+		#>
+using System;
+using System.Collections.Generic;
+using Zerra;
+
+namespace <#=namespaceString#>
+{
+<#+
+
+		foreach (string file in files)
+		{
+			XDocument xd = XDocument.Load(file);
+			string nSpaceEdmx = "http://schemas.microsoft.com/ado/2009/11/edmx";
+			string nSpaceEdm = "http://schemas.microsoft.com/ado/2009/11/edm";
+			string nSpaceAnnotation = "http://schemas.microsoft.com/ado/2009/02/edm/annotation";
+			XName xnameRuntime = XName.Get("Runtime", nSpaceEdmx);
+			XName xnameSchema = XName.Get("Schema", nSpaceEdm);
+			
+			XName xnameEntityContainer = XName.Get("EntityContainer", nSpaceEdm);
+			XName xnameAssociationSet = XName.Get("AssociationSet", nSpaceEdm);
+
+			XName xnameConceptualModels = XName.Get("ConceptualModels", nSpaceEdmx);
+			XName xnameEntityType = XName.Get("EntityType", nSpaceEdm);
+			XName xnameProperty = XName.Get("Property", nSpaceEdm);
+			XName xnameNavigationProperty = XName.Get("NavigationProperty", nSpaceEdm);
+			XName xnameStoreGeneratedPattern = XName.Get("StoreGeneratedPattern", nSpaceAnnotation);
+			XName xnameKey = XName.Get("Key", nSpaceEdm);
+			XName xnamePropertyRef = XName.Get("PropertyRef", nSpaceEdm);
+			XName xnameAssociation = XName.Get("Association", nSpaceEdm);
+			XName xnameAssociationEnd = XName.Get("End", nSpaceEdm);
+			XName xnameAssociationReferentialConstraint = XName.Get("ReferentialConstraint", nSpaceEdm);
+			XName xnameAssociationDependent = XName.Get("Dependent", nSpaceEdm);
+			XName xnameAssociationPrincipal = XName.Get("Principal", nSpaceEdm);
+			XName xnameAssociationPropertyRef = XName.Get("PropertyRef", nSpaceEdm);
+			
+
+			XElement root = xd.Root.Element(xnameRuntime).Element(xnameConceptualModels).Element(xnameSchema);
+
+			foreach (XElement nodeEntity in root.Elements(xnameEntityType))
+			{
+				string entityName = nodeEntity.Attribute("Name").Value;
+				string modelName = FilterName(entityName) + modelNameSuffix;
+
+				if (Char.IsDigit(modelName[0]))
+						modelName = "_" + modelName;
+					
+#>
+	[DataSourceEntity("<#= entityName #>")]
+	public partial class <#= modelName #>
+	{
+<#+				Dictionary<string, int> usedPropertyNames = new Dictionary<string, int>();
+				usedPropertyNames.Add(entityName, 0);
+				foreach (XElement property in nodeEntity.Elements(xnameProperty))
+				{
+					string propertyName = FilterName(property.Attribute("Name").Value);
+					if (usedPropertyNames.ContainsKey(propertyName))
+					{
+						usedPropertyNames[propertyName]++;
+						propertyName += usedPropertyNames[propertyName];
+					}
+					else
+					{
+						usedPropertyNames.Add(propertyName, 1);
+					}
+					if (Char.IsDigit(propertyName[0]))
+						propertyName = "_" + propertyName;
+
+					bool isAutoGenerated = property.Attribute(xnameStoreGeneratedPattern) != null ? property.Attribute(xnameStoreGeneratedPattern).Value != "None" : false;
+
+					bool isIdentity = false;
+					foreach(XElement nodeKey in nodeEntity.Element(xnameKey).Elements(xnamePropertyRef))
+					{
+						XAttribute keyNameAttribute = nodeKey.Attribute("Name");
+						if (keyNameAttribute.Value == property.Attribute("Name").Value)
+							isIdentity = true;
+                    }
+
+					string type = property.Attribute("Type").Value;
+					if (type == "Binary")
+						 type = "byte[]";
+					if (type == "Time")
+						 type = "TimeSpan";
+					bool canBeNull = property.Attribute("Nullable") != null ? Convert.ToBoolean(property.Attribute("Nullable").Value) : true;
+					bool isNullableType = IsNullableType(Type.GetType("System." + type));
+
+					if (isIdentity){#>
+		[Identity(<#= isAutoGenerated.ToString().ToLower() #>)]
+<#+					}
+#>
+		public <#= type #><#+ if (canBeNull && isNullableType){#>?<#+}#> <#= propertyName #> { get; set; }
+<#+ 
+				}
+
+				foreach (XElement navigationProperty in nodeEntity.Elements(xnameNavigationProperty))
+				{
+					string propertyName = FilterName(navigationProperty.Attribute("Name").Value);
+					if (usedPropertyNames.ContainsKey(propertyName))
+					{
+						usedPropertyNames[propertyName]++;
+						propertyName += usedPropertyNames[propertyName];
+					}
+					else
+					{
+						usedPropertyNames.Add(propertyName, 1);
+					}
+					if (Char.IsDigit(propertyName[0]))
+						propertyName = "_" + propertyName;
+
+					string relationship = navigationProperty.Attribute("Relationship").Value;
+					string relationshipAssociation = relationship.Split('.')[1];
+					string fromRole = navigationProperty.Attribute("FromRole").Value;
+					string toRole = navigationProperty.Attribute("ToRole").Value;
+
+					foreach (XElement nodeAssociation in root.Elements(xnameAssociation))
+					{
+						string association = nodeAssociation.Attribute("Name").Value;
+						if (association == relationshipAssociation)
+						{
+							XElement nodeAssociationEndFrom = null;
+							XElement nodeAssociationEndTo = null;
+							foreach (XElement end in nodeAssociation.Elements(xnameAssociationEnd))
+							{
+								if (end.Attribute("Role").Value == fromRole)
+									nodeAssociationEndFrom = end;
+								else if (end.Attribute("Role").Value == toRole)
+									nodeAssociationEndTo = end;
+							}
+
+							string[] typeSplit = nodeAssociationEndTo.Attribute("Type").Value.Split('.');
+							string type = FilterName(typeSplit[typeSplit.Length - 1]) + modelNameSuffix;
+							bool many = nodeAssociationEndTo.Attribute("Multiplicity").Value == "*";
+
+							string relatedProperty = null;
+
+							XElement referentialConstraints = nodeAssociation.Element(xnameAssociationReferentialConstraint);
+							if (referentialConstraints != null)
+							{
+								XElement principal = referentialConstraints.Element(xnameAssociationPrincipal);
+								XElement dependent = referentialConstraints.Element(xnameAssociationDependent);
+								XElement propertyReference = null;
+
+								if (many) 
+								{
+									if (dependent.Attribute("Role").Value == entityName)
+									{
+										propertyReference = principal.Element(xnameAssociationPropertyRef);
+									}
+									else if (principal.Attribute("Role").Value == entityName)
+									{
+										propertyReference = dependent.Element(xnameAssociationPropertyRef);	
+									}
+								}
+								else
+								{
+									if (principal.Attribute("Role").Value == entityName)
+									{
+										propertyReference = principal.Element(xnameAssociationPropertyRef);
+									}
+									else if (dependent.Attribute("Role").Value == entityName)
+									{
+										propertyReference = dependent.Element(xnameAssociationPropertyRef);	
+									}
+								}
+
+								if (propertyReference != null)
+								{
+									relatedProperty = propertyReference.Attribute("Name").Value;
+								}
+							}
+
+							#>
+<#+ if (relatedProperty != null) { #>		[DataSourceRelation("<#= relatedProperty #>")]
+<#+ }#>
+		public <#+ if (many) { #>IList<<#+ }#><#= type #><#+ if (many) { #>><#+ }#> <#= propertyName #> { get; set; }
+<#+
+
+                        }
+					}
+                }
+					#>
+	}
+
+<#+ 
+				
+  			}
+		}
+
+#>
+}
+<#+
+
+		SaveOutput(projectPath, outputDirectory, "ModelsGenerated.cs", true);
+	}
+
+	void GenerateDomainModels(string projectPath, string outputDirectory, string namespaceString)
+	{
+		foreach (string file in files)
+		{
+			XDocument xd = XDocument.Load(file);
+			string nSpaceEdmx = "http://schemas.microsoft.com/ado/2009/11/edmx";
+			string nSpaceEdm = "http://schemas.microsoft.com/ado/2009/11/edm";
+			string nSpaceAnnotation = "http://schemas.microsoft.com/ado/2009/02/edm/annotation";
+			XName xnameRuntime = XName.Get("Runtime", nSpaceEdmx);
+			XName xnameSchema = XName.Get("Schema", nSpaceEdm);
+			
+			XName xnameEntityContainer = XName.Get("EntityContainer", nSpaceEdm);
+			XName xnameAssociationSet = XName.Get("AssociationSet", nSpaceEdm);
+
+			XName xnameConceptualModels = XName.Get("ConceptualModels", nSpaceEdmx);
+			XName xnameEntityType = XName.Get("EntityType", nSpaceEdm);
+			XName xnameProperty = XName.Get("Property", nSpaceEdm);
+			XName xnameNavigationProperty = XName.Get("NavigationProperty", nSpaceEdm);
+			XName xnameStoreGeneratedPattern = XName.Get("StoreGeneratedPattern", nSpaceAnnotation);
+			XName xnameKey = XName.Get("Key", nSpaceEdm);
+			XName xnamePropertyRef = XName.Get("PropertyRef", nSpaceEdm);
+			XName xnameAssociation = XName.Get("Association", nSpaceEdm);
+			XName xnameAssociationEnd = XName.Get("End", nSpaceEdm);
+			XName xnameAssociationReferentialConstraint = XName.Get("ReferentialConstraint", nSpaceEdm);
+			XName xnameAssociationDependent = XName.Get("Dependent", nSpaceEdm);
+			XName xnameAssociationPrincipal = XName.Get("Principal", nSpaceEdm);
+			XName xnameAssociationPropertyRef = XName.Get("PropertyRef", nSpaceEdm);
+			
+
+			XElement root = xd.Root.Element(xnameRuntime).Element(xnameConceptualModels).Element(xnameSchema);
+
+			foreach (XElement nodeEntity in root.Elements(xnameEntityType))
+			{
+				string entityName = nodeEntity.Attribute("Name").Value;
+				string modelName = FilterName(entityName) + domainModelNameSuffix;
+
+				if (Char.IsDigit(modelName[0]))
+						modelName = "_" + modelName;
+					
+#>
+using System;
+using System.Collections.Generic;
+using System.Runtime.Serialization;
+using Zerra;
+
+namespace <#=namespaceString#>
+{
+	public partial class <#= modelName #>
+	{
+<#+				Dictionary<string, int> usedPropertyNames = new Dictionary<string, int>();
+				usedPropertyNames.Add(entityName, 0);
+				foreach (XElement property in nodeEntity.Elements(xnameProperty))
+				{
+					string propertyName = FilterName(property.Attribute("Name").Value);
+					if (usedPropertyNames.ContainsKey(propertyName))
+					{
+						usedPropertyNames[propertyName]++;
+						propertyName += usedPropertyNames[propertyName];
+					}
+					else
+					{
+						usedPropertyNames.Add(propertyName, 1);
+					}
+					if (Char.IsDigit(propertyName[0]))
+						propertyName = "_" + propertyName;
+
+					string type = property.Attribute("Type").Value;
+					if (type == "Binary")
+						 type = "byte[]";
+					if (type == "Time")
+						 type = "TimeSpan";
+					bool canBeNull = property.Attribute("Nullable") != null ? Convert.ToBoolean(property.Attribute("Nullable").Value) : true;
+					bool isNullableType = IsNullableType(Type.GetType("System." + type));
+
+#>		public <#= type #><#+ if (canBeNull && isNullableType){#>?<#+}#> <#= propertyName #> { get; set; }
+<#+ 
+				}
+
+				foreach (XElement navigationProperty in nodeEntity.Elements(xnameNavigationProperty))
+				{
+					string propertyName = FilterName(navigationProperty.Attribute("Name").Value);
+					if (usedPropertyNames.ContainsKey(propertyName))
+					{
+						usedPropertyNames[propertyName]++;
+						propertyName += usedPropertyNames[propertyName];
+					}
+					else
+					{
+						usedPropertyNames.Add(propertyName, 1);
+					}
+					if (Char.IsDigit(propertyName[0]))
+						propertyName = "_" + propertyName;
+
+					string relationship = navigationProperty.Attribute("Relationship").Value;
+					string relationshipAssociation = relationship.Split('.')[1];
+					string fromRole = navigationProperty.Attribute("FromRole").Value;
+					string toRole = navigationProperty.Attribute("ToRole").Value;
+
+					foreach (XElement nodeAssociation in root.Elements(xnameAssociation))
+					{
+						string association = nodeAssociation.Attribute("Name").Value;
+						if (association == relationshipAssociation)
+						{
+							XElement nodeAssociationEndFrom = null;
+							XElement nodeAssociationEndTo = null;
+							foreach (XElement end in nodeAssociation.Elements(xnameAssociationEnd))
+							{
+								if (end.Attribute("Role").Value == fromRole)
+									nodeAssociationEndFrom = end;
+								else if (end.Attribute("Role").Value == toRole)
+									nodeAssociationEndTo = end;
+							}
+
+							string[] typeSplit = nodeAssociationEndTo.Attribute("Type").Value.Split('.');
+							string type = FilterName(typeSplit[typeSplit.Length - 1]) + domainModelNameSuffix;
+							bool many = nodeAssociationEndTo.Attribute("Multiplicity").Value == "*";
+#>		public <#+ if (many) { #>IList<<#+ }#><#= type #><#+ if (many) { #>><#+ }#> <#= propertyName #> { get; set; }
+<#+
+
+                        }
+					}
+                }	
+					#>
+	}
+}
+<#+ 			
+				SaveOutput(projectPath, outputDirectory, modelName + ".cs", false);
+  			}
+		}
+	}
+
+	void GenerateNameDictionary(string projectPath, string outputDirectory, string namespaceString)
+	{
+#>using Zerra;
+
+namespace <#=namespaceString#>
+{
+	public static class NameDictionary
+	{
+		private static Dictionary<string, string> names = null;
+		public static IDictionary<string, string> Dictionary { get { LoadDictionary(); return names; } }
+
+		public static string SourceToModel(string name)
+		{
+			LoadDictionary();
+			foreach(var key in names.Keys)
+			{
+				if (names[key] == name)
+					return key;
+			}
+			return name;
+		}
+
+		public static string ModelToSource(string name)
+		{
+			LoadDictionary();
+			if (!names.Keys.Contains(name))
+				return name;
+			return names[name];
+		}
+
+		private static void LoadDictionary()
+		{
+			if (names != null)
+				return;
+			names = new Dictionary<string, string>();
+
+<#+ 
+
+		foreach (string file in files)
+		{
+			XDocument xd = XDocument.Load(file);
+			string nSpaceEdmx = "http://schemas.microsoft.com/ado/2009/11/edmx";
+			string nSpaceEdm = "http://schemas.microsoft.com/ado/2009/11/edm";
+			XName xnameRuntime = XName.Get("Runtime", nSpaceEdmx);
+			XName xnameConceptualModels = XName.Get("ConceptualModels", nSpaceEdmx);
+			XName xnameEntityContainer = XName.Get("EntityContainer", nSpaceEdm);
+			XName xnameSchema = XName.Get("Schema", nSpaceEdm);
+			XName xnameEntityType = XName.Get("EntityType", nSpaceEdm);
+			XName xnameAssociation = XName.Get("Association", nSpaceEdm);
+			XName xnameAssociationEnd = XName.Get("End", nSpaceEdm);
+
+			XElement root = xd.Root.Element(xnameRuntime).Element(xnameConceptualModels).Element(xnameSchema);
+			//string contextName = root.Element(xnameEntityContainer).Attribute("Name").Value;
+
+			foreach (XElement nodeEntity in root.Elements(xnameEntityType))
+			{
+				string entityName = nodeEntity.Attribute("Name").Value;
+				string filterName = FilterName(entityName);
+				string modelName = FilterName(entityName) + modelNameSuffix;
+
+				if (Char.IsDigit(modelName[0]))
+					modelName = "_" + modelName;
+					
+#>			if (!names.Keys.Contains("<#= modelName #>")) names.Add("<#= modelName #>", "<#= entityName #>");
+			if (!names.Keys.Contains("<#= filterName #>")) names.Add("<#= filterName #>", "<#= entityName #>");
+<#+ 
+				Dictionary<string, int> usedPropertyNames = new Dictionary<string, int>();
+				foreach (XElement nodeAssociation in root.Elements(xnameAssociation))
+				{
+					XElement nodeAssociationEnd = null;
+					XElement nodeAssociationEndOther = null;
+					foreach (XElement end in nodeAssociation.Elements(xnameAssociationEnd))
+					{
+						if (end.Attribute("Role").Value == entityName)
+							nodeAssociationEnd = end;
+						else
+							nodeAssociationEndOther = end;
+					}
+					if (nodeAssociationEnd != null)
+					{
+						string propertyEntity = nodeAssociationEndOther.Attribute("Role").Value;
+						string property = FilterName(nodeAssociationEndOther.Attribute("Role").Value);
+
+						if (usedPropertyNames.ContainsKey(property))
+						{
+							usedPropertyNames[property]++;
+							propertyEntity += usedPropertyNames[property];
+							property += usedPropertyNames[property];
+						}
+						else
+						{
+							usedPropertyNames.Add(property, 0);
+						}
+
+						if (Char.IsDigit(property[0]))
+							property = "_" + property;
+
+#>			if (!names.Keys.Contains("<#= property #>")) names.Add("<#= property #>", "<#= propertyEntity #>");
+<#+ 
+
+                    }
+                }
+				
+  			}
+		}
+
+#>
+		}
+	}
+}<#+
+
+		SaveOutput(projectPath, outputDirectory, "NameDictionary.cs", true);
+	}
+
+	void GenerateProviders(string projectPath, string outputDirectory, string namespaceString, string modelNamespaceString)
+	{
+		#>
+using <#=modelNamespaceString#>;
+using Zerra;
+
+namespace <#=namespaceString#>
+{
+<#+
+		foreach (string file in files)
+		{
+			XDocument xd = XDocument.Load(file);
+			string nSpaceEdmx = "http://schemas.microsoft.com/ado/2009/11/edmx";
+			string nSpaceEdm = "http://schemas.microsoft.com/ado/2009/11/edm";
+			XName xnameRuntime = XName.Get("Runtime", nSpaceEdmx);
+			XName xnameConceptualModels = XName.Get("ConceptualModels", nSpaceEdmx);
+			XName xnameEntityContainer = XName.Get("EntityContainer", nSpaceEdm);
+			XName xnameSchema = XName.Get("Schema", nSpaceEdm);
+			XName xnameEntityType = XName.Get("EntityType", nSpaceEdm);
+
+			XElement root = xd.Root.Element(xnameRuntime).Element(xnameConceptualModels).Element(xnameSchema);
+			string contextName = root.Element(xnameEntityContainer).Attribute("Name").Value;
+			string baseQueryProviderName = "EntityFrameworkBaseQueryProvider_" + contextName;
+			string baseCommandProviderName = "EntityFrameworkBasePersistProvider_" + contextName;
+
+			foreach (XElement nodeEntity in root.Elements(xnameEntityType))
+			{
+				string entityName = nodeEntity.Attribute("Name").Value;
+				string modelName = FilterName(entityName) + modelNameSuffix;
+				string queryProviderName = FilterName(entityName) + providerQueryProviderSuffix;
+				string commandProviderName = FilterName(entityName) + providerPersistProviderSuffix;
+				string queryInterfaceName = "IQueryProvider<" + FilterName(modelName) + ">";
+				string commandInterfaceName = "IPersistProvider<" + FilterName(modelName) + ">";
+
+				if (Char.IsDigit(queryProviderName[0]))
+					queryProviderName = "_" + queryProviderName;
+				if (Char.IsDigit(commandProviderName[0]))
+					commandProviderName = "_" + commandProviderName;
+				if (Char.IsDigit(modelName[0]))
+					modelName = "_" + modelName;
+					
+#>
+	public class <#= queryProviderName #> : <#= baseQueryProviderName #><<#= modelName #>, <#= entityName #>>, <#= queryInterfaceName #> { }
+	public class <#= commandProviderName #> : <#= baseCommandProviderName #><<#= modelName #>>, <#= commandInterfaceName #> { }
+<#+
+  			}
+
+#>
+
+	public abstract partial class <#= baseQueryProviderName #><TModel, TSource> : EntityFrameworkSqlQueryProvider<<#= contextName #>, TModel, TSource>
+		where TModel : class
+		where TSource : class
+    {
+
+	}
+
+	public abstract partial class <#= baseCommandProviderName #><TModel> : EntityFrameworkSqlPersistProvider<<#= contextName #>, TModel>
+		where TModel : class
+    {
+
+	}
+
+<#+
+		}
+
+#>
+}
+<#+ 
+
+		SaveOutput(projectPath, outputDirectory, "ProvidersGenerated.cs", true);
+	}
+
+	void GenerateEncryptionProviders(string projectPath, string outputDirectory, string namespaceString)
+	{
+#>using Zerra;
+
+namespace <#=namespaceString#>
+{
+<#+
+		foreach (string file in files)
+		{
+			XDocument xd = XDocument.Load(file);
+			string nSpaceEdmx = "http://schemas.microsoft.com/ado/2009/11/edmx";
+			string nSpaceEdm = "http://schemas.microsoft.com/ado/2009/11/edm";
+			XName xnameRuntime = XName.Get("Runtime", nSpaceEdmx);
+			XName xnameConceptualModels = XName.Get("ConceptualModels", nSpaceEdmx);
+			XName xnameEntityContainer = XName.Get("EntityContainer", nSpaceEdm);
+			XName xnameSchema = XName.Get("Schema", nSpaceEdm);
+			XName xnameEntityType = XName.Get("EntityType", nSpaceEdm);
+
+			XElement root = xd.Root.Element(xnameRuntime).Element(xnameConceptualModels).Element(xnameSchema);
+			string contextName = root.Element(xnameEntityContainer).Attribute("Name").Value;
+			string baseProviderName = "EntityFrameworkBaseProvider_" + contextName;
+
+			foreach (XElement nodeEntity in root.Elements(xnameEntityType))
+			{
+				string entityName = nodeEntity.Attribute("Name").Value;
+				string modelName = FilterName(entityName) + modelNameSuffix;
+				string providerQueryName = FilterName(entityName) + "EncryptionQueryProvider";
+				string providerCommandName = FilterName(modelName) + "EncryptionCommandProvider";
+				string interfaceQueryName = "I" + FilterName(modelName) + "QueryProvider";
+				string interfaceCommandName = "I" + FilterName(modelName) + "CommandProvider";
+
+				if (Char.IsDigit(providerQueryName[0]))
+					providerQueryName = "_" + providerQueryName;
+				if (Char.IsDigit(providerCommandName[0]))
+					providerCommandName = "_" + providerCommandName;
+				if (Char.IsDigit(modelName[0]))
+					modelName = "_" + modelName;
+					
+#>
+	public partial class <#= providerQueryName #> : BaseQueryEncryptionProvider<<#= interfaceQueryName #>, <#= modelName #>>, <#= interfaceQueryName #> { }
+	public partial class <#= providerCommandName #> : BaseCommandEncryptionProvider<<#= interfaceCommandName #>, <#= modelName #>>, <#= interfaceCommandName #> { }
+<#+
+  			}
+
+#>
+<#+
+		}
+
+#>
+}
+<#+ 
+
+		SaveOutput(projectPath, outputDirectory, "ProviderEncryptionsGenerated.cs", true);
+	}
+
+	void GenerateCompressionProviders(string projectPath, string outputDirectory, string namespaceString)
+	{
+#>using Zerra;
+
+namespace <#=namespaceString#>
+{
+<#+
+		foreach (string file in files)
+		{
+			XDocument xd = XDocument.Load(file);
+			string nSpaceEdmx = "http://schemas.microsoft.com/ado/2009/11/edmx";
+			string nSpaceEdm = "http://schemas.microsoft.com/ado/2009/11/edm";
+			XName xnameRuntime = XName.Get("Runtime", nSpaceEdmx);
+			XName xnameConceptualModels = XName.Get("ConceptualModels", nSpaceEdmx);
+			XName xnameEntityContainer = XName.Get("EntityContainer", nSpaceEdm);
+			XName xnameSchema = XName.Get("Schema", nSpaceEdm);
+			XName xnameEntityType = XName.Get("EntityType", nSpaceEdm);
+
+			XElement root = xd.Root.Element(xnameRuntime).Element(xnameConceptualModels).Element(xnameSchema);
+			string contextName = root.Element(xnameEntityContainer).Attribute("Name").Value;
+			string baseProviderName = "EntityFrameworkBaseProvider_" + contextName;
+
+			foreach (XElement nodeEntity in root.Elements(xnameEntityType))
+			{
+				string entityName = nodeEntity.Attribute("Name").Value;
+				string modelName = FilterName(entityName) + modelNameSuffix;
+				string providerQueryName = FilterName(entityName) + "CompressionQueryProvider";
+				string providerCommandName = FilterName(modelName) + "CompressionCommandProvider";
+				string interfaceQueryName = "I" + FilterName(modelName) + "QueryProvider";
+				string interfaceCommandName = "I" + FilterName(modelName) + "CommandProvider";
+
+				if (Char.IsDigit(providerQueryName[0]))
+					providerQueryName = "_" + providerQueryName;
+				if (Char.IsDigit(providerCommandName[0]))
+					providerCommandName = "_" + providerCommandName;
+				if (Char.IsDigit(modelName[0]))
+					modelName = "_" + modelName;
+					
+#>
+	public partial class <#= providerQueryName #> : BaseQueryCompressionProvider<<#= interfaceQueryName #>, <#= modelName #>>, <#= interfaceQueryName #> { }
+	public partial class <#= providerCommandName #> : BaseCommandCompressionProvider<<#= interfaceCommandName #>, <#= modelName #>>, <#= interfaceCommandName #> { }
+<#+
+  			}
+
+#>
+<#+
+		}
+
+#>
+}
+<#+ 
+
+		SaveOutput(projectPath, outputDirectory, "ProviderCompressionsGenerated.cs", true);
+	}
+
+	void GenerateProviderShortcuts(string projectPath, string outputDirectory, string namespaceString)
+	{
+#>using System;
+using Zerra;
+
+namespace <#=namespaceString#>
+{
+<#+ 
+		foreach (string file in files)
+		{
+			XDocument xd = XDocument.Load(file);
+			string nSpaceEdmx = "http://schemas.microsoft.com/ado/2009/11/edmx";
+			string nSpaceEdm = "http://schemas.microsoft.com/ado/2009/11/edm";
+			XName xnameRuntime = XName.Get("Runtime", nSpaceEdmx);
+			XName xnameConceptualModels = XName.Get("ConceptualModels", nSpaceEdmx);
+			XName xnameEntityContainer = XName.Get("EntityContainer", nSpaceEdm);
+			XName xnameSchema = XName.Get("Schema", nSpaceEdm);
+			XName xnameEntityType = XName.Get("EntityType", nSpaceEdm);
+
+			XElement root = xd.Root.Element(xnameRuntime).Element(xnameConceptualModels).Element(xnameSchema);
+			//string contextName = root.Element(xnameEntityContainer).Attribute("Name").Value;
+
+			foreach (XElement nodeEntity in root.Elements(xnameEntityType))
+			{
+				string entityName = nodeEntity.Attribute("Name").Value;
+				string modelName = FilterName(entityName) + modelNameSuffix;
+				string shortcutName = FilterName(entityName);
+				string queryInterfaceName = "I" + FilterName(entityName) + providerQueryProviderSuffix;
+				string commandInterfaceName = "I" + FilterName(entityName) + providerPersistProviderSuffix;
+					
+#>
+	public static partial class Q { public static <#= queryInterfaceName #> <#= shortcutName #> { get { return Providers.Get<<#= queryInterfaceName #>>(true); } } }	
+	public static partial class Q_NoRules { public static <#= queryInterfaceName #> <#= shortcutName #> { get { return Providers.Get<<#= queryInterfaceName #>>(Providers.GetProviderInterfaceAfter(typeof(Zerra.IRuleProvider)), true, true); } } }
+<#+ 
+  			}
+		}
+#>
+}
+<#+
+
+		SaveOutput(projectPath, outputDirectory, "ProviderShortcutsGenerated.cs", true);
+	}
+
+	void GenerateProviderRules(string projectPath, string outputDirectory, string namespaceString)
+	{
+		foreach (string file in files)
+		{
+			XDocument xd = XDocument.Load(file);
+			string nSpaceEdmx = "http://schemas.microsoft.com/ado/2009/11/edmx";
+			string nSpaceEdm = "http://schemas.microsoft.com/ado/2009/11/edm";
+			XName xnameRuntime = XName.Get("Runtime", nSpaceEdmx);
+			XName xnameConceptualModels = XName.Get("ConceptualModels", nSpaceEdmx);
+			XName xnameEntityContainer = XName.Get("EntityContainer", nSpaceEdm);
+			XName xnameSchema = XName.Get("Schema", nSpaceEdm);
+			XName xnameEntityType = XName.Get("EntityType", nSpaceEdm);
+
+			XElement root = xd.Root.Element(xnameRuntime).Element(xnameConceptualModels).Element(xnameSchema);
+
+			foreach (XElement nodeEntity in root.Elements(xnameEntityType))
+			{
+				string entityName = nodeEntity.Attribute("Name").Value;
+				string modelName = FilterName(entityName) + modelNameSuffix;
+				string shortcutName = FilterName(entityName);
+				string interfaceName = "I" + FilterName(entityName) + "Provider";
+				string className = FilterName(entityName) + "RuleProvider";
+					
+#>
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Zerra;
+using <#=namespaceString.Replace("Rules","Data")#>;
+
+namespace <#=namespaceString#>
+{
+	public class <#= className #> : BaseGraphRuleProvider<<#= interfaceName #>, <#= modelName #>>, <#= interfaceName #>
+	{
+
+	}
+}
+<#+				SaveOutput(projectPath, outputDirectory, className + ".cs", false);
+            }
+        }
+	}
+
+	void GenerateProviderDomain(string projectPath, string outputDirectory, string namespaceString, string modelNamespaceString)
+	{
+		#>
+using <#=modelNamespaceString#>;
+using Zerra;
+
+namespace <#=namespaceString#>
+{
+<#+	
+		foreach (string file in files)
+		{
+			XDocument xd = XDocument.Load(file);
+			string nSpaceEdmx = "http://schemas.microsoft.com/ado/2009/11/edmx";
+			string nSpaceEdm = "http://schemas.microsoft.com/ado/2009/11/edm";
+			XName xnameRuntime = XName.Get("Runtime", nSpaceEdmx);
+			XName xnameConceptualModels = XName.Get("ConceptualModels", nSpaceEdmx);
+			XName xnameEntityContainer = XName.Get("EntityContainer", nSpaceEdm);
+			XName xnameSchema = XName.Get("Schema", nSpaceEdm);
+			XName xnameEntityType = XName.Get("EntityType", nSpaceEdm);
+
+			XElement root = xd.Root.Element(xnameRuntime).Element(xnameConceptualModels).Element(xnameSchema);
+
+			foreach (XElement nodeEntity in root.Elements(xnameEntityType))
+			{
+				string entityName = nodeEntity.Attribute("Name").Value;
+				string modelName = FilterName(entityName) + modelNameSuffix;
+				string shortcutName = FilterName(entityName);
+				string queryBaseInterfaceName = "IQueryProvider<" + FilterName(entityName) + modelNameSuffix + ">";
+				string commandBaseInterfaceName = "IPersistProvider<" + FilterName(entityName) + modelNameSuffix + ">";
+				string queryInterfaceName = "I" + FilterName(entityName) + providerQueryProviderSuffix;
+				string commandInterfaceName = "I" + FilterName(entityName) + providerPersistProviderSuffix;
+				string className = FilterName(entityName) + domainProviderSuffix;
+				string queryClassName = FilterName(entityName) + domainQueryProviderSuffix;
+				string commandClassName = FilterName(entityName) + domainCommandProviderSuffix;
+					
+#>
+	public partial class <#= queryClassName #> : BaseQueryDomainProvider<<#= queryBaseInterfaceName #>, <#= modelName #>>, <#= queryInterfaceName #> { }
+	public partial class <#= commandClassName #> : BaseCommandDomainProvider<<#= commandBaseInterfaceName #>, <#= modelName #>>, <#= commandInterfaceName #> { }
+<#+				
+            }
+#>
+}
+<#+	
+			SaveOutput(projectPath, outputDirectory, "ProviderDomainGenerated.cs", true);
+        }
+	}
+
+	void GenerateProviderDomainFiles(string projectPath, string outputDirectory, string namespaceString, string modelNamespaceString)
+	{
+		foreach (string file in files)
+		{
+			XDocument xd = XDocument.Load(file);
+			string nSpaceEdmx = "http://schemas.microsoft.com/ado/2009/11/edmx";
+			string nSpaceEdm = "http://schemas.microsoft.com/ado/2009/11/edm";
+			XName xnameRuntime = XName.Get("Runtime", nSpaceEdmx);
+			XName xnameConceptualModels = XName.Get("ConceptualModels", nSpaceEdmx);
+			XName xnameEntityContainer = XName.Get("EntityContainer", nSpaceEdm);
+			XName xnameSchema = XName.Get("Schema", nSpaceEdm);
+			XName xnameEntityType = XName.Get("EntityType", nSpaceEdm);
+
+			XElement root = xd.Root.Element(xnameRuntime).Element(xnameConceptualModels).Element(xnameSchema);
+
+			foreach (XElement nodeEntity in root.Elements(xnameEntityType))
+			{
+				string entityName = nodeEntity.Attribute("Name").Value;
+				string modelName = FilterName(entityName) + modelNameSuffix;
+				string shortcutName = FilterName(entityName);
+				string queryBaseInterfaceName = "IQueryProvider<" + FilterName(entityName) + "Model>";
+				string commandBaseInterfaceName = "IPersistProvider<" + FilterName(entityName) + "Model>";
+				string queryInterfaceName = "I" + FilterName(entityName) + providerQueryProviderSuffix;
+				string commandInterfaceName = "I" + FilterName(entityName) + providerPersistProviderSuffix;
+				string className = FilterName(entityName) + domainProviderSuffix;
+				string queryClassName = FilterName(entityName) + domainQueryProviderSuffix;
+				string commandClassName = FilterName(entityName) + domainCommandProviderSuffix;
+					
+#>using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Zerra;
+
+namespace <#=namespaceString#>
+{
+	public partial class <#= queryClassName #> : <#= queryInterfaceName #>
+	{
+
+	}
+
+	public partial class <#= commandClassName #> : <#= commandInterfaceName #>
+	{
+		
+	}
+}
+<#+				SaveOutput(projectPath, outputDirectory, className + ".cs", false);
+            }
+        }
+	}
+
+	void SaveOutput(string projectPath, string outputDirectory, string outputFileName, bool overwrite)
+	{
+		string root = string.IsNullOrEmpty(projectPath) ? Path.GetDirectoryName(Host.TemplateFile) : (Directory.GetParent(Path.GetDirectoryName(Host.TemplateFile)).FullName + "\\" + projectPath);
+		string templateDirectory = root + (!string.IsNullOrEmpty(outputDirectory) ? "\\" + outputDirectory : null);
+
+		if (!Directory.Exists(templateDirectory))
+			Directory.CreateDirectory(templateDirectory);
+
+		string outputFilePath = Path.Combine(templateDirectory, outputFileName);
+
+		if (overwrite || !File.Exists(outputFilePath))
+			File.WriteAllText(outputFilePath, this.GenerationEnvironment.ToString()); 
+		
+		this.GenerationEnvironment.Remove(0, this.GenerationEnvironment.Length);
+	}
+
+	bool IsNullableType(Type type)
+	{
+		Type[] types = new Type[]
+            {
+				typeof(bool),
+				typeof(char),
+				typeof(DateTime),
+				typeof(TimeSpan),
+				typeof(Guid),
+                typeof(byte),
+                typeof(sbyte),
+                typeof(short),
+                typeof(ushort),
+                typeof(int),
+                typeof(uint),
+                typeof(long),
+                typeof(ulong),
+                typeof(float),
+                typeof(double),
+                typeof(decimal),
+            };
+		foreach (Type t in types)
+		{
+			if (t == type)
+				return true;
+		}
+		return false;
+	}
+#>

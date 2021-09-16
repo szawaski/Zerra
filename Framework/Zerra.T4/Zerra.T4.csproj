@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <Authors>Steven Zawaski</Authors>
+    <Copyright>KaKush LLC</Copyright>
+    <Product>Zerra Framework CQRS T4</Product>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <LangVersion>8.0</LangVersion>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Company>KaKush LLC</Company>
+    <Description>Tools for T4 files to use to generate code and client side libraries for CQRS.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="SqlFirst\ProvidersBase.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE.txt">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="SqlFirst\ProvidersBase.cs" />
+  </ItemGroup>
+
+</Project>

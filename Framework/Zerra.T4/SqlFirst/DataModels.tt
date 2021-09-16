@@ -1,0 +1,9 @@
+<#@ template language="C#" debug="false" hostspecific="true" #>
+<#@ assembly name="Zerra.T4\bin\Debug\net48\Zerra.T4.dll" #>
+<#
+	const string connectionString = "data source=.;initial catalog=KaKush;integrated security=True;MultipleActiveResultSets=True;";
+	const string namespaceString = "KaKush.Domain.DataModels";
+	const string modelSuffix = "DTO";
+	var result = Zerra.T4.SqlFirst.GenerateModels(connectionString, namespaceString, modelSuffix);
+	#><#=result#><#
+#>

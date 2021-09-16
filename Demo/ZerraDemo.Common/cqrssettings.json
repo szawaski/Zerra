@@ -1,0 +1,50 @@
+{
+  "MessageHost": "",
+  "RelayUrl": "localhost:9999",
+  "RelayKey": "NL7tS9qddItOUHgjDneK3J9yoAkpvMhAcdeXQz7Xb6StvxcCAtJpm",
+  "Services": [
+    {
+      "Name": "ZerraDemo.Web"
+    },
+    {
+      "Name": "ZerraDemo.Service.Pets",
+      "ExternalUrl": "host.docker.internal:9001",
+      "EncryptionKey": "SecretTransportKey",
+      "Types": [
+        "IPetsQueryProvider",
+        "IPetsCommandHandler"
+      ],
+      "InstantiateTypes": []
+    },
+    {
+      "Name": "ZerraDemo.Service.Weather",
+      "ExternalUrl": "host.docker.internal:9002",
+      "EncryptionKey": "SecretTransportKey",
+      "Types": [
+        "IWeatherQueryProvider",
+        "IWeatherCommandHandler"
+      ],
+      "InstantiateTypes": []
+    },
+    {
+      "Name": "ZerraDemo.Service.Ledger1",
+      "ExternalUrl": "host.docker.internal:9003",
+      "EncryptionKey": "SecretTransportKey",
+      "Types": [
+        "ILedger1QueryProvider",
+        "ILedger1CommandHandler"
+      ],
+      "InstantiateTypes": []
+    },
+    {
+      "Name": "ZerraDemo.Service.Ledger2",
+      "ExternalUrl": "host.docker.internal:9004",
+      "EncryptionKey": "SecretTransportKey",
+      "Types": [
+        "ILedger2QueryProvider",
+        "ILedger2CommandHandler"
+      ],
+      "InstantiateTypes": []
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+﻿const BusRoutes = {
+    "Gateway": null
+};

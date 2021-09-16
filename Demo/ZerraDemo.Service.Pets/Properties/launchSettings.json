@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "ZerraDemo.Service.Pets": {
+      "commandName": "Project"
+    }
+  }
+}

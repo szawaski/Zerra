@@ -1,0 +1,31 @@
+#See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
+
+FROM mcr.microsoft.com/dotnet/runtime:5.0 AS base
+WORKDIR /app
+
+FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
+WORKDIR /src
+COPY ["Demo/ZerraDemo.Service.Pets/ZerraDemo.Service.Pets.csproj", "Demo/ZerraDemo.Service.Pets/"]
+COPY ["Framework/Zerra.CQRS.RabbitMessage/Zerra.CQRS.RabbitMessage.csproj", "Framework/Zerra.CQRS.RabbitMessage/"]
+COPY ["Framework/Zerra/Zerra.csproj", "Framework/Zerra/"]
+COPY ["Demo/ZerraDemo.Common/ZerraDemo.Common.csproj", "Demo/ZerraDemo.Common/"]
+COPY ["Framework/Zerra.Logger/Zerra.Logger.csproj", "Framework/Zerra.Logger/"]
+COPY ["Demo/ZerraDemo.Domain.Pets.Sql/ZerraDemo.Domain.Pets.Sql.csproj", "Demo/ZerraDemo.Domain.Pets.Sql/"]
+COPY ["Framework/Zerra.Repository.Sql.MsSql/Zerra.Repository.Sql.MsSql.csproj", "Framework/Zerra.Repository.Sql/"]
+COPY ["Framework/Zerra.Repository/Zerra.Repository.csproj", "Framework/Zerra.Repository/"]
+COPY ["Demo/ZerraDemo.Domain.Pets/ZerraDemo.Domain.Pets.csproj", "Demo/ZerraDemo.Domain.Pets/"]
+COPY ["Demo/ZerraDemo.Domain/ZerraDemo.Domain.csproj", "Demo/ZerraDemo.Domain/"]
+RUN dotnet restore "Demo/ZerraDemo.Service.Pets/ZerraDemo.Service.Pets.csproj"
+COPY . .
+WORKDIR "/src/Demo/ZerraDemo.Service.Pets"
+RUN dotnet build "ZerraDemo.Service.Pets.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "ZerraDemo.Service.Pets.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+EXPOSE 80
+ENV ASPNETCORE_URLS=http://+:80
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "ZerraDemo.Service.Pets.dll"]

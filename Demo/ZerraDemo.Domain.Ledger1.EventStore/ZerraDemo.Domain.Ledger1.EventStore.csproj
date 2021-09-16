@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Framework\Zerra.Repository.EventStore.EventStoreDB\Zerra.Repository.EventStore.EventStoreDB.csproj" />
+    <ProjectReference Include="..\..\Framework\Zerra.Repository.Sql.MsSql\Zerra.Repository.Sql.MsSql.csproj" />
+    <ProjectReference Include="..\..\Framework\Zerra.Repository\Zerra.Repository.csproj" />
+    <ProjectReference Include="..\ZerraDemo.Domain.Ledger1\ZerraDemo.Domain.Ledger1.csproj" />
+    <ProjectReference Include="..\ZerraDemo.Domain\ZerraDemo.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

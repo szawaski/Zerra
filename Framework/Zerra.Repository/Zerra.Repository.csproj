@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.1;net5.0</TargetFrameworks>
+    <Authors>Steven Zawaski</Authors>
+    <Copyright>KaKush LLC</Copyright>
+    <Product>Zerra Framework Repository</Product>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <LangVersion>8.0</LangVersion>
+    <Description>Agnostic repository core library for the Zerra Framework.  Can switch between relational storage, document storage, and event storage without changing domain code.   This library will need a backing such as Zerra.Repository.Sql
+
+Commonly used types:
+Zerra.Repository.Repo
+Zerra.Repository.QueryMany
+Zerra.Repository.QueryFirst
+Zerra.Repository.QuerySingle
+Zerra.Repository.QueryCount
+Zerra.Repository.QueryAny
+Zerra.Repository.Create
+Zerra.Repository.Update
+Zerra.Repository.DeleteByID
+Zerra.Repository.EventQueryMany
+Zerra.Repository.TemporalQueryMany
+Zerra.Repository.DataSourceEntityAttribute
+Zerra.Repository.DataSourceRelationAttribute
+Zerra.Repository.DataSourcePropertyAttribute
+Zerra.Repository.DataSourceTypeAttribute
+Zerra.Repository.IdentityAttribute</Description>
+    <Company>KaKush LLC</Company>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE.txt">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Zerra\Zerra.csproj" />
+  </ItemGroup>
+
+</Project>

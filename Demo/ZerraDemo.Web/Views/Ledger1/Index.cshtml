@@ -1,0 +1,86 @@
+﻿@{
+    ViewData["Title"] = "Ledger1";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Ledger1</h1>
+</div>
+
+<a class="btn btn-primary" asp-controller="Ledger1" asp-action="Transactions">Transactions</a>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<a class="btn btn-primary" asp-controller="Ledger1" asp-action="Transact">Transact</a>
+<br />
+<br />
+<div id="balance">
+    <div class="form-group">
+        <label class="control-label">AccountID</label>
+        <br />
+        <span>{{model.AccountID}}</span>
+    </div>
+    <div class="form-group">
+        <label class="control-label">Balance</label>
+        <br />
+        <span>{{model.Balance|money}}</span>
+    </div>
+    <div class="form-group">
+        <label class="control-label">Last Transaction</label>
+        <br />
+        <span>{{model.LastTransactionAmount|money}}</span>
+    </div>
+    <div class="form-group">
+        <label class="control-label">Date</label>
+        <br />
+        <span>{{model.LastTransactionDate|date}}</span>
+    </div>
+</div>
+
+@section Scripts{
+    <script type="text/javascript">
+        $(function () {
+            const accountID = "B49B5A69-A092-4149-ABBD-5CF8DE8A5D9B";
+
+            Vue.filter('date', function (value) {
+                if (value) {
+                    var d = new Date(value);
+                    return (d.getMonth() < 10 ? "0" : "") + d.getMonth() + "/" + (d.getDate() < 10 ? "0" : "") + d.getDate() + "/" + d.getFullYear() + " " + (d.getHours() < 10 ? "0" : "") + d.getHours() + ":" + (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+                }
+            });
+
+            Vue.filter('money', function (value) {
+                if (value) {
+                    if (value < 0)
+                        return "-$" + (-value).toFixed(2);
+                    else
+                        return "$" + value.toFixed(2);
+                }
+            });
+
+            const balanceVue = new Vue({
+                el: "#balance",
+                data: {
+                    model: null
+                }
+            });
+
+            function loadData() {
+                ILedger1QueryProvider.HasBalance(accountID, function (result) {
+                    if (result === true) {
+                        ILedger1QueryProvider.GetBalance(accountID, function (models) {
+                            balanceVue.model = models;
+                        });
+                    }
+                    else {
+                        balanceVue.model = {
+                            AccountID: accountID,
+                            Balance: "No Balance",
+                            LastTransactionDate: null,
+                            LastTransactionAmount: null
+                        };
+                    }
+                });
+
+            }
+            loadData();
+        });
+    </script>
+}

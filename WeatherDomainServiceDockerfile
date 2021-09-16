@@ -1,0 +1,29 @@
+#See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
+
+FROM mcr.microsoft.com/dotnet/runtime:5.0 AS base
+WORKDIR /app
+
+FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
+WORKDIR /src
+COPY ["Demo/ZerraDemo.Service.Weather/ZerraDemo.Service.Weather.csproj", "Demo/ZerraDemo.Service.Weather/"]
+COPY ["Demo/ZerraDemo.Domain.Weather/ZerraDemo.Domain.Weather.csproj", "Demo/ZerraDemo.Domain.Weather/"]
+COPY ["Demo/ZerraDemo.Common/ZerraDemo.Common.csproj", "Demo/ZerraDemo.Common/"]
+COPY ["Demo/ZerraDemo.Domain/ZerraDemo.Domain.csproj", "Demo/ZerraDemo.Domain/"]
+COPY ["Framework/Zerra/Zerra.csproj", "Framework/Zerra/"]
+COPY ["Framework/Zerra.Repository/Zerra.Repository.csproj", "Framework/Zerra.Repository/"]
+COPY ["Framework/Zerra.Logger/Zerra.Logger.csproj", "Framework/Zerra.Logger/"]
+
+RUN dotnet restore "Demo/ZerraDemo.Service.Weather/ZerraDemo.Service.Weather.csproj"
+COPY . .
+WORKDIR "/src/Demo/ZerraDemo.Service.Weather"
+RUN dotnet build "ZerraDemo.Service.Weather.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "ZerraDemo.Service.Weather.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+EXPOSE 80
+ENV ASPNETCORE_URLS=http://+:80
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "ZerraDemo.Service.Weather.dll"]

@@ -1,0 +1,472 @@
+﻿// Copyright © KaKush LLC
+// Written By Steven Zawaski
+// Licensed to you under the MIT license
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Threading.Tasks;
+using Zerra.Collections;
+using Zerra.Encryption;
+using Zerra.Providers;
+using Zerra.Reflection;
+using Zerra.Repository.Reflection;
+
+namespace Zerra.Repository
+{
+    public abstract class BaseDataEncryptionProvider<TNextProviderInterface, TModel> : BaseDataLayerProvider<TNextProviderInterface, TModel>, IEncryptionProvider
+        where TNextProviderInterface : IDataProvider<TModel>
+        where TModel : class, new()
+    {
+        private const string encryptionPrefix = "<encrypted>";
+
+        public virtual bool Enabled { get { return true; } }
+        public virtual Graph<TModel> Properties { get { return null; } }
+        public abstract SymmetricKey EncryptionKey { get; }
+
+        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.RijndaelManaged;
+
+        private static Expression<Func<TModel, bool>> EncryptWhere(Expression<Func<TModel, bool>> expression)
+        {
+            return expression;
+        }
+        private static QueryOrder<TModel> EncryptOrder(QueryOrder<TModel> order)
+        {
+            return order;
+        }
+
+        public TModel DecryptModel(TModel model, Graph<TModel> graph, bool newCopy)
+        {
+            if (!this.Enabled)
+                return model;
+
+            var properties = GetEncryptableProperties(typeof(TModel), this.Properties);
+            if (properties.Length == 0)
+                return model;
+
+            graph = new Graph<TModel>(graph);
+
+            if (newCopy)
+                model = Mapper.Map<TModel, TModel>(model, graph);
+
+            foreach (var property in properties)
+            {
+                if (graph.HasLocalProperty(property.Name))
+                {
+                    if (property.TypeDetail.CoreType == CoreType.String)
+                    {
+                        string encrypted = (string)property.Getter(model);
+                        try
+                        {
+                            if (encrypted.Length > encryptionPrefix.Length && encrypted.Substring(0, encryptionPrefix.Length) == encryptionPrefix)
+                            {
+                                encrypted = encrypted[encryptionPrefix.Length..];
+                                string plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted, true);
+                                property.Setter(model, plain);
+                            }
+                        }
+                        catch { }
+                    }
+                    else if (property.Type == typeof(byte[]))
+                    {
+                        byte[] encrypted = (byte[])property.Getter(model);
+                        try
+                        {
+                            byte[] plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted, true);
+                            property.Setter(model, plain);
+                        }
+                        catch { }
+                    }
+                }
+            }
+
+            return model;
+        }
+        public ICollection<TModel> DecryptModels(ICollection<TModel> models, Graph<TModel> graph, bool newCopy)
+        {
+            if (!this.Enabled)
+                return models;
+
+            var properties = GetEncryptableProperties(typeof(TModel), this.Properties);
+            if (properties.Length == 0)
+                return models;
+
+            graph = new Graph<TModel>(graph);
+
+            if (newCopy)
+                models = Mapper.Map<ICollection<TModel>, TModel[]>(models, graph);
+
+            foreach (TModel model in models)
+            {
+                foreach (var property in properties)
+                {
+                    if (graph.HasLocalProperty(property.Name))
+                    {
+                        if (property.TypeDetail.CoreType == CoreType.String)
+                        {
+                            string encrypted = (string)property.Getter(model);
+                            if (encrypted != null)
+                            {
+                                try
+                                {
+                                    if (encrypted.Length > encryptionPrefix.Length && encrypted.Substring(0, encryptionPrefix.Length) == encryptionPrefix)
+                                    {
+                                        encrypted = encrypted[encryptionPrefix.Length..];
+                                        string plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted, true);
+                                        property.Setter(model, plain);
+                                    }
+                                }
+                                catch { }
+                            }
+                        }
+                        else if (property.Type == typeof(byte[]))
+                        {
+                            byte[] encrypted = (byte[])property.Getter(model);
+                            if (encrypted != null)
+                            {
+                                try
+                                {
+                                    byte[] plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted, true);
+                                    property.Setter(model, plain);
+                                }
+                                catch { }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return models;
+        }
+
+        public override sealed void OnQueryIncludingBase(Graph<TModel> graph)
+        {
+            ProviderRelation.OnQueryIncludingBase(graph);
+        }
+        public override sealed ICollection<TModel> OnGetIncludingBase(ICollection<TModel> models, Graph<TModel> graph)
+        {
+            ICollection<TModel> returnModels1 = DecryptModels(models, graph, false);
+            ICollection<TModel> returnModels2 = ProviderRelation.OnGetIncludingBase(returnModels1, graph);
+            return returnModels2;
+        }
+        public override sealed async Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel> graph)
+        {
+            ICollection<TModel> returnModels1 = DecryptModels(models, graph, false);
+            ICollection<TModel> returnModels2 = await ProviderRelation.OnGetIncludingBaseAsync(returnModels1, graph);
+            return returnModels2;
+        }
+
+        public override sealed object Many(Query<TModel> query)
+        {
+            var whereCompressed = EncryptWhere(query.Where);
+            var orderCompressed = EncryptOrder(query.Order);
+
+            var appenedQuery = new Query<TModel>(query);
+            appenedQuery.Where = whereCompressed;
+            appenedQuery.Order = orderCompressed;
+
+            var encryptedModels = (ICollection<TModel>)(NextProvider.Query(appenedQuery));
+
+            if (encryptedModels.Count == 0)
+                return encryptedModels;
+
+            var models = DecryptModels(encryptedModels, query.Graph, true);
+            return models;
+        }
+        public override sealed object First(Query<TModel> query)
+        {
+            var whereCompressed = EncryptWhere(query.Where);
+            var orderCompressed = EncryptOrder(query.Order);
+
+            var appenedQuery = new Query<TModel>(query);
+            appenedQuery.Where = whereCompressed;
+            appenedQuery.Order = orderCompressed;
+
+            var encryptedModels = (TModel)(NextProvider.Query(appenedQuery));
+
+            if (encryptedModels == null)
+                return null;
+
+            var model = DecryptModel(encryptedModels, query.Graph, true);
+            return model;
+        }
+        public override sealed object Single(Query<TModel> query)
+        {
+            var whereCompressed = EncryptWhere(query.Where);
+
+            var appenedQuery = new Query<TModel>(query);
+            appenedQuery.Where = whereCompressed;
+
+            var encryptedModels = (TModel)(NextProvider.Query(appenedQuery));
+
+            if (encryptedModels == null)
+                return null;
+
+            var model = DecryptModel(encryptedModels, query.Graph, true);
+            return model;
+        }
+        public override sealed object Count(Query<TModel> query)
+        {
+            var whereCompressed = EncryptWhere(query.Where);
+
+            var appenedQuery = new Query<TModel>(query);
+            appenedQuery.Where = whereCompressed;
+
+            var count = NextProvider.Query(appenedQuery);
+            return count;
+        }
+        public override sealed object Any(Query<TModel> query)
+        {
+            var whereCompressed = EncryptWhere(query.Where);
+
+            var appenedQuery = new Query<TModel>(query);
+            appenedQuery.Where = whereCompressed;
+
+            var any = NextProvider.Query(appenedQuery);
+            return any;
+        }
+        public override sealed object EventMany(Query<TModel> query)
+        {
+            var whereCompressed = EncryptWhere(query.Where);
+            var orderCompressed = EncryptOrder(query.Order);
+
+            var appenedQuery = new Query<TModel>(query);
+            appenedQuery.Where = whereCompressed;
+            appenedQuery.Order = orderCompressed;
+
+            var eventModels = (ICollection<EventModel<TModel>>)(NextProvider.Query(appenedQuery));
+
+            if (eventModels.Count == 0)
+                return eventModels;
+
+            var encryptedModels = eventModels.Select(x => x.Model).ToArray();
+            var models = DecryptModels(encryptedModels, query.Graph, true);
+            int i = 0;
+            foreach (var eventModel in eventModels)
+            {
+                eventModel.Model = encryptedModels[i];
+                i++;
+            }
+
+            return eventModels;
+        }
+
+        public override sealed async Task<object> ManyAsync(Query<TModel> query)
+        {
+            var whereCompressed = EncryptWhere(query.Where);
+            var orderCompressed = EncryptOrder(query.Order);
+
+            var appenedQuery = new Query<TModel>(query);
+            appenedQuery.Where = whereCompressed;
+            appenedQuery.Order = orderCompressed;
+
+            var encryptedModels = (ICollection<TModel>)(await NextProvider.QueryAsync(appenedQuery));
+
+            if (encryptedModels.Count == 0)
+                return encryptedModels;
+
+            var models = DecryptModels(encryptedModels, query.Graph, true);
+            return models;
+        }
+        public override sealed async Task<object> FirstAsync(Query<TModel> query)
+        {
+            var whereCompressed = EncryptWhere(query.Where);
+            var orderCompressed = EncryptOrder(query.Order);
+
+            var appenedQuery = new Query<TModel>(query);
+            appenedQuery.Where = whereCompressed;
+            appenedQuery.Order = orderCompressed;
+
+            var encryptedModels = (TModel)(await NextProvider.QueryAsync(appenedQuery));
+
+            if (encryptedModels == null)
+                return null;
+
+            var model = DecryptModels(new TModel[] { encryptedModels }, query.Graph, true).FirstOrDefault();
+            return model;
+        }
+        public override sealed async Task<object> SingleAsync(Query<TModel> query)
+        {
+            var whereCompressed = EncryptWhere(query.Where);
+
+            var appenedQuery = new Query<TModel>(query);
+            appenedQuery.Where = whereCompressed;
+
+            var encryptedModels = (TModel)(await NextProvider.QueryAsync(appenedQuery));
+
+            if (encryptedModels == null)
+                return null;
+
+            var model = DecryptModels(new TModel[] { encryptedModels }, query.Graph, true).FirstOrDefault();
+            return model;
+        }
+        public override sealed Task<object> CountAsync(Query<TModel> query)
+        {
+            var whereCompressed = EncryptWhere(query.Where);
+
+            var appenedQuery = new Query<TModel>(query);
+            appenedQuery.Where = whereCompressed;
+
+            var count = NextProvider.QueryAsync(appenedQuery);
+            return count;
+        }
+        public override sealed Task<object> AnyAsync(Query<TModel> query)
+        {
+            var whereCompressed = EncryptWhere(query.Where);
+
+            var appenedQuery = new Query<TModel>(query);
+            appenedQuery.Where = whereCompressed;
+
+            var any = NextProvider.QueryAsync(appenedQuery);
+            return any;
+        }
+        public override sealed async Task<object> EventManyAsync(Query<TModel> query)
+        {
+            var whereCompressed = EncryptWhere(query.Where);
+            var orderCompressed = EncryptOrder(query.Order);
+
+            var appenedQuery = new Query<TModel>(query);
+            appenedQuery.Where = whereCompressed;
+            appenedQuery.Order = orderCompressed;
+
+            var eventModels = (ICollection<EventModel<TModel>>)(await NextProvider.QueryAsync(appenedQuery));
+
+            if (eventModels.Count == 0)
+                return eventModels;
+
+            var encryptedModels = eventModels.Select(x => x.Model).ToArray();
+            var models = DecryptModels(encryptedModels, query.Graph, true);
+            int i = 0;
+            foreach (var eventModel in eventModels)
+            {
+                eventModel.Model = encryptedModels[i];
+                i++;
+            }
+
+            return eventModels;
+        }
+
+        public TModel[] EncryptModels(TModel[] models, Graph<TModel> graph, bool newCopy)
+        {
+            if (!this.Enabled)
+                return models;
+
+            var properties = GetEncryptableProperties(typeof(TModel), this.Properties);
+            if (properties.Length == 0)
+                return models;
+
+            graph = new Graph<TModel>(graph);
+
+            //add identites for copying
+            graph.AddProperties(ModelAnalyzer.GetIdentityPropertyNames(typeof(TModel)));
+
+            if (newCopy)
+                models = Mapper.Map<TModel[], TModel[]>(models, graph);
+
+            foreach (TModel model in models)
+            {
+                foreach (var property in properties)
+                {
+                    if (graph.HasLocalProperty(property.Name))
+                    {
+                        if (property.TypeDetail.CoreType == CoreType.String)
+                        {
+                            string plain = (string)property.Getter(model);
+                            if (plain != null)
+                            {
+                                if (plain.Length <= encryptionPrefix.Length || plain.Substring(0, encryptionPrefix.Length) != encryptionPrefix)
+                                {
+                                    plain = encryptionPrefix + plain;
+                                    string encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain, true);
+                                    property.Setter(model, encrypted);
+                                }
+                            }
+                        }
+                        else if (property.Type == typeof(byte[]))
+                        {
+                            byte[] plain = (byte[])property.Getter(model);
+                            if (plain != null)
+                            {
+                                byte[] encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain, true);
+                                property.Setter(model, encrypted);
+                            }
+                        }
+                    }
+                }
+            }
+            return models;
+        }
+
+        public override sealed void Create(Persist<TModel> persist)
+        {
+            if (persist.Models.Length == 0)
+                return;
+
+            TModel[] encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
+            NextProvider.Persist(new Create<TModel>(encryptedModels, persist.Graph));
+
+            for (var i = 0; i < persist.Models.Length; i++)
+            {
+                object identity = ModelAnalyzer.GetIdentity(encryptedModels[i]);
+                ModelAnalyzer.SetIdentity(persist.Models[i], identity);
+            }
+        }
+        public override sealed void Update(Persist<TModel> persist)
+        {
+            if (persist.Models.Length == 0)
+                return;
+
+            ICollection<TModel> encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
+            NextProvider.Persist(new Update<TModel>(persist.Event, encryptedModels, persist.Graph));
+        }
+        public override sealed void Delete(Persist<TModel> persist)
+        {
+            NextProvider.Persist(persist);
+        }
+
+        public override sealed async Task CreateAsync(Persist<TModel> persist)
+        {
+            if (persist.Models.Length == 0)
+                return;
+
+            TModel[] encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
+            await NextProvider.PersistAsync(new Create<TModel>(encryptedModels, persist.Graph));
+
+            for (var i = 0; i < persist.Models.Length; i++)
+            {
+                object identity = ModelAnalyzer.GetIdentity(encryptedModels[i]);
+                ModelAnalyzer.SetIdentity(persist.Models[i], identity);
+            }
+        }
+        public override sealed Task UpdateAsync(Persist<TModel> persist)
+        {
+            if (persist.Models.Length == 0)
+                return Task.CompletedTask;
+
+            ICollection<TModel> encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
+            return NextProvider.PersistAsync(new Update<TModel>(persist.Event, encryptedModels, persist.Graph));
+        }
+        public override sealed Task DeleteAsync(Persist<TModel> persist)
+        {
+            return NextProvider.PersistAsync(persist);
+        }
+
+        private static readonly ConcurrentFactoryDictionary<TypeKey, MemberDetail[]> encryptableProperties = new ConcurrentFactoryDictionary<TypeKey, MemberDetail[]>();
+        public static MemberDetail[] GetEncryptableProperties(Type type, Graph graph)
+        {
+            var key = new TypeKey(graph?.Signature, type);
+            var props = encryptableProperties.GetOrAdd(key, (factoryKey) =>
+            {
+                var typeDetails = TypeAnalyzer.GetType(type);
+                var propertyDetails = typeDetails.MemberDetails.Where(x => x.Type == typeof(string) || x.Type == typeof(byte[])).ToArray();
+                if (graph != null)
+                {
+                    propertyDetails = propertyDetails.Where(x => graph.HasLocalProperty(x.Name)).ToArray();
+                }
+                return propertyDetails;
+            });
+            return props;
+        }
+    }
+}

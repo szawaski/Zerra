@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Framework\Zerra.Logger\Zerra.Logger.csproj" />
+    <ProjectReference Include="..\ZerraDemo.Domain.Ledger2.EventStore\ZerraDemo.Domain.Ledger2.EventStore.csproj" />
+    <ProjectReference Include="..\ZerraDemo.Domain.Ledger2\ZerraDemo.Domain.Ledger2.csproj" />
+    <ProjectReference Include="..\ZerraDemo.Common\ZerraDemo.Common.csproj" />
+  </ItemGroup>
+
+</Project>

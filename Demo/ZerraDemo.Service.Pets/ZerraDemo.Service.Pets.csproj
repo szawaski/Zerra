@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Framework\Zerra.CQRS.RabbitMessage\Zerra.CQRS.RabbitMessage.csproj" />
+    <ProjectReference Include="..\..\Framework\Zerra.Logger\Zerra.Logger.csproj" />
+    <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
+    <ProjectReference Include="..\ZerraDemo.Domain.Pets.Sql\ZerraDemo.Domain.Pets.Sql.csproj" />
+    <ProjectReference Include="..\ZerraDemo.Domain.Pets\ZerraDemo.Domain.Pets.csproj" />
+    <ProjectReference Include="..\ZerraDemo.Common\ZerraDemo.Common.csproj" />
+  </ItemGroup>
+
+</Project>
