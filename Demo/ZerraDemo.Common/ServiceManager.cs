@@ -3,6 +3,7 @@ using System.Linq;
 using Zerra;
 using Zerra.CQRS;
 using Zerra.CQRS.Relay;
+using Zerra.CQRS.Settings;
 using Zerra.Logger;
 
 namespace ZerraDemo.Common
@@ -13,23 +14,26 @@ namespace ZerraDemo.Common
         {
             var settingsName = System.Reflection.Assembly.GetEntryAssembly().GetName().Name;
 
-            var serviceSettings = Zerra.CQRS.Settings.CQRSSettings.Get();
+            var serviceSettings = CQRSSettings.Get();
 
             Bus.AddMessageLogger(new MessageLoggingProvider());
 
-            //Enable this for Http which can be access directly from a front end
+            //Option1A: Enable this for Tcp for backend only services
+            var serviceCreator = new TcpInternalServiceCreator();
+
+            //Option1B: Enable this for Http which can be access directly from a front end
             //var authorizor = new DemoCookieApiAuthorizer();
             //var serviceCreator = new TcpApiServiceCreator(authorizor, null);
 
-            //Enable this for Tcp for backend only services
-            var serviceCreator = new TcpInternalServiceCreator();
+            //Option1C: Enable this using RabbitMQ for event streaming commands/events
+            //var serviceCreator = new RabbitServiceCreator(serviceSettings.MessageHost);
 
-            //Enable this to use the relay/loadbalancer
+            //Option2A: Enable this for direct service communication, no relay/loadbalancer
+            Bus.StartServices(settingsName, serviceSettings, serviceCreator, null);
+
+            //Option2B: Enable this to use the relay/loadbalancer
             //var relayRegister = new RelayRegister(serviceSettings.RelayUrl, serviceSettings.RelayKey);
             //Bus.StartServices(settingsName, serviceSettings, serviceCreator, relayRegister);
-
-            //Enable this for direct service communication, no relay/loadbalancer
-            Bus.StartServices(settingsName, serviceSettings, serviceCreator, null);
         }
     }
 }

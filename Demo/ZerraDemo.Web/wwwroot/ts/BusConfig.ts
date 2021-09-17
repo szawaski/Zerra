@@ -1,5 +1,8 @@
 ﻿export const BusRoutes: { [index: string]: string } = {
     "Gateway": "/CQRS"
+
+    //"IWeatherQueryProvider": "http://localhost:8005",
+    //"SetWeatherCommand": "http://localhost:8006"
 }
 
 let busFailCallback: ((message: string) => void) | null = null;
