@@ -7,7 +7,7 @@ Zerra Framework: Fast Powerful CQRS and Agnostic Repository with Event Sourcing
 - Agnostic repositories for different datastores including Event Sourcing
 - Transparent security pulls whatever claims are on the thread across the network or you can add an IApiAuthorizer for externally exposed services
 - High speed using the latest .NET memory capabilities, low level pointers, and Intermediate Language Generation.
-- Check out the ZerraDemo Project in the repository for a complete example
+- **Check out the ZerraDemo Project in the repository for a complete example**
 
 # Constructing a Query
 **If the domains are referenced in the same running project, they will automatically find the implementations with no other code needed.  If domains are running seperatly see Network Setup below.**\
