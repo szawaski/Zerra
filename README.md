@@ -1,5 +1,6 @@
 # Zerra Quick Start Guide
 Zerra Framework: Fast Powerful CQRS and Agnostic Repository with Event Sourcing
+- Container Cloud ready in Net5.0
 - Run solutions as monoliths or split out domain pieces to run independently
 - The calling code doesn't know if it's part of the assembly or running elsewhere on the network
 - Communication requires almost no configuration using fast TCP communication
