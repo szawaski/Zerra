@@ -176,8 +176,6 @@ static void Main(string[] args)
 {
     Config.LoadConfiguration(args);
    
-    var settingsName = System.Reflection.Assembly.GetEntryAssembly().GetName().Name;
-
     var serviceSettings = Zerra.CQRS.Settings.CQRSSettings.Get();
 
     //Option1A: Enable this for Tcp for backend only services
