@@ -35,11 +35,11 @@ Calling from C#
 ```csharp
 var weather = Bus.Call<IWeatherQueryProvider>().GetWeather();
 ```
-Calling from TypeScript
+Calling from TypeScript (see Generating The Front End below)
 ```typescript
 const weather = await IWeatherQueryProvider.GetWeather();
 ````
-Calling from JavaScript
+Calling from JavaScript (see Generating The Front End below)
 ```javascript
 const weather = IWeatherQueryProvider.GetWeather(function(data){
   //completed
@@ -83,7 +83,7 @@ var command = new SetSeatherCommand()
 };
 await Bus.DispatchAsync(command);
 ```
-Dispatching from TypeScript
+Dispatching from TypeScript (see Generating The Front End below)
 ```typescript
 var command = new SetSeatherCommand(
 {
@@ -91,7 +91,7 @@ var command = new SetSeatherCommand(
 });
 await Bus.DispatchAsync(command);
 ```
-Dispatching from JavaScript
+Dispatching from JavaScript (see Generating The Front End below)
 ```javascript
 var command = new SetSeatherCommand(
 {
@@ -109,14 +109,29 @@ await Bus.DispatchAwaitAsync(command);
 ```
 
 # Generating The Front End
-There are a set of T4 files that will generate TypeScript of JavaScript front ends from the domain that will communicate with gateway (documented below).  They mirror the structure of calling it in C# natively to make it very easy.
+There are a set of T4 files that will generate TypeScript of JavaScript front ends from the domain that will communicate with gateway (see Gateway For The Front End below).  They mirror the structure of calling it in C# natively to make it very easy.
 You will need:
 - Bus.ts
 - BusConfig.ts
 - TypeScriptModels.tt
 - Zerra.T4.dll
 
-The first three can be found here [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/TypeScript] or here for the JavaScript versions [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/JavaScript].  The T4 file should find the needed domain files run with a Host Enviroment like Visual Studio.  Otherwise you make need to edit it to point to the root of the domain project to scan.
+The first three can be found here [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/TypeScript] or here for the JavaScript versions [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/JavaScript].  The T4 file should find the needed domain files run with a Host Enviroment like Visual Studio.  Otherwise you make need to edit it to point to the root of the domain project to scan.  BusConfig.ts can be edited to connect through the gateway or specify service connections directly.  If connecting to the services directly use Bus.SetHeader(name, value) from Bus.ts for adding authentication to be read by IApiAuthorizer.
+
+# Gateway For The Front End
+If you are using the prefered TcpInternal setup then clients outside the internal network need to access the backend such as those using TypeScript and JavaScript.  In an ASPNET front end project add the gateway to the Startup.cs referencing the Zerra.Web assembly. Make sure it comes after the authentication. Claims are transparently passed to the services.
+```csharp
+public void Configure(IApplicationBuilder app)
+{
+    //...
+
+    app.UseAuthentication();
+
+    app.UseCQRSGateway();
+
+    //...
+}
+```
 
 # Network Setup
 Create a cqrssettings.config file.
@@ -201,18 +216,4 @@ var encryptionKey = SymmetricEncryptor.GetKey("SecretTransportKey");
 var client = TcpRawCQRSClient.CreateDefault("http://localhost:9001", encryptionKey);
 Bus.AddQueryClient<IWeatherQueryProvider>(client);
 Bus.AddCommandClient<IWeatherCommandHandler>(client);
-```
-**Gateway**\
-If you are using the prefered TcpInternal setup then clients outside the internal network need to access the backend such as those using TypeScript and JavaScript.  In an ASPNET front end project add the gateway to the Startup.cs referencing the Zerra.Web assembly. Make sure it comes after the authentication. Claims are transparently passed to the services.
-```csharp
-public void Configure(IApplicationBuilder app)
-{
-    //...
-
-    app.UseAuthentication();
-
-    app.UseCQRSGateway();
-
-    //...
-}
 ```
