@@ -122,7 +122,7 @@ You will need:
 The first three can be found here [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/TypeScript] or here for the JavaScript versions [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/JavaScript].  The T4 file should find the needed domain files run with a Host Enviroment like Visual Studio.  Otherwise you make need to edit it to point to the root of the domain project to scan.  BusConfig.ts can be edited to connect through the gateway or specify service connections directly.  If connecting to the services directly use Bus.SetHeader(name, value) from Bus.ts for adding authentication to be read by IApiAuthorizer.
 
 # Gateway For The Front End
-If you are using the prefered TcpInternal setup then clients outside the internal network need to access the backend such as those using TypeScript and JavaScript.  In an ASPNET front end project add the gateway to the Startup.cs referencing the Zerra.Web assembly. Make sure it comes after the authentication. Claims are transparently passed to the services.
+If you are using the prefered TcpInternal setup then clients outside the internal network need a gateway to access the backend such as those using TypeScript and JavaScript.  In an ASPNET front end project add the gateway to the Startup.cs referencing the Zerra.Web assembly. Make sure it comes after the authentication. Claims are transparently passed to the services.
 ```csharp
 public void Configure(IApplicationBuilder app)
 {
