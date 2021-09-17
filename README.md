@@ -215,7 +215,7 @@ Client Setup:
 var encryptionKey = SymmetricEncryptor.GetKey("SecretTransportKey");
 
 //This example is not using a seperate event stream service for commands/events
-var client = TcpRawCQRSClient.CreateDefault("http://localhost:9001", encryptionKey);
+var client = TcpRawCQRSClient.CreateDefault("http://localhost:9002", encryptionKey);
 Bus.AddQueryClient<IWeatherQueryProvider>(client);
 Bus.AddCommandClient<IWeatherCommandHandler>(client);
 ```
