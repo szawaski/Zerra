@@ -6,9 +6,10 @@ Zerra Framework: Fast Powerful CQRS and Agnostic Repository with Event Sourcing
 - Agnostic repositories for different datastores including Event Sourcing
 - Transparent security pulls whatever claims are on the thread across the network or you can add an IApiAuthorizer for externally exposed services
 - High speed using the latest .NET memory capabilities, low level pointers, and Intermediate Language Generation.
+- Check out the ZerraDemo Project in the repository for a complete example
 
 # Constructing a Query
-**If the domains are referenced in the same running project, they will automatically find the implementations with no other code needed.  If they are running seperatly see Network Setup below.**\
+**If the domains are referenced in the same running project, they will automatically find the implementations with no other code needed.  If domains are running seperatly see Network Setup below.**\
 Make an interface in a common domain project. The attribute is to enable the calls over a network when domains run independently.  This project should contain nothing but interfaces and models, no logic or property mapping.
 ```csharp
 [ServiceExposed]
@@ -51,7 +52,7 @@ const weather = IWeatherQueryProvider.GetWeather(function(data){
 ```
 
 # Constructing a Command
-**If the domains are referenced in the same running project, they will automatically find the implementations with no other code needed.  If they are running seperatly see Network Setup below.**\
+**If the domains are referenced in the same running project, they will automatically find the implementations with no other code needed.  If domains are running seperatly see Network Setup below.**\
 Make a command in a common domain project. The attribute is to enable the command over a network when domains run independently. This project should contain nothing but interfaces and models, no logic or property mapping.
 ```csharp
 [ServiceExposed]
