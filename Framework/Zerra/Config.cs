@@ -109,12 +109,12 @@ namespace Zerra
                     return filePath;
             }
 
-            filePath = $"{Environment.CurrentDirectory}/{fileName}";
+            var executingAssemblyPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().GetName().CodeBase.Replace("file:///", ""));
+            filePath = $"{executingAssemblyPath}/{fileName}";
             if (File.Exists(filePath))
                 return filePath;
 
-            var executingAssemblyPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().GetName().CodeBase.Replace("file:///", ""));
-            filePath = $"{executingAssemblyPath}/{fileName}";
+            filePath = $"{Environment.CurrentDirectory}/{fileName}";
             if (File.Exists(filePath))
                 return filePath;
 
