@@ -13,18 +13,16 @@
     <Description>Core library for the Zerra Framework.
 
 Commonly used types:
+Zerra.Providers.IBaseProvider
 Zerra.Graph
 Zerra.Map
 Zerra.Config
 Zerra.Serialization.ByteSerializer
-Zerra.Serialization.JsonSerializer
-Zerra.Providers.IBaseProvider
 Zerra.Providers.Resolver
 Zerra.Log.ILoggingProvider
 Zerra.Encryption.EncryptionCommon
 Zerra.Encryption.Hasher
 Zerra.Compression.CompressionCommon
-Zerra.Collections.ConcurrentFactoryDictionary
 Zerra.Linq.WhereBuilder
 Zerra.Reflection.TypeAnalyzer</Description>
     <Company>KaKush LLC</Company>
