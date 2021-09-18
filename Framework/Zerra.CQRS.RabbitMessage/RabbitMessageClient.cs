@@ -96,7 +96,6 @@ namespace Zerra.CQRS.RabbitMessage
 
                 string exchange = command.GetType().GetNiceName();
 
-
                 var properties = channel.CreateBasicProperties();
 
                 EventingBasicConsumer consumer = null;
