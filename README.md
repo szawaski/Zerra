@@ -117,7 +117,7 @@ await Bus.DispatchAwaitAsync(command);
 ```
 
 # Generating The Front End
-There are a set of T4 files that will generate TypeScript of JavaScript front ends from the domain that will communicate with gateway (see Gateway For The Front End below).  They mirror the structure of calling it in C# natively to make it very easy.\
+There are a set of T4 files that will generate TypeScript or JavaScript front ends from the domain that will communicate with gateway (see Gateway For The Front End below).  They mirror the structure of calling it in C# natively to make it very easy.\
 You will need:
 - Bus.ts [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/TypeScript/Bus.ts]
 - BusConfig.ts [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/TypeScript/BusConfig.ts]
