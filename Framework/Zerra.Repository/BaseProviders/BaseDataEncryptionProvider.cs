@@ -61,7 +61,7 @@ namespace Zerra.Repository
                         {
                             if (encrypted.Length > encryptionPrefix.Length && encrypted.Substring(0, encryptionPrefix.Length) == encryptionPrefix)
                             {
-                                encrypted = encrypted[encryptionPrefix.Length..];
+                                encrypted = encrypted.Substring(encryptionPrefix.Length, encrypted.Length - encryptionPrefix.Length);
                                 string plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted, true);
                                 property.Setter(model, plain);
                             }
@@ -112,7 +112,7 @@ namespace Zerra.Repository
                                 {
                                     if (encrypted.Length > encryptionPrefix.Length && encrypted.Substring(0, encryptionPrefix.Length) == encryptionPrefix)
                                     {
-                                        encrypted = encrypted[encryptionPrefix.Length..];
+                                        encrypted = encrypted.Substring(encryptionPrefix.Length, encrypted.Length - encryptionPrefix.Length);
                                         string plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted, true);
                                         property.Setter(model, plain);
                                     }

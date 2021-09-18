@@ -8,14 +8,15 @@
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <LangVersion>8.0</LangVersion>
-    <Description>Sql implementation of repository for Zerra Framework. 
+    <Description>EventStore implementation of repository for Zerra Framework. 
 
 Commonly used types:
-Zerra.Repository.Sql.SqlProvider
-Zerra.Repository.Sql.Engines.MsSqlDataContext</Description>
+Zerra.Repository.EventStore.EventStoreDB.EventStoreDBDataContext
+Zerra.Repository.EventStore.EventStoreDB.EventStoreDBProvider</Description>
     <Company>KaKush LLC</Company>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageTags>Framework, CQRS, Microservice, Repository, ORM, EventStore</PackageTags>
+    <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, EventStore</PackageTags>
+    <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

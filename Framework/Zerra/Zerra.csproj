@@ -8,7 +8,7 @@
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <LangVersion>8.0</LangVersion>
-    <PackageTags>Framework, CQRS, Microservice, Repository, ORM</PackageTags>
+    <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Description>Core library for the Zerra Framework.
 
@@ -28,6 +28,7 @@ Zerra.Collections.ConcurrentFactoryDictionary
 Zerra.Linq.WhereBuilder
 Zerra.Reflection.TypeAnalyzer</Description>
     <Company>KaKush LLC</Company>
+    <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

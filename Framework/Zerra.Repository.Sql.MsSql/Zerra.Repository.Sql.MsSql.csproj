@@ -11,11 +11,12 @@
     <Description>Sql implementation of repository for Zerra Framework. 
 
 Commonly used types:
-Zerra.Repository.Sql.SqlProvider
-Zerra.Repository.Sql.Engines.MsSqlDataContext</Description>
+Zerra.Repository.Sql.MsSql.SqlProvider
+Zerra.Repository.Sql.MsSql.MsSqlDataContext</Description>
     <Company>KaKush LLC</Company>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageTags>Framework, CQRS, Microservice, Repository, ORM, SQL</PackageTags>
+    <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, SQL</PackageTags>
+    <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
