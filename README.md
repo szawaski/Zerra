@@ -122,7 +122,7 @@ You will need:
 - Bus.ts
 - BusConfig.ts
 - TypeScriptModels.tt
-- Zerra.T4.dll
+- Zerra.T4.dll [https://www.nuget.org/packages/Zerra.T4/]
 
 The first three can be found here [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/TypeScript] or here for the JavaScript versions [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/JavaScript].  The T4 file should find the needed domain files run with a Host Enviroment like Visual Studio.  Otherwise you make need to edit it to point to the root of the domain project to scan.  BusConfig.ts can be edited to connect through the gateway or specify service connections directly.  If connecting to the services directly use Bus.SetHeader(name, value) from Bus.ts for adding authentication to be read by IApiAuthorizer.
 
