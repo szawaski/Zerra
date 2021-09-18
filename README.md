@@ -9,6 +9,10 @@ Zerra Framework: Fast Powerful CQRS and Agnostic Repository with Event Sourcing
 - High speed using the latest .NET memory capabilities, low level pointers, and Intermediate Language Generation.
 - **Check out the ZerraDemo Project in the repository for a complete example**
 
+# Installing
+You can find all the packages on NuGet with the Zerra namespace. Start with the core framework for the quick start. [https://www.nuget.org/packages/Zerra/]
+- Install-Package Zerra
+
 # Constructing a Query
 **If the domains are referenced in the same running project, they will automatically find the implementations with no other code needed.  If domains are running seperatly see Network Setup below.**\
 Make an interface in a common domain project. The attribute is to enable the calls over a network when domains run independently.  This project should contain nothing but interfaces and models, no logic or property mapping.
