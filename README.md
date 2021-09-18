@@ -117,14 +117,14 @@ await Bus.DispatchAwaitAsync(command);
 ```
 
 # Generating The Front End
-There are a set of T4 files that will generate TypeScript of JavaScript front ends from the domain that will communicate with gateway (see Gateway For The Front End below).  They mirror the structure of calling it in C# natively to make it very easy.
+There are a set of T4 files that will generate TypeScript of JavaScript front ends from the domain that will communicate with gateway (see Gateway For The Front End below).  They mirror the structure of calling it in C# natively to make it very easy.\
 You will need:
-- Bus.ts
-- BusConfig.ts
-- TypeScriptModels.tt
+- Bus.ts [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/TypeScript/Bus.ts]
+- BusConfig.ts [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/TypeScript/BusConfig.ts]
+- TypeScriptModels.tt  [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/TypeScript/TypeScriptModels.tt]
 - Zerra.T4.dll [https://www.nuget.org/packages/Zerra.T4/]
 
-The first three can be found here [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/TypeScript] or here for the JavaScript versions [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/JavaScript].  The T4 file should find the needed domain files run with a Host Enviroment like Visual Studio.  Otherwise you make need to edit it to point to the root of the domain project to scan.  BusConfig.ts can be edited to connect through the gateway or specify service connections directly.  If connecting to the services directly use Bus.SetHeader(name, value) from Bus.ts for adding authentication to be read by IApiAuthorizer.
+The JavaScript versions are here: [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/JavaScript].  The T4 file should find the needed domain files run with a Host Enviroment like Visual Studio.  Otherwise you make need to edit it to point to the root of the domain project to scan.  BusConfig.ts can be edited to connect through the gateway or specify service connections directly.  If connecting to the services directly use Bus.SetHeader(name, value) from Bus.ts for adding authentication to be read by IApiAuthorizer.
 
 # Gateway For The Front End
 If you are using the prefered TcpInternal setup then clients outside the internal network need a gateway to access the backend such as those using TypeScript and JavaScript.  In an ASPNET front end project add the gateway to the Startup.cs referencing the Zerra.Web assembly. Make sure it comes after the authentication. Claims are transparently passed to the services.
