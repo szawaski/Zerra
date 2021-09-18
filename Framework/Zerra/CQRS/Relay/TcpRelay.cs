@@ -19,7 +19,7 @@ namespace Zerra.CQRS.Relay
 {
     public sealed class TcpRelay : TcpCQRSServerBase, IDisposable
     {
-        private readonly int bufferLength;
+        private const int bufferLength = 65536;
         private readonly string relayKey;
         private readonly CancellationTokenSource canceller;
 
