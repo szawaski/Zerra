@@ -21,7 +21,7 @@ namespace Zerra.CQRS.Network
         private readonly string endpointAddress;
         private readonly ContentType requestContentType;
 
-        public string ServiceUrl => endpointAddress;
+        public string ConnectionString => endpointAddress;
 
         public ApiClient(string endpointAddress, ContentType contentType)
         {

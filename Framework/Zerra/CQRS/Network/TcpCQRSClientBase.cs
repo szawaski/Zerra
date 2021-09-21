@@ -18,8 +18,8 @@ namespace Zerra.CQRS.Network
         protected readonly string serviceUrl;
         protected readonly IPEndPoint endpoint;
 
-        string IQueryClient.ServiceUrl => serviceUrl;
-        string ICommandClient.ServiceUrl => serviceUrl;
+        string IQueryClient.ConnectionString => serviceUrl;
+        string ICommandClient.ConnectionString => serviceUrl;
 
         public TcpCQRSClientBase(string serviceUrl)
         {

@@ -38,11 +38,11 @@ namespace Zerra.CQRS.Relay
             RelayConnectedServicesManager.LoadState().GetAwaiter().GetResult();
             RelayConnectedServicesManager.StartExpireStatistics(canceller.Token);
 
-            Log.InfoAsync($"{nameof(TcpRelay)} Opened On {ServiceUrl}");
+            Log.InfoAsync($"{nameof(TcpRelay)} Opened On {ConnectionString}");
 
             Open();
 
-            Log.InfoAsync($"{nameof(TcpRelay)} Closed On {ServiceUrl}");
+            Log.InfoAsync($"{nameof(TcpRelay)} Closed On {ConnectionString}");
         }
 
         private void CurrentDomain_ProcessExit(object sender, EventArgs e)

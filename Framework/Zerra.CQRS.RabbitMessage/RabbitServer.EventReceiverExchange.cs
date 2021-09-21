@@ -14,14 +14,14 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.RabbitMessage
 {
-    public partial class RabbitMessageServer
+    public partial class RabbitServer
     {
         private class EventReceiverExchange : IDisposable
         {
             public Type Type { get; private set; }
-            public string Name { get; private set; }
             public bool IsOpen { get { return this.channel != null; } }
 
+            public readonly string exchange;
             private readonly SymmetricKey encryptionKey;
 
             private IModel channel = null;
@@ -30,7 +30,7 @@ namespace Zerra.CQRS.RabbitMessage
             public EventReceiverExchange(Type type, SymmetricKey encryptionKey)
             {
                 this.Type = type;
-                this.Name = type.GetNiceName();
+                this.exchange = type.GetNiceName();
                 this.encryptionKey = encryptionKey;
             }
 
@@ -42,10 +42,10 @@ namespace Zerra.CQRS.RabbitMessage
                         throw new Exception("Exchange already open");
 
                     this.channel = connection.CreateModel();
-                    this.channel.ExchangeDeclare(this.Name, "fanout");
+                    this.channel.ExchangeDeclare(this.exchange, "fanout");
 
                     var queueName = this.channel.QueueDeclare().QueueName;
-                    this.channel.QueueBind(queueName, this.Name, String.Empty);
+                    this.channel.QueueBind(queueName, this.exchange, String.Empty);
 
                     this.consumer = new AsyncEventingBasicConsumer(this.channel);
 
@@ -74,7 +74,7 @@ namespace Zerra.CQRS.RabbitMessage
                                     body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, e.Body, true);
                                 }
 
-                                var rabbitMessage = RabbitMessageCommon.Deserialize<RabbitEventMessage>(body);
+                                var rabbitMessage = RabbitCommon.Deserialize<RabbitEventMessage>(body);
 
                                 if (rabbitMessage.Claims != null)
                                 {

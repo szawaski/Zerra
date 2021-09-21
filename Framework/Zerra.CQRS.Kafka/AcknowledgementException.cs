@@ -4,19 +4,19 @@
 
 using System;
 
-namespace Zerra.CQRS.RabbitMessage
+namespace Zerra.CQRS.Kafka
 {
     public class AcknowledgementException : Exception
     {
-        public string Exchange { get; private set; }
+        public string Topic { get; private set; }
         public Acknowledgement Acknowledgement { get; private set; }
-        public AcknowledgementException(Acknowledgement acknowledgement, string exchange) : base(acknowledgement.ErrorMessage)
+        public AcknowledgementException(Acknowledgement acknowledgement, string topic) : base(acknowledgement.ErrorMessage)
         {
             this.Acknowledgement = acknowledgement ?? throw new ArgumentNullException(nameof(acknowledgement));
-            if (string.IsNullOrWhiteSpace(exchange))
-                throw new ArgumentNullException(nameof(exchange));
+            if (string.IsNullOrWhiteSpace(topic))
+                throw new ArgumentNullException(nameof(topic));
             
-            this.Exchange = exchange;
+            this.Topic = topic;
         }
     }
 }

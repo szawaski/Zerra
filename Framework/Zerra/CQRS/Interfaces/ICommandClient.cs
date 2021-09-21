@@ -8,7 +8,7 @@ namespace Zerra.CQRS
 {
     public interface ICommandClient
     {
-        string ServiceUrl { get; }
+        string ConnectionString { get; }
         Task DispatchAsync(ICommand command);
         Task DispatchAsyncAwait(ICommand command);
     }

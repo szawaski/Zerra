@@ -10,7 +10,7 @@ namespace Zerra.CQRS
 {
     public interface IQueryServer
     {
-        string ServiceUrl { get; }
+        string ConnectionString { get; }
         void RegisterInterfaceType(Type type);
         ICollection<Type> GetInterfaceTypes();
         void SetHandler(Func<Type, string, string[], Task<RemoteQueryCallResponse>> providerHandlerAsync);

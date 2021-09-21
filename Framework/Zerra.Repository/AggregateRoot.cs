@@ -8,7 +8,6 @@ using Zerra.Collections;
 using Zerra.CQRS;
 using Zerra.Reflection;
 using Zerra.Repository.EventStore;
-using Zerra.Serialization;
 
 namespace Zerra.Repository
 {
@@ -77,17 +76,8 @@ namespace Zerra.Repository
 
             await ApplyEvent(@event, eventType);
 
-            var serializer = new ByteSerializer(true, true);
-            var eventModel = serializer.Serialize(@event);
-            await this.eventStore.AppendAsync(new EventStoreAppend()
-            {
-                EventID = Guid.NewGuid(),
-                StreamName = this.streamName,
-                Data = eventModel,
-                EventName = eventName,
-                ExpectedEventNumber = validateEventNumber ? LastEventNumber : null,
-                ExpectedState = validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.NotExisting : EventStoreState.Existing) : EventStoreState.Any
-            });
+            var eventBytes = EventStoreCommon.Serialize(@event);
+            await this.eventStore.AppendAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.NotExisting : EventStoreState.Existing) : EventStoreState.Any, eventBytes);
 
             await Bus.DispatchAsync(@event);
         }
@@ -99,14 +89,7 @@ namespace Zerra.Repository
 
             await ApplyEvent(@event, eventType);
 
-            await this.eventStore.TerminateAsync(new EventStoreTerminate()
-            {
-                EventID = Guid.NewGuid(),
-                StreamName = this.streamName,
-                EventName = eventName,
-                ExpectedEventNumber = validateEventNumber ? LastEventNumber : null,
-                ExpectedState = validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.NotExisting : EventStoreState.Existing) : EventStoreState.Any
-            });
+            await this.eventStore.TerminateAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.NotExisting : EventStoreState.Existing) : EventStoreState.Any);
 
             await Bus.DispatchAsync(@event);
         }
@@ -127,7 +110,6 @@ namespace Zerra.Repository
             if (!IsCreated)
                 IsCreated = true;
 
-            var serializer = new ByteSerializer(true, true);
             foreach (var eventData in eventDatas)
             {
                 this.LastEventNumber = eventData.Number;
@@ -135,7 +117,7 @@ namespace Zerra.Repository
                 this.LastEventName = eventData.EventName;
                 if (eventData.Deleted)
                     this.IsDeleted = true;
-                var eventModel = serializer.Deserialize<IEvent>(eventData.Data.Span);
+                var eventModel = EventStoreCommon.Deserialize<IEvent>(eventData.Data.Span);
                 await ApplyEvent(eventModel, eventModel.GetType());
             }
             return true;

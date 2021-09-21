@@ -8,7 +8,7 @@ namespace Zerra.CQRS
 {
     public interface IEventClient
     {
-        string ServiceUrl { get; }
+        string ConnectionString { get; }
         Task DispatchAsync(IEvent @event);
     }
 }

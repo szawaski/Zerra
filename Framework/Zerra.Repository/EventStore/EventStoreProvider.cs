@@ -835,18 +835,8 @@ namespace Zerra.Repository.EventStore
             };
 
             var data = EventStoreCommon.Serialize(eventStoreModel);
-            var source = EventStoreCommon.Serialize(@event.Source);
 
-            var eventStoreAdd = new EventStoreAppend()
-            {
-                EventID = @event.ID,
-                EventName = @event.Name,
-                StreamName = streamName,
-                ExpectedEventNumber = create ? 0 : (ulong?)null,
-                Data = data,
-            };
-
-            var eventNumber = Engine.Append(eventStoreAdd);
+            var eventNumber = Engine.Append(@event.ID, @event.Name, streamName, null, create ? EventStoreState.NotExisting : EventStoreState.Existing, data);
 
             if (eventNumber > 0 && eventNumber % SaveStateEvery == 0)
             {
@@ -866,14 +856,7 @@ namespace Zerra.Repository.EventStore
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
 
-                var eventStoreDelete = new EventStoreTerminate()
-                {
-                    EventID = @event.ID,
-                    StreamName = streamName,
-                    ExpectedEventNumber = null
-                };
-
-                var eventNumber = Engine.Terminate(eventStoreDelete);
+                var eventNumber = Engine.Terminate(@event.ID, "Delete", streamName, null, EventStoreState.Existing);
 
                 SaveModelState(id, null, eventNumber);
             }
@@ -894,16 +877,7 @@ namespace Zerra.Repository.EventStore
 
             var data = EventStoreCommon.Serialize(eventStoreModel);
 
-            var eventStoreAdd = new EventStoreAppend()
-            {
-                EventID = @event.ID,
-                EventName = @event.Name,
-                StreamName = streamName,
-                ExpectedEventNumber = create ? 0 : (ulong?)null,
-                Data = data
-            };
-
-            var eventNumber = await Engine.AppendAsync(eventStoreAdd);
+            var eventNumber = await Engine.AppendAsync(@event.ID, @event.Name, streamName, null, create ? EventStoreState.NotExisting : EventStoreState.Existing, data);
 
             if (eventNumber > 0 && eventNumber % SaveStateEvery == 0)
             {
@@ -923,14 +897,7 @@ namespace Zerra.Repository.EventStore
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
 
-                var eventStoreDelete = new EventStoreTerminate()
-                {
-                    EventID = @event.ID,
-                    StreamName = streamName,
-                    ExpectedEventNumber = null
-                };
-
-                var eventNumber = await Engine.TerminateAsync(eventStoreDelete);
+                var eventNumber = await Engine.TerminateAsync(@event.ID, "Delete", streamName, null, EventStoreState.Existing);
 
                 await SaveModelStateAsync(id, null, eventNumber);
             }
@@ -948,15 +915,7 @@ namespace Zerra.Repository.EventStore
             };
             var data = EventStoreCommon.Serialize(eventState);
 
-            var eventStoreAdd = new EventStoreAppend()
-            {
-                EventID = Guid.NewGuid(),
-                EventName = "StoreState",
-                StreamName = streamName,
-                ExpectedEventNumber = null,
-                Data = data
-            };
-            Engine.Append(eventStoreAdd);
+            Engine.Append(Guid.NewGuid(), "StoreState", streamName, null, EventStoreState.Any, data);
         }
         private async Task SaveModelStateAsync(object id, TModel model, ulong eventNumber)
         {
@@ -970,15 +929,7 @@ namespace Zerra.Repository.EventStore
             };
             var data = EventStoreCommon.Serialize(eventState);
 
-            var eventStoreAdd = new EventStoreAppend()
-            {
-                EventID = Guid.NewGuid(),
-                EventName = "StoreState",
-                StreamName = streamName,
-                ExpectedEventNumber = null,
-                Data = data
-            };
-            await Engine.AppendAsync(eventStoreAdd);
+            await Engine.AppendAsync(Guid.NewGuid(), "StoreState", streamName, null, EventStoreState.Any, data);
         }
     }
 }

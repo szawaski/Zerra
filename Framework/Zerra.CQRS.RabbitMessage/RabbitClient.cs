@@ -16,24 +16,25 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.RabbitMessage
 {
-    public class RabbitMessageClient : ICommandClient, IEventClient, IDisposable
+    public class RabbitClient : ICommandClient, IEventClient, IDisposable
     {
-        private readonly string hostName;
-        private readonly SymmetricKey encryptionKey;
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.RijndaelManaged;
+
+        private readonly string host;
+        private readonly SymmetricKey encryptionKey;
         private IConnection connection = null;
 
-        public string ServiceUrl => hostName;
+        public string ConnectionString => host;
 
-        public RabbitMessageClient(string hostName, SymmetricKey encryptionKey)
+        public RabbitClient(string host, SymmetricKey encryptionKey)
         {
-            this.hostName = hostName;
+            this.host = host;
             this.encryptionKey = encryptionKey;
             try
             {
-                var factory = new ConnectionFactory() { HostName = hostName };
+                var factory = new ConnectionFactory() { HostName = host };
                 this.connection = factory.CreateConnection();
-                _ = Log.TraceAsync($"{nameof(RabbitMessageClient)} Started For {this.hostName}");
+                _ = Log.TraceAsync($"{nameof(RabbitClient)} Started For {this.host}");
             }
             catch (Exception ex)
             {
@@ -42,19 +43,9 @@ namespace Zerra.CQRS.RabbitMessage
             }
         }
 
-        Task ICommandClient.DispatchAsync(ICommand command)
-        {
-            return SendAsync(command, false);
-        }
-        Task ICommandClient.DispatchAsyncAwait(ICommand command)
-        {
-            return SendAsync(command, true);
-        }
-
-        Task IEventClient.DispatchAsync(IEvent @event)
-        {
-            return SendAsync(@event);
-        }
+        Task ICommandClient.DispatchAsync(ICommand command) { return SendAsync(command, false); }
+        Task ICommandClient.DispatchAsyncAwait(ICommand command) { return SendAsync(command, true); }
+        Task IEventClient.DispatchAsync(IEvent @event) { return SendAsync(@event); }
 
         private async Task SendAsync(ICommand command, bool requireAcknowledgement)
         {
@@ -69,9 +60,9 @@ namespace Zerra.CQRS.RabbitMessage
                     {
                         if (connection.IsOpen == false)
                         {
-                            var factory = new ConnectionFactory() { HostName = hostName };
+                            var factory = new ConnectionFactory() { HostName = host };
                             this.connection = factory.CreateConnection();
-                            _ = Log.TraceAsync($"Sender Reconnected: {hostName}");
+                            _ = Log.TraceAsync($"Sender Reconnected: {host}");
                         }
                     }
                 }
@@ -88,13 +79,11 @@ namespace Zerra.CQRS.RabbitMessage
                     Claims = claims
                 };
 
-                byte[] body = RabbitMessageCommon.Serialize(rabbitMessage);
+                var body = RabbitCommon.Serialize(rabbitMessage);
                 if (encryptionKey != null)
-                {
                     body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body, true);
-                }
 
-                string exchange = command.GetType().GetNiceName();
+                var exchange = command.GetType().GetNiceName();
 
                 var properties = channel.CreateBasicProperties();
 
@@ -114,7 +103,7 @@ namespace Zerra.CQRS.RabbitMessage
 
                 if (encryptionKey != null)
                 {
-                    Dictionary<string, object> messageHeaders = new Dictionary<string, object>();
+                    var messageHeaders = new Dictionary<string, object>();
                     messageHeaders.Add("Encryption", true);
                     properties.Headers = messageHeaders;
                 }
@@ -142,7 +131,7 @@ namespace Zerra.CQRS.RabbitMessage
                             {
                                 acknowledgementBody = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, acknowledgementBody, true);
                             }
-                            var affirmation = RabbitMessageCommon.Deserialize<Acknowledgement>(acknowledgementBody);
+                            var affirmation = RabbitCommon.Deserialize<Acknowledgement>(acknowledgementBody);
 
                             stopwatch.Stop();
 
@@ -152,9 +141,7 @@ namespace Zerra.CQRS.RabbitMessage
                                 _ = Log.TraceAsync($"Await Success: {exchange} {stopwatch.ElapsedMilliseconds}");
 
                             if (!affirmation.Success)
-                            {
                                 exception = new AcknowledgementException(affirmation, exchange);
-                            }
                         }
                         catch (Exception ex)
                         {
@@ -198,9 +185,9 @@ namespace Zerra.CQRS.RabbitMessage
                     {
                         if (connection.IsOpen == false)
                         {
-                            var factory = new ConnectionFactory() { HostName = hostName };
+                            var factory = new ConnectionFactory() { HostName = host };
                             this.connection = factory.CreateConnection();
-                            _ = Log.TraceAsync($"Sender Reconnected: {hostName}");
+                            _ = Log.TraceAsync($"Sender Reconnected: {host}");
                         }
                     }
                 }
@@ -217,7 +204,7 @@ namespace Zerra.CQRS.RabbitMessage
                     Claims = claims
                 };
 
-                byte[] body = RabbitMessageCommon.Serialize(rabbitMessage);
+                byte[] body = RabbitCommon.Serialize(rabbitMessage);
                 if (encryptionKey != null)
                 {
                     body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body, true);

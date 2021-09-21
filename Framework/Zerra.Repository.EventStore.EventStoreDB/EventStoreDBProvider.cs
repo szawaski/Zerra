@@ -29,11 +29,11 @@ namespace Zerra.Repository.EventStore.EventStoreDB
             client = new EventStoreClient(settings);
         }
 
-        public ulong Append(EventStoreAppend eventStoreAppend)
+        public ulong Append(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data)
         {
             throw new NotSupportedException($"{nameof(EventStoreDBProvider)} does not support synchronous operations");
         }
-        public ulong Terminate(EventStoreTerminate eventStoreTerminate)
+        public ulong Terminate(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState)
         {
             throw new NotSupportedException($"{nameof(EventStoreDBProvider)} does not support synchronous operations");
         }
@@ -46,21 +46,21 @@ namespace Zerra.Repository.EventStore.EventStoreDB
             throw new NotSupportedException($"{nameof(EventStoreDBProvider)} does not support synchronous operations");
         }
 
-        public async Task<ulong> AppendAsync(EventStoreAppend eventStoreAppend)
+        public async Task<ulong> AppendAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data)
         {
-            var eventData = new EventData(Uuid.FromGuid(eventStoreAppend.EventID), eventStoreAppend.EventName, eventStoreAppend.Data);
+            var eventData = new EventData(Uuid.FromGuid(eventID), eventName, data);
 
-            if (eventStoreAppend.ExpectedEventNumber.HasValue)
+            if (expectedEventNumber.HasValue)
             {
-                var revision = new StreamRevision(eventStoreAppend.ExpectedEventNumber.Value);
+                var revision = new StreamRevision(expectedEventNumber.Value);
 
-                var writeResult = await client.AppendToStreamAsync(eventStoreAppend.StreamName, revision, new EventData[] { eventData });
+                var writeResult = await client.AppendToStreamAsync(streamName, revision, new EventData[] { eventData });
                 return writeResult.NextExpectedStreamRevision;
             }
             else
             {
                 StreamState state;
-                switch(eventStoreAppend.ExpectedState)
+                switch(expectedState)
                 {
                     case EventStoreState.Any: state = StreamState.Any; break;
                     case EventStoreState.NotExisting: state = StreamState.NoStream; break;
@@ -68,27 +68,27 @@ namespace Zerra.Repository.EventStore.EventStoreDB
                     default: throw new NotImplementedException();
                 }
  
-                var writeResult = await client.AppendToStreamAsync(eventStoreAppend.StreamName, state, new EventData[] { eventData });
+                var writeResult = await client.AppendToStreamAsync(streamName, state, new EventData[] { eventData });
                 return writeResult.NextExpectedStreamRevision;
             }
         }
-        public async Task<ulong> TerminateAsync(EventStoreTerminate eventStoreTerminate)
+        public async Task<ulong> TerminateAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState)
         {
-            var eventData = new EventData(Uuid.FromGuid(eventStoreTerminate.EventID), "Delete", null, null);
+            var eventData = new EventData(Uuid.FromGuid(eventID), "Delete", null, null);
 
-            if (eventStoreTerminate.ExpectedEventNumber.HasValue)
+            if (expectedEventNumber.HasValue)
             {
-                var revision = new StreamRevision(eventStoreTerminate.ExpectedEventNumber.Value);
+                var revision = new StreamRevision(expectedEventNumber.Value);
 
-                var writeResult = await client.AppendToStreamAsync(eventStoreTerminate.StreamName, revision, new EventData[] { eventData });
-                await client.TombstoneAsync(eventStoreTerminate.StreamName, revision);
+                var writeResult = await client.AppendToStreamAsync(streamName, revision, new EventData[] { eventData });
+                await client.TombstoneAsync(streamName, revision);
                 return writeResult.NextExpectedStreamRevision;
 
             }
             else
             {
                 StreamState state;
-                switch (eventStoreTerminate.ExpectedState)
+                switch (expectedState)
                 {
                     case EventStoreState.Any: state = StreamState.Any; break;
                     case EventStoreState.NotExisting: state = StreamState.NoStream; break;
@@ -96,8 +96,8 @@ namespace Zerra.Repository.EventStore.EventStoreDB
                     default: throw new NotImplementedException();
                 }
 
-                var writeResult = await client.AppendToStreamAsync(eventStoreTerminate.StreamName, state, new EventData[] { eventData });
-                await client.TombstoneAsync(eventStoreTerminate.StreamName, state);
+                var writeResult = await client.AppendToStreamAsync(streamName, state, new EventData[] { eventData });
+                await client.TombstoneAsync(streamName, state);
                 return writeResult.NextExpectedStreamRevision;
             }
         }

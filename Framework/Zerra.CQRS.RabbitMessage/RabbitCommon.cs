@@ -6,7 +6,7 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS.RabbitMessage
 {
-    public static class RabbitMessageCommon
+    internal static class RabbitCommon
     {
         public static byte[] Serialize(object obj)
         {

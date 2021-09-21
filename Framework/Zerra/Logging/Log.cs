@@ -50,11 +50,27 @@ namespace Zerra.Logging
             }
             return Task.CompletedTask;
         }
+        public static Task ErrorAsync(Exception exception)
+        {
+            if (Resolver.TryGet(out ILoggingProvider provider))
+            {
+                return provider.ErrorAsync(null, exception);
+            }
+            return Task.CompletedTask;
+        }
         public static Task CriticalAsync(string message, Exception exception = null)
         {
             if (Resolver.TryGet(out ILoggingProvider provider))
             {
                 return provider.CriticalAsync(message, exception);
+            }
+            return Task.CompletedTask;
+        }
+        public static Task CriticalAsync(Exception exception)
+        {
+            if (Resolver.TryGet(out ILoggingProvider provider))
+            {
+                return provider.CriticalAsync(null, exception);
             }
             return Task.CompletedTask;
         }

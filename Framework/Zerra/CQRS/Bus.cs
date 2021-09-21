@@ -862,10 +862,10 @@ namespace Zerra.CQRS
                     if (relayRegister != null)
                     {
                         var commandTypes = commandServer.GetCommandTypes().Select(x => x.GetNiceName()).ToArray();
-                        if (!relayRegisterTypes.TryGetValue(commandServer.ServiceUrl, out HashSet<string> relayTypes))
+                        if (!relayRegisterTypes.TryGetValue(commandServer.ConnectionString, out HashSet<string> relayTypes))
                         {
                             relayTypes = new HashSet<string>();
-                            relayRegisterTypes.Add(commandServer.ServiceUrl, relayTypes);
+                            relayRegisterTypes.Add(commandServer.ConnectionString, relayTypes);
                         }
                         foreach (var type in commandTypes)
                             relayTypes.Add(type);
@@ -877,10 +877,10 @@ namespace Zerra.CQRS
                     if (relayRegister != null)
                     {
                         var eventTypes = eventServer.GetEventTypes().Select(x => x.GetNiceName()).ToArray();
-                        if (!relayRegisterTypes.TryGetValue(eventServer.ServiceUrl, out HashSet<string> relayTypes))
+                        if (!relayRegisterTypes.TryGetValue(eventServer.ConnectionString, out HashSet<string> relayTypes))
                         {
                             relayTypes = new HashSet<string>();
-                            relayRegisterTypes.Add(eventServer.ServiceUrl, relayTypes);
+                            relayRegisterTypes.Add(eventServer.ConnectionString, relayTypes);
                         }
                         foreach (var type in eventTypes)
                             relayTypes.Add(type);
@@ -892,10 +892,10 @@ namespace Zerra.CQRS
                     if (relayRegister != null)
                     {
                         var queryTypes = queryServer.GetInterfaceTypes().Select(x => x.GetNiceName()).ToArray();
-                        if (!relayRegisterTypes.TryGetValue(queryServer.ServiceUrl, out HashSet<string> relayTypes))
+                        if (!relayRegisterTypes.TryGetValue(queryServer.ConnectionString, out HashSet<string> relayTypes))
                         {
                             relayTypes = new HashSet<string>();
-                            relayRegisterTypes.Add(queryServer.ServiceUrl, relayTypes);
+                            relayRegisterTypes.Add(queryServer.ConnectionString, relayTypes);
                         }
                         foreach (var type in queryTypes)
                             relayTypes.Add(type);

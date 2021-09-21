@@ -6,6 +6,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -14,14 +15,14 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.RabbitMessage
 {
-    public partial class RabbitMessageServer
+    public partial class RabbitServer
     {
         private class CommandReceiverExchange : IDisposable
         {
             public Type Type { get; private set; }
-            public string Name { get; private set; }
             public bool IsOpen { get { return this.channel != null; } }
 
+            private readonly string exchange;
             private readonly SymmetricKey encryptionKey;
 
             private IModel channel = null;
@@ -30,7 +31,7 @@ namespace Zerra.CQRS.RabbitMessage
             public CommandReceiverExchange(Type type, SymmetricKey encryptionKey)
             {
                 this.Type = type;
-                this.Name = type.GetNiceName();
+                this.exchange = type.GetNiceName();
                 this.encryptionKey = encryptionKey;
             }
 
@@ -42,10 +43,10 @@ namespace Zerra.CQRS.RabbitMessage
                         throw new Exception("Exchange already open");
 
                     this.channel = connection.CreateModel();
-                    this.channel.ExchangeDeclare(this.Name, "fanout");
+                    this.channel.ExchangeDeclare(this.exchange, "fanout");
 
                     var queueName = this.channel.QueueDeclare().QueueName;
-                    this.channel.QueueBind(queueName, this.Name, String.Empty);
+                    this.channel.QueueBind(queueName, this.exchange, String.Empty);
 
                     this.consumer = new AsyncEventingBasicConsumer(this.channel);
 
@@ -72,16 +73,14 @@ namespace Zerra.CQRS.RabbitMessage
                             {
                                 byte[] body = e.Body;
                                 if (isEncrypted)
-                                {
                                     body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, e.Body, true);
-                                }
 
-                                var rabbitMessage = RabbitMessageCommon.Deserialize<RabbitCommandMessage>(body);
+                                var rabbitMessage = RabbitCommon.Deserialize<RabbitCommandMessage>(body);
 
                                 if (rabbitMessage.Claims != null)
                                 {
                                     var claimsIdentity = new ClaimsIdentity(rabbitMessage.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
-                                    System.Threading.Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
+                                    Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
                                 }
 
                                 if (awaitResponse)
@@ -112,7 +111,7 @@ namespace Zerra.CQRS.RabbitMessage
                                 else
                                     _ = Log.TraceAsync($"Error: Received: {e.Exchange} {acknowledgment.ErrorMessage} {stopwatch.ElapsedMilliseconds}");
 
-                                _ = Log.ErrorAsync(null, ex);
+                                _ = Log.ErrorAsync(ex);
                             }
                         }
 
@@ -123,7 +122,7 @@ namespace Zerra.CQRS.RabbitMessage
                                 var replyProperties = this.channel.CreateBasicProperties();
                                 replyProperties.CorrelationId = properties.CorrelationId;
 
-                                var acknowledgmentBody = RabbitMessageCommon.Serialize(acknowledgment);
+                                var acknowledgmentBody = RabbitCommon.Serialize(acknowledgment);
                                 if (isEncrypted)
                                 {
                                     acknowledgmentBody = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, acknowledgmentBody, true);
@@ -137,7 +136,7 @@ namespace Zerra.CQRS.RabbitMessage
                         }
                         catch (Exception ex)
                         {
-                            _ = Log.ErrorAsync(null, ex);
+                            _ = Log.ErrorAsync(ex);
                         }
                     };
 

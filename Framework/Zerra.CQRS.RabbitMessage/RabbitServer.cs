@@ -12,11 +12,12 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.RabbitMessage
 {
-    public partial class RabbitMessageServer : ICommandServer, IEventServer, IDisposable
+    public partial class RabbitServer : ICommandServer, IEventServer, IDisposable
     {
-        private readonly string hostName;
-        private readonly SymmetricKey encryptionKey;
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.RijndaelManaged;
+
+        private readonly string host;
+        private readonly SymmetricKey encryptionKey;
         private readonly List<CommandReceiverExchange> commandExchanges;
         private readonly List<EventReceiverExchange> eventExchanges;
 
@@ -25,11 +26,11 @@ namespace Zerra.CQRS.RabbitMessage
         private Func<ICommand, Task> commandHandlerAwaitAsync = null;
         private Func<IEvent, Task> eventHandlerAsync = null;
 
-        public string ServiceUrl => hostName;
+        public string ConnectionString => host;
 
-        public RabbitMessageServer(string hostName, SymmetricKey encryptionKey)
+        public RabbitServer(string host, SymmetricKey encryptionKey)
         {
-            this.hostName = hostName;
+            this.host = host;
             this.encryptionKey = encryptionKey;
             this.commandExchanges = new List<CommandReceiverExchange>();
             this.eventExchanges = new List<EventReceiverExchange>();
@@ -52,23 +53,23 @@ namespace Zerra.CQRS.RabbitMessage
         void ICommandServer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(RabbitMessageServer)} Command Server Started Connected To {this.hostName}");
+            _ = Log.InfoAsync($"{nameof(RabbitServer)} Command Server Started Connected To {this.host}");
         }
         void IEventServer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(RabbitMessageServer)} Event Server Started Connected To {this.hostName}");
+            _ = Log.InfoAsync($"{nameof(RabbitServer)} Event Server Started Connected To {this.host}");
         }
         private void Open()
         {
             try
             {
-                var factory = new ConnectionFactory() { HostName = hostName, DispatchConsumersAsync = true };
+                var factory = new ConnectionFactory() { HostName = host, DispatchConsumersAsync = true };
                 this.connection = factory.CreateConnection();
             }
             catch (Exception ex)
             {
-                Log.ErrorAsync($"{nameof(RabbitMessageServer)} failed to open", ex);
+                Log.ErrorAsync($"{nameof(RabbitServer)} failed to open", ex);
                 throw;
             }
 
@@ -96,12 +97,12 @@ namespace Zerra.CQRS.RabbitMessage
         void ICommandServer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(RabbitMessageServer)} Command Server Closed On {this.hostName}");
+            _ = Log.InfoAsync($"{nameof(RabbitServer)} Command Server Closed On {this.host}");
         }
         void IEventServer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(RabbitMessageServer)} Event Server Closed On {this.hostName}");
+            _ = Log.InfoAsync($"{nameof(RabbitServer)} Event Server Closed On {this.host}");
         }
         private void Close()
         {

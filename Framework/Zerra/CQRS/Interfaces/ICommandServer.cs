@@ -10,7 +10,7 @@ namespace Zerra.CQRS
 {
     public interface ICommandServer
     {
-        string ServiceUrl { get; }
+        string ConnectionString { get; }
         void RegisterCommandType(Type type);
         ICollection<Type> GetCommandTypes();
         void SetHandler(Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync);

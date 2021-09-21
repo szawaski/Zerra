@@ -6,8 +6,12 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS.Kafka
 {
-    public static class KafkaCommon
+    internal static class KafkaCommon
     {
+        public const string MessageKey = "Body";
+        public const string MessageWithAckKey = "BodyAck";
+        public const string AckKeyHeader = "AckKey";
+
         public static byte[] Serialize(object obj)
         {
             var serializer = new ByteSerializer(true, true, true);
