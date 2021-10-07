@@ -56,7 +56,7 @@ namespace Zerra.IO
             if (!fromPool)
                 throw new InvalidOperationException($"{nameof(ByteWriter)} has reached it's buffer limit");
 
-            var minSize = buffer.Length - position + additionalSize;
+            var minSize = position + additionalSize;
 
             BufferArrayPool<byte>.Grow(ref bufferOwner, minSize);
             buffer = bufferOwner;

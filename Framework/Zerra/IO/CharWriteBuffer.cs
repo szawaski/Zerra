@@ -68,8 +68,8 @@ namespace Zerra.IO
                     return;
             }
 
-            var neededLength = position + additionalLength;
-            BufferArrayPool<char>.Grow(ref bufferOwner, neededLength);
+            var minSize = position + additionalLength;
+            BufferArrayPool<char>.Grow(ref bufferOwner, minSize);
             buffer = bufferOwner;
         }
 
