@@ -29,8 +29,16 @@ namespace Zerra.CQRS.Network
 
                 if (uri.DnsSafeHost == "anyhost")
                 {
-                    endpoints.Add(new IPEndPoint(IPAddress.Any, port));
-                    endpoints.Add(new IPEndPoint(IPAddress.IPv6Any, port));
+                    try
+                    {
+                        endpoints.Add(new IPEndPoint(IPAddress.Any, port));
+                    }
+                    catch { }
+                    try
+                    {
+                        endpoints.Add(new IPEndPoint(IPAddress.IPv6Any, port));
+                    }
+                    catch { }
                 }
                 else
                 {
@@ -38,10 +46,11 @@ namespace Zerra.CQRS.Network
                     foreach (var ip in ipAddresses)
                     {
                         if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        {
                             endpoints.Add(new IPEndPoint(ip, port));
+                        }
                     }
                 }
-
             }
 
             return endpoints;

@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zerrademo-weatherdomainservice
+  name: zerrademo-weatherdomain
 spec:
   selector:
     matchLabels:
-      app: zerrademo-weatherdomainservice
+      app: zerrademo-weatherdomain-pod
   template:
     metadata:
       labels:
-        app: zerrademo-weatherdomainservice
+        app: zerrademo-weatherdomain-pod
     spec:
       containers:
-      - name: zerrademo-weatherdomainservice
-        image: zerrademo-weatherdomainservice:latest
+      - name: zerrademo-weatherdomain-container
+        image: zerrademo-weatherdomain:latest
         resources:
           limits:
             memory: "128Mi"
@@ -21,7 +21,78 @@ spec:
         imagePullPolicy: Never
         ports:
         - containerPort: 5000
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 5000
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zerrademo-web
+spec:
+  selector:
+    matchLabels:
+      app: zerrademo-web-pod
+  template:
+    metadata:
+      labels:
+        app: zerrademo-web-pod
+    spec:
+      containers:
+      - name: zerrademo-web-container
+        image: zerrademo-web:latest
+        env:
+          - name: ZerraDemo.Service.Pets
+            value: http://zerrademo-petsdomain-service:9001
+          - name: ZerraDemo.Service.Weather
+            value: http://zerrademo-weatherdomain-service:9002
+          - name: ZerraDemo.Service.Ledger1
+            value: http://zerrademo-ledger1domain-service:9003
+          - name: ZerraDemo.Service.Ledger2
+            value: http://zerrademo-ledger2domain-service:9004
+          - name: PetsSqlConnectionString
+            value: Data Source=host.docker.internal,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;
+          - name: Ledger1SqlConnectionString
+            value: Data Source=host.docker.internal,1402;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;
+          - name: Ledger1EventStoreServer
+            value: 
+          - name: Ledger2EventStoreServer
+            value: 
+          - name: LogFileDirectory
+            value: 
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 80
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: zerrademo-weatherdomain-service
+spec:
+  selector:
+    app: zerrademo-weatherdomain-pod
+  ports:
+  - port: 9002
+    targetPort: 5000
+    nodePort: 30002
+  type: NodePort
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: zerrademo-web-service
+spec:
+  selector:
+    app: zerrademo-web-pod
+  ports:
+  - port: 9000
+    targetPort: 80
+    nodePort: 30000
+  type: NodePort

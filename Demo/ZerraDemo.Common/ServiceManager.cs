@@ -1,8 +1,4 @@
-﻿using System;
-using System.Linq;
-using Zerra;
-using Zerra.CQRS;
-using Zerra.CQRS.Relay;
+﻿using Zerra.CQRS;
 using Zerra.CQRS.Settings;
 using Zerra.Logger;
 

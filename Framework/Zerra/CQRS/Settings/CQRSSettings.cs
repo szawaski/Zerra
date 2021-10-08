@@ -5,6 +5,7 @@
 using System;
 using System.IO;
 using System.Text;
+using Zerra.Logging;
 using Zerra.Serialization;
 
 namespace Zerra.CQRS.Settings
@@ -17,19 +18,48 @@ namespace Zerra.CQRS.Settings
         {
             var filePath = Config.GetConfigFile(SettingsFileName, path);
             if (filePath == null)
-                throw new Exception($"{SettingsFileName} not found");
+            {
+                Log.InfoAsync($"{filePath} not found").GetAwaiter().GetResult();
+                throw new Exception($"{filePath} not found");
+            }
 
+            ServiceSettings settings;
             try
             {
                 var data = File.ReadAllText(filePath, Encoding.UTF8);
-                var settings = JsonSerializer.Deserialize<ServiceSettings>(data);
-                Console.WriteLine($"Loaded {filePath}");
-                return settings;
+                settings = JsonSerializer.Deserialize<ServiceSettings>(data);
             }
             catch (Exception ex)
             {
-                throw new Exception($"Invalid {SettingsFileName}", ex);
+                Log.InfoAsync($"Invalid {filePath}").GetAwaiter().GetResult();
+                throw new Exception($"Invalid {filePath}", ex);
             }
+            _ = Log.InfoAsync($"Loaded {SettingsFileName}");
+
+            var messageHost = Config.GetSetting(nameof(settings.MessageHost));
+            if (!String.IsNullOrWhiteSpace(messageHost))
+                settings.MessageHost = messageHost;
+            _ = Log.InfoAsync($"Set {nameof(settings.MessageHost)} at {messageHost}");
+
+            var relayUrl = Config.GetSetting(nameof(settings.RelayUrl));
+            if (!String.IsNullOrWhiteSpace(relayUrl))
+                settings.RelayUrl = relayUrl;
+            _ = Log.InfoAsync($"Set {nameof(settings.RelayUrl)} at {relayUrl}");
+
+            var relayKey = Config.GetSetting(nameof(settings.RelayKey));
+            if (!String.IsNullOrWhiteSpace(relayUrl))
+                settings.RelayKey = relayKey;
+            //_ = Log.InfoAsync($"Set {nameof(settings.RelayKey)} at {relayKey}"); security don't display
+
+            foreach (var service in settings.Services)
+            {
+                var url = Config.GetSetting(service.Name);
+                if (!String.IsNullOrWhiteSpace(url))
+                    service.ExternalUrl = url;
+                _ = Log.InfoAsync($"Set {service.Name} at {url}");
+            }
+
+            return settings;
         }
     }
 }

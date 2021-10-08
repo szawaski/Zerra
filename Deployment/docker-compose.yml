@@ -51,42 +51,92 @@ services:
       - "2114:2114"
 
   zerrademo-weatherdomainservice:
-    image: zerrademo-weatherdomainservice
+    image: zerrademo-weatherdomain
+    environment:
+      - ZerraDemo.Service.Pets=host.docker.internal:9001
+      - ZerraDemo.Service.Weather=host.docker.internal:9002
+      - ZerraDemo.Service.Ledger1=host.docker.internal:9003
+      - ZerraDemo.Service.Ledger2=host.docker.internal:9004
+      - PetsSqlConnectionString=Data Source=host.docker.internal,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;
+      - Ledger1SqlConnectionString=Data Source=host.docker.internal,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;
+      - Ledger1EventStoreServer=tcp://host.docker.internal:2113
+      - Ledger2EventStoreServer=tcp://host.docker.internal:2114
+      - LogFileDirectory=
     build:
       context: ../
-      dockerfile: Deployment/WeatherDomainServiceDockerfile
+      dockerfile: Deployment/WeatherDomainDockerfile
     ports:
       - "9002:5000"
       
   zerrademo-petsdomainservice:
-    image: zerrademo-petsdomainservice
+    image: zerrademo-petsdomain
+    environment:
+      - ZerraDemo.Service.Pets=host.docker.internal:9001
+      - ZerraDemo.Service.Weather=host.docker.internal:9002
+      - ZerraDemo.Service.Ledger1=host.docker.internal:9003
+      - ZerraDemo.Service.Ledger2=host.docker.internal:9004
+      - PetsSqlConnectionString=Data Source=host.docker.internal,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;
+      - Ledger1SqlConnectionString=Data Source=host.docker.internal,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;
+      - Ledger1EventStoreServer=tcp://host.docker.internal:2113
+      - Ledger2EventStoreServer=tcp://host.docker.internal:2114
+      - LogFileDirectory=
     build:
       context: ../
-      dockerfile: Deployment/PetsDomainServiceDockerfile
+      dockerfile: Deployment/PetsDomainDockerfile
     ports:
       - "9001:5000"
       
   zerrademo-ledger1domainservice:
-    image: zerrademo-ledger1domainservice
+    image: zerrademo-ledger1domain
+    environment:
+      - ZerraDemo.Service.Pets=host.docker.internal:9001
+      - ZerraDemo.Service.Weather=host.docker.internal:9002
+      - ZerraDemo.Service.Ledger1=host.docker.internal:9003
+      - ZerraDemo.Service.Ledger2=host.docker.internal:9004
+      - PetsSqlConnectionString=Data Source=host.docker.internal,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;
+      - Ledger1SqlConnectionString=Data Source=host.docker.internal,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;
+      - Ledger1EventStoreServer=tcp://host.docker.internal:2113
+      - Ledger2EventStoreServer=tcp://host.docker.internal:2114
+      - LogFileDirectory=
     build:
       context: ../
-      dockerfile: Deployment/Ledger1DomainServiceDockerfile
+      dockerfile: Deployment/Ledger1DomainDockerfile
     ports:
       - "9003:5000"
       
   zerrademo-ledger2domainservice:
-    image: zerrademo-ledger2domainservice
+    image: zerrademo-ledger2domain
+    environment:
+      - ZerraDemo.Service.Pets=host.docker.internal:9001
+      - ZerraDemo.Service.Weather=host.docker.internal:9002
+      - ZerraDemo.Service.Ledger1=host.docker.internal:9003
+      - ZerraDemo.Service.Ledger2=host.docker.internal:9004
+      - PetsSqlConnectionString=Data Source=host.docker.internal,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;
+      - Ledger1SqlConnectionString=Data Source=host.docker.internal,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;
+      - Ledger1EventStoreServer=tcp://host.docker.internal:2113
+      - Ledger2EventStoreServer=tcp://host.docker.internal:2114
+      - LogFileDirectory=
     build:
       context: ../
-      dockerfile: Deployment/Ledger2DomainServiceDockerfile
+      dockerfile: Deployment/Ledger2DomainDockerfile
     ports:
       - "9004:5000"
  
   zerrademo-webservice:
-    image: zerrademo-webservice
+    image: zerrademo-web
+    environment:
+      - ZerraDemo.Service.Pets=host.docker.internal:9001
+      - ZerraDemo.Service.Weather=host.docker.internal:9002
+      - ZerraDemo.Service.Ledger1=host.docker.internal:9003
+      - ZerraDemo.Service.Ledger2=host.docker.internal:9004
+      - PetsSqlConnectionString=Data Source=host.docker.internal,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;
+      - Ledger1SqlConnectionString=Data Source=host.docker.internal,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;
+      - Ledger1EventStoreServer=tcp://host.docker.internal:2113
+      - Ledger2EventStoreServer=tcp://host.docker.internal:2114
+      - LogFileDirectory=
     build:
       context: ../
-      dockerfile: Deployment/WebServiceDockerfile
+      dockerfile: Deployment/WebDockerfile
     ports:
       - "9000:80"
       

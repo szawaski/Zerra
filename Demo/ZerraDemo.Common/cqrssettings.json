@@ -8,7 +8,7 @@
     },
     {
       "Name": "ZerraDemo.Service.Pets",
-      "ExternalUrl": "host.docker.internal:9001",
+      "ExternalUrl": "localhost:9001",
       "EncryptionKey": "SecretTransportKey",
       "Types": [
         "IPetsQueryProvider",
@@ -18,7 +18,7 @@
     },
     {
       "Name": "ZerraDemo.Service.Weather",
-      "ExternalUrl": "host.docker.internal:9002",
+      "ExternalUrl": "localhost:9002",
       "EncryptionKey": "SecretTransportKey",
       "Types": [
         "IWeatherQueryProvider",
@@ -28,7 +28,7 @@
     },
     {
       "Name": "ZerraDemo.Service.Ledger1",
-      "ExternalUrl": "host.docker.internal:9003",
+      "ExternalUrl": "localhost:9003",
       "EncryptionKey": "SecretTransportKey",
       "Types": [
         "ILedger1QueryProvider",
@@ -38,7 +38,7 @@
     },
     {
       "Name": "ZerraDemo.Service.Ledger2",
-      "ExternalUrl": "host.docker.internal:9004",
+      "ExternalUrl": "localhost:9004",
       "EncryptionKey": "SecretTransportKey",
       "Types": [
         "ILedger2QueryProvider",
