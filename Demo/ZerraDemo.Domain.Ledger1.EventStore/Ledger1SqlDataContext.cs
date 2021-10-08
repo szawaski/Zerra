@@ -10,7 +10,7 @@ namespace ZerraDemo.Domain.Ledger1.EventStore
         private readonly string connectionString;
         public Ledger1SqlDataContext()
         {
-            this.connectionString = Config.GetSetting("LedgerSqlConnectionString");
+            this.connectionString = Config.GetSetting("Ledger1SqlConnectionString");
             AssureDataStore();
         }
     }

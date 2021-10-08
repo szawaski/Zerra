@@ -5,26 +5,27 @@ WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
 WORKDIR /src
-COPY ["Demo/ZerraDemo.Service.Ledger2/ZerraDemo.Service.Ledger2.csproj", "Demo/ZerraDemo.Service.Ledger2/"]
-COPY ["Demo/ZerraDemo.Domain.Ledger2/ZerraDemo.Domain.Ledger2.csproj", "Demo/ZerraDemo.Domain.Ledger2/"]
+COPY ["Demo/ZerraDemo.Service.Ledger1/ZerraDemo.Service.Ledger1.csproj", "Demo/ZerraDemo.Service.Ledger1/"]
+COPY ["Demo/ZerraDemo.Domain.Ledger1/ZerraDemo.Domain.Ledger1.csproj", "Demo/ZerraDemo.Domain.Ledger1/"]
 COPY ["Demo/ZerraDemo.Common/ZerraDemo.Common.csproj", "Demo/ZerraDemo.Common/"]
 COPY ["Framework/Zerra.Logger/Zerra.Logger.csproj", "Framework/Zerra.Logger/"]
 COPY ["Framework/Zerra/Zerra.csproj", "Framework/Zerra/"]
 COPY ["Demo/ZerraDemo.Domain/ZerraDemo.Domain.csproj", "Demo/ZerraDemo.Domain/"]
 COPY ["Framework/Zerra.Repository/Zerra.Repository.csproj", "Framework/Zerra.Repository/"]
-COPY ["Demo/ZerraDemo.Domain.Ledger2.EventStore/ZerraDemo.Domain.Ledger2.EventStore.csproj", "Demo/ZerraDemo.Domain.Ledger2.EventStore/"]
+COPY ["Demo/ZerraDemo.Domain.Ledger1.EventStore/ZerraDemo.Domain.Ledger1.EventStore.csproj", "Demo/ZerraDemo.Domain.Ledger1.EventStore/"]
 COPY ["Framework/Zerra.Repository.EventStore.EventStoreDB/Zerra.Repository.EventStore.EventStoreDB.csproj", "Framework/Zerra.Repository.EventStoreDB/"]
-RUN dotnet restore "Demo/ZerraDemo.Service.Ledger2/ZerraDemo.Service.Ledger2.csproj"
+COPY ["Framework/Zerra.Repository.Sql.MsSql/Zerra.Repository.Sql.MsSql.csproj", "Framework/Zerra.Repository.MsSql/"]
+RUN dotnet restore "Demo/ZerraDemo.Service.Ledger1/ZerraDemo.Service.Ledger1.csproj"
 COPY . .
-WORKDIR "/src/Demo/ZerraDemo.Service.Ledger2"
-RUN dotnet build "ZerraDemo.Service.Ledger2.csproj" -c Release -o /app/build
+WORKDIR "/src/Demo/ZerraDemo.Service.Ledger1"
+RUN dotnet build "ZerraDemo.Service.Ledger1.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "ZerraDemo.Service.Ledger2.csproj" -c Release -o /app/publish
+RUN dotnet publish "ZerraDemo.Service.Ledger1.csproj" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
-EXPOSE 80
-ENV ASPNETCORE_URLS=http://+:80
+EXPOSE 5000
+ENV ASPNETCORE_URLS=http://+:5000
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "ZerraDemo.Service.Ledger2.dll"]
+ENTRYPOINT ["dotnet", "ZerraDemo.Service.Ledger1.dll"]

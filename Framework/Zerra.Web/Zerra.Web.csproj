@@ -13,7 +13,7 @@
 
 Commonly used types:
 Zerra.Web.CQRSMiddleware
-Zerra.Web.Logger
+Zerra.Web.ZerraLogger
 Zerra.Web.CheckBoxList</Description>
     <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
     <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, ASPNET, Web</PackageTags>

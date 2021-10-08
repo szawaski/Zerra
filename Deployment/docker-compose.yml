@@ -1,0 +1,100 @@
+version: "3.9"
+
+services:
+
+  zerrademo-petsdomainservice-sql:
+    image: mcr.microsoft.com/mssql/server:2017-latest
+    environment:
+      - SA_PASSWORD=Ld#dP22@uK4b
+      - ACCEPT_EULA=Y
+    volumes:
+      - zerrademo-pets-mssql-volume:/var/opt/mssql/data
+    ports:
+      - "1401:1433"
+      
+  zerrademo-ledger1domainservice-sql:
+    image: mcr.microsoft.com/mssql/server:2017-latest
+    environment:
+      - SA_PASSWORD=Ld#dP22@uK4b
+      - ACCEPT_EULA=Y
+    volumes:
+      - zerrademo-ledger1-mssql-volume:/var/opt/mssql/data
+    ports:
+      - "1402:1433"
+
+  zerrademo-ledger1domainservice-eventstore:
+    image: eventstore/eventstore:latest
+    environment:
+      - EVENTSTORE_INSECURE=true
+      - EVENTSTORE_RUN_PROJECTIONS=All
+      - EVENTSTORE_EXT_TCP_PORT=1113
+      - EVENTSTORE_HTTP_PORT=2113
+    volumes:
+      - zerrademo-ledger1-eventstore_data-volume:/var/lib/eventstore
+      - zerrademo-ledger1-eventstore_info-volume:/var/log/eventstore
+    ports:
+      - "1113:1113"
+      - "2113:2113"
+      
+  zerrademo-ledger2domainservice-eventstore:
+    image: eventstore/eventstore:latest
+    environment:
+      - EVENTSTORE_INSECURE=true
+      - EVENTSTORE_RUN_PROJECTIONS=All
+      - EVENTSTORE_EXT_TCP_PORT=1114
+      - EVENTSTORE_HTTP_PORT=2114
+    volumes:
+      - zerrademo-ledger2-eventstore_data-volume:/var/lib/eventstore
+      - zerrademo-ledger2-eventstore_info-volume:/var/log/eventstore
+    ports:
+      - "1114:1114"
+      - "2114:2114"
+
+  zerrademo-weatherdomainservice:
+    image: zerrademo-weatherdomainservice
+    build:
+      context: ../
+      dockerfile: Deployment/WeatherDomainServiceDockerfile
+    ports:
+      - "9002:5000"
+      
+  zerrademo-petsdomainservice:
+    image: zerrademo-petsdomainservice
+    build:
+      context: ../
+      dockerfile: Deployment/PetsDomainServiceDockerfile
+    ports:
+      - "9001:5000"
+      
+  zerrademo-ledger1domainservice:
+    image: zerrademo-ledger1domainservice
+    build:
+      context: ../
+      dockerfile: Deployment/Ledger1DomainServiceDockerfile
+    ports:
+      - "9003:5000"
+      
+  zerrademo-ledger2domainservice:
+    image: zerrademo-ledger2domainservice
+    build:
+      context: ../
+      dockerfile: Deployment/Ledger2DomainServiceDockerfile
+    ports:
+      - "9004:5000"
+ 
+  zerrademo-webservice:
+    image: zerrademo-webservice
+    build:
+      context: ../
+      dockerfile: Deployment/WebServiceDockerfile
+    ports:
+      - "9000:80"
+      
+volumes:
+  zerrademo-pets-mssql-volume:
+  zerrademo-ledger1-mssql-volume:
+  zerrademo-ledger1-eventstore_data-volume:
+  zerrademo-ledger1-eventstore_info-volume:
+  zerrademo-ledger2-eventstore_data-volume:
+  zerrademo-ledger2-eventstore_info-volume:
+    

@@ -73,17 +73,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZerraDemo.Service.Weather",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZerraDemo.Relay", "Demo\ZerraDemo.Relay\ZerraDemo.Relay.csproj", "{B1F701F5-B947-4DF3-A16A-DCDF2F339C59}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6E865833-F31B-40AE-956F-536948989D08}"
-	ProjectSection(SolutionItems) = preProject
-		deployment.yaml = deployment.yaml
-		Ledger1DomainServiceDockerfile = Ledger1DomainServiceDockerfile
-		Ledger2DomainServiceDockerfile = Ledger2DomainServiceDockerfile
-		PetsDomainServiceDockerfile = PetsDomainServiceDockerfile
-		WeatherDomainServiceDockerfile = WeatherDomainServiceDockerfile
-		WebServiceDockerfile = WebServiceDockerfile
-	EndProjectSection
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zerra.CQRS.Kafka", "Framework\Zerra.CQRS.Kafka\Zerra.CQRS.Kafka.csproj", "{75E9E081-A8F0-4838-BA95-B716C90D06D4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.CQRS.Kafka", "Framework\Zerra.CQRS.Kafka\Zerra.CQRS.Kafka.csproj", "{75E9E081-A8F0-4838-BA95-B716C90D06D4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

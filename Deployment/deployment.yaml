@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zerrademo-weatherdomainservice
+spec:
+  selector:
+    matchLabels:
+      app: zerrademo-weatherdomainservice
+  template:
+    metadata:
+      labels:
+        app: zerrademo-weatherdomainservice
+    spec:
+      containers:
+      - name: zerrademo-weatherdomainservice
+        image: zerrademo-weatherdomainservice:latest
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
