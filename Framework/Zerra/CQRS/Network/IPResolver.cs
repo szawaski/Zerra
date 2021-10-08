@@ -29,27 +29,21 @@ namespace Zerra.CQRS.Network
 
                 if (uri.DnsSafeHost == "anyhost")
                 {
-                    try
-                    {
-                        endpoints.Add(new IPEndPoint(IPAddress.Any, port));
-                    }
-                    catch { }
-                    try
-                    {
-                        endpoints.Add(new IPEndPoint(IPAddress.IPv6Any, port));
-                    }
-                    catch { }
+                    endpoints.Add(new IPEndPoint(IPAddress.Any, port));
+                    endpoints.Add(new IPEndPoint(IPAddress.IPv6Any, port));
                 }
                 else
                 {
-                    var ipAddresses = Dns.GetHostAddresses(uri.DnsSafeHost);
-                    foreach (var ip in ipAddresses)
+                    try
                     {
-                        if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        var ipAddresses = Dns.GetHostAddresses(uri.DnsSafeHost);
+                        foreach (var ip in ipAddresses)
                         {
-                            endpoints.Add(new IPEndPoint(ip, port));
+                            if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                                endpoints.Add(new IPEndPoint(ip, port));
                         }
                     }
+                    catch { }
                 }
             }
 

@@ -34,7 +34,7 @@ namespace Zerra.CQRS.Settings
                 Log.InfoAsync($"Invalid {filePath}").GetAwaiter().GetResult();
                 throw new Exception($"Invalid {filePath}", ex);
             }
-            _ = Log.InfoAsync($"Loaded {SettingsFileName}");
+            _ = Log.InfoAsync($"Loaded {filePath}");
 
             var messageHost = Config.GetSetting(nameof(settings.MessageHost));
             if (!String.IsNullOrWhiteSpace(messageHost))

@@ -1,6 +1,61 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: zerrademo-petsdomain-sql
+spec:
+  selector:
+    matchLabels:
+      app: zerrademo-petsdomain-sql-pod
+  template:
+    metadata:
+      labels:
+        app: zerrademo-petsdomain-sql-pod
+    spec:
+      containers:
+      - name: zerrademo-petsdomain-sql-container
+        image: mcr.microsoft.com/mssql/server:2017-latest
+        env:
+          - name: ACCEPT_EULA
+            value: "Y"
+          - name: SA_PASSWORD
+            value: "Ld#dP22@uK4b"
+        volumeMounts:
+          - name: zerrademo-pets-mssql-volume
+            mountPath: /var/opt/mssql/data
+      volumes:
+        - name: zerrademo-pets-mssql-volume
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zerrademo-petsdomain
+spec:
+  selector:
+    matchLabels:
+      app: zerrademo-petsdomain-pod
+  template:
+    metadata:
+      labels:
+        app: zerrademo-petsdomain-pod
+    spec:
+      containers:
+      - name: zerrademo-petsdomain-container
+        image: zerrademo-petsdomain:latest
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: zerrademo-weatherdomain
 spec:
   selector:
@@ -14,6 +69,58 @@ spec:
       containers:
       - name: zerrademo-weatherdomain-container
         image: zerrademo-weatherdomain:latest
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zerrademo-ledger1domain
+spec:
+  selector:
+    matchLabels:
+      app: zerrademo-ledger1domain-pod
+  template:
+    metadata:
+      labels:
+        app: zerrademo-ledger1domain-pod
+    spec:
+      containers:
+      - name: zerrademo-ledger1domain-container
+        image: zerrademo-ledger1domain:latest
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zerrademo-ledger2domain
+spec:
+  selector:
+    matchLabels:
+      app: zerrademo-ledger2domain-pod
+  template:
+    metadata:
+      labels:
+        app: zerrademo-ledger2domain-pod
+    spec:
+      containers:
+      - name: zerrademo-ledger2domain-container
+        image: zerrademo-ledger2domain:latest
         resources:
           limits:
             memory: "128Mi"
@@ -42,21 +149,21 @@ spec:
         image: zerrademo-web:latest
         env:
           - name: ZerraDemo.Service.Pets
-            value: http://zerrademo-petsdomain-service:9001
+            value: "http://zerrademo-petsdomain-service:9001"
           - name: ZerraDemo.Service.Weather
-            value: http://zerrademo-weatherdomain-service:9002
+            value: "http://zerrademo-weatherdomain-service:9002"
           - name: ZerraDemo.Service.Ledger1
-            value: http://zerrademo-ledger1domain-service:9003
+            value: "http://zerrademo-ledger1domain-service:9003"
           - name: ZerraDemo.Service.Ledger2
-            value: http://zerrademo-ledger2domain-service:9004
+            value: "http://zerrademo-ledger2domain-service:9004"
           - name: PetsSqlConnectionString
-            value: Data Source=host.docker.internal,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;
+            value: "Data Source=zerrademo-petsdomain-sql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
           - name: Ledger1SqlConnectionString
-            value: Data Source=host.docker.internal,1402;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;
+            value: "Data Source=host.docker.internal,1402;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
           - name: Ledger1EventStoreServer
-            value: 
+            value: "tcp://host.docker.internal:2113"
           - name: Ledger2EventStoreServer
-            value: 
+            value: "tcp://host.docker.internal:2114"
           - name: LogFileDirectory
             value: 
         resources:
@@ -72,6 +179,34 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: zerrademo-petsdomain-sql-service
+spec:
+  selector:
+    app: zerrademo-petsdomain-sql-pod
+  ports:
+  - port: 1401
+    targetPort: 1433
+  type: NodePort
+  
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: zerrademo-petsdomain-service
+spec:
+  selector:
+    app: zerrademo-petsdomain-pod
+  ports:
+  - port: 9001
+    targetPort: 5000
+  type: NodePort
+  
+---
+
+apiVersion: v1
+kind: Service
+metadata:
   name: zerrademo-weatherdomain-service
 spec:
   selector:
@@ -79,7 +214,34 @@ spec:
   ports:
   - port: 9002
     targetPort: 5000
-    nodePort: 30002
+  type: NodePort
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: zerrademo-ledger1domain-service
+spec:
+  selector:
+    app: zerrademo-ledger1domain-pod
+  ports:
+  - port: 9003
+    targetPort: 5000
+  type: NodePort
+  
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: zerrademo-ledger2domain-service
+spec:
+  selector:
+    app: zerrademo-ledger2domain-pod
+  ports:
+  - port: 9004
+    targetPort: 5000
   type: NodePort
 
 ---
