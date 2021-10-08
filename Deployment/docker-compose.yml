@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
 
-  zerrademo-petsdomainservice-sql:
+  zerrademo-petsdomain-sql:
     image: mcr.microsoft.com/mssql/server:2017-latest
     environment:
       - SA_PASSWORD=Ld#dP22@uK4b
@@ -12,7 +12,7 @@ services:
     ports:
       - "1401:1433"
       
-  zerrademo-ledger1domainservice-sql:
+  zerrademo-ledger1domain-sql:
     image: mcr.microsoft.com/mssql/server:2017-latest
     environment:
       - SA_PASSWORD=Ld#dP22@uK4b
@@ -22,7 +22,7 @@ services:
     ports:
       - "1402:1433"
 
-  zerrademo-ledger1domainservice-eventstore:
+  zerrademo-ledger1domain-eventstore:
     image: eventstore/eventstore:latest
     environment:
       - EVENTSTORE_INSECURE=true
@@ -36,7 +36,7 @@ services:
       - "1113:1113"
       - "2113:2113"
       
-  zerrademo-ledger2domainservice-eventstore:
+  zerrademo-ledger2domain-eventstore:
     image: eventstore/eventstore:latest
     environment:
       - EVENTSTORE_INSECURE=true
@@ -50,7 +50,7 @@ services:
       - "1114:1114"
       - "2114:2114"
 
-  zerrademo-weatherdomainservice:
+  zerrademo-weatherdomain:
     image: zerrademo-weatherdomain
     environment:
       - ZerraDemo.Service.Pets=host.docker.internal:9001
@@ -68,7 +68,7 @@ services:
     ports:
       - "9002:5000"
       
-  zerrademo-petsdomainservice:
+  zerrademo-petsdomain:
     image: zerrademo-petsdomain
     environment:
       - ZerraDemo.Service.Pets=host.docker.internal:9001
@@ -86,7 +86,7 @@ services:
     ports:
       - "9001:5000"
       
-  zerrademo-ledger1domainservice:
+  zerrademo-ledger1domain:
     image: zerrademo-ledger1domain
     environment:
       - ZerraDemo.Service.Pets=host.docker.internal:9001
@@ -104,7 +104,7 @@ services:
     ports:
       - "9003:5000"
       
-  zerrademo-ledger2domainservice:
+  zerrademo-ledger2domain:
     image: zerrademo-ledger2domain
     environment:
       - ZerraDemo.Service.Pets=host.docker.internal:9001
