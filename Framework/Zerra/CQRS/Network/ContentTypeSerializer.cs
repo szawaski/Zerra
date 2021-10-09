@@ -176,17 +176,22 @@ namespace Zerra.CQRS.Network
 
         public static void SerializeException(ContentType contentType, Stream stream, Exception ex)
         {
+            var model = new ExceptionModel()
+            {
+                Message = ex.Message
+            };
+
             switch (contentType)
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer(true, true, true);
-                        serializer.Serialize(stream, ex);
+                        var serializer = new ByteSerializer();
+                        serializer.Serialize(stream, model);
                         return;
                     }
                 case ContentType.Json:
                     {
-                        var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(ex);
+                        var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(model);
 #if NETSTANDARD2_0
                         stream.Write(bytes, 0, bytes.Length);
 #else
@@ -196,7 +201,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.JsonNameless:
                     {
-                        JsonSerializer.SerializeNameless(stream, ex);
+                        JsonSerializer.SerializeNameless(stream, model);
                         return;
                     }
                 default:
@@ -209,15 +214,17 @@ namespace Zerra.CQRS.Network
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer(true, true, true);
-                        return serializer.Deserialize<Exception>(stream);
+                        var serializer = new ByteSerializer();
+                        var model = serializer.Deserialize<ExceptionModel>(stream);
+                        return new Exception(model.Message);
                     }
                 case ContentType.Json:
                     {
                         using (MemoryStream ms = new MemoryStream())
                         {
                             stream.CopyTo(ms);
-                            return System.Text.Json.JsonSerializer.Deserialize<Exception>(ms.ToArray());
+                            var model = System.Text.Json.JsonSerializer.Deserialize<ExceptionModel>(ms.ToArray());
+                            return new Exception(model.Message);
                         }
                     }
                 case ContentType.JsonNameless:
@@ -225,7 +232,8 @@ namespace Zerra.CQRS.Network
                         using (MemoryStream ms = new MemoryStream())
                         {
                             stream.CopyTo(ms);
-                            return JsonSerializer.DeserializeNameless<Exception>(ms.ToArray());
+                            var model = JsonSerializer.DeserializeNameless<ExceptionModel>(ms.ToArray());
+                            return new Exception(model.Message);
                         }
                     }
                 default:
@@ -235,22 +243,27 @@ namespace Zerra.CQRS.Network
 
         public static async Task SerializeExceptionAsync(ContentType contentType, Stream stream, Exception ex)
         {
+            var model = new ExceptionModel()
+            {
+                Message = ex.Message
+            };
+
             switch (contentType)
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer(true, true, true);
-                        await serializer.SerializeAsync(stream, ex);
+                        var serializer = new ByteSerializer();
+                        await serializer.SerializeAsync(stream, model);
                         return;
                     }
                 case ContentType.Json:
                     {
-                        await System.Text.Json.JsonSerializer.SerializeAsync(stream, ex);
+                        await System.Text.Json.JsonSerializer.SerializeAsync(stream, model);
                         return;
                     }
                 case ContentType.JsonNameless:
                     {
-                        var bytes = JsonSerializer.SerializeNamelessBytes(ex);
+                        var bytes = JsonSerializer.SerializeNamelessBytes(model);
 #if NETSTANDARD2_0
                         stream.Write(bytes, 0, bytes.Length);
 #else
@@ -268,19 +281,22 @@ namespace Zerra.CQRS.Network
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer(true, true, true);
-                        return await serializer.DeserializeAsync<Exception>(stream);
+                        var serializer = new ByteSerializer();
+                        var model = await serializer.DeserializeAsync<ExceptionModel>(stream);
+                        return new Exception(model.Message);
                     }
                 case ContentType.Json:
                     {
-                        return await System.Text.Json.JsonSerializer.DeserializeAsync<Exception>(stream);
+                        var model = await System.Text.Json.JsonSerializer.DeserializeAsync<ExceptionModel>(stream);
+                        return new Exception(model.Message);
                     }
                 case ContentType.JsonNameless:
                     {
                         using (MemoryStream ms = new MemoryStream())
                         {
                             await stream.CopyToAsync(ms);
-                            return JsonSerializer.DeserializeNameless<Exception>(ms.ToArray());
+                            var model = JsonSerializer.DeserializeNameless<ExceptionModel>(ms.ToArray());
+                            return new Exception(model.Message);
                         }
                     }
                 default:

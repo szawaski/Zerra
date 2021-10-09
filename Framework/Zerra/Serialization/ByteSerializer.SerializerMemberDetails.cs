@@ -53,6 +53,11 @@ namespace Zerra.Serialization
                 this.Getter = member.Getter;
                 this.Setter = member.Setter;
             }
+
+            public override string ToString()
+            {
+                return $"{Type.Name} {Name}";
+            }
         }
     }
 }
