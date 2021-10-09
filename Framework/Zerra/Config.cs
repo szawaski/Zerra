@@ -38,8 +38,7 @@ namespace Zerra
         }
         public static void LoadConfiguration(IConfigurationRoot configurationRoot)
         {
-            if (configurationRoot == null) throw new ArgumentNullException();
-            configuration = configurationRoot;
+            configuration = configurationRoot ?? throw new ArgumentNullException(nameof(configurationRoot));
         }
 
         public static string GetSetting(string name, params string[] sections)

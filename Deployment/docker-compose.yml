@@ -5,6 +5,7 @@ services:
   zerrademo-petsdomain-sql:
     image: mcr.microsoft.com/mssql/server:2017-latest
     environment:
+      - MSSQL_PID=Developer
       - SA_PASSWORD=Ld#dP22@uK4b
       - ACCEPT_EULA=Y
     volumes:
@@ -15,6 +16,7 @@ services:
   zerrademo-ledger1domain-sql:
     image: mcr.microsoft.com/mssql/server:2017-latest
     environment:
+      - MSSQL_PID=Developer
       - SA_PASSWORD=Ld#dP22@uK4b
       - ACCEPT_EULA=Y
     volumes:

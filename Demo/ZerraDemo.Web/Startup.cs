@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Zerra;
 using Zerra.Web;
 using ZerraDemo.Web.Components;
 
@@ -14,11 +12,9 @@ namespace ZerraDemo.Web
     {
         public Startup(IWebHostEnvironment env)
         {
-            Configuration = Config.GetConfigurationRoot();
             HostEnvironment = env;
         }
 
-        public IConfiguration Configuration { get; }
         public IWebHostEnvironment HostEnvironment { get; set; }
 
         public void ConfigureServices(IServiceCollection services)

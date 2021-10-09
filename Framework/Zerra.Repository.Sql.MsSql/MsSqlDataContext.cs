@@ -2,6 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Data.SqlClient;
+using Zerra.Logging;
+
 namespace Zerra.Repository.Sql.MsSql
 {
     public abstract class MsSqlDataContext : SqlDataContext
@@ -19,6 +22,8 @@ namespace Zerra.Repository.Sql.MsSql
                 {
                     if (provider == null)
                     {
+                        var connectionForParsing = new SqlConnection(ConnectionString);
+                        _ = Log.InfoAsync($"{nameof(MsSqlDataContext)} connecting to {connectionForParsing.DataSource}");
                         provider = new MsSqlEngine(ConnectionString);
                     }
                 }

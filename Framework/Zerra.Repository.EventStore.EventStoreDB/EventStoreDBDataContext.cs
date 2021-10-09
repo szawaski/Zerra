@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Logging;
+
 namespace Zerra.Repository.EventStore.EventStoreDB
 {
     public abstract class EventStoreDBDataContext : EventStoreDataContext
@@ -19,6 +21,7 @@ namespace Zerra.Repository.EventStore.EventStoreDB
                 {
                     if (provider == null)
                     {
+                        _ = Log.InfoAsync($"{nameof(EventStoreDBDataContext)} connecting to {ConnectionString}");
                         provider = new EventStoreDBProvider(ConnectionString, Insecure);
                     }
                 }
