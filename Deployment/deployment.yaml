@@ -36,20 +36,20 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zerrademo-ledger1-sql
+  name: zerrademo-ledger1domain-sql
 spec:
   selector:
     matchLabels:
-      app: zerrademo-ledger1-sql-pod
+      app: zerrademo-ledger1domain-sql-pod
   template:
     metadata:
       labels:
-        app: zerrademo-ledger1-sql-pod
+        app: zerrademo-ledger1domain-sql-pod
     spec:
       terminationGracePeriodSeconds: 30
       hostname: mssqlinst
       containers:
-      - name: zerrademo-ledger1-sql-container
+      - name: zerrademo-ledger1domain-sql-container
         image: mcr.microsoft.com/mssql/server:2017-latest
         ports:
            - containerPort: 1433
@@ -71,6 +71,86 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: zerrademo-ledger1domain-eventstore
+spec:
+  selector:
+    matchLabels:
+      app: zerrademo-ledger1domain-eventstore-pod
+  template:
+    metadata:
+      labels:
+        app: zerrademo-ledger1domain-eventstore-pod
+    spec:
+      containers:
+      - name: zerrademo-ledger1domain-eventstore-container
+        image: eventstore/eventstore:latest
+        ports:
+           - containerPort: 1113
+           - containerPort: 2113
+        env:
+          - name: EVENTSTORE_INSECURE
+            value: "true"
+          - name: EVENTSTORE_RUN_PROJECTIONS
+            value: "All"
+          - name: EVENTSTORE_EXT_TCP_PORT
+            value: "1113"
+          - name: EVENTSTORE_HTTP_PORT
+            value: "2113"
+          - name: EVENTSTORE_DB
+            value: "/usr/data/eventstore/data"
+          - name: EVENTSTORE_LOG
+            value: "/usr/data/eventstore/info"
+        volumeMounts:
+          - name: zerrademo-ledger1-eventstore-volume
+            mountPath: /usr/data/eventstore
+      volumes:
+        - name: zerrademo-ledger1-eventstore-volume
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zerrademo-ledger2domain-eventstore
+spec:
+  selector:
+    matchLabels:
+      app: zerrademo-ledger2domain-eventstore-pod
+  template:
+    metadata:
+      labels:
+        app: zerrademo-ledger2domain-eventstore-pod
+    spec:
+      containers:
+      - name: zerrademo-ledger2domain-eventstore-container
+        image: eventstore/eventstore:latest
+        ports:
+           - containerPort: 1114
+           - containerPort: 2114
+        env:
+          - name: EVENTSTORE_INSECURE
+            value: "true"
+          - name: EVENTSTORE_RUN_PROJECTIONS
+            value: "All"
+          - name: EVENTSTORE_EXT_TCP_PORT
+            value: "1114"
+          - name: EVENTSTORE_HTTP_PORT
+            value: "2114"
+          - name: EVENTSTORE_DB
+            value: "/usr/data/eventstore/data"
+          - name: EVENTSTORE_LOG
+            value: "/usr/data/eventstore/info"
+        volumeMounts:
+          - name: zerrademo-ledger2domain-eventstore-volume
+            mountPath: /usr/data/eventstore
+      volumes:
+        - name: zerrademo-ledger2domain-eventstore-volume
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: zerrademo-petsdomain
 spec:
   selector:
@@ -84,6 +164,7 @@ spec:
       containers:
       - name: zerrademo-petsdomain-container
         image: zerrademo-petsdomain:latest
+        imagePullPolicy: Never
         env:
           - name: ZerraDemo.Service.Pets
             value: "http://zerrademo-petsdomain-service:9001"
@@ -96,18 +177,17 @@ spec:
           - name: PetsSqlConnectionString
             value: "Data Source=zerrademo-petsdomain-sql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
           - name: Ledger1SqlConnectionString
-            value: "Data Source=zerrademo-ledger1-sql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
+            value: "Data Source=zerrademo-ledger1domain-sql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
           - name: Ledger1EventStoreServer
-            value: "tcp://host.docker.internal:2113"
+            value: "tcp://zerrademo-ledger1domain-eventstore-service:2113"
           - name: Ledger2EventStoreServer
-            value: "tcp://host.docker.internal:2114"
+            value: "tcp://zerrademo-ledger2domain-eventstore-service:2114"
           - name: LogFileDirectory
             value: 
         resources:
           limits:
             memory: "128Mi"
             cpu: "500m"
-        imagePullPolicy: Never
         ports:
         - containerPort: 5000
 
@@ -129,6 +209,7 @@ spec:
       containers:
       - name: zerrademo-weatherdomain-container
         image: zerrademo-weatherdomain:latest
+        imagePullPolicy: Never
         env:
           - name: ZerraDemo.Service.Pets
             value: "http://zerrademo-petsdomain-service:9001"
@@ -141,18 +222,17 @@ spec:
           - name: PetsSqlConnectionString
             value: "Data Source=zerrademo-petsdomain-sql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
           - name: Ledger1SqlConnectionString
-            value: "Data Source=zerrademo-ledger1-sql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
+            value: "Data Source=zerrademo-ledger1domain-sql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
           - name: Ledger1EventStoreServer
-            value: "tcp://host.docker.internal:2113"
+            value: "tcp://zerrademo-ledger1domain-eventstore-service:2113"
           - name: Ledger2EventStoreServer
-            value: "tcp://host.docker.internal:2114"
+            value: "tcp://zerrademo-ledger2domain-eventstore-service:2114"
           - name: LogFileDirectory
             value: 
         resources:
           limits:
             memory: "128Mi"
             cpu: "500m"
-        imagePullPolicy: Never
         ports:
         - containerPort: 5000
 
@@ -174,6 +254,7 @@ spec:
       containers:
       - name: zerrademo-ledger1domain-container
         image: zerrademo-ledger1domain:latest
+        imagePullPolicy: Never
         env:
           - name: ZerraDemo.Service.Pets
             value: "http://zerrademo-petsdomain-service:9001"
@@ -186,18 +267,17 @@ spec:
           - name: PetsSqlConnectionString
             value: "Data Source=zerrademo-petsdomain-sql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
           - name: Ledger1SqlConnectionString
-            value: "Data Source=zerrademo-ledger1-sql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
+            value: "Data Source=zerrademo-ledger1domain-sql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
           - name: Ledger1EventStoreServer
-            value: "tcp://host.docker.internal:2113"
+            value: "tcp://zerrademo-ledger1domain-eventstore-service:2113"
           - name: Ledger2EventStoreServer
-            value: "tcp://host.docker.internal:2114"
+            value: "tcp://zerrademo-ledger2domain-eventstore-service:2114"
           - name: LogFileDirectory
             value: 
         resources:
           limits:
             memory: "128Mi"
             cpu: "500m"
-        imagePullPolicy: Never
         ports:
         - containerPort: 5000
 
@@ -219,6 +299,7 @@ spec:
       containers:
       - name: zerrademo-ledger2domain-container
         image: zerrademo-ledger2domain:latest
+        imagePullPolicy: Never
         env:
           - name: ZerraDemo.Service.Pets
             value: "http://zerrademo-petsdomain-service:9001"
@@ -231,18 +312,17 @@ spec:
           - name: PetsSqlConnectionString
             value: "Data Source=zerrademo-petsdomain-sql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
           - name: Ledger1SqlConnectionString
-            value: "Data Source=zerrademo-ledger1-sql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
+            value: "Data Source=zerrademo-ledger1domain-sql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
           - name: Ledger1EventStoreServer
-            value: "tcp://host.docker.internal:2113"
+            value: "tcp://zerrademo-ledger1domain-eventstore-service:2113"
           - name: Ledger2EventStoreServer
-            value: "tcp://host.docker.internal:2114"
+            value: "tcp://zerrademo-ledger2domain-eventstore-service:2114"
           - name: LogFileDirectory
             value: 
         resources:
           limits:
             memory: "128Mi"
             cpu: "500m"
-        imagePullPolicy: Never
         ports:
         - containerPort: 5000
 
@@ -264,6 +344,7 @@ spec:
       containers:
       - name: zerrademo-web-container
         image: zerrademo-web:latest
+        imagePullPolicy: Never
         env:
           - name: ZerraDemo.Service.Pets
             value: "http://zerrademo-petsdomain-service:9001"
@@ -278,19 +359,54 @@ spec:
           - name: Ledger1SqlConnectionString
             value: "Data Source=zerrademo-ledger1-sql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
           - name: Ledger1EventStoreServer
-            value: "tcp://host.docker.internal:2113"
+            value: "tcp://zerrademo-ledger1-eventstore-service:2113"
           - name: Ledger2EventStoreServer
-            value: "tcp://host.docker.internal:2114"
+            value: "tcp://zerrademo-ledger2-eventstore-service:2114"
           - name: LogFileDirectory
             value: 
         resources:
           limits:
             memory: "128Mi"
             cpu: "500m"
-        imagePullPolicy: Never
         ports:
         - containerPort: 80
 
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: zerrademo-ledger1domain-eventstore-service
+spec:
+  selector:
+    app: zerrademo-ledger1domain-eventstore-pod
+  ports:
+  - port: 1113
+    targetPort: 1113
+    name: "tcp"
+  - port: 2113
+    targetPort: 2113
+    name: "http"
+  type: NodePort
+  
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: zerrademo-ledger2domain-eventstore-service
+spec:
+  selector:
+    app: zerrademo-ledger2domain-eventstore-pod
+  ports:
+  - port: 1114
+    targetPort: 1114
+    name: "tcp"
+  - port: 2114
+    targetPort: 2114
+    name: "http"
+  type: NodePort
+  
 ---
 
 apiVersion: v1
@@ -310,10 +426,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: zerrademo-ledger1-sql-service
+  name: zerrademo-ledger1domain-sql-service
 spec:
   selector:
-    app: zerrademo-ledger1-sql-pod
+    app: zerrademo-ledger1domain-sql-pod
   ports:
   - port: 1402
     targetPort: 1433

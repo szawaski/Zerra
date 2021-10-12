@@ -31,9 +31,10 @@ services:
       - EVENTSTORE_RUN_PROJECTIONS=All
       - EVENTSTORE_EXT_TCP_PORT=1113
       - EVENTSTORE_HTTP_PORT=2113
+      - EVENTSTORE_DB=/var/lib/eventstore/data
+      - EVENTSTORE_LOG=/var/lib/eventstore/log
     volumes:
-      - zerrademo-ledger1-eventstore_data-volume:/var/lib/eventstore
-      - zerrademo-ledger1-eventstore_info-volume:/var/log/eventstore
+      - zerrademo-ledger1-eventstore-volume:/var/lib/eventstore
     ports:
       - "1113:1113"
       - "2113:2113"
@@ -45,9 +46,10 @@ services:
       - EVENTSTORE_RUN_PROJECTIONS=All
       - EVENTSTORE_EXT_TCP_PORT=1114
       - EVENTSTORE_HTTP_PORT=2114
+      - EVENTSTORE_DB=/var/lib/eventstore/data
+      - EVENTSTORE_LOG=/var/lib/eventstore/log
     volumes:
-      - zerrademo-ledger2-eventstore_data-volume:/var/lib/eventstore
-      - zerrademo-ledger2-eventstore_info-volume:/var/log/eventstore
+      - zerrademo-ledger2-eventstore-volume:/var/lib/eventstore
     ports:
       - "1114:1114"
       - "2114:2114"
@@ -145,8 +147,6 @@ services:
 volumes:
   zerrademo-pets-mssql-volume:
   zerrademo-ledger1-mssql-volume:
-  zerrademo-ledger1-eventstore_data-volume:
-  zerrademo-ledger1-eventstore_info-volume:
-  zerrademo-ledger2-eventstore_data-volume:
-  zerrademo-ledger2-eventstore_info-volume:
+  zerrademo-ledger1-eventstore-volume:
+  zerrademo-ledger2-eventstore-volume:
     
