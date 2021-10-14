@@ -10,21 +10,23 @@
     <LangVersion>8.0</LangVersion>
     <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Description>Core library for the Zerra Framework.
+    <Description>
+      Core library for the Zerra Framework.
 
-Commonly used types:
-Zerra.Providers.IBaseProvider
-Zerra.Graph
-Zerra.Map
-Zerra.Config
-Zerra.Serialization.ByteSerializer
-Zerra.Providers.Resolver
-Zerra.Log.ILoggingProvider
-Zerra.Encryption.EncryptionCommon
-Zerra.Encryption.Hasher
-Zerra.Compression.CompressionCommon
-Zerra.Linq.WhereBuilder
-Zerra.Reflection.TypeAnalyzer</Description>
+      Commonly used types:
+      Zerra.Providers.IBaseProvider
+      Zerra.Graph
+      Zerra.Map
+      Zerra.Config
+      Zerra.Serialization.ByteSerializer
+      Zerra.Providers.Resolver
+      Zerra.Log.ILoggingProvider
+      Zerra.Encryption.EncryptionCommon
+      Zerra.Encryption.Hasher
+      Zerra.Compression.CompressionCommon
+      Zerra.Linq.WhereBuilder
+      Zerra.Reflection.TypeAnalyzer
+    </Description>
     <Company>KaKush LLC</Company>
     <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
     <Version>1.0.1</Version>
@@ -54,6 +56,9 @@ Zerra.Reflection.TypeAnalyzer</Description>
     <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
     <PackageReference Include="System.Buffers" Version="4.5.1" />
     <PackageReference Include="System.Memory" Version="4.5.4" />
     <PackageReference Include="System.Reflection.Emit" Version="4.6.0" />
