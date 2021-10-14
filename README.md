@@ -15,7 +15,17 @@ You can find all the packages on NuGet with the Zerra namespace. Start with the 
 
 # Constructing a Query
 **If the domains are referenced in the same running project, they will automatically find the implementations with no other code needed.  If domains are running seperatly see Network Setup below.**\
-Make an interface in a common domain project. The attribute is to enable the calls over a network when domains run independently.  This project should contain nothing but interfaces and models, no logic or property mapping.
+\
+Create a common domain project for the following classes if you do not have one already.\
+\
+Create a model for the weather.
+```csharp
+public class WeatherModel
+{
+    public string WeatherType { get; set; }
+}
+```
+Make an interface for queries. The attribute is to enable the calls over a network when domains run independently.  This project should contain nothing but interfaces and models, no logic or property mapping.
 ```csharp
 [ServiceExposed]
 public interface IWeatherQueryProvider : IBaseProvider
@@ -58,12 +68,15 @@ const weather = IWeatherQueryProvider.GetWeather(function(data){
 
 # Constructing a Command
 **If the domains are referenced in the same running project, they will automatically find the implementations with no other code needed.  If domains are running seperatly see Network Setup below.**\
-Make a command in a common domain project. The attribute is to enable the command over a network when domains run independently. This project should contain nothing but interfaces and models, no logic or property mapping.
+\
+Create a common domain project for the following classes if you do not have one already.\
+\
+Make a command to set the weather. The attribute is to enable the command over a network when domains run independently. This project should contain nothing but interfaces and models, no logic or property mapping.
 ```csharp
 [ServiceExposed]
 public class SetWeatherCommand : ICommand
 {
-    public WeatherType WeatherType { get; set; }
+    public string WeatherType { get; set; }
 }
 ```
 Make an interface in a common domain project. You can put all the domain commands in the same class or do one per class. This project should contain nothing but interfaces and models, no logic or property mapping.
@@ -87,7 +100,7 @@ Dispatching from C#
 ```csharp
 var command = new SetSeatherCommand()
 {
-    WeatherType = WeatherType.Windy
+    WeatherType = "Windy"
 };
 await Bus.DispatchAsync(command);
 ```
@@ -111,7 +124,8 @@ Bus.DispatchAsync(command, function(){
     //failed
 });
 ```
-**Special Dispatching**: The framework has an acknowledgement system that will wait for the return of a signal when a command has completed execution. This is helpful when eventual consistency is not adequate and needing more immediate confirmation. This will also return errors with actual exception information if the command fails. This will not return domain data, that is an anti-pattern of CQRS.  This works simularly for TypeScript and JavaScript
+## Special Dispatching
+The framework has an acknowledgement system that will wait for the return of a signal when a command has completed execution. This is helpful when eventual consistency is not adequate and needing more immediate confirmation. This will also return errors with actual exception information if the command fails. This will not return domain data, that is an anti-pattern of CQRS.  This works simularly for TypeScript and JavaScript
 ```csharp
 await Bus.DispatchAwaitAsync(command);
 ```
