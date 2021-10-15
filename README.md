@@ -16,7 +16,7 @@ You can find all the packages on NuGet with the Zerra namespace. Start with the 
 # Constructing a Query
 **If the domains are referenced in the same running project, they will automatically find the implementations with no other code needed.  If domains are running seperatly see Network Setup below.**\
 \
-Create a common domain project for the following classes if you do not have one already.\
+Create a universally shared domain project for the following classes if you do not have one already.\
 \
 Create a model for the weather.
 ```csharp
@@ -69,7 +69,7 @@ const weather = IWeatherQueryProvider.GetWeather(function(data){
 # Constructing a Command
 **If the domains are referenced in the same running project, they will automatically find the implementations with no other code needed.  If domains are running seperatly see Network Setup below.**\
 \
-Create a common domain project for the following classes if you do not have one already.\
+Create a universally shared domain project for the following classes if you do not have one already.\
 \
 Make a command to set the weather. The attribute is to enable the command over a network when domains run independently. This project should contain nothing but interfaces and models, no logic or property mapping.
 ```csharp
@@ -217,7 +217,7 @@ static void Main(string[] args)
     Bus.WaitUntilExit();
 }
 ```
-**Code-Only**\
+## Code-Only
 You can also link up the networking without using the config file.\
 Server Setup:
 ```csharp
