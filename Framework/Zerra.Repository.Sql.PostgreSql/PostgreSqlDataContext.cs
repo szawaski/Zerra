@@ -23,7 +23,7 @@ namespace Zerra.Repository.Sql.PostgreSql
                     if (provider == null)
                     {
                         var connectionForParsing = new NpgsqlConnectionStringBuilder(ConnectionString);
-                        _ = Log.InfoAsync($"{nameof(PostgreSqlDataContext)} connecting to {connectionForParsing.Database}");
+                        _ = Log.InfoAsync($"{nameof(PostgreSqlDataContext)} connecting to {connectionForParsing.Host},{connectionForParsing.Port}");
                         provider = new PostgreSqlEngine(ConnectionString);
                     }
                 }

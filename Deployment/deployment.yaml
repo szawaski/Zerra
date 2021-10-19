@@ -1,70 +1,130 @@
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: zerrademo-petsdomain-mssql
+#spec:
+#  selector:
+#    matchLabels:
+#      app: zerrademo-petsdomain-mssql-pod
+#  template:
+#    metadata:
+#      labels:
+#        app: zerrademo-petsdomain-mssql-pod
+#    spec:
+#      terminationGracePeriodSeconds: 30
+#      hostname: mssqlinst
+#      containers:
+#      - name: zerrademo-petsdomain-mssql-container
+#        image: mcr.microsoft.com/mssql/server:2017-latest
+#        ports:
+#           - containerPort: 1433
+#        env:
+#          - name: MSSQL_PID
+#            value: "Developer"
+#          - name: ACCEPT_EULA
+#            value: "Y"
+#          - name: SA_PASSWORD
+#            value: "Ld#dP22@uK4b"
+#        volumeMounts:
+#          - name: zerrademo-pets-mssql-volume
+#            mountPath: /var/opt/mssql/data
+#      volumes:
+#        - name: zerrademo-pets-mssql-volume
+#
+#---
+#
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: zerrademo-ledger1domain-mssql
+#spec:
+#  selector:
+#    matchLabels:
+#      app: zerrademo-ledger1domain-mssql-pod
+#  template:
+#    metadata:
+#      labels:
+#        app: zerrademo-ledger1domain-mssql-pod
+#    spec:
+#      terminationGracePeriodSeconds: 30
+#      hostname: mssqlinst
+#      containers:
+#      - name: zerrademo-ledger1domain-mssql-container
+#        image: mcr.microsoft.com/mssql/server:2017-latest
+#        ports:
+#           - containerPort: 1433
+#        env:
+#          - name: MSSQL_PID
+#            value: "Developer"
+#          - name: ACCEPT_EULA
+#            value: "Y"
+#          - name: SA_PASSWORD
+#            value: "Ld#dP22@uK4b"
+#        volumeMounts:
+#          - name: zerrademo-ledger1-mssql-volume
+#            mountPath: /var/opt/mssql/data
+#      volumes:
+#        - name: zerrademo-ledger1-mssql-volume
+#
+#---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zerrademo-petsdomain-sql
+  name: zerrademo-petsdomain-postgresql
 spec:
   selector:
     matchLabels:
-      app: zerrademo-petsdomain-sql-pod
+      app: zerrademo-petsdomain-postgresql-pod
   template:
     metadata:
       labels:
-        app: zerrademo-petsdomain-sql-pod
+        app: zerrademo-petsdomain-postgresql-pod
     spec:
       terminationGracePeriodSeconds: 30
-      hostname: mssqlinst
       containers:
-      - name: zerrademo-petsdomain-sql-container
-        image: mcr.microsoft.com/mssql/server:2017-latest
+      - name: zerrademo-petsdomain-postgresql-container
+        image: postgres:latest
         ports:
-           - containerPort: 1433
+          - containerPort: 5432
         env:
-          - name: MSSQL_PID
-            value: "Developer"
-          - name: ACCEPT_EULA
-            value: "Y"
-          - name: SA_PASSWORD
-            value: "Ld#dP22@uK4b"
+          - name: POSTGRES_PASSWORD
+            value: "password123"
         volumeMounts:
-          - name: zerrademo-pets-mssql-volume
-            mountPath: /var/opt/mssql/data
+          - name: zerrademo-pets-postgresql-volume
+            mountPath: /var/lib/postgresql/data
       volumes:
-        - name: zerrademo-pets-mssql-volume
+        - name: zerrademo-pets-postgresql-volume
 
 ---
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zerrademo-ledger1domain-sql
+  name: zerrademo-ledger1domain-postgresql
 spec:
   selector:
     matchLabels:
-      app: zerrademo-ledger1domain-sql-pod
+      app: zerrademo-ledger1domain-postgresql-pod
   template:
     metadata:
       labels:
-        app: zerrademo-ledger1domain-sql-pod
+        app: zerrademo-ledger1domain-postgresql-pod
     spec:
       terminationGracePeriodSeconds: 30
-      hostname: mssqlinst
       containers:
-      - name: zerrademo-ledger1domain-sql-container
+      - name: zerrademo-ledger1domain-postgresql-container
         image: mcr.microsoft.com/mssql/server:2017-latest
         ports:
-           - containerPort: 1433
+          - containerPort: 5432
         env:
-          - name: MSSQL_PID
-            value: "Developer"
-          - name: ACCEPT_EULA
-            value: "Y"
-          - name: SA_PASSWORD
-            value: "Ld#dP22@uK4b"
+          - name: POSTGRES_PASSWORD
+            value: "password123"
         volumeMounts:
-          - name: zerrademo-ledger1-mssql-volume
-            mountPath: /var/opt/mssql/data
+          - name: zerrademo-ledger1-postgresql-volume
+            mountPath: /var/lib/postgresql/data
       volumes:
-        - name: zerrademo-ledger1-mssql-volume
+        - name: zerrademo-ledger1-postgresql-volume
 
 ---
 
@@ -96,15 +156,14 @@ spec:
             value: "1113"
           - name: EVENTSTORE_HTTP_PORT
             value: "2113"
-          - name: EVENTSTORE_DB
-            value: "/usr/data/eventstore/data"
-          - name: EVENTSTORE_LOG
-            value: "/usr/data/eventstore/info"
         volumeMounts:
-          - name: zerrademo-ledger1-eventstore-volume
-            mountPath: /usr/data/eventstore
+          - name: zerrademo-ledger1-eventstore-data-volume
+            mountPath: /var/lib/eventstore
+          - name: zerrademo-ledger1-eventstore-log-volume
+            mountPath: /var/log/eventstore
       volumes:
-        - name: zerrademo-ledger1-eventstore-volume
+        - name: zerrademo-ledger1-eventstore-data-volume
+        - name: zerrademo-ledger1-eventstore-log-volume
 
 ---
 
@@ -136,15 +195,14 @@ spec:
             value: "1114"
           - name: EVENTSTORE_HTTP_PORT
             value: "2114"
-          - name: EVENTSTORE_DB
-            value: "/usr/data/eventstore/data"
-          - name: EVENTSTORE_LOG
-            value: "/usr/data/eventstore/info"
         volumeMounts:
-          - name: zerrademo-ledger2domain-eventstore-volume
-            mountPath: /usr/data/eventstore
+          - name: zerrademo-ledger2-eventstore-data-volume
+            mountPath: /var/lib/eventstore
+          - name: zerrademo-ledger2-eventstore-log-volume
+            mountPath: /var/log/eventstore
       volumes:
-        - name: zerrademo-ledger2domain-eventstore-volume
+        - name: zerrademo-ledger2-eventstore-data-volume
+        - name: zerrademo-ledger2-eventstore-log-volume
 
 ---
 
@@ -174,10 +232,14 @@ spec:
             value: "http://zerrademo-ledger1domain-service:9003"
           - name: ZerraDemo.Service.Ledger2
             value: "http://zerrademo-ledger2domain-service:9004"
-          - name: PetsSqlConnectionString
-            value: "Data Source=zerrademo-petsdomain-sql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
-          - name: Ledger1SqlConnectionString
-            value: "Data Source=zerrademo-ledger1domain-sql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
+#          - name: PetsSqlConnectionStringMSSQL
+#            value: "Data Source=zerrademo-petsdomain-mssql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
+#          - name: Ledger1SqlConnectionStringMSSQL
+#            value: "Data Source=zerrademo-ledger1domain-mssql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
+          - name: PetsSqlConnectionStringPOSTGRESQL
+            value: "User ID=postgres;Password=password123;zerrademo-petsdomain-postgresql-service;Port=1401;Database=zerrademopets;"
+          - name: Ledger1SqlConnectionStringPOSTGRESQL
+            value: "User ID=postgres;Password=password123;zerrademo-petsdomain-postgresql-service;Port=1401;Database=zerrademoledger;"
           - name: Ledger1EventStoreServer
             value: "tcp://zerrademo-ledger1domain-eventstore-service:2113"
           - name: Ledger2EventStoreServer
@@ -219,10 +281,14 @@ spec:
             value: "http://zerrademo-ledger1domain-service:9003"
           - name: ZerraDemo.Service.Ledger2
             value: "http://zerrademo-ledger2domain-service:9004"
-          - name: PetsSqlConnectionString
-            value: "Data Source=zerrademo-petsdomain-sql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
-          - name: Ledger1SqlConnectionString
-            value: "Data Source=zerrademo-ledger1domain-sql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
+#          - name: PetsSqlConnectionStringMSSQL
+#            value: "Data Source=zerrademo-petsdomain-mssql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
+#          - name: Ledger1SqlConnectionStringMSSQL
+#            value: "Data Source=zerrademo-ledger1domain-mssql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
+          - name: PetsSqlConnectionStringPOSTGRESQL
+            value: "User ID=postgres;Password=password123;zerrademo-petsdomain-postgresql-service;Port=1401;Database=zerrademopets;"
+          - name: Ledger1SqlConnectionStringPOSTGRESQL
+            value: "User ID=postgres;Password=password123;zerrademo-petsdomain-postgresql-service;Port=1401;Database=zerrademoledger;"
           - name: Ledger1EventStoreServer
             value: "tcp://zerrademo-ledger1domain-eventstore-service:2113"
           - name: Ledger2EventStoreServer
@@ -264,10 +330,14 @@ spec:
             value: "http://zerrademo-ledger1domain-service:9003"
           - name: ZerraDemo.Service.Ledger2
             value: "http://zerrademo-ledger2domain-service:9004"
-          - name: PetsSqlConnectionString
-            value: "Data Source=zerrademo-petsdomain-sql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
-          - name: Ledger1SqlConnectionString
-            value: "Data Source=zerrademo-ledger1domain-sql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
+#          - name: PetsSqlConnectionStringMSSQL
+#            value: "Data Source=zerrademo-petsdomain-mssql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
+#          - name: Ledger1SqlConnectionStringMSSQL
+#            value: "Data Source=zerrademo-ledger1domain-mssql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
+          - name: PetsSqlConnectionStringPOSTGRESQL
+            value: "User ID=postgres;Password=password123;zerrademo-petsdomain-postgresql-service;Port=1401;Database=zerrademopets;"
+          - name: Ledger1SqlConnectionStringPOSTGRESQL
+            value: "User ID=postgres;Password=password123;zerrademo-petsdomain-postgresql-service;Port=1401;Database=zerrademoledger;"
           - name: Ledger1EventStoreServer
             value: "tcp://zerrademo-ledger1domain-eventstore-service:2113"
           - name: Ledger2EventStoreServer
@@ -309,10 +379,14 @@ spec:
             value: "http://zerrademo-ledger1domain-service:9003"
           - name: ZerraDemo.Service.Ledger2
             value: "http://zerrademo-ledger2domain-service:9004"
-          - name: PetsSqlConnectionString
-            value: "Data Source=zerrademo-petsdomain-sql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
-          - name: Ledger1SqlConnectionString
-            value: "Data Source=zerrademo-ledger1domain-sql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
+#          - name: PetsSqlConnectionStringMSSQL
+#            value: "Data Source=zerrademo-petsdomain-mssql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
+#          - name: Ledger1SqlConnectionStringMSSQL
+#            value: "Data Source=zerrademo-ledger1domain-mssql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
+          - name: PetsSqlConnectionStringPOSTGRESQL
+            value: "User ID=postgres;Password=password123;zerrademo-petsdomain-postgresql-service;Port=1401;Database=zerrademopets;"
+          - name: Ledger1SqlConnectionStringPOSTGRESQL
+            value: "User ID=postgres;Password=password123;zerrademo-petsdomain-postgresql-service;Port=1401;Database=zerrademoledger;"
           - name: Ledger1EventStoreServer
             value: "tcp://zerrademo-ledger1domain-eventstore-service:2113"
           - name: Ledger2EventStoreServer
@@ -354,10 +428,14 @@ spec:
             value: "http://zerrademo-ledger1domain-service:9003"
           - name: ZerraDemo.Service.Ledger2
             value: "http://zerrademo-ledger2domain-service:9004"
-          - name: PetsSqlConnectionString
-            value: "Data Source=zerrademo-petsdomain-sql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
-          - name: Ledger1SqlConnectionString
-            value: "Data Source=zerrademo-ledger1-sql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
+#          - name: PetsSqlConnectionStringMSSQL
+#            value: "Data Source=zerrademo-petsdomain-mssql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
+#          - name: Ledger1SqlConnectionStringMSSQL
+#            value: "Data Source=zerrademo-ledger1domain-mssql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
+          - name: PetsSqlConnectionStringPOSTGRESQL
+            value: "User ID=postgres;Password=password123;zerrademo-petsdomain-postgresql-service;Port=1401;Database=zerrademopets;"
+          - name: Ledger1SqlConnectionStringPOSTGRESQL
+            value: "User ID=postgres;Password=password123;zerrademo-petsdomain-postgresql-service;Port=1401;Database=zerrademoledger;"
           - name: Ledger1EventStoreServer
             value: "tcp://zerrademo-ledger1-eventstore-service:2113"
           - name: Ledger2EventStoreServer
@@ -409,16 +487,44 @@ spec:
   
 ---
 
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: zerrademo-petsdomain-mssql-service
+#spec:
+#  selector:
+#    app: zerrademo-petsdomain-mssql-pod
+#  ports:
+#  - port: 1401
+#    targetPort: 1433
+#  type: NodePort
+#  
+#---
+#
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: zerrademo-ledger1domain-mssql-service
+#spec:
+#  selector:
+#    app: zerrademo-ledger1domain-mssql-pod
+#  ports:
+#  - port: 1402
+#    targetPort: 1433
+#  type: NodePort
+#  
+#---
+
 apiVersion: v1
 kind: Service
 metadata:
-  name: zerrademo-petsdomain-sql-service
+  name: zerrademo-petsdomain-postgresql-service
 spec:
   selector:
-    app: zerrademo-petsdomain-sql-pod
+    app: zerrademo-petsdomain-postgresql-pod
   ports:
   - port: 1401
-    targetPort: 1433
+    targetPort: 5432
   type: NodePort
   
 ---
@@ -426,13 +532,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: zerrademo-ledger1domain-sql-service
+  name: zerrademo-ledger1domain-postgresql-service
 spec:
   selector:
-    app: zerrademo-ledger1domain-sql-pod
+    app: zerrademo-ledger1domain-postgresql-pod
   ports:
   - port: 1402
-    targetPort: 1433
+    targetPort: 5432
   type: NodePort
   
 ---
