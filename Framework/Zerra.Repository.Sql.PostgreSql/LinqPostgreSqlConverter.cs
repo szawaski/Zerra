@@ -12,9 +12,9 @@ using Zerra.IO;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
-namespace Zerra.Repository.Sql.MsSql
+namespace Zerra.Repository.Sql.PostgreSql
 {
-    public static class LinqMsSqlConverter
+    public static class LinqPostgreSqlConverter
     {
         public static string Convert(QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail)
         {
@@ -60,6 +60,8 @@ namespace Zerra.Repository.Sql.MsSql
                     sbWhereOrder.Dispose();
                 }
             }
+
+            GenerateEnding(select, graph, modelDetail, ref sb);
         }
 
         private static void ConvertToSql(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
@@ -296,16 +298,14 @@ namespace Zerra.Repository.Sql.MsSql
                 var callingModelIdentity = callingModel.IdentityProperties[0];
                 var modelProperty = callingModel.GetProperty(property.Member.Name);
 
-                sb.Write('[');
-                sb.Write(callingModel.DataSourceEntityName);
-                sb.Write("].[");
-                sb.Write(callingModelIdentity.PropertySourceName);
-                sb.Write("]=");
-                sb.Write('[');
-                sb.Write(modelDetail.DataSourceEntityName);
-                sb.Write("].[");
-                sb.Write(modelProperty.ForeignIdentity);
-                sb.Write("]AND");
+                sb.Write(callingModel.DataSourceEntityName.ToLower());
+                sb.Write('.');
+                sb.Write(callingModelIdentity.PropertySourceName.ToLower());
+                sb.Write('=');
+                sb.Write(modelDetail.DataSourceEntityName.ToLower());
+                sb.Write('.');
+                sb.Write(modelProperty.ForeignIdentity.ToLower());
+                sb.Write(" AND");
             }
 
             context.MemberContext.DependantStack.Push(context.RootDependant);
@@ -551,7 +551,7 @@ namespace Zerra.Repository.Sql.MsSql
 
                                 ConvertToSql(lambda, ref sb, context);
 
-                                sb.Write(context.Inverted ? "NOT IN" : "IN");
+                                sb.Write(context.Inverted ? " NOT IN " : " IN ");
 
                                 ConvertToSql(callingObject, ref sb, context);
                                 break;
@@ -602,7 +602,7 @@ namespace Zerra.Repository.Sql.MsSql
 
                                     ConvertToSql(lambda, ref sb, context);
 
-                                    sb.Write(context.Inverted ? "NOT IN" : "IN");
+                                    sb.Write(context.Inverted ? " NOT IN " : " IN ");
 
                                     ConvertToSql(callingObject, ref sb, context);
                                     break;
@@ -687,11 +687,9 @@ namespace Zerra.Repository.Sql.MsSql
                     throw new NotSupportedException($"Only one identity supported on {modelDetail.Type.GetNiceName()}");
                 var modelIdentity = modelDetail.IdentityProperties[0];
 
-                sb.Write('[');
-                sb.Write(modelDetail.DataSourceEntityName);
-                sb.Write("].[");
-                sb.Write(modelIdentity.PropertySourceName);
-                sb.Write("]");
+                sb.Write(modelDetail.DataSourceEntityName.ToLower());
+                sb.Write('.');
+                sb.Write(modelIdentity.PropertySourceName.ToLower());
             }
             else
             {
@@ -751,13 +749,9 @@ namespace Zerra.Repository.Sql.MsSql
                 }
 
 
-                sb.Write('[');
-                sb.Write(modelDetail.DataSourceEntityName);
-                sb.Write(']');
+                sb.Write(modelDetail.DataSourceEntityName.ToLower());
                 sb.Write('.');
-                sb.Write('[');
-                sb.Write(modelProperty.PropertySourceName);
-                sb.Write(']');
+                sb.Write(modelProperty.PropertySourceName.ToLower());
                 var lastOperator = context.MemberContext.OperatorStack.Peek();
                 if (lastOperator == Operator.And || lastOperator == Operator.Or)
                 {
@@ -1481,18 +1475,18 @@ namespace Zerra.Repository.Sql.MsSql
                     GenerateSelectProperties(graph, modelDetail, ref sb);
                     break;
                 case QueryOperation.First:
-                    sb.Write("SELECT TOP(1)");
+                    sb.Write("SELECT");
                     GenerateSelectProperties(graph, modelDetail, ref sb);
                     break;
                 case QueryOperation.Single:
-                    sb.Write("SELECT TOP(2)");
+                    sb.Write("SELECT");
                     GenerateSelectProperties(graph, modelDetail, ref sb);
                     break;
                 case QueryOperation.Count:
                     sb.Write("SELECT COUNT(1)");
                     break;
                 case QueryOperation.Any:
-                    sb.Write("SELECT TOP(1) 1");
+                    sb.Write("SELECT 1");
                     break;
             }
         }
@@ -1501,9 +1495,8 @@ namespace Zerra.Repository.Sql.MsSql
             AppendLineBreak(ref sb);
             if (graph.IncludeAllProperties)
             {
-                sb.Write('[');
-                sb.Write(modelDetail.DataSourceEntityName);
-                sb.Write("].*");
+                sb.Write(modelDetail.DataSourceEntityName.ToLower());
+                sb.Write(".*");
                 AppendLineBreak(ref sb);
             }
             else if (graph.LocalProperties.Count == 0)
@@ -1523,11 +1516,9 @@ namespace Zerra.Repository.Sql.MsSql
                                 sb.Write(',');
                             else
                                 passedfirst = true;
-                            sb.Write('[');
-                            sb.Write(modelDetail.DataSourceEntityName);
-                            sb.Write("].[");
-                            sb.Write(property);
-                            sb.Write(']');
+                            sb.Write(modelDetail.DataSourceEntityName.ToLower());
+                            sb.Write('.');
+                            sb.Write(property.ToLower());
                             AppendLineBreak(ref sb);
                         }
                     }
@@ -1536,9 +1527,8 @@ namespace Zerra.Repository.Sql.MsSql
         }
         private static void GenerateFrom(ModelDetail modelDetail, ref CharWriteBuffer sb)
         {
-            sb.Write("FROM[");
-            sb.Write(modelDetail.DataSourceEntityName);
-            sb.Write(']');
+            sb.Write("FROM ");
+            sb.Write(modelDetail.DataSourceEntityName.ToLower());
             AppendLineBreak(ref sb);
         }
         private static void GenerateJoin(ParameterDependant dependant, ref CharWriteBuffer sb)
@@ -1549,21 +1539,39 @@ namespace Zerra.Repository.Sql.MsSql
                     throw new NotSupportedException($"Only one identity supported on {child.ModelDetail.Type.GetNiceName()}");
                 var dependantIdentity = child.ModelDetail.IdentityProperties[0];
 
-                sb.Write("JOIN[");
-                sb.Write(child.ModelDetail.DataSourceEntityName);
-                sb.Write("]ON[");
-                sb.Write(dependant.ModelDetail.DataSourceEntityName);
-                sb.Write("].[");
-                sb.Write(child.ParentMember?.ForeignIdentity);
-                sb.Write("]=[");
-                sb.Write(child.ModelDetail.DataSourceEntityName);
-                sb.Write("].[");
-                sb.Write(dependantIdentity.PropertySourceName);
-                sb.Write(']');
+                sb.Write("JOIN ");
+                sb.Write(child.ModelDetail.DataSourceEntityName.ToLower());
+                sb.Write(" ON ");
+                sb.Write(dependant.ModelDetail.DataSourceEntityName.ToLower());
+                sb.Write('.');
+                sb.Write(child.ParentMember?.ForeignIdentity.ToLower());
+                sb.Write('=');
+                sb.Write(child.ModelDetail.DataSourceEntityName.ToLower());
+                sb.Write('.');
+                sb.Write(dependantIdentity.PropertySourceName.ToLower());
 
                 AppendLineBreak(ref sb);
 
                 GenerateJoin(child, ref sb);
+            }
+        }
+        private static void GenerateEnding(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriteBuffer sb)
+        {
+            switch (select)
+            {
+                case QueryOperation.Many:
+                    break;
+                case QueryOperation.First:
+                    sb.Write("\r\nLIMIT 1");
+                    break;
+                case QueryOperation.Single:
+                    sb.Write("\r\nLIMIT 2");
+                    break;
+                case QueryOperation.Count:
+                    break;
+                case QueryOperation.Any:
+                    sb.Write("\r\nLIMIT 1");
+                    break;
             }
         }
 

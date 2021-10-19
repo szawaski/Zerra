@@ -2,12 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Data.SqlClient;
+using Npgsql;
 using Zerra.Logging;
 
-namespace Zerra.Repository.Sql.MsSql
+namespace Zerra.Repository.Sql.PostgreSql
 {
-    public abstract class MsSqlDataContext : SqlDataContext
+    public abstract class PostgreSqlDataContext : SqlDataContext
     {
         public abstract string ConnectionString { get; }
 
@@ -22,9 +22,9 @@ namespace Zerra.Repository.Sql.MsSql
                 {
                     if (provider == null)
                     {
-                        var connectionForParsing = new SqlConnectionStringBuilder(ConnectionString);
-                        _ = Log.InfoAsync($"{nameof(MsSqlDataContext)} connecting to {connectionForParsing.DataSource}");
-                        provider = new MsSqlEngine(ConnectionString);
+                        var connectionForParsing = new NpgsqlConnectionStringBuilder(ConnectionString);
+                        _ = Log.InfoAsync($"{nameof(PostgreSqlDataContext)} connecting to {connectionForParsing.Database}");
+                        provider = new PostgreSqlEngine(ConnectionString);
                     }
                 }
             }

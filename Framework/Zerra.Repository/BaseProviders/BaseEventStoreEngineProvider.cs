@@ -4,6 +4,7 @@
 
 using Zerra.Providers;
 using Zerra.Reflection;
+using Zerra.Repository.EventStore;
 
 namespace Zerra.Repository
 {

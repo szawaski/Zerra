@@ -6,16 +6,16 @@ using Zerra.Repository.Sql.MsSql;
 
 namespace Zerra.Repository.Sql.Test
 {
-    public class TestSqlDataContext : MsSqlDataContext
+    public class MsSqlTestSqlDataContext : MsSqlDataContext
     {
         public override string ConnectionString => "data source=.;initial catalog=ZerraSqlTest;integrated security=True;MultipleActiveResultSets=True;";
     }
 
-    public abstract partial class BaseSqlProvider<TModel> : SqlProvider<TestSqlDataContext, TModel> where TModel : class, new()
+    public abstract partial class MsSqlBaseSqlProvider<TModel> : SqlProvider<MsSqlTestSqlDataContext, TModel> where TModel : class, new()
     {
         protected override bool DisableQueryLinking => true;
         protected override bool DisableEventLinking => true;
         protected override bool DisablePersistLinking => true;
     }
-    public class TestTypesCustomerSqlProvider : BaseSqlProvider<TestTypesModel> { }
+    public class MsSqlTestTypesCustomerSqlProvider : MsSqlBaseSqlProvider<TestTypesModel> { }
 }

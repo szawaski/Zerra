@@ -8,11 +8,12 @@
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <LangVersion>8.0</LangVersion>
-    <Description>MsSql implementation of repository for Zerra Framework. 
+    <Description>PostgreSql implementation of repository for Zerra Framework.
 
 Commonly used types:
-Zerra.Repository.Sql.MsSql.SqlProvider
-Zerra.Repository.Sql.MsSql.MsSqlDataContext</Description>
+Zerra.Repository.Sql.PostgreSql.SqlProvider
+Zerra.Repository.Sql.PostgreSql.PostgreSqlDataContext
+    </Description>
     <Company>KaKush LLC</Company>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, SQL</PackageTags>
@@ -25,7 +26,7 @@ Zerra.Repository.Sql.MsSql.MsSqlDataContext</Description>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Data.SqlClient" Version="4.6.0" />
+    <PackageReference Include="Npgsql" Version="5.0.10" />
   </ItemGroup>
 
   <ItemGroup>

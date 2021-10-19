@@ -3,27 +3,27 @@
 // Licensed to you under the MIT license
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Npgsql;
 using System;
-using System.Data.SqlClient;
 
 namespace Zerra.Repository.Sql.Test
 {
     [TestClass]
-    public class MsSqlEngineTests
+    public class PostgreSqlEngineTests
     {
         private void DropDatabase()
         {
-            var context = new MsSqlTestSqlDataContext();
-            var builder = new SqlConnectionStringBuilder(context.ConnectionString);
-            var testDatabase = builder.InitialCatalog;
-            builder.InitialCatalog = "master";
+            var context = new PostgreSqlTestSqlDataContext();
+            var builder = new NpgsqlConnectionStringBuilder(context.ConnectionString);
+            var testDatabase = builder.Database;
+            builder.Database = "postgres";
             var connectionStringForMaster = builder.ToString();
-            using (var connection = new SqlConnection(connectionStringForMaster))
+            using (var connection = new NpgsqlConnection(connectionStringForMaster))
             {
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = $"IF EXISTS(SELECT[dbid] FROM master.dbo.sysdatabases where[name] = '{testDatabase}')\r\nDROP DATABASE {testDatabase}";
+                    command.CommandText = $"DROP DATABASE IF EXISTS {testDatabase}";
                     command.ExecuteNonQuery();
                 }
             }

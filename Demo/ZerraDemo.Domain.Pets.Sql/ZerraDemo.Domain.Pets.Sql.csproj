@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Framework\Zerra.Repository.Sql.MsSql\Zerra.Repository.Sql.MsSql.csproj" />
+    <ProjectReference Include="..\..\Framework\Zerra.Repository.Sql.PostgreSql\Zerra.Repository.Sql.PostgreSql.csproj" />
     <ProjectReference Include="..\..\Framework\Zerra.Repository\Zerra.Repository.csproj" />
     <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
     <ProjectReference Include="..\ZerraDemo.Domain.Pets\ZerraDemo.Domain.Pets.csproj" />

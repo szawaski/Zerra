@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
@@ -12,6 +13,9 @@ namespace Zerra.Repository.Sql
     public interface ISqlEngine
     {
         string ConvertToSql(QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail);
+        string GenerateSqlInsert<TModel>(TModel model, Graph<TModel> graph, ModelDetail modelDetail);
+        string GenerateSqlUpdate<TModel>(TModel model, Graph<TModel> graph, ModelDetail modelDetail);
+        string GenerateSqlDelete(ICollection ids, ModelDetail modelDetail);
 
         ICollection<TModel> ExecuteSqlQueryToModelMany<TModel>(string sql, ModelDetail modelDetail) where TModel : class, new();
         TModel ExecuteSqlQueryToModelFirst<TModel>(string sql, ModelDetail modelDetail) where TModel : class, new();
