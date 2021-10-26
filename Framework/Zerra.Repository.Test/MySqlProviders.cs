@@ -8,6 +8,7 @@ namespace Zerra.Repository.Sql.Test
 {
     public class MySqlTestSqlDataContext : MySqlDataContext
     {
+        protected override bool DisableAssureDataStore => false;
         public override string ConnectionString => "Server=localhost;Port=3306;Uid=root;Pwd=password123;Database=ZerraSqlTest";
     }
 

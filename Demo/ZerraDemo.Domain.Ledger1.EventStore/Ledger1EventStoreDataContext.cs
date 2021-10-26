@@ -5,6 +5,7 @@ namespace ZerraDemo.Domain.Ledger1.EventStore
 {
     public class Ledger1EventStoreDataContext : EventStoreDBDataContext
     {
+        protected override bool DisableAssureDataStore => false;
         public override string ConnectionString => connectionString;
         public override bool Insecure => true;
         private readonly string connectionString;

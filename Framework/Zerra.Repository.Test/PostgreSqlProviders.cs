@@ -8,6 +8,7 @@ namespace Zerra.Repository.Sql.Test
 {
     public class PostgreSqlTestSqlDataContext : PostgreSqlDataContext
     {
+        protected override bool DisableAssureDataStore => false;
         public override string ConnectionString => "User ID=postgres;Password=password123;Host=localhost;Port=5432;Database=zerrasqltest;";
     }
 

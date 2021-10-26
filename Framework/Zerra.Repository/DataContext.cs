@@ -34,19 +34,25 @@ namespace Zerra.Repository
         public T InitializeEngine<T>() where T : class, IDataStoreEngine
         {
             var engine = GetDataStoreEngine();
-            if (!engine.DetectIsDataSource())
-                return null;
 
             if (!(engine is T casted))
                 throw new Exception($"{this.GetType().Name} does not produce {typeof(T)}");
 
-            var modelTypes = Discovery.GetTypesFromAttribute(typeof(DataSourceEntityAttribute));
-            var modelDetails = modelTypes.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
-            engine.AssureDataStore(modelDetails);
+            if (!engine.DetectIsDataSource())
+                throw new Exception($"{this.GetType().Name} failed to connect");
+
+            if (!DisableAssureDataStore)
+            {
+                var modelTypes = Discovery.GetTypesFromAttribute(typeof(DataSourceEntityAttribute));
+                var modelDetails = modelTypes.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
+                engine.AssureDataStore(modelDetails);
+            }
 
             return casted;
         }
 
         protected abstract IDataStoreEngine GetDataStoreEngine();
+
+        protected abstract bool DisableAssureDataStore { get; }
     }
 }
