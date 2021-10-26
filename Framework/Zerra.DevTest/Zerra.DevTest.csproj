@@ -33,8 +33,8 @@
     <ProjectReference Include="..\Zerra.CQRS.RabbitMessage\Zerra.CQRS.RabbitMessage.csproj" />
     <ProjectReference Include="..\Zerra.Test\Zerra.Test.csproj" />
     <ProjectReference Include="..\Zerra\Zerra.csproj" />
-    <ProjectReference Include="..\Zerra.Repository.EventStore.EventStoreDB\Zerra.Repository.EventStore.EventStoreDB.csproj" />
-    <ProjectReference Include="..\Zerra.Repository.Sql.MsSql\Zerra.Repository.Sql.MsSql.csproj" />
+    <ProjectReference Include="..\Zerra.Repository.EventStoreDB\Zerra.Repository.EventStoreDB.csproj" />
+    <ProjectReference Include="..\Zerra.Repository.MsSql\Zerra.Repository.MsSql.csproj" />
     <ProjectReference Include="..\Zerra.Repository\Zerra.Repository.csproj" />
   </ItemGroup>
 

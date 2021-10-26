@@ -1,4 +1,4 @@
-﻿using Zerra.Repository;
+﻿using Zerra.Repository.EventStore;
 
 namespace ZerraDemo.Domain.Ledger2.EventStore
 {

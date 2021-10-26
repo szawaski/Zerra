@@ -2,5 +2,5 @@
 
 namespace ZerraDemo.Domain.Ledger1.EventStore.Providers
 {
-    public class Ledger1AccountDataProvider : Ledger1SqlBaseProvider<Ledger1AccountDataModel> { }
+    public class Ledger1AccountDataProvider : Ledger1BaseProvider<Ledger1AccountDataModel> { }
 }

@@ -14,7 +14,7 @@ using Zerra.Repository.Reflection;
 namespace Zerra.Repository.Sql
 {
     public class SqlProvider<TContext, TModel> : BaseDataProvider<TModel>
-        where TContext : SqlDataContext
+        where TContext : DataContext
         where TModel : class, new()
     {
         private const int deleteBatchSize = 250;
@@ -22,10 +22,27 @@ namespace Zerra.Repository.Sql
 
         protected readonly ISqlEngine Engine;
 
+        private static ISqlEngine engineCache = null;
+        private static readonly object engineCacheLock = new object();
+        private ISqlEngine GetEngine()
+        {
+            if (engineCache == null)
+            {
+                lock (engineCacheLock)
+                {
+                    if (engineCache == null)
+                    {
+                        var context = Instantiator.GetSingleInstance<TContext>();
+                        engineCache = context.InitializeEngine<ISqlEngine>();
+                    }
+                }
+            }
+            return engineCache;
+        }
+
         public SqlProvider()
         {
-            var context = Instantiator.GetSingleInstance<TContext>();
-            this.Engine = context.GetEngine();
+            this.Engine = GetEngine();
         }
 
         protected override sealed ICollection<TModel> QueryMany(Query<TModel> query)

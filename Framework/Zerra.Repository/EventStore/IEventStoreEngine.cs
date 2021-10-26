@@ -4,11 +4,10 @@
 
 using System;
 using System.Threading.Tasks;
-using Zerra.Repository.EventStore;
 
 namespace Zerra.Repository.EventStore
 {
-    public interface IEventStoreEngine
+    public interface IEventStoreEngine : IDataStoreEngine
     {
         ulong Append(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data);
         ulong Terminate(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState);

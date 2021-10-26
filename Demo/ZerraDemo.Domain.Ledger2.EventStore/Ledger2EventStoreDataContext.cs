@@ -1,5 +1,5 @@
 ﻿using Zerra;
-using Zerra.Repository.EventStore.EventStoreDB;
+using Zerra.Repository.EventStoreDB;
 
 namespace ZerraDemo.Domain.Ledger2.EventStore
 {

@@ -10,7 +10,7 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.Sql
 {
-    public interface ISqlEngine
+    public interface ISqlEngine : IDataStoreEngine
     {
         string ConvertToSql(QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail);
         string GenerateSqlInsert<TModel>(TModel model, Graph<TModel> graph, ModelDetail modelDetail);
@@ -32,7 +32,5 @@ namespace Zerra.Repository.Sql
         Task<bool> ExecuteSqlQueryAnyAsync(string sql);
         Task<ICollection<object>> ExecuteSqlQueryAsync(string sql);
         Task<int> ExecuteSqlAsync(string sql);
-
-        void AssureDataStore(ICollection<ModelDetail> modelDetail);
     }
 }

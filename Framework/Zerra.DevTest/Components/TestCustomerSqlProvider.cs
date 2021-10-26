@@ -5,7 +5,7 @@
 using System;
 using Zerra.Repository;
 using Zerra.Repository.Sql;
-using Zerra.Repository.Sql.MsSql;
+using Zerra.Repository.MsSql;
 
 namespace Zerra.DevTest
 {

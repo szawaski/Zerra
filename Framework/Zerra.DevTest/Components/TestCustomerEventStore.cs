@@ -3,10 +3,9 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Net;
 using Zerra.Repository;
 using Zerra.Repository.EventStore;
-using Zerra.Repository.EventStore.EventStoreDB;
+using Zerra.Repository.EventStoreDB;
 
 namespace Zerra.DevTest
 {

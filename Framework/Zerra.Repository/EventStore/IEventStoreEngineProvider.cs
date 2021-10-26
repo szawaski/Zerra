@@ -4,7 +4,7 @@
 
 namespace Zerra.Repository.EventStore
 {
-    public interface IEventStoreEngineProvider
+    public interface IEventStoreEngineProvider<TModel> where TModel : AggregateRoot
     {
         IEventStoreEngine GetEngine();
     }

@@ -2,5 +2,5 @@
 
 namespace ZerraDemo.Domain.Pets.Sql.Providers
 {
-    public class SpeciesDataProvider : PetsSqlBaseProvider<SpeciesDataModel> { }
+    public class SpeciesDataProvider : PetsBaseProvider<SpeciesDataModel> { }
 }

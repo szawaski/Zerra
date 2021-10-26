@@ -12,17 +12,36 @@ using Zerra.Repository.Reflection;
 namespace Zerra.Repository.EventStore
 {
     public class EventStoreProvider<TContext, TModel> : BaseDataProvider<TModel>
-        where TContext : EventStoreDataContext
+        where TContext : DataContext
         where TModel : class, new()
     {
         protected virtual ulong SaveStateEvery { get { return 100; } }
 
         protected readonly IEventStoreEngine Engine;
 
+        private static IEventStoreEngine engine;
+        private static readonly object providerLock = new object();
+
+        public IEventStoreEngine GetEngine()
+        {
+            if (engine == null)
+            {
+                lock (providerLock)
+                {
+                    if (engine == null)
+                    {
+                        var context = Instantiator.CreateInstance<TContext>();
+                        engine = context.InitializeEngine<IEventStoreEngine>();
+                    }
+                }
+            }
+            return engine;
+        }
+
         public EventStoreProvider()
         {
             var context = Instantiator.GetSingleInstance<TContext>();
-            this.Engine = context.GetEngine();
+            this.Engine = GetEngine();
         }
 
         protected override sealed ICollection<TModel> QueryMany(Query<TModel> query)

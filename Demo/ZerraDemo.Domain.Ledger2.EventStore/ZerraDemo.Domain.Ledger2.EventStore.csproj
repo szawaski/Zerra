@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Framework\Zerra.Repository.EventStore.EventStoreDB\Zerra.Repository.EventStore.EventStoreDB.csproj" />
+    <ProjectReference Include="..\..\Framework\Zerra.Repository.EventStoreDB\Zerra.Repository.EventStoreDB.csproj" />
     <ProjectReference Include="..\..\Framework\Zerra.Repository\Zerra.Repository.csproj" />
     <ProjectReference Include="..\ZerraDemo.Domain.Ledger2\ZerraDemo.Domain.Ledger2.csproj" />
     <ProjectReference Include="..\ZerraDemo.Domain\ZerraDemo.Domain.csproj" />
