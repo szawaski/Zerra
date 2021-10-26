@@ -1210,7 +1210,7 @@ AND C.TABLE_SCHEMA != 'information_schema'";
                 NumericPrecision = x[5] != DBNull.Value ? (int?)x[5] : null,
                 NumericScale = x[6] != DBNull.Value ? (int?)x[6] : null,
                 DatetimePrecision = x[7] != DBNull.Value ? (int?)x[7] : null,
-                IsIdentity = (bool)x[8],
+                IsIdentity = x[8] != DBNull.Value ? (bool)x[8] : false,
                 IsPrimaryKey = x[9] != DBNull.Value ? (bool)x[9] : false,
             }).ToArray();
 
