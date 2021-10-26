@@ -114,7 +114,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 200Mb
+      storage: 256Mi
 
 ---
 
@@ -353,8 +353,7 @@ spec:
     spec:
       containers:
       - name: zerrademo-petsdomain-container
-        image: zerrademo-petsdomain:latest
-        imagePullPolicy: Never
+        image: szawaski/zerrademo-petsdomain:latest
         env:
           - name: ZerraDemo.Service.Pets
             value: "http://zerrademo-petsdomain-service:9001"
@@ -402,8 +401,7 @@ spec:
     spec:
       containers:
       - name: zerrademo-weatherdomain-container
-        image: zerrademo-weatherdomain:latest
-        imagePullPolicy: Never
+        image: szawaski/zerrademo-weatherdomain:latest
         env:
           - name: ZerraDemo.Service.Pets
             value: "http://zerrademo-petsdomain-service:9001"
@@ -451,8 +449,7 @@ spec:
     spec:
       containers:
       - name: zerrademo-ledger1domain-container
-        image: zerrademo-ledger1domain:latest
-        imagePullPolicy: Never
+        image: szawaski/zerrademo-ledger1domain:latest
         env:
           - name: ZerraDemo.Service.Pets
             value: "http://zerrademo-petsdomain-service:9001"
@@ -500,8 +497,7 @@ spec:
     spec:
       containers:
       - name: zerrademo-ledger2domain-container
-        image: zerrademo-ledger2domain:latest
-        imagePullPolicy: Never
+        image: szawaski/zerrademo-ledger2domain:latest
         env:
           - name: ZerraDemo.Service.Pets
             value: "http://zerrademo-petsdomain-service:9001"
@@ -549,8 +545,7 @@ spec:
     spec:
       containers:
       - name: zerrademo-web-container
-        image: zerrademo-web:latest
-        imagePullPolicy: Never
+        image: szawaski/zerrademo-web:latest
         env:
           - name: ZerraDemo.Service.Pets
             value: "http://zerrademo-petsdomain-service:9001"

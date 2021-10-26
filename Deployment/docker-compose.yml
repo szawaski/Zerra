@@ -73,7 +73,7 @@ services:
       - "2114:2114"
 
   zerrademo-weatherdomain:
-    image: zerrademo-weatherdomain
+    image: szawaski/zerrademo-weatherdomain
     environment:
       - ZerraDemo.Service.Pets=host.docker.internal:9001
       - ZerraDemo.Service.Weather=host.docker.internal:9002
@@ -93,7 +93,7 @@ services:
       - "9002:5000"
       
   zerrademo-petsdomain:
-    image: zerrademo-petsdomain
+    image: szawaski/zerrademo-petsdomain
     environment:
       - ZerraDemo.Service.Pets=host.docker.internal:9001
       - ZerraDemo.Service.Weather=host.docker.internal:9002
@@ -113,7 +113,7 @@ services:
       - "9001:5000"
       
   zerrademo-ledger1domain:
-    image: zerrademo-ledger1domain
+    image: szawaski/zerrademo-ledger1domain
     environment:
       - ZerraDemo.Service.Pets=host.docker.internal:9001
       - ZerraDemo.Service.Weather=host.docker.internal:9002
@@ -133,7 +133,7 @@ services:
       - "9003:5000"
       
   zerrademo-ledger2domain:
-    image: zerrademo-ledger2domain
+    image: szawaski/zerrademo-ledger2domain
     environment:
       - ZerraDemo.Service.Pets=host.docker.internal:9001
       - ZerraDemo.Service.Weather=host.docker.internal:9002
@@ -153,7 +153,7 @@ services:
       - "9004:5000"
  
   zerrademo-webservice:
-    image: zerrademo-web
+    image: szawaski/zerrademo-web
     environment:
       - ZerraDemo.Service.Pets=host.docker.internal:9001
       - ZerraDemo.Service.Weather=host.docker.internal:9002
