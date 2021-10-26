@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Framework\Zerra.CQRS.Kafka\Zerra.CQRS.Kafka.csproj" />
     <ProjectReference Include="..\..\Framework\Zerra.Logger\Zerra.Logger.csproj" />
     <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
   </ItemGroup>

@@ -1,4 +1,124 @@
 #apiVersion: apps/v1
+#kind: PersistentVolumeClaim
+#metadata:
+#  name: zerrademo-pets-mssql-volumeclaim
+#  labels:
+#    app: zerrademo-pets-mssql-volumeclaim
+#spec:
+#  accessModes:
+#    - ReadWriteOnce
+#  resources:
+#    requests:
+#      storage: 256m
+#
+#---
+#
+#apiVersion: apps/v1
+#kind: PersistentVolumeClaim
+#metadata:
+#  name: zerrademo-ledger1-mssql-volumeclaim
+#  labels:
+#    app: zerrademo-ledger1-mssql-volumeclaim
+#spec:
+#  accessModes:
+#    - ReadWriteOnce
+#  resources:
+#    requests:
+#      storage: 256m
+#
+#---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zerrademo-pets-postgresql-volumeclaim
+  labels:
+    app: zerrademo-pets-postgresql-volumeclaim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zerrademo-ledger1-postgresql-volumeclaim
+  labels:
+    app: zerrademo-ledger1-postgresql-volumeclaim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zerrademo-ledger1-eventstore-data-volumeclaim
+  labels:
+    app: zerrademo-ledger1-eventstore-data-volumeclaim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zerrademo-ledger1-eventstore-log-volumeclaim
+  labels:
+    app: zerrademo-ledger1-eventstore-log-volumeclaim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zerrademo-ledger2-eventstore-data-volumeclaim
+  labels:
+    app: zerrademo-ledger2-eventstore-data-volumeclaim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zerrademo-ledger2-eventstore-log-volumeclaim
+  labels:
+    app: zerrademo-ledger2-eventstore-log-volumeclaim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 200Mb
+
+---
+
+#apiVersion: apps/v1
 #kind: Deployment
 #metadata:
 #  name: zerrademo-petsdomain-mssql
@@ -95,6 +215,8 @@ spec:
             mountPath: /var/lib/postgresql/data
       volumes:
         - name: zerrademo-pets-postgresql-volume
+          persistentVolumeClaim:
+            claimName: zerrademo-pets-postgresql-volumeclaim
 
 ---
 
@@ -125,6 +247,8 @@ spec:
             mountPath: /var/lib/postgresql/data
       volumes:
         - name: zerrademo-ledger1-postgresql-volume
+          persistentVolumeClaim:
+            claimName: zerrademo-ledger1-postgresql-volumeclaim
 
 ---
 
@@ -163,7 +287,11 @@ spec:
             mountPath: /var/log/eventstore
       volumes:
         - name: zerrademo-ledger1-eventstore-data-volume
+          persistentVolumeClaim:
+            claimName: zerrademo-ledger1-eventstore-data-volumeclaim
         - name: zerrademo-ledger1-eventstore-log-volume
+          persistentVolumeClaim:
+            claimName: zerrademo-ledger1-eventstore-data-volumeclaim
 
 ---
 
@@ -202,7 +330,11 @@ spec:
             mountPath: /var/log/eventstore
       volumes:
         - name: zerrademo-ledger2-eventstore-data-volume
+          persistentVolumeClaim:
+            claimName: zerrademo-ledger2-eventstore-data-volumeclaim
         - name: zerrademo-ledger2-eventstore-log-volume
+          persistentVolumeClaim:
+            claimName: zerrademo-ledger2-eventstore-data-volumeclaim
 
 ---
 

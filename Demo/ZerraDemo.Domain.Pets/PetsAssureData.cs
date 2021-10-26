@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Zerra.Repository;
 using ZerraDemo.Domain.Pets.DataModels;
 
@@ -54,6 +52,13 @@ namespace ZerraDemo.Domain.Pets
 
                 if (!breeds.Any(x => x.SpeciesID == speciesMagicalID && x.Name == "Unicorn"))
                     Repo.Persist(new Create<BreedDataModel>(new BreedDataModel() { ID = Guid.NewGuid(), SpeciesID = speciesMagicalID, Name = "Unicorn" }));
+
+                breeds = Repo.Query(new QueryMany<BreedDataModel>());
+                var breedBorderCollieID = breeds.First(x => x.Name == "Border Collie").ID;
+
+                var pets = Repo.Query(new QueryMany<PetDataModel>());
+                if (!pets.Any(x => x.Name == "Lucy"))
+                    Repo.Persist(new Create<PetDataModel>(new PetDataModel() { ID = Guid.NewGuid(), BreedID = breedBorderCollieID, Name = "Lucy" }));
             }
         }
     }
