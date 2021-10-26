@@ -979,10 +979,10 @@ namespace Zerra.Repository.MsSql
 
             if (property.IsDataSourceNotNull) //model checks for identity not null
             {
-                sb.Append(" NOT NULL ");
+                sb.Append(" NOT NULL");
                 if (property.IsIdentity)
                 {
-                    sb.Append("DEFAULT ");
+                    sb.Append(" DEFAULT ");
                     WriteDefaultValue(sb, property);
                 }
             }

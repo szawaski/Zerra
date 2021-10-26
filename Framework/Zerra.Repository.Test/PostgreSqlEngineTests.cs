@@ -32,7 +32,7 @@ namespace Zerra.Repository.Sql.Test
         public void AssureDatabase()
         {
             DropDatabase();
-            var context = new MsSqlTestSqlDataContext();
+            var context = new PostgreSqlTestSqlDataContext();
             _ = context.InitializeEngine<ISqlEngine>();
         }
 

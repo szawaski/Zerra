@@ -21,10 +21,11 @@ namespace Zerra.Repository.Sql.Test
         public double DoubleThing { get; set; }
         public decimal DecimalThing { get; set; }
         public char CharThing { get; set; }
+        [DataSourceType(true, 6)]
         public DateTime DateTimeThing { get; set; }
-        [DataSourceType(true, 3)]
+        [DataSourceType(true, 6)]
         public DateTimeOffset DateTimeOffsetThing { get; set; }
-        [DataSourceType(true, 7)]
+        [DataSourceType(true, 6)]
         public TimeSpan TimeSpanThing { get; set; }
         public Guid GuidThing { get; set; }
 
@@ -36,10 +37,11 @@ namespace Zerra.Repository.Sql.Test
         public double? DoubleNullableThing { get; set; }
         public decimal? DecimalNullableThing { get; set; }
         public char? CharNullableThing { get; set; }
+        [DataSourceType(false, 6)]
         public DateTime? DateTimeNullableThing { get; set; }
-        [DataSourceType(false, 3)]
+        [DataSourceType(false, 6)]
         public DateTimeOffset? DateTimeOffsetNullableThing { get; set; }
-        [DataSourceType(false, 7)]
+        [DataSourceType(false, 6)]
         public TimeSpan? TimeSpanNullableThing { get; set; }
         public Guid? GuidNullableThing { get; set; }
 
@@ -51,10 +53,11 @@ namespace Zerra.Repository.Sql.Test
         public double? DoubleNullableThingNull { get; set; }
         public decimal? DecimalNullableThingNull { get; set; }
         public char? CharNullableThingNull { get; set; }
+        [DataSourceType(false, 6)]
         public DateTime? DateTimeNullableThingNull { get; set; }
-        [DataSourceType(false, 3)]
+        [DataSourceType(false, 6)]
         public DateTimeOffset? DateTimeOffsetNullableThingNull { get; set; }
-        [DataSourceType(false, 7)]
+        [DataSourceType(false, 6)]
         public TimeSpan? TimeSpanNullableThingNull { get; set; }
         public Guid? GuidNullableThingNull { get; set; }
 
@@ -159,7 +162,7 @@ namespace Zerra.Repository.Sql.Test
             Assert.AreEqual(model1.CharThing, model2.CharThing);
             Assert.AreEqual(model1.DateTimeThing.ToString("yyyyMMddHHmmss.f"), model2.DateTimeThing.ToString("yyyyMMddHHmmss.f"));
             Assert.AreEqual(model1.DateTimeOffsetThing.ToString("yyyyMMddHHmmss.fzzz"), model2.DateTimeOffsetThing.ToString("yyyyMMddHHmmss.fzzz"));
-            Assert.AreEqual(model1.TimeSpanThing, model2.TimeSpanThing);
+            Assert.AreEqual((int)model1.TimeSpanThing.TotalMilliseconds, (int)model2.TimeSpanThing.TotalMilliseconds);
             Assert.AreEqual(model1.GuidThing, model2.GuidThing);
 
             Assert.AreEqual(model1.ByteNullableThing, model2.ByteNullableThing);
@@ -172,7 +175,7 @@ namespace Zerra.Repository.Sql.Test
             Assert.AreEqual(model1.CharNullableThing, model2.CharNullableThing);
             Assert.AreEqual(model1.DateTimeNullableThing.Value.ToString("yyyyMMddHHmmss.f"), model2.DateTimeNullableThing.Value.ToString("yyyyMMddHHmmss.f"));
             Assert.AreEqual(model1.DateTimeOffsetNullableThing.Value.ToString("yyyyMMddHHmmss.fzzz"), model2.DateTimeOffsetNullableThing.Value.ToString("yyyyMMddHHmmss.fzzz"));
-            Assert.AreEqual(model1.TimeSpanNullableThing, model2.TimeSpanNullableThing);
+            Assert.AreEqual((int)model1.TimeSpanNullableThing.Value.TotalMilliseconds, (int)model2.TimeSpanNullableThing.Value.TotalMilliseconds);
             Assert.AreEqual(model1.GuidNullableThing, model2.GuidNullableThing);
 
             Assert.IsNull(model1.ByteNullableThingNull);

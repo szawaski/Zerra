@@ -847,8 +847,9 @@ namespace Zerra.Repository.PostgreSql
                 if (arrayType == typeof(byte))
                 {
                     string hex = BitConverter.ToString((byte[])value).Replace("-", "");
-                    sb.Write("0x");
+                    sb.Write("E'\\x");
                     sb.Write(hex);
+                    sb.Write('\'');
                     return false;
                 }
                 else
