@@ -11,6 +11,10 @@ namespace Zerra.Repository
 {
     public abstract class DataContext
     {
+        private static bool isValid = false;
+        private static bool validated = false;
+        private static readonly object validatedLock = new object();
+
         public bool TryGetEngine<T>(out T engine) where T : class, IDataStoreEngine
         {
             var dataStoreEngine = GetEngine();
@@ -21,10 +25,19 @@ namespace Zerra.Repository
                 return false;
             }
 
-            if (!dataStoreEngine.ValidateDataSource())
+            lock (validatedLock)
             {
-                engine = null;
-                return false;
+                if (!validated)
+                {
+                    validated = true;
+                    isValid = dataStoreEngine.ValidateDataSource();
+                }
+
+                if (!isValid)
+                {
+                    engine = null;
+                    return false;
+                }
             }
 
             engine = casted;
@@ -40,8 +53,16 @@ namespace Zerra.Repository
             if (!(engine is T casted))
                 throw new Exception($"{this.GetType().Name} does not produce {typeof(T)}");
 
-            if (!engine.ValidateDataSource())
-                throw new Exception($"{this.GetType().Name} failed to validate data source");
+            lock (validatedLock)
+            {
+                if (!validated)
+                {
+                    validated = true;
+                    isValid = engine.ValidateDataSource();
+                }
+                if (!isValid)
+                    throw new Exception($"{this.GetType().Name} failed to validate data source");
+            }
 
             lock (initializedLock)
             {

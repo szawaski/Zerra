@@ -9,8 +9,8 @@ namespace ZerraDemo.Domain.Pets.Sql
         {
             return new DataContext[]
             {
-                new PetsPostgreSqlDataContext(),
                 new PetsMsSqlDataContext(),
+                new PetsPostgreSqlDataContext(),
                 new PetsMySqlDataContext()
             };
         }
