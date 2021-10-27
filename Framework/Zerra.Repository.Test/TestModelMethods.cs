@@ -9,11 +9,9 @@ namespace Zerra.Repository.Test
 {
     public static class TestModelMethods
     {
-        public static void TestSequence<T>(T context, TransactStoreProvider<T, TestTypesModel> provider) where T : DataContext<ITransactStoreEngine>
+        public static void TestSequence<T>(TransactStoreProvider<T, TestTypesModel> provider) where T : DataContext<ITransactStoreEngine>
         {
-            _ = context.InitializeEngine(true);
-
-            var modelOrigin = TestModelMethods.GetTestTypesModel();
+            var modelOrigin = GetTestTypesModel();
             modelOrigin.KeyA = Guid.NewGuid();
             provider.Persist(new Create<TestTypesModel>(modelOrigin));
 

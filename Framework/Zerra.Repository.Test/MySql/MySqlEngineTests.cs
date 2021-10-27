@@ -11,9 +11,8 @@ namespace Zerra.Repository.Test
     [TestClass]
     public class MySqlEngineTests
     {
-        private int ExecuteSql(string sql)
+        private int ExecuteSql(MySqlTestSqlDataContext context, string sql)
         {
-            var context = new PostgreSqlTestSqlDataContext();
             using (var connection = new MySqlConnection(context.ConnectionString))
             {
                 connection.Open();
@@ -25,9 +24,8 @@ namespace Zerra.Repository.Test
             }
         }
 
-        private void DropDatabase()
+        private void DropDatabase(MySqlTestSqlDataContext context)
         {
-            var context = new MySqlTestSqlDataContext();
             var builder = new MySqlConnectionStringBuilder(context.ConnectionString);
             var testDatabase = builder.Database;
             builder.Database = "sys";
@@ -46,18 +44,23 @@ namespace Zerra.Repository.Test
         [TestMethod]
         public void TestSequence()
         {
-            DropDatabase();
-
             var context = new MySqlTestSqlDataContext();
             var provider = new MySqlTestTypesCustomerSqlProvider();
-            TestModelMethods.TestSequence(context, provider);
+
+            DropDatabase(context);
+
+            _ = context.InitializeEngine(true);
+
+            TestModelMethods.TestSequence(provider);
 
             const string changeColumn = "ALTER TABLE `TestTypes` ALTER COLUMN `Int32Thing` bigint NULL";
             const string addColumn = "ALTER TABLE `TestTypes` ADD `DummyToMakeNullable` int NOT NULL";
             const string dropColumn = "ALTER TABLE `TestTypes` DROP COLUMN `ByteThing`";
-            ExecuteSql(changeColumn);
-            ExecuteSql(addColumn);
-            ExecuteSql(dropColumn);
+            ExecuteSql(context, changeColumn);
+            ExecuteSql(context, addColumn);
+            ExecuteSql(context, dropColumn);
+
+            _ = context.InitializeEngine(true);
         }
     }
 }

@@ -11,9 +11,8 @@ namespace Zerra.Repository.Test
     [TestClass]
     public class PostgreSqlEngineTests
     {
-        private int ExecuteSql(string sql)
+        private int ExecuteSql(PostgreSqlTestSqlDataContext context, string sql)
         {
-            var context = new PostgreSqlTestSqlDataContext();
             using (var connection = new NpgsqlConnection(context.ConnectionString))
             {
                 connection.Open();
@@ -25,9 +24,8 @@ namespace Zerra.Repository.Test
             }
         }
 
-        private void DropDatabase()
+        private void DropDatabase(PostgreSqlTestSqlDataContext context)
         {
-            var context = new PostgreSqlTestSqlDataContext();
             var builder = new NpgsqlConnectionStringBuilder(context.ConnectionString);
             var testDatabase = builder.Database;
             builder.Database = "postgres";
@@ -47,18 +45,21 @@ namespace Zerra.Repository.Test
         [TestMethod]
         public void TestSequence()
         {
-            DropDatabase();
-
             var context = new PostgreSqlTestSqlDataContext();
             var provider = new PostgreSqlTestTypesCustomerSqlProvider();
-            TestModelMethods.TestSequence(context, provider);
+
+            DropDatabase(context);
+
+            _ = context.InitializeEngine(true);
+
+            TestModelMethods.TestSequence(provider);
 
             const string changeColumn = "ALTER TABLE testtypes ALTER COLUMN int32thing TYPE bigint; ALTER TABLE testtypes ALTER COLUMN int32thing DROP NOT NULL;";
             const string addColumn = "ALTER TABLE testtypes ADD dummytomakenullable int NOT NULL";
             const string dropColmn = "ALTER TABLE testtypes DROP COLUMN bytething";
-            ExecuteSql(changeColumn);
-            ExecuteSql(addColumn);
-            ExecuteSql(dropColmn);
+            ExecuteSql(context, changeColumn);
+            ExecuteSql(context, addColumn);
+            ExecuteSql(context, dropColmn);
 
             _ = context.InitializeEngine(true);
         }
