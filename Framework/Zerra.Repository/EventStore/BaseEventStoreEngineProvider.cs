@@ -11,23 +11,10 @@ namespace Zerra.Repository.EventStore
         where TContext : DataContext
         where TModel : AggregateRoot
     {
-        private static IEventStoreEngine engine;
-        private static readonly object providerLock = new object();
-
         public IEventStoreEngine GetEngine()
         {
-            if (engine == null)
-            {
-                lock (providerLock)
-                {
-                    if (engine == null)
-                    {
-                        var context = Instantiator.CreateInstance<TContext>();
-                        engine = context.InitializeEngine<IEventStoreEngine>();
-                    }
-                }
-            }
-            return engine;
+            var context = Instantiator.CreateInstance<TContext>();
+            return context.InitializeEngine<IEventStoreEngine>();
         }
     }
 }

@@ -20,27 +20,10 @@ namespace Zerra.Repository
 
         protected readonly ITransactStoreEngine Engine;
 
-        private static ITransactStoreEngine engineCache = null;
-        private static readonly object engineCacheLock = new object();
-        private ITransactStoreEngine GetEngine()
-        {
-            if (engineCache == null)
-            {
-                lock (engineCacheLock)
-                {
-                    if (engineCache == null)
-                    {
-                        var context = Instantiator.GetSingleInstance<TContext>();
-                        engineCache = context.InitializeEngine<ITransactStoreEngine>();
-                    }
-                }
-            }
-            return engineCache;
-        }
-
         public TransactStoreProvider()
         {
-            this.Engine = GetEngine();
+            var context = Instantiator.GetSingleInstance<TContext>();
+            this.Engine = context.InitializeEngine<ITransactStoreEngine>();
         }
 
         protected override sealed ICollection<TModel> QueryMany(Query<TModel> query)

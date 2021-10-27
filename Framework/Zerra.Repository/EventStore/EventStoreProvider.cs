@@ -19,29 +19,10 @@ namespace Zerra.Repository.EventStore
 
         protected readonly IEventStoreEngine Engine;
 
-        private static IEventStoreEngine engine;
-        private static readonly object providerLock = new object();
-
-        public IEventStoreEngine GetEngine()
-        {
-            if (engine == null)
-            {
-                lock (providerLock)
-                {
-                    if (engine == null)
-                    {
-                        var context = Instantiator.CreateInstance<TContext>();
-                        engine = context.InitializeEngine<IEventStoreEngine>();
-                    }
-                }
-            }
-            return engine;
-        }
-
         public EventStoreProvider()
         {
             var context = Instantiator.GetSingleInstance<TContext>();
-            this.Engine = GetEngine();
+            this.Engine = context.InitializeEngine<IEventStoreEngine>();
         }
 
         protected override sealed ICollection<TModel> QueryMany(Query<TModel> query)

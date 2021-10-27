@@ -29,7 +29,7 @@ namespace Zerra.Repository.Test
             }
         }
 
-        public void AssureDatabase()
+        public void BuildStoreFromModels()
         {
             DropDatabase();
             var context = new PostgreSqlTestSqlDataContext();
@@ -39,7 +39,7 @@ namespace Zerra.Repository.Test
         [TestMethod]
         public void Crud()
         {
-            AssureDatabase();
+            BuildStoreFromModels();
 
             var provider = new PostgreSqlTestTypesCustomerSqlProvider();
 
