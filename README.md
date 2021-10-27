@@ -1,19 +1,20 @@
-# Zerra Quick Start Guide
-Zerra Framework: Fast Powerful CQRS and Agnostic Repository with Event Sourcing
-- Container Cloud ready in Net5.0
-- Run solutions as monoliths or split out domain pieces to run independently
-- The calling code doesn't know if it's part of the assembly or running elsewhere on the network
-- Communication requires almost no configuration using fast TCP communication
-- Agnostic repositories for different datastores including Event Sourcing
-- Transparent security pulls whatever claims are on the thread across the network or you can add an IApiAuthorizer for externally exposed services
-- High speed using the latest .NET memory capabilities, low level pointers, and Intermediate Language Generation.
-- **Check out the ZerraDemo Project in the repository for a complete example**
+# Zerra Framework: Fast Powerful CQRS and Agnostic Repository with Event Sourcing
+- Container ready for Docker/Kubernetes
+- Run solutions as monoliths or split out domain pieces into **Microservices**
+- Call services agnostically as they run in the assembly or remotely
+- Communication requires little configuration and no code
+- Repositories agnostically access different datastores including **Event Sourcing**
+- Transparent security transfers claims across services
+- **High Speed** using advanced memory optimizations and Intermediate Language generation.
+- Check out the ZerraDemo Project in the code base for a complete example
 
-# Installing
+# Quick Start Guide
+
+## Installing
 You can find all the packages on NuGet with the Zerra namespace. Start with the core framework for the quick start. [https://www.nuget.org/packages/Zerra/]
 - Install-Package Zerra
 
-# Constructing a Query
+## Constructing a Query
 **If the domains are referenced in the same running project, they will automatically find the implementations with no other code needed.  If domains are running seperatly see Network Setup below.**\
 \
 Create a universally shared domain project for the following classes if you do not have one already.\
@@ -66,7 +67,7 @@ const weather = IWeatherQueryProvider.GetWeather(function(data){
 );
 ```
 
-# Constructing a Command
+## Constructing a Command
 **If the domains are referenced in the same running project, they will automatically find the implementations with no other code needed.  If domains are running seperatly see Network Setup below.**\
 \
 Create a universally shared domain project for the following classes if you do not have one already.\
@@ -124,13 +125,13 @@ Bus.DispatchAsync(command, function(){
     //failed
 });
 ```
-## Special Dispatching
+### Special Dispatching
 The framework has an acknowledgement system that will wait for the return of a signal when a command has completed execution. This is helpful when eventual consistency is not adequate and needing more immediate confirmation. This will also return errors with actual exception information if the command fails. This will not return domain data, that is an anti-pattern of CQRS.  This works simularly for TypeScript and JavaScript
 ```csharp
 await Bus.DispatchAwaitAsync(command);
 ```
 
-# Generating The Front End
+## Generating The Front End
 There are a set of T4 files that will generate TypeScript or JavaScript front ends from the domain that will communicate with gateway (see Gateway For The Front End below).  They mirror the structure of calling it in C# natively to make it very easy.\
 You will need:
 - Bus.ts [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/TypeScript/Bus.ts]
@@ -140,7 +141,7 @@ You will need:
 
 The JavaScript versions are here: [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/JavaScript].  The T4 file should find the needed domain files run with a Host Enviroment like Visual Studio.  Otherwise you make need to edit it to point to the root of the domain project to scan.  BusConfig.ts can be edited to connect through the gateway or specify service connections directly.  If connecting to the services directly use Bus.SetHeader(name, value) from Bus.ts for adding authentication to be read by IApiAuthorizer.
 
-# Gateway For The Front End
+## Gateway For The Front End
 If you are using the prefered TcpInternal setup then clients outside the internal network need a gateway to access the backend such as those using TypeScript and JavaScript.  In an ASPNET front end project add the gateway to the Startup.cs referencing the Zerra.Web assembly. Make sure it comes after the authentication. Claims are transparently passed to the services.
 ```csharp
 public void Configure(IApplicationBuilder app)
@@ -155,7 +156,7 @@ public void Configure(IApplicationBuilder app)
 }
 ```
 
-# Network Setup
+## Network Setup
 Create a cqrssettings.config file.
 - MessageHost: the address of the event streaming service if used.
 - RelayUrl: if the special relay/load balancer is used.
@@ -217,7 +218,7 @@ static void Main(string[] args)
     Bus.WaitUntilExit();
 }
 ```
-## Code-Only
+### Code-Only
 You can also link up the networking without using the config file.\
 Server Setup:
 ```csharp
