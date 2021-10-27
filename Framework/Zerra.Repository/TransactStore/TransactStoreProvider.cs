@@ -12,7 +12,7 @@ using Zerra.Repository.Reflection;
 namespace Zerra.Repository
 {
     public class TransactStoreProvider<TContext, TModel> : BaseDataProvider<TModel>
-        where TContext : DataContext
+        where TContext : DataContext<ITransactStoreEngine>
         where TModel : class, new()
     {
         private const int deleteBatchSize = 250;
@@ -23,7 +23,7 @@ namespace Zerra.Repository
         public TransactStoreProvider()
         {
             var context = Instantiator.GetSingleInstance<TContext>();
-            this.Engine = context.InitializeEngine<ITransactStoreEngine>();
+            this.Engine = context.InitializeEngine();
         }
 
         protected override sealed ICollection<TModel> QueryMany(Query<TModel> query)

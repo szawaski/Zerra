@@ -40,11 +40,12 @@ namespace Zerra.Repository.EventStore
                     if (engineCache == null)
                     {
                         var aggregateType = GetAggregateType();
-                        var typeIAggregateEventStoreEngineProvider = typeof(IEventStoreEngineProvider<>);
-                        var providerType = TypeAnalyzer.GetGenericType(typeIAggregateEventStoreEngineProvider, aggregateType);
-                        var implementationType = Discovery.GetImplementationType(providerType);
-                        var provider = (DataContext)Instantiator.CreateInstance(implementationType);
-                        engineCache = provider.InitializeEngine<IEventStoreEngine>();
+                        var iEventStoreContextProviderType = typeof(IEventStoreContextProvider<>);
+                        var iEventStoreContextProviderGenericType = TypeAnalyzer.GetGenericType(iEventStoreContextProviderType, aggregateType);
+                        var providerType = Discovery.GetImplementationType(iEventStoreContextProviderGenericType);
+                        var provider = (IEventStoreContextProvider)Instantiator.CreateInstance(providerType);
+                        var context = provider.GetContext();
+                        engineCache = context.InitializeEngine();
                     }
                 }
             }

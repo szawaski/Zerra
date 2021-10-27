@@ -7,14 +7,14 @@ using Zerra.Reflection;
 
 namespace Zerra.Repository.EventStore
 {
-    public abstract class BaseEventStoreEngineProvider<TContext, TModel> : IBaseProvider, IEventStoreEngineProvider<TModel>
-        where TContext : DataContext
+    public abstract class BaseEventStoreContextProvider<TContext, TModel> : IBaseProvider, IEventStoreContextProvider<TModel>
+        where TContext : DataContext<IEventStoreEngine>
         where TModel : AggregateRoot
     {
-        public IEventStoreEngine GetEngine()
+        public DataContext<IEventStoreEngine> GetContext()
         {
             var context = Instantiator.CreateInstance<TContext>();
-            return context.InitializeEngine<IEventStoreEngine>();
+            return context;
         }
     }
 }

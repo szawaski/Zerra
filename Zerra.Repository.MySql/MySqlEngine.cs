@@ -1102,7 +1102,7 @@ namespace Zerra.Repository.MySql
 
         private void AssureDatabase(string databaseName)
         {
-            var sql = $"SHOW DATABASES WHERE `Database`= '{databaseName.ToLower()}'";
+            var sql = $"SHOW DATABASES WHERE `Database`= '{databaseName}'";
 
             var builder = new MySqlConnectionStringBuilder(connectionString);
             builder.Database = "sys";
@@ -1142,7 +1142,7 @@ namespace Zerra.Repository.MySql
             if (nonIdentityColumns.Length + identityColumns.Length == 0)
                 return; //Cannot create table with no columns
 
-            var sql = $"SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE' AND TABLE_NAME='{model.DataSourceEntityName.ToLower()}'";
+            var sql = $"SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE' AND TABLE_NAME='{model.DataSourceEntityName}'";
             var exists = ExecuteSqlScalar<long>(sql) > 0;
             if (exists)
                 return;
@@ -1198,10 +1198,10 @@ namespace Zerra.Repository.MySql
 
             foreach (var column in columns)
             {
-                var sqlColumn = sqlColumns.FirstOrDefault(x => x.Table == model.DataSourceEntityName.ToLower() && x.Column == column.PropertySourceName.ToLower());
+                var sqlColumn = sqlColumns.FirstOrDefault(x => x.Table == model.DataSourceEntityName.ToLower() && x.Column == column.PropertySourceName);
                 if (sqlColumn == null)
                 {
-                    sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ADD ").Append(column.Name).Append(" ");
+                    sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName).Append(" ADD ").Append(column.Name).Append(" ");
                     WriteSqlTypeFromModel(sb, column);
                     sb.Append("\r\n");
                     sqlStatements++;
@@ -1219,13 +1219,13 @@ namespace Zerra.Repository.MySql
                         {
                             foreach (var sqlConstraint in theseSqlConstraints)
                             {
-                                sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append("\r\n");
+                                sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name).Append("\r\n");
                                 sb.Append("\r\n");
                                 sqlStatements++;
                             }
                         }
 
-                        sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.Name.ToLower()).Append(" ");
+                        sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName).Append(" ALTER COLUMN ").Append(column.Name).Append(" ");
                         WriteSqlTypeFromModel(sb, column);
                         sb.Append("\r\n");
                         sqlStatements++;
@@ -1236,7 +1236,7 @@ namespace Zerra.Repository.MySql
             //columns not in model
             foreach (var sqlColumn in sqlColumns.Where(x => x.Table == model.DataSourceEntityName.ToLower()))
             {
-                var column = columns.FirstOrDefault(x => x.PropertySourceName.ToLower() == sqlColumn.Column);
+                var column = columns.FirstOrDefault(x => x.PropertySourceName == sqlColumn.Column);
                 if (column == null)
                 {
                     var theseSqlConstraints = sqlConstraints.Where(x => (x.PK_Table == sqlColumn.Table && x.PK_Column == sqlColumn.Column) || (x.FK_Table == sqlColumn.Table && x.FK_Column == sqlColumn.Column)).ToArray();
@@ -1313,7 +1313,7 @@ namespace Zerra.Repository.MySql
                         constraintNameDictionary.Add(baseConstraintName, 0);
                         constraintName = baseConstraintName;
                     }
-                    sb.Append("ALTER TABLE ").Append(fkTable.ToLower()).Append(" WITH CHECK ADD CONSTRAINT [").Append(constraintName).Append("] FOREIGN KEY ([").Append(fkColumn).Append("]) REFERENCES [").Append(pkTable).Append("]([").Append(pkColumn).Append("])\r\n");
+                    sb.Append("ALTER TABLE ").Append(fkTable).Append(" WITH CHECK ADD CONSTRAINT [").Append(constraintName).Append("] FOREIGN KEY ([").Append(fkColumn).Append("]) REFERENCES [").Append(pkTable).Append("]([").Append(pkColumn).Append("])\r\n");
                     sb.Append("\r\n");
                     sqlStatements++;
                 }
@@ -1328,7 +1328,7 @@ namespace Zerra.Repository.MySql
             //{
             //    if (!usedSqlConstraints.Contains(sqlConstraint))
             //    {
-            //        sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append("\r\n");
+            //        sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name).Append("\r\n");
             //        sb.Append("\r\n");
             //        sqlStatements++;
             //    }

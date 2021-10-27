@@ -9,21 +9,15 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
-    public abstract class DataContext
+    public abstract class DataContext<T> where T : class, IDataStoreEngine
     {
         private static bool isValid = false;
         private static bool validated = false;
         private static readonly object validatedLock = new object();
 
-        public bool TryGetEngine<T>(out T engine) where T : class, IDataStoreEngine
+        public bool TryGetEngine(out T engine)
         {
             var dataStoreEngine = GetEngine();
-
-            if (!(dataStoreEngine is T casted))
-            {
-                engine = null;
-                return false;
-            }
 
             lock (validatedLock)
             {
@@ -40,22 +34,19 @@ namespace Zerra.Repository
                 }
             }
 
-            engine = casted;
+            engine = dataStoreEngine;
             return true;
         }
 
         private static bool initialized = false;
         private static readonly object initializedLock = new object();
-        public T InitializeEngine<T>() where T : class, IDataStoreEngine
+        public T InitializeEngine(bool reinitialize = false)
         {
             var engine = GetEngine();
 
-            if (!(engine is T casted))
-                throw new Exception($"{this.GetType().Name} does not produce {typeof(T)}");
-
             lock (validatedLock)
             {
-                if (!validated)
+                if (!validated || reinitialize)
                 {
                     validated = true;
                     isValid = engine.ValidateDataSource();
@@ -66,7 +57,7 @@ namespace Zerra.Repository
 
             lock (initializedLock)
             {
-                if (!initialized)
+                if (!initialized || reinitialize)
                 {
                     initialized = true;
                     if (!DisableBuildStoreFromModels)
@@ -78,28 +69,10 @@ namespace Zerra.Repository
                 }
             }
 
-            return casted;
+            return engine;
         }
 
-        private static IDataStoreEngine engineCache = null;
-        private static readonly object engineCacheLock = new object();
-        private IDataStoreEngine GetEngine()
-        {
-            if (engineCache == null)
-            {
-                lock (engineCacheLock)
-                {
-                    if (engineCache == null)
-                    {
-                        engineCache = GetDataStoreEngine();
-                    }
-                }
-            }
-            return engineCache;
-        }
-
-        protected abstract IDataStoreEngine GetDataStoreEngine();
-
-        protected abstract bool DisableBuildStoreFromModels { get; }
+        protected abstract T GetEngine();
+        protected virtual bool DisableBuildStoreFromModels => false;
     }
 }

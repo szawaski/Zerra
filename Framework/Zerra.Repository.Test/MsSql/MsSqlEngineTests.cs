@@ -11,6 +11,20 @@ namespace Zerra.Repository.Test
     [TestClass]
     public class MsSqlEngineTests
     {
+        private int ExecuteSql(string sql)
+        {
+            var context = new MsSqlTestSqlDataContext();
+            using (var connection = new SqlConnection(context.ConnectionString))
+            {
+                connection.Open();
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = sql;
+                    return command.ExecuteNonQuery();
+                }
+            }
+        }
+
         private void DropDatabase()
         {
             var context = new MsSqlTestSqlDataContext();
@@ -29,35 +43,23 @@ namespace Zerra.Repository.Test
             }
         }
 
-        public void BuildStoreFromModels()
+        [TestMethod]
+        public void TestSequence()
         {
             DropDatabase();
+
             var context = new MsSqlTestSqlDataContext();
-            _ = context.InitializeEngine<ITransactStoreEngine>();
-        }
-
-        [TestMethod]
-        public void Crud()
-        {
-            BuildStoreFromModels();
-
             var provider = new MsSqlTestTypesCustomerSqlProvider();
+            TestModelMethods.TestSequence(context, provider);
 
-            var modelOrigin = TestModels.GetTestTypesModel();
-            modelOrigin.KeyA = Guid.NewGuid();
-            provider.Persist(new Create<TestTypesModel>(modelOrigin));
+            const string changeColumn = "ALTER TABLE [TestTypes] ALTER COLUMN [Int32Thing] bigint NULL";
+            const string addColumn = "ALTER TABLE [TestTypes] ADD [DummyToMakeNullable] int NOT NULL";
+            const string dropColumn = "ALTER TABLE [TestTypes] DROP COLUMN [ByteThing]";
+            ExecuteSql(changeColumn);
+            ExecuteSql(addColumn);
+            ExecuteSql(dropColumn);
 
-            var model2 = (TestTypesModel)provider.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == modelOrigin.KeyA));
-            TestModels.AssertAreEqual(modelOrigin, model2);
-
-            TestModels.UpdateModel(modelOrigin);
-            provider.Persist(new Update<TestTypesModel>(modelOrigin));
-            model2 = (TestTypesModel)provider.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == modelOrigin.KeyA));
-            TestModels.AssertAreEqual(modelOrigin, model2);
-
-            provider.Persist(new Delete<TestTypesModel>(modelOrigin));
-            model2 = (TestTypesModel)provider.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == modelOrigin.KeyA));
-            Assert.IsNull(model2);
+            _ = context.InitializeEngine(true);
         }
     }
 }

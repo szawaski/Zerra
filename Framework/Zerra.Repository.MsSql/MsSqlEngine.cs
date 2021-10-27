@@ -1177,7 +1177,6 @@ namespace Zerra.Repository.MsSql
                             foreach (var sqlConstraint in theseSqlConstraints)
                             {
                                 sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append("]\r\n");
-                                sb.Append("\r\n");
                                 sqlStatements++;
                             }
                         }
@@ -1213,8 +1212,8 @@ namespace Zerra.Repository.MsSql
                             throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} {nameof(MsSqlEngine)} needs to make {sqlColumn} nullable but cannot automatically change column with a Primary Key or Identity");
 
                         sb.Append("ALTER TABLE [").Append(model.DataSourceEntityName).Append("] ALTER COLUMN [").Append(sqlColumn.Column).Append("] ");
-                        WriteSqlTypeFromColumnAsNullable(sb, sqlColumn);
-                        sb.Append("\r\n");
+                        WriteSqlTypeFromColumn(sb, sqlColumn);
+                        sb.Append(" NULL\r\n");
                         sqlStatements++;
                     }
                 }
@@ -1459,7 +1458,7 @@ namespace Zerra.Repository.MsSql
             }
         }
 
-        private static void WriteSqlTypeFromColumnAsNullable(StringBuilder sb, SqlColumnType sqlColumn)
+        private static void WriteSqlTypeFromColumn(StringBuilder sb, SqlColumnType sqlColumn)
         {
             switch (sqlColumn.DataType)
             {
@@ -1505,8 +1504,6 @@ namespace Zerra.Repository.MsSql
                 default:
                     throw new NotImplementedException($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} {nameof(MsSqlEngine)} type {sqlColumn.DataType} not implemented.");
             }
-
-            sb.Append(" NULL");
         }
 
         private static bool ModelMatchesSqlType(ModelPropertyDetail property, SqlColumnType sqlColumn)

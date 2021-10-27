@@ -7,72 +7,29 @@ using System;
 
 namespace Zerra.Repository.Test
 {
-    [DataSourceEntity("TestTypes")]
-    public class TestTypesModel
+    public static class TestModelMethods
     {
-        [Identity]
-        public Guid KeyA { get; set; }
-        [Identity(true)]
-        public int KeyB { get; set; }
+        public static void TestSequence<T>(T context, TransactStoreProvider<T, TestTypesModel> provider) where T : DataContext<ITransactStoreEngine>
+        {
+            _ = context.InitializeEngine(true);
 
-        public byte ByteThing { get; set; }
-        public short Int16Thing { get; set; }
-        public int Int32Thing { get; set; }
-        public long Int64Thing { get; set; }
-        public float SingleThing { get; set; }
-        public double DoubleThing { get; set; }
-        public decimal DecimalThing { get; set; }
-        public char CharThing { get; set; }
-        [DataSourceType(true, 6)]
-        public DateTime DateTimeThing { get; set; }
-        [DataSourceType(true, 6)]
-        public DateTimeOffset DateTimeOffsetThing { get; set; }
-        [DataSourceType(true, 6)]
-        public TimeSpan TimeSpanThing { get; set; }
-        public Guid GuidThing { get; set; }
+            var modelOrigin = TestModelMethods.GetTestTypesModel();
+            modelOrigin.KeyA = Guid.NewGuid();
+            provider.Persist(new Create<TestTypesModel>(modelOrigin));
 
-        public byte? ByteNullableThing { get; set; }
-        public short? Int16NullableThing { get; set; }
-        public int? Int32NullableThing { get; set; }
-        public long? Int64NullableThing { get; set; }
-        public float? SingleNullableThing { get; set; }
-        public double? DoubleNullableThing { get; set; }
-        public decimal? DecimalNullableThing { get; set; }
-        public char? CharNullableThing { get; set; }
-        [DataSourceType(false, 6)]
-        public DateTime? DateTimeNullableThing { get; set; }
-        [DataSourceType(false, 6)]
-        public DateTimeOffset? DateTimeOffsetNullableThing { get; set; }
-        [DataSourceType(false, 6)]
-        public TimeSpan? TimeSpanNullableThing { get; set; }
-        public Guid? GuidNullableThing { get; set; }
+            var model2 = (TestTypesModel)provider.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == modelOrigin.KeyA));
+            AssertAreEqual(modelOrigin, model2);
 
-        public byte? ByteNullableThingNull { get; set; }
-        public short? Int16NullableThingNull { get; set; }
-        public int? Int32NullableThingNull { get; set; }
-        public long? Int64NullableThingNull { get; set; }
-        public float? SingleNullableThingNull { get; set; }
-        public double? DoubleNullableThingNull { get; set; }
-        public decimal? DecimalNullableThingNull { get; set; }
-        public char? CharNullableThingNull { get; set; }
-        [DataSourceType(false, 6)]
-        public DateTime? DateTimeNullableThingNull { get; set; }
-        [DataSourceType(false, 6)]
-        public DateTimeOffset? DateTimeOffsetNullableThingNull { get; set; }
-        [DataSourceType(false, 6)]
-        public TimeSpan? TimeSpanNullableThingNull { get; set; }
-        public Guid? GuidNullableThingNull { get; set; }
+            UpdateModel(modelOrigin);
+            provider.Persist(new Update<TestTypesModel>(modelOrigin));
+            model2 = (TestTypesModel)provider.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == modelOrigin.KeyA));
+            AssertAreEqual(modelOrigin, model2);
 
-        public string StringThing { get; set; }
-        public string StringThingNull { get; set; }
+            provider.Persist(new Delete<TestTypesModel>(modelOrigin));
+            model2 = (TestTypesModel)provider.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == modelOrigin.KeyA));
+            Assert.IsNull(model2);
+        }
 
-        public byte[] BytesThing { get; set; }
-        [DataSourceType(false)]
-        public byte[] BytesThingNull { get; set; }
-    }
-
-    public static class TestModels
-    {
         public static TestTypesModel GetTestTypesModel()
         {
             var model = new TestTypesModel()

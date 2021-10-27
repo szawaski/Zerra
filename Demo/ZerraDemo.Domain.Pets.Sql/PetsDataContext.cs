@@ -3,11 +3,11 @@ using Zerra.Repository;
 
 namespace ZerraDemo.Domain.Pets.Sql
 {
-    public class PetsDataContext : DataContextSelector
+    public class PetsDataContext : DataContextSelector<ITransactStoreEngine>
     {
-        protected override ICollection<DataContext> GetDataContexts()
+        protected override ICollection<DataContext<ITransactStoreEngine>> GetDataContexts()
         {
-            return new DataContext[]
+            return new DataContext<ITransactStoreEngine>[]
             {
                 new PetsMsSqlDataContext(),
                 new PetsPostgreSqlDataContext(),

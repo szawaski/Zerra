@@ -12,7 +12,7 @@ using Zerra.Repository.Reflection;
 namespace Zerra.Repository.EventStore
 {
     public class EventStoreProvider<TContext, TModel> : BaseDataProvider<TModel>
-        where TContext : DataContext
+        where TContext : DataContext<IEventStoreEngine>
         where TModel : class, new()
     {
         protected virtual ulong SaveStateEvery { get { return 100; } }
@@ -22,7 +22,7 @@ namespace Zerra.Repository.EventStore
         public EventStoreProvider()
         {
             var context = Instantiator.GetSingleInstance<TContext>();
-            this.Engine = context.InitializeEngine<IEventStoreEngine>();
+            this.Engine = context.InitializeEngine();
         }
 
         protected override sealed ICollection<TModel> QueryMany(Query<TModel> query)
