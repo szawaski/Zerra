@@ -11,7 +11,9 @@ namespace Zerra.Repository.Test
     public class TestTypesModel
     {
         [Identity]
-        public Guid Key { get; set; }
+        public Guid KeyA { get; set; }
+        [Identity(true)]
+        public int KeyB { get; set; }
 
         public byte ByteThing { get; set; }
         public short Int16Thing { get; set; }

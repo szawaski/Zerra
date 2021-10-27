@@ -44,19 +44,19 @@ namespace Zerra.Repository.Test
             var provider = new MySqlTestTypesCustomerSqlProvider();
 
             var modelOrigin = TestModels.GetTestTypesModel();
-            modelOrigin.Key = Guid.NewGuid();
+            modelOrigin.KeyA = Guid.NewGuid();
             provider.Persist(new Create<TestTypesModel>(modelOrigin));
 
-            var model2 = (TestTypesModel)provider.Query(new QuerySingle<TestTypesModel>(x => x.Key == modelOrigin.Key));
+            var model2 = (TestTypesModel)provider.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == modelOrigin.KeyA));
             TestModels.AssertAreEqual(modelOrigin, model2);
 
             TestModels.UpdateModel(modelOrigin);
             provider.Persist(new Update<TestTypesModel>(modelOrigin));
-            model2 = (TestTypesModel)provider.Query(new QuerySingle<TestTypesModel>(x => x.Key == modelOrigin.Key));
+            model2 = (TestTypesModel)provider.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == modelOrigin.KeyA));
             TestModels.AssertAreEqual(modelOrigin, model2);
 
             provider.Persist(new Delete<TestTypesModel>(modelOrigin));
-            model2 = (TestTypesModel)provider.Query(new QuerySingle<TestTypesModel>(x => x.Key == modelOrigin.Key));
+            model2 = (TestTypesModel)provider.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == modelOrigin.KeyA));
             Assert.IsNull(model2);
         }
     }
