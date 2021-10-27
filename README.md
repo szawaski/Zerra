@@ -163,9 +163,9 @@ Create a cqrssettings.config file.
 - RelayKey: if the special relay/load balancer is used.
 - Services:  Each application needs a service entry.
   - Name: The assembly name of the application.
-  - ExternalUrl: Where the service will be found by external services. This is also the default host address if none is provided by startup ASPNET startup commands. 
+  - ExternalUrl: Where the service will be found by external services. This is also the default host address if none is provided by environmental variables (ASPNET compatible). 
   - EncryptionKey: If supplied will encrypt the network traffic. It uses AES with a randomizer so the data will never look the same for the same encrypted bytes.
-  - Types: List the interface types that each service implements.  
+  - Types: List the interface types for commands and queries that each service implements.
   - InstantiateTypes: If there are any other startup needs it will instantiate any classes listed.
 ```json
 {
@@ -197,22 +197,38 @@ static void Main(string[] args)
    
     var serviceSettings = Zerra.CQRS.Settings.CQRSSettings.Get();
 
+    var serviceCreatorInternal = new TcpInternalServiceCreator();
+
+
+    //Enable one of the following service options
+    //----------------------------------------------------------
+
     //Option1A: Enable this for Tcp for backend only services
-    var serviceCreator = new TcpInternalServiceCreator();
+    var serviceCreator = serviceCreatorInternal;
 
     //Option1B: Enable this for Http which can be access directly from a front end
     //var authorizor = new DemoCookieApiAuthorizer();
     //var serviceCreator = new TcpApiServiceCreator(authorizor, null);
-    
-    //Option1C: Enable this using RabbitMQ for event streaming commands/events
-    //var serviceCreator = new RabbitServiceCreator(serviceSettings.MessageHost);
 
-    //Option2A: Enable this for direct service communication, no relay/loadbalancer
+    //Option1C: Enable this using RabbitMQ for event streaming commands/events
+    //var serviceCreator = new RabbitServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal);
+
+    //Option1D: Enable this using Kafka for event streaming commands/events
+    //var serviceCreator = new KafkaServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal);
+
+
+
+    //Enable one of the following routing options
+    //----------------------------------------------------------
+
+    //Option2A: Enable this for direct service communication, no custom relay/loadbalancer (can still use container balancers)
     Bus.StartServices(settingsName, serviceSettings, serviceCreator, null);
 
     //Option2B: Enable this to use the relay/loadbalancer
     //var relayRegister = new RelayRegister(serviceSettings.RelayUrl, serviceSettings.RelayKey);
     //Bus.StartServices(settingsName, serviceSettings, serviceCreator, relayRegister);
+    
+   
    
     //If no other serivce holds the application open such as ASPNET then used this to wait termination
     Bus.WaitUntilExit();
