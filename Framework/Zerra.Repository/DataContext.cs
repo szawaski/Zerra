@@ -13,7 +13,7 @@ namespace Zerra.Repository
     {
         public bool TryGetEngine<T>(out T engine) where T : class, IDataStoreEngine
         {
-            var dataStoreEngine = GetDataStoreEngine();
+            var dataStoreEngine = GetEngine();
 
             if (!(dataStoreEngine is T casted))
             {
@@ -31,9 +31,11 @@ namespace Zerra.Repository
             return true;
         }
 
+        private static bool initialized = false;
+        private static readonly object initializedLock = new object();
         public T InitializeEngine<T>() where T : class, IDataStoreEngine
         {
-            var engine = GetDataStoreEngine();
+            var engine = GetEngine();
 
             if (!(engine is T casted))
                 throw new Exception($"{this.GetType().Name} does not produce {typeof(T)}");
@@ -41,14 +43,38 @@ namespace Zerra.Repository
             if (!engine.ValidateDataSource())
                 throw new Exception($"{this.GetType().Name} failed to validate data source");
 
-            if (!DisableBuildStoreFromModels)
+            lock (initializedLock)
             {
-                var modelTypes = Discovery.GetTypesFromAttribute(typeof(DataSourceEntityAttribute));
-                var modelDetails = modelTypes.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
-                engine.BuildStoreFromModels(modelDetails);
+                if (!initialized)
+                {
+                    initialized = true;
+                    if (!DisableBuildStoreFromModels)
+                    {
+                        var modelTypes = Discovery.GetTypesFromAttribute(typeof(DataSourceEntityAttribute));
+                        var modelDetails = modelTypes.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
+                        engine.BuildStoreFromModels(modelDetails);
+                    }
+                }
             }
 
             return casted;
+        }
+
+        private static IDataStoreEngine engineCache = null;
+        private static readonly object engineCacheLock = new object();
+        private IDataStoreEngine GetEngine()
+        {
+            if (engineCache == null)
+            {
+                lock (engineCacheLock)
+                {
+                    if (engineCache == null)
+                    {
+                        engineCache = GetDataStoreEngine();
+                    }
+                }
+            }
+            return engineCache;
         }
 
         protected abstract IDataStoreEngine GetDataStoreEngine();

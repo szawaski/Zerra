@@ -56,7 +56,7 @@ namespace Zerra.CQRS.Settings
                 var url = Config.GetSetting(service.Name);
                 if (!String.IsNullOrWhiteSpace(url))
                     service.ExternalUrl = url;
-                _ = Log.InfoAsync($"Set {service.Name} at {url}");
+                _ = Log.InfoAsync($"Set {service.Name} at {service.ExternalUrl}");
             }
 
             return settings;
