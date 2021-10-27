@@ -1,8 +1,8 @@
-﻿using Zerra.Repository.Sql;
+﻿using Zerra.Repository;
 
 namespace ZerraDemo.Domain.Pets.Sql
 {
-    public class PetsBaseProvider<TModel> : SqlProvider<PetsDataContext, TModel> where TModel : class, new()
+    public class PetsBaseProvider<TModel> : TransactStoreProvider<PetsDataContext, TModel> where TModel : class, new()
     {
     }
 }

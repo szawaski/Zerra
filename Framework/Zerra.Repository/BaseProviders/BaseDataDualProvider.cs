@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Zerra.Providers;
 using Zerra.Reflection;
 
-namespace Zerra.Repository.EventStore
+namespace Zerra.Repository
 {
     public abstract class BaseDataDualProvider<TThisProviderInterface, TNextProviderInterface, TModel> : BaseLayerProvider<TNextProviderInterface>, IDualBaseProvider, IDataProvider<TModel>
         where TThisProviderInterface : IDataProvider<TModel>

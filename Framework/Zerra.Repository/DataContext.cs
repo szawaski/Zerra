@@ -41,11 +41,11 @@ namespace Zerra.Repository
             if (!engine.DetectIsDataSource())
                 throw new Exception($"{this.GetType().Name} failed to connect");
 
-            if (!DisableAssureDataStore)
+            if (!DisableBuildStoreFromModels)
             {
                 var modelTypes = Discovery.GetTypesFromAttribute(typeof(DataSourceEntityAttribute));
                 var modelDetails = modelTypes.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
-                engine.AssureDataStore(modelDetails);
+                engine.BuildStoreFromModels(modelDetails);
             }
 
             return casted;
@@ -53,6 +53,6 @@ namespace Zerra.Repository
 
         protected abstract IDataStoreEngine GetDataStoreEngine();
 
-        protected abstract bool DisableAssureDataStore { get; }
+        protected abstract bool DisableBuildStoreFromModels { get; }
     }
 }

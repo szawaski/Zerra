@@ -4,15 +4,15 @@
 
 using Zerra.Repository.MsSql;
 
-namespace Zerra.Repository.Sql.Test
+namespace Zerra.Repository.Test
 {
     public class MsSqlTestSqlDataContext : MsSqlDataContext
     {
-        protected override bool DisableAssureDataStore => false;
+        protected override bool DisableBuildStoreFromModels => false;
         public override string ConnectionString => "data source=.;initial catalog=ZerraSqlTest;integrated security=True;MultipleActiveResultSets=True;";
     }
 
-    public abstract partial class MsSqlBaseSqlProvider<TModel> : SqlProvider<MsSqlTestSqlDataContext, TModel> where TModel : class, new()
+    public abstract partial class MsSqlBaseSqlProvider<TModel> : TransactStoreProvider<MsSqlTestSqlDataContext, TModel> where TModel : class, new()
     {
         protected override bool DisableQueryLinking => true;
         protected override bool DisableEventLinking => true;

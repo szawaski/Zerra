@@ -9,7 +9,7 @@ namespace Zerra.Repository
 {
     public abstract class DataContextSelector : DataContext
     {
-        protected override sealed bool DisableAssureDataStore => true;
+        protected override sealed bool DisableBuildStoreFromModels => true;
         protected override IDataStoreEngine GetDataStoreEngine()
         {
             var contexts = GetDataContexts();

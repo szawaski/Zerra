@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Data.SqlClient;
 
-namespace Zerra.Repository.Sql.Test
+namespace Zerra.Repository.Test
 {
     [TestClass]
     public class MsSqlEngineTests
@@ -33,7 +33,7 @@ namespace Zerra.Repository.Sql.Test
         {
             DropDatabase();
             var context = new MsSqlTestSqlDataContext();
-            _ = context.InitializeEngine<ISqlEngine>();
+            _ = context.InitializeEngine<ITransactStoreEngine>();
         }
 
         [TestMethod]

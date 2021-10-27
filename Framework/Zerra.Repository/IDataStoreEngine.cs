@@ -10,6 +10,6 @@ namespace Zerra.Repository
     public interface IDataStoreEngine
     {
         bool DetectIsDataSource();
-        void AssureDataStore(ICollection<ModelDetail> modelDetail);
+        void BuildStoreFromModels(ICollection<ModelDetail> modelDetail);
     }
 }

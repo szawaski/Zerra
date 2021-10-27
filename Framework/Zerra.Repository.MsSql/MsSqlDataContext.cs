@@ -4,15 +4,14 @@
 
 using System.Data.SqlClient;
 using Zerra.Logging;
-using Zerra.Repository.Sql;
 
 namespace Zerra.Repository.MsSql
 {
-    public abstract class MsSqlDataContext : DataContext<ISqlEngine>
+    public abstract class MsSqlDataContext : DataContext<ITransactStoreEngine>
     {
         public abstract string ConnectionString { get; }
 
-        protected override sealed ISqlEngine GetEngine()
+        protected override sealed ITransactStoreEngine GetEngine()
         {
             try
             {

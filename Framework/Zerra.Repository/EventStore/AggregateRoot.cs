@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Zerra.Collections;
 using Zerra.CQRS;
 using Zerra.Reflection;
-using Zerra.Repository.EventStore;
 
 namespace Zerra.Repository.EventStore
 {

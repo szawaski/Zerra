@@ -34,7 +34,7 @@ namespace Zerra.DevTest
 
     public class TestEventStoreDataContext : EventStoreDBDataContext
     {
-        protected override bool DisableAssureDataStore => false;
+        protected override bool DisableBuildStoreFromModels => false;
         public override string ConnectionString => connectionString;
         public override bool Insecure => true;
         private readonly string connectionString;

@@ -4,7 +4,6 @@
 
 using System;
 using Zerra.Repository;
-using Zerra.Repository.Sql;
 using Zerra.Repository.MsSql;
 
 namespace Zerra.DevTest
@@ -37,11 +36,11 @@ namespace Zerra.DevTest
 
     public class TestSqlDataContext : MsSqlDataContext
     {
-        protected override bool DisableAssureDataStore => false;
+        protected override bool DisableBuildStoreFromModels => false;
         public override string ConnectionString => "data source=.;initial catalog=Test;integrated security=True;MultipleActiveResultSets=True;";
     }
 
-    public abstract partial class BaseTestSqlProvider<TModel> : SqlProvider<TestSqlDataContext, TModel> where TModel : class, new()
+    public abstract partial class BaseTestSqlProvider<TModel> : TransactStoreProvider<TestSqlDataContext, TModel> where TModel : class, new()
     {
         protected override bool DisableQueryLinking => true;
         protected override bool DisableEventLinking => true;

@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Npgsql;
 using System;
 
-namespace Zerra.Repository.Sql.Test
+namespace Zerra.Repository.Test
 {
     [TestClass]
     public class PostgreSqlEngineTests
@@ -33,7 +33,7 @@ namespace Zerra.Repository.Sql.Test
         {
             DropDatabase();
             var context = new PostgreSqlTestSqlDataContext();
-            _ = context.InitializeEngine<ISqlEngine>();
+            _ = context.InitializeEngine<ITransactStoreEngine>();
         }
 
         [TestMethod]

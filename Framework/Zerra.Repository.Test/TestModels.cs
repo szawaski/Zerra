@@ -5,7 +5,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 
-namespace Zerra.Repository.Sql.Test
+namespace Zerra.Repository.Test
 {
     [DataSourceEntity("TestTypes")]
     public class TestTypesModel

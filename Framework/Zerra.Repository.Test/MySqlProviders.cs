@@ -4,15 +4,15 @@
 
 using Zerra.Repository.MySql;
 
-namespace Zerra.Repository.Sql.Test
+namespace Zerra.Repository.Test
 {
     public class MySqlTestSqlDataContext : MySqlDataContext
     {
-        protected override bool DisableAssureDataStore => false;
+        protected override bool DisableBuildStoreFromModels => false;
         public override string ConnectionString => "Server=localhost;Port=3306;Uid=root;Pwd=password123;Database=ZerraSqlTest";
     }
 
-    public abstract partial class MySqlBaseSqlProvider<TModel> : SqlProvider<MySqlTestSqlDataContext, TModel> where TModel : class, new()
+    public abstract partial class MySqlBaseSqlProvider<TModel> : TransactStoreProvider<MySqlTestSqlDataContext, TModel> where TModel : class, new()
     {
         protected override bool DisableQueryLinking => true;
         protected override bool DisableEventLinking => true;

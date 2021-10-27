@@ -4,15 +4,14 @@
 
 using MySql.Data.MySqlClient;
 using Zerra.Logging;
-using Zerra.Repository.Sql;
 
 namespace Zerra.Repository.MySql
 {
-    public abstract class MySqlDataContext : DataContext<ISqlEngine>
+    public abstract class MySqlDataContext : DataContext<ITransactStoreEngine>
     {
         public abstract string ConnectionString { get; }
 
-        protected override sealed ISqlEngine GetEngine()
+        protected override sealed ITransactStoreEngine GetEngine()
         {
             try
             {

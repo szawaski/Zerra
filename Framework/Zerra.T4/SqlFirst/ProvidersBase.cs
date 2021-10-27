@@ -2,12 +2,11 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.Repository.Sql;
-using Zerra.Repository.Sql.Engines;
+using Zerra.Repository;
 
 namespace KaKush.Domain.Sql
 {
-    public abstract partial class KaKushSqlBaseProvider<TModel> : SqlProvider<KaKushSqlDatabase, TModel>
+    public abstract partial class KaKushSqlBaseProvider<TModel> : TransactionalProvider<KaKushSqlDatabase, TModel>
         where TModel : class, new()
     {
         protected override bool DisableEventLinking => true;

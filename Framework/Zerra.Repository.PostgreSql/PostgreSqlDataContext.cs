@@ -4,15 +4,14 @@
 
 using Npgsql;
 using Zerra.Logging;
-using Zerra.Repository.Sql;
 
 namespace Zerra.Repository.PostgreSql
 {
-    public abstract class PostgreSqlDataContext : DataContext<ISqlEngine>
+    public abstract class PostgreSqlDataContext : DataContext<ITransactStoreEngine>
     {
         public abstract string ConnectionString { get; }
 
-        protected override sealed ISqlEngine GetEngine()
+        protected override sealed ITransactStoreEngine GetEngine()
         {
             try
             {

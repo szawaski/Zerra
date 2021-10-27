@@ -4,15 +4,15 @@
 
 using Zerra.Repository.PostgreSql;
 
-namespace Zerra.Repository.Sql.Test
+namespace Zerra.Repository.Test
 {
     public class PostgreSqlTestSqlDataContext : PostgreSqlDataContext
     {
-        protected override bool DisableAssureDataStore => false;
+        protected override bool DisableBuildStoreFromModels => false;
         public override string ConnectionString => "User ID=postgres;Password=password123;Host=localhost;Port=5432;Database=zerrasqltest;";
     }
 
-    public abstract partial class PostgreSqlBaseSqlProvider<TModel> : SqlProvider<PostgreSqlTestSqlDataContext, TModel> where TModel : class, new()
+    public abstract partial class PostgreSqlBaseSqlProvider<TModel> : TransactStoreProvider<PostgreSqlTestSqlDataContext, TModel> where TModel : class, new()
     {
         protected override bool DisableQueryLinking => true;
         protected override bool DisableEventLinking => true;
