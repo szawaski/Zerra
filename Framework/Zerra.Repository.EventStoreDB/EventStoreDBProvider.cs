@@ -266,13 +266,13 @@ namespace Zerra.Repository.EventStoreDB
             client.Dispose();
         }
 
-        public bool DetectIsDataSource()
+        public bool ValidateDataSource()
         {
-            var eventData = new EventData(Uuid.NewUuid(), "DetectIsDataSource", Array.Empty<byte>());
+            var eventData = new EventData(Uuid.NewUuid(), "ValidateDataSource", Array.Empty<byte>());
 
             try
             {
-                client.AppendToStreamAsync("DetectIsDataSource", StreamState.Any, new EventData[] { eventData })
+                client.AppendToStreamAsync("ValidateDataSource", StreamState.Any, new EventData[] { eventData })
                     .GetAwaiter().GetResult();
 
                 return true;
@@ -281,7 +281,7 @@ namespace Zerra.Repository.EventStoreDB
             return false;
         }
 
-        public void ValidateDataSource(ICollection<ModelDetail> modelDetail)
+        public void BuildStoreFromModels(ICollection<ModelDetail> modelDetail)
         {
             //nada
         }
