@@ -846,7 +846,7 @@ namespace Zerra.Repository.PostgreSql
                 Type arrayType = typeDetails.InnerTypes[0];
                 if (arrayType == typeof(byte))
                 {
-                    string hex = BitConverter.ToString((byte[])value).Replace("-", "");
+                    var hex = BitConverter.ToString((byte[])value).Replace("-", "\\x");
                     sb.Write("E'\\x");
                     sb.Write(hex);
                     sb.Write('\'');
@@ -986,7 +986,7 @@ namespace Zerra.Repository.PostgreSql
                         }
                         //sb.Append('\'').Append(((DateTime)value).ToString("yyyy-MM-dd HH:mm:ss.fff")).Append('\'');
                         sb.Write('\'');
-                        sb.Write((DateTime)value, DateTimeFormat.MsSql);
+                        sb.Write((DateTime)value, DateTimeFormat.ISO8601);
                         sb.Write('\'');
                         return false;
                     case CoreType.DateTimeOffset:
@@ -1043,7 +1043,7 @@ namespace Zerra.Repository.PostgreSql
                         }
                         //sb.Append('\'').Append(((DateTimeOffset)value).ToString("yyyy-MM-dd HH:mm:ss.fff")).Append('\'');
                         sb.Write('\'');
-                        sb.Write((DateTimeOffset)value, DateTimeFormat.MsSqlOffset);
+                        sb.Write((DateTimeOffset)value, DateTimeFormat.ISO8601);
                         sb.Write('\'');
                         return false;
                     case CoreType.Guid:

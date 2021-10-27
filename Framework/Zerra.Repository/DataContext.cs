@@ -21,7 +21,7 @@ namespace Zerra.Repository
                 return false;
             }
 
-            if (!dataStoreEngine.DetectIsDataSource())
+            if (!dataStoreEngine.ValidateDataSource())
             {
                 engine = null;
                 return false;
@@ -38,8 +38,8 @@ namespace Zerra.Repository
             if (!(engine is T casted))
                 throw new Exception($"{this.GetType().Name} does not produce {typeof(T)}");
 
-            if (!engine.DetectIsDataSource())
-                throw new Exception($"{this.GetType().Name} failed to connect");
+            if (!engine.ValidateDataSource())
+                throw new Exception($"{this.GetType().Name} failed to validate data source");
 
             if (!DisableBuildStoreFromModels)
             {

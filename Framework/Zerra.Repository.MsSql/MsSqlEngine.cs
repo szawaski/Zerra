@@ -1636,7 +1636,7 @@ WHERE
             return sqlConstrains;
         }
 
-        public bool DetectIsDataSource()
+        public bool ValidateDataSource()
         {
             const string sql = "SELECT @@version";
 

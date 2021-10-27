@@ -516,13 +516,13 @@ namespace Zerra.Repository.MySql
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
                         writer.Write('\'');
-                        writer.Write((DateTime)value, DateTimeFormat.MsSql);
+                        writer.Write((DateTime)value, DateTimeFormat.ISO8601);
                         writer.Write('\'');
                         return;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
                         writer.Write('\'');
-                        writer.Write((DateTimeOffset)value, DateTimeFormat.MsSqlOffset);
+                        writer.Write((DateTimeOffset)value, DateTimeFormat.ISO8601);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeSpan:
@@ -1692,7 +1692,7 @@ WHERE
             return sqlConstrains;
         }
 
-        public bool DetectIsDataSource()
+        public bool ValidateDataSource()
         {
             const string sql = "SELECT version()";
 
