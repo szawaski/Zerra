@@ -281,7 +281,7 @@ namespace Zerra.Repository.EventStoreDB
             return false;
         }
 
-        public void BuildStoreFromModels(ICollection<ModelDetail> modelDetail)
+        public void ValidateDataSource(ICollection<ModelDetail> modelDetail)
         {
             //nada
         }
