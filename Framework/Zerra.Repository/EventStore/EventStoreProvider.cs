@@ -315,20 +315,17 @@ namespace Zerra.Repository.EventStore
             var models = new List<TModel>();
             foreach (var id in ids)
             {
-                var items = ReadModels(id, many, query);
+                var streamName = EventStoreCommon.GetStreamName<TModel>(id);
+
+                var (modelState, modelEventNumber) = ReadModelState(id, query.TemporalOrder, query.TemporalDateFrom, query.TemporalNumberFrom);
+
+                var eventDatas = Engine.ReadBackwards(streamName, null, null, modelEventNumber + 1, null, query.TemporalDateTo);
+
+                var items =  LoadModelsFromEventDatas(eventDatas, modelState, many, query);
+
                 models.AddRange(items);
             }
             return models;
-        }
-        private ICollection<TModel> ReadModels(object id, bool many, Query<TModel> query)
-        {
-            var streamName = EventStoreCommon.GetStreamName<TModel>(id);
-
-            var (modelState, modelEventNumber) = ReadModelState(id, query.TemporalOrder, query.TemporalDateFrom, query.TemporalNumberFrom);
-
-            var eventDatas = Engine.ReadBackwards(streamName, null, null, modelEventNumber + 1, null, query.TemporalDateTo);
-
-            return LoadModelsFromEventDatas(eventDatas, modelState, many, query);
         }
         private async Task<ICollection<TModel>> ReadModelsAsync(Query<TModel> query)
         {
@@ -338,20 +335,17 @@ namespace Zerra.Repository.EventStore
             var models = new List<TModel>();
             foreach (var id in ids)
             {
-                var items = await ReadModelsAsync(id, many, query);
+                var streamName = EventStoreCommon.GetStreamName<TModel>(id);
+
+                var (modelState, modelEventNumber) = await ReadModelStateAsync(id, query.TemporalOrder, query.TemporalDateFrom, query.TemporalNumberFrom);
+
+                var eventDatas = await Engine.ReadBackwardsAsync(streamName, null, null, modelEventNumber + 1, null, query.TemporalDateTo);
+
+                var items = LoadModelsFromEventDatas(eventDatas, modelState, many, query);
+
                 models.AddRange(items);
             }
             return models;
-        }
-        private async Task<ICollection<TModel>> ReadModelsAsync(object id, bool many, Query<TModel> query)
-        {
-            var streamName = EventStoreCommon.GetStreamName<TModel>(id);
-
-            var (modelState, modelEventNumber) = await ReadModelStateAsync(id, query.TemporalOrder, query.TemporalDateFrom, query.TemporalNumberFrom);
-
-            var eventDatas = await Engine.ReadBackwardsAsync(streamName, null, null, modelEventNumber + 1, null, query.TemporalDateTo);
-
-            return LoadModelsFromEventDatas(eventDatas, modelState, many, query);
         }
 
         private ICollection<EventModel<TModel>> ReadEventModels(Query<TModel> query)
@@ -374,7 +368,6 @@ namespace Zerra.Repository.EventStore
             }
             return models;
         }
-
         private async Task<ICollection<EventModel<TModel>>> ReadEventModelsAsync(Query<TModel> query)
         {
             var many = query.Operation == QueryOperation.EventMany || query.Operation == QueryOperation.EventCount;

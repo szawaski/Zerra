@@ -12,13 +12,13 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.EventStoreDB
 {
-    public class EventStoreDBProvider : IEventStoreEngine, IDisposable
+    public class EventStoreDBEngine : IEventStoreEngine, IDisposable
     {
         private const int maxPerQuery = 25;
         public static int SaveStateEvery => 100;
 
         private readonly EventStoreClient client;
-        public EventStoreDBProvider(string connectionString, bool insecure)
+        public EventStoreDBEngine(string connectionString, bool insecure)
         {
             var settings = new EventStoreClientSettings
             {
@@ -33,19 +33,19 @@ namespace Zerra.Repository.EventStoreDB
 
         public ulong Append(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data)
         {
-            throw new NotSupportedException($"{nameof(EventStoreDBProvider)} does not support synchronous operations");
+            throw new NotSupportedException($"{nameof(EventStoreDBEngine)} does not support synchronous operations");
         }
         public ulong Terminate(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState)
         {
-            throw new NotSupportedException($"{nameof(EventStoreDBProvider)} does not support synchronous operations");
+            throw new NotSupportedException($"{nameof(EventStoreDBEngine)} does not support synchronous operations");
         }
         public EventStoreEventData[] Read(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate)
         {
-            throw new NotSupportedException($"{nameof(EventStoreDBProvider)} does not support synchronous operations");
+            throw new NotSupportedException($"{nameof(EventStoreDBEngine)} does not support synchronous operations");
         }
         public EventStoreEventData[] ReadBackwards(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate)
         {
-            throw new NotSupportedException($"{nameof(EventStoreDBProvider)} does not support synchronous operations");
+            throw new NotSupportedException($"{nameof(EventStoreDBEngine)} does not support synchronous operations");
         }
 
         public async Task<ulong> AppendAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data)

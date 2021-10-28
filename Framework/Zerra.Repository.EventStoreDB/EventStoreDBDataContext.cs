@@ -15,7 +15,7 @@ namespace Zerra.Repository.EventStoreDB
         protected override sealed IEventStoreEngine GetEngine()
         {
             _ = Log.InfoAsync($"{nameof(EventStoreDBDataContext)} connecting to {ConnectionString}");
-            var engine = new EventStoreDBProvider(ConnectionString, Insecure);
+            var engine = new EventStoreDBEngine(ConnectionString, Insecure);
             return engine;
         }
     }
