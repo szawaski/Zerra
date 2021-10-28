@@ -1005,7 +1005,7 @@ namespace Zerra.Repository.PostgreSql
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int ExecuteSql(string sql)
+        private void ExecuteSql(string sql)
         {
             using (var connection = new NpgsqlConnection(connectionString))
             {
@@ -1013,7 +1013,7 @@ namespace Zerra.Repository.PostgreSql
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = sql;
-                    return command.ExecuteNonQuery();
+                    command.ExecuteNonQuery();
                 }
             }
         }
@@ -1087,15 +1087,16 @@ namespace Zerra.Repository.PostgreSql
                     AssureTable(model);
                 }
 
-                var sqlColumns = GetSqlColumns();
-                var sqlConstraints = GetSqlConstraints();
                 foreach (var model in modelDetails)
                 {
+                    var sqlColumns = GetSqlColumns(model);
+                    var sqlConstraints = GetSqlConstraints(model);
                     AssureColumns(model, sqlColumns, sqlConstraints);
                 }
 
                 foreach (var model in modelDetails)
                 {
+                    var sqlConstraints = GetSqlConstraints(model);
                     AssureConstraints(model, sqlConstraints);
                 }
             }
@@ -1205,7 +1206,6 @@ namespace Zerra.Repository.PostgreSql
         {
             var columns = model.Properties.Where(x => !x.IsDataSourceEntity && x.CoreType.HasValue || x.Type == typeof(byte[])).ToArray();
 
-            var sqlStatements = 0;
             var sb = new StringBuilder();
 
             foreach (var column in columns)
@@ -1217,7 +1217,6 @@ namespace Zerra.Repository.PostgreSql
                     WriteSqlTypeFromModel(sb, column);
                     WriteTypeEndingFromModel(sb, column);
                     sb.Append(";\r\n");
-                    sqlStatements++;
                 }
                 else
                 {
@@ -1233,7 +1232,6 @@ namespace Zerra.Repository.PostgreSql
                             foreach (var sqlConstraint in theseSqlConstraints)
                             {
                                 sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(";\r\n");
-                                sqlStatements++;
                             }
                         }
 
@@ -1255,7 +1253,6 @@ namespace Zerra.Repository.PostgreSql
                             sb.Append(" DROP NOT NULL");
                         }
                         sb.Append(";\r\n");
-                        sqlStatements++;
                     }
                 }
             }
@@ -1273,7 +1270,6 @@ namespace Zerra.Repository.PostgreSql
                         {
                             sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(";\r\n");
                             sb.Append("\r\n");
-                            sqlStatements++;
                         }
                     }
 
@@ -1283,7 +1279,6 @@ namespace Zerra.Repository.PostgreSql
                             throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} {nameof(PostgreSqlEngine)} needs to make {sqlColumn} nullable but cannot automatically change column with a Primary Key or Identity");
 
                         sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(sqlColumn.Column.ToLower()).Append(" DROP NOT NULL;\r\n");
-                        sqlStatements++;
                     }
                 }
             }
@@ -1291,17 +1286,14 @@ namespace Zerra.Repository.PostgreSql
             var sql = sb.ToString();
             if (sql.Length > 0)
             {
-                var results = ExecuteSql(sql);
-                if (results != sqlStatements)
-                    Log.WarnAsync($"DataSource {model.DataSourceEntityName} completed {results} of {sqlStatements} column changes");
+                ExecuteSql(sql);
             }
         }
 
-        private static void AssureConstraints(ModelDetail model, SqlConstraint[] sqlConstraints)
+        private void AssureConstraints(ModelDetail model, SqlConstraint[] sqlConstraints)
         {
             var constraintNameDictionary = sqlConstraints.Select(x => x.FK_Name).ToDictionary(x => x, x => 0);
 
-            var sqlStatements = 0;
             var sb = new StringBuilder();
 
             var fkTable = model.DataSourceEntityName;
@@ -1317,7 +1309,7 @@ namespace Zerra.Repository.PostgreSql
                 var pkTable = relatedModelDetails.DataSourceEntityName;
                 var pkColumn = relatedModelDetails.IdentityProperties[0].Name;
 
-                var sqlConstraint = sqlConstraints.FirstOrDefault(x => x.FK_Table == fkTable && x.FK_Column == fkColumn && x.PK_Table == pkTable && x.PK_Column == pkColumn);
+                var sqlConstraint = sqlConstraints.FirstOrDefault(x => x.FK_Table == fkTable.ToLower() && x.FK_Column == fkColumn.ToLower() && x.PK_Table == pkTable.ToLower() && x.PK_Column == pkColumn.ToLower());
                 if (sqlConstraint == null)
                 {
                     var baseConstraintName = $"FK_{fkTable}_{pkTable}";
@@ -1338,9 +1330,8 @@ namespace Zerra.Repository.PostgreSql
                         constraintNameDictionary.Add(baseConstraintName, 0);
                         constraintName = baseConstraintName;
                     }
-                    sb.Append("ALTER TABLE ").Append(fkTable.ToLower()).Append(" WITH CHECK ADD CONSTRAINT [").Append(constraintName).Append("] FOREIGN KEY ([").Append(fkColumn).Append("]) REFERENCES [").Append(pkTable).Append("]([").Append(pkColumn).Append("])\r\n");
+                    sb.Append("ALTER TABLE ").Append(fkTable.ToLower()).Append(" ADD CONSTRAINT ").Append(constraintName).Append(" FOREIGN KEY (").Append(fkColumn.ToLower()).Append(") REFERENCES ").Append(pkTable.ToLower()).Append("(").Append(pkColumn.ToLower()).Append(")\r\n");
                     sb.Append("\r\n");
-                    sqlStatements++;
                 }
                 else
                 {
@@ -1348,24 +1339,21 @@ namespace Zerra.Repository.PostgreSql
                 }
             }
 
-            ////foreign keys not in model
-            //foreach (var sqlConstraint in sqlConstraints.Where(x => x.FK_Table == fkTable))
-            //{
-            //    if (!usedSqlConstraints.Contains(sqlConstraint))
-            //    {
-            //        sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append("\r\n");
-            //        sb.Append("\r\n");
-            //        sqlStatements++;
-            //    }
-            //}
+            //foreign keys not in model
+            foreach (var sqlConstraint in sqlConstraints.Where(x => x.FK_Table == fkTable))
+            {
+                if (!usedSqlConstraints.Contains(sqlConstraint))
+                {
+                    sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append("\r\n");
+                    sb.Append("\r\n");
+                }
+            }
 
-            //var sql = sb.ToString();
-            //if (sql.Length > 0)
-            //{
-            //    //    var results = ExecuteSql(sql);
-            //    //    if (results != sqlStatements)
-            //    //        Log.WarnAsync($"DataSource {model.DataSourceEntityName} completed {results} of {sqlStatements} constraint changes");
-            //}
+            var sql = sb.ToString();
+            if (sql.Length > 0)
+            {
+                ExecuteSql(sql);
+            }
         }
 
         private static void WriteSqlTypeFromModel(StringBuilder sb, ModelPropertyDetail property)
@@ -1571,7 +1559,7 @@ namespace Zerra.Repository.PostgreSql
                     case CoreType.Double: return sqlColumn.DataType == "double precision" && sqlColumn.IsNullable == false;
                     case CoreType.Decimal: return sqlColumn.DataType == "numeric" && sqlColumn.IsNullable == false && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
                     case CoreType.Char: return sqlColumn.DataType == "character varying" && sqlColumn.IsNullable == false && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
-                    case CoreType.DateTime: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == false;
+                    case CoreType.DateTime: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.DateTimeOffset: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.TimeSpan: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.Guid: return sqlColumn.DataType == "uuid" && sqlColumn.IsNullable == false;
@@ -1585,7 +1573,7 @@ namespace Zerra.Repository.PostgreSql
                     case CoreType.DoubleNullable: return sqlColumn.DataType == "double precision" && sqlColumn.IsNullable == true;
                     case CoreType.DecimalNullable: return sqlColumn.DataType == "numeric" && sqlColumn.IsNullable == true && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
                     case CoreType.CharNullable: return sqlColumn.DataType == "character varying" && sqlColumn.IsNullable == true && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
-                    case CoreType.DateTimeNullable: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == true;
+                    case CoreType.DateTimeNullable: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.GuidNullable: return sqlColumn.DataType == "uuid" && sqlColumn.IsNullable == true;
@@ -1606,16 +1594,15 @@ namespace Zerra.Repository.PostgreSql
 
             throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} cannot match type {property.Type.GetNiceName()} to an {nameof(PostgreSqlEngine)} type.");
         }
-        private SqlColumnType[] GetSqlColumns()
+        private SqlColumnType[] GetSqlColumns(ModelDetail model)
         {
-            const string query = @"SELECT C.TABLE_NAME, C.COLUMN_NAME, DATA_TYPE, IS_NULLABLE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE, DATETIME_PRECISION
+            var query = $@"SELECT C.TABLE_NAME, C.COLUMN_NAME, DATA_TYPE, IS_NULLABLE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE, DATETIME_PRECISION
 	,C.IDENTITY_GENERATION = 'ALWAYS' OR C.IS_GENERATED = 'ALWAYS' AS IS_IDENTITY
-	,RC.CONSTRAINT_TYPE = 'PRIMARY KEY' AND C.TABLE_NAME = KF.TABLE_NAME AS IS_PRIMARYKEY
+	,RC.CONSTRAINT_TYPE = 'PRIMARY KEY' AS IS_PRIMARYKEY
 FROM INFORMATION_SCHEMA.COLUMNS C
-LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KF ON KF.COLUMN_NAME = C.COLUMN_NAME AND C.TABLE_NAME = KF.TABLE_NAME
-LEFT JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS RC ON RC.CONSTRAINT_NAME = KF.CONSTRAINT_NAME
-WHERE C.TABLE_SCHEMA != 'pg_catalog'
-AND C.TABLE_SCHEMA != 'information_schema'";
+LEFT OUTER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KF ON KF.COLUMN_NAME = C.COLUMN_NAME AND C.TABLE_NAME = KF.TABLE_NAME AND C.TABLE_SCHEMA = KF.TABLE_SCHEMA
+LEFT OUTER JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS RC ON RC.CONSTRAINT_NAME = KF.CONSTRAINT_NAME AND RC.TABLE_NAME = KF.TABLE_NAME AND RC.TABLE_SCHEMA = KF.TABLE_SCHEMA
+WHERE C.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
 
             var sqlColumns = ExecuteSqlQuery(query).Select(x => (IList<object>)x).Select(x => new SqlColumnType()
             {
@@ -1633,15 +1620,15 @@ AND C.TABLE_SCHEMA != 'information_schema'";
 
             return sqlColumns;
         }
-        private SqlConstraint[] GetSqlConstraints()
+        private SqlConstraint[] GetSqlConstraints(ModelDetail model)
         {
-            const string query = @"SELECT RC.CONSTRAINT_NAME FK_Name, KF.TABLE_SCHEMA FK_Schema, KF.TABLE_NAME FK_Table, KF.COLUMN_NAME FK_Column, RC.UNIQUE_CONSTRAINT_NAME PK_Name, KP.TABLE_SCHEMA PK_Schema, KP.TABLE_NAME PK_Table, KP.COLUMN_NAME PK_Column
+            var query = $@"SELECT RC.CONSTRAINT_NAME FK_Name, KF.TABLE_SCHEMA FK_Schema, KF.TABLE_NAME FK_Table, KF.COLUMN_NAME FK_Column, RC.UNIQUE_CONSTRAINT_NAME PK_Name, KP.TABLE_SCHEMA PK_Schema, KP.TABLE_NAME PK_Table, KP.COLUMN_NAME PK_Column
 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC
-JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KF ON RC.CONSTRAINT_NAME = KF.CONSTRAINT_NAME
-JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KP ON RC.UNIQUE_CONSTRAINT_NAME = KP.CONSTRAINT_NAME
-JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS TCKP ON KP.CONSTRAINT_NAME = TCKP.CONSTRAINT_NAME
-WHERE
-(TCKP.CONSTRAINT_TYPE = 'PRIMARY KEY' OR TCKP.CONSTRAINT_TYPE = 'FOREIGN KEY')";
+LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KF ON RC.CONSTRAINT_NAME = KF.CONSTRAINT_NAME AND RC.CONSTRAINT_SCHEMA = KF.CONSTRAINT_SCHEMA
+LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KP ON RC.UNIQUE_CONSTRAINT_NAME = KP.CONSTRAINT_NAME AND RC.CONSTRAINT_SCHEMA = KP.CONSTRAINT_SCHEMA
+LEFT JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS TCKF ON KF.CONSTRAINT_NAME = TCKF.CONSTRAINT_NAME AND KF.CONSTRAINT_SCHEMA = TCKF.CONSTRAINT_SCHEMA
+WHERE TCKF.CONSTRAINT_TYPE = 'FOREIGN KEY'
+AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
 
             var sqlConstrains = ExecuteSqlQuery(query).Select(x => (IList<object>)x).Select(x => new SqlConstraint()
             {
@@ -1656,7 +1643,7 @@ WHERE
             }).ToArray();
 
             return sqlConstrains;
-        }        
+        }
 
         public bool ValidateDataSource()
         {

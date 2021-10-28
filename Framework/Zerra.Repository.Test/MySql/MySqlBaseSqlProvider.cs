@@ -4,10 +4,8 @@
 
 namespace Zerra.Repository.Test
 {
-    public abstract partial class MySqlBaseSqlProvider<TModel> : TransactStoreProvider<MySqlTestSqlDataContext, TModel> where TModel : class, new()
+    public abstract class MySqlBaseSqlProvider<TModel> : TransactStoreProvider<MySqlTestSqlDataContext, TModel> where TModel : class, new()
     {
-        protected override bool DisableQueryLinking => true;
-        protected override bool DisableEventLinking => true;
-        protected override bool DisablePersistLinking => true;
+
     }
 }

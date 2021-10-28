@@ -1048,7 +1048,7 @@ namespace Zerra.Repository.PostgreSql
                         return false;
                     case CoreType.Guid:
                         sb.Write('\'');
-                        sb.Write(value.ToString());
+                        sb.Write((Guid)value);
                         sb.Write('\'');
                         return false;
                     case CoreType.String:
@@ -1563,15 +1563,15 @@ namespace Zerra.Repository.PostgreSql
                 case QueryOperation.Many:
                     break;
                 case QueryOperation.First:
-                    sb.Write("\r\nLIMIT 1");
+                    sb.Write("LIMIT 1");
                     break;
                 case QueryOperation.Single:
-                    sb.Write("\r\nLIMIT 2");
+                    sb.Write("LIMIT 2");
                     break;
                 case QueryOperation.Count:
                     break;
                 case QueryOperation.Any:
-                    sb.Write("\r\nLIMIT 1");
+                    sb.Write("LIMIT 1");
                     break;
             }
         }

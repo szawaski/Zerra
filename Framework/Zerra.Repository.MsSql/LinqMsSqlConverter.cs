@@ -1053,7 +1053,7 @@ namespace Zerra.Repository.MsSql
                         return false;
                     case CoreType.Guid:
                         sb.Write('\'');
-                        sb.Write(value.ToString());
+                        sb.Write((Guid)value);
                         sb.Write('\'');
                         return false;
                     case CoreType.String:

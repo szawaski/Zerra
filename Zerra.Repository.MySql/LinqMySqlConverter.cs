@@ -298,14 +298,16 @@ namespace Zerra.Repository.MySql
                 var callingModelIdentity = callingModel.IdentityProperties[0];
                 var modelProperty = callingModel.GetProperty(property.Member.Name);
 
-                sb.Write(callingModel.DataSourceEntityName.ToLower());
-                sb.Write('.');
-                sb.Write(callingModelIdentity.PropertySourceName.ToLower());
-                sb.Write('=');
-                sb.Write(modelDetail.DataSourceEntityName.ToLower());
-                sb.Write('.');
-                sb.Write(modelProperty.ForeignIdentity.ToLower());
-                sb.Write(" AND");
+                sb.Write('`');
+                sb.Write(callingModel.DataSourceEntityName);
+                sb.Write("`.`");
+                sb.Write(callingModelIdentity.PropertySourceName);
+                sb.Write("`=");
+                sb.Write('`');
+                sb.Write(modelDetail.DataSourceEntityName);
+                sb.Write("`.`");
+                sb.Write(modelProperty.ForeignIdentity);
+                sb.Write("`AND");
             }
 
             context.MemberContext.DependantStack.Push(context.RootDependant);
@@ -687,9 +689,11 @@ namespace Zerra.Repository.MySql
                     throw new NotSupportedException($"Only one identity supported on {modelDetail.Type.GetNiceName()}");
                 var modelIdentity = modelDetail.IdentityProperties[0];
 
-                sb.Write(modelDetail.DataSourceEntityName.ToLower());
-                sb.Write('.');
-                sb.Write(modelIdentity.PropertySourceName.ToLower());
+                sb.Write('`');
+                sb.Write(modelDetail.DataSourceEntityName);
+                sb.Write("`.`");
+                sb.Write(modelIdentity.PropertySourceName);
+                sb.Write("`");
             }
             else
             {
@@ -749,9 +753,13 @@ namespace Zerra.Repository.MySql
                 }
 
 
-                sb.Write(modelDetail.DataSourceEntityName.ToLower());
+                sb.Write('`');
+                sb.Write(modelDetail.DataSourceEntityName);
+                sb.Write('`');
                 sb.Write('.');
-                sb.Write(modelProperty.PropertySourceName.ToLower());
+                sb.Write('`');
+                sb.Write(modelProperty.PropertySourceName);
+                sb.Write('`');
                 var lastOperator = context.MemberContext.OperatorStack.Peek();
                 if (lastOperator == Operator.And || lastOperator == Operator.Or)
                 {
@@ -1047,7 +1055,7 @@ namespace Zerra.Repository.MySql
                         return false;
                     case CoreType.Guid:
                         sb.Write('\'');
-                        sb.Write(value.ToString());
+                        sb.Write(((Guid)value).ToString("N"));
                         sb.Write('\'');
                         return false;
                     case CoreType.String:
@@ -1495,8 +1503,9 @@ namespace Zerra.Repository.MySql
             AppendLineBreak(ref sb);
             if (graph.IncludeAllProperties)
             {
-                sb.Write(modelDetail.DataSourceEntityName.ToLower());
-                sb.Write(".*");
+                sb.Write('`');
+                sb.Write(modelDetail.DataSourceEntityName);
+                sb.Write("`.*");
                 AppendLineBreak(ref sb);
             }
             else if (graph.LocalProperties.Count == 0)
@@ -1516,9 +1525,11 @@ namespace Zerra.Repository.MySql
                                 sb.Write(',');
                             else
                                 passedfirst = true;
-                            sb.Write(modelDetail.DataSourceEntityName.ToLower());
-                            sb.Write('.');
-                            sb.Write(property.ToLower());
+                            sb.Write('`');
+                            sb.Write(modelDetail.DataSourceEntityName);
+                            sb.Write("`.`");
+                            sb.Write(property);
+                            sb.Write('`');
                             AppendLineBreak(ref sb);
                         }
                     }
@@ -1527,8 +1538,10 @@ namespace Zerra.Repository.MySql
         }
         private static void GenerateFrom(ModelDetail modelDetail, ref CharWriteBuffer sb)
         {
-            sb.Write("FROM ");
-            sb.Write(modelDetail.DataSourceEntityName.ToLower());
+            sb.Write("FROM`");
+            sb.Write(modelDetail.DataSourceEntityName);
+            sb.Write('`');
+            sb.Write(modelDetail.DataSourceEntityName);
             AppendLineBreak(ref sb);
         }
         private static void GenerateJoin(ParameterDependant dependant, ref CharWriteBuffer sb)
@@ -1539,16 +1552,17 @@ namespace Zerra.Repository.MySql
                     throw new NotSupportedException($"Only one identity supported on {child.ModelDetail.Type.GetNiceName()}");
                 var dependantIdentity = child.ModelDetail.IdentityProperties[0];
 
-                sb.Write("JOIN ");
-                sb.Write(child.ModelDetail.DataSourceEntityName.ToLower());
-                sb.Write(" ON ");
-                sb.Write(dependant.ModelDetail.DataSourceEntityName.ToLower());
-                sb.Write('.');
-                sb.Write(child.ParentMember?.ForeignIdentity.ToLower());
-                sb.Write('=');
-                sb.Write(child.ModelDetail.DataSourceEntityName.ToLower());
-                sb.Write('.');
-                sb.Write(dependantIdentity.PropertySourceName.ToLower());
+                sb.Write("JOIN`");
+                sb.Write(child.ModelDetail.DataSourceEntityName);
+                sb.Write("`ON`");
+                sb.Write(dependant.ModelDetail.DataSourceEntityName);
+                sb.Write("`.`");
+                sb.Write(child.ParentMember?.ForeignIdentity);
+                sb.Write("`=`");
+                sb.Write(child.ModelDetail.DataSourceEntityName);
+                sb.Write("`.`");
+                sb.Write(dependantIdentity.PropertySourceName);
+                sb.Write('`');
 
                 AppendLineBreak(ref sb);
 
@@ -1562,15 +1576,15 @@ namespace Zerra.Repository.MySql
                 case QueryOperation.Many:
                     break;
                 case QueryOperation.First:
-                    sb.Write("\r\nLIMIT 1");
+                    sb.Write("LIMIT 1");
                     break;
                 case QueryOperation.Single:
-                    sb.Write("\r\nLIMIT 2");
+                    sb.Write("LIMIT 2");
                     break;
                 case QueryOperation.Count:
                     break;
                 case QueryOperation.Any:
-                    sb.Write("\r\nLIMIT 1");
+                    sb.Write("LIMIT 1");
                     break;
             }
         }

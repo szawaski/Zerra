@@ -55,7 +55,7 @@ namespace Zerra.Repository.Test
 
             TestModelMethods.TestSequence(provider, relationProvider);
 
-            const string changeColumn = "ALTER TABLE `TestTypes` ALTER COLUMN `Int32Thing` bigint NULL";
+            const string changeColumn = "ALTER TABLE `TestTypes` MODIFY `Int32Thing` bigint NULL";
             const string addColumn = "ALTER TABLE `TestTypes` ADD `DummyToMakeNullable` int NOT NULL";
             const string dropColumn = "ALTER TABLE `TestTypes` DROP COLUMN `ByteThing`";
             ExecuteSql(context, changeColumn);
