@@ -524,11 +524,10 @@ namespace Zerra.Repository.MySql
 
             if (modelPropertyDetail.Type == typeof(byte[]))
             {
-                string hex = BitConverter.ToString((byte[])value).Replace("-", "");
                 if (assigningValue || comparingValue)
-                    writer.Write($"=0x{hex}");
-                else
-                    writer.Write($"0x{hex}");
+                    writer.Write('=');
+                writer.Write("0x");
+                writer.Write((byte[])value, ByteFormat.Hex);
                 return;
             }
 

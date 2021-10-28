@@ -846,10 +846,9 @@ namespace Zerra.Repository.PostgreSql
                 Type arrayType = typeDetails.InnerTypes[0];
                 if (arrayType == typeof(byte))
                 {
-                    var hex = BitConverter.ToString((byte[])value).Replace("-", "\\x");
-                    sb.Write("E'\\x");
-                    sb.Write(hex);
-                    sb.Write('\'');
+                    sb.Write("decode('");
+                    sb.Write((byte[])value, ByteFormat.Hex);
+                    sb.Write("','hex')");
                     return false;
                 }
                 else

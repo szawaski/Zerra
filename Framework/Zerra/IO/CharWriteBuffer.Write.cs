@@ -458,6 +458,9 @@ namespace Zerra.IO
             {
                 case TimeFormat.ISO8601:
                 case TimeFormat.MsSql:
+                    //HH:mm:ss.fffffff
+                    EnsureBufferSize(16);
+
                     if (value.TotalHours < 10) buffer[position++] = '0';
                     WriteInt64(value.Hours);
                     buffer[position++] = ':';
@@ -486,6 +489,66 @@ namespace Zerra.IO
         public void Write(Guid value)
         {
             Write(value.ToString());
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void Write(byte[] value, ByteFormat format)
+        {
+            switch (format)
+            {
+                case ByteFormat.Hex:
+                    EnsureBufferSize(2 * value.Length);
+                    fixed (byte* pValue = value)
+                    fixed (char* pBuffer = &buffer[position])
+                    {
+                        for (var p = 0; p < value.Length; p++)
+                        {
+                            var b = pValue[p];
+                            var v1 = b / 16;
+                            var v2 = b - v1 * 16;
+                            switch (v1)
+                            {
+                                case 0: pBuffer[p * 2] = '0'; break;
+                                case 1: pBuffer[p * 2] = '1'; break;
+                                case 2: pBuffer[p * 2] = '2'; break;
+                                case 3: pBuffer[p * 2] = '3'; break;
+                                case 4: pBuffer[p * 2] = '4'; break;
+                                case 5: pBuffer[p * 2] = '5'; break;
+                                case 6: pBuffer[p * 2] = '6'; break;
+                                case 7: pBuffer[p * 2] = '7'; break;
+                                case 8: pBuffer[p * 2] = '8'; break;
+                                case 9: pBuffer[p * 2] = '9'; break;
+                                case 10: pBuffer[p * 2] = 'a'; break;
+                                case 11: pBuffer[p * 2] = 'b'; break;
+                                case 12: pBuffer[p * 2] = 'c'; break;
+                                case 13: pBuffer[p * 2] = 'd'; break;
+                                case 14: pBuffer[p * 2] = 'e'; break;
+                                case 15: pBuffer[p * 2] = 'f'; break;
+                            }
+                            switch (v2)
+                            {
+                                case 0: pBuffer[p * 2 + 1] = '0'; break;
+                                case 1: pBuffer[p * 2 + 1] = '1'; break;
+                                case 2: pBuffer[p * 2 + 1] = '2'; break;
+                                case 3: pBuffer[p * 2 + 1] = '3'; break;
+                                case 4: pBuffer[p * 2 + 1] = '4'; break;
+                                case 5: pBuffer[p * 2 + 1] = '5'; break;
+                                case 6: pBuffer[p * 2 + 1] = '6'; break;
+                                case 7: pBuffer[p * 2 + 1] = '7'; break;
+                                case 8: pBuffer[p * 2 + 1] = '8'; break;
+                                case 9: pBuffer[p * 2 + 1] = '9'; break;
+                                case 10: pBuffer[p * 2 + 1] = 'a'; break;
+                                case 11: pBuffer[p * 2 + 1] = 'b'; break;
+                                case 12: pBuffer[p * 2 + 1] = 'c'; break;
+                                case 13: pBuffer[p * 2 + 1] = 'd'; break;
+                                case 14: pBuffer[p * 2 + 1] = 'e'; break;
+                                case 15: pBuffer[p * 2 + 1] = 'f'; break;
+                            }
+                        }
+                    }
+                    position += value.Length * 2;
+                    break;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

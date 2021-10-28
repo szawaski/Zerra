@@ -854,9 +854,8 @@ namespace Zerra.Repository.MySql
                 Type arrayType = typeDetails.InnerTypes[0];
                 if (arrayType == typeof(byte))
                 {
-                    string hex = BitConverter.ToString((byte[])value).Replace("-", "");
                     sb.Write("0x");
-                    sb.Write(hex);
+                    sb.Write((byte[])value, ByteFormat.Hex);
                     return false;
                 }
                 else

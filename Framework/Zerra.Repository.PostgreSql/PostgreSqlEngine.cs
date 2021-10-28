@@ -545,11 +545,11 @@ namespace Zerra.Repository.PostgreSql
 
             if (modelPropertyDetail.Type == typeof(byte[]))
             {
-                var hex = BitConverter.ToString((byte[])value).Replace("-", "\\x");
                 if (assigningValue || comparingValue)
-                    writer.Write($"=E'\\x{hex}'");
-                else
-                    writer.Write($"E'\\x{hex}'");
+                    writer.Write('=');
+                writer.Write("decode('");
+                writer.Write((byte[])value, ByteFormat.Hex);
+                writer.Write("','hex')");
                 return;
             }
 
