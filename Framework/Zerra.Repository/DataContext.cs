@@ -3,7 +3,9 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using Zerra.Providers;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
@@ -62,8 +64,32 @@ namespace Zerra.Repository
                     initialized = true;
                     if (!DisableBuildStoreFromModels)
                     {
-                        var modelTypes = Discovery.GetTypesFromAttribute(typeof(DataSourceEntityAttribute));
-                        var modelDetails = modelTypes.Where(x => !x.IsAbstract).Select(x => ModelAnalyzer.GetModel(x)).Distinct(x => x.DataSourceEntityName).ToArray();
+                        var thisType = this.GetType();
+                        var allModelTypes = Discovery.GetTypesFromAttribute(typeof(DataSourceEntityAttribute));
+                        var modelTypesWithThisDataContext = new HashSet<Type>();
+                        foreach(var modelType in allModelTypes.Where(x => !x.IsAbstract))
+                        {
+                            var providerType = typeof(IDataProvider<>).MakeGenericType(modelType);
+                            if (!Resolver.TryGet(providerType, out object provider))
+                                continue;
+                            var typeDetails = TypeAnalyzer.GetType(provider.GetType());
+                            if (typeDetails.InnerTypes.Contains(thisType))
+                            {
+                                modelTypesWithThisDataContext.Add(modelType);
+                                continue;
+                            }
+                            foreach(var baseType in typeDetails.BaseTypes)
+                            {
+                                var baseTypeDetails = TypeAnalyzer.GetType(baseType);
+                                if (baseTypeDetails.InnerTypes.Contains(thisType))
+                                {
+                                    modelTypesWithThisDataContext.Add(modelType);
+                                    continue;
+                                }
+                            }
+                        }
+
+                        var modelDetails = modelTypesWithThisDataContext.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
                         engine.BuildStoreFromModels(modelDetails);
                     }
                 }
