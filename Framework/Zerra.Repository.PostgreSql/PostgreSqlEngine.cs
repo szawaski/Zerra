@@ -1356,7 +1356,7 @@ namespace Zerra.Repository.PostgreSql
             }
         }
 
-        private static void WriteSqlTypeFromModel(StringBuilder sb, ModelPropertyDetail property)
+        public static void WriteSqlTypeFromModel(StringBuilder sb, ModelPropertyDetail property)
         {
             bool canBeIdentity = false;
             if (property.CoreType.HasValue)
@@ -1442,7 +1442,7 @@ namespace Zerra.Repository.PostgreSql
                 throw new Exception($"Cannot match type {property.Type.GetNiceName()} to an {nameof(PostgreSqlEngine)} type.");
             }
         }
-        private static void WriteTypeEndingFromModel(StringBuilder sb, ModelPropertyDetail property)
+        public static void WriteTypeEndingFromModel(StringBuilder sb, ModelPropertyDetail property)
         {
             bool canBeIdentity = false;
             if (property.CoreType.HasValue)

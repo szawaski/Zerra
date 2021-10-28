@@ -1287,7 +1287,7 @@ namespace Zerra.Repository.MsSql
             }
         }
 
-        private static void WriteSqlTypeFromModel(StringBuilder sb, ModelPropertyDetail property)
+        public static void WriteSqlTypeFromModel(StringBuilder sb, ModelPropertyDetail property)
         {
             bool canBeIdentity = false;
             if (property.CoreType.HasValue)

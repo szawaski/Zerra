@@ -1315,7 +1315,7 @@ namespace Zerra.Repository.MySql
             }
         }
 
-        private static void WriteSqlTypeFromModel(StringBuilder sb, ModelPropertyDetail property)
+        public static void WriteSqlTypeFromModel(StringBuilder sb, ModelPropertyDetail property)
         {
             bool canBeIdentity = false;
             if (property.CoreType.HasValue)
@@ -1492,31 +1492,17 @@ namespace Zerra.Repository.MySql
                 case "bigint":
                 case "real":
                 case "float":
-                case "smallmoney":
-                case "money":
-                case "date":
-                case "smalldatetime":
-                case "datetime":
-                case "timestamp":
-                case "rowversion":
+                case "double":
+
                 case "text":
-                case "ntext":
-                case "image":
-                case "uniqueidentifier":
-                case "xml":
-                case "sql_variant":
                     sb.Append(sqlColumn.DataType);
                     break;
                 case "numeric":
                 case "decimal":
                     sb.Append(sqlColumn.DataType).Append('(').Append(sqlColumn.NumericPrecision ?? 0).Append(", ").Append(sqlColumn.NumericScale ?? 0).Append(')');
                     break;
-                case "datetime2":
-                    sb.Append(sqlColumn.DataType).Append('(').Append(sqlColumn.DatetimePrecision ?? 0).Append(')');
-                    break;
-                case "datetimeoffset":
-                    sb.Append(sqlColumn.DataType).Append('(').Append(sqlColumn.DatetimePrecision ?? 0).Append(')');
-                    break;
+                case "datetime":
+                case "timestamp":
                 case "time":
                     sb.Append(sqlColumn.DataType).Append('(').Append(sqlColumn.DatetimePrecision ?? 0).Append(')');
                     break;
