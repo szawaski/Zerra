@@ -7,7 +7,7 @@ using System;
 namespace Zerra.Repository.Test
 {
     [DataSourceEntity("TestTypes")]
-    public class TestTypesModel
+    public abstract class BaseTestTypesModel<T> where T : BaseTestRelationsModel, new()
     {
         [Identity]
         public Guid KeyA { get; set; }
@@ -68,5 +68,13 @@ namespace Zerra.Repository.Test
         public byte[] BytesThing { get; set; }
         [DataSourceType(false)]
         public byte[] BytesThingNull { get; set; }
+
+        public Guid? RelationAKey { get; set; }
+
+        [DataSourceRelation("RelationAKey")]
+        public T RelationA { get; set; }
+
+        [DataSourceRelation("RelationKey")]
+        public T[] RelationB { get; set; }
     }
 }

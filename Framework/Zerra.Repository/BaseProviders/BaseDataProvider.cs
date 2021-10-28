@@ -301,127 +301,127 @@ namespace Zerra.Repository
                     {
                         //var task = Task.Run(() =>
                         //{
-                            if (!modelPropertyInfo.IsEnumerable)
+                        if (!modelPropertyInfo.IsEnumerable)
+                        {
+                            //related single
+                            var relatedType = modelPropertyInfo.InnerType;
+                            var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+
+                            var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
+
+                            if (!ModelDetail.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail foreignIdentityPropertyInfo))
+                                throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, ModelDetail.Name, ModelDetail.Name));
+
+                            if (relatedModelInfo.IdentityProperties.Count == 0)
+                                throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
+                            var relatedIdentityPropertyInfo = relatedModelInfo.IdentityProperties[0];
+
+                            var queryExpressionParameter = Expression.Parameter(relatedType, "x");
+                            var foreignIdentityListTypeDetail = TypeAnalyzer.GetGenericTypeDetail(listType, foreignIdentityPropertyInfo.InnerType);
+                            var foreignIdentities = (IList)foreignIdentityListTypeDetail.Creator();
+                            foreach (var model in returnModels)
                             {
-                                //related single
-                                var relatedType = modelPropertyInfo.InnerType;
-                                var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+                                var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelPropertyInfo.ForeignIdentity, model);
+                                if (foreignIdentity != null)
+                                    foreignIdentities.Add(foreignIdentity);
+                            }
 
-                                var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
+                            var containsMethodGeneric = TypeAnalyzer.GetGenericMethod(containsMethod, foreignIdentityPropertyInfo.InnerType).MethodInfo;
+                            var condition = Expression.Call(containsMethodGeneric, Expression.Constant(foreignIdentities, foreignIdentityListTypeDetail.Type), Expression.MakeMemberAccess(queryExpressionParameter, relatedIdentityPropertyInfo.MemberInfo));
+                            var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
 
-                                if (!ModelDetail.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail foreignIdentityPropertyInfo))
-                                    throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, ModelDetail.Name, ModelDetail.Name));
+                            var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
+                            var allNames = relatedIdentityPropertyNames.Concat(new string[] { foreignIdentityPropertyInfo.Name }).ToArray();
+                            relatedGraph.AddProperties(relatedIdentityPropertyNames);
 
-                                if (relatedModelInfo.IdentityProperties.Count == 0)
-                                    throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
-                                var relatedIdentityPropertyInfo = relatedModelInfo.IdentityProperties[0];
+                            var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
+                            var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
+                            var query = queryGeneric.GetConstructor(queryParameterTypes).Creator(new object[] { queryExpression, relatedGraph });
 
-                                var queryExpressionParameter = Expression.Parameter(relatedType, "x");
-                                var foreignIdentityListTypeDetail = TypeAnalyzer.GetGenericTypeDetail(listType, foreignIdentityPropertyInfo.InnerType);
-                                var foreignIdentities = (IList)foreignIdentityListTypeDetail.Creator();
-                                foreach (var model in returnModels)
+                            var repoQueryMany = TypeAnalyzer.GetGenericMethod(repoQueryManyGeneric, relatedType);
+                            var relatedModels = (ICollection)repoQueryMany.Caller(repoQueryMany, new object[] { query });
+
+                            var relatedModelIdentities = new Dictionary<object, object>();
+                            foreach (object relatedModel in relatedModels)
+                            {
+                                var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
+                                if (relatedIdentity != null)
+                                    relatedModelIdentities.Add(relatedModel, relatedIdentity);
+                            }
+
+                            foreach (var model in returnModels)
+                            {
+                                var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelPropertyInfo.ForeignIdentity, model);
+                                foreach (var relatedModel in relatedModelIdentities)
                                 {
-                                    var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelPropertyInfo.ForeignIdentity, model);
-                                    if (foreignIdentity != null)
-                                        foreignIdentities.Add(foreignIdentity);
-                                }
-
-                                var containsMethodGeneric = TypeAnalyzer.GetGenericMethod(containsMethod, foreignIdentityPropertyInfo.InnerType).MethodInfo;
-                                var condition = Expression.Call(containsMethodGeneric, Expression.Constant(foreignIdentities, foreignIdentityListTypeDetail.Type), Expression.MakeMemberAccess(queryExpressionParameter, relatedIdentityPropertyInfo.MemberInfo));
-                                var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
-
-                                var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
-                                var allNames = relatedIdentityPropertyNames.Concat(new string[] { foreignIdentityPropertyInfo.Name }).ToArray();
-                                relatedGraph.AddProperties(relatedIdentityPropertyNames);
-
-                                var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
-                                var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
-                                var query = queryGeneric.GetConstructor( queryParameterTypes).Creator(new object[] { queryExpression, relatedGraph });
-
-                                var repoQueryMany = TypeAnalyzer.GetGenericMethod(repoQueryManyGeneric, relatedType);
-                                var relatedModels = (ICollection)repoQueryMany.Caller(repoQueryMany, new object[] { query });
-
-                                var relatedModelIdentities = new Dictionary<object, object>();
-                                foreach (object relatedModel in relatedModels)
-                                {
-                                    var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
-                                    if (relatedIdentity != null)
-                                        relatedModelIdentities.Add(relatedModel, relatedIdentity);
-                                }
-
-                                foreach (var model in returnModels)
-                                {
-                                    var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelPropertyInfo.ForeignIdentity, model);
-                                    foreach (var relatedModel in relatedModelIdentities)
+                                    if (ModelAnalyzer.CompareIdentities(foreignIdentity, relatedModel.Value))
                                     {
-                                        if (ModelAnalyzer.CompareIdentities(foreignIdentity, relatedModel.Value))
-                                        {
-                                            modelPropertyInfo.Setter(model, relatedModel.Key);
-                                            break;
-                                        }
+                                        modelPropertyInfo.Setter(model, relatedModel.Key);
+                                        break;
                                     }
                                 }
                             }
-                            else
+                        }
+                        else
+                        {
+                            //related many
+                            var relatedType = modelPropertyInfo.InnerType;
+                            var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+
+                            var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
+
+                            if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
+                                throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
+
+                            relatedGraph.AddProperties(modelPropertyInfo.ForeignIdentity);
+
+                            var queryExpressionParameter = Expression.Parameter(relatedType, "x");
+                            var foreignIdentityListTypeDetail = TypeAnalyzer.GetGenericTypeDetail(listType, relatedForeignIdentityPropertyInfo.Type);
+                            var foreignIdentities = (IList)foreignIdentityListTypeDetail.Creator();
+                            foreach (var model in returnModels)
                             {
-                                //related many
-                                var relatedType = modelPropertyInfo.InnerType;
-                                var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
-
-                                var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
-
-                                if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
-                                    throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
-
-                                relatedGraph.AddProperties(modelPropertyInfo.ForeignIdentity);
-
-                                var queryExpressionParameter = Expression.Parameter(relatedType, "x");
-                                var foreignIdentityListTypeDetail = TypeAnalyzer.GetGenericTypeDetail(listType, relatedForeignIdentityPropertyInfo.Type);
-                                var foreignIdentities = (IList)foreignIdentityListTypeDetail.Creator();
-                                foreach (var model in returnModels)
-                                {
-                                    object identity = ModelAnalyzer.GetIdentity(model);
-                                    foreignIdentities.Add(identity);
-                                }
-
-                                var containsMethodGeneric = TypeAnalyzer.GetGenericMethod(containsMethod, relatedForeignIdentityPropertyInfo.Type).MethodInfo;
-                                var condition = Expression.Call(containsMethodGeneric, Expression.Constant(foreignIdentities, foreignIdentityListTypeDetail.Type), Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo));
-                                var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
-
-                                var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
-                                var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
-                                relatedGraph.AddProperties(allNames);
-
-                                var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
-                                var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
-                                var query = queryGeneric.GetConstructor(queryParameterTypes).Creator(new object[] { queryExpression, relatedGraph });
-
-                                var repoQueryMany = TypeAnalyzer.GetGenericMethod(repoQueryManyGeneric, relatedType);
-                                var relatedModels = (ICollection)repoQueryMany.Caller(repoQueryMany, new object[] { query });
-
-                                var relatedModelIdentities = new Dictionary<object, object>();
-                                foreach (object relatedModel in relatedModels)
-                                {
-                                    object relatedIdentity = ModelAnalyzer.GetForeignIdentity(relatedType, modelPropertyInfo.ForeignIdentity, relatedModel);
-                                    if (relatedIdentity != null)
-                                        relatedModelIdentities.Add(relatedModel, relatedIdentity);
-                                }
-
-                                foreach (var model in returnModels)
-                                {
-                                    var identity = ModelAnalyzer.GetIdentity(model);
-                                    var relatedForModel = (IList)TypeAnalyzer.GetGenericTypeDetail(listType, relatedType).Creator();
-                                    foreach (var relatedModel in relatedModelIdentities)
-                                    {
-                                        if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
-                                        {
-                                            relatedForModel.Add(relatedModel.Key);
-                                        }
-                                    }
-
-                                    modelPropertyInfo.Setter(model, relatedForModel);
-                                }
+                                object identity = ModelAnalyzer.GetIdentity(model);
+                                foreignIdentities.Add(identity);
                             }
+
+                            var containsMethodGeneric = TypeAnalyzer.GetGenericMethod(containsMethod, relatedForeignIdentityPropertyInfo.Type).MethodInfo;
+                            var condition = Expression.Call(containsMethodGeneric, Expression.Constant(foreignIdentities, foreignIdentityListTypeDetail.Type), Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo));
+                            var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
+
+                            var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
+                            var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
+                            relatedGraph.AddProperties(allNames);
+
+                            var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
+                            var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
+                            var query = queryGeneric.GetConstructor(queryParameterTypes).Creator(new object[] { queryExpression, relatedGraph });
+
+                            var repoQueryMany = TypeAnalyzer.GetGenericMethod(repoQueryManyGeneric, relatedType);
+                            var relatedModels = (ICollection)repoQueryMany.Caller(repoQueryMany, new object[] { query });
+
+                            var relatedModelIdentities = new Dictionary<object, object>();
+                            foreach (object relatedModel in relatedModels)
+                            {
+                                object relatedIdentity = ModelAnalyzer.GetForeignIdentity(relatedType, modelPropertyInfo.ForeignIdentity, relatedModel);
+                                if (relatedIdentity != null)
+                                    relatedModelIdentities.Add(relatedModel, relatedIdentity);
+                            }
+
+                            foreach (var model in returnModels)
+                            {
+                                var identity = ModelAnalyzer.GetIdentity(model);
+                                var relatedForModel = (IList)TypeAnalyzer.GetGenericTypeDetail(listType, relatedType).Creator();
+                                foreach (var relatedModel in relatedModelIdentities)
+                                {
+                                    if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
+                                    {
+                                        relatedForModel.Add(relatedModel.Key);
+                                    }
+                                }
+
+                                modelPropertyInfo.Setter(model, relatedForModel);
+                            }
+                        }
                         //});
                         //tasks.Add(task);
                     }
@@ -450,127 +450,127 @@ namespace Zerra.Repository
                     {
                         //var task = Task.Run(async () =>
                         //{
-                            if (!modelPropertyInfo.IsEnumerable)
+                        if (!modelPropertyInfo.IsEnumerable)
+                        {
+                            //related single
+                            var relatedType = modelPropertyInfo.InnerType;
+                            var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+
+                            var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
+
+                            if (!ModelDetail.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail foreignIdentityPropertyInfo))
+                                throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, ModelDetail.Name, ModelDetail.Name));
+
+                            if (relatedModelInfo.IdentityProperties.Count == 0)
+                                throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
+                            var relatedIdentityPropertyInfo = relatedModelInfo.IdentityProperties[0];
+
+                            var queryExpressionParameter = Expression.Parameter(relatedType, "x");
+                            var foreignIdentityListTypeDetail = TypeAnalyzer.GetGenericTypeDetail(listType, foreignIdentityPropertyInfo.InnerType);
+                            var foreignIdentities = (IList)foreignIdentityListTypeDetail.Creator();
+                            foreach (var model in returnModels)
                             {
-                                //related single
-                                var relatedType = modelPropertyInfo.InnerType;
-                                var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+                                var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelPropertyInfo.ForeignIdentity, model);
+                                if (foreignIdentity != null)
+                                    foreignIdentities.Add(foreignIdentity);
+                            }
 
-                                var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
+                            var containsMethodGeneric = TypeAnalyzer.GetGenericMethod(containsMethod, foreignIdentityPropertyInfo.InnerType).MethodInfo;
+                            var condition = Expression.Call(containsMethodGeneric, Expression.Constant(foreignIdentities, foreignIdentityListTypeDetail.Type), Expression.MakeMemberAccess(queryExpressionParameter, relatedIdentityPropertyInfo.MemberInfo));
+                            var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
 
-                                if (!ModelDetail.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail foreignIdentityPropertyInfo))
-                                    throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, ModelDetail.Name, ModelDetail.Name));
+                            var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
+                            var allNames = relatedIdentityPropertyNames.Concat(new string[] { foreignIdentityPropertyInfo.Name }).ToArray();
+                            relatedGraph.AddProperties(relatedIdentityPropertyNames);
 
-                                if (relatedModelInfo.IdentityProperties.Count == 0)
-                                    throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
-                                var relatedIdentityPropertyInfo = relatedModelInfo.IdentityProperties[0];
+                            var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
+                            var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
+                            var query = queryGeneric.GetConstructor(queryParameterTypes).Creator(new object[] { queryExpression, relatedGraph });
 
-                                var queryExpressionParameter = Expression.Parameter(relatedType, "x");
-                                var foreignIdentityListTypeDetail = TypeAnalyzer.GetGenericTypeDetail(listType, foreignIdentityPropertyInfo.InnerType);
-                                var foreignIdentities = (IList)foreignIdentityListTypeDetail.Creator();
-                                foreach (var model in returnModels)
+                            var repoQueryMany = TypeAnalyzer.GetGenericMethod(repoQueryAsyncManyGeneric, relatedType);
+                            var relatedModels = (ICollection)(await repoQueryMany.CallerAsync(repoQueryMany, new object[] { query }));
+
+                            var relatedModelIdentities = new Dictionary<object, object>();
+                            foreach (object relatedModel in relatedModels)
+                            {
+                                var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
+                                if (relatedIdentity != null)
+                                    relatedModelIdentities.Add(relatedModel, relatedIdentity);
+                            }
+
+                            foreach (var model in returnModels)
+                            {
+                                var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelPropertyInfo.ForeignIdentity, model);
+                                foreach (var relatedModel in relatedModelIdentities)
                                 {
-                                    var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelPropertyInfo.ForeignIdentity, model);
-                                    if (foreignIdentity != null)
-                                        foreignIdentities.Add(foreignIdentity);
-                                }
-
-                                var containsMethodGeneric = TypeAnalyzer.GetGenericMethod(containsMethod, foreignIdentityPropertyInfo.InnerType).MethodInfo;
-                                var condition = Expression.Call(containsMethodGeneric, Expression.Constant(foreignIdentities, foreignIdentityListTypeDetail.Type), Expression.MakeMemberAccess(queryExpressionParameter, relatedIdentityPropertyInfo.MemberInfo));
-                                var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
-
-                                var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
-                                var allNames = relatedIdentityPropertyNames.Concat(new string[] { foreignIdentityPropertyInfo.Name }).ToArray();
-                                relatedGraph.AddProperties(relatedIdentityPropertyNames);
-
-                                var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
-                                var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
-                                var query = queryGeneric.GetConstructor(queryParameterTypes).Creator(new object[] { queryExpression, relatedGraph });
-
-                                var repoQueryMany = TypeAnalyzer.GetGenericMethod(repoQueryAsyncManyGeneric, relatedType);
-                                var relatedModels = (ICollection)(await repoQueryMany.CallerAsync(repoQueryMany, new object[] { query }));
-
-                                var relatedModelIdentities = new Dictionary<object, object>();
-                                foreach (object relatedModel in relatedModels)
-                                {
-                                    var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
-                                    if (relatedIdentity != null)
-                                        relatedModelIdentities.Add(relatedModel, relatedIdentity);
-                                }
-
-                                foreach (var model in returnModels)
-                                {
-                                    var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelPropertyInfo.ForeignIdentity, model);
-                                    foreach (var relatedModel in relatedModelIdentities)
+                                    if (ModelAnalyzer.CompareIdentities(foreignIdentity, relatedModel.Value))
                                     {
-                                        if (ModelAnalyzer.CompareIdentities(foreignIdentity, relatedModel.Value))
-                                        {
-                                            modelPropertyInfo.Setter(model, relatedModel.Key);
-                                            break;
-                                        }
+                                        modelPropertyInfo.Setter(model, relatedModel.Key);
+                                        break;
                                     }
                                 }
                             }
-                            else
+                        }
+                        else
+                        {
+                            //related many
+                            var relatedType = modelPropertyInfo.InnerType;
+                            var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+
+                            var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
+
+                            if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
+                                throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
+
+                            relatedGraph.AddProperties(modelPropertyInfo.ForeignIdentity);
+
+                            var queryExpressionParameter = Expression.Parameter(relatedType, "x");
+                            var foreignIdentityListTypeDetail = TypeAnalyzer.GetGenericTypeDetail(listType, relatedForeignIdentityPropertyInfo.Type);
+                            var foreignIdentities = (IList)foreignIdentityListTypeDetail.Creator();
+                            foreach (var model in returnModels)
                             {
-                                //related many
-                                var relatedType = modelPropertyInfo.InnerType;
-                                var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
-
-                                var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
-
-                                if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
-                                    throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
-
-                                relatedGraph.AddProperties(modelPropertyInfo.ForeignIdentity);
-
-                                var queryExpressionParameter = Expression.Parameter(relatedType, "x");
-                                var foreignIdentityListTypeDetail = TypeAnalyzer.GetGenericTypeDetail(listType, relatedForeignIdentityPropertyInfo.Type);
-                                var foreignIdentities = (IList)foreignIdentityListTypeDetail.Creator();
-                                foreach (var model in returnModels)
-                                {
-                                    object identity = ModelAnalyzer.GetIdentity(model);
-                                    foreignIdentities.Add(identity);
-                                }
-
-                                var containsMethodGeneric = TypeAnalyzer.GetGenericMethod(containsMethod, relatedForeignIdentityPropertyInfo.Type).MethodInfo;
-                                var condition = Expression.Call(containsMethodGeneric, Expression.Constant(foreignIdentities, foreignIdentityListTypeDetail.Type), Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo));
-                                var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
-
-                                var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
-                                var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
-                                relatedGraph.AddProperties(allNames);
-
-                                var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
-                                var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
-                                var query = queryGeneric.GetConstructor(queryParameterTypes).Creator(new object[] { queryExpression, relatedGraph });
-
-                                var repoQueryMany = TypeAnalyzer.GetGenericMethod(repoQueryAsyncManyGeneric, relatedType);
-                                var relatedModels = (ICollection)(await repoQueryMany.CallerAsync(repoQueryMany, new object[] { query }));
-
-                                var relatedModelIdentities = new Dictionary<object, object>();
-                                foreach (object relatedModel in relatedModels)
-                                {
-                                    object relatedIdentity = ModelAnalyzer.GetForeignIdentity(relatedType, modelPropertyInfo.ForeignIdentity, relatedModel);
-                                    if (relatedIdentity != null)
-                                        relatedModelIdentities.Add(relatedModel, relatedIdentity);
-                                }
-
-                                foreach (var model in returnModels)
-                                {
-                                    var identity = ModelAnalyzer.GetIdentity(model);
-                                    var relatedForModel = (IList)TypeAnalyzer.GetGenericTypeDetail(listType, relatedType).Creator();
-                                    foreach (var relatedModel in relatedModelIdentities)
-                                    {
-                                        if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
-                                        {
-                                            relatedForModel.Add(relatedModel.Key);
-                                        }
-                                    }
-
-                                    modelPropertyInfo.Setter(model, relatedForModel);
-                                }
+                                object identity = ModelAnalyzer.GetIdentity(model);
+                                foreignIdentities.Add(identity);
                             }
+
+                            var containsMethodGeneric = TypeAnalyzer.GetGenericMethod(containsMethod, relatedForeignIdentityPropertyInfo.Type).MethodInfo;
+                            var condition = Expression.Call(containsMethodGeneric, Expression.Constant(foreignIdentities, foreignIdentityListTypeDetail.Type), Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo));
+                            var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
+
+                            var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
+                            var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
+                            relatedGraph.AddProperties(allNames);
+
+                            var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
+                            var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
+                            var query = queryGeneric.GetConstructor(queryParameterTypes).Creator(new object[] { queryExpression, relatedGraph });
+
+                            var repoQueryMany = TypeAnalyzer.GetGenericMethod(repoQueryAsyncManyGeneric, relatedType);
+                            var relatedModels = (ICollection)(await repoQueryMany.CallerAsync(repoQueryMany, new object[] { query }));
+
+                            var relatedModelIdentities = new Dictionary<object, object>();
+                            foreach (object relatedModel in relatedModels)
+                            {
+                                object relatedIdentity = ModelAnalyzer.GetForeignIdentity(relatedType, modelPropertyInfo.ForeignIdentity, relatedModel);
+                                if (relatedIdentity != null)
+                                    relatedModelIdentities.Add(relatedModel, relatedIdentity);
+                            }
+
+                            foreach (var model in returnModels)
+                            {
+                                var identity = ModelAnalyzer.GetIdentity(model);
+                                var relatedForModel = (IList)TypeAnalyzer.GetGenericTypeDetail(listType, relatedType).Creator();
+                                foreach (var relatedModel in relatedModelIdentities)
+                                {
+                                    if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
+                                    {
+                                        relatedForModel.Add(relatedModel.Key);
+                                    }
+                                }
+
+                                modelPropertyInfo.Setter(model, relatedForModel);
+                            }
+                        }
                         //});
                         //tasks.Add(task);
                     }
@@ -1211,39 +1211,39 @@ namespace Zerra.Repository
                 {
                     //var task = Task.Run(() =>
                     //{
-                        var relatedType = modelPropertyInfo.InnerType;
-                        graph.AddProperties(modelPropertyInfo.ForeignIdentity);
+                    var relatedType = modelPropertyInfo.InnerType;
+                    graph.AddProperties(modelPropertyInfo.ForeignIdentity);
 
-                        var relatedModel = modelPropertyInfo.Getter(model);
+                    var relatedModel = modelPropertyInfo.Getter(model);
 
-                        if (relatedModel != null)
+                    if (relatedModel != null)
+                    {
+                        var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+
+                        if (create)
                         {
-                            var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
-
-                            if (create)
-                            {
-                                var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(CreateType, relatedType);
-                                var persistParameterTypes = GetPersistParameterTypes(relatedType);
-                                var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModel, relatedGraph });
-                                var repoCreate = TypeAnalyzer.GetGenericMethod(repoPersistGeneric, relatedType);
-                                repoCreate.Caller(repoCreate, new object[] { persist });
-                            }
-                            else
-                            {
-                                var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(UpdateType, relatedType);
-                                var persistParameterTypes = GetPersistParameterTypes(relatedType);
-                                var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModel, relatedGraph });
-                                var repoUpdate = TypeAnalyzer.GetGenericMethod(repoPersistGeneric, relatedType);
-                                repoUpdate.Caller(repoUpdate, new object[] { persist });
-                            }
-
-                            var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
-                            ModelAnalyzer.SetForeignIdentity(modelPropertyInfo.ForeignIdentity, model, relatedIdentity);
+                            var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(CreateType, relatedType);
+                            var persistParameterTypes = GetPersistParameterTypes(relatedType);
+                            var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModel, relatedGraph });
+                            var repoCreate = TypeAnalyzer.GetGenericMethod(repoPersistGeneric, relatedType);
+                            repoCreate.Caller(repoCreate, new object[] { persist });
                         }
                         else
                         {
-                            ModelAnalyzer.SetForeignIdentity(modelPropertyInfo.ForeignIdentity, model, null);
+                            var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(UpdateType, relatedType);
+                            var persistParameterTypes = GetPersistParameterTypes(relatedType);
+                            var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModel, relatedGraph });
+                            var repoUpdate = TypeAnalyzer.GetGenericMethod(repoPersistGeneric, relatedType);
+                            repoUpdate.Caller(repoUpdate, new object[] { persist });
                         }
+
+                        var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
+                        ModelAnalyzer.SetForeignIdentity(modelPropertyInfo.ForeignIdentity, model, relatedIdentity);
+                    }
+                    else
+                    {
+                        ModelAnalyzer.SetForeignIdentity(modelPropertyInfo.ForeignIdentity, model, null);
+                    }
                     //});
                     //tasks.Add(task);
                 }
@@ -1264,133 +1264,133 @@ namespace Zerra.Repository
                 {
                     //var task = Task.Run(() =>
                     //{
-                        var relatedType = modelPropertyInfo.InnerType;
+                    var relatedType = modelPropertyInfo.InnerType;
 
-                        var relatedModels = (ICollection)modelPropertyInfo.Getter(model);
+                    var relatedModels = (ICollection)modelPropertyInfo.Getter(model);
 
-                        var identity = ModelAnalyzer.GetIdentity(model);
+                    var identity = ModelAnalyzer.GetIdentity(model);
 
-                        var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
+                    var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
-                        if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
-                            throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
+                    if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
+                        throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
 
-                        var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
-                        var relatedGraphType = TypeAnalyzer.GetGenericTypeDetail(graphType, relatedType);
+                    var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+                    var relatedGraphType = TypeAnalyzer.GetGenericTypeDetail(graphType, relatedType);
 
-                        var listTypeDetail = TypeAnalyzer.GetGenericTypeDetail(listType, relatedType);
-                        var relatedModelsExisting = (IList)listTypeDetail.Creator();
-                        var relatedModelsDelete = (IList)listTypeDetail.Creator();
-                        var relatedModelsCreate = (IList)listTypeDetail.Creator();
-                        var relatedModelsUpdate = (IList)listTypeDetail.Creator();
+                    var listTypeDetail = TypeAnalyzer.GetGenericTypeDetail(listType, relatedType);
+                    var relatedModelsExisting = (IList)listTypeDetail.Creator();
+                    var relatedModelsDelete = (IList)listTypeDetail.Creator();
+                    var relatedModelsCreate = (IList)listTypeDetail.Creator();
+                    var relatedModelsUpdate = (IList)listTypeDetail.Creator();
 
-                        if (!create)
+                    if (!create)
+                    {
+                        var queryExpressionParameter = Expression.Parameter(relatedType, "x");
+                        var queryExpression = Expression.Lambda(Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), Expression.Constant(identity, relatedForeignIdentityPropertyInfo.Type)), queryExpressionParameter);
+                        var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
+
+                        var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
+                        var queryGraph = relatedGraphType.GetConstructor(GraphParameterTypes).Creator(new object[] { allNames });
+
+                        var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
+                        var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
+                        var query = queryGeneric.GetConstructor(queryParameterTypes).Creator(new object[] { queryExpression, queryGraph });
+
+                        var repoQueryMany = TypeAnalyzer.GetGenericMethod(repoQueryManyGeneric, relatedType);
+                        var relatedExistings = (ICollection)repoQueryMany.Caller(repoQueryMany, new object[] { query });
+
+                        foreach (var relatedExisting in relatedExistings)
+                            relatedModelsExisting.Add(relatedExisting);
+                    }
+
+                    var relatedModelIdentities = new Dictionary<object, object>();
+
+                    if (relatedModels != null)
+                    {
+                        foreach (var relatedModel in relatedModels)
                         {
-                            var queryExpressionParameter = Expression.Parameter(relatedType, "x");
-                            var queryExpression = Expression.Lambda(Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), Expression.Constant(identity, relatedForeignIdentityPropertyInfo.Type)), queryExpressionParameter);
-                            var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
-
-                            var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
-                            var queryGraph = relatedGraphType.GetConstructor(GraphParameterTypes).Creator(new object[] { allNames });
-
-                            var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
-                            var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
-                            var query = queryGeneric.GetConstructor(queryParameterTypes).Creator(new object[] { queryExpression, queryGraph });
-
-                            var repoQueryMany = TypeAnalyzer.GetGenericMethod(repoQueryManyGeneric, relatedType);
-                            var relatedExistings = (ICollection)repoQueryMany.Caller(repoQueryMany, new object[] { query });
-
-                            foreach (var relatedExisting in relatedExistings)
-                                relatedModelsExisting.Add(relatedExisting);
+                            ModelAnalyzer.SetForeignIdentity(relatedType, modelPropertyInfo.ForeignIdentity, relatedModel, identity);
                         }
 
-                        var relatedModelIdentities = new Dictionary<object, object>();
-
-                        if (relatedModels != null)
+                        foreach (var relatedModel in relatedModels)
                         {
-                            foreach (var relatedModel in relatedModels)
-                            {
-                                ModelAnalyzer.SetForeignIdentity(relatedType, modelPropertyInfo.ForeignIdentity, relatedModel, identity);
-                            }
-
-                            foreach (var relatedModel in relatedModels)
-                            {
-                                var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
-                                relatedModelIdentities.Add(relatedModel, relatedIdentity);
-                            }
+                            var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
+                            relatedModelIdentities.Add(relatedModel, relatedIdentity);
                         }
+                    }
 
-                        var relatedModelsExistingIdentities = new Dictionary<object, object>();
-                        foreach (object relatedExisting in relatedModelsExisting)
-                        {
-                            var relatedExistingIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedExisting);
-                            relatedModelsExistingIdentities.Add(relatedExisting, relatedExistingIdentity);
-                        }
+                    var relatedModelsExistingIdentities = new Dictionary<object, object>();
+                    foreach (object relatedExisting in relatedModelsExisting)
+                    {
+                        var relatedExistingIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedExisting);
+                        relatedModelsExistingIdentities.Add(relatedExisting, relatedExistingIdentity);
+                    }
 
-                        var relatedModelsUpdateIdentities = new Dictionary<object, object>();
+                    var relatedModelsUpdateIdentities = new Dictionary<object, object>();
 
-                        foreach (var relatedModel in relatedModelIdentities)
-                        {
-                            bool foundExisting = false;
-                            foreach (var relatedExisting in relatedModelsExistingIdentities)
-                            {
-                                var relatedExistingIdentity = relatedExisting.Value;
-                                if (ModelAnalyzer.CompareIdentities(relatedExistingIdentity, relatedModel.Value))
-                                {
-                                    relatedModelsUpdate.Add(relatedModel.Key);
-                                    relatedModelsUpdateIdentities.Add(relatedModel.Key, relatedModel.Value);
-                                    foundExisting = true;
-                                    break;
-                                }
-                            }
-                            if (!foundExisting)
-                            {
-                                relatedModelsCreate.Add(relatedModel.Key);
-                            }
-                        }
-
+                    foreach (var relatedModel in relatedModelIdentities)
+                    {
+                        bool foundExisting = false;
                         foreach (var relatedExisting in relatedModelsExistingIdentities)
                         {
-                            bool foundUpdating = false;
-                            foreach (var relatedModelUpdate in relatedModelsUpdateIdentities)
+                            var relatedExistingIdentity = relatedExisting.Value;
+                            if (ModelAnalyzer.CompareIdentities(relatedExistingIdentity, relatedModel.Value))
                             {
-                                var relatedIdentity = relatedModelUpdate.Value;
-                                if (ModelAnalyzer.CompareIdentities(relatedExisting.Value, relatedIdentity))
-                                {
-                                    foundUpdating = true;
-                                    break;
-                                }
-                            }
-                            if (!foundUpdating)
-                            {
-                                relatedModelsDelete.Add(relatedExisting.Key);
+                                relatedModelsUpdate.Add(relatedModel.Key);
+                                relatedModelsUpdateIdentities.Add(relatedModel.Key, relatedModel.Value);
+                                foundExisting = true;
+                                break;
                             }
                         }
+                        if (!foundExisting)
+                        {
+                            relatedModelsCreate.Add(relatedModel.Key);
+                        }
+                    }
 
-                        if (relatedModelsDelete.Count > 0)
+                    foreach (var relatedExisting in relatedModelsExistingIdentities)
+                    {
+                        bool foundUpdating = false;
+                        foreach (var relatedModelUpdate in relatedModelsUpdateIdentities)
                         {
-                            var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(DeleteType, relatedType);
-                            var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
-                            var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsDelete, relatedGraph });
-                            var repoDelete = TypeAnalyzer.GetGenericMethod(repoPersistGeneric, relatedType);
-                            repoDelete.Caller(repoDelete, new object[] { persist });
+                            var relatedIdentity = relatedModelUpdate.Value;
+                            if (ModelAnalyzer.CompareIdentities(relatedExisting.Value, relatedIdentity))
+                            {
+                                foundUpdating = true;
+                                break;
+                            }
                         }
-                        if (relatedModelsUpdate.Count > 0)
+                        if (!foundUpdating)
                         {
-                            var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(UpdateType, relatedType);
-                            var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
-                            var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsUpdate, relatedGraph });
-                            var repoUpdate = TypeAnalyzer.GetGenericMethod(repoPersistGeneric, relatedType);
-                            repoUpdate.Caller(repoUpdate, new object[] { persist });
+                            relatedModelsDelete.Add(relatedExisting.Key);
                         }
-                        if (relatedModelsCreate.Count > 0)
-                        {
-                            var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(CreateType, relatedType);
-                            var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
-                            var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsCreate, relatedGraph });
-                            var repoCreate = TypeAnalyzer.GetGenericMethod(repoPersistGeneric, relatedType);
-                            repoCreate.Caller(repoCreate, new object[] { persist });
-                        }
+                    }
+
+                    if (relatedModelsDelete.Count > 0)
+                    {
+                        var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(DeleteType, relatedType);
+                        var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
+                        var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsDelete, relatedGraph });
+                        var repoDelete = TypeAnalyzer.GetGenericMethod(repoPersistGeneric, relatedType);
+                        repoDelete.Caller(repoDelete, new object[] { persist });
+                    }
+                    if (relatedModelsUpdate.Count > 0)
+                    {
+                        var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(UpdateType, relatedType);
+                        var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
+                        var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsUpdate, relatedGraph });
+                        var repoUpdate = TypeAnalyzer.GetGenericMethod(repoPersistGeneric, relatedType);
+                        repoUpdate.Caller(repoUpdate, new object[] { persist });
+                    }
+                    if (relatedModelsCreate.Count > 0)
+                    {
+                        var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(CreateType, relatedType);
+                        var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
+                        var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsCreate, relatedGraph });
+                        var repoCreate = TypeAnalyzer.GetGenericMethod(repoPersistGeneric, relatedType);
+                        repoCreate.Caller(repoCreate, new object[] { persist });
+                    }
                     //});
                     //tasks.Add(task);
                 }
@@ -1411,43 +1411,43 @@ namespace Zerra.Repository
                 {
                     //var task = Task.Run(() =>
                     //{
-                        var relatedType = modelPropertyInfo.InnerType;
+                    var relatedType = modelPropertyInfo.InnerType;
 
-                        var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
+                    var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
-                        if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
-                            throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
+                    if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
+                        throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
 
-                        var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
-                        var relatedGraphType = TypeAnalyzer.GetGenericTypeDetail(graphType, relatedType);
+                    var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+                    var relatedGraphType = TypeAnalyzer.GetGenericTypeDetail(graphType, relatedType);
 
-                        var relatedModelsExisting = (IList)TypeAnalyzer.GetGenericTypeDetail(listType, relatedType).Creator();
+                    var relatedModelsExisting = (IList)TypeAnalyzer.GetGenericTypeDetail(listType, relatedType).Creator();
 
-                        var queryExpressionParameter = Expression.Parameter(relatedType, "x");
-                        var queryExpression = Expression.Lambda(Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), Expression.Constant(id, relatedForeignIdentityPropertyInfo.Type)), queryExpressionParameter);
-                        var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
+                    var queryExpressionParameter = Expression.Parameter(relatedType, "x");
+                    var queryExpression = Expression.Lambda(Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), Expression.Constant(id, relatedForeignIdentityPropertyInfo.Type)), queryExpressionParameter);
+                    var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
 
-                        var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
-                        var queryGraph = relatedGraphType.GetConstructor(GraphParameterTypes).Creator(new object[] { allNames });
+                    var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
+                    var queryGraph = relatedGraphType.GetConstructor(GraphParameterTypes).Creator(new object[] { allNames });
 
-                        var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
-                        var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
-                        var query = queryGeneric.GetConstructor(queryParameterTypes).Creator(new object[] { queryExpression, queryGraph });
+                    var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
+                    var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
+                    var query = queryGeneric.GetConstructor(queryParameterTypes).Creator(new object[] { queryExpression, queryGraph });
 
-                        var repoQueryMany = TypeAnalyzer.GetGenericMethod(repoQueryManyGeneric, relatedType);
-                        var relatedExistings = (ICollection)repoQueryMany.Caller(repoQueryMany, new object[] { query });
+                    var repoQueryMany = TypeAnalyzer.GetGenericMethod(repoQueryManyGeneric, relatedType);
+                    var relatedExistings = (ICollection)repoQueryMany.Caller(repoQueryMany, new object[] { query });
 
-                        foreach (var relatedExisting in relatedExistings)
-                            relatedModelsExisting.Add(relatedExisting);
+                    foreach (var relatedExisting in relatedExistings)
+                        relatedModelsExisting.Add(relatedExisting);
 
-                        if (relatedModelsExisting.Count > 0)
-                        {
-                            var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(DeleteType, relatedType);
-                            var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
-                            var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsExisting, relatedGraph });
-                            var repoDelete = TypeAnalyzer.GetGenericMethod(repoPersistGeneric, relatedType);
-                            repoDelete.Caller(repoDelete, new object[] { persist });
-                        }
+                    if (relatedModelsExisting.Count > 0)
+                    {
+                        var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(DeleteType, relatedType);
+                        var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
+                        var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsExisting, relatedGraph });
+                        var repoDelete = TypeAnalyzer.GetGenericMethod(repoPersistGeneric, relatedType);
+                        repoDelete.Caller(repoDelete, new object[] { persist });
+                    }
                     //});
                     //tasks.Add(task);
                 }
@@ -1470,39 +1470,39 @@ namespace Zerra.Repository
                 {
                     //var task = Task.Run(async () =>
                     //{
-                        var relatedType = modelPropertyInfo.InnerType;
-                        graph.AddProperties(modelPropertyInfo.ForeignIdentity);
+                    var relatedType = modelPropertyInfo.InnerType;
+                    graph.AddProperties(modelPropertyInfo.ForeignIdentity);
 
-                        var relatedModel = modelPropertyInfo.Getter(model);
+                    var relatedModel = modelPropertyInfo.Getter(model);
 
-                        if (relatedModel != null)
+                    if (relatedModel != null)
+                    {
+                        var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+
+                        if (create)
                         {
-                            var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
-
-                            if (create)
-                            {
-                                var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(CreateType, relatedType);
-                                var persistParameterTypes = GetPersistParameterTypes(relatedType);
-                                var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModel, relatedGraph });
-                                var repoCreate = TypeAnalyzer.GetGenericMethod(repoPersistAsyncGeneric, relatedType);
-                                await repoCreate.CallerAsync(repoCreate, new object[] { persist });
-                            }
-                            else
-                            {
-                                var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(UpdateType, relatedType);
-                                var persistParameterTypes = GetPersistParameterTypes(relatedType);
-                                var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModel, relatedGraph });
-                                var repoUpdate = TypeAnalyzer.GetGenericMethod(repoPersistAsyncGeneric, relatedType);
-                                await repoUpdate.CallerAsync(repoUpdate, new object[] { persist });
-                            }
-
-                            var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
-                            ModelAnalyzer.SetForeignIdentity(modelPropertyInfo.ForeignIdentity, model, relatedIdentity);
+                            var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(CreateType, relatedType);
+                            var persistParameterTypes = GetPersistParameterTypes(relatedType);
+                            var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModel, relatedGraph });
+                            var repoCreate = TypeAnalyzer.GetGenericMethod(repoPersistAsyncGeneric, relatedType);
+                            await repoCreate.CallerAsync(repoCreate, new object[] { persist });
                         }
                         else
                         {
-                            ModelAnalyzer.SetForeignIdentity(modelPropertyInfo.ForeignIdentity, model, null);
+                            var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(UpdateType, relatedType);
+                            var persistParameterTypes = GetPersistParameterTypes(relatedType);
+                            var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModel, relatedGraph });
+                            var repoUpdate = TypeAnalyzer.GetGenericMethod(repoPersistAsyncGeneric, relatedType);
+                            await repoUpdate.CallerAsync(repoUpdate, new object[] { persist });
                         }
+
+                        var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
+                        ModelAnalyzer.SetForeignIdentity(modelPropertyInfo.ForeignIdentity, model, relatedIdentity);
+                    }
+                    else
+                    {
+                        ModelAnalyzer.SetForeignIdentity(modelPropertyInfo.ForeignIdentity, model, null);
+                    }
                     //});
                     //tasks.Add(task);
                 }
@@ -1523,133 +1523,133 @@ namespace Zerra.Repository
                 {
                     //var task = Task.Run(async () =>
                     //{
-                        var relatedType = modelPropertyInfo.InnerType;
+                    var relatedType = modelPropertyInfo.InnerType;
 
-                        var relatedModels = (ICollection)modelPropertyInfo.Getter(model);
+                    var relatedModels = (ICollection)modelPropertyInfo.Getter(model);
 
-                        var identity = ModelAnalyzer.GetIdentity(model);
+                    var identity = ModelAnalyzer.GetIdentity(model);
 
-                        var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
+                    var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
-                        if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
-                            throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
+                    if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
+                        throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
 
-                        var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
-                        var relatedGraphType = TypeAnalyzer.GetGenericTypeDetail(graphType, relatedType);
+                    var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+                    var relatedGraphType = TypeAnalyzer.GetGenericTypeDetail(graphType, relatedType);
 
-                        var listTypeDetail = TypeAnalyzer.GetGenericTypeDetail(listType, relatedType);
-                        var relatedModelsExisting = (IList)listTypeDetail.Creator();
-                        var relatedModelsDelete = (IList)listTypeDetail.Creator();
-                        var relatedModelsCreate = (IList)listTypeDetail.Creator();
-                        var relatedModelsUpdate = (IList)listTypeDetail.Creator();
+                    var listTypeDetail = TypeAnalyzer.GetGenericTypeDetail(listType, relatedType);
+                    var relatedModelsExisting = (IList)listTypeDetail.Creator();
+                    var relatedModelsDelete = (IList)listTypeDetail.Creator();
+                    var relatedModelsCreate = (IList)listTypeDetail.Creator();
+                    var relatedModelsUpdate = (IList)listTypeDetail.Creator();
 
-                        if (!create)
+                    if (!create)
+                    {
+                        var queryExpressionParameter = Expression.Parameter(relatedType, "x");
+                        var queryExpression = Expression.Lambda(Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), Expression.Constant(identity, relatedForeignIdentityPropertyInfo.Type)), queryExpressionParameter);
+                        var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
+
+                        var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
+                        var queryGraph = relatedGraphType.GetConstructor(GraphParameterTypes).Creator(new object[] { allNames });
+
+                        var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
+                        var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
+                        var query = queryGeneric.GetConstructor(queryParameterTypes).Creator(new object[] { queryExpression, queryGraph });
+
+                        var repoQueryMany = TypeAnalyzer.GetGenericMethod(repoQueryAsyncManyGeneric, relatedType);
+                        var relatedExistings = (ICollection)await repoQueryMany.CallerAsync(repoQueryMany, new object[] { query });
+
+                        foreach (var relatedExisting in relatedExistings)
+                            relatedModelsExisting.Add(relatedExisting);
+                    }
+
+                    var relatedModelIdentities = new Dictionary<object, object>();
+
+                    if (relatedModels != null)
+                    {
+                        foreach (var relatedModel in relatedModels)
                         {
-                            var queryExpressionParameter = Expression.Parameter(relatedType, "x");
-                            var queryExpression = Expression.Lambda(Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), Expression.Constant(identity, relatedForeignIdentityPropertyInfo.Type)), queryExpressionParameter);
-                            var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
-
-                            var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
-                            var queryGraph = relatedGraphType.GetConstructor(GraphParameterTypes).Creator(new object[] { allNames });
-
-                            var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
-                            var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
-                            var query = queryGeneric.GetConstructor(queryParameterTypes).Creator(new object[] { queryExpression, queryGraph });
-
-                            var repoQueryMany = TypeAnalyzer.GetGenericMethod(repoQueryAsyncManyGeneric, relatedType);
-                            var relatedExistings = (ICollection)await repoQueryMany.CallerAsync(repoQueryMany, new object[] { query });
-
-                            foreach (var relatedExisting in relatedExistings)
-                                relatedModelsExisting.Add(relatedExisting);
+                            ModelAnalyzer.SetForeignIdentity(relatedType, modelPropertyInfo.ForeignIdentity, relatedModel, identity);
                         }
 
-                        var relatedModelIdentities = new Dictionary<object, object>();
-
-                        if (relatedModels != null)
+                        foreach (var relatedModel in relatedModels)
                         {
-                            foreach (var relatedModel in relatedModels)
-                            {
-                                ModelAnalyzer.SetForeignIdentity(relatedType, modelPropertyInfo.ForeignIdentity, relatedModel, identity);
-                            }
-
-                            foreach (var relatedModel in relatedModels)
-                            {
-                                var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
-                                relatedModelIdentities.Add(relatedModel, relatedIdentity);
-                            }
+                            var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
+                            relatedModelIdentities.Add(relatedModel, relatedIdentity);
                         }
+                    }
 
-                        var relatedModelsExistingIdentities = new Dictionary<object, object>();
-                        foreach (object relatedExisting in relatedModelsExisting)
-                        {
-                            var relatedExistingIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedExisting);
-                            relatedModelsExistingIdentities.Add(relatedExisting, relatedExistingIdentity);
-                        }
+                    var relatedModelsExistingIdentities = new Dictionary<object, object>();
+                    foreach (object relatedExisting in relatedModelsExisting)
+                    {
+                        var relatedExistingIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedExisting);
+                        relatedModelsExistingIdentities.Add(relatedExisting, relatedExistingIdentity);
+                    }
 
-                        var relatedModelsUpdateIdentities = new Dictionary<object, object>();
+                    var relatedModelsUpdateIdentities = new Dictionary<object, object>();
 
-                        foreach (var relatedModel in relatedModelIdentities)
-                        {
-                            bool foundExisting = false;
-                            foreach (var relatedExisting in relatedModelsExistingIdentities)
-                            {
-                                var relatedExistingIdentity = relatedExisting.Value;
-                                if (ModelAnalyzer.CompareIdentities(relatedExistingIdentity, relatedModel.Value))
-                                {
-                                    relatedModelsUpdate.Add(relatedModel.Key);
-                                    relatedModelsUpdateIdentities.Add(relatedModel.Key, relatedModel.Value);
-                                    foundExisting = true;
-                                    break;
-                                }
-                            }
-                            if (!foundExisting)
-                            {
-                                relatedModelsCreate.Add(relatedModel.Key);
-                            }
-                        }
-
+                    foreach (var relatedModel in relatedModelIdentities)
+                    {
+                        bool foundExisting = false;
                         foreach (var relatedExisting in relatedModelsExistingIdentities)
                         {
-                            bool foundUpdating = false;
-                            foreach (var relatedModelUpdate in relatedModelsUpdateIdentities)
+                            var relatedExistingIdentity = relatedExisting.Value;
+                            if (ModelAnalyzer.CompareIdentities(relatedExistingIdentity, relatedModel.Value))
                             {
-                                var relatedIdentity = relatedModelUpdate.Value;
-                                if (ModelAnalyzer.CompareIdentities(relatedExisting.Value, relatedIdentity))
-                                {
-                                    foundUpdating = true;
-                                    break;
-                                }
-                            }
-                            if (!foundUpdating)
-                            {
-                                relatedModelsDelete.Add(relatedExisting.Key);
+                                relatedModelsUpdate.Add(relatedModel.Key);
+                                relatedModelsUpdateIdentities.Add(relatedModel.Key, relatedModel.Value);
+                                foundExisting = true;
+                                break;
                             }
                         }
+                        if (!foundExisting)
+                        {
+                            relatedModelsCreate.Add(relatedModel.Key);
+                        }
+                    }
 
-                        if (relatedModelsDelete.Count > 0)
+                    foreach (var relatedExisting in relatedModelsExistingIdentities)
+                    {
+                        bool foundUpdating = false;
+                        foreach (var relatedModelUpdate in relatedModelsUpdateIdentities)
                         {
-                            var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(DeleteType, relatedType);
-                            var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
-                            var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsDelete, relatedGraph });
-                            var repoDelete = TypeAnalyzer.GetGenericMethod(repoPersistAsyncGeneric, relatedType);
-                            await repoDelete.CallerAsync(repoDelete, new object[] { persist });
+                            var relatedIdentity = relatedModelUpdate.Value;
+                            if (ModelAnalyzer.CompareIdentities(relatedExisting.Value, relatedIdentity))
+                            {
+                                foundUpdating = true;
+                                break;
+                            }
                         }
-                        if (relatedModelsUpdate.Count > 0)
+                        if (!foundUpdating)
                         {
-                            var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(UpdateType, relatedType);
-                            var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
-                            var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsUpdate, relatedGraph });
-                            var repoUpdate = TypeAnalyzer.GetGenericMethod(repoPersistAsyncGeneric, relatedType);
-                            await repoUpdate.CallerAsync(repoUpdate, new object[] { persist });
+                            relatedModelsDelete.Add(relatedExisting.Key);
                         }
-                        if (relatedModelsCreate.Count > 0)
-                        {
-                            var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(CreateType, relatedType);
-                            var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
-                            var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsCreate, relatedGraph });
-                            var repoCreate = TypeAnalyzer.GetGenericMethod(repoPersistAsyncGeneric, relatedType);
-                            await repoCreate.CallerAsync(repoCreate, new object[] { persist });
-                        }
+                    }
+
+                    if (relatedModelsDelete.Count > 0)
+                    {
+                        var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(DeleteType, relatedType);
+                        var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
+                        var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsDelete, relatedGraph });
+                        var repoDelete = TypeAnalyzer.GetGenericMethod(repoPersistAsyncGeneric, relatedType);
+                        await repoDelete.CallerAsync(repoDelete, new object[] { persist });
+                    }
+                    if (relatedModelsUpdate.Count > 0)
+                    {
+                        var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(UpdateType, relatedType);
+                        var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
+                        var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsUpdate, relatedGraph });
+                        var repoUpdate = TypeAnalyzer.GetGenericMethod(repoPersistAsyncGeneric, relatedType);
+                        await repoUpdate.CallerAsync(repoUpdate, new object[] { persist });
+                    }
+                    if (relatedModelsCreate.Count > 0)
+                    {
+                        var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(CreateType, relatedType);
+                        var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
+                        var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsCreate, relatedGraph });
+                        var repoCreate = TypeAnalyzer.GetGenericMethod(repoPersistAsyncGeneric, relatedType);
+                        await repoCreate.CallerAsync(repoCreate, new object[] { persist });
+                    }
                     //});
                     //tasks.Add(task);
                 }
@@ -1670,43 +1670,43 @@ namespace Zerra.Repository
                 {
                     //var task = Task.Run(async () =>
                     //{
-                        var relatedType = modelPropertyInfo.InnerType;
+                    var relatedType = modelPropertyInfo.InnerType;
 
-                        var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
+                    var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
-                        if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
-                            throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
+                    if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
+                        throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
 
-                        var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
-                        var relatedGraphType = TypeAnalyzer.GetGenericTypeDetail(graphType, relatedType);
+                    var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+                    var relatedGraphType = TypeAnalyzer.GetGenericTypeDetail(graphType, relatedType);
 
-                        var relatedModelsExisting = (IList)TypeAnalyzer.GetType(TypeAnalyzer.GetGenericType(listType, relatedType)).Creator();
+                    var relatedModelsExisting = (IList)TypeAnalyzer.GetType(TypeAnalyzer.GetGenericType(listType, relatedType)).Creator();
 
-                        var queryExpressionParameter = Expression.Parameter(relatedType, "x");
-                        var queryExpression = Expression.Lambda(Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), Expression.Constant(id, relatedForeignIdentityPropertyInfo.Type)), queryExpressionParameter);
-                        var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
+                    var queryExpressionParameter = Expression.Parameter(relatedType, "x");
+                    var queryExpression = Expression.Lambda(Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), Expression.Constant(id, relatedForeignIdentityPropertyInfo.Type)), queryExpressionParameter);
+                    var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
 
-                        var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
-                        var queryGraph = relatedGraphType.GetConstructor(GraphParameterTypes).Creator(new object[] { allNames });
+                    var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
+                    var queryGraph = relatedGraphType.GetConstructor(GraphParameterTypes).Creator(new object[] { allNames });
 
-                        var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
-                        var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
-                        var query = queryGeneric.GetConstructor(queryParameterTypes).Creator(new object[] { queryExpression, queryGraph });
+                    var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
+                    var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
+                    var query = queryGeneric.GetConstructor(queryParameterTypes).Creator(new object[] { queryExpression, queryGraph });
 
-                        var repoQueryMany = TypeAnalyzer.GetGenericMethod(repoQueryAsyncManyGeneric, relatedType);
-                        var relatedExistings = (ICollection)await repoQueryMany.CallerAsync(repoQueryMany, new object[] { query });
+                    var repoQueryMany = TypeAnalyzer.GetGenericMethod(repoQueryAsyncManyGeneric, relatedType);
+                    var relatedExistings = (ICollection)await repoQueryMany.CallerAsync(repoQueryMany, new object[] { query });
 
-                        foreach (var relatedExisting in relatedExistings)
-                            relatedModelsExisting.Add(relatedExisting);
+                    foreach (var relatedExisting in relatedExistings)
+                        relatedModelsExisting.Add(relatedExisting);
 
-                        if (relatedModelsExisting.Count > 0)
-                        {
-                            var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(DeleteType, relatedType);
-                            var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
-                            var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsExisting, relatedGraph });
-                            var repoDelete = TypeAnalyzer.GetGenericMethod(repoPersistAsyncGeneric, relatedType);
-                            await repoDelete.CallerAsync(repoDelete, new object[] { persist });
-                        }
+                    if (relatedModelsExisting.Count > 0)
+                    {
+                        var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(DeleteType, relatedType);
+                        var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
+                        var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsExisting, relatedGraph });
+                        var repoDelete = TypeAnalyzer.GetGenericMethod(repoPersistAsyncGeneric, relatedType);
+                        await repoDelete.CallerAsync(repoDelete, new object[] { persist });
+                    }
                     //});
                     //tasks.Add(task);
                 }

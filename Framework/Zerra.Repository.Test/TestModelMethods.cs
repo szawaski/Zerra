@@ -9,28 +9,57 @@ namespace Zerra.Repository.Test
 {
     public static class TestModelMethods
     {
-        public static void TestSequence<T>(TransactStoreProvider<T, TestTypesModel> provider) where T : DataContext<ITransactStoreEngine>
+        public static void TestSequence<T, U>(IDataProvider<T> provider, IDataProvider<U> relationProvider)
+            where T : BaseTestTypesModel<U>, new()
+            where U : BaseTestRelationsModel, new()
         {
-            var modelOrigin = GetTestTypesModel();
-            modelOrigin.KeyA = Guid.NewGuid();
-            provider.Persist(new Create<TestTypesModel>(modelOrigin));
+            var model = GetTestTypesModel<T, U>();
+            model.KeyA = Guid.NewGuid();
+            provider.Persist(new Create<T>(model));
 
-            var model2 = (TestTypesModel)provider.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == modelOrigin.KeyA));
-            AssertAreEqual(modelOrigin, model2);
+            var modelCheck = (T)provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA));
+            AssertAreEqual<T, U>(model, modelCheck);
 
-            UpdateModel(modelOrigin);
-            provider.Persist(new Update<TestTypesModel>(modelOrigin));
-            model2 = (TestTypesModel)provider.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == modelOrigin.KeyA));
-            AssertAreEqual(modelOrigin, model2);
+            UpdateModel<T, U>(model);
+            provider.Persist(new Update<T>(model));
+            modelCheck = (T)provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA));
+            AssertAreEqual<T, U>(model, modelCheck);
 
-            provider.Persist(new Delete<TestTypesModel>(modelOrigin));
-            model2 = (TestTypesModel)provider.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == modelOrigin.KeyA));
-            Assert.IsNull(model2);
+            var relationModel = new U();
+            relationModel.RelationKey = Guid.NewGuid();
+            relationProvider.Persist(new Create<U>(relationModel));
+            var relationModelCheck = (U)relationProvider.Query(new QuerySingle<U>(x => x.RelationKey == relationModel.RelationKey));
+            Assert.IsNotNull(relationModelCheck);
+
+            model.RelationAKey = relationModel.RelationKey;
+            provider.Persist(new Update<T>(model, new Graph<T>(x => x.RelationAKey)));
+            modelCheck = (T)provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA));
+            Assert.AreEqual(model.RelationAKey, modelCheck.RelationAKey);
+            modelCheck = (T)provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA, new Graph<T>(x => x.RelationA)));
+            Assert.IsNotNull(modelCheck.RelationA);
+            Assert.AreEqual(model.RelationAKey, modelCheck.RelationA.RelationKey);
+
+            model.RelationAKey = null;
+            provider.Persist(new Update<T>(model, new Graph<T>(x => x.RelationAKey)));
+            modelCheck = (T)provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA));
+            Assert.AreEqual(model.RelationAKey, modelCheck.RelationAKey);
+            modelCheck = (T)provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA, new Graph<T>(x => x.RelationA)));
+            Assert.IsNull(model.RelationA);
+
+            provider.Persist(new Delete<T>(model));
+            modelCheck = (T)provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA));
+            Assert.IsNull(modelCheck);
+
+            relationProvider.Persist(new Delete<U>(relationModel));
+            relationModelCheck = (U)relationProvider.Query(new QuerySingle<U>(x => x.RelationKey == relationModel.RelationKey));
+            Assert.IsNull(relationModelCheck);
         }
 
-        public static TestTypesModel GetTestTypesModel()
+        public static T GetTestTypesModel<T, U>()
+            where T : BaseTestTypesModel<U>, new()
+            where U : BaseTestRelationsModel, new()
         {
-            var model = new TestTypesModel()
+            var model = new T()
             {
                 ByteThing = 1,
                 Int16Thing = -3,
@@ -79,7 +108,9 @@ namespace Zerra.Repository.Test
             };
             return model;
         }
-        public static void UpdateModel(TestTypesModel model)
+        public static void UpdateModel<T, U>(T model)
+            where T : BaseTestTypesModel<U>, new()
+            where U : BaseTestRelationsModel, new()
         {
             model.ByteThing++;
             model.Int16Thing++;
@@ -107,8 +138,13 @@ namespace Zerra.Repository.Test
             model.TimeSpanNullableThing = DateTime.Now.AddHours(1).TimeOfDay;
             model.GuidNullableThing = Guid.NewGuid();
         }
-        public static void AssertAreEqual(TestTypesModel model1, TestTypesModel model2)
+        public static void AssertAreEqual<T, U>(T model1, T model2)
+            where T : BaseTestTypesModel<U>, new()
+            where U : BaseTestRelationsModel, new()
         {
+            Assert.IsNotNull(model1);
+            Assert.IsNotNull(model2);
+
             Assert.AreEqual(model1.ByteThing, model2.ByteThing);
             Assert.AreEqual(model1.Int16Thing, model2.Int16Thing);
             Assert.AreEqual(model1.Int32Thing, model2.Int32Thing);

@@ -11,12 +11,4 @@ namespace Zerra.Repository.Test
         protected override bool DisableBuildStoreFromModels => false;
         public override string ConnectionString => "User ID=postgres;Password=password123;Host=localhost;Port=5432;Database=zerrasqltest;";
     }
-
-    public abstract partial class PostgreSqlBaseSqlProvider<TModel> : TransactStoreProvider<PostgreSqlTestSqlDataContext, TModel> where TModel : class, new()
-    {
-        protected override bool DisableQueryLinking => true;
-        protected override bool DisableEventLinking => true;
-        protected override bool DisablePersistLinking => true;
-    }
-    public class PostgreSqlTestTypesCustomerSqlProvider : PostgreSqlBaseSqlProvider<TestTypesModel> { }
 }

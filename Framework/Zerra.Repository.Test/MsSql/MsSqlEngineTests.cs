@@ -35,7 +35,7 @@ namespace Zerra.Repository.Test
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = $"IF EXISTS(SELECT[dbid] FROM master.dbo.sysdatabases where[name] = '{testDatabase}')\r\nDROP DATABASE {testDatabase}";
+                    command.CommandText = $"IF EXISTS(SELECT[dbid] FROM master.dbo.sysdatabases where[name] = '{testDatabase}')\r\nBEGIN\r\nALTER DATABASE [{testDatabase}] SET single_user WITH ROLLBACK IMMEDIATE\r\nDROP DATABASE {testDatabase}\r\nEND";
                     command.ExecuteNonQuery();
                 }
             }
@@ -45,13 +45,15 @@ namespace Zerra.Repository.Test
         public void TestSequence()
         {
             var context = new MsSqlTestSqlDataContext();
-            var provider = new MsSqlTestTypesCustomerSqlProvider();
 
             DropDatabase(context);
 
             _ = context.InitializeEngine(true);
 
-            TestModelMethods.TestSequence(provider);
+            var provider = new MsSqlTestTypesSqlProvider();
+            var relationProvider = new MsSqlTestRelationsSqlProvider();
+
+            TestModelMethods.TestSequence(provider, relationProvider);
 
             const string changeColumn = "ALTER TABLE [TestTypes] ALTER COLUMN [Int32Thing] bigint NULL";
             const string addColumn = "ALTER TABLE [TestTypes] ADD [DummyToMakeNullable] int NOT NULL";

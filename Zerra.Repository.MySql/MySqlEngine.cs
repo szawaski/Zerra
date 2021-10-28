@@ -1582,9 +1582,9 @@ namespace Zerra.Repository.MySql
                     case CoreType.Decimal: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == false && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
                     case CoreType.Char: return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == false && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
                     case CoreType.DateTime: return sqlColumn.DataType == "timestamp" && sqlColumn.IsNullable == false;
-                    case CoreType.DateTimeOffset: return sqlColumn.DataType == "timestamptz" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.DateTimeOffset: return sqlColumn.DataType == "timestamp" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.TimeSpan: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
-                    case CoreType.Guid: return sqlColumn.DataType == "uuid" && sqlColumn.IsNullable == false;
+                    case CoreType.Guid: return sqlColumn.DataType == "char" && sqlColumn.IsNullable == false;
 
                     case CoreType.BooleanNullable: return sqlColumn.DataType == "bit" && sqlColumn.IsNullable == true;
                     case CoreType.ByteNullable: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == true;
@@ -1595,10 +1595,10 @@ namespace Zerra.Repository.MySql
                     case CoreType.DoubleNullable: return sqlColumn.DataType == "float8" && sqlColumn.IsNullable == true;
                     case CoreType.DecimalNullable: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == true && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
                     case CoreType.CharNullable: return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == true && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
-                    case CoreType.DateTimeNullable: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == true;
-                    case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "timestamptz" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.DateTimeNullable: return sqlColumn.DataType == "timestamp" && sqlColumn.IsNullable == true;
+                    case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "timestamp" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
-                    case CoreType.GuidNullable: return sqlColumn.DataType == "uuid" && sqlColumn.IsNullable == true;
+                    case CoreType.GuidNullable: return sqlColumn.DataType == "char" && sqlColumn.IsNullable == true;
 
                     case CoreType.String:
                         if (sqlColumn.NumericPrecision.HasValue)

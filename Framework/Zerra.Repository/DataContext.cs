@@ -63,7 +63,7 @@ namespace Zerra.Repository
                     if (!DisableBuildStoreFromModels)
                     {
                         var modelTypes = Discovery.GetTypesFromAttribute(typeof(DataSourceEntityAttribute));
-                        var modelDetails = modelTypes.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
+                        var modelDetails = modelTypes.Where(x => !x.IsAbstract).Select(x => ModelAnalyzer.GetModel(x)).Distinct(x => x.DataSourceEntityName).ToArray();
                         engine.BuildStoreFromModels(modelDetails);
                     }
                 }

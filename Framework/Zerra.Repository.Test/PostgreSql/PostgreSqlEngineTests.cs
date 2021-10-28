@@ -35,7 +35,7 @@ namespace Zerra.Repository.Test
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = $"DROP DATABASE IF EXISTS {testDatabase}";
+                    command.CommandText = $"SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = '{testDatabase}'; DROP DATABASE IF EXISTS {testDatabase};";
                     command.ExecuteNonQuery();
                 }
             }
@@ -46,13 +46,15 @@ namespace Zerra.Repository.Test
         public void TestSequence()
         {
             var context = new PostgreSqlTestSqlDataContext();
-            var provider = new PostgreSqlTestTypesCustomerSqlProvider();
 
             DropDatabase(context);
 
             _ = context.InitializeEngine(true);
 
-            TestModelMethods.TestSequence(provider);
+            var provider = new PostgreSqlTestTypesSqlProvider();
+            var relationProvider = new PostgreSqlTestRelationsSqlProvider();
+
+            TestModelMethods.TestSequence(provider, relationProvider);
 
             const string changeColumn = "ALTER TABLE testtypes ALTER COLUMN int32thing TYPE bigint; ALTER TABLE testtypes ALTER COLUMN int32thing DROP NOT NULL;";
             const string addColumn = "ALTER TABLE testtypes ADD dummytomakenullable int NOT NULL";

@@ -431,7 +431,7 @@ namespace Zerra
             var writer = new CharWriteBuffer();
             try
             {
-                ToString(writer, 0);
+                ToString(ref writer, 0);
                 return writer.ToString();
             }
             finally
@@ -439,7 +439,7 @@ namespace Zerra
                 writer.Dispose();
             }
         }
-        private void ToString(CharWriteBuffer writer, int depth)
+        private void ToString(ref CharWriteBuffer writer, int depth)
         {
             foreach (var property in this.properties)
             {
@@ -456,7 +456,7 @@ namespace Zerra
 
                 writer.Write(childGraph.name);
                 writer.Write(Environment.NewLine);
-                childGraph.ToString(writer, depth + 1);
+                childGraph.ToString(ref writer, depth + 1);
             }
         }
 

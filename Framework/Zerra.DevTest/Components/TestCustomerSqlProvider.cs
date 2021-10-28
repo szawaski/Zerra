@@ -42,9 +42,7 @@ namespace Zerra.DevTest
 
     public abstract partial class BaseTestSqlProvider<TModel> : TransactStoreProvider<TestSqlDataContext, TModel> where TModel : class, new()
     {
-        protected override bool DisableQueryLinking => true;
-        protected override bool DisableEventLinking => true;
-        protected override bool DisablePersistLinking => true;
+
     }
     public class TestCustomerSqlProvider : BaseTestSqlProvider<TestCustomerSqlModel> { }
     public class TestOrderSqlProvider : BaseTestSqlProvider<TestOrderSqlModel> { }

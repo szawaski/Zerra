@@ -35,7 +35,7 @@ namespace Zerra.Repository.Test
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = $"DROP DATABASE IF EXISTS {testDatabase}";
+                    command.CommandText = $"SELECT CONCAT('KILL ', id, ';') FROM INFORMATION_SCHEMA.PROCESSLIST WHERE `db` = '{testDatabase}'; DROP DATABASE IF EXISTS {testDatabase};";
                     command.ExecuteNonQuery();
                 }
             }
@@ -45,13 +45,15 @@ namespace Zerra.Repository.Test
         public void TestSequence()
         {
             var context = new MySqlTestSqlDataContext();
-            var provider = new MySqlTestTypesCustomerSqlProvider();
 
             DropDatabase(context);
 
             _ = context.InitializeEngine(true);
 
-            TestModelMethods.TestSequence(provider);
+            var provider = new MySqlTestTypesSqlProvider();
+            var relationProvider = new MySqlTestRelationsSqlProvider();
+
+            TestModelMethods.TestSequence(provider, relationProvider);
 
             const string changeColumn = "ALTER TABLE `TestTypes` ALTER COLUMN `Int32Thing` bigint NULL";
             const string addColumn = "ALTER TABLE `TestTypes` ADD `DummyToMakeNullable` int NOT NULL";
