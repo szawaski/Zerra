@@ -18,7 +18,6 @@ namespace Zerra.Repository
         protected IProviderRelation<TModel> ProviderRelation = null;
 
         public BaseTransactStoreLayerProvider()
-            : base()
         {
             ProviderRelation = NextProvider as IProviderRelation<TModel>;
         }

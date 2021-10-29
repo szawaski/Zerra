@@ -2,14 +2,10 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Zerra.Providers;
 using Zerra.Reflection;
-using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
@@ -24,19 +20,30 @@ namespace Zerra.Repository
             this.Engine = context.InitializeEngine();
         }
 
-        public bool Exists(string source, string name)
+        public bool Exists(string name)
         {
-            throw new NotImplementedException();
+            return Engine.Exists(name);
+        }
+        public Stream Get(string name)
+        {
+            return Engine.Get(name);
+        }
+        public void Save(string name, Stream stream)
+        {
+            Engine.Save(name, stream);
         }
 
-        public Stream Get(string source, string name)
+        public Task<bool> ExistsAsync(string name)
         {
-            throw new NotImplementedException();
+            return Engine.ExistsAsync(name);
         }
-
-        public void Save(string source, string name, Stream stream)
+        public Task<Stream> GetAsync(string name)
         {
-            throw new NotImplementedException();
+            return Engine.GetAsync(name);
+        }
+        public Task SaveAsync(string name, Stream stream)
+        {
+            return Engine.SaveAsync(name, stream);
         }
     }
 }
