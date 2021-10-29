@@ -7,9 +7,9 @@ using System;
 namespace Zerra.Repository
 {
     [AttributeUsage(AttributeTargets.Property)]
-    public class NotDataSourcePropertyAttribute : Attribute
+    public class StoreExcludeAttribute : Attribute
     {
-        public NotDataSourcePropertyAttribute()
+        public StoreExcludeAttribute()
         {
         }
     }

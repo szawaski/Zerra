@@ -72,7 +72,7 @@ namespace Zerra.Reflection
 
             typeBuilder.AddInterfaceImplementation(interfaceType);
 
-            var constructor = typeBuilder.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
+            _ = typeBuilder.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
 
             var methods = interfaceType.GetMethods().ToList();
             var properties = interfaceType.GetProperties().ToList();

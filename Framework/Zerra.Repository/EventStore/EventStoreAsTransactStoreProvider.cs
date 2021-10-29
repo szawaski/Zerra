@@ -11,7 +11,7 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.EventStore
 {
-    public class EventStoreProvider<TContext, TModel> : BaseDataProvider<TModel>
+    public class EventStoreAsTransactStoreProvider<TContext, TModel> : RootTransactStoreProvider<TModel>
         where TContext : DataContext<IEventStoreEngine>
         where TModel : class, new()
     {
@@ -19,7 +19,7 @@ namespace Zerra.Repository.EventStore
 
         protected readonly IEventStoreEngine Engine;
 
-        public EventStoreProvider()
+        public EventStoreAsTransactStoreProvider()
         {
             var context = Instantiator.GetSingleInstance<TContext>();
             this.Engine = context.InitializeEngine();

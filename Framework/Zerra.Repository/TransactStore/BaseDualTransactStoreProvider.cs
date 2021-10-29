@@ -8,12 +8,12 @@ using Zerra.Reflection;
 
 namespace Zerra.Repository
 {
-    public abstract class BaseDataDualProvider<TThisProviderInterface, TNextProviderInterface, TModel> : BaseLayerProvider<TNextProviderInterface>, IDualBaseProvider, IDataProvider<TModel>
-        where TThisProviderInterface : IDataProvider<TModel>
-        where TNextProviderInterface : IDataProvider<TModel>
+    public abstract class BaseDualTransactStoreProvider<TThisProviderInterface, TNextProviderInterface, TModel> : BaseLayerProvider<TNextProviderInterface>, IDualBaseProvider, ITransactProvider<TModel>
+        where TThisProviderInterface : ITransactProvider<TModel>
+        where TNextProviderInterface : ITransactProvider<TModel>
         where TModel : class, new()
     {
-        protected IDataProvider<TModel> ThisProvider
+        protected ITransactProvider<TModel> ThisProvider
         {
             get
             {

@@ -11,13 +11,13 @@ using Zerra.Providers;
 
 namespace Zerra.Repository
 {
-    public abstract class BaseDataLayerProvider<TNextProviderInterface, TModel> : BaseLayerProvider<TNextProviderInterface>, IDataProvider<TModel>, IProviderRelation<TModel>
-        where TNextProviderInterface : IDataProvider<TModel>
+    public abstract class BaseTransactStoreLayerProvider<TNextProviderInterface, TModel> : BaseLayerProvider<TNextProviderInterface>, ITransactProvider<TModel>, IProviderRelation<TModel>
+        where TNextProviderInterface : ITransactProvider<TModel>
         where TModel : class, new()
     {
         protected IProviderRelation<TModel> ProviderRelation = null;
 
-        public BaseDataLayerProvider()
+        public BaseTransactStoreLayerProvider()
             : base()
         {
             ProviderRelation = NextProvider as IProviderRelation<TModel>;

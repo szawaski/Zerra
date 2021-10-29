@@ -13,8 +13,8 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
-    public abstract class BaseDataRuleProvider<TNextProviderInterface, TModel> : BaseDataLayerProvider<TNextProviderInterface, TModel>, IRuleProvider
-        where TNextProviderInterface : IDataProvider<TModel>
+    public abstract class BaseTransactStoreRuleProvider<TNextProviderInterface, TModel> : BaseTransactStoreLayerProvider<TNextProviderInterface, TModel>, IRuleProvider
+        where TNextProviderInterface : ITransactProvider<TModel>
         where TModel : class, new()
     {
         private Expression<Func<TModel, bool>> AppendWhereExpression(Expression<Func<TModel, bool>> whereExpression, Graph<TModel> graph)

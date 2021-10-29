@@ -79,7 +79,7 @@ namespace Zerra.CQRS
 
             typeBuilder.AddInterfaceImplementation(interfaceType);
 
-            var constructor = typeBuilder.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
+            _ = typeBuilder.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
 
             foreach (var method in methods)
             {
@@ -225,7 +225,7 @@ namespace Zerra.CQRS
 
             typeBuilder.AddInterfaceImplementation(interfaceType);
 
-            var constructor = typeBuilder.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
+            _ = typeBuilder.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
 
             foreach (var method in methods)
             {
@@ -328,7 +328,7 @@ namespace Zerra.CQRS
 
             typeBuilder.AddInterfaceImplementation(interfaceType);
 
-            var constructor = typeBuilder.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
+            _ = typeBuilder.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
 
             foreach (var method in methods)
             {

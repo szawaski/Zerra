@@ -9,7 +9,7 @@ using Zerra.Repository.EventStoreDB;
 
 namespace Zerra.DevTest
 {
-    [DataSourceEntity("Customer")]
+    [Entity("Customer")]
     public class TestCustomerEventStoreModel
     {
         [Identity]
@@ -17,11 +17,11 @@ namespace Zerra.DevTest
         public string Name { get; set; }
         public decimal Credit { get; set; }
 
-        [DataSourceRelation(nameof(CustomerID))]
+        [Relation(nameof(CustomerID))]
         public TestOrderEventStoreModel[] Orders { get; set; }
     }
 
-    [DataSourceEntity("Order")]
+    [Entity("Order")]
     public class TestOrderEventStoreModel
     {
         [Identity]
@@ -44,6 +44,6 @@ namespace Zerra.DevTest
         }
     }
 
-    public abstract partial class EventStoreBaseQueryProvider<TModel> : EventStoreProvider<TestEventStoreDataContext, TModel> where TModel : class, new() { }
+    public abstract partial class EventStoreBaseQueryProvider<TModel> : EventStoreAsTransactStoreProvider<TestEventStoreDataContext, TModel> where TModel : class, new() { }
     public class TestCustomerQueryProvider : EventStoreBaseQueryProvider<TestCustomerEventStoreModel> { }
 }

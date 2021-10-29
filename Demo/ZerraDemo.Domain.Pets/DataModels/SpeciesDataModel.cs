@@ -4,14 +4,14 @@ using Zerra.Repository;
 
 namespace ZerraDemo.Domain.Pets.DataModels
 {
-    [DataSourceEntity("Species")]
+    [Entity("Species")]
     public class SpeciesDataModel
     {
         [Identity]
         public Guid ID { get; set; }
         public string Name { get; set; }
 
-        [DataSourceRelation("SpeciesID")]
+        [Relation("SpeciesID")]
         public ICollection<BreedDataModel> Breeds { get; set; }
     }
 }

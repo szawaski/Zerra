@@ -83,7 +83,7 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                     else
                         usedFirst = true;
 
-                    sb.Append(tab).Append("[DataSourceEntity(\"").Append(tableName).Append("\")]").Append(Environment.NewLine);
+                    sb.Append(tab).Append("[Entity(\"").Append(tableName).Append("\")]").Append(Environment.NewLine);
                     sb.Append(tab).Append("public class ").Append(tableName).Append(modelSuffix).Append(Environment.NewLine);
                     sb.Append(tab).Append("{").Append(Environment.NewLine);
 
@@ -171,7 +171,7 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                                         usedNames.Add(propertyName, 0);
                                     }
 
-                                    sb.Append(tab).Append(tab).Append("[DataSourceRelation(\"").Append(fkColumn).Append("\")]").Append(Environment.NewLine);
+                                    sb.Append(tab).Append(tab).Append("[Relation(\"").Append(fkColumn).Append("\")]").Append(Environment.NewLine);
 
                                     if (fkTable == tableName)
                                         sb.Append(tab).Append(tab).Append("public ").Append(pkTable).Append(modelSuffix).Append(" ").Append(propertyName).Append(" { get; set; }").Append(Environment.NewLine);
@@ -213,9 +213,9 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                 case "money":
                     return null;
                 case "numeric":
-                    return $"[DataSourceType({numericPrecision}, {numericScale})]";
+                    return $"[StoreProperties({numericPrecision}, {numericScale})]";
                 case "decimal":
-                    return $"[DataSourceType({numericPrecision}, {numericScale})]";
+                    return $"[StoreProperties({numericPrecision}, {numericScale})]";
                 case "date":
                     return null;
                 case "smalldatetime":
@@ -224,15 +224,15 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                     return null;
                 case "datetime2":
                     if (datetimePrecision != -1)
-                        return $"[DataSourceType({datetimePrecision})]";
+                        return $"[StoreProperties({datetimePrecision})]";
                     return null;
                 case "datetimeoffset":
                     if (datetimePrecision != -1)
-                        return $"[DataSourceType({datetimePrecision})]";
+                        return $"[StoreProperties({datetimePrecision})]";
                     return null;
                 case "time":
                     if (datetimePrecision != -1)
-                        return $"[DataSourceType({datetimePrecision})]";
+                        return $"[StoreProperties({datetimePrecision})]";
                     return null;
                 case "timestamp":
                     return null;
@@ -241,20 +241,20 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                 case "varchar":
                     if (characterMaximumLength != -1)
                         if (!isNullable)
-                            return $"[DataSourceType(true, {characterMaximumLength})]";
+                            return $"[StoreProperties(true, {characterMaximumLength})]";
                         else
-                            return $"[DataSourceType(false, {characterMaximumLength})]";
+                            return $"[StoreProperties(false, {characterMaximumLength})]";
                     if (!isNullable)
-                        return $"[DataSourceType(true)]";
+                        return $"[StoreProperties(true)]";
                     return null;
                 case "nvarchar":
                     if (characterMaximumLength != -1)
                         if (!isNullable)
-                            return $"[DataSourceType(true, {characterMaximumLength})]";
+                            return $"[StoreProperties(true, {characterMaximumLength})]";
                         else
-                            return $"[DataSourceType(false, {characterMaximumLength})]";
+                            return $"[StoreProperties(false, {characterMaximumLength})]";
                     if (!isNullable)
-                        return $"[DataSourceType(true)]";
+                        return $"[StoreProperties(true)]";
                     return null;
                 case "text":
                     return "string";
@@ -263,27 +263,27 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                 case "char":
                     if (characterMaximumLength != -1)
                         if (!isNullable)
-                            return $"[DataSourceType(true, {characterMaximumLength})]";
+                            return $"[StoreProperties(true, {characterMaximumLength})]";
                         else
-                            return $"[DataSourceType(false, {characterMaximumLength})]";
+                            return $"[StoreProperties(false, {characterMaximumLength})]";
                     if (!isNullable)
-                        return $"[DataSourceType(true)]";
+                        return $"[StoreProperties(true)]";
                     return null;
                 case "nchar":
                     if (characterMaximumLength != -1)
-                        return $"[DataSourceType({characterMaximumLength})]";
+                        return $"[StoreProperties({characterMaximumLength})]";
                     return null;
                 case "binary":
                     if (characterMaximumLength != -1)
-                        return $"[DataSourceType({characterMaximumLength})]";
+                        return $"[StoreProperties({characterMaximumLength})]";
                     return null;
                 case "varbinary":
                     if (characterMaximumLength != -1)
-                        return $"[DataSourceType({characterMaximumLength})]";
+                        return $"[StoreProperties({characterMaximumLength})]";
                     return null;
                 case "image":
                     if (characterMaximumLength != -1)
-                        return $"[DataSourceType({characterMaximumLength})]";
+                        return $"[StoreProperties({characterMaximumLength})]";
                     return null;
                 case "uniqueidentifier":
                     return null;
@@ -291,7 +291,7 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                     return "object";
                 case "xml":
                     if (!isNullable)
-                        return $"[DataSourceType(true)]";
+                        return $"[StoreProperties(true)]";
                     return null;
                 default:
                     throw new NotImplementedException(String.Format("SqlType not implemented {0}", sqlType));

@@ -1,5 +1,5 @@
 <#@ template language="C#" debug="false" hostspecific="true" #>
-<#@ assembly name="Zerra.T4\bin\Debug\net48\Zerra.T4.dll" #>
+<#@ assembly name="C:\Users\Steven Zawaski\Documents\GitHub\Zerra\Framework\Zerra.T4\bin\Debug\net48\Zerra.T4.dll" #>
 <#
 	const string connectionString = "data source=.;initial catalog=KaKush;integrated security=True;MultipleActiveResultSets=True;";
 	const string namespaceString = "KaKush.Domain.DataModels";

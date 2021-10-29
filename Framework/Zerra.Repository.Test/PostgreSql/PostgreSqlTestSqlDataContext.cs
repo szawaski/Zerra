@@ -6,6 +6,8 @@ using Zerra.Repository.PostgreSql;
 
 namespace Zerra.Repository.Test
 {
+    [ApplyEntity(typeof(PostgreSqlTestTypesModel))]
+    [ApplyEntity(typeof(PostgreSqlTestRelationsModel))]
     public class PostgreSqlTestSqlDataContext : PostgreSqlDataContext
     {
         protected override bool DisableBuildStoreFromModels => false;

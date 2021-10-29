@@ -7,6 +7,7 @@ using System;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
+using Zerra.Providers;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.Test
@@ -53,8 +54,8 @@ namespace Zerra.Repository.Test
 
             _ = context.InitializeEngine(true);
 
-            var provider = new MsSqlTestTypesSqlProvider();
-            var relationProvider = new MsSqlTestRelationsSqlProvider();
+            var provider = Resolver.Get<ITransactProvider<MsSqlTestTypesModel>>();
+            var relationProvider = Resolver.Get<ITransactProvider<MsSqlTestRelationsModel>>();
 
             TestModelMethods.TestSequence(provider, relationProvider);
 

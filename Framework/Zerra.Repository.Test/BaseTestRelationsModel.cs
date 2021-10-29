@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.Repository.Test
 {
-    [DataSourceEntity("TestRelations")]
+    [Entity("TestRelations")]
     public abstract class BaseTestRelationsModel
     {
         [Identity]

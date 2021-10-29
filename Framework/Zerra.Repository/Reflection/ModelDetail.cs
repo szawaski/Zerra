@@ -63,21 +63,21 @@ namespace Zerra.Repository.Reflection
                 typeDetails = typeDetails.InnerTypeDetails[0];
             }
 
-            var sourceEntityAttribute = typeDetails.Attributes.Select(x => x as DataSourceEntityAttribute).Where(x => x != null).FirstOrDefault();
+            var sourceEntityAttribute = typeDetails.Attributes.Select(x => x as EntityAttribute).Where(x => x != null).FirstOrDefault();
             this.IsDataSourceEntity = sourceEntityAttribute != null;
             if (this.IsDataSourceEntity)
             {
-                this.DataSourceEntityName = sourceEntityAttribute.SourceName;
+                this.DataSourceEntityName = sourceEntityAttribute.StoreName;
                 if (String.IsNullOrWhiteSpace(this.DataSourceEntityName))
                     this.DataSourceEntityName = this.Type.Name;
                 if (!this.DataSourceEntityName.All(x => char.IsLetterOrDigit(x) || x == '_' || x == '`'))
-                    throw new ArgumentException(String.Format("{0}.{1}={2}", nameof(DataSourceEntityAttribute), nameof(DataSourceEntityAttribute.SourceName), this.DataSourceEntityName));
+                    throw new ArgumentException(String.Format("{0}.{1}={2}", nameof(EntityAttribute), nameof(EntityAttribute.StoreName), this.DataSourceEntityName));
             }
 
             var modelProperties = new List<ModelPropertyDetail>();
             foreach (var member in typeDetails.MemberDetails)
             {
-                var notSourcePropertyAttribute = member.Attributes.Select(x => x as NotDataSourcePropertyAttribute).Where(x => x != null).FirstOrDefault();
+                var notSourcePropertyAttribute = member.Attributes.Select(x => x as StoreExcludeAttribute).Where(x => x != null).FirstOrDefault();
                 if (notSourcePropertyAttribute == null)
                 {
                     var modelPropertyInfo = new ModelPropertyDetail(member, this.IsDataSourceEntity);

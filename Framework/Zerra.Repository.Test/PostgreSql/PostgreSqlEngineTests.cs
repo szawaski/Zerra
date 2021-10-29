@@ -7,6 +7,7 @@ using Npgsql;
 using System;
 using System.Linq;
 using System.Text;
+using Zerra.Providers;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.Test
@@ -54,8 +55,8 @@ namespace Zerra.Repository.Test
 
             _ = context.InitializeEngine(true);
 
-            var provider = new PostgreSqlTestTypesSqlProvider();
-            var relationProvider = new PostgreSqlTestRelationsSqlProvider();
+            var provider = Resolver.Get<ITransactProvider<PostgreSqlTestTypesModel>>();
+            var relationProvider = Resolver.Get<ITransactProvider<PostgreSqlTestRelationsModel>>();
 
             TestModelMethods.TestSequence(provider, relationProvider);
 

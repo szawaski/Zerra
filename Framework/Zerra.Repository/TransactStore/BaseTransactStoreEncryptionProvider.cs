@@ -7,39 +7,41 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Zerra.Collections;
+using Zerra.Encryption;
 using Zerra.Providers;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
-    public abstract partial class BaseDataCompressionProvider<TNextProviderInterface, TModel> : BaseDataLayerProvider<TNextProviderInterface, TModel>, ICompressionProvider
-        where TNextProviderInterface : IDataProvider<TModel>
+    public abstract class BaseTransactStoreEncryptionProvider<TNextProviderInterface, TModel> : BaseTransactStoreLayerProvider<TNextProviderInterface, TModel>, IEncryptionProvider
+        where TNextProviderInterface : ITransactProvider<TModel>
         where TModel : class, new()
     {
+        private const string encryptionPrefix = "<encrypted>";
+
         public virtual bool Enabled { get { return true; } }
         public virtual Graph<TModel> Properties { get { return null; } }
+        public abstract SymmetricKey EncryptionKey { get; }
 
-        public override sealed Expression<Func<TModel, bool>> GetWhereExpressionIncludingBase(Graph<TModel> graph)
-        {
-            return base.GetWhereExpressionIncludingBase(graph);
-        }
+        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.RijndaelManaged;
 
-        private static Expression<Func<TModel, bool>> CompressWhere(Expression<Func<TModel, bool>> expression)
+        private static Expression<Func<TModel, bool>> EncryptWhere(Expression<Func<TModel, bool>> expression)
         {
             return expression;
         }
-        private static QueryOrder<TModel> CompressOrder(QueryOrder<TModel> order)
+        private static QueryOrder<TModel> EncryptOrder(QueryOrder<TModel> order)
         {
             return order;
         }
 
-        public TModel DecompressModel(TModel model, Graph<TModel> graph, bool newCopy)
+        public TModel DecryptModel(TModel model, Graph<TModel> graph, bool newCopy)
         {
             if (!this.Enabled)
                 return model;
 
-            var properties = CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties);
+            var properties = GetEncryptableProperties(typeof(TModel), this.Properties);
             if (properties.Length == 0)
                 return model;
 
@@ -54,41 +56,39 @@ namespace Zerra.Repository
                 {
                     if (property.TypeDetail.CoreType == CoreType.String)
                     {
-                        string compressed = (string)property.Getter(model);
-                        if (compressed != null)
+                        string encrypted = (string)property.Getter(model);
+                        try
                         {
-                            try
+                            if (encrypted.Length > encryptionPrefix.Length && encrypted.Substring(0, encryptionPrefix.Length) == encryptionPrefix)
                             {
-                                string plain = CompressionCommon.DecompressGZip(compressed);
+                                encrypted = encrypted.Substring(encryptionPrefix.Length, encrypted.Length - encryptionPrefix.Length);
+                                string plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted, true);
                                 property.Setter(model, plain);
                             }
-                            catch { }
                         }
+                        catch { }
                     }
                     else if (property.Type == typeof(byte[]))
                     {
-                        byte[] compressed = (byte[])property.Getter(model);
-                        if (compressed != null)
+                        byte[] encrypted = (byte[])property.Getter(model);
+                        try
                         {
-                            try
-                            {
-                                byte[] plain = CompressionCommon.DecompressGZip(compressed);
-                                property.Setter(model, plain);
-                            }
-                            catch { }
+                            byte[] plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted, true);
+                            property.Setter(model, plain);
                         }
+                        catch { }
                     }
                 }
             }
 
             return model;
         }
-        public ICollection<TModel> DecompressModels(ICollection<TModel> models, Graph<TModel> graph, bool newCopy)
+        public ICollection<TModel> DecryptModels(ICollection<TModel> models, Graph<TModel> graph, bool newCopy)
         {
             if (!this.Enabled)
                 return models;
 
-            var properties = CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties);
+            var properties = GetEncryptableProperties(typeof(TModel), this.Properties);
             if (properties.Length == 0)
                 return models;
 
@@ -105,25 +105,29 @@ namespace Zerra.Repository
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
-                            string compressed = (string)property.Getter(model);
-                            if (compressed != null)
+                            string encrypted = (string)property.Getter(model);
+                            if (encrypted != null)
                             {
                                 try
                                 {
-                                    string plain = CompressionCommon.DecompressGZip(compressed);
-                                    property.Setter(model, plain);
+                                    if (encrypted.Length > encryptionPrefix.Length && encrypted.Substring(0, encryptionPrefix.Length) == encryptionPrefix)
+                                    {
+                                        encrypted = encrypted.Substring(encryptionPrefix.Length, encrypted.Length - encryptionPrefix.Length);
+                                        string plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted, true);
+                                        property.Setter(model, plain);
+                                    }
                                 }
                                 catch { }
                             }
                         }
                         else if (property.Type == typeof(byte[]))
                         {
-                            byte[] compressed = (byte[])property.Getter(model);
-                            if (compressed != null)
+                            byte[] encrypted = (byte[])property.Getter(model);
+                            if (encrypted != null)
                             {
                                 try
                                 {
-                                    byte[] plain = CompressionCommon.DecompressGZip(compressed);
+                                    byte[] plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted, true);
                                     property.Setter(model, plain);
                                 }
                                 catch { }
@@ -140,72 +144,71 @@ namespace Zerra.Repository
         {
             ProviderRelation.OnQueryIncludingBase(graph);
         }
-
         public override sealed ICollection<TModel> OnGetIncludingBase(ICollection<TModel> models, Graph<TModel> graph)
         {
-            ICollection<TModel> returnModels1 = DecompressModels(models, graph, false);
+            ICollection<TModel> returnModels1 = DecryptModels(models, graph, false);
             ICollection<TModel> returnModels2 = ProviderRelation.OnGetIncludingBase(returnModels1, graph);
             return returnModels2;
         }
         public override sealed async Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel> graph)
         {
-            ICollection<TModel> returnModels1 = DecompressModels(models, graph, false);
+            ICollection<TModel> returnModels1 = DecryptModels(models, graph, false);
             ICollection<TModel> returnModels2 = await ProviderRelation.OnGetIncludingBaseAsync(returnModels1, graph);
             return returnModels2;
         }
 
         public override sealed object Many(Query<TModel> query)
         {
-            var whereCompressed = CompressWhere(query.Where);
-            var orderCompressed = CompressOrder(query.Order);
+            var whereCompressed = EncryptWhere(query.Where);
+            var orderCompressed = EncryptOrder(query.Order);
 
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
             appenedQuery.Order = orderCompressed;
 
-            var compressedModels = (ICollection<TModel>)(NextProvider.Query(appenedQuery));
+            var encryptedModels = (ICollection<TModel>)(NextProvider.Query(appenedQuery));
 
-            if (compressedModels.Count == 0)
-                return compressedModels;
+            if (encryptedModels.Count == 0)
+                return encryptedModels;
 
-            var models = DecompressModels(compressedModels, query.Graph, true);
+            var models = DecryptModels(encryptedModels, query.Graph, true);
             return models;
         }
         public override sealed object First(Query<TModel> query)
         {
-            var whereCompressed = CompressWhere(query.Where);
-            var orderCompressed = CompressOrder(query.Order);
+            var whereCompressed = EncryptWhere(query.Where);
+            var orderCompressed = EncryptOrder(query.Order);
 
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
             appenedQuery.Order = orderCompressed;
 
-            var compressedModels = (TModel)(NextProvider.Query(appenedQuery));
+            var encryptedModels = (TModel)(NextProvider.Query(appenedQuery));
 
-            if (compressedModels == null)
+            if (encryptedModels == null)
                 return null;
 
-            var model = DecompressModel(compressedModels, query.Graph, true);
+            var model = DecryptModel(encryptedModels, query.Graph, true);
             return model;
         }
         public override sealed object Single(Query<TModel> query)
         {
-            var whereCompressed = CompressWhere(query.Where);
+            var whereCompressed = EncryptWhere(query.Where);
 
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
 
-            var compressedModels = (TModel)(NextProvider.Query(appenedQuery));
+            var encryptedModels = (TModel)(NextProvider.Query(appenedQuery));
 
-            if (compressedModels == null)
+            if (encryptedModels == null)
                 return null;
 
-            var model = DecompressModel(compressedModels, query.Graph, true);
+            var model = DecryptModel(encryptedModels, query.Graph, true);
             return model;
         }
         public override sealed object Count(Query<TModel> query)
         {
-            var whereCompressed = CompressWhere(query.Where);
+            var whereCompressed = EncryptWhere(query.Where);
 
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
@@ -215,7 +218,7 @@ namespace Zerra.Repository
         }
         public override sealed object Any(Query<TModel> query)
         {
-            var whereCompressed = CompressWhere(query.Where);
+            var whereCompressed = EncryptWhere(query.Where);
 
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
@@ -225,8 +228,8 @@ namespace Zerra.Repository
         }
         public override sealed object EventMany(Query<TModel> query)
         {
-            var whereCompressed = CompressWhere(query.Where);
-            var orderCompressed = CompressOrder(query.Order);
+            var whereCompressed = EncryptWhere(query.Where);
+            var orderCompressed = EncryptOrder(query.Order);
 
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
@@ -237,12 +240,12 @@ namespace Zerra.Repository
             if (eventModels.Count == 0)
                 return eventModels;
 
-            var compressedModels = eventModels.Select(x => x.Model).ToArray();
-            var models = DecompressModels(compressedModels, query.Graph, true);
+            var encryptedModels = eventModels.Select(x => x.Model).ToArray();
+            var models = DecryptModels(encryptedModels, query.Graph, true);
             int i = 0;
             foreach (var eventModel in eventModels)
             {
-                eventModel.Model = compressedModels[i];
+                eventModel.Model = encryptedModels[i];
                 i++;
             }
 
@@ -251,56 +254,56 @@ namespace Zerra.Repository
 
         public override sealed async Task<object> ManyAsync(Query<TModel> query)
         {
-            var whereCompressed = CompressWhere(query.Where);
-            var orderCompressed = CompressOrder(query.Order);
+            var whereCompressed = EncryptWhere(query.Where);
+            var orderCompressed = EncryptOrder(query.Order);
 
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
             appenedQuery.Order = orderCompressed;
 
-            var compressedModels = (ICollection<TModel>)(await NextProvider.QueryAsync(appenedQuery));
+            var encryptedModels = (ICollection<TModel>)(await NextProvider.QueryAsync(appenedQuery));
 
-            if (compressedModels.Count == 0)
-                return compressedModels;
+            if (encryptedModels.Count == 0)
+                return encryptedModels;
 
-            var models = DecompressModels(compressedModels, query.Graph, true);
+            var models = DecryptModels(encryptedModels, query.Graph, true);
             return models;
         }
         public override sealed async Task<object> FirstAsync(Query<TModel> query)
         {
-            var whereCompressed = CompressWhere(query.Where);
-            var orderCompressed = CompressOrder(query.Order);
+            var whereCompressed = EncryptWhere(query.Where);
+            var orderCompressed = EncryptOrder(query.Order);
 
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
             appenedQuery.Order = orderCompressed;
 
-            var compressedModels = (TModel)(await NextProvider.QueryAsync(appenedQuery));
+            var encryptedModels = (TModel)(await NextProvider.QueryAsync(appenedQuery));
 
-            if (compressedModels == null)
+            if (encryptedModels == null)
                 return null;
 
-            var model = DecompressModel(compressedModels, query.Graph, true);
+            var model = DecryptModels(new TModel[] { encryptedModels }, query.Graph, true).FirstOrDefault();
             return model;
         }
         public override sealed async Task<object> SingleAsync(Query<TModel> query)
         {
-            var whereCompressed = CompressWhere(query.Where);
+            var whereCompressed = EncryptWhere(query.Where);
 
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
 
-            var compressedModels = (TModel)(await NextProvider.QueryAsync(appenedQuery));
+            var encryptedModels = (TModel)(await NextProvider.QueryAsync(appenedQuery));
 
-            if (compressedModels == null)
+            if (encryptedModels == null)
                 return null;
 
-            var model = DecompressModel(compressedModels, query.Graph, true);
+            var model = DecryptModels(new TModel[] { encryptedModels }, query.Graph, true).FirstOrDefault();
             return model;
         }
         public override sealed Task<object> CountAsync(Query<TModel> query)
         {
-            var whereCompressed = CompressWhere(query.Where);
+            var whereCompressed = EncryptWhere(query.Where);
 
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
@@ -310,7 +313,7 @@ namespace Zerra.Repository
         }
         public override sealed Task<object> AnyAsync(Query<TModel> query)
         {
-            var whereCompressed = CompressWhere(query.Where);
+            var whereCompressed = EncryptWhere(query.Where);
 
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
@@ -320,8 +323,8 @@ namespace Zerra.Repository
         }
         public override sealed async Task<object> EventManyAsync(Query<TModel> query)
         {
-            var whereCompressed = CompressWhere(query.Where);
-            var orderCompressed = CompressOrder(query.Order);
+            var whereCompressed = EncryptWhere(query.Where);
+            var orderCompressed = EncryptOrder(query.Order);
 
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
@@ -332,24 +335,24 @@ namespace Zerra.Repository
             if (eventModels.Count == 0)
                 return eventModels;
 
-            var compressedModels = eventModels.Select(x => x.Model).ToArray();
-            var models = DecompressModels(compressedModels, query.Graph, true);
+            var encryptedModels = eventModels.Select(x => x.Model).ToArray();
+            var models = DecryptModels(encryptedModels, query.Graph, true);
             int i = 0;
             foreach (var eventModel in eventModels)
             {
-                eventModel.Model = compressedModels[i];
+                eventModel.Model = encryptedModels[i];
                 i++;
             }
 
             return eventModels;
         }
 
-        private TModel[] CompressModels(TModel[] models, Graph<TModel> graph, bool newCopy)
+        public TModel[] EncryptModels(TModel[] models, Graph<TModel> graph, bool newCopy)
         {
             if (!this.Enabled)
                 return models;
 
-            var properties = CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties);
+            var properties = GetEncryptableProperties(typeof(TModel), this.Properties);
             if (properties.Length == 0)
                 return models;
 
@@ -372,8 +375,12 @@ namespace Zerra.Repository
                             string plain = (string)property.Getter(model);
                             if (plain != null)
                             {
-                                string compressed = CompressionCommon.CompressGZip(plain);
-                                property.Setter(model, compressed);
+                                if (plain.Length <= encryptionPrefix.Length || plain.Substring(0, encryptionPrefix.Length) != encryptionPrefix)
+                                {
+                                    plain = encryptionPrefix + plain;
+                                    string encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain, true);
+                                    property.Setter(model, encrypted);
+                                }
                             }
                         }
                         else if (property.Type == typeof(byte[]))
@@ -381,8 +388,8 @@ namespace Zerra.Repository
                             byte[] plain = (byte[])property.Getter(model);
                             if (plain != null)
                             {
-                                byte[] compressed = CompressionCommon.CompressGZip(plain);
-                                property.Setter(model, compressed);
+                                byte[] encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain, true);
+                                property.Setter(model, encrypted);
                             }
                         }
                     }
@@ -396,12 +403,12 @@ namespace Zerra.Repository
             if (persist.Models.Length == 0)
                 return;
 
-            TModel[] compressedModels = CompressModels(persist.Models, persist.Graph, true);
-            NextProvider.Persist(new Create<TModel>(persist.Event, compressedModels, persist.Graph));
+            TModel[] encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
+            NextProvider.Persist(new Create<TModel>(encryptedModels, persist.Graph));
 
             for (var i = 0; i < persist.Models.Length; i++)
             {
-                object identity = ModelAnalyzer.GetIdentity(compressedModels[i]);
+                object identity = ModelAnalyzer.GetIdentity(encryptedModels[i]);
                 ModelAnalyzer.SetIdentity(persist.Models[i], identity);
             }
         }
@@ -410,8 +417,8 @@ namespace Zerra.Repository
             if (persist.Models.Length == 0)
                 return;
 
-            ICollection<TModel> compressedModels = CompressModels(persist.Models, persist.Graph, true);
-            NextProvider.Persist(new Update<TModel>(persist.Event, compressedModels, persist.Graph));
+            ICollection<TModel> encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
+            NextProvider.Persist(new Update<TModel>(persist.Event, encryptedModels, persist.Graph));
         }
         public override sealed void Delete(Persist<TModel> persist)
         {
@@ -423,12 +430,12 @@ namespace Zerra.Repository
             if (persist.Models.Length == 0)
                 return;
 
-            TModel[] compressedModels = CompressModels(persist.Models, persist.Graph, true);
-            await NextProvider.PersistAsync(new Create<TModel>(persist.Event, compressedModels, persist.Graph));
+            TModel[] encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
+            await NextProvider.PersistAsync(new Create<TModel>(encryptedModels, persist.Graph));
 
             for (var i = 0; i < persist.Models.Length; i++)
             {
-                object identity = ModelAnalyzer.GetIdentity(compressedModels[i]);
+                object identity = ModelAnalyzer.GetIdentity(encryptedModels[i]);
                 ModelAnalyzer.SetIdentity(persist.Models[i], identity);
             }
         }
@@ -437,12 +444,29 @@ namespace Zerra.Repository
             if (persist.Models.Length == 0)
                 return Task.CompletedTask;
 
-            ICollection<TModel> compressedModels = CompressModels(persist.Models, persist.Graph, true);
-            return NextProvider.PersistAsync(new Update<TModel>(persist.Event, compressedModels, persist.Graph));
+            ICollection<TModel> encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
+            return NextProvider.PersistAsync(new Update<TModel>(persist.Event, encryptedModels, persist.Graph));
         }
         public override sealed Task DeleteAsync(Persist<TModel> persist)
         {
             return NextProvider.PersistAsync(persist);
+        }
+
+        private static readonly ConcurrentFactoryDictionary<TypeKey, MemberDetail[]> encryptableProperties = new ConcurrentFactoryDictionary<TypeKey, MemberDetail[]>();
+        public static MemberDetail[] GetEncryptableProperties(Type type, Graph graph)
+        {
+            var key = new TypeKey(graph?.Signature, type);
+            var props = encryptableProperties.GetOrAdd(key, (factoryKey) =>
+            {
+                var typeDetails = TypeAnalyzer.GetType(type);
+                var propertyDetails = typeDetails.MemberDetails.Where(x => x.Type == typeof(string) || x.Type == typeof(byte[])).ToArray();
+                if (graph != null)
+                {
+                    propertyDetails = propertyDetails.Where(x => graph.HasLocalProperty(x.Name)).ToArray();
+                }
+                return propertyDetails;
+            });
+            return props;
         }
     }
 }

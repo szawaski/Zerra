@@ -16,7 +16,7 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
-    public abstract class BaseDataProvider<TModel> : IBaseProvider, IDataProvider<TModel>, IProviderRelation<TModel>
+    public abstract partial class RootTransactStoreProvider<TModel> : IBaseProvider, ITransactProvider<TModel>, IProviderRelation<TModel>
         where TModel : class, new()
     {
         protected static readonly Type modelType = typeof(TModel);
@@ -24,13 +24,14 @@ namespace Zerra.Repository
         protected static readonly Type listType = typeof(List<>);
         protected static readonly Type queryManyType = typeof(QueryMany<>);
         protected static readonly Type enumerableType = typeof(ICollection<>);
-        protected static readonly Type dataQueryProviderType = typeof(IDataProvider<>);
+        protected static readonly Type dataQueryProviderType = typeof(ITransactProvider<>);
         protected static readonly Type funcType = typeof(Func<,>);
         protected static readonly Type expressionType = typeof(Expression<>);
         protected static readonly Type boolType = typeof(bool);
 
         protected virtual bool DisableEventLinking { get { return false; } }
         protected virtual bool DisableQueryLinking { get { return false; } }
+        protected virtual bool DisablePersistLinking { get { return false; } }
 
         protected static readonly ModelDetail ModelDetail = ModelAnalyzer.GetModel<TModel>();
 
@@ -46,13 +47,6 @@ namespace Zerra.Repository
                 return queryGenericTypes;
             });
             return types;
-        }
-
-        private class GetWhereExpressionMethodInfo
-        {
-            public Type PropertyType { get; set; }
-            public bool Enumerable { get; set; }
-            public Type RelatedProviderType { get; set; }
         }
         private static readonly ConcurrentFactoryDictionary<Type, GetWhereExpressionMethodInfo> relatedPropertyGetWhereExpressionMethods = new ConcurrentFactoryDictionary<Type, GetWhereExpressionMethodInfo>();
         private static GetWhereExpressionMethodInfo GetRelatedPropertyGetWhereExpressionMethod(Type type)
@@ -989,8 +983,6 @@ namespace Zerra.Repository
 
         private static readonly Type[] GraphParameterTypes = new Type[] { typeof(string[]) };
 
-        protected virtual bool DisablePersistLinking { get { return false; } }
-
         private static readonly ConcurrentFactoryDictionary<Type, Type[]> persistParameterTypes = new ConcurrentFactoryDictionary<Type, Type[]>();
         private static Type[] GetPersistParameterTypes(Type type)
         {
@@ -1008,7 +1000,7 @@ namespace Zerra.Repository
         {
             var types = persistEnumerableParameterTypes.GetOrAdd(type, (relatedType) =>
             {
-                var enumerableType = TypeAnalyzer.GetGenericType(BaseDataProvider<TModel>.enumerableType, relatedType);
+                var enumerableType = TypeAnalyzer.GetGenericType(RootTransactStoreProvider<TModel>.enumerableType, relatedType);
                 var graphGeneric = TypeAnalyzer.GetGenericType(graphType, relatedType);
                 var queryGenericTypes = new Type[] { EventInfoType, enumerableType, graphGeneric };
                 return queryGenericTypes;

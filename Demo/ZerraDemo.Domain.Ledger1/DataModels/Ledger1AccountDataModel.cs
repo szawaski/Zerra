@@ -3,7 +3,7 @@ using Zerra.Repository;
 
 namespace ZerraDemo.Domain.Ledger1.DataModels
 {
-    [DataSourceEntity("Ledger1Account")]
+    [Entity("Ledger1Account")]
     public class Ledger1AccountDataModel
     {
         [Identity]

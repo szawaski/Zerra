@@ -8,7 +8,7 @@ using Zerra.Repository.MsSql;
 
 namespace Zerra.DevTest
 {
-    [DataSourceEntity("Customer")]
+    [Entity("Customer")]
     public class TestCustomerSqlModel
     {
         [Identity]
@@ -16,11 +16,11 @@ namespace Zerra.DevTest
         public string Name { get; set; }
         public decimal Credit { get; set; }
 
-        [DataSourceRelation(nameof(CustomerID))]
+        [Relation(nameof(CustomerID))]
         public TestOrderSqlModel[] Orders { get; set; }
     }
 
-    [DataSourceEntity("Order")]
+    [Entity("Order")]
     public class TestOrderSqlModel
     {
         [Identity]
@@ -30,7 +30,7 @@ namespace Zerra.DevTest
         public string Item { get; set; }
         public decimal Amount { get; set; }
 
-        [DataSourceRelation(nameof(CustomerID))]
+        [Relation(nameof(CustomerID))]
         public TestCustomerSqlModel Customer { get; set; }
     }
 

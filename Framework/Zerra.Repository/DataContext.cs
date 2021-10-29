@@ -62,14 +62,15 @@ namespace Zerra.Repository
                 if (!initialized || reinitialize)
                 {
                     initialized = true;
+
                     if (!DisableBuildStoreFromModels)
                     {
                         var thisType = this.GetType();
-                        var allModelTypes = Discovery.GetTypesFromAttribute(typeof(DataSourceEntityAttribute));
+                        var allModelTypes = Discovery.GetTypesFromAttribute(typeof(EntityAttribute));
                         var modelTypesWithThisDataContext = new HashSet<Type>();
                         foreach(var modelType in allModelTypes.Where(x => !x.IsAbstract))
                         {
-                            var providerType = typeof(IDataProvider<>).MakeGenericType(modelType);
+                            var providerType = typeof(ITransactProvider<>).MakeGenericType(modelType);
                             if (!Resolver.TryGet(providerType, out object provider))
                                 continue;
                             var typeDetails = TypeAnalyzer.GetType(provider.GetType());

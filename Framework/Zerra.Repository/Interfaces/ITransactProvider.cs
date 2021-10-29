@@ -7,7 +7,7 @@ using Zerra.Providers;
 
 namespace Zerra.Repository
 {
-    public interface IDataProvider<TModel> : IBaseProvider where TModel : class, new()
+    public interface ITransactProvider<TModel> : IBaseProvider where TModel : class, new()
     {
         object Query(Query<TModel> query);
         Task<object> QueryAsync(Query<TModel> query);

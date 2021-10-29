@@ -11,7 +11,7 @@ using Zerra.Repository;
 
 namespace Zerra.DevTest
 {
-    [DataSourceEntity("Customer")]
+    [Entity("Customer")]
     public class TestCustomerEntityFrameworkModel
     {
         [Identity]
@@ -19,11 +19,11 @@ namespace Zerra.DevTest
         public string Name { get; set; }
         public decimal Credit { get; set; }
 
-        [DataSourceRelation(nameof(CustomerID))]
+        [Relation(nameof(CustomerID))]
         public TestOrderEntityFrameworkModel[] Orders { get; set; }
     }
 
-    [DataSourceEntity("Order")]
+    [Entity("Order")]
     public class TestOrderEntityFrameworkModel
     {
         [Identity]

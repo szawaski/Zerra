@@ -3,7 +3,7 @@ using Zerra.Repository;
 
 namespace ZerraDemo.Domain.Pets.DataModels
 {
-    [DataSourceEntity("Breeds")]
+    [Entity("Breeds")]
     public class BreedDataModel
     {
         [Identity]
@@ -11,7 +11,7 @@ namespace ZerraDemo.Domain.Pets.DataModels
         public string Name { get; set; }
         public Guid SpeciesID { get; set; }
 
-        [DataSourceRelation("SpeciesID")]
+        [Relation("SpeciesID")]
         public SpeciesDataModel Species { get; set; }
     }
 }

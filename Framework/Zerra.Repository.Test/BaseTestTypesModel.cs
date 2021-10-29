@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.Repository.Test
 {
-    [DataSourceEntity("TestTypes")]
+    [Entity("TestTypes")]
     public abstract class BaseTestTypesModel<T> where T : BaseTestRelationsModel, new()
     {
         [Identity]
@@ -22,11 +22,11 @@ namespace Zerra.Repository.Test
         public double DoubleThing { get; set; }
         public decimal DecimalThing { get; set; }
         public char CharThing { get; set; }
-        [DataSourceType(true, 6)]
+        [StoreProperties(true, 6)]
         public DateTime DateTimeThing { get; set; }
-        [DataSourceType(true, 6)]
+        [StoreProperties(true, 6)]
         public DateTimeOffset DateTimeOffsetThing { get; set; }
-        [DataSourceType(true, 6)]
+        [StoreProperties(true, 6)]
         public TimeSpan TimeSpanThing { get; set; }
         public Guid GuidThing { get; set; }
 
@@ -38,11 +38,11 @@ namespace Zerra.Repository.Test
         public double? DoubleNullableThing { get; set; }
         public decimal? DecimalNullableThing { get; set; }
         public char? CharNullableThing { get; set; }
-        [DataSourceType(false, 6)]
+        [StoreProperties(false, 6)]
         public DateTime? DateTimeNullableThing { get; set; }
-        [DataSourceType(false, 6)]
+        [StoreProperties(false, 6)]
         public DateTimeOffset? DateTimeOffsetNullableThing { get; set; }
-        [DataSourceType(false, 6)]
+        [StoreProperties(false, 6)]
         public TimeSpan? TimeSpanNullableThing { get; set; }
         public Guid? GuidNullableThing { get; set; }
 
@@ -54,11 +54,11 @@ namespace Zerra.Repository.Test
         public double? DoubleNullableThingNull { get; set; }
         public decimal? DecimalNullableThingNull { get; set; }
         public char? CharNullableThingNull { get; set; }
-        [DataSourceType(false, 6)]
+        [StoreProperties(false, 6)]
         public DateTime? DateTimeNullableThingNull { get; set; }
-        [DataSourceType(false, 6)]
+        [StoreProperties(false, 6)]
         public DateTimeOffset? DateTimeOffsetNullableThingNull { get; set; }
-        [DataSourceType(false, 6)]
+        [StoreProperties(false, 6)]
         public TimeSpan? TimeSpanNullableThingNull { get; set; }
         public Guid? GuidNullableThingNull { get; set; }
 
@@ -66,15 +66,15 @@ namespace Zerra.Repository.Test
         public string StringThingNull { get; set; }
 
         public byte[] BytesThing { get; set; }
-        [DataSourceType(false)]
+        [StoreProperties(false)]
         public byte[] BytesThingNull { get; set; }
 
         public Guid? RelationAKey { get; set; }
 
-        [DataSourceRelation("RelationAKey")]
+        [Relation("RelationAKey")]
         public T RelationA { get; set; }
 
-        [DataSourceRelation("RelationKey")]
+        [Relation("RelationKey")]
         public T[] RelationB { get; set; }
     }
 }

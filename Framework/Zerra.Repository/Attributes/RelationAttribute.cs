@@ -8,13 +8,13 @@ using System.Linq;
 namespace Zerra.Repository
 {
     [AttributeUsage(AttributeTargets.Property)]
-    public class DataSourceRelationAttribute : Attribute
+    public class RelationAttribute : Attribute
     {
         public string ForeignIdentity { get; private set; }
-        public DataSourceRelationAttribute(string foreignIdentity)
+        public RelationAttribute(string foreignIdentity)
         {
             if (!foreignIdentity.All(x => char.IsLetterOrDigit(x) || x == '_' || x == '`'))
-                throw new ArgumentException(String.Format("{0}.{1}={2}", nameof(DataSourceRelationAttribute), nameof(ForeignIdentity), foreignIdentity));
+                throw new ArgumentException(String.Format("{0}.{1}={2}", nameof(RelationAttribute), nameof(ForeignIdentity), foreignIdentity));
             this.ForeignIdentity = foreignIdentity;
         }
     }
