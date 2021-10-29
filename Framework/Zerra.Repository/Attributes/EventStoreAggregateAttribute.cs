@@ -9,39 +9,29 @@ using Zerra.Reflection;
 
 namespace Zerra.Repository
 {
-    public class ApplyAggregateAttribute : BaseGenerateAttribute
+    public class EventStoreAggregateAttribute : BaseGenerateAttribute
     {
         private readonly Type aggregateType;
 
-        public ApplyAggregateAttribute(Type aggregateType)
+        public EventStoreAggregateAttribute(Type aggregateType)
         {
             this.aggregateType = aggregateType;
         }
 
         private static readonly Type aggregateRootType = typeof(AggregateRoot);
-        private static readonly Type dataContextEventType = typeof(DataContext<IEventStoreEngine>);
+        private static readonly Type dataContextType = typeof(DataContext);
         private static readonly Type eventProviderType = typeof(BaseEventStoreContextProvider<,>);
         public override Type Generate(Type type)
         {
             var aggregateTypeDetails = TypeAnalyzer.GetType(aggregateType);
             if (!aggregateTypeDetails.BaseTypes.Contains(aggregateRootType))
-                throw new Exception($"{nameof(ApplyEntityAttribute)} {nameof(aggregateType)} argument {type.Name} does not inherit {aggregateRootType.Name}");
+                throw new Exception($"{nameof(TransactStoreEntityAttribute)} {nameof(aggregateType)} argument {type.Name} does not inherit {aggregateRootType.Name}");
 
             var typeDetail = TypeAnalyzer.GetType(type);
+            if (!typeDetail.BaseTypes.Contains(dataContextType))
+                throw new Exception($"{nameof(TransactStoreEntityAttribute)} is not placed on a {dataContextType.Name}");
 
-            Type baseContextType;
-            Type genericProviderType;
-            if (typeDetail.BaseTypes.Contains(dataContextEventType))
-            {
-                baseContextType = dataContextEventType;
-                genericProviderType = eventProviderType;
-            }
-            else
-            {
-                throw new NotSupportedException($"{nameof(ApplyEntityAttribute)} does not support {type.Name}");
-            }
-
-            var baseType = TypeAnalyzer.GetGenericType(genericProviderType, type, aggregateType);
+            var baseType = TypeAnalyzer.GetGenericType(eventProviderType, type, aggregateType);
 
             var typeSignature = $"{aggregateType.Name}_{type.Name}_Provider";
 

@@ -7,6 +7,7 @@ namespace ZerraDemo.Domain.Pets.Sql
     {
         protected override bool DisableBuildStoreFromModels => false;
         public override string ConnectionString => connectionString;
+
         private readonly string connectionString;
         public PetsMySqlDataContext()
         {

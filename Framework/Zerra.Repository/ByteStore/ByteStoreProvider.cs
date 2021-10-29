@@ -10,14 +10,14 @@ using Zerra.Reflection;
 namespace Zerra.Repository
 {
     public class ByteStoreProvider<TContext> : IBaseProvider, IByteStoreProvider
-        where TContext : DataContext<IByteStoreEngine>
+        where TContext : DataContext
     {
         protected readonly IByteStoreEngine Engine;
 
         public ByteStoreProvider()
         {
             var context = Instantiator.GetSingleInstance<TContext>();
-            this.Engine = context.InitializeEngine();
+            this.Engine = context.InitializeEngine<IByteStoreEngine>();
         }
 
         public bool Exists(string name)

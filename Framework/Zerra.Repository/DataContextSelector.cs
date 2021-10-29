@@ -7,11 +7,11 @@ using System.Collections.Generic;
 
 namespace Zerra.Repository
 {
-    public abstract class DataContextSelector<T> : DataContext<T> where T : class, IDataStoreEngine
+    public abstract class DataContextSelector : DataContext
     {
         protected override sealed bool DisableBuildStoreFromModels => true;
 
-        protected override T GetEngine()
+        protected override T GetEngine<T>()
         {
             var contexts = GetDataContexts();
             foreach (var context in contexts)
@@ -20,9 +20,13 @@ namespace Zerra.Repository
                     continue;
                 return engine;
             }
-            throw new Exception($"{nameof(DataContextSelector<T>)} did not find a {nameof(T)}");
+            return null;
+        }
+        protected override sealed IDataStoreEngine GetEngine()
+        {
+            throw new NotSupportedException();
         }
 
-        protected abstract ICollection<DataContext<T>> GetDataContexts();
+        protected abstract ICollection<DataContext> GetDataContexts();
     }
 }

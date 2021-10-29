@@ -40,12 +40,12 @@ namespace Zerra.Repository
                     if (engineCache == null)
                     {
                         var aggregateType = GetAggregateType();
-                        var iEventStoreContextProviderType = typeof(IEventStoreContextProvider<>);
+                        var iEventStoreContextProviderType = typeof(IAggregateRootContextProvider<>);
                         var iEventStoreContextProviderGenericType = TypeAnalyzer.GetGenericType(iEventStoreContextProviderType, aggregateType);
                         var providerType = Discovery.GetImplementationType(iEventStoreContextProviderGenericType);
-                        var provider = (IEventStoreContextProvider)Instantiator.CreateInstance(providerType);
+                        var provider = (IContextProvider)Instantiator.CreateInstance(providerType);
                         var context = provider.GetContext();
-                        engineCache = context.InitializeEngine();
+                        engineCache = context.InitializeEngine<IEventStoreEngine>();
                     }
                 }
             }

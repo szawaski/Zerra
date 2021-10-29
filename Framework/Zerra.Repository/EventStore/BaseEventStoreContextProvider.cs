@@ -7,11 +7,11 @@ using Zerra.Reflection;
 
 namespace Zerra.Repository
 {
-    public abstract class BaseEventStoreContextProvider<TContext, TModel> : IBaseProvider, IEventStoreContextProvider<TModel>
-        where TContext : DataContext<IEventStoreEngine>
+    public abstract class BaseEventStoreContextProvider<TContext, TModel> : IBaseProvider, IAggregateRootContextProvider<TModel>
+        where TContext : DataContext
         where TModel : AggregateRoot
     {
-        public DataContext<IEventStoreEngine> GetContext()
+        public DataContext GetContext()
         {
             var context = Instantiator.CreateInstance<TContext>();
             return context;

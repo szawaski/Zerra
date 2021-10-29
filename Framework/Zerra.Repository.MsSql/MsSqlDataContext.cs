@@ -7,11 +7,11 @@ using Zerra.Logging;
 
 namespace Zerra.Repository.MsSql
 {
-    public abstract class MsSqlDataContext : DataContext<ITransactStoreEngine>
+    public abstract class MsSqlDataContext : DataContext
     {
         public abstract string ConnectionString { get; }
 
-        protected override sealed ITransactStoreEngine GetEngine()
+        protected override sealed IDataStoreEngine GetEngine()
         {
             try
             {

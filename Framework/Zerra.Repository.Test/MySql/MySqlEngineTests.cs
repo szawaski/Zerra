@@ -52,7 +52,7 @@ namespace Zerra.Repository.Test
 
             DropDatabase(context);
 
-            _ = context.InitializeEngine(true);
+            _ = context.InitializeEngine<ITransactStoreEngine>(true);
 
             var provider = Resolver.Get<ITransactStoreProvider<MySqlTestTypesModel>>();
             var relationProvider = Resolver.Get<ITransactStoreProvider<MySqlTestRelationsModel>>();
@@ -66,7 +66,7 @@ namespace Zerra.Repository.Test
             ExecuteSql(context, addColumn);
             ExecuteSql(context, dropColumn);
 
-            _ = context.InitializeEngine(true);
+            _ = context.InitializeEngine<ITransactStoreEngine>(true);
 
             var sb = new StringBuilder();
             var modelDetails = ModelAnalyzer.GetModel<MsSqlTestTypesModel>();
@@ -82,7 +82,7 @@ namespace Zerra.Repository.Test
 
             ExecuteSql(context, dropAllColumns);
 
-            _ = context.InitializeEngine(true);
+            _ = context.InitializeEngine<ITransactStoreEngine>(true);
 
             sb.Clear();
             foreach (var property in modelDetails.Properties)
@@ -103,7 +103,7 @@ namespace Zerra.Repository.Test
 
             ExecuteSql(context, addJunkColumns);
 
-            _ = context.InitializeEngine(true);
+            _ = context.InitializeEngine<ITransactStoreEngine>(true);
         }
     }
 }

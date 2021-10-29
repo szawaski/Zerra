@@ -7,11 +7,11 @@ using Zerra.Logging;
 
 namespace Zerra.Repository.PostgreSql
 {
-    public abstract class PostgreSqlDataContext : DataContext<ITransactStoreEngine>
+    public abstract class PostgreSqlDataContext : DataContext
     {
         public abstract string ConnectionString { get; }
 
-        protected override sealed ITransactStoreEngine GetEngine()
+        protected override sealed IDataStoreEngine GetEngine()
         {
             try
             {

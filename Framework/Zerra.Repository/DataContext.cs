@@ -11,22 +11,24 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
-    public abstract class DataContext<T> where T : class, IDataStoreEngine
+    public abstract class DataContext
     {
         private static bool isValid = false;
         private static bool validated = false;
         private static readonly object validatedLock = new object();
 
-        public bool TryGetEngine(out T engine)
+        public bool TryGetEngine<T>(out T engine) where T : class, IDataStoreEngine
         {
-            var dataStoreEngine = GetEngine();
+            engine = GetEngine<T>();
+            if (engine == null)
+                return false;
 
             lock (validatedLock)
             {
                 if (!validated)
                 {
                     validated = true;
-                    isValid = dataStoreEngine.ValidateDataSource();
+                    isValid = engine.ValidateDataSource();
                 }
 
                 if (!isValid)
@@ -36,15 +38,16 @@ namespace Zerra.Repository
                 }
             }
 
-            engine = dataStoreEngine;
             return true;
         }
 
         private static bool initialized = false;
         private static readonly object initializedLock = new object();
-        public T InitializeEngine(bool reinitialize = false)
+        public T InitializeEngine<T>(bool reinitialize = false) where T : class, IDataStoreEngine
         {
-            var engine = GetEngine();
+            var engine = GetEngine<T>();
+            if (engine == null)
+                throw new Exception($"{this.GetType().Name} could not produce an engine of {typeof(T).Name}");
 
             lock (validatedLock)
             {
@@ -99,7 +102,11 @@ namespace Zerra.Repository
             return engine;
         }
 
-        protected abstract T GetEngine();
+        protected virtual T GetEngine<T>() where T : class, IDataStoreEngine
+        {
+            return GetEngine() as T;
+        }
+        protected abstract IDataStoreEngine GetEngine();
         protected virtual bool DisableBuildStoreFromModels => false;
     }
 }

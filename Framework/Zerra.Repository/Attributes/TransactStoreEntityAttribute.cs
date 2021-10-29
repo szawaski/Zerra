@@ -11,14 +11,14 @@ using Zerra.Reflection;
 
 namespace Zerra.Repository
 {
-    public class ApplyEntityAttribute : BaseGenerateAttribute
+    public class TransactStoreEntityAttribute : BaseGenerateAttribute
     {
         private readonly Type entityType;
         private readonly bool? eventLinking;
         private readonly bool? queryLinking;
         private readonly bool? persistLinking;
 
-        public ApplyEntityAttribute(Type entityType)
+        public TransactStoreEntityAttribute(Type entityType)
         {
             this.entityType = entityType;
             this.eventLinking = null;
@@ -26,7 +26,7 @@ namespace Zerra.Repository
             this.persistLinking = null;
         }
 
-        public ApplyEntityAttribute(Type entityType, bool linking)
+        public TransactStoreEntityAttribute(Type entityType, bool linking)
         {
             this.entityType = entityType;
             this.eventLinking = linking;
@@ -34,7 +34,7 @@ namespace Zerra.Repository
             this.persistLinking = linking;
         }
 
-        public ApplyEntityAttribute(Type entityType, bool eventLinking, bool queryLinking, bool persistLinking)
+        public TransactStoreEntityAttribute(Type entityType, bool eventLinking, bool queryLinking, bool persistLinking)
         {
             this.entityType = entityType;
             this.eventLinking = eventLinking;
@@ -42,44 +42,20 @@ namespace Zerra.Repository
             this.persistLinking = persistLinking;
         }
 
+        private static readonly Type providerType = typeof(TransactStoreProvider<,>);
         private static readonly Type entityAttributeType = typeof(EntityAttribute);
-        private static readonly Type dataContextTransactType = typeof(DataContext<ITransactStoreEngine>);
-        private static readonly Type dataContextEventType = typeof(DataContext<IEventStoreEngine>);
-        //private static readonly Type dataContextByteType = typeof(DataContext<IByteStoreEngine>);
-        private static readonly Type transactProviderType = typeof(TransactStoreProvider<,>);
-        private static readonly Type eventProviderType = typeof(EventStoreAsTransactStoreProvider<,>);
-        //private static readonly Type byteProviderType = typeof(DataContext<IByteStoreEngine>);
+        private static readonly Type dataContextType = typeof(DataContext);
         public override Type Generate(Type type)
         {
             var entityTypeDetail = TypeAnalyzer.GetType(entityType);
             if (!entityTypeDetail.Attributes.Select(x => x.GetType()).Contains(entityAttributeType))
-                throw new Exception($"{nameof(ApplyEntityAttribute)} {nameof(entityType)} argument {type.Name} does not inherit {entityAttributeType.Name}");
+                throw new Exception($"{nameof(TransactStoreEntityAttribute)} {nameof(entityType)} argument {type.Name} does not inherit {entityAttributeType.Name}");
 
             var typeDetail = TypeAnalyzer.GetType(type);
+            if (!typeDetail.BaseTypes.Contains(dataContextType))
+                throw new Exception($"{nameof(TransactStoreEntityAttribute)} is not placed on a {dataContextType.Name}");
 
-            Type baseContextType;
-            Type genericProviderType;
-            if (typeDetail.BaseTypes.Contains(dataContextTransactType))
-            {
-                baseContextType = dataContextTransactType;
-                genericProviderType = transactProviderType;
-            }
-            else if (typeDetail.BaseTypes.Contains(dataContextEventType))
-            {
-                baseContextType = dataContextEventType;
-                genericProviderType = eventProviderType;
-            }
-            //else if (typeDetail.Interfaces.Contains(dataContextByteType))
-            //{
-            //    baseContextType = dataContextByteType;
-            //    genericProviderType = null;
-            //}
-            else
-            {
-                throw new NotSupportedException($"{nameof(ApplyEntityAttribute)} does not support {type.Name}");
-            }
-
-            var baseType = TypeAnalyzer.GetGenericType(genericProviderType, type, entityType);
+            var baseType = TypeAnalyzer.GetGenericType(providerType, type, entityType);
 
             var typeSignature = $"{entityType.Name}_{type.Name}_Provider";
 

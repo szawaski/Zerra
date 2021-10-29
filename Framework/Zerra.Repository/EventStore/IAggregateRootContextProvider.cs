@@ -4,8 +4,8 @@
 
 namespace Zerra.Repository
 {
-    public interface IEventStoreContextProvider
+    public interface IAggregateRootContextProvider<TModel> : IContextProvider where TModel : AggregateRoot
     {
-        DataContext<IEventStoreEngine> GetContext();
+        
     }
 }

@@ -4,14 +4,14 @@ using ZerraDemo.Domain.Pets.DataModels;
 
 namespace ZerraDemo.Domain.Pets.Sql
 {
-    [ApplyEntity(typeof(BreedDataModel))]
-    [ApplyEntity(typeof(PetDataModel))]
-    [ApplyEntity(typeof(SpeciesDataModel))]
-    public class PetsDataContext : DataContextSelector<ITransactStoreEngine>
+    [TransactStoreEntity(typeof(BreedDataModel))]
+    [TransactStoreEntity(typeof(PetDataModel))]
+    [TransactStoreEntity(typeof(SpeciesDataModel))]
+    public class PetsDataContext : DataContextSelector
     {
-        protected override ICollection<DataContext<ITransactStoreEngine>> GetDataContexts()
+        protected override ICollection<DataContext> GetDataContexts()
         {
-            return new DataContext<ITransactStoreEngine>[]
+            return new DataContext[]
             {
                 new PetsMsSqlDataContext(),
                 new PetsPostgreSqlDataContext(),
