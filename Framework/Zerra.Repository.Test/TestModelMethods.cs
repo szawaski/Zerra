@@ -9,7 +9,7 @@ namespace Zerra.Repository.Test
 {
     public static class TestModelMethods
     {
-        public static void TestSequence<T, U>(ITransactProvider<T> provider, ITransactProvider<U> relationProvider)
+        public static void TestSequence<T, U>(ITransactStoreProvider<T> provider, ITransactStoreProvider<U> relationProvider)
             where T : BaseTestTypesModel<U>, new()
             where U : BaseTestRelationsModel, new()
         {

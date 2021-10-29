@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Zerra.Logging;
-using Zerra.Repository.EventStore;
 
 namespace Zerra.Repository.EventStoreDB
 {

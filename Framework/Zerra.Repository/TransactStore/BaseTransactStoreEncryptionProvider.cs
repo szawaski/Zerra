@@ -16,7 +16,7 @@ using Zerra.Repository.Reflection;
 namespace Zerra.Repository
 {
     public abstract class BaseTransactStoreEncryptionProvider<TNextProviderInterface, TModel> : BaseTransactStoreLayerProvider<TNextProviderInterface, TModel>, IEncryptionProvider
-        where TNextProviderInterface : ITransactProvider<TModel>
+        where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {
         private const string encryptionPrefix = "<encrypted>";

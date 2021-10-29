@@ -12,7 +12,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Repository
 {
-    public abstract partial class BaseTransactStoreCompressionProvider<TNextProviderInterface, TModel> where TNextProviderInterface : ITransactProvider<TModel>
+    public abstract partial class BaseTransactStoreCompressionProvider<TNextProviderInterface, TModel> where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {
         private static class CompressionCommon

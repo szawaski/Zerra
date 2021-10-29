@@ -8,7 +8,7 @@ using Zerra.Collections;
 using Zerra.CQRS;
 using Zerra.Reflection;
 
-namespace Zerra.Repository.EventStore
+namespace Zerra.Repository
 {
     public abstract class AggregateRoot
     {

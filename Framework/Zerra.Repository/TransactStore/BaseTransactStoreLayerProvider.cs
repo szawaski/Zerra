@@ -11,8 +11,8 @@ using Zerra.Providers;
 
 namespace Zerra.Repository
 {
-    public abstract class BaseTransactStoreLayerProvider<TNextProviderInterface, TModel> : BaseLayerProvider<TNextProviderInterface>, ITransactProvider<TModel>, IProviderRelation<TModel>
-        where TNextProviderInterface : ITransactProvider<TModel>
+    public abstract class BaseTransactStoreLayerProvider<TNextProviderInterface, TModel> : BaseLayerProvider<TNextProviderInterface>, ITransactStoreProvider<TModel>, IProviderRelation<TModel>
+        where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {
         protected IProviderRelation<TModel> ProviderRelation = null;

@@ -4,7 +4,6 @@
 
 using System;
 using Zerra.Repository;
-using Zerra.Repository.EventStore;
 using Zerra.Repository.EventStoreDB;
 
 namespace Zerra.DevTest

@@ -14,7 +14,7 @@ using Zerra.Repository.Reflection;
 namespace Zerra.Repository
 {
     public abstract partial class BaseTransactStoreCompressionProvider<TNextProviderInterface, TModel> : BaseTransactStoreLayerProvider<TNextProviderInterface, TModel>, ICompressionProvider
-        where TNextProviderInterface : ITransactProvider<TModel>
+        where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {
         public virtual bool Enabled { get { return true; } }

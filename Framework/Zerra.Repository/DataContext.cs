@@ -70,7 +70,7 @@ namespace Zerra.Repository
                         var modelTypesWithThisDataContext = new HashSet<Type>();
                         foreach(var modelType in allModelTypes.Where(x => !x.IsAbstract))
                         {
-                            var providerType = typeof(ITransactProvider<>).MakeGenericType(modelType);
+                            var providerType = typeof(ITransactStoreProvider<>).MakeGenericType(modelType);
                             if (!Resolver.TryGet(providerType, out object provider))
                                 continue;
                             var typeDetails = TypeAnalyzer.GetType(provider.GetType());

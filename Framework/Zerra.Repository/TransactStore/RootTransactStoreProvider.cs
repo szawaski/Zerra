@@ -16,7 +16,7 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
-    public abstract partial class RootTransactStoreProvider<TModel> : IBaseProvider, ITransactProvider<TModel>, IProviderRelation<TModel>
+    public abstract partial class RootTransactStoreProvider<TModel> : IBaseProvider, ITransactStoreProvider<TModel>, IProviderRelation<TModel>
         where TModel : class, new()
     {
         protected static readonly Type modelType = typeof(TModel);
@@ -24,7 +24,7 @@ namespace Zerra.Repository
         protected static readonly Type listType = typeof(List<>);
         protected static readonly Type queryManyType = typeof(QueryMany<>);
         protected static readonly Type enumerableType = typeof(ICollection<>);
-        protected static readonly Type dataQueryProviderType = typeof(ITransactProvider<>);
+        protected static readonly Type dataQueryProviderType = typeof(ITransactStoreProvider<>);
         protected static readonly Type funcType = typeof(Func<,>);
         protected static readonly Type expressionType = typeof(Expression<>);
         protected static readonly Type boolType = typeof(bool);

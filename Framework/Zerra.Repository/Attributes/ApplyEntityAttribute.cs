@@ -6,7 +6,6 @@ using System;
 using System.Linq;
 using System.Reflection;
 using Zerra.Reflection;
-using Zerra.Repository.EventStore;
 
 namespace Zerra.Repository
 {
@@ -30,7 +29,7 @@ namespace Zerra.Repository
         {
             var entityTypeDetail = TypeAnalyzer.GetType(entityType);
             if (!entityTypeDetail.Attributes.Select(x => x.GetType()).Contains(entityAttributeType))
-                throw new Exception($"{nameof(ApplyEntityAttribute)} {nameof(entityType)} argument {type.Name} does not have {entityAttributeType.Name}");
+                throw new Exception($"{nameof(ApplyEntityAttribute)} {nameof(entityType)} argument {type.Name} does not inherit {entityAttributeType.Name}");
 
             var typeDetail = TypeAnalyzer.GetType(type);
 
@@ -43,7 +42,7 @@ namespace Zerra.Repository
             }
             else if (typeDetail.BaseTypes.Contains(dataContextEventType))
             {
-                baseContextType = dataContextTransactType;
+                baseContextType = dataContextEventType;
                 genericProviderType = eventProviderType;
             }
             //else if (typeDetail.Interfaces.Contains(dataContextByteType))

@@ -12,9 +12,9 @@ using Zerra;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
-namespace Zerra.Repository.EventStore
+namespace Zerra.Repository
 {
-    public static class LinqValueExtractor
+    internal static class LinqValueExtractor
     {
         public static IDictionary<string, List<object>> Extract(Expression where, Type propertyModelType, params string[] propertyNames)
         {

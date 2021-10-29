@@ -5,7 +5,7 @@
 using Zerra.Providers;
 using Zerra.Reflection;
 
-namespace Zerra.Repository.EventStore
+namespace Zerra.Repository
 {
     public abstract class BaseEventStoreContextProvider<TContext, TModel> : IBaseProvider, IEventStoreContextProvider<TModel>
         where TContext : DataContext<IEventStoreEngine>

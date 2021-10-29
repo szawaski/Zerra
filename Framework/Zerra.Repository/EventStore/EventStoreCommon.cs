@@ -6,9 +6,9 @@ using System;
 using System.Text;
 using Zerra.Serialization;
 
-namespace Zerra.Repository.EventStore
+namespace Zerra.Repository
 {
-    public static class EventStoreCommon
+    internal static class EventStoreCommon
     {
         public static byte[] Serialize(object obj)
         {

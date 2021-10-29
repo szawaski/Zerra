@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Zerra.Repository.EventStore;
+using Zerra.Repository;
 using ZerraDemo.Domain.Ledger2.Events;
 
 namespace ZerraDemo.Domain.Ledger2.Aggregates

@@ -5,7 +5,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace Zerra.Repository.EventStore
+namespace Zerra.Repository
 {
     public interface IEventStoreEngine : IDataStoreEngine
     {

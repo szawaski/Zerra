@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
-namespace Zerra.Repository.EventStore
+namespace Zerra.Repository
 {
     public class EventStoreAsTransactStoreProvider<TContext, TModel> : RootTransactStoreProvider<TModel>
         where TContext : DataContext<IEventStoreEngine>
