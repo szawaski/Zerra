@@ -1499,10 +1499,6 @@ namespace Zerra.Repository.PostgreSql
                 sb.Write(".*");
                 AppendLineBreak(ref sb);
             }
-            else if (graph.LocalProperties.Count == 0)
-            {
-                sb.Write(" 1");
-            }
             else
             {
                 var passedfirst = false;
@@ -1522,6 +1518,10 @@ namespace Zerra.Repository.PostgreSql
                             AppendLineBreak(ref sb);
                         }
                     }
+                }
+                if (!passedfirst)
+                {
+                    sb.Write(" 1");
                 }
             }
         }

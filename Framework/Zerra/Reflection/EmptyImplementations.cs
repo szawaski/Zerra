@@ -146,7 +146,6 @@ namespace Zerra.Reflection
                 );
 
                 var getMethodName = "get_" + property.Name;
-                var getMethod = methods.FirstOrDefault(x => x.Name == getMethodName);
                 var getMethodBuilder = typeBuilder.DefineMethod(
                     getMethodName,
                     MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
@@ -158,11 +157,11 @@ namespace Zerra.Reflection
                 getMethodBuilderIL.Emit(OpCodes.Ldfld, fieldBuilder);
                 getMethodBuilderIL.Emit(OpCodes.Ret);
 
+                var getMethod = methods.FirstOrDefault(x => x.Name == getMethodName);
                 if (getMethod != null)
                     typeBuilder.DefineMethodOverride(getMethodBuilder, getMethod);
 
                 var setMethodName = "set_" + property.Name;
-                var setMethod = methods.FirstOrDefault(x => x.Name == setMethodName);
                 var setMethodBuilder = typeBuilder.DefineMethod(
                     setMethodName,
                     MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
@@ -174,6 +173,8 @@ namespace Zerra.Reflection
                 setMethodBuilderIL.Emit(OpCodes.Ldarg_1);
                 setMethodBuilderIL.Emit(OpCodes.Stfld, fieldBuilder);
                 setMethodBuilderIL.Emit(OpCodes.Ret);
+
+                var setMethod = methods.FirstOrDefault(x => x.Name == setMethodName);
                 if (setMethod != null)
                     typeBuilder.DefineMethodOverride(setMethodBuilder, setMethod);
 

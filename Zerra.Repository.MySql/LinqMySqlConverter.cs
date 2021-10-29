@@ -1507,10 +1507,6 @@ namespace Zerra.Repository.MySql
                 sb.Write("`.*");
                 AppendLineBreak(ref sb);
             }
-            else if (graph.LocalProperties.Count == 0)
-            {
-                sb.Write(" 1");
-            }
             else
             {
                 var passedfirst = false;
@@ -1532,6 +1528,10 @@ namespace Zerra.Repository.MySql
                             AppendLineBreak(ref sb);
                         }
                     }
+                }
+                if (!passedfirst)
+                {
+                    sb.Write(" 1");
                 }
             }
         }
