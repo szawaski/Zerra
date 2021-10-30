@@ -10,9 +10,9 @@ using RabbitMQ.Client;
 using Zerra.Encryption;
 using Zerra.Logging;
 
-namespace Zerra.CQRS.RabbitMessage
+namespace Zerra.CQRS.RabbitMQ
 {
-    public partial class RabbitServer : ICommandServer, IEventServer, IDisposable
+    public partial class RabbitMQServer : ICommandServer, IEventServer, IDisposable
     {
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.RijndaelManaged;
 
@@ -28,7 +28,7 @@ namespace Zerra.CQRS.RabbitMessage
 
         public string ConnectionString => host;
 
-        public RabbitServer(string host, SymmetricKey encryptionKey)
+        public RabbitMQServer(string host, SymmetricKey encryptionKey)
         {
             this.host = host;
             this.encryptionKey = encryptionKey;
@@ -53,12 +53,12 @@ namespace Zerra.CQRS.RabbitMessage
         void ICommandServer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(RabbitServer)} Command Server Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(RabbitMQServer)} Command Server Started Connected To {this.host}");
         }
         void IEventServer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(RabbitServer)} Event Server Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(RabbitMQServer)} Event Server Started Connected To {this.host}");
         }
         private void Open()
         {
@@ -69,7 +69,7 @@ namespace Zerra.CQRS.RabbitMessage
             }
             catch (Exception ex)
             {
-                Log.ErrorAsync($"{nameof(RabbitServer)} failed to open", ex);
+                Log.ErrorAsync($"{nameof(RabbitMQServer)} failed to open", ex);
                 throw;
             }
 
@@ -97,12 +97,12 @@ namespace Zerra.CQRS.RabbitMessage
         void ICommandServer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(RabbitServer)} Command Server Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(RabbitMQServer)} Command Server Closed On {this.host}");
         }
         void IEventServer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(RabbitServer)} Event Server Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(RabbitMQServer)} Event Server Closed On {this.host}");
         }
         private void Close()
         {

@@ -4,7 +4,7 @@
 
 using Confluent.Kafka;
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
@@ -19,12 +19,30 @@ namespace Zerra.CQRS.Kafka
     {
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.RijndaelManaged;
 
+        private readonly SemaphoreSlim listenerStartedLock = new SemaphoreSlim(1, 1);
+        private bool listenerStarted = false;
+
         private readonly string host;
         private readonly SymmetricKey encryptionKey;
+        private readonly string ackTopic;
+        private static IProducer<string, byte[]> producer = null;
+        private readonly CancellationTokenSource canceller;
+        private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
         public KafkaClient(string host, SymmetricKey encryptionKey)
         {
             this.host = host;
             this.encryptionKey = encryptionKey;
+
+            var clientID = Guid.NewGuid().ToString();
+            this.ackTopic = $"ACK-{clientID}";
+
+            var producerConfig = new ProducerConfig();
+            producerConfig.BootstrapServers = host;
+            producerConfig.ClientId = clientID;
+            producer = new ProducerBuilder<string, byte[]>(producerConfig).Build();
+
+            this.canceller = new CancellationTokenSource();
+            this.ackCallbacks = new ConcurrentDictionary<string, Action<Acknowledgement>>();
         }
 
         public string ConnectionString => host;
@@ -35,126 +53,159 @@ namespace Zerra.CQRS.Kafka
 
         private async Task SendAsync(ICommand command, bool requireAcknowledgement)
         {
-            IProducer<string, byte[]> producer = null;
-            IConsumer<string, byte[]> consumer = null;
-            try
+            if (requireAcknowledgement)
             {
-                var producerConfig = new ProducerConfig();
-                producerConfig.BootstrapServers = host;
-                producerConfig.ClientId = Guid.NewGuid().ToString();
-                producer = new ProducerBuilder<string, byte[]>(producerConfig).Build();
-
-                var topic = command.GetType().GetNiceName();
-                var ackKey = $"{KafkaCommon.MessageWithAckKey}-{producerConfig.ClientId}";
-
-                string[][] claims = null;
-                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
-                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
-
-                var message = new KafkaCommandMessage()
+                if (!listenerStarted)
                 {
-                    Message = command,
-                    Claims = claims
-                };
-
-                var body = KafkaCommon.Serialize(message);
-                if (encryptionKey != null)
-                    body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body, true);
-
-                Headers headers;
-                string key;
-                if (requireAcknowledgement)
-                {
-                    headers = new Headers();
-                    headers.Add(new Header(KafkaCommon.AckKeyHeader, Encoding.UTF8.GetBytes(ackKey)));
-                    key = KafkaCommon.MessageWithAckKey;
-                }
-                else
-                {
-                    headers = null;
-                    key = KafkaCommon.MessageKey;
-                }
-
-                var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Headers = headers, Key = key, Value = body });
-                if (producerResult.Status != PersistenceStatus.Persisted)
-                    throw new Exception($"{nameof(KafkaClient)} failed: {producerResult.Status}");
-
-                if (requireAcknowledgement)
-                {
-                    var consumerConfig = new ConsumerConfig();
-                    consumerConfig.BootstrapServers = host;
-                    consumerConfig.AutoOffsetReset = AutoOffsetReset.Earliest;
-                    consumerConfig.EnableAutoCommit = false;
-                    consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build();
-
-                    var topicAck = $"{topic}-ACK";
-                    consumer.Subscribe(topicAck);
-                    for (; ; )
+                    await listenerStartedLock.WaitAsync();
+                    if (!listenerStarted)
                     {
-                        var consumerResult = consumer.Consume();
-                        if (consumerResult.Message.Key == ackKey)
-                        {
-                            var response = consumerResult.Message.Value;
-                            if (encryptionKey != null)
-                                response = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, response, true);
-                            var ack = KafkaCommon.Deserialize<Acknowledgement>(response);
-                            if (ack.Success)
-                                break;
-                            throw new AcknowledgementException(ack, topic);
-                        }
+                        _ = Task.Run(AckListeningThread);
+                        listenerStarted = true;
                     }
-                    consumer.Unsubscribe();
+                    listenerStartedLock.Release();
                 }
             }
-            finally
+
+            var topic = command.GetType().GetNiceName();
+
+            string[][] claims = null;
+            if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+            var message = new KafkaCommandMessage()
             {
-                if (producer != null)
-                    producer.Dispose();
-                if (consumer != null)
-                    consumer.Dispose();
+                Message = command,
+                Claims = claims
+            };
+
+            var body = KafkaCommon.Serialize(message);
+            if (encryptionKey != null)
+                body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body, true);
+
+            if (requireAcknowledgement)
+            {
+                var ackKey = Guid.NewGuid().ToString();
+
+                var headers = new Headers();
+                headers.Add(new Header(KafkaCommon.AckTopicHeader, Encoding.UTF8.GetBytes(ackTopic)));
+                headers.Add(new Header(KafkaCommon.AckKeyHeader, Encoding.UTF8.GetBytes(ackKey)));
+                var key = KafkaCommon.MessageWithAckKey;
+
+                var waiter = new SemaphoreSlim(0, 1);
+
+                try
+                {
+                    Acknowledgement ack = null;
+                    ackCallbacks.TryAdd(ackKey, (ackFromCallback) =>
+                    {
+                        ack = ackFromCallback;
+                        waiter.Release();
+                    });
+
+                    var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Headers = headers, Key = key, Value = body });
+                    if (producerResult.Status != PersistenceStatus.Persisted)
+                        throw new Exception($"{nameof(KafkaClient)} failed: {producerResult.Status}");
+
+                    await waiter.WaitAsync();
+                    if (!ack.Success)
+                        throw new AcknowledgementException(ack, topic);
+                }
+                finally
+                {
+                    if (waiter != null)
+                        waiter.Dispose();
+                }
+            }
+            else
+            {
+                var key = KafkaCommon.MessageKey;
+
+                var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = key, Value = body });
+                if (producerResult.Status != PersistenceStatus.Persisted)
+                    throw new Exception($"{nameof(KafkaClient)} failed: {producerResult.Status}");
             }
         }
 
         private async Task SendAsync(IEvent @event)
         {
-            IProducer<string, byte[]> producer = null;
+            var topic = @event.GetType().GetNiceName();
+
+            string[][] claims = null;
+            if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+            var message = new KafkaEventMessage()
+            {
+                Message = @event,
+                Claims = claims
+            };
+
+            var body = KafkaCommon.Serialize(message);
+            if (encryptionKey != null)
+                body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body, true);
+
+            var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = KafkaCommon.MessageKey, Value = body });
+            if (producerResult.Status != PersistenceStatus.Persisted)
+                throw new Exception($"{nameof(KafkaClient)} failed: {producerResult.Status}");
+        }
+
+        private async Task AckListeningThread()
+        {
+            await KafkaCommon.AssureTopic(host, ackTopic);
+
+            var consumerConfig = new ConsumerConfig();
+            consumerConfig.BootstrapServers = host;
+            consumerConfig.GroupId = ackTopic;
+            consumerConfig.EnableAutoCommit = false;
+
+            IConsumer<string, byte[]> consumer = null;
             try
             {
-                var producerConfig = new ProducerConfig();
-                producerConfig.BootstrapServers = host;
-                producerConfig.ClientId = Guid.NewGuid().ToString();
-                producer = new ProducerBuilder<string, byte[]>(producerConfig).Build();
-
-                var topic = @event.GetType().GetNiceName();
-
-                string[][] claims = null;
-                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
-                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
-
-                var message = new KafkaEventMessage()
+                consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build();
+                consumer.Subscribe(ackTopic);
+                for (; ; )
                 {
-                    Message = @event,
-                    Claims = claims
-                };
+                    try
+                    {
+                        if (canceller.Token.IsCancellationRequested)
+                            break;
 
-                var body = KafkaCommon.Serialize(message);
-                if (encryptionKey != null)
-                    body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body, true);
+                        var consumerResult = consumer.Consume(canceller.Token);
+                        consumer.Commit(consumerResult);
 
-                var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = KafkaCommon.MessageKey, Value = body });
-                if (producerResult.Status != PersistenceStatus.Persisted)
-                    throw new Exception($"{nameof(KafkaClient)} failed: {producerResult.Status}");
+                        if (!ackCallbacks.TryRemove(consumerResult.Message.Key, out Action<Acknowledgement> callback))
+                            continue;
+
+                        var response = consumerResult.Message.Value;
+                        if (encryptionKey != null)
+                            response = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, response, true);
+                        var ack = KafkaCommon.Deserialize<Acknowledgement>(response);
+
+                        callback(ack);
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        break;
+                    }
+                    catch { }
+                }
+
+                consumer.Unsubscribe();
+                await KafkaCommon.DeleteTopic(host, ackTopic);
             }
             finally
             {
-                if (producer != null)
-                    producer.Dispose();
+                canceller.Dispose();
+                if (consumer != null)
+                    consumer.Dispose();
             }
         }
 
         public void Dispose()
         {
-
+            canceller.Cancel();
+            producer.Dispose();
         }
     }
 }

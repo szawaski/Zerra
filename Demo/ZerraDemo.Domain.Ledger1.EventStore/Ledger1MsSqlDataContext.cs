@@ -11,7 +11,7 @@ namespace ZerraDemo.Domain.Ledger1.EventStore
         private readonly string connectionString;
         public Ledger1MsSqlDataContext()
         {
-            this.connectionString = Config.GetSetting("Ledger1SqlConnectionStringPOSTGRESQL");
+            this.connectionString = Config.GetSetting("Ledger1SqlConnectionStringMSSQL");
         }
     }
 }

@@ -23,24 +23,31 @@ namespace Zerra.CQRS.Kafka
             public bool IsOpen { get; private set; }
 
             private readonly string topic;
+            private readonly string clientID;
             private readonly SymmetricKey encryptionKey;
             private readonly CancellationTokenSource canceller;
-            private readonly string topicAck;
 
             public CommandConsumer(Type type, SymmetricKey encryptionKey)
             {
                 this.Type = type;
                 this.topic = type.GetNiceName();
+                this.clientID = Guid.NewGuid().ToString();
                 this.encryptionKey = encryptionKey;
                 this.canceller = new CancellationTokenSource();
-                this.topicAck = $"{this.topic}-ACK";
             }
 
-            public async Task Open(string host, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
+            public void Open(string host, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
             {
+                Task.Run(() => ListeningThread(host, handlerAsync, handlerAwaitAsync));
+            }
+
+            private async Task ListeningThread(string host, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
+            {
+                await KafkaCommon.AssureTopic(host, topic);
+
                 var consumerConfig = new ConsumerConfig();
                 consumerConfig.BootstrapServers = host;
-                consumerConfig.AutoOffsetReset = AutoOffsetReset.Earliest;
+                consumerConfig.GroupId = topic;
                 consumerConfig.EnableAutoCommit = false;
 
                 IConsumer<string, byte[]> consumer = null;
@@ -48,10 +55,12 @@ namespace Zerra.CQRS.Kafka
                 {
                     consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build();
                     consumer.Subscribe(topic);
+
                     for (; ; )
                     {
                         Exception error = null;
                         bool awaitResponse = false;
+                        string ackTopic = null;
                         string ackKey = null;
                         try
                         {
@@ -59,10 +68,14 @@ namespace Zerra.CQRS.Kafka
                                 break;
 
                             var consumerResult = consumer.Consume(canceller.Token);
+                            consumer.Commit(consumerResult);
 
                             awaitResponse = consumerResult.Message.Key == KafkaCommon.MessageWithAckKey;
                             if (awaitResponse)
+                            {
+                                ackTopic = Encoding.UTF8.GetString(consumerResult.Message.Headers.GetLastBytes(KafkaCommon.AckTopicHeader));
                                 ackKey = Encoding.UTF8.GetString(consumerResult.Message.Headers.GetLastBytes(KafkaCommon.AckKeyHeader));
+                            }
 
                             if (consumerResult.Message.Key == KafkaCommon.MessageKey || awaitResponse)
                             {
@@ -93,9 +106,6 @@ namespace Zerra.CQRS.Kafka
                             {
                                 _ = Log.ErrorAsync($"{nameof(KafkaServer)} unrecognized message key {consumerResult.Message.Key}");
                             }
-
-                            if (canceller.Token.IsCancellationRequested)
-                                break;
                         }
                         catch (TaskCanceledException)
                         {
@@ -114,7 +124,7 @@ namespace Zerra.CQRS.Kafka
                             {
                                 var producerConfig = new ProducerConfig();
                                 producerConfig.BootstrapServers = host;
-                                producerConfig.ClientId = Guid.NewGuid().ToString();
+                                producerConfig.ClientId = clientID;
 
                                 producer = new ProducerBuilder<string, byte[]>(producerConfig).Build();
 
@@ -127,7 +137,7 @@ namespace Zerra.CQRS.Kafka
                                 if (encryptionKey != null)
                                     body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body, true);
 
-                                await producer.ProduceAsync(topicAck, new Message<string, byte[]>() { Key = ackKey, Value = body });
+                                await producer.ProduceAsync(ackTopic, new Message<string, byte[]>() { Key = ackKey, Value = body });
                             }
 
                             catch (Exception ex)

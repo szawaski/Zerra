@@ -1,5 +1,6 @@
 ﻿using Zerra.CQRS;
 using Zerra.CQRS.Kafka;
+using Zerra.CQRS.RabbitMQ;
 using Zerra.CQRS.Settings;
 using Zerra.Logger;
 
@@ -23,17 +24,17 @@ namespace ZerraDemo.Common
             //----------------------------------------------------------
 
             //Option1A: Enable this for Tcp for backend only services
-            var serviceCreator = serviceCreatorInternal;
+            //var serviceCreator = serviceCreatorInternal;
 
             //Option1B: Enable this for Http which can be access directly from a front end
             //var authorizor = new DemoCookieApiAuthorizer();
             //var serviceCreator = new TcpApiServiceCreator(authorizor, null);
 
             //Option1C: Enable this using RabbitMQ for event streaming commands/events
-            //var serviceCreator = new RabbitServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal);
+            //var serviceCreator = new RabbitMQServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal);
 
             //Option1D: Enable this using Kafka for event streaming commands/events
-            //var serviceCreator = new KafkaServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal);
+            var serviceCreator = new KafkaServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal);
 
 
 

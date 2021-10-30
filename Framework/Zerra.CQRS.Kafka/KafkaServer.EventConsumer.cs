@@ -33,11 +33,18 @@ namespace Zerra.CQRS.Kafka
                 this.canceller = new CancellationTokenSource();
             }
 
-            public async Task Open(string host, Func<IEvent, Task> handlerAsync)
+            public void Open(string host, Func<IEvent, Task> handlerAsync)
             {
+                Task.Run(() => ListeningThread(host, handlerAsync));
+            }
+
+            public async Task ListeningThread(string host, Func<IEvent, Task> handlerAsync)
+            {
+                await KafkaCommon.AssureTopic(host, topic);
+
                 var consumerConfig = new ConsumerConfig();
                 consumerConfig.BootstrapServers = host;
-                consumerConfig.AutoOffsetReset = AutoOffsetReset.Earliest;
+                consumerConfig.GroupId = Guid.NewGuid().ToString();
                 consumerConfig.EnableAutoCommit = false;
 
                 IConsumer<string, byte[]> consumer = null;
@@ -45,6 +52,7 @@ namespace Zerra.CQRS.Kafka
                 {
                     consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build();
                     consumer.Subscribe(topic);
+
                     for (; ; )
                     {
                         try
@@ -53,6 +61,7 @@ namespace Zerra.CQRS.Kafka
                                 break;
 
                             var consumerResult = consumer.Consume(canceller.Token);
+                            consumer.Commit(consumerResult);
 
                             if (consumerResult.Message.Key == KafkaCommon.MessageKey)
                             {
@@ -80,9 +89,6 @@ namespace Zerra.CQRS.Kafka
                             {
                                 _ = Log.ErrorAsync($"{nameof(KafkaServer)} unrecognized message key {consumerResult.Message.Key}");
                             }
-
-                            if (canceller.Token.IsCancellationRequested)
-                                break;
                         }
                         catch (TaskCanceledException)
                         {

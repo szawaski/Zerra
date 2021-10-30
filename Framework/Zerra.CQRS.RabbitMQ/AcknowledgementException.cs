@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Zerra.CQRS.RabbitMessage
+namespace Zerra.CQRS.RabbitMQ
 {
     public class AcknowledgementException : Exception
     {

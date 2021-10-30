@@ -4,9 +4,9 @@
 
 using Zerra.Serialization;
 
-namespace Zerra.CQRS.RabbitMessage
+namespace Zerra.CQRS.RabbitMQ
 {
-    internal static class RabbitCommon
+    internal static class RabbitMQCommon
     {
         public static byte[] Serialize(object obj)
         {

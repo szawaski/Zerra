@@ -623,7 +623,7 @@ namespace Zerra.CQRS
             var waiter = new SemaphoreSlim(0, 1);
             AppDomain.CurrentDomain.ProcessExit += (sender, e) => { waiter.Release(); };
             await waiter.WaitAsync();
-            _= Log.InfoAsync($"{nameof(Bus)} Exiting");
+            _ = Log.InfoAsync($"{nameof(Bus)} Exiting");
             DisposeServices();
         }
         public static async Task WaitUntilExitAsync(CancellationToken cancellationToken)
@@ -640,6 +640,7 @@ namespace Zerra.CQRS
 
         public static void StartServices(string serviceName, ServiceSettings serviceSettings, IServiceCreator serviceCreator, IRelayRegister relayRegister = null)
         {
+            _ = Log.InfoAsync($"Starting {serviceName}");
             lock (serviceLock)
             {
                 var serverSetting = serviceSettings.Services.FirstOrDefault(x => x.Name == serviceName);
@@ -920,7 +921,7 @@ namespace Zerra.CQRS
                         }
                         catch (Exception ex)
                         {
-                            Log.ErrorAsync($"Failed to instantiate {instantiation}", ex);
+                            _ = Log.ErrorAsync($"Failed to instantiate {instantiation}", ex);
                         }
                     }
                 }

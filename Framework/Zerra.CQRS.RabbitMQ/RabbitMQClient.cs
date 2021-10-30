@@ -14,9 +14,9 @@ using RabbitMQ.Client.Events;
 using Zerra.Encryption;
 using Zerra.Logging;
 
-namespace Zerra.CQRS.RabbitMessage
+namespace Zerra.CQRS.RabbitMQ
 {
-    public class RabbitClient : ICommandClient, IEventClient, IDisposable
+    public class RabbitMQClient : ICommandClient, IEventClient, IDisposable
     {
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.RijndaelManaged;
 
@@ -26,7 +26,7 @@ namespace Zerra.CQRS.RabbitMessage
 
         public string ConnectionString => host;
 
-        public RabbitClient(string host, SymmetricKey encryptionKey)
+        public RabbitMQClient(string host, SymmetricKey encryptionKey)
         {
             this.host = host;
             this.encryptionKey = encryptionKey;
@@ -34,7 +34,7 @@ namespace Zerra.CQRS.RabbitMessage
             {
                 var factory = new ConnectionFactory() { HostName = host };
                 this.connection = factory.CreateConnection();
-                _ = Log.TraceAsync($"{nameof(RabbitClient)} Started For {this.host}");
+                _ = Log.TraceAsync($"{nameof(RabbitMQClient)} Started For {this.host}");
             }
             catch (Exception ex)
             {
@@ -73,13 +73,13 @@ namespace Zerra.CQRS.RabbitMessage
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
-                var rabbitMessage = new RabbitCommandMessage()
+                var rabbitMessage = new RabbitMQCommandMessage()
                 {
                     Message = command,
                     Claims = claims
                 };
 
-                var body = RabbitCommon.Serialize(rabbitMessage);
+                var body = RabbitMQCommon.Serialize(rabbitMessage);
                 if (encryptionKey != null)
                     body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body, true);
 
@@ -122,16 +122,15 @@ namespace Zerra.CQRS.RabbitMessage
                         try
                         {
                             if (e.BasicProperties.CorrelationId != correlationId)
-                                throw new Exception("Response keys should be single and unique");
+                                throw new Exception("ACK response CorrelationIds should be single and unique");
 
                             channel.BasicCancel(consumerTag);
 
                             byte[] acknowledgementBody = e.Body;
                             if (encryptionKey != null)
-                            {
                                 acknowledgementBody = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, acknowledgementBody, true);
-                            }
-                            var affirmation = RabbitCommon.Deserialize<Acknowledgement>(acknowledgementBody);
+                            
+                            var affirmation = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
 
                             stopwatch.Stop();
 
@@ -198,13 +197,13 @@ namespace Zerra.CQRS.RabbitMessage
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
-                var rabbitMessage = new RabbitEventMessage()
+                var rabbitMessage = new RabbitMQEventMessage()
                 {
                     Message = @event,
                     Claims = claims
                 };
 
-                byte[] body = RabbitCommon.Serialize(rabbitMessage);
+                byte[] body = RabbitMQCommon.Serialize(rabbitMessage);
                 if (encryptionKey != null)
                 {
                     body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body, true);

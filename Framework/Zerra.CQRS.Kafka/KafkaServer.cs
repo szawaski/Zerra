@@ -63,6 +63,8 @@ namespace Zerra.CQRS.Kafka
         }
         private void Open()
         {
+            isOpen = true;
+
             lock (commandExchanges)
             {
                 lock (eventExchanges)
@@ -78,10 +80,10 @@ namespace Zerra.CQRS.Kafka
                 return;
 
             foreach (var exchange in commandExchanges.Where(x => !x.IsOpen))
-                _ = exchange.Open(this.host, this.commandHandlerAsync, this.commandHandlerAwaitAsync);
+                exchange.Open(this.host, this.commandHandlerAsync, this.commandHandlerAwaitAsync);
 
             foreach (var exchange in eventExchanges.Where(x => !x.IsOpen))
-                _ = exchange.Open(this.host, this.eventHandlerAsync);
+                exchange.Open(this.host, this.eventHandlerAsync);
         }
 
         void ICommandServer.Close()

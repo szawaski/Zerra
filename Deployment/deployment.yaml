@@ -355,26 +355,12 @@ spec:
       - name: zerrademo-petsdomain-container
         image: szawaski/zerrademo-petsdomain:latest
         env:
-          - name: ZerraDemo.Service.Pets
-            value: "http://zerrademo-petsdomain-service:9001"
           - name: ZerraDemo.Service.Weather
             value: "http://zerrademo-weatherdomain-service:9002"
-          - name: ZerraDemo.Service.Ledger1
-            value: "http://zerrademo-ledger1domain-service:9003"
-          - name: ZerraDemo.Service.Ledger2
-            value: "http://zerrademo-ledger2domain-service:9004"
 #          - name: PetsSqlConnectionStringMSSQL
 #            value: "Data Source=zerrademo-petsdomain-mssql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
-#          - name: Ledger1SqlConnectionStringMSSQL
-#            value: "Data Source=zerrademo-ledger1domain-mssql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
           - name: PetsSqlConnectionStringPOSTGRESQL
             value: "User ID=postgres;Password=password123;Host=zerrademo-petsdomain-postgresql-service;Port=1401;Database=zerrademopets;"
-          - name: Ledger1SqlConnectionStringPOSTGRESQL
-            value: "User ID=postgres;Password=password123;Host=zerrademo-petsdomain-postgresql-service;Port=1402;Database=zerrademoledger;"
-          - name: Ledger1EventStoreServer
-            value: "tcp://zerrademo-ledger1domain-eventstore-service:2113"
-          - name: Ledger2EventStoreServer
-            value: "tcp://zerrademo-ledger2domain-eventstore-service:2114"
           - name: LogFileDirectory
             value: 
         resources:
@@ -403,26 +389,6 @@ spec:
       - name: zerrademo-weatherdomain-container
         image: szawaski/zerrademo-weatherdomain:latest
         env:
-          - name: ZerraDemo.Service.Pets
-            value: "http://zerrademo-petsdomain-service:9001"
-          - name: ZerraDemo.Service.Weather
-            value: "http://zerrademo-weatherdomain-service:9002"
-          - name: ZerraDemo.Service.Ledger1
-            value: "http://zerrademo-ledger1domain-service:9003"
-          - name: ZerraDemo.Service.Ledger2
-            value: "http://zerrademo-ledger2domain-service:9004"
-#          - name: PetsSqlConnectionStringMSSQL
-#            value: "Data Source=zerrademo-petsdomain-mssql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
-#          - name: Ledger1SqlConnectionStringMSSQL
-#            value: "Data Source=zerrademo-ledger1domain-mssql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
-          - name: PetsSqlConnectionStringPOSTGRESQL
-            value: "User ID=postgres;Password=password123;Host=zerrademo-petsdomain-postgresql-service;Port=1401;Database=zerrademopets;"
-          - name: Ledger1SqlConnectionStringPOSTGRESQL
-            value: "User ID=postgres;Password=password123;Host=zerrademo-petsdomain-postgresql-service;Port=1402;Database=zerrademoledger;"
-          - name: Ledger1EventStoreServer
-            value: "tcp://zerrademo-ledger1domain-eventstore-service:2113"
-          - name: Ledger2EventStoreServer
-            value: "tcp://zerrademo-ledger2domain-eventstore-service:2114"
           - name: LogFileDirectory
             value: 
         resources:
@@ -451,26 +417,12 @@ spec:
       - name: zerrademo-ledger1domain-container
         image: szawaski/zerrademo-ledger1domain:latest
         env:
-          - name: ZerraDemo.Service.Pets
-            value: "http://zerrademo-petsdomain-service:9001"
-          - name: ZerraDemo.Service.Weather
-            value: "http://zerrademo-weatherdomain-service:9002"
-          - name: ZerraDemo.Service.Ledger1
-            value: "http://zerrademo-ledger1domain-service:9003"
-          - name: ZerraDemo.Service.Ledger2
-            value: "http://zerrademo-ledger2domain-service:9004"
-#          - name: PetsSqlConnectionStringMSSQL
-#            value: "Data Source=zerrademo-petsdomain-mssql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
-#          - name: Ledger1SqlConnectionStringMSSQL
-#            value: "Data Source=zerrademo-ledger1domain-mssql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
-          - name: PetsSqlConnectionStringPOSTGRESQL
-            value: "User ID=postgres;Password=password123;Host=zerrademo-petsdomain-postgresql-service;Port=1401;Database=zerrademopets;"
+#         - name: Ledger1SqlConnectionStringMSSQL
+#           value: "Data Source=zerrademo-ledger1domain-mssql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
           - name: Ledger1SqlConnectionStringPOSTGRESQL
             value: "User ID=postgres;Password=password123;Host=zerrademo-petsdomain-postgresql-service;Port=1402;Database=zerrademoledger;"
           - name: Ledger1EventStoreServer
             value: "tcp://zerrademo-ledger1domain-eventstore-service:2113"
-          - name: Ledger2EventStoreServer
-            value: "tcp://zerrademo-ledger2domain-eventstore-service:2114"
           - name: LogFileDirectory
             value: 
         resources:
@@ -499,24 +451,6 @@ spec:
       - name: zerrademo-ledger2domain-container
         image: szawaski/zerrademo-ledger2domain:latest
         env:
-          - name: ZerraDemo.Service.Pets
-            value: "http://zerrademo-petsdomain-service:9001"
-          - name: ZerraDemo.Service.Weather
-            value: "http://zerrademo-weatherdomain-service:9002"
-          - name: ZerraDemo.Service.Ledger1
-            value: "http://zerrademo-ledger1domain-service:9003"
-          - name: ZerraDemo.Service.Ledger2
-            value: "http://zerrademo-ledger2domain-service:9004"
-#          - name: PetsSqlConnectionStringMSSQL
-#            value: "Data Source=zerrademo-petsdomain-mssql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
-#          - name: Ledger1SqlConnectionStringMSSQL
-#            value: "Data Source=zerrademo-ledger1domain-mssql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
-          - name: PetsSqlConnectionStringPOSTGRESQL
-            value: "User ID=postgres;Password=password123;Host=zerrademo-petsdomain-postgresql-service;Port=1401;Database=zerrademopets;"
-          - name: Ledger1SqlConnectionStringPOSTGRESQL
-            value: "User ID=postgres;Password=password123;Host=zerrademo-petsdomain-postgresql-service;Port=1402;Database=zerrademoledger;"
-          - name: Ledger1EventStoreServer
-            value: "tcp://zerrademo-ledger1domain-eventstore-service:2113"
           - name: Ledger2EventStoreServer
             value: "tcp://zerrademo-ledger2domain-eventstore-service:2114"
           - name: LogFileDirectory
@@ -555,18 +489,6 @@ spec:
             value: "http://zerrademo-ledger1domain-service:9003"
           - name: ZerraDemo.Service.Ledger2
             value: "http://zerrademo-ledger2domain-service:9004"
-#          - name: PetsSqlConnectionStringMSSQL
-#            value: "Data Source=zerrademo-petsdomain-mssql-service,1401;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
-#          - name: Ledger1SqlConnectionStringMSSQL
-#            value: "Data Source=zerrademo-ledger1domain-mssql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
-          - name: PetsSqlConnectionStringPOSTGRESQL
-            value: "User ID=postgres;Password=password123;Host=zerrademo-petsdomain-postgresql-service;Port=1401;Database=zerrademopets;"
-          - name: Ledger1SqlConnectionStringPOSTGRESQL
-            value: "User ID=postgres;Password=password123;Host=zerrademo-petsdomain-postgresql-service;Port=1402;Database=zerrademoledger;"
-          - name: Ledger1EventStoreServer
-            value: "tcp://zerrademo-ledger1-eventstore-service:2113"
-          - name: Ledger2EventStoreServer
-            value: "tcp://zerrademo-ledger2-eventstore-service:2114"
           - name: LogFileDirectory
             value: 
         resources:

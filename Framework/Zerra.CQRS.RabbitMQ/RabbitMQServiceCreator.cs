@@ -7,16 +7,16 @@ using Zerra.CQRS.Network;
 using Zerra.CQRS.Settings;
 using Zerra.Encryption;
 
-namespace Zerra.CQRS.RabbitMessage
+namespace Zerra.CQRS.RabbitMQ
 {
-    public class RabbitServiceCreator : IServiceCreator
+    public class RabbitMQServiceCreator : IServiceCreator
     {
-        private static readonly ConcurrentFactoryDictionary<string, RabbitServer> rabbitServers = new ConcurrentFactoryDictionary<string, RabbitServer>();
-        private static readonly ConcurrentFactoryDictionary<string, RabbitClient> rabbitClients = new ConcurrentFactoryDictionary<string, RabbitClient>();
+        private static readonly ConcurrentFactoryDictionary<string, RabbitMQServer> rabbitServers = new ConcurrentFactoryDictionary<string, RabbitMQServer>();
+        private static readonly ConcurrentFactoryDictionary<string, RabbitMQClient> rabbitClients = new ConcurrentFactoryDictionary<string, RabbitMQClient>();
 
         private readonly string rabbitHost;
         private readonly IServiceCreator serviceCreatorForQueries;
-        public RabbitServiceCreator(string rabbitHost, IServiceCreator serviceCreatorForQueries)
+        public RabbitMQServiceCreator(string rabbitHost, IServiceCreator serviceCreatorForQueries)
         {
             this.rabbitHost = rabbitHost;
             this.serviceCreatorForQueries = serviceCreatorForQueries;
@@ -24,22 +24,22 @@ namespace Zerra.CQRS.RabbitMessage
 
         public ICommandClient CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitClient(host, encryptionKey));
+            return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQClient(host, encryptionKey));
         }
 
         public ICommandServer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return rabbitServers.GetOrAdd(rabbitHost, (host) => new RabbitServer(host, encryptionKey));
+            return rabbitServers.GetOrAdd(rabbitHost, (host) => new RabbitMQServer(host, encryptionKey));
         }
 
         public IEventClient CreateEventClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitClient(host, encryptionKey));
+            return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQClient(host, encryptionKey));
         }
 
         public IEventServer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return rabbitServers.GetOrAdd(rabbitHost, (host) => new RabbitServer(host, encryptionKey));
+            return rabbitServers.GetOrAdd(rabbitHost, (host) => new RabbitMQServer(host, encryptionKey));
         }
 
         public IQueryClient CreateQueryClient(string serviceUrl, SymmetricKey encryptionKey)

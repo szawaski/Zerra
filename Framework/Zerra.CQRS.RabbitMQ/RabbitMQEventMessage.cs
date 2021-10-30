@@ -2,9 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-namespace Zerra.CQRS.RabbitMessage
+namespace Zerra.CQRS.RabbitMQ
 {
-    public class RabbitEventMessage
+    public class RabbitMQEventMessage
     {
         public IEvent Message { get; set; }
         public string[][] Claims { get; set; }
