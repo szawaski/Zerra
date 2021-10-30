@@ -29,19 +29,19 @@ namespace Zerra.Repository.MySql
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static CoreTypeSetter<TModel>[] ReadColumns<TModel>(DbDataReader reader, ModelDetail modelDetail)
+        private static ICoreTypeSetter<TModel>[] ReadColumns<TModel>(DbDataReader reader, ModelDetail modelDetail)
         {
-            var columnProperties = new CoreTypeSetter<TModel>[reader.FieldCount];
+            var columnProperties = new ICoreTypeSetter<TModel>[reader.FieldCount];
             for (var i = 0; i < reader.FieldCount; i++)
             {
                 var property = reader.GetName(i);
                 if (modelDetail.TryGetProperty(property, out ModelPropertyDetail propertyInfo))
-                    columnProperties[i] = (CoreTypeSetter<TModel>)propertyInfo.CoreTypeSetter;
+                    columnProperties[i] = (ICoreTypeSetter<TModel>)propertyInfo.CoreTypeSetter;
             }
             return columnProperties;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TModel ReadRow<TModel>(DbDataReader reader, ModelDetail modelDetail, CoreTypeSetter<TModel>[] columnProperties)
+        private static TModel ReadRow<TModel>(DbDataReader reader, ModelDetail modelDetail, ICoreTypeSetter<TModel>[] columnProperties)
         {
             var model = (TModel)modelDetail.Creator();
 

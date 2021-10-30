@@ -221,7 +221,7 @@ namespace Zerra.Reflection
                     lock (this)
                     {
                         if (typeDetail == null)
-                            typeDetail = TypeAnalyzer.GetType(Type);
+                            typeDetail = TypeAnalyzer.GetTypeDetail(Type);
                     }
                 }
                 return typeDetail;

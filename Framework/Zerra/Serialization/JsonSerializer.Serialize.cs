@@ -93,7 +93,7 @@ namespace Zerra.Serialization
             var writer = new CharWriteBuffer();
             try
             {
-                var typeDetails = TypeAnalyzer.GetType(type);
+                var typeDetails = TypeAnalyzer.GetTypeDetail(type);
                 ToJson(obj, typeDetails, graph, ref writer, false);
                 return writer.ToString();
             }
@@ -108,7 +108,7 @@ namespace Zerra.Serialization
             var writer = new CharWriteBuffer(stream, new UTF8Encoding(false));
             try
             {
-                var typeDetails = TypeAnalyzer.GetType(type);
+                var typeDetails = TypeAnalyzer.GetTypeDetail(type);
                 ToJson(obj, typeDetails, graph, ref writer, false);
                 writer.Flush();
             }
@@ -193,7 +193,7 @@ namespace Zerra.Serialization
             var writer = new CharWriteBuffer();
             try
             {
-                var typeDetails = TypeAnalyzer.GetType(type);
+                var typeDetails = TypeAnalyzer.GetTypeDetail(type);
                 ToJson(obj, typeDetails, graph, ref writer, true);
                 return writer.ToString();
             }
@@ -208,7 +208,7 @@ namespace Zerra.Serialization
             var writer = new CharWriteBuffer(stream, new UTF8Encoding(false));
             try
             {
-                var typeDetails = TypeAnalyzer.GetType(type);
+                var typeDetails = TypeAnalyzer.GetTypeDetail(type);
                 ToJson(obj, typeDetails, graph, ref writer, true);
                 writer.Flush();
             }
@@ -223,7 +223,7 @@ namespace Zerra.Serialization
             if (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable)
             {
                 var objectType = value.GetType();
-                typeDetail = TypeAnalyzer.GetType(objectType);
+                typeDetail = TypeAnalyzer.GetTypeDetail(objectType);
             }
 
             if (value == null)
@@ -1041,7 +1041,7 @@ namespace Zerra.Serialization
 
                             var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").Getter;
                             var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").Getter;
-                            var method = TypeAnalyzer.GetGenericMethod(dictionaryToArrayMethod, typeDetail.InnerTypes[0]);
+                            var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.InnerTypes[0]);
 
                             var innerValue = (ICollection)method.Caller(null, new object[] { value });
                             if (!nameless)
@@ -1118,7 +1118,7 @@ namespace Zerra.Serialization
 
                                 var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").Getter;
                                 var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").Getter;
-                                var method = TypeAnalyzer.GetGenericMethod(dictionaryToArrayMethod, typeDetail.InnerTypes[0]);
+                                var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.InnerTypes[0]);
 
                                 var innerValue = (ICollection)method.Caller(null, new object[] { value });
                                 if (!nameless)

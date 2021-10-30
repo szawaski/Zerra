@@ -33,19 +33,19 @@ namespace Zerra.Repository.PostgreSql
         //    return LinqPostgreSqlConverter.Convert(select, where, order, skip, take, graph, modelDetail);
         //}
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static CoreTypeSetter<TModel>[] ReadColumns<TModel>(NpgsqlDataReader reader, ModelDetail modelDetail)
+        private static ICoreTypeSetter<TModel>[] ReadColumns<TModel>(NpgsqlDataReader reader, ModelDetail modelDetail)
         {
-            var columnProperties = new CoreTypeSetter<TModel>[reader.FieldCount];
+            var columnProperties = new ICoreTypeSetter<TModel>[reader.FieldCount];
             for (var i = 0; i < reader.FieldCount; i++)
             {
                 var property = reader.GetName(i);
                 if (modelDetail.TryGetPropertyLower(property, out ModelPropertyDetail propertyInfo))
-                    columnProperties[i] = (CoreTypeSetter<TModel>)propertyInfo.CoreTypeSetter;
+                    columnProperties[i] = (ICoreTypeSetter<TModel>)propertyInfo.CoreTypeSetter;
             }
             return columnProperties;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TModel ReadRow<TModel>(NpgsqlDataReader reader, ModelDetail modelDetail, CoreTypeSetter<TModel>[] columnProperties)
+        private static TModel ReadRow<TModel>(NpgsqlDataReader reader, ModelDetail modelDetail, ICoreTypeSetter<TModel>[] columnProperties)
         {
             var model = (TModel)modelDetail.Creator();
 

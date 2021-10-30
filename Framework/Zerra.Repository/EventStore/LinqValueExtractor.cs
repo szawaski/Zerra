@@ -397,7 +397,7 @@ namespace Zerra.Repository
                 }
                 else
                 {
-                    var typeDetails = TypeAnalyzer.GetType(call.Method.DeclaringType);
+                    var typeDetails = TypeAnalyzer.GetTypeDetail(call.Method.DeclaringType);
                     if (typeDetails.IsIEnumerableGeneric && TypeLookup.CoreTypesWithNullables.Contains(typeDetails.IEnumerableGenericInnerType))
                     {
                         switch (call.Method.Name)

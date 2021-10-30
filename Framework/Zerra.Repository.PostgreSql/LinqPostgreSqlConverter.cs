@@ -587,7 +587,7 @@ namespace Zerra.Repository.PostgreSql
                 }
                 else
                 {
-                    var typeDetails = TypeAnalyzer.GetType(call.Method.DeclaringType);
+                    var typeDetails = TypeAnalyzer.GetTypeDetail(call.Method.DeclaringType);
                     if (typeDetails.IsIEnumerableGeneric && TypeLookup.CoreTypesWithNullables.Contains(typeDetails.IEnumerableGenericInnerType))
                     {
                         switch (call.Method.Name)
@@ -819,7 +819,7 @@ namespace Zerra.Repository.PostgreSql
         }
         private static bool ConvertToSqlValueRender(MemberExpression memberProperty, Type type, object value, ref CharWriteBuffer sb, BuilderContext context)
         {
-            var typeDetails = TypeAnalyzer.GetType(type);
+            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
             if (value == null)
             {

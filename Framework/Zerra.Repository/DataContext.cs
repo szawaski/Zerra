@@ -76,7 +76,7 @@ namespace Zerra.Repository
                             var providerType = typeof(ITransactStoreProvider<>).MakeGenericType(modelType);
                             if (!Resolver.TryGet(providerType, out object provider))
                                 continue;
-                            var typeDetails = TypeAnalyzer.GetType(provider.GetType());
+                            var typeDetails = TypeAnalyzer.GetTypeDetail(provider.GetType());
                             if (typeDetails.InnerTypes.Contains(thisType))
                             {
                                 modelTypesWithThisDataContext.Add(modelType);
@@ -84,7 +84,7 @@ namespace Zerra.Repository
                             }
                             foreach(var baseType in typeDetails.BaseTypes)
                             {
-                                var baseTypeDetails = TypeAnalyzer.GetType(baseType);
+                                var baseTypeDetails = TypeAnalyzer.GetTypeDetail(baseType);
                                 if (baseTypeDetails.InnerTypes.Contains(thisType))
                                 {
                                     modelTypesWithThisDataContext.Add(modelType);

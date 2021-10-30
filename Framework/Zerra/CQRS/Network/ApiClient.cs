@@ -31,7 +31,7 @@ namespace Zerra.CQRS.Network
 
         private CookieCollection cookies = null;
 
-        private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetType(typeof(ApiClient)).MethodDetails.First(x => x.MethodInfo.Name == nameof(ApiClient.RequestAsync)).MethodInfo;
+        private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(ApiClient)).MethodDetails.First(x => x.MethodInfo.Name == nameof(ApiClient.RequestAsync)).MethodInfo;
         TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments)
         {
             var providerName = interfaceType.Name;
@@ -46,10 +46,10 @@ namespace Zerra.CQRS.Network
             };
             data.AddProviderArguments(arguments);
 
-            var returnTypeDetails = TypeAnalyzer.GetType(returnType);
+            var returnTypeDetails = TypeAnalyzer.GetTypeDetail(returnType);
             if (returnTypeDetails.IsTask)
             {
-                var callRequestAsyncMethodGeneric = TypeAnalyzer.GetGenericMethod(requestAsyncMethod, returnTypeDetails.InnerTypes.ToArray());
+                var callRequestAsyncMethodGeneric = TypeAnalyzer.GetGenericMethodDetail(requestAsyncMethod, returnTypeDetails.InnerTypes.ToArray());
                 return (TReturn)callRequestAsyncMethodGeneric.Caller(this, new object[] { endpointAddress, providerName, requestContentType, data, true });
             }
             else
@@ -254,8 +254,8 @@ namespace Zerra.CQRS.Network
             return RequestAsync<object>(address, null, ContentType.Json, bytes, false);
         }
 
-        private static readonly Func<object, object> cookieContainerGetter = TypeAnalyzer.GetType(typeof(CookieContainer)).GetMember("m_domainTable").Getter;
-        private static readonly Func<object, object> pathListGetter = TypeAnalyzer.GetType(Discovery.GetTypeFromName("System.Net.PathList, System.Net.Primitives, Version=4.1.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")).GetMember("m_list").Getter;
+        private static readonly Func<object, object> cookieContainerGetter = TypeAnalyzer.GetTypeDetail(typeof(CookieContainer)).GetMember("m_domainTable").Getter;
+        private static readonly Func<object, object> pathListGetter = TypeAnalyzer.GetTypeDetail(Discovery.GetTypeFromName("System.Net.PathList, System.Net.Primitives, Version=4.1.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")).GetMember("m_list").Getter;
         public static CookieCollection GetCookiesFromContainer(CookieContainer cookieJar)
         {
             var cookieCollection = new CookieCollection();

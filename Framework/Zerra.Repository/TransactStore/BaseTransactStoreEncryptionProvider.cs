@@ -458,7 +458,7 @@ namespace Zerra.Repository
             var key = new TypeKey(graph?.Signature, type);
             var props = encryptableProperties.GetOrAdd(key, (factoryKey) =>
             {
-                var typeDetails = TypeAnalyzer.GetType(type);
+                var typeDetails = TypeAnalyzer.GetTypeDetail(type);
                 var propertyDetails = typeDetails.MemberDetails.Where(x => x.Type == typeof(string) || x.Type == typeof(byte[])).ToArray();
                 if (graph != null)
                 {

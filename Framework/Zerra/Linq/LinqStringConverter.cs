@@ -470,7 +470,7 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringValueRender(Type type, object value, ConvertContext context)
         {
-            var typeDetails = TypeAnalyzer.GetType(type);
+            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
             if (value == null)
             {

@@ -46,7 +46,7 @@ namespace Zerra.Reflection
             var key = new TypeKey(type, parameterTypes);
             var creator = creatorsByType.GetOrAdd(key, (keyArg) =>
             {
-                var typeDetail = TypeAnalyzer.GetType(type);
+                var typeDetail = TypeAnalyzer.GetTypeDetail(type);
                 if (parameterTypes.Length == 0)
                 {
                     if (typeDetail.Creator == null)

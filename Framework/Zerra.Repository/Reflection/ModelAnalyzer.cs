@@ -26,7 +26,7 @@ namespace Zerra.Repository.Reflection
         {
             var modelInfo = modelInfos.GetOrAdd(type, (t) =>
             {
-                var typeDetails = TypeAnalyzer.GetType(type);
+                var typeDetails = TypeAnalyzer.GetTypeDetail(type);
                 return new ModelDetail(typeDetails);
             });
             return modelInfo;
@@ -202,7 +202,7 @@ namespace Zerra.Repository.Reflection
         }
         public static object GetIdentity(Type type, object model)
         {
-            var genericGetIdentityMethod = TypeAnalyzer.GetGenericMethod(getIdentityMethod, type);
+            var genericGetIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(getIdentityMethod, type);
             return genericGetIdentityMethod.Caller(null, new object[] { model });
         }
 
@@ -214,7 +214,7 @@ namespace Zerra.Repository.Reflection
         }
         public static void SetIdentity(Type type, object model, object identity)
         {
-            var genericSetIdentityMethod = TypeAnalyzer.GetGenericMethod(setIdentityMethod, type);
+            var genericSetIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(setIdentityMethod, type);
             genericSetIdentityMethod.Caller(null, new object[] { model, identity });
         }
 
@@ -227,7 +227,7 @@ namespace Zerra.Repository.Reflection
         }
         public static object GetForeignIdentity(Type type, string foreignIdentityNames, object model)
         {
-            var genericGetForeignIdentityMethod = TypeAnalyzer.GetGenericMethod(getForeignIdentityMethod, type);
+            var genericGetForeignIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(getForeignIdentityMethod, type);
             return genericGetForeignIdentityMethod.Caller(null, new object[] { foreignIdentityNames, model });
         }
 
@@ -239,7 +239,7 @@ namespace Zerra.Repository.Reflection
         }
         public static void SetForeignIdentity(Type type, string foreignIdentityNames, object model, object identity)
         {
-            var genericSetForeignIdentityMethod = TypeAnalyzer.GetGenericMethod(setForeignIdentityMethod, type);
+            var genericSetForeignIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(setForeignIdentityMethod, type);
             genericSetForeignIdentityMethod.Caller(null, new object[] { foreignIdentityNames, model, identity });
         }
 

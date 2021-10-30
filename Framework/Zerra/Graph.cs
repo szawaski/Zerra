@@ -483,11 +483,11 @@ namespace Zerra
             Type modelType = parent.GetModelType();
             if (modelType != null)
             {
-                var modelInfo = TypeAnalyzer.GetType(modelType);
+                var modelInfo = TypeAnalyzer.GetTypeDetail(modelType);
                 if (modelInfo.TryGetMember(name, out MemberDetail property))
                 {
                     Type subModelType = property.Type;
-                    var subModelTypeDetails = TypeAnalyzer.GetType(subModelType);
+                    var subModelTypeDetails = TypeAnalyzer.GetTypeDetail(subModelType);
                     if (subModelTypeDetails.IsIEnumerableGeneric)
                     {
                         subModelType = subModelTypeDetails.IEnumerableGenericInnerType;

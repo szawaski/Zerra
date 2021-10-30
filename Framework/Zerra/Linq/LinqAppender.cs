@@ -69,7 +69,7 @@ namespace Zerra.Linq
             {
                 LambdaExpression expressionLambda = expression as LambdaExpression;
 
-                var typeDetails = TypeAnalyzer.GetType(type);
+                var typeDetails = TypeAnalyzer.GetTypeDetail(type);
                 Type elementType = null;
                 if (type.IsArray)
                 {
@@ -89,10 +89,10 @@ namespace Zerra.Linq
                         Expression.Property(parameter, propertyInfo) :
                         Expression.Field(parameter, fieldInfo);
 
-                    MethodInfo anyMethod2Generic = TypeAnalyzer.GetGenericMethod(anyMethod2, elementType).MethodInfo;
+                    MethodInfo anyMethod2Generic = TypeAnalyzer.GetGenericMethodDetail(anyMethod2, elementType).MethodInfo;
                     MethodCallExpression callAny2 = Expression.Call(anyMethod2Generic, memberExpression, expressionLambda);
 
-                    MethodInfo anyMethod1Generic = TypeAnalyzer.GetGenericMethod(anyMethod1, elementType).MethodInfo;
+                    MethodInfo anyMethod1Generic = TypeAnalyzer.GetGenericMethodDetail(anyMethod1, elementType).MethodInfo;
                     MethodCallExpression callAny1 = Expression.Call(anyMethod1Generic, memberExpression);
 
                     Expression emptyCheckExpression = Expression.OrElse(Expression.Not(callAny1), callAny2);

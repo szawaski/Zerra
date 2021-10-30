@@ -27,7 +27,7 @@ namespace Zerra.CQRS.Network
             this.endpoint = IPResolver.GetIPEndPoints(serviceUrl, 80).First();
         }
 
-        private static readonly MethodInfo callRequestAsyncMethod = TypeAnalyzer.GetType(typeof(TcpCQRSClientBase)).MethodDetails.First(x => x.MethodInfo.Name == nameof(TcpCQRSClientBase.CallInternalAsync)).MethodInfo;
+        private static readonly MethodInfo callRequestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(TcpCQRSClientBase)).MethodDetails.First(x => x.MethodInfo.Name == nameof(TcpCQRSClientBase.CallInternalAsync)).MethodInfo;
         private static readonly Type streamType = typeof(Stream);
 
         TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments)
@@ -36,12 +36,12 @@ namespace Zerra.CQRS.Network
             {
                 var returnType = typeof(TReturn);
 
-                var returnTypeDetails = TypeAnalyzer.GetType(returnType);
+                var returnTypeDetails = TypeAnalyzer.GetTypeDetail(returnType);
 
                 if (returnTypeDetails.IsTask)
                 {
                     var isStream = returnTypeDetails.InnerTypeDetails[0].BaseTypes.Contains(streamType);
-                    var callRequestMethodGeneric = TypeAnalyzer.GetGenericMethod(callRequestAsyncMethod, returnTypeDetails.InnerTypes.ToArray());
+                    var callRequestMethodGeneric = TypeAnalyzer.GetGenericMethodDetail(callRequestAsyncMethod, returnTypeDetails.InnerTypes.ToArray());
                     return (TReturn)callRequestMethodGeneric.Caller(this, new object[] { isStream, interfaceType, methodName, arguments });
                 }
                 else

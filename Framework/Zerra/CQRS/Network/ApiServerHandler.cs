@@ -51,7 +51,7 @@ namespace Zerra.CQRS.Network
             if (!providerType.IsInterface)
                 throw new ArgumentException($"Provider {data.ProviderType} is not an interface type");
 
-            var typeDetail = TypeAnalyzer.GetType(providerType);
+            var typeDetail = TypeAnalyzer.GetTypeDetail(providerType);
             bool exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == NetworkType.Api))
                 && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (attribute.NetworkType == NetworkType.Api || !attribute.NetworkType.HasValue));
 
@@ -75,7 +75,7 @@ namespace Zerra.CQRS.Network
         private static Task Dispatch(CQRSRequestData data)
         {
             var commandType = Discovery.GetTypeFromName(data.MessageType);
-            var typeDetail = TypeAnalyzer.GetType(commandType);
+            var typeDetail = TypeAnalyzer.GetTypeDetail(commandType);
 
             if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
                 throw new Exception($"Type {data.MessageType} is not a command");

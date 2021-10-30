@@ -129,7 +129,7 @@ namespace Zerra.Repository
             var methodDetail = methodCache.GetOrAdd(eventType, (t) =>
             {
                 var aggregateType = GetAggregateType();
-                var aggregateTypeDetail = TypeAnalyzer.GetType(aggregateType);
+                var aggregateTypeDetail = TypeAnalyzer.GetTypeDetail(aggregateType);
                 MethodDetail methodDetail = null;
                 foreach (var method in aggregateTypeDetail.MethodDetails)
                 {

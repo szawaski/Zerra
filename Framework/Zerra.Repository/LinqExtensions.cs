@@ -44,12 +44,12 @@ namespace Zerra.Repository
                 var propertyType = ((LambdaExpression)order.Expression).ReturnType;
                 if (order.Descending)
                 {
-                    var method = TypeAnalyzer.GetGenericMethod(queryableOrderByDescending, typeof(TModel), propertyType);
+                    var method = TypeAnalyzer.GetGenericMethodDetail(queryableOrderByDescending, typeof(TModel), propertyType);
                     result = (IOrderedQueryable<TModel>)method.Caller(null, new object[] { result, order.Expression });
                 }
                 else
                 {
-                    var method = TypeAnalyzer.GetGenericMethod(queryableOrderBy, typeof(TModel), propertyType);
+                    var method = TypeAnalyzer.GetGenericMethodDetail(queryableOrderBy, typeof(TModel), propertyType);
                     result = (IOrderedQueryable<TModel>)method.Caller(null, new object[] { result, order.Expression });
                 }
             }

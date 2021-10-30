@@ -85,8 +85,8 @@ namespace Zerra.Repository.Reflection
             this.Getter = memberDetail.Getter;
             this.Setter = memberDetail.Setter;
 
-            var genericCoreTypeSetter = TypeAnalyzer.GetGenericTypeDetail(typeof(CoreTypeSetter<>), memberDetail.MemberInfo.ReflectedType);
-            this.CoreTypeSetter = genericCoreTypeSetter.GetConstructor(new Type[] { typeof(CoreType?), typeof(bool), typeof(object) }).Creator(new object[] { this.CoreType, this.Type.IsArray && this.InnerCoreType == Zerra.Reflection.CoreType.Byte, memberDetail.SetterTyped });
+            var getCoreTypeSetter = TypeAnalyzer.GetGenericMethodDetail(TypeAnalyzer.GetTypeDetail(typeof(CoreTypeSetterGenerator)).GetMethod("Get"), memberDetail.MemberInfo.ReflectedType);
+            this.CoreTypeSetter = getCoreTypeSetter.MethodInfo.Invoke(null, new object[] { this.CoreType, this.Type.IsArray && this.InnerCoreType == Zerra.Reflection.CoreType.Byte, memberDetail.SetterTyped });
         }
     }
 }

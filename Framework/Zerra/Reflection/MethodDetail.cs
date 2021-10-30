@@ -99,7 +99,7 @@ namespace Zerra.Reflection
                     lock (this)
                     {
                         if (returnType == null)
-                            returnType = TypeAnalyzer.GetType(MethodInfo.ReturnType);
+                            returnType = TypeAnalyzer.GetTypeDetail(MethodInfo.ReturnType);
                     }
                 }
                 return returnType;

@@ -24,7 +24,7 @@ namespace Zerra.Serialization
         public static T Deserialize<T>(ReadOnlySpan<char> json, Graph graph = null)
         {
             var type = typeof(T);
-            var typeDetails = TypeAnalyzer.GetType(type);
+            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
             if (json == null || json.Length == 0)
                 return (T)ConvertStringToType(string.Empty, typeDetails);
@@ -49,7 +49,7 @@ namespace Zerra.Serialization
         }
         public static object Deserialize(ReadOnlySpan<char> json, Type type, Graph graph = null)
         {
-            var typeDetails = TypeAnalyzer.GetType(type);
+            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
             if (json == null || json.Length == 0)
                 return ConvertStringToType(string.Empty, typeDetails);
@@ -85,7 +85,7 @@ namespace Zerra.Serialization
         }
         public static object Deserialize(ReadOnlySpan<byte> bytes, Type type, Graph graph = null)
         {
-            var typeDetails = TypeAnalyzer.GetType(type);
+            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
             if (bytes == null || bytes.Length == 0)
                 return ConvertStringToType(string.Empty, typeDetails);
@@ -127,7 +127,7 @@ namespace Zerra.Serialization
         }
         public static object Deserialize(Stream stream, Type type, Graph graph = null)
         {
-            var typeDetails = TypeAnalyzer.GetType(type);
+            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
             var reader = new CharReader(stream, new UTF8Encoding(false));
             var decodeBuffer = new CharWriteBuffer();
@@ -160,7 +160,7 @@ namespace Zerra.Serialization
         }
         public static object DeserializeNameless(ReadOnlySpan<char> json, Type type, Graph graph)
         {
-            var typeDetails = TypeAnalyzer.GetType(type);
+            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
             if (json == null || json.Length == 0)
                 return ConvertStringToType(string.Empty, typeDetails);
@@ -196,7 +196,7 @@ namespace Zerra.Serialization
         }
         public static object DeserializeNameless(ReadOnlySpan<byte> bytes, Type type, Graph graph)
         {
-            var typeDetails = TypeAnalyzer.GetType(type);
+            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
             if (bytes.Length == 0)
                 return ConvertStringToType(string.Empty, typeDetails);
@@ -240,7 +240,7 @@ namespace Zerra.Serialization
         }
         public static object DeserializeNameless(Stream stream, Type type, Graph graph = null)
         {
-            var typeDetails = TypeAnalyzer.GetType(type);
+            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
             var reader = new CharReader(stream, new UTF8Encoding(false));
             var decodeBuffer = new CharWriteBuffer();
@@ -290,7 +290,7 @@ namespace Zerra.Serialization
             if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
-                typeDetail = TypeAnalyzer.GetType(emptyImplementationType);
+                typeDetail = TypeAnalyzer.GetTypeDetail(emptyImplementationType);
             }
 
             switch (c)
@@ -406,14 +406,14 @@ namespace Zerra.Serialization
                 arrayElementType = typeDetail.IEnumerableGenericInnerTypeDetails;
                 if (typeDetail.Type.IsArray)
                 {
-                    var genericListType = TypeAnalyzer.GetType(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
+                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
                     collection = genericListType.Creator();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
                 }
                 else if (typeDetail.IsIList && typeDetail.Type.IsInterface)
                 {
-                    var genericListType = TypeAnalyzer.GetType(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
+                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
                     collection = genericListType.Creator();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
@@ -426,7 +426,7 @@ namespace Zerra.Serialization
                 }
                 else if (typeDetail.IsISet && typeDetail.Type.IsInterface)
                 {
-                    var genericListType = TypeAnalyzer.GetType(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, typeDetail.InnerTypeDetails[0].Type));
+                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, typeDetail.InnerTypeDetails[0].Type));
                     collection = genericListType.Creator();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
@@ -439,7 +439,7 @@ namespace Zerra.Serialization
                 }
                 else
                 {
-                    var genericListType = TypeAnalyzer.GetType(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
+                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
                     collection = genericListType.Creator();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];

@@ -23,11 +23,11 @@ namespace Zerra.Repository
         private static readonly Type eventProviderType = typeof(BaseEventStoreContextProvider<,>);
         public override Type Generate(Type type)
         {
-            var aggregateTypeDetails = TypeAnalyzer.GetType(aggregateType);
+            var aggregateTypeDetails = TypeAnalyzer.GetTypeDetail(aggregateType);
             if (!aggregateTypeDetails.BaseTypes.Contains(aggregateRootType))
                 throw new Exception($"{nameof(TransactStoreEntityAttribute)} {nameof(aggregateType)} argument {type.Name} does not inherit {aggregateRootType.Name}");
 
-            var typeDetail = TypeAnalyzer.GetType(type);
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
             if (!typeDetail.BaseTypes.Contains(dataContextType))
                 throw new Exception($"{nameof(TransactStoreEntityAttribute)} is not placed on a {dataContextType.Name}");
 

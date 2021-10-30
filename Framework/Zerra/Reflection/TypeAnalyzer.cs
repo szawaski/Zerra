@@ -125,23 +125,23 @@ namespace Zerra.Reflection
             return DateTimeOffset.Parse(obj.ToString(), System.Globalization.CultureInfo.CurrentCulture);
         }
 
-        private static readonly ConcurrentFactoryDictionary<Type, TypeDetail> typeInfos = new ConcurrentFactoryDictionary<Type, TypeDetail>();
-        public static TypeDetail GetType(Type type)
+        private static readonly ConcurrentFactoryDictionary<Type, TypeDetail> typeDetailsByType = new ConcurrentFactoryDictionary<Type, TypeDetail>();
+        public static TypeDetail GetTypeDetail(Type type)
         {
-            var typeInfo = typeInfos.GetOrAdd(type, (key) =>
+            var typeInfo = typeDetailsByType.GetOrAdd(type, (key) =>
             {
                 return new TypeDetail(key);
             });
             return typeInfo;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> methodLookups = new ConcurrentFactoryDictionary<TypeKey, MethodDetail>();
-        public static MethodDetail GetMethod(Type type, string name, Type[] parameterTypes = null)
+        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> methodDetailsByType = new ConcurrentFactoryDictionary<TypeKey, MethodDetail>();
+        public static MethodDetail GetMethodDetail(Type type, string name, Type[] parameterTypes = null)
         {
             var key = new TypeKey(name, type, parameterTypes);
-            var method = methodLookups.GetOrAdd(key, (keyArg) =>
+            var method = methodDetailsByType.GetOrAdd(key, (keyArg) =>
             {
-                var typeDetails = GetType(type);
+                var typeDetails = GetTypeDetail(type);
                 foreach (var methodDetail in typeDetails.MethodDetails)
                 {
                     if (methodDetail.Name == name && (parameterTypes == null || methodDetail.ParametersInfo.Count == parameterTypes.Length))
@@ -167,13 +167,13 @@ namespace Zerra.Reflection
             return method;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetails> constructorLookups = new ConcurrentFactoryDictionary<TypeKey, ConstructorDetails>();
-        public static ConstructorDetails GetConstructor(Type type, Type[] parameterTypes = null)
+        private static readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetails> constructorDetailsByType = new ConcurrentFactoryDictionary<TypeKey, ConstructorDetails>();
+        public static ConstructorDetails GetConstructorDetail(Type type, Type[] parameterTypes = null)
         {
             var key = new TypeKey(type, parameterTypes);
-            var constructor = constructorLookups.GetOrAdd(key, (keyArg) =>
+            var constructor = constructorDetailsByType.GetOrAdd(key, (keyArg) =>
             {
-                var typeDetails = GetType(type);
+                var typeDetails = GetTypeDetail(type);
                 foreach (var constructorDetail in typeDetails.ConstructorDetails)
                 {
                     if (parameterTypes == null || constructorDetail.ParametersInfo.Count == parameterTypes.Length)
@@ -199,11 +199,11 @@ namespace Zerra.Reflection
             return constructor;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethods = new ConcurrentFactoryDictionary<TypeKey, MethodDetail>();
-        public static MethodDetail GetGenericMethod(MethodInfo method, params Type[] types)
+        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethodDetailsByMethod = new ConcurrentFactoryDictionary<TypeKey, MethodDetail>();
+        public static MethodDetail GetGenericMethodDetail(MethodInfo method, params Type[] types)
         {
             var key = new TypeKey(method.ToString(), types);
-            var genericMethod = genericMethods.GetOrAdd(key, (factoryKey) =>
+            var genericMethod = genericMethodDetailsByMethod.GetOrAdd(key, (factoryKey) =>
             {
                 var generic = method.MakeGenericMethod(types);
                 return new MethodDetail(generic);
@@ -212,12 +212,12 @@ namespace Zerra.Reflection
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethodDetails = new ConcurrentFactoryDictionary<TypeKey, MethodDetail>();
-        public static MethodDetail GetGenericMethod(MethodDetail methodDetail, params Type[] types)
+        public static MethodDetail GetGenericMethodDetail(MethodDetail methodDetail, params Type[] types)
         {
             var key = new TypeKey(methodDetail.MethodInfo.ToString(), types);
             var genericMethod = genericMethodDetails.GetOrAdd(key, (factoryKey) =>
             {
-                return GetGenericMethod(methodDetail.MethodInfo);
+                return GetGenericMethodDetail(methodDetail.MethodInfo, types);
             });
             return genericMethod;
         }
@@ -229,16 +229,16 @@ namespace Zerra.Reflection
             var genericType = genericTypeDetails.GetOrAdd(key, (factoryKey) =>
             {
                 var generic = typeDetail.Type.MakeGenericType(types);
-                return GetType(generic);
+                return GetTypeDetail(generic);
             });
             return genericType;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, Type> genericTypes = new ConcurrentFactoryDictionary<TypeKey, Type>();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, Type> genericTypesByType = new ConcurrentFactoryDictionary<TypeKey, Type>();
         public static Type GetGenericType(Type type, params Type[] types)
         {
             var key = new TypeKey(type, types);
-            var genericType = genericTypes.GetOrAdd(key, (factoryKey) =>
+            var genericType = genericTypesByType.GetOrAdd(key, (factoryKey) =>
             {
                 return type.MakeGenericType(types);
             });
@@ -251,7 +251,7 @@ namespace Zerra.Reflection
             var key = new TypeKey(type, types);
             var genericTypeDetail = genericTypeDetailsByType.GetOrAdd(key, (factoryKey) =>
             {
-                return GetType(type.MakeGenericType(types));
+                return GetTypeDetail(type.MakeGenericType(types));
             });
             return genericTypeDetail;
         }

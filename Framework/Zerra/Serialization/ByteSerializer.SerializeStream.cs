@@ -802,7 +802,7 @@ namespace Zerra.Serialization
                                         state.CurrentFrame.HasWrittenIsNull = true;
                                     }
                                 }
-                                var method = TypeAnalyzer.GetGenericMethod(enumerableToArrayMethod, typeDetail.TypeDetail.IEnumerableGenericInnerType);
+                                var method = TypeAnalyzer.GetGenericMethodDetail(enumerableToArrayMethod, typeDetail.TypeDetail.IEnumerableGenericInnerType);
                                 var innerValue = (ICollection)method.Caller(null, new object[] { state.CurrentFrame.Object });
 
                                 state.CurrentFrame.ObjectInProgress = true;

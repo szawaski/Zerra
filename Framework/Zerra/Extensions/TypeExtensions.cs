@@ -40,7 +40,7 @@ public static class TypeExtensions
             {
                 if (!loadedTypeGetIsZSArrayGetter)
                 {
-                    if (TypeAnalyzer.GetType(typeof(Type)).TryGetMember("IsSZArray", out MemberDetail member))
+                    if (TypeAnalyzer.GetTypeDetail(typeof(Type)).TryGetMember("IsSZArray", out MemberDetail member))
                         typeGetIsZSArrayGetter = member.Getter;
                     loadedTypeGetIsZSArrayGetter = true;
                 }
@@ -53,7 +53,7 @@ public static class TypeExtensions
     {
         var sb = new StringBuilder();
 
-        var typeDetails = TypeAnalyzer.GetType(type);
+        var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
         if (ns && !String.IsNullOrWhiteSpace(type.Namespace))
         {

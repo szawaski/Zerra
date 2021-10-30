@@ -226,7 +226,7 @@ namespace Zerra.Reflection
                             var items = new TypeDetail[InnerTypes.Count];
                             for (var i = 0; i < InnerTypes.Count; i++)
                             {
-                                items[i] = TypeAnalyzer.GetType(InnerTypes[i]);
+                                items[i] = TypeAnalyzer.GetTypeDetail(InnerTypes[i]);
                             }
                             innerTypesDetails = items;
                         }
@@ -249,7 +249,7 @@ namespace Zerra.Reflection
                     {
                         if (iEnumerableGenericInnerTypeDetails == null)
                         {
-                            iEnumerableGenericInnerTypeDetails = TypeAnalyzer.GetType(IEnumerableGenericInnerType);
+                            iEnumerableGenericInnerTypeDetails = TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
                         }
                     }
                 }

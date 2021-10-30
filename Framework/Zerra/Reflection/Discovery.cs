@@ -88,7 +88,7 @@ namespace Zerra.Reflection
             var generationTypes = GetTypesFromAttribute(typeof(BaseGenerateAttribute));
             foreach (var generationType in generationTypes)
             {
-                var typeDetail = TypeAnalyzer.GetType(generationType);
+                var typeDetail = TypeAnalyzer.GetTypeDetail(generationType);
                 foreach (var attribute in typeDetail.Attributes)
                 {
                     if (attribute is BaseGenerateAttribute generateAttribute)

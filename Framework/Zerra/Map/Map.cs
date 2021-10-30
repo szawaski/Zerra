@@ -30,7 +30,7 @@ namespace Zerra
         private static readonly Type genericHashSetType = typeof(HashSet<>);
         private static readonly Type genericEnumerableType = typeof(IEnumerable<>);
         private static readonly Type genericEnumeratorType = typeof(IEnumerator<>);
-        private static readonly TypeDetail enumeratorTypeDetail = TypeAnalyzer.GetType(typeof(IEnumerator));
+        private static readonly TypeDetail enumeratorTypeDetail = TypeAnalyzer.GetTypeDetail(typeof(IEnumerator));
         private static readonly Type collectionType = typeof(ICollection);
         private static readonly Type collectionGenericType = typeof(ICollection<>);
         private static readonly Type intType = typeof(int);
@@ -41,11 +41,11 @@ namespace Zerra
         private static readonly Type mapDefinitionsType = typeof(IMapDefinition<TSource, TTarget>);
         private static readonly Type recursionDictionaryType = typeof(Dictionary<MapRecursionKey, object>);
         private static readonly Type exceptionType = typeof(Exception);
-        private static readonly ConstructorInfo newException = TypeAnalyzer.GetType(typeof(Exception)).GetConstructor(typeof(string), typeof(Exception)).ConstructorInfo;
-        private static readonly MethodInfo dictionaryAddMethod = TypeAnalyzer.GetType(typeof(Dictionary<MapRecursionKey, object>)).GetMethod("Add").MethodInfo;
-        private static readonly MethodInfo dictionaryRemoveMethod = TypeAnalyzer.GetType(typeof(Dictionary<MapRecursionKey, object>)).GetMethod("Remove").MethodInfo;
-        private static readonly MethodInfo dictionaryTryGetMethod = TypeAnalyzer.GetType(typeof(Dictionary<MapRecursionKey, object>)).GetMethod("TryGetValue").MethodInfo;
-        private static readonly ConstructorInfo newRecursionKey = TypeAnalyzer.GetType(typeof(MapRecursionKey)).GetConstructor(typeof(object), typeof(Type)).ConstructorInfo;
+        private static readonly ConstructorInfo newException = TypeAnalyzer.GetTypeDetail(typeof(Exception)).GetConstructor(typeof(string), typeof(Exception)).ConstructorInfo;
+        private static readonly MethodInfo dictionaryAddMethod = TypeAnalyzer.GetTypeDetail(typeof(Dictionary<MapRecursionKey, object>)).GetMethod("Add").MethodInfo;
+        private static readonly MethodInfo dictionaryRemoveMethod = TypeAnalyzer.GetTypeDetail(typeof(Dictionary<MapRecursionKey, object>)).GetMethod("Remove").MethodInfo;
+        private static readonly MethodInfo dictionaryTryGetMethod = TypeAnalyzer.GetTypeDetail(typeof(Dictionary<MapRecursionKey, object>)).GetMethod("TryGetValue").MethodInfo;
+        private static readonly ConstructorInfo newRecursionKey = TypeAnalyzer.GetTypeDetail(typeof(MapRecursionKey)).GetConstructor(typeof(object), typeof(Type)).ConstructorInfo;
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, object> mapsStore = new ConcurrentFactoryDictionary<TypeKey, object>();
         public static Map<TSource, TTarget> GetMap()
@@ -57,8 +57,8 @@ namespace Zerra
 
         private Map()
         {
-            sourceType = TypeAnalyzer.GetType(tType);
-            targetType = TypeAnalyzer.GetType(uType);
+            sourceType = TypeAnalyzer.GetTypeDetail(tType);
+            targetType = TypeAnalyzer.GetTypeDetail(uType);
             memberMaps = new Dictionary<string, Tuple<Expression<Func<TSource, object>>, Expression<Func<TTarget, object>>>>();
             compiledGraphMaps = new ConcurrentFactoryDictionary<Graph, Func<TSource, TTarget, Dictionary<MapRecursionKey, object>, TTarget>>();
             GenerateDefaultMemberMaps();
@@ -516,7 +516,7 @@ namespace Zerra
                     var moveNextMethod = enumeratorTypeDetail.GetMethod("MoveNext");
                     var currentMethod = enumeratorGeneric.GetMethod("get_Current");
 
-                    var collectionTypeDetails = TypeAnalyzer.GetType(collectionType);
+                    var collectionTypeDetails = TypeAnalyzer.GetTypeDetail(collectionType);
                     var countMember = collectionTypeDetails.GetMember("Count");
 
                     var array = Expression.Convert(target, arrayType);
@@ -572,7 +572,7 @@ namespace Zerra
                     var moveNextMethod = enumeratorTypeDetail.GetMethod("MoveNext");
                     var currentMethod = enumeratorGeneric.GetMethod("get_Current");
 
-                    var collectionTypeDetails = TypeAnalyzer.GetType(collectionGenericType);
+                    var collectionTypeDetails = TypeAnalyzer.GetTypeDetail(collectionGenericType);
                     var collectionGenericTypeDetails = TypeAnalyzer.GetGenericTypeDetail(collectionTypeDetails, sourceType.IEnumerableGenericInnerType);
                     var countMember = collectionGenericTypeDetails.GetMember("Count");
 
@@ -694,8 +694,8 @@ namespace Zerra
 
                     if (graph != null)
                     {
-                        var sourceMemberType = TypeAnalyzer.GetType(sourceMember.Type);
-                        var targetMemberType = TypeAnalyzer.GetType(sourceMember.Type);
+                        var sourceMemberType = TypeAnalyzer.GetTypeDetail(sourceMember.Type);
+                        var targetMemberType = TypeAnalyzer.GetTypeDetail(sourceMember.Type);
                         if (sourceMemberType.IsGraphLocalProperty && targetMemberType.IsGraphLocalProperty)
                         {
                             if (!graph.HasLocalProperty(mapTo.Key))
@@ -757,8 +757,8 @@ namespace Zerra
             if (source is null) throw new MapException($"{nameof(source)} is null");
             if (target is null) throw new MapException($"{nameof(target)} is null");
             if (recursionDictionary is null) throw new MapException($"{nameof(recursionDictionary)} is null");
-            var sourceType = TypeAnalyzer.GetType(source.Type);
-            var targetType = TypeAnalyzer.GetType(target.Type);
+            var sourceType = TypeAnalyzer.GetTypeDetail(source.Type);
+            var targetType = TypeAnalyzer.GetTypeDetail(target.Type);
 
             if (targetType.Type.IsValueType || targetType.CoreType.HasValue)
             {
@@ -790,7 +790,7 @@ namespace Zerra
                             var arrayType = Discovery.GetTypeFromName(targetType.InnerTypes[0] + "[]");
                             newTarget = Expression.Variable(arrayType, "newTarget");
 
-                            var countMember = TypeAnalyzer.GetType(collectionType).GetMember("Count");
+                            var countMember = TypeAnalyzer.GetTypeDetail(collectionType).GetMember("Count");
                             var collection = Expression.Convert(source, collectionType);
                             var collectionCount = Expression.MakeMemberAccess(collection, countMember.MemberInfo);
 
@@ -801,7 +801,7 @@ namespace Zerra
                             var arrayType = Discovery.GetTypeFromName(targetType.InnerTypes[0] + "[]");
                             newTarget = Expression.Variable(arrayType, "newTarget");
 
-                            var collectionTypeDetails = TypeAnalyzer.GetType(collectionGenericType);
+                            var collectionTypeDetails = TypeAnalyzer.GetTypeDetail(collectionGenericType);
                             var collectionGenericTypeDetails = TypeAnalyzer.GetGenericTypeDetail(collectionTypeDetails, sourceType.IEnumerableGenericInnerType);
                             var countMember = collectionGenericTypeDetails.GetMember("Count");
                             var collection = Expression.Convert(source, collectionGenericTypeDetails.Type);

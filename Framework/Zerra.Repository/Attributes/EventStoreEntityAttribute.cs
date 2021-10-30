@@ -47,11 +47,11 @@ namespace Zerra.Repository
         private static readonly Type dataContextType = typeof(DataContext);
         public override Type Generate(Type type)
         {
-            var entityTypeDetail = TypeAnalyzer.GetType(entityType);
+            var entityTypeDetail = TypeAnalyzer.GetTypeDetail(entityType);
             if (!entityTypeDetail.Attributes.Select(x => x.GetType()).Contains(entityAttributeType))
                 throw new Exception($"{nameof(TransactStoreEntityAttribute)} {nameof(entityType)} argument {type.Name} does not inherit {entityAttributeType.Name}");
 
-            var typeDetail = TypeAnalyzer.GetType(type);
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
             if (!typeDetail.BaseTypes.Contains(dataContextType))
                 throw new Exception($"{nameof(TransactStoreEntityAttribute)} is not placed on a {dataContextType.Name}");
 
@@ -65,7 +65,7 @@ namespace Zerra.Repository
             _ = typeBuilder.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
 
             var properties = new HashSet<Tuple<PropertyInfo, bool>>();
-            var transactProviderTypeDetails = TypeAnalyzer.GetType(baseType);
+            var transactProviderTypeDetails = TypeAnalyzer.GetTypeDetail(baseType);
 
             var methods = transactProviderTypeDetails.MethodDetails.Select(x => x.MethodInfo).ToArray();
 

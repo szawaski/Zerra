@@ -152,7 +152,7 @@ namespace Zerra.CQRS.Network
                 if (!String.IsNullOrWhiteSpace(data.ProviderType))
                 {
                     var providerType = Discovery.GetTypeFromName(data.ProviderType);
-                    var typeDetail = TypeAnalyzer.GetType(providerType);
+                    var typeDetail = TypeAnalyzer.GetTypeDetail(providerType);
 
                     if (!this.interfaceTypes.Contains(providerType))
                         throw new Exception($"Unhandled Provider Type {providerType.FullName}");
@@ -213,7 +213,7 @@ namespace Zerra.CQRS.Network
                 else if (!String.IsNullOrWhiteSpace(data.MessageType))
                 {
                     var commandType = Discovery.GetTypeFromName(data.MessageType);
-                    var typeDetail = TypeAnalyzer.GetType(commandType);
+                    var typeDetail = TypeAnalyzer.GetTypeDetail(commandType);
 
                     if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
                         throw new Exception($"Type {data.MessageType} is not a command");

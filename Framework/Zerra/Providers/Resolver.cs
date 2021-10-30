@@ -44,7 +44,7 @@ namespace Zerra.Providers
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object GetGeneric(Type type, Type providerInterfaceType, bool throwException)
         {
-            var genericMethodProviderManagerTryGet = TypeAnalyzer.GetGenericMethod(methodProviderManagerGet, type);
+            var genericMethodProviderManagerTryGet = TypeAnalyzer.GetGenericMethodDetail(methodProviderManagerGet, type);
             var provider = genericMethodProviderManagerTryGet.Caller(providerInterfaceType, new object[] { providerInterfaceType, throwException });
             return provider;
         }

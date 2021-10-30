@@ -54,7 +54,7 @@ namespace Zerra.Providers
             var highestProviderInterface = highestProviderInterfaces.GetOrAdd(providerType, (t) =>
             {
                 Type highest = null;
-                var providerTypeInfo = TypeAnalyzer.GetType(t);
+                var providerTypeInfo = TypeAnalyzer.GetTypeDetail(t);
 
                 foreach (var providerInterface in providerInterfaceLayersStack)
                 {

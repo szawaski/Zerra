@@ -652,7 +652,7 @@ namespace Zerra.Serialization
             if (IsNull)
                 return null;
 
-            var typeDetail = TypeAnalyzer.GetType(type);
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
             if (typeDetail.IsIEnumerableGeneric)
             {
                 if (typeDetail.SpecialType == SpecialType.Dictionary)

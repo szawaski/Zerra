@@ -99,7 +99,7 @@ namespace Zerra.Repository
                 var key = new TypeKey(graph?.Signature, type);
                 var props = compressableProperties.GetOrAdd(key, (factoryKey) =>
                 {
-                    var typeDetails = TypeAnalyzer.GetType(type);
+                    var typeDetails = TypeAnalyzer.GetTypeDetail(type);
                     var propertyDetails = typeDetails.MemberDetails.Where(x => x.Type == typeof(String) || x.Type == typeof(byte[])).ToArray();
                     if (graph != null)
                     {

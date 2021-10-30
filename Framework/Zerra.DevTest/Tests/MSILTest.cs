@@ -56,7 +56,7 @@ namespace Zerra.DevTest
         {
             var stuff = new Stuff() { prop = 4, field = 5 };
 
-            var typeDetail = TypeAnalyzer.GetType(typeof(Stuff));
+            var typeDetail = TypeAnalyzer.GetTypeDetail(typeof(Stuff));
             var item1 = (int)typeDetail.MemberDetails[0].Getter(stuff);
             var item2 = (int)typeDetail.MemberDetails[1].Getter(stuff);
             typeDetail.MemberDetails[0].Setter(stuff, item1 * 2);

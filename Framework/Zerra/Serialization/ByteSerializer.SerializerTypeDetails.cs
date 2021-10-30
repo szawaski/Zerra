@@ -47,7 +47,7 @@ namespace Zerra.Serialization
                 this.ignoreIndexAttribute = ignoreIndexAttribute;
                 this.Type = type;
 
-                this.TypeDetail = TypeAnalyzer.GetType(type);
+                this.TypeDetail = TypeAnalyzer.GetTypeDetail(type);
 
                 var listTypeDetail = TypeAnalyzer.GetGenericTypeDetail(genericListType, type);
                 var listCreator = listTypeDetail.GetConstructor(typeof(int)).Creator;
