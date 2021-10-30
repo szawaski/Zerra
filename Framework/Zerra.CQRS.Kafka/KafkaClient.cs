@@ -19,13 +19,13 @@ namespace Zerra.CQRS.Kafka
     {
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.RijndaelManaged;
 
-        private readonly SemaphoreSlim listenerStartedLock = new SemaphoreSlim(1, 1);
         private bool listenerStarted = false;
 
         private readonly string host;
         private readonly SymmetricKey encryptionKey;
         private readonly string ackTopic;
-        private static IProducer<string, byte[]> producer = null;
+        private static IProducer<string, byte[]> producer;
+        private readonly SemaphoreSlim listenerStartedLock;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
         public KafkaClient(string host, SymmetricKey encryptionKey)
@@ -41,6 +41,7 @@ namespace Zerra.CQRS.Kafka
             producerConfig.ClientId = clientID;
             producer = new ProducerBuilder<string, byte[]>(producerConfig).Build();
 
+            this.listenerStartedLock = new SemaphoreSlim(1, 1);
             this.canceller = new CancellationTokenSource();
             this.ackCallbacks = new ConcurrentDictionary<string, Action<Acknowledgement>>();
         }
@@ -204,6 +205,7 @@ namespace Zerra.CQRS.Kafka
 
         public void Dispose()
         {
+            listenerStartedLock.Dispose();
             canceller.Cancel();
             producer.Dispose();
         }
