@@ -21,10 +21,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Zerra.Repository.MySql\Zerra.Repository.MySql.csproj" />
+    <ProjectReference Include="..\Zerra.Repository.MsSql\Zerra.Repository.MsSql.csproj" />
+    <ProjectReference Include="..\Zerra.Repository.MySql\Zerra.Repository.MySql.csproj" />
     <ProjectReference Include="..\Zerra.Repository.PostgreSql\Zerra.Repository.PostgreSql.csproj" />
     <ProjectReference Include="..\Zerra\Zerra.csproj" />
-    <ProjectReference Include="..\Zerra.Repository.MsSql\Zerra.Repository.MsSql.csproj" />
     <ProjectReference Include="..\Zerra.Repository\Zerra.Repository.csproj" />
   </ItemGroup>
 

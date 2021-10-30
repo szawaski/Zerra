@@ -7,9 +7,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Framework\Zerra.Repository.MsSql\Zerra.Repository.MsSql.csproj" />
     <ProjectReference Include="..\..\Framework\Zerra.Repository.PostgreSql\Zerra.Repository.PostgreSql.csproj" />
+    <ProjectReference Include="..\..\Framework\Zerra.Repository.MySql\Zerra.Repository.MySql.csproj" />
     <ProjectReference Include="..\..\Framework\Zerra.Repository\Zerra.Repository.csproj" />
     <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
-    <ProjectReference Include="..\..\Zerra.Repository.MySql\Zerra.Repository.MySql.csproj" />
     <ProjectReference Include="..\ZerraDemo.Domain.Pets\ZerraDemo.Domain.Pets.csproj" />
   </ItemGroup>
 

@@ -19,7 +19,7 @@ Zerra.Repository.MySql.MySqlDataContext</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\LICENSE.txt" Link="LICENSE.txt">
+    <None Include="..\..\LICENSE.txt" Link="LICENSE.txt">
       <PackagePath></PackagePath>
       <Pack>True</Pack>
     </None>
@@ -30,8 +30,8 @@ Zerra.Repository.MySql.MySqlDataContext</Description>
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Framework\Zerra.Repository\Zerra.Repository.csproj" />
-    <ProjectReference Include="..\Framework\Zerra\Zerra.csproj" />
+    <ProjectReference Include="..\Zerra.Repository\Zerra.Repository.csproj" />
+    <ProjectReference Include="..\Zerra\Zerra.csproj" />
   </ItemGroup>
-
+  
 </Project>
