@@ -191,7 +191,7 @@ namespace Zerra.Reflection
             if (!fieldInfo.IsStatic)
             {
                 il.Emit(OpCodes.Ldarg_0);
-                if (fieldInfo.DeclaringType.IsValueType)
+                if (fieldInfo.ReflectedType.IsValueType)
                     il.Emit(OpCodes.Unbox, fieldInfo.DeclaringType);
                 else
                     il.Emit(OpCodes.Castclass, fieldInfo.DeclaringType);
