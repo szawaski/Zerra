@@ -3,226 +3,187 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+using Zerra.Collections;
 using Zerra.Reflection;
 
 namespace Zerra.Repository.Reflection
 {
     public static class CoreTypeSetterGenerator
     {
-        //TODO use IL to generate methods
-        public static ICoreTypeSetter<T> Get<T>(CoreType? coreType, bool isByteArray, object setter)
+        private static readonly ConcurrentFactoryDictionary<MemberInfo, Type> generatedTypes = new ConcurrentFactoryDictionary<MemberInfo, Type>();
+        public static object Get(MemberInfo memberInfo, CoreType? coreType, bool isByteArray)
         {
-            return new CoreTypeSetter<T>(coreType, isByteArray, setter);
+            var generatedType = generatedTypes.GetOrAdd(memberInfo, (t) =>
+            {
+                return Generate(memberInfo, coreType, isByteArray);
+            });
+            var instance = Instantiator.CreateInstance(generatedType);
+            return instance;
         }
 
-        public class CoreTypeSetter<T> : ICoreTypeSetter<T>
+        private static readonly Type byteArrayType = typeof(byte[]);
+        private static readonly Type iCoreTypeSetterType = typeof(ICoreTypeSetter<>);
+        private static readonly ConstructorInfo coreTypeNullableConstructor = typeof(CoreType?).GetConstructors()[0];
+        private static readonly ConstructorInfo notSupportedExceptionConstructor = typeof(NotSupportedException).GetConstructors()[0];
+        private static Type Generate(MemberInfo memberInfo, CoreType? coreType, bool isByteArray)
         {
-            public CoreType? CoreType { get; private set; }
-            public bool IsByteArray { get; set; }
+            var interfaceType = TypeAnalyzer.GetGenericType(iCoreTypeSetterType, memberInfo.ReflectedType);
 
-            private readonly Action<T, bool> setterBool;
-            private readonly Action<T, byte> setterByte;
-            private readonly Action<T, sbyte> setterSByte;
-            private readonly Action<T, short> setterInt16;
-            private readonly Action<T, ushort> setterUInt16;
-            private readonly Action<T, int> setterInt32;
-            private readonly Action<T, uint> setterUInt32;
-            private readonly Action<T, long> setterInt64;
-            private readonly Action<T, ulong> setterUInt64;
-            private readonly Action<T, float> setterSingle;
-            private readonly Action<T, double> setterDouble;
-            private readonly Action<T, decimal> setterDecimal;
-            private readonly Action<T, char> setterChar;
-            private readonly Action<T, DateTime> setterDateTime;
-            private readonly Action<T, DateTimeOffset> setterDateTimeOffset;
-            private readonly Action<T, TimeSpan> setterTimeSpan;
-            private readonly Action<T, Guid> setterGuid;
+            string typeSignature = $"{interfaceType.FullName}_{memberInfo.Name}_CoreTypeSetterGenerator";
 
-            private readonly Action<T, string> setterString;
+            var moduleBuilder = GeneratedAssembly.GetModuleBuilder();
+            var typeBuilder = moduleBuilder.DefineType(typeSignature, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AutoLayout, null);
 
-            private readonly Action<T, bool?> setterBoolNullable;
-            private readonly Action<T, byte?> setterByteNullable;
-            private readonly Action<T, sbyte?> setterSByteNullable;
-            private readonly Action<T, short?> setterInt16Nullable;
-            private readonly Action<T, ushort?> setterUInt16Nullable;
-            private readonly Action<T, int?> setterInt32Nullable;
-            private readonly Action<T, uint?> setterUInt32Nullable;
-            private readonly Action<T, long?> setterInt64Nullable;
-            private readonly Action<T, ulong?> setterUInt64Nullable;
-            private readonly Action<T, float?> setterSingleNullable;
-            private readonly Action<T, double?> setterDoubleNullable;
-            private readonly Action<T, decimal?> setterDecimalNullable;
-            private readonly Action<T, char?> setterCharNullable;
-            private readonly Action<T, DateTime?> setterDateTimeNullable;
-            private readonly Action<T, DateTimeOffset?> setterDateTimeOffsetNullable;
-            private readonly Action<T, TimeSpan?> setterTimeSpanNullable;
-            private readonly Action<T, Guid?> setterGuidNullable;
+            typeBuilder.AddInterfaceImplementation(interfaceType);
 
-            private readonly Action<T, byte[]> setterBytes;
+            _ = typeBuilder.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
 
-            public CoreTypeSetter(CoreType? coreType, bool isByteArray, object setter)
+            var methods = interfaceType.GetMethods().ToList();
+            var properties = interfaceType.GetProperties().ToList();
+            foreach (var @interface in interfaceType.GetInterfaces())
             {
-                this.CoreType = coreType;
-                this.IsByteArray = isByteArray;
-
-                if (coreType.HasValue)
-                {
-                    switch (coreType.Value)
-                    {
-                        case Zerra.Reflection.CoreType.Boolean:
-                            setterBool = (Action<T, bool>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.Byte:
-                            setterByte = (Action<T, byte>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.SByte:
-                            setterSByte = (Action<T, sbyte>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.Int16:
-                            setterInt16 = (Action<T, short>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.UInt16:
-                            setterUInt16 = (Action<T, ushort>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.Int32:
-                            setterInt32 = (Action<T, int>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.UInt32:
-                            setterUInt32 = (Action<T, uint>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.Int64:
-                            setterInt64 = (Action<T, long>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.UInt64:
-                            setterUInt64 = (Action<T, ulong>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.Single:
-                            setterSingle = (Action<T, float>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.Double:
-                            setterDouble = (Action<T, double>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.Decimal:
-                            setterDecimal = (Action<T, decimal>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.Char:
-                            setterChar = (Action<T, char>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.DateTime:
-                            setterDateTime = (Action<T, DateTime>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.DateTimeOffset:
-                            setterDateTimeOffset = (Action<T, DateTimeOffset>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.TimeSpan:
-                            setterTimeSpan = (Action<T, TimeSpan>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.Guid:
-                            setterGuid = (Action<T, Guid>)setter;
-                            break;
-
-                        case Zerra.Reflection.CoreType.String:
-                            setterString = (Action<T, string>)setter;
-                            break;
-
-                        case Zerra.Reflection.CoreType.BooleanNullable:
-                            setterBoolNullable = (Action<T, bool?>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.ByteNullable:
-                            setterByteNullable = (Action<T, byte?>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.SByteNullable:
-                            setterSByteNullable = (Action<T, sbyte?>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.Int16Nullable:
-                            setterInt16Nullable = (Action<T, short?>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.UInt16Nullable:
-                            setterUInt16Nullable = (Action<T, ushort?>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.Int32Nullable:
-                            setterInt32Nullable = (Action<T, int?>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.UInt32Nullable:
-                            setterUInt32Nullable = (Action<T, uint?>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.Int64Nullable:
-                            setterInt64Nullable = (Action<T, long?>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.UInt64Nullable:
-                            setterUInt64Nullable = (Action<T, ulong?>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.SingleNullable:
-                            setterSingleNullable = (Action<T, float?>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.DoubleNullable:
-                            setterDoubleNullable = (Action<T, double?>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.DecimalNullable:
-                            setterDecimalNullable = (Action<T, decimal?>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.CharNullable:
-                            setterCharNullable = (Action<T, char?>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.DateTimeNullable:
-                            setterDateTimeNullable = (Action<T, DateTime?>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.DateTimeOffsetNullable:
-                            setterDateTimeOffsetNullable = (Action<T, DateTimeOffset?>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.TimeSpanNullable:
-                            setterTimeSpanNullable = (Action<T, TimeSpan?>)setter;
-                            break;
-                        case Zerra.Reflection.CoreType.GuidNullable:
-                            setterGuidNullable = (Action<T, Guid?>)setter;
-                            break;
-                    }
-                }
-                else if (isByteArray)
-                {
-                    setterBytes = (Action<T, byte[]>)setter;
-                }
+                methods.AddRange(@interface.GetMethods());
+                properties.AddRange(@interface.GetProperties());
             }
 
-            public void Setter(T model, bool value) => setterBool(model, value);
-            public void Setter(T model, byte value) => setterByte(model, value);
-            public void Setter(T model, sbyte value) => setterSByte(model, value);
-            public void Setter(T model, short value) => setterInt16(model, value);
-            public void Setter(T model, ushort value) => setterUInt16(model, value);
-            public void Setter(T model, int value) => setterInt32(model, value);
-            public void Setter(T model, uint value) => setterUInt32(model, value);
-            public void Setter(T model, long value) => setterInt64(model, value);
-            public void Setter(T model, ulong value) => setterUInt64(model, value);
-            public void Setter(T model, float value) => setterSingle(model, value);
-            public void Setter(T model, double value) => setterDouble(model, value);
-            public void Setter(T model, decimal value) => setterDecimal(model, value);
-            public void Setter(T model, char value) => setterChar(model, value);
-            public void Setter(T model, DateTime value) => setterDateTime(model, value);
-            public void Setter(T model, DateTimeOffset value) => setterDateTimeOffset(model, value);
-            public void Setter(T model, TimeSpan value) => setterTimeSpan(model, value);
-            public void Setter(T model, Guid value) => setterGuid(model, value);
+            foreach (var method in methods)
+            {
+                if (method.Name.StartsWith("get_") || method.Name.StartsWith("set_"))
+                    continue;
 
-            public void Setter(T model, string value) => setterString(model, value);
+                Type[] parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
 
-            public void Setter(T model, bool? value) => setterBoolNullable(model, value);
-            public void Setter(T model, byte? value) => setterByteNullable(model, value);
-            public void Setter(T model, sbyte? value) => setterSByteNullable(model, value);
-            public void Setter(T model, short? value) => setterInt16Nullable(model, value);
-            public void Setter(T model, ushort? value) => setterUInt16Nullable(model, value);
-            public void Setter(T model, int? value) => setterInt32Nullable(model, value);
-            public void Setter(T model, uint? value) => setterUInt32Nullable(model, value);
-            public void Setter(T model, long? value) => setterInt64Nullable(model, value);
-            public void Setter(T model, ulong? value) => setterUInt64Nullable(model, value);
-            public void Setter(T model, float? value) => setterSingleNullable(model, value);
-            public void Setter(T model, double? value) => setterDoubleNullable(model, value);
-            public void Setter(T model, decimal? value) => setterDecimalNullable(model, value);
-            public void Setter(T model, char? value) => setterCharNullable(model, value);
-            public void Setter(T model, DateTime? value) => setterDateTimeNullable(model, value);
-            public void Setter(T model, DateTimeOffset? value) => setterDateTimeOffsetNullable(model, value);
-            public void Setter(T model, TimeSpan? value) => setterTimeSpanNullable(model, value);
-            public void Setter(T model, Guid? value) => setterGuidNullable(model, value);
+                var methodBuilder = typeBuilder.DefineMethod(
+                    method.Name,
+                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
+                    CallingConventions.HasThis,
+                    null,
+                    parameterTypes
+                );
+                methodBuilder.SetImplementationFlags(MethodImplAttributes.Managed);
 
-            public void Setter(T model, byte[] value) => setterBytes(model, value);
+                var il = methodBuilder.GetILGenerator();
+
+                CoreType? methodCoreType;
+                bool methodIsByteArray;
+                if (TypeLookup.CoreTypeLookup(parameterTypes[1], out CoreType coreTypeLookup))
+                {
+                    methodCoreType = coreTypeLookup;
+                    methodIsByteArray = false;
+                }
+                else
+                {
+                    methodCoreType = null;
+                    methodIsByteArray = parameterTypes[1] == byteArrayType;
+                }
+
+                if (coreType == methodCoreType && isByteArray == methodIsByteArray)
+                {
+                    if (memberInfo.MemberType == MemberTypes.Property)
+                    {
+                        var propertyInfo = (PropertyInfo)memberInfo;
+                        var setMethod = propertyInfo.GetSetMethod(true);
+                        if (!setMethod.IsStatic)
+                            il.Emit(OpCodes.Ldarg_1);
+
+                        il.Emit(OpCodes.Ldarg_2);
+
+                        if (setMethod.IsFinal || !setMethod.IsVirtual)
+                            il.Emit(OpCodes.Call, setMethod);
+                        else
+                            il.Emit(OpCodes.Callvirt, setMethod);
+
+                        il.Emit(OpCodes.Ret);
+                    }
+                    else if (memberInfo.MemberType == MemberTypes.Field)
+                    {
+                        var fieldInfo = (FieldInfo)memberInfo;
+                        if (!fieldInfo.IsStatic)
+                        {
+                            il.Emit(OpCodes.Ldarg_1);
+                            if (fieldInfo.ReflectedType.IsValueType)
+                                il.Emit(OpCodes.Unbox, fieldInfo.ReflectedType);
+                        }
+
+                        il.Emit(OpCodes.Ldarg_2);
+
+                        if (!fieldInfo.IsStatic)
+                            il.Emit(OpCodes.Stfld, fieldInfo);
+                        else
+                            il.Emit(OpCodes.Stsfld, fieldInfo);
+
+                        il.Emit(OpCodes.Ret);
+                    }
+                    else
+                    {
+                        throw new NotImplementedException();
+                    }
+                }
+                else
+                {
+                    il.Emit(OpCodes.Newobj, notSupportedExceptionConstructor);
+                    il.Emit(OpCodes.Throw);
+                }
+
+                typeBuilder.DefineMethodOverride(methodBuilder, method);
+            }
+
+            foreach (var property in properties)
+            {
+                var propertyBuilder = typeBuilder.DefineProperty(
+                    property.Name,
+                    PropertyAttributes.HasDefault,
+                    property.PropertyType,
+                    null
+                );
+
+                var getMethodName = "get_" + property.Name;
+                var getMethodBuilder = typeBuilder.DefineMethod(
+                    getMethodName,
+                    MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
+                    property.PropertyType,
+                    Type.EmptyTypes
+                );
+                var getMethodBuilderIL = getMethodBuilder.GetILGenerator();
+
+
+                if (property.Name == nameof(ICoreTypeSetter<object>.CoreType))
+                {
+                    if (coreType.HasValue)
+                    {
+                        getMethodBuilderIL.Emit(OpCodes.Ldc_I4, (int)coreType.Value);
+                        getMethodBuilderIL.Emit(OpCodes.Newobj, coreTypeNullableConstructor);
+                    }
+                    else
+                    {
+                        getMethodBuilderIL.Emit(OpCodes.Ldnull);
+                    }
+                }
+                else if (property.Name == nameof(ICoreTypeSetter<object>.IsByteArray))
+                {
+                    if (isByteArray)
+                        getMethodBuilderIL.Emit(OpCodes.Ldc_I4_1);
+                    else
+                        getMethodBuilderIL.Emit(OpCodes.Ldc_I4_0);
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+
+                getMethodBuilderIL.Emit(OpCodes.Ret);
+
+                var getMethod = methods.FirstOrDefault(x => x.Name == getMethodName);
+                typeBuilder.DefineMethodOverride(getMethodBuilder, getMethod);
+
+                propertyBuilder.SetGetMethod(getMethodBuilder);
+            }
+
+            Type objectType = typeBuilder.CreateTypeInfo();
+            return objectType;
         }
     }
 }

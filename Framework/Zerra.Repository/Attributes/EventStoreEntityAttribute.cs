@@ -59,7 +59,7 @@ namespace Zerra.Repository
 
             var typeSignature = $"{entityType.Name}_{type.Name}_Provider";
 
-            var moduleBuilder = GetModuleBuilder();
+            var moduleBuilder = GeneratedAssembly.GetModuleBuilder();
             var typeBuilder = moduleBuilder.DefineType(typeSignature, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AutoLayout, baseType);
 
             _ = typeBuilder.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);

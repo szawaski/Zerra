@@ -19,25 +19,6 @@ namespace Zerra.CQRS
         private static readonly Type taskType = typeof(Task);
         private static readonly ConstructorInfo notSupportedExceptionConstructor = typeof(NotSupportedException).GetConstructor(new Type[] { typeof(string) });
 
-        private static readonly object moduleBuilderLock = new object();
-        private static ModuleBuilder moduleBuilderCache = null;
-        private static ModuleBuilder GetModuleBuilder()
-        {
-            if (moduleBuilderCache == null)
-            {
-                lock (moduleBuilderLock)
-                {
-                    if (moduleBuilderCache == null)
-                    {
-                        var assemblyName = new AssemblyName($"{nameof(BusRouters)}_Assembly");
-                        var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
-                        moduleBuilderCache = assemblyBuilder.DefineDynamicModule($"{nameof(BusRouters)}_MainModule");
-                    }
-                }
-            }
-            return moduleBuilderCache;
-        }
-
         private static readonly Type baseProviderType = typeof(IBaseProvider);
         private static MethodInfo callInternalMethodNonGeneric = typeof(Bus).GetMethod(nameof(Bus._CallInternal), BindingFlags.Static | BindingFlags.Public);
         private static readonly ConcurrentFactoryDictionary<Type, Type> callerClasses = new ConcurrentFactoryDictionary<Type, Type>();
@@ -74,7 +55,7 @@ namespace Zerra.CQRS
 
             string typeSignature = interfaceType.Name + "_Caller";
 
-            var moduleBuilder = GetModuleBuilder();
+            var moduleBuilder = GeneratedAssembly.GetModuleBuilder();
             var typeBuilder = moduleBuilder.DefineType(typeSignature, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AutoLayout, null);
 
             typeBuilder.AddInterfaceImplementation(interfaceType);
@@ -220,7 +201,7 @@ namespace Zerra.CQRS
 
             string typeSignature = interfaceType.Name + "_CommandDispatcher";
 
-            var moduleBuilder = GetModuleBuilder();
+            var moduleBuilder = GeneratedAssembly.GetModuleBuilder();
             var typeBuilder = moduleBuilder.DefineType(typeSignature, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AutoLayout, null);
 
             typeBuilder.AddInterfaceImplementation(interfaceType);
@@ -323,7 +304,7 @@ namespace Zerra.CQRS
 
             string typeSignature = interfaceType.Name + "_EventDispatcher";
 
-            var moduleBuilder = GetModuleBuilder();
+            var moduleBuilder = GeneratedAssembly.GetModuleBuilder();
             var typeBuilder = moduleBuilder.DefineType(typeSignature, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AutoLayout, null);
 
             typeBuilder.AddInterfaceImplementation(interfaceType);
