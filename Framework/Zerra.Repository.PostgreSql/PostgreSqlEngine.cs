@@ -27,11 +27,6 @@ namespace Zerra.Repository.PostgreSql
             this.connectionString = connectionString;
         }
 
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        //private string ConvertToSql(QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail)
-        //{
-        //    return LinqPostgreSqlConverter.Convert(select, where, order, skip, take, graph, modelDetail);
-        //}
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ICoreTypeSetter<TModel>[] ReadColumns<TModel>(NpgsqlDataReader reader, ModelDetail modelDetail)
         {
