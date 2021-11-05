@@ -10,20 +10,18 @@ namespace Zerra.Repository
 {
     public abstract class DataContextSelector : DataContext
     {
-        private bool disableBuildStoreFromModels = false;
-        protected override sealed bool DisableBuildStoreFromModels => disableBuildStoreFromModels;
+        protected override sealed bool DisableBuildStoreFromModels => false;
 
-        protected override T GetEngine<T>()
+        protected override sealed (T, bool) GetEngineAndDisableBuildStore<T>()
         {
             var contexts = GetDataContexts();
             foreach (var context in contexts)
             {
-                if (!context.TryGetEngine(out T engine))
+                if (!context.TryGetEngine(out T engine, out bool disableBuildStore))
                     continue;
-                disableBuildStoreFromModels = (bool)TypeAnalyzer.GetTypeDetail(typeof(DataContext)).GetMember(nameof(DisableBuildStoreFromModels)).Getter(context);
-                return engine;
+                return (engine, disableBuildStore);
             }
-            return null;
+            return (null, default);
         }
         protected override sealed IDataStoreEngine GetEngine()
         {
