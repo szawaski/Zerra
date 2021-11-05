@@ -131,7 +131,7 @@ namespace Zerra.CQRS.Kafka
                                 var ack = new Acknowledgement()
                                 {
                                     Success = error == null,
-                                    ErrorMessage = error.Message
+                                    ErrorMessage = error?.Message
                                 };
                                 var body = KafkaCommon.Serialize(ack);
                                 if (encryptionKey != null)
