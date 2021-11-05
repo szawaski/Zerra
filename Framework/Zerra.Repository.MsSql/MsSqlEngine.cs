@@ -1593,6 +1593,9 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName}'";
 
         public bool ValidateDataSource()
         {
+            if (String.IsNullOrWhiteSpace(connectionString))
+                return false;
+
             const string sql = "SELECT @@version";
 
             try

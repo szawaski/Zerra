@@ -1647,6 +1647,9 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
 
         public bool ValidateDataSource()
         {
+            if (String.IsNullOrWhiteSpace(connectionString))
+                return false;
+
             const string sql = "SELECT version()";
 
             try
