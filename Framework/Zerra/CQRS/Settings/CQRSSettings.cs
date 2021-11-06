@@ -39,24 +39,26 @@ namespace Zerra.CQRS.Settings
             var messageHost = Config.GetSetting(nameof(settings.MessageHost));
             if (!String.IsNullOrWhiteSpace(messageHost))
                 settings.MessageHost = messageHost;
-            _ = Log.InfoAsync($"Set {nameof(settings.MessageHost)} at {messageHost}");
+            if (!String.IsNullOrWhiteSpace(settings.MessageHost))
+                _ = Log.InfoAsync($"Set {nameof(settings.MessageHost)} at {settings.MessageHost}");
 
             var relayUrl = Config.GetSetting(nameof(settings.RelayUrl));
             if (!String.IsNullOrWhiteSpace(relayUrl))
                 settings.RelayUrl = relayUrl;
-            _ = Log.InfoAsync($"Set {nameof(settings.RelayUrl)} at {relayUrl}");
+            if (!String.IsNullOrWhiteSpace(settings.RelayUrl))
+                _ = Log.InfoAsync($"Set {nameof(settings.RelayUrl)} at {settings.RelayUrl}");
 
             var relayKey = Config.GetSetting(nameof(settings.RelayKey));
             if (!String.IsNullOrWhiteSpace(relayUrl))
                 settings.RelayKey = relayKey;
-            //_ = Log.InfoAsync($"Set {nameof(settings.RelayKey)} at {relayKey}"); security don't display
 
             foreach (var service in settings.Services)
             {
                 var url = Config.GetSetting(service.Name);
                 if (!String.IsNullOrWhiteSpace(url))
                     service.ExternalUrl = url;
-                _ = Log.InfoAsync($"Set {service.Name} at {service.ExternalUrl}");
+                if (!String.IsNullOrWhiteSpace(service.ExternalUrl))
+                    _ = Log.InfoAsync($"Set {service.Name} at {service.ExternalUrl}");
             }
 
             return settings;
