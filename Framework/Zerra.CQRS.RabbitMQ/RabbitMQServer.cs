@@ -14,6 +14,7 @@ namespace Zerra.CQRS.RabbitMQ
 {
     public partial class RabbitMQServer : ICommandServer, IEventServer, IDisposable
     {
+        private const int retryDelay = 15000;
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.RijndaelManaged;
 
         private readonly string host;

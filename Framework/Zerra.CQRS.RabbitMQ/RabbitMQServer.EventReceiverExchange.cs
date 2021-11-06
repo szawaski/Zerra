@@ -6,6 +6,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -19,13 +20,13 @@ namespace Zerra.CQRS.RabbitMQ
         private class EventReceiverExchange : IDisposable
         {
             public Type Type { get; private set; }
-            public bool IsOpen { get { return this.channel != null; } }
+            public bool IsOpen { get; private set; }
 
             public readonly string exchange;
             private readonly SymmetricKey encryptionKey;
 
             private IModel channel = null;
-            private AsyncEventingBasicConsumer consumer = null;
+            private CancellationTokenSource canceller;
 
             public EventReceiverExchange(Type type, SymmetricKey encryptionKey)
             {
@@ -36,6 +37,18 @@ namespace Zerra.CQRS.RabbitMQ
 
             public void Open(IConnection connection, Func<IEvent, Task> handlerAsync)
             {
+                if (IsOpen)
+                    return;
+                IsOpen = true;
+                Task.Run(() => ListeningThread(connection, handlerAsync));
+            }
+
+            private async Task ListeningThread(IConnection connection, Func<IEvent, Task> handlerAsync)
+            {
+                canceller = new CancellationTokenSource();
+
+            retry:
+
                 try
                 {
                     if (this.channel != null)
@@ -47,9 +60,9 @@ namespace Zerra.CQRS.RabbitMQ
                     var queueName = this.channel.QueueDeclare().QueueName;
                     this.channel.QueueBind(queueName, this.exchange, String.Empty);
 
-                    this.consumer = new AsyncEventingBasicConsumer(this.channel);
+                    var consumer = new AsyncEventingBasicConsumer(this.channel);
 
-                    this.consumer.Received += async (sender, e) =>
+                    consumer.Received += async (sender, e) =>
                     {
                         bool isEncrypted = e.BasicProperties.Headers != null && e.BasicProperties.Headers.Keys.Contains("Encryption") == true;
 
@@ -106,24 +119,48 @@ namespace Zerra.CQRS.RabbitMQ
                         }
                     };
 
-
-                    this.channel.BasicConsume(queueName, false, this.consumer);
+                    this.channel.BasicConsume(queueName, false, consumer);
                 }
                 catch (Exception ex)
                 {
-                    Log.ErrorAsync(null, ex);
-                    throw;
+                    _ = Log.ErrorAsync(ex);
+
+                    if (!canceller.IsCancellationRequested)
+                    {
+                        if (channel != null)
+                        {
+                            channel.Close();
+                            channel.Dispose();
+                            channel = null;
+                        }
+                        await Task.Delay(retryDelay);
+                        goto retry;
+                    }
                 }
+
+                canceller.Dispose();
+                canceller = null;
+
+                if (channel != null)
+                {
+                    channel.Close();
+                    channel.Dispose();
+                    channel = null;
+                }
+
+                IsOpen = false;
             }
 
             public void Dispose()
             {
-                if (this.channel != null)
+                if (canceller != null)
+                    canceller.Cancel();
+
+                if (channel != null)
                 {
-                    this.consumer = null;
-                    this.channel.Close();
-                    this.channel.Dispose();
-                    this.channel = null;
+                    channel.Close();
+                    channel.Dispose();
+                    channel = null;
                 }
             }
         }

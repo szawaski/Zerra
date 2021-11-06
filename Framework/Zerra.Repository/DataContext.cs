@@ -19,7 +19,7 @@ namespace Zerra.Repository
 
         public bool TryGetEngine<T>(out T engine, out bool disableBuildStore) where T : class, IDataStoreEngine
         {
-            (engine, disableBuildStore) = GetEngineAndDisableBuildStore<T>();
+            (engine, disableBuildStore) = GetEngine<T>();
             if (engine == null)
                 return false;
 
@@ -45,7 +45,7 @@ namespace Zerra.Repository
         private static readonly object initializedLock = new object();
         public T InitializeEngine<T>(bool reinitialize = false) where T : class, IDataStoreEngine
         {
-            var (engine, disableBuildStore) = GetEngineAndDisableBuildStore<T>();
+            var (engine, disableBuildStore) = GetEngine<T>();
             if (engine == null)
                 throw new Exception($"{this.GetType().Name} could not produce an engine of {typeof(T).Name}");
 
@@ -102,7 +102,7 @@ namespace Zerra.Repository
             return engine;
         }
 
-        protected virtual (T, bool) GetEngineAndDisableBuildStore<T>() where T : class, IDataStoreEngine
+        protected virtual (T, bool) GetEngine<T>() where T : class, IDataStoreEngine
         {
             return (GetEngine() as T, DisableBuildStoreFromModels);
         }

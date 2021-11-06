@@ -23,33 +23,39 @@ namespace Zerra.CQRS.Kafka
 
             private readonly string topic;
             private readonly SymmetricKey encryptionKey;
-            private readonly CancellationTokenSource canceller;
+            private CancellationTokenSource canceller;
 
             public EventConsumer(Type type, SymmetricKey encryptionKey)
             {
                 this.Type = type;
                 this.topic = type.GetNiceName();
                 this.encryptionKey = encryptionKey;
-                this.canceller = new CancellationTokenSource();
             }
 
             public void Open(string host, Func<IEvent, Task> handlerAsync)
             {
+                if (IsOpen)
+                    return;
+                IsOpen = true;
                 Task.Run(() => ListeningThread(host, handlerAsync));
             }
 
             public async Task ListeningThread(string host, Func<IEvent, Task> handlerAsync)
             {
-                await KafkaCommon.AssureTopic(host, topic);
+                canceller = new CancellationTokenSource();
 
-                var consumerConfig = new ConsumerConfig();
-                consumerConfig.BootstrapServers = host;
-                consumerConfig.GroupId = Guid.NewGuid().ToString();
-                consumerConfig.EnableAutoCommit = false;
+            retry:
 
                 IConsumer<string, byte[]> consumer = null;
                 try
                 {
+                    await KafkaCommon.AssureTopic(host, topic);
+
+                    var consumerConfig = new ConsumerConfig();
+                    consumerConfig.BootstrapServers = host;
+                    consumerConfig.GroupId = Guid.NewGuid().ToString();
+                    consumerConfig.EnableAutoCommit = false;
+
                     consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build();
                     consumer.Subscribe(topic);
 
@@ -103,17 +109,31 @@ namespace Zerra.CQRS.Kafka
 
                     consumer.Unsubscribe();
                 }
-                finally
+                catch (Exception ex)
                 {
-                    canceller.Dispose();
+                    _ = Log.ErrorAsync(ex);
+
                     if (consumer != null)
                         consumer.Dispose();
+                    consumer = null;
+
+                    if (!canceller.IsCancellationRequested)
+                    {
+                        await Task.Delay(retryDelay);
+                        goto retry;
+                    }
                 }
+                canceller.Dispose();
+                canceller = null;
+                if (consumer != null)
+                    consumer.Dispose();
+                IsOpen = false;
             }
 
             public void Dispose()
             {
-                canceller.Cancel();
+                if (canceller != null)
+                    canceller.Cancel();
             }
         }
     }

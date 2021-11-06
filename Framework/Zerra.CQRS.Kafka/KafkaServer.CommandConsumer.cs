@@ -25,7 +25,8 @@ namespace Zerra.CQRS.Kafka
             private readonly string topic;
             private readonly string clientID;
             private readonly SymmetricKey encryptionKey;
-            private readonly CancellationTokenSource canceller;
+
+            private CancellationTokenSource canceller = null;
 
             public CommandConsumer(Type type, SymmetricKey encryptionKey)
             {
@@ -33,26 +34,32 @@ namespace Zerra.CQRS.Kafka
                 this.topic = type.GetNiceName();
                 this.clientID = Guid.NewGuid().ToString();
                 this.encryptionKey = encryptionKey;
-                this.canceller = new CancellationTokenSource();
             }
 
             public void Open(string host, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
             {
+                if (IsOpen)
+                    return;
+                IsOpen = true;
                 Task.Run(() => ListeningThread(host, handlerAsync, handlerAwaitAsync));
             }
 
             private async Task ListeningThread(string host, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
             {
-                await KafkaCommon.AssureTopic(host, topic);
+                canceller = new CancellationTokenSource();
 
-                var consumerConfig = new ConsumerConfig();
-                consumerConfig.BootstrapServers = host;
-                consumerConfig.GroupId = topic;
-                consumerConfig.EnableAutoCommit = false;
+            retry:
 
                 IConsumer<string, byte[]> consumer = null;
                 try
                 {
+                    await KafkaCommon.AssureTopic(host, topic);
+
+                    var consumerConfig = new ConsumerConfig();
+                    consumerConfig.BootstrapServers = host;
+                    consumerConfig.GroupId = topic;
+                    consumerConfig.EnableAutoCommit = false;
+
                     consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build();
                     consumer.Subscribe(topic);
 
@@ -154,17 +161,31 @@ namespace Zerra.CQRS.Kafka
 
                     consumer.Unsubscribe();
                 }
-                finally
+                catch (Exception ex)
                 {
-                    canceller.Dispose();
+                    _ = Log.ErrorAsync(ex);
+
                     if (consumer != null)
                         consumer.Dispose();
+                    consumer = null;
+
+                    if (!canceller.IsCancellationRequested)
+                    {
+                        await Task.Delay(retryDelay);
+                        goto retry;
+                    }
                 }
+                canceller.Dispose();
+                canceller = null;
+                if (consumer != null)
+                    consumer.Dispose();
+                IsOpen = false;
             }
 
             public void Dispose()
             {
-                canceller.Cancel();
+                if (canceller != null)
+                    canceller.Cancel();
             }
         }
     }

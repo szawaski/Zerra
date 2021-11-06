@@ -12,7 +12,7 @@ namespace Zerra.Repository
     {
         protected override sealed bool DisableBuildStoreFromModels => false;
 
-        protected override sealed (T, bool) GetEngineAndDisableBuildStore<T>()
+        protected override sealed (T, bool) GetEngine<T>()
         {
             var contexts = GetDataContexts();
             foreach (var context in contexts)
