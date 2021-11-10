@@ -218,8 +218,9 @@ const Bus = {
                     Bus._deserializeJson(deserialized, modelType, hasMany);
                 }
 
-                if (onComplete && typeof onComplete === "function")
-                    onComplete(deserialized);
+                if (!(onComplete && typeof onComplete === "function"))
+                    throw "Bus.Call Missing onComplete function";
+                onComplete(deserialized);
             })
             .fail(function (jqXHR) {
                 if (jqXHR.status === 200) {
