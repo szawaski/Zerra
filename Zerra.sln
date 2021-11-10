@@ -21,8 +21,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.Test", "Framework\Zer
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.Repository.Test", "Framework\Zerra.Repository.Test\Zerra.Repository.Test.csproj", "{8B3336AA-3153-4BE1-9685-7D5879B8BAFC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.DocumentWebsite", "Zerra.DocumentWebsite\Zerra.DocumentWebsite.csproj", "{C428ADE7-72FF-4C93-95FA-DC1512259DBD}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.Web", "Framework\Zerra.Web\Zerra.Web.csproj", "{CFDFC883-D43E-459F-92F4-9407760B2B5D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.T4", "Framework\Zerra.T4\Zerra.T4.csproj", "{1E58C937-08B3-40FF-A36F-0CEFAA606711}"
@@ -121,10 +119,6 @@ Global
 		{8B3336AA-3153-4BE1-9685-7D5879B8BAFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8B3336AA-3153-4BE1-9685-7D5879B8BAFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8B3336AA-3153-4BE1-9685-7D5879B8BAFC}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C428ADE7-72FF-4C93-95FA-DC1512259DBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C428ADE7-72FF-4C93-95FA-DC1512259DBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C428ADE7-72FF-4C93-95FA-DC1512259DBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C428ADE7-72FF-4C93-95FA-DC1512259DBD}.Release|Any CPU.Build.0 = Release|Any CPU
 		{CFDFC883-D43E-459F-92F4-9407760B2B5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CFDFC883-D43E-459F-92F4-9407760B2B5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CFDFC883-D43E-459F-92F4-9407760B2B5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
