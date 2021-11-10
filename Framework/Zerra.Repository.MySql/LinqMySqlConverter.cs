@@ -207,11 +207,11 @@ namespace Zerra.Repository.MySql
 
                                 ConvertToSql(callingObject, ref sb, context);
 
-                                sb.Write(context.Inverted ? "NOT LIKE '%'+" : "LIKE '%'+");
+                                sb.Write(context.Inverted ? "NOT LIKE '%'||" : "LIKE '%'||");
 
                                 ConvertToSql(text, ref sb, context);
 
-                                sb.Write("+'%'");
+                                sb.Write("||'%'");
                                 break;
                             }
                         default:
@@ -315,31 +315,31 @@ namespace Zerra.Repository.MySql
                         switch (memberProperty.Member.Name)
                         {
                             case "Year":
-                                sb.Write("DATEPART(year,");
+                                sb.Write("YEAR(");
                                 break;
                             case "Month":
-                                sb.Write("DATEPART(month,");
+                                sb.Write("MONTH(");
                                 break;
                             case "Day":
-                                sb.Write("DATEPART(day,");
+                                sb.Write("DAY(day,");
                                 break;
                             case "Hour":
-                                sb.Write("DATEPART(hour,");
+                                sb.Write("HOUR(");
                                 break;
                             case "Minute":
-                                sb.Write("DATEPART(minute,");
+                                sb.Write("MINUTE(");
                                 break;
                             case "Second":
-                                sb.Write("DATEPART(second,");
+                                sb.Write("SECOND(");
                                 break;
                             case "Millisecond":
-                                sb.Write("DATEPART(millisecond,");
+                                sb.Write("1/1000*MICROSECOND(");
                                 break;
                             case "DayOfYear":
-                                sb.Write("DATEPART(dayofyear,");
+                                sb.Write("DAYOFYEAR(");
                                 break;
                             case "DayOfWeek":
-                                sb.Write("DATEPART(weekday,");
+                                sb.Write("WEEKDAY(");
                                 break;
                             default:
                                 memberPropertyHandled = false;
