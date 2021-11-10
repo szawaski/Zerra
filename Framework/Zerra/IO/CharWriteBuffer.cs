@@ -41,16 +41,16 @@ namespace Zerra.IO
         public int Length => position + streamWritten;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void EnsureBufferSize(int additionalLength)
+        private void EnsureBufferSize(int additionalSize)
         {
-            if (position + additionalLength < buffer.Length)
+            if (position + additionalSize <= buffer.Length)
                 return;
 
             if (bufferOwner == null)
             {
                 bufferOwner = BufferArrayPool<char>.Rent(defaultInitialSize);
                 buffer = bufferOwner;
-                if (position + additionalLength < buffer.Length)
+                if (position + additionalSize < buffer.Length)
                     return;
             }
 
@@ -64,11 +64,11 @@ namespace Zerra.IO
                 streamWritten += position;
                 position = 0;
 
-                if (position + additionalLength < buffer.Length)
+                if (position + additionalSize < buffer.Length)
                     return;
             }
 
-            var minSize = position + additionalLength;
+            var minSize = position + additionalSize;
             BufferArrayPool<char>.Grow(ref bufferOwner, minSize);
             buffer = bufferOwner;
         }

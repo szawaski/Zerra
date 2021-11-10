@@ -10,6 +10,8 @@ namespace Zerra.Repository.Test
     public abstract class BaseTestRelationsModel
     {
         [Identity]
-        public Guid RelationKey { get; set; }
+        public Guid RelationAKey { get; set; }
+
+        public Guid? RelationBKey { get; set; }
     }
 }

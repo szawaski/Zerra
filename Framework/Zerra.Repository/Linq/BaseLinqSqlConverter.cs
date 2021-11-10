@@ -1,48 +1,88 @@
-﻿// Copyright © KaKush LLC
-// Written By Steven Zawaski
-// Licensed to you under the MIT license
-
-using System;
-using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using Zerra;
-using Zerra.Reflection;
+using Zerra.IO;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
-    internal static class LinqValueExtractor
+    public abstract partial class BaseLinqSqlConverter
     {
-        public static IDictionary<string, List<object>> Extract(Expression where, Type propertyModelType, params string[] propertyNames)
+        public string ConvertInternal(QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail)
         {
-            var context = new Context(propertyModelType, propertyNames);
-
-            Extract(where, context);
-
-            return context.Values;
+            var operationContext = new MemberContext();
+            var sb = new CharWriteBuffer();
+            try
+            {
+                Convert(ref sb, select, where, order, skip, take, graph, modelDetail, operationContext);
+                return sb.ToString();
+            }
+            finally
+            {
+                sb.Dispose();
+            }
         }
 
-        private static Return Extract(Expression exp, Context context)
+        protected void Convert(ref CharWriteBuffer sb, QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail, MemberContext operationContext)
+        {
+            var hasWhere = where != null;
+            var hasOrderSkipTake = (select == QueryOperation.Many || select == QueryOperation.First) && (order?.OrderExpressions.Length > 0 || skip > 0 || take > 0);
+
+            GenerateSelect(select, graph, modelDetail, ref sb);
+
+            GenerateFrom(modelDetail, ref sb);
+
+            if (hasWhere || hasOrderSkipTake)
+            {
+                var rootDependant = new ParameterDependant(modelDetail, null);
+                var sbWhereOrder = new CharWriteBuffer();
+                try
+                {
+                    if (hasWhere)
+                        GenerateWhere(where, ref sbWhereOrder, rootDependant, operationContext);
+                    if (hasOrderSkipTake)
+                        GenerateOrderSkipTake(order, skip, take, ref sbWhereOrder, rootDependant, operationContext);
+
+                    GenerateJoin(rootDependant, ref sb);
+
+                    sb.Write(sbWhereOrder);
+                }
+                finally
+                {
+                    sbWhereOrder.Dispose();
+                }
+            }
+
+            GenerateEnding(select, graph, modelDetail, ref sb);
+        }
+
+        protected void ConvertToSql(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
         {
             switch (exp.NodeType)
             {
                 case ExpressionType.Add:
-                    return ExtractBinary("+", exp, context);
+                    ConvertToSqlBinary(Operator.Add, exp, ref sb, context);
+                    break;
                 case ExpressionType.AddAssign:
                     throw new NotImplementedException();
                 case ExpressionType.AddAssignChecked:
                     throw new NotImplementedException();
                 case ExpressionType.AddChecked:
-                    return ExtractBinary("+", exp, context);
+                    ConvertToSqlBinary(Operator.Add, exp, ref sb, context);
+                    break;
                 case ExpressionType.And:
-                    return ExtractBinary(context.Inverted ? "OR" : "AND", exp, context);
+                    ConvertToSqlBinary(context.Inverted ? Operator.Or : Operator.And, exp, ref sb, context);
+                    break;
                 case ExpressionType.AndAlso:
-                    return ExtractBinary(context.Inverted ? "OR" : "AND", exp, context);
+                    ConvertToSqlBinary(context.Inverted ? Operator.Or : Operator.And, exp, ref sb, context);
+                    break;
                 case ExpressionType.AndAssign:
                     throw new NotImplementedException();
+                case ExpressionType.ArrayIndex:
+                    ConvertToSqlArrayIndex(exp, ref sb, context);
+                    break;
                 case ExpressionType.ArrayLength:
                     throw new NotImplementedException();
                 case ExpressionType.Assign:
@@ -50,17 +90,22 @@ namespace Zerra.Repository
                 case ExpressionType.Block:
                     throw new NotImplementedException();
                 case ExpressionType.Call:
-                    return ExtractCall(exp, context);
+                    ConvertToSqlCall(exp, ref sb, context);
+                    break;
                 case ExpressionType.Coalesce:
                     throw new NotImplementedException();
                 case ExpressionType.Conditional:
-                    return ExtractConditional(exp, context);
+                    ConvertToSqlConditional(exp, ref sb, context);
+                    break;
                 case ExpressionType.Constant:
-                    return ExtractConstant(exp, context);
+                    ConvertToSqlConstant(exp, ref sb, context);
+                    break;
                 case ExpressionType.Convert:
-                    return ExtractUnary(exp, context);
+                    ConvertToSqlUnary(Operator.Null, null, exp, ref sb, context);
+                    break;
                 case ExpressionType.ConvertChecked:
-                    return ExtractUnary(exp, context);
+                    ConvertToSqlUnary(Operator.Null, null, exp, ref sb, context);
+                    break;
                 case ExpressionType.DebugInfo:
                     throw new NotImplementedException();
                 case ExpressionType.Decrement:
@@ -68,13 +113,15 @@ namespace Zerra.Repository
                 case ExpressionType.Default:
                     throw new NotImplementedException();
                 case ExpressionType.Divide:
-                    return ExtractBinary("/", exp, context);
+                    ConvertToSqlBinary(Operator.Divide, exp, ref sb, context);
+                    break;
                 case ExpressionType.DivideAssign:
                     throw new NotImplementedException();
                 case ExpressionType.Dynamic:
                     throw new NotImplementedException();
                 case ExpressionType.Equal:
-                    return ExtractBinary(context.Inverted ? "!=" : "=", exp, context);
+                    ConvertToSqlBinary(context.Inverted ? Operator.NotEquals : Operator.Equals, exp, ref sb, context);
+                    break;
                 case ExpressionType.ExclusiveOr:
                     throw new NotImplementedException();
                 case ExpressionType.ExclusiveOrAssign:
@@ -84,9 +131,11 @@ namespace Zerra.Repository
                 case ExpressionType.Goto:
                     throw new NotImplementedException();
                 case ExpressionType.GreaterThan:
-                    return ExtractBinary(context.Inverted ? "<=" : ">", exp, context);
+                    ConvertToSqlBinary(context.Inverted ? Operator.LessThanOrEquals : Operator.GreaterThan, exp, ref sb, context);
+                    break;
                 case ExpressionType.GreaterThanOrEqual:
-                    return ExtractBinary(context.Inverted ? "<" : ">=", exp, context);
+                    ConvertToSqlBinary(context.Inverted ? Operator.LessThan : Operator.GreaterThanOrEquals, exp, ref sb, context);
+                    break;
                 case ExpressionType.Increment:
                     throw new NotImplementedException();
                 case ExpressionType.Index:
@@ -100,62 +149,76 @@ namespace Zerra.Repository
                 case ExpressionType.Label:
                     throw new NotImplementedException();
                 case ExpressionType.Lambda:
-                    return ExtractLambda(exp, context);
+                    ConvertToSqlLambda(exp, ref sb, context);
+                    break;
                 case ExpressionType.LeftShift:
                     throw new NotImplementedException();
                 case ExpressionType.LeftShiftAssign:
                     throw new NotImplementedException();
                 case ExpressionType.LessThan:
-                    return ExtractBinary("<", exp, context);
+                    ConvertToSqlBinary(context.Inverted ? Operator.GreaterThanOrEquals : Operator.LessThan, exp, ref sb, context);
+                    break;
                 case ExpressionType.LessThanOrEqual:
-                    return ExtractBinary("<=", exp, context);
+                    ConvertToSqlBinary(context.Inverted ? Operator.GreaterThan : Operator.LessThanOrEquals, exp, ref sb, context);
+                    break;
                 case ExpressionType.ListInit:
                     throw new NotImplementedException();
                 case ExpressionType.Loop:
                     throw new NotImplementedException();
                 case ExpressionType.MemberAccess:
-                    return ExtractMember(exp, context);
+                    ConvertToSqlMember(exp, ref sb, context);
+                    break;
                 case ExpressionType.MemberInit:
                     throw new NotImplementedException();
                 case ExpressionType.Modulo:
-                    return ExtractBinary("%", exp, context);
+                    ConvertToSqlBinary(Operator.Modulus, exp, ref sb, context);
+                    break;
                 case ExpressionType.ModuloAssign:
                     throw new NotImplementedException();
                 case ExpressionType.Multiply:
-                    return ExtractBinary("*", exp, context);
+                    ConvertToSqlBinary(Operator.Multiply, exp, ref sb, context);
+                    break;
                 case ExpressionType.MultiplyAssign:
                     throw new NotImplementedException();
                 case ExpressionType.MultiplyAssignChecked:
                     throw new NotImplementedException();
                 case ExpressionType.MultiplyChecked:
-                    return ExtractBinary("*", exp, context);
+                    ConvertToSqlBinary(Operator.Multiply, exp, ref sb, context);
+                    break;
                 case ExpressionType.Negate:
-                    return ExtractUnary(exp, context);
+                    ConvertToSqlUnary(Operator.Negative, null, exp, ref sb, context);
+                    break;
                 case ExpressionType.NegateChecked:
-                    return ExtractUnary(exp, context);
+                    ConvertToSqlUnary(Operator.Negative, null, exp, ref sb, context);
+                    break;
                 case ExpressionType.New:
-                    return ExtractNew(exp, context);
+                    ConvertToSqlNew(exp, ref sb, context);
+                    break;
                 case ExpressionType.NewArrayBounds:
                     throw new NotImplementedException();
                 case ExpressionType.NewArrayInit:
                     throw new NotImplementedException();
                 case ExpressionType.Not:
                     context.InvertStack++;
-                    var ret = ExtractUnary(exp, context);
+                    ConvertToSqlUnary(Operator.Null, null, exp, ref sb, context);
                     context.InvertStack--;
-                    return ret;
+                    break;
                 case ExpressionType.NotEqual:
-                    return ExtractBinary(context.Inverted ? "=" : "!=", exp, context);
+                    ConvertToSqlBinary(context.Inverted ? Operator.Equals : Operator.NotEquals, exp, ref sb, context);
+                    break;
                 case ExpressionType.OnesComplement:
                     throw new NotImplementedException();
                 case ExpressionType.Or:
-                    return ExtractBinary(context.Inverted ? "AND" : "OR", exp, context);
+                    ConvertToSqlBinary(context.Inverted ? Operator.And : Operator.Or, exp, ref sb, context);
+                    break;
                 case ExpressionType.OrAssign:
                     throw new NotImplementedException();
                 case ExpressionType.OrElse:
-                    return ExtractBinary(context.Inverted ? "AND" : "OR", exp, context);
+                    ConvertToSqlBinary(context.Inverted ? Operator.And : Operator.Or, exp, ref sb, context);
+                    break;
                 case ExpressionType.Parameter:
-                    return ExtractParameter(context);
+                    ConvertToSqlParameter(exp, ref sb, context);
+                    break;
                 case ExpressionType.PostDecrementAssign:
                     throw new NotImplementedException();
                 case ExpressionType.PostIncrementAssign:
@@ -177,13 +240,15 @@ namespace Zerra.Repository
                 case ExpressionType.RuntimeVariables:
                     throw new NotImplementedException();
                 case ExpressionType.Subtract:
-                    return ExtractBinary("-", exp, context);
+                    ConvertToSqlBinary(Operator.Subtract, exp, ref sb, context);
+                    break;
                 case ExpressionType.SubtractAssign:
                     throw new NotImplementedException();
                 case ExpressionType.SubtractAssignChecked:
                     throw new NotImplementedException();
                 case ExpressionType.SubtractChecked:
-                    return ExtractBinary("-", exp, context);
+                    ConvertToSqlBinary(Operator.Subtract, exp, ref sb, context);
+                    break;
                 case ExpressionType.Switch:
                     throw new NotImplementedException();
                 case ExpressionType.Throw:
@@ -204,98 +269,110 @@ namespace Zerra.Repository
                     throw new NotImplementedException();
             }
         }
-        private static Return ExtractLambda(Expression exp, Context context)
+        protected abstract void ConvertToSqlLambda(Expression exp, ref CharWriteBuffer sb, BuilderContext context);
+        private void ConvertToSqlUnary(Operator prefixOperation, string suffixOperation, Expression exp, ref CharWriteBuffer sb, BuilderContext context)
         {
-            Return ret;
-
-            var lambda = exp as LambdaExpression;
-            if (lambda.Parameters.Count != 1)
-                throw new NotSupportedException("Can only parse a lambda with one parameter.");
-
-            var modelType = lambda.Parameters[0].Type;
-            var modelDetail = ModelAnalyzer.GetModel(modelType);
-            context.ModelStack.Push(modelDetail);
-
-            ret = Extract(lambda.Body, context);
-
-            context.ModelStack.Pop();
-
-            return ret;
-        }
-        private static Return ExtractUnary(Expression exp, Context context)
-        {
-            Return ret;
+            context.MemberContext.OperatorStack.Push(prefixOperation);
 
             var unary = exp as UnaryExpression;
+            sb.Write(OperatorToString(prefixOperation));
 
-            ret = Extract(unary.Operand, context);
+            ConvertToSql(unary.Operand, ref sb, context);
 
-            return ret;
+            sb.Write(suffixOperation);
+
+            context.MemberContext.OperatorStack.Pop();
         }
-        private static Return ExtractBinary(string operation, Expression exp, Context context)
+        private void ConvertToSqlBinary(Operator operation, Expression exp, ref CharWriteBuffer sb, BuilderContext context)
         {
+            context.MemberContext.OperatorStack.Push(operation);
+
             var binary = exp as BinaryExpression;
 
-            var leftRet = Extract(binary.Left, context);
+            var binaryLeft = binary.Left;
+            var binaryRight = binary.Right;
 
-            var rightRet = Extract(binary.Right, context);
-
-            if (operation == "=")
+            if (operation == Operator.Equals || operation == Operator.NotEquals)
             {
-                if (leftRet != null && rightRet != null)
+                var leftNull = IsNull(binaryLeft);
+                var rightNull = false;
+                if (leftNull == false)
+                    rightNull = IsNull(binaryRight);
+                if (leftNull || rightNull)
                 {
-                    if (!leftRet.HasValues && rightRet.HasValues && leftRet.PropertyModelType == context.PropertyModelType && context.PropertyNames.Contains(leftRet.PropertyName))
-                    {
-                        context.Values[leftRet.PropertyName].AddRange(rightRet.Values);
-                    }
-                    else if (!rightRet.HasValues && leftRet.HasValues && rightRet.PropertyModelType == context.PropertyModelType && context.PropertyNames.Contains(rightRet.PropertyName))
-                    {
-                        context.Values[rightRet.PropertyName].AddRange(leftRet.Values);
-                    }
+                    operation = operation == Operator.Equals ? Operator.EqualsNull : Operator.NotEqualsNull;
+                    if (leftNull)
+                        binaryLeft = binaryRight;
+                    binaryRight = null;
                 }
             }
 
-            return null;
-        }
-        private static Return ExtractMember(Expression exp, Context context)
-        {
-            Return ret;
+            sb.Write('(');
+            ConvertToSql(binaryLeft, ref sb, context);
+            sb.Write(')');
 
+            sb.Write(OperatorToString(operation));
+
+            if (binaryRight != null)
+            {
+                sb.Write('(');
+                ConvertToSql(binaryRight, ref sb, context);
+                sb.Write(')');
+            }
+            else
+            {
+                sb.Write(" NULL");
+            }
+
+            context.MemberContext.OperatorStack.Pop();
+        }
+        private void ConvertToSqlArrayIndex(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        {
+            var array = exp as BinaryExpression;
+            var member = (Array)EvaluateMemberAccess(array.Left);
+            object value;
+            if (array.Right.Type == typeof(long))
+            {
+                var index = (long)Evaluate(array.Right);
+                value = member.GetValue(index);
+            }
+            else
+            {
+                var index = (int)Evaluate(array.Right);
+                value = member.GetValue(index);
+            }
+
+            ConvertToSqlValue(array.Left.Type.GetElementType(), value, ref sb, context);
+        }
+        protected void ConvertToSqlMember(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        {
             var member = exp as MemberExpression;
 
             if (member.Expression == null)
             {
-                ret = ExtractEvaluate(member, context);
+                ConvertToSqlEvaluate(member, ref sb, context);
             }
             else
             {
-                context.MemberAccessStack.Push(member);
-                ret = Extract(member.Expression, context);
-                context.MemberAccessStack.Pop();
+                context.MemberContext.MemberAccessStack.Push(member);
+                ConvertToSql(member.Expression, ref sb, context);
+                context.MemberContext.MemberAccessStack.Pop();
             }
-
-            return ret;
         }
-        private static Return ExtractConstant(Expression exp, Context context)
+        private void ConvertToSqlConstant(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
         {
-            Return ret;
-
             var constant = exp as ConstantExpression;
 
-            ret = ExtractConstantStack(constant.Type, constant.Value, context);
-
-            return ret;
+            ConvertToSqlConstantStack(constant.Type, constant.Value, ref sb, context);
         }
-        private static Return ExtractConstantStack(Type type, object value, Context context)
+        private void ConvertToSqlConstantStack(Type type, object value, ref CharWriteBuffer sb, BuilderContext context)
         {
-            Return ret;
-
-            if (context.MemberAccessStack.Count > 0)
+            if (context.MemberContext.MemberAccessStack.Count > 0)
             {
-                var memberProperty = context.MemberAccessStack.Pop();
+                var memberProperty = context.MemberContext.MemberAccessStack.Pop();
                 if (value == null)
                 {
-                    ret = ExtractValue(type, value, context);
+                    sb.Write("NULL");
                 }
                 else
                 {
@@ -305,14 +382,14 @@ namespace Zerra.Repository
                             {
                                 var field = memberProperty.Member as FieldInfo;
                                 object fieldValue = field.GetValue(value);
-                                ret = ExtractConstantStack(field.FieldType, fieldValue, context);
+                                ConvertToSqlConstantStack(field.FieldType, fieldValue, ref sb, context);
                                 break;
                             }
                         case MemberTypes.Property:
                             {
                                 var property = memberProperty.Member as PropertyInfo;
                                 object propertyValue = property.GetValue(value);
-                                ret = ExtractConstantStack(property.PropertyType, propertyValue, context);
+                                ConvertToSqlConstantStack(property.PropertyType, propertyValue, ref sb, context);
                                 break;
                             }
                         default:
@@ -320,131 +397,24 @@ namespace Zerra.Repository
                     }
                 }
 
-                context.MemberAccessStack.Push(memberProperty);
+                context.MemberContext.MemberAccessStack.Push(memberProperty);
             }
             else
             {
-                return ExtractValue(type, value, context);
+                ConvertToSqlValue(type, value, ref sb, context);
             }
-
-            return ret;
         }
-        private static Return ExtractCall(Expression exp, Context context)
+        protected abstract void ConvertToSqlCall(Expression exp, ref CharWriteBuffer sb, BuilderContext context);
+        private void ConvertToSqlNew(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
         {
-            Return ret = null;
+            context.MemberContext.OperatorStack.Push(Operator.New);
 
-            var call = exp as MethodCallExpression;
-            bool isEvaluatable = IsEvaluatable(exp);
-            if (isEvaluatable)
-            {
-                ret = ExtractEvaluate(exp, context);
-            }
-            else
-            {
-                if (call.Method.DeclaringType == typeof(Enumerable) || call.Method.DeclaringType == typeof(Queryable))
-                {
-                    switch (call.Method.Name)
-                    {
-                        case "All":
-                            {
-                                break;
-                            }
-                        case "Any":
-                            {
-                                break;
-                            }
-                        case "Count":
-                            {
-                                break;
-                            }
-                        case "Contains":
-                            {
-                                if (call.Arguments.Count != 2)
-                                    throw new NotSupportedException(String.Format("Cannot extract from call expression {0}", call.Method.Name));
-
-                                var callingObject = call.Arguments[0];
-                                var lambda = call.Arguments[1];
-
-                                var retLambda = Extract(lambda, context);
-
-                                var retCallingObject = Extract(callingObject, context);
-
-                                if (!context.Inverted)
-                                {
-                                    if (retLambda != null && retCallingObject != null && retCallingObject.HasValues && retLambda.PropertyModelType == context.PropertyModelType && context.PropertyNames.Contains(retLambda.PropertyName))
-                                    {
-                                        context.Values[retLambda.PropertyName].AddRange(retCallingObject.Values);
-                                    }
-                                }
-
-                                break;
-                            }
-                        default:
-                            throw new NotSupportedException(String.Format("Cannot extract from call expression {0}", call.Method.Name));
-                    }
-                }
-                else if (call.Method.DeclaringType == typeof(string))
-                {
-                    switch (call.Method.Name)
-                    {
-                        case "Contains":
-                            {
-                                break;
-                            }
-                        default:
-                            throw new NotSupportedException(String.Format("Cannot extract from call expression {0}", call.Method.Name));
-                    }
-                }
-                else
-                {
-                    var typeDetails = TypeAnalyzer.GetTypeDetail(call.Method.DeclaringType);
-                    if (typeDetails.IsIEnumerableGeneric && TypeLookup.CoreTypesWithNullables.Contains(typeDetails.IEnumerableGenericInnerType))
-                    {
-                        switch (call.Method.Name)
-                        {
-                            case "Contains":
-                                {
-                                    if (call.Arguments.Count != 1)
-                                        throw new NotSupportedException(String.Format("Cannot extract from call expression {0}", call.Method.Name));
-
-                                    var callingObject = call.Object;
-                                    var lambda = call.Arguments[0];
-
-                                    var retLambda = Extract(lambda, context);
-
-                                    var retCallingObject = Extract(callingObject, context);
-
-                                    if (!context.Inverted)
-                                    {
-                                        if (retLambda != null && retCallingObject != null && retCallingObject.HasValues && retLambda.PropertyModelType == context.PropertyModelType && context.PropertyNames.Contains(retLambda.PropertyName))
-                                        {
-                                            context.Values[retLambda.PropertyName].AddRange(retCallingObject.Values);
-                                        }
-                                    }
-
-                                    break;
-                                }
-                            default:
-                                throw new NotSupportedException(String.Format("Cannot extract from call expression {0}", call.Method.Name));
-                        }
-                    }
-                    else
-                    {
-                        throw new NotSupportedException(String.Format("Cannot extract from call expression {0}", call.Method.Name));
-                    }
-                }
-            }
-
-            return ret;
-        }
-        private static Return ExtractNew(Expression exp, Context context)
-        {
             var newExp = exp as NewExpression;
 
             var argumentTypes = newExp.Arguments.Select(x => x.Type).ToArray();
             var constructor = newExp.Type.GetConstructor(argumentTypes);
 
-            List<object> parameters = new List<object>();
+            var parameters = new List<object>();
             foreach (var argument in newExp.Arguments)
             {
                 object argumentValue = Expression.Lambda(argument).Compile().DynamicInvoke();
@@ -452,103 +422,51 @@ namespace Zerra.Repository
             }
 
             var value = constructor.Invoke(parameters.ToArray());
-            var ret = ExtractValue(newExp.Type, value, context);
+            ConvertToSqlValue(newExp.Type, value, ref sb, context);
 
-            return ret;
+            context.MemberContext.OperatorStack.Pop();
         }
-        private static Return ExtractParameter(Context context)
+        private void ConvertToSqlParameter(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
         {
-            Return ret;
+            var parameter = exp as ParameterExpression;
 
-            var member = context.MemberAccessStack.Pop();
+            var modelDetail = context.MemberContext.ModelContexts[parameter.Name];
 
-            var modelDetail = context.ModelStack.Peek();
-            var modelProperty = modelDetail.GetProperty(member.Member.Name);
-            if (modelProperty.ForeignIdentity != null)
-            {
-                var subModelInfo = ModelAnalyzer.GetModel(modelProperty.InnerType);
-                context.ModelStack.Push(subModelInfo);
-                ret = ExtractParameter(context);
-                context.ModelStack.Pop();
-            }
-            else
-            {
-                if (context.MemberAccessStack.Count > 0)
-                {
-                    bool memberPropertyHandled = false;
-                    var memberProperty = context.MemberAccessStack.Pop();
+            var parameterInContext = modelDetail == context.MemberContext.ModelStack.Peek();
 
-                    if (member.Type.Name == typeof(Nullable<>).Name && memberProperty.Member.Name == "Value")
-                    {
-                        memberPropertyHandled = true;
-                    }
-                    else if (member.Type == typeof(DateTime))
-                    {
-                        memberPropertyHandled = true;
-                    }
-
-                    if (!memberPropertyHandled)
-                        throw new NotSupportedException(String.Format("{0}.{1} not supported", member.Member.Name, memberProperty.Member.Name));
-                    context.MemberAccessStack.Push(memberProperty);
-                }
-
-                ret = new Return(member.Expression.Type, member.Member.Name);
-            }
-
-            context.MemberAccessStack.Push(member);
-
-            return ret;
+            ConvertToSqlParameterModel(modelDetail, ref sb, context, parameterInContext);
         }
-        private static Return ExtractConditional(Expression exp, Context context)
+        protected abstract void ConvertToSqlParameterModel(ModelDetail modelDetail, ref CharWriteBuffer sb, BuilderContext context, bool parameterInContext);
+        protected abstract void ConvertToSqlConditional(Expression exp, ref CharWriteBuffer sb, BuilderContext context);
+        protected void ConvertToSqlEvaluate(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
         {
-            var conditional = exp as ConditionalExpression;
+            context.MemberContext.OperatorStack.Push(Operator.Evaluate);
 
-            Extract(conditional.Test, context);
+            var value = Evaluate(exp);
+            ConvertToSqlValue(exp.Type, value, ref sb, context);
 
-            Extract(conditional.IfTrue, context);
-
-            Extract(conditional.IfFalse, context);
-
-            return null;
+            context.MemberContext.OperatorStack.Pop();
         }
-        private static Return ExtractEvaluate(Expression exp, Context context)
+
+        protected void ConvertToSqlValue(Type type, object value, ref CharWriteBuffer sb, BuilderContext context)
         {
-            var value = Expression.Lambda(exp).Compile().DynamicInvoke();
-            var ret = ExtractValue(value.GetType(), value, context);
+            MemberExpression memberProperty = null;
 
-            return ret;
+            if (context.MemberContext.MemberAccessStack.Count > 0)
+                memberProperty = context.MemberContext.MemberAccessStack.Pop();
+
+            bool memberPropertyHandled = ConvertToSqlValueRender(memberProperty, type, value, ref sb, context);
+
+            if (memberProperty != null)
+            {
+                if (!memberPropertyHandled)
+                    throw new NotSupportedException($"{type.FullName}.{memberProperty.Member.Name} not supported");
+                context.MemberContext.MemberAccessStack.Push(memberProperty);
+            }
         }
+        protected abstract bool ConvertToSqlValueRender(MemberExpression memberProperty, Type type, object value, ref CharWriteBuffer sb, BuilderContext context);
 
-        private static Return ExtractValue(Type type, object value, Context context)
-        {
-            Return ret;
-
-            if (context.MemberAccessStack.Count > 0)
-                _ = context.MemberAccessStack.Pop();
-
-            if (type.IsArray)
-            {
-                var values = new List<object>();
-                foreach (object item in (IEnumerable)value)
-                    values.Add(item);
-                ret = new Return(values.ToArray());
-            }
-            else if (value is IEnumerable enumerable)
-            {
-                var values = new List<object>();
-                foreach (object item in enumerable)
-                    values.Add(item);
-                ret = new Return(values.ToArray());
-            }
-            else
-            {
-                ret = new Return(value);
-            }
-
-            return ret;
-        }
-
-        private static bool IsEvaluatable(Expression exp)
+        protected bool IsEvaluatable(Expression exp)
         {
             return exp.NodeType switch
             {
@@ -559,13 +477,14 @@ namespace Zerra.Repository
                 ExpressionType.And => IsEvaluatableBinary(exp),
                 ExpressionType.AndAlso => IsEvaluatableBinary(exp),
                 ExpressionType.AndAssign => IsEvaluatableBinary(exp),
+                ExpressionType.ArrayIndex => IsEvaluatableBinary(exp),
                 ExpressionType.ArrayLength => IsEvaluatableUnary(exp),
                 ExpressionType.Assign => IsEvaluatableBinary(exp),
                 ExpressionType.Block => IsEvaluatableBlock(exp),
                 ExpressionType.Call => IsEvaluatableCall(exp),
                 ExpressionType.Coalesce => throw new NotImplementedException(),
                 ExpressionType.Conditional => throw new NotImplementedException(),
-                ExpressionType.Constant => true,
+                ExpressionType.Constant => IsEvaluatableConstant(exp),
                 ExpressionType.Convert => IsEvaluatableUnary(exp),
                 ExpressionType.ConvertChecked => throw new NotImplementedException(),
                 ExpressionType.DebugInfo => throw new NotImplementedException(),
@@ -640,17 +559,21 @@ namespace Zerra.Repository
             };
             ;
         }
-        private static bool IsEvaluatableUnary(Expression exp)
+        private bool IsEvaluatableUnary(Expression exp)
         {
             var unary = exp as UnaryExpression;
             return IsEvaluatable(unary.Operand);
         }
-        private static bool IsEvaluatableBinary(Expression exp)
+        private bool IsEvaluatableBinary(Expression exp)
         {
             var binary = exp as BinaryExpression;
             return IsEvaluatable(binary.Left) && IsEvaluatable(binary.Right);
         }
-        private static bool IsEvaluatableBlock(Expression exp)
+        private bool IsEvaluatableConstant(Expression exp)
+        {
+            return true;
+        }
+        private bool IsEvaluatableBlock(Expression exp)
         {
             var block = exp as BlockExpression;
             foreach (var variable in block.Variables)
@@ -661,7 +584,7 @@ namespace Zerra.Repository
                     return false;
             return true;
         }
-        private static bool IsEvaluatableCall(Expression exp)
+        private bool IsEvaluatableCall(Expression exp)
         {
             var call = exp as MethodCallExpression;
 
@@ -674,7 +597,7 @@ namespace Zerra.Repository
 
             return true;
         }
-        private static bool IsEvaluatableMemberAccess(Expression exp)
+        private bool IsEvaluatableMemberAccess(Expression exp)
         {
             var member = exp as MemberExpression;
             if (member.Expression == null)
@@ -684,7 +607,7 @@ namespace Zerra.Repository
             return IsEvaluatable(member.Expression);
         }
 
-        private static bool IsNull(Expression exp)
+        protected bool IsNull(Expression exp)
         {
             return exp.NodeType switch
             {
@@ -695,6 +618,7 @@ namespace Zerra.Repository
                 ExpressionType.And => throw new NotImplementedException(),
                 ExpressionType.AndAlso => throw new NotImplementedException(),
                 ExpressionType.AndAssign => throw new NotImplementedException(),
+                ExpressionType.ArrayIndex => IsNullArrayIndex(exp),
                 ExpressionType.ArrayLength => throw new NotImplementedException(),
                 ExpressionType.Assign => throw new NotImplementedException(),
                 ExpressionType.Block => throw new NotImplementedException(),
@@ -774,18 +698,19 @@ namespace Zerra.Repository
                 ExpressionType.Unbox => throw new NotImplementedException(),
                 _ => throw new NotImplementedException(),
             };
+            ;
         }
-        private static bool IsNullUnary(Expression exp)
+        private bool IsNullUnary(Expression exp)
         {
             var unary = exp as UnaryExpression;
             return IsNull(unary.Operand);
         }
-        private static bool IsNullConstant(Expression exp)
+        private bool IsNullConstant(Expression exp)
         {
             var constant = exp as ConstantExpression;
             return constant.Value == null;
         }
-        private static bool IsNullCall(Expression exp)
+        private bool IsNullCall(Expression exp)
         {
             var call = exp as MethodCallExpression;
             if (call.Object == null)
@@ -804,7 +729,25 @@ namespace Zerra.Repository
                 return IsNull(call.Object);
             }
         }
-        private static bool IsNullMemberAccess(Expression exp)
+        private bool IsNullArrayIndex(Expression exp)
+        {
+            var array = exp as BinaryExpression;
+            var member = (Array)EvaluateMemberAccess(array.Left);
+            object value;
+            if (array.Right.Type == typeof(long))
+            {
+                var index = (long)Evaluate(array.Right);
+                value = member.GetValue(index);
+            }
+            else
+            {
+                var index = (int)Evaluate(array.Right);
+                value = member.GetValue(index);
+            }
+
+            return value == null;
+        }
+        private bool IsNullMemberAccess(Expression exp)
         {
             var member = exp as MemberExpression;
 
@@ -842,7 +785,7 @@ namespace Zerra.Repository
             return value == null;
         }
 
-        private static object Evaluate(Expression exp)
+        private object Evaluate(Expression exp)
         {
             return exp.NodeType switch
             {
@@ -850,13 +793,14 @@ namespace Zerra.Repository
                 ExpressionType.MemberAccess => EvaluateMemberAccess(exp),
                 _ => EvaluateInvoke(exp),
             };
+            ;
         }
-        private static object EvaluateConstant(Expression exp)
+        private object EvaluateConstant(Expression exp)
         {
             var constant = exp as ConstantExpression;
             return constant.Value;
         }
-        private static object EvaluateMemberAccess(Expression exp)
+        private object EvaluateMemberAccess(Expression exp)
         {
             var member = exp as MemberExpression;
             var expressionValue = member.Expression == null ? null : Evaluate(member.Expression);
@@ -882,64 +826,22 @@ namespace Zerra.Repository
 
             return value;
         }
-        private static object EvaluateInvoke(Expression exp)
+        private object EvaluateInvoke(Expression exp)
         {
             var value = Expression.Lambda(exp).Compile().DynamicInvoke();
             return value;
         }
 
-        private class Context
-        {
-            public Type PropertyModelType { get; private set; }
-            public string[] PropertyNames { get; private set; }
-            public Dictionary<string, List<object>> Values { get; private set; }
+        protected abstract void GenerateWhere(Expression where, ref CharWriteBuffer sb, ParameterDependant rootDependant, MemberContext operationContext);
+        protected abstract void GenerateOrderSkipTake(QueryOrder order, int? skip, int? take, ref CharWriteBuffer sb, ParameterDependant rootDependant, MemberContext operationContext);
+        protected abstract void GenerateSelect(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriteBuffer sb);
+        protected abstract void GenerateSelectProperties(Graph graph, ModelDetail modelDetail, ref CharWriteBuffer sb);
+        protected abstract void GenerateFrom(ModelDetail modelDetail, ref CharWriteBuffer sb);
+        protected abstract void GenerateJoin(ParameterDependant dependant, ref CharWriteBuffer sb);
+        protected abstract void GenerateEnding(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriteBuffer sb);
 
-            public Stack<ModelDetail> ModelStack { get; private set; }
-            public Stack<MemberExpression> MemberAccessStack { get; private set; }
+        protected abstract void AppendLineBreak(ref CharWriteBuffer sb);
 
-            public int InvertStack { get; set; }
-            public bool Inverted { get { return InvertStack % 2 != 0; } }
-
-            public Context(Type propertyModelType, string[] propertyNames)
-            {
-                this.PropertyModelType = propertyModelType;
-                this.PropertyNames = propertyNames;
-                this.Values = new Dictionary<string, List<object>>();
-                foreach (var propertyName in PropertyNames)
-                {
-                    this.Values.Add(propertyName, new List<object>());
-                }
-
-                this.ModelStack = new Stack<ModelDetail>();
-                this.MemberAccessStack = new Stack<MemberExpression>();
-
-                this.InvertStack = 0;
-            }
-        }
-
-        private class Return
-        {
-            public Type PropertyModelType { get; private set; }
-            public string PropertyName { get; private set; }
-            public object[] Values { get; private set; }
-            public bool HasValues { get; private set; }
-
-            public Return(Type propertyModelType, string propertyName)
-            {
-                this.PropertyModelType = propertyModelType;
-                this.PropertyName = propertyName;
-            }
-
-            public Return(object value)
-            {
-                this.HasValues = true;
-                this.Values = new object[] { value };
-            }
-            public Return(object[] values)
-            {
-                this.HasValues = true;
-                this.Values = values;
-            }
-        }
+        protected abstract string OperatorToString(Operator operation);
     }
 }

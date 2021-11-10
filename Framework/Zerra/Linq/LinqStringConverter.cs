@@ -715,7 +715,6 @@ namespace Zerra.Linq
                 ExpressionType.MemberAccess => EvaluateMemberAccess(exp),
                 _ => EvaluateInvoke(exp),
             };
-            ;
         }
         private static object EvaluateConstant(Expression exp)
         {

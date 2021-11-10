@@ -4,275 +4,23 @@
 
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using Zerra.IO;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.MsSql
 {
-    public static class LinqMsSqlConverter
+    public class LinqMsSqlConverter : BaseLinqSqlConverter
     {
+        private static readonly LinqMsSqlConverter instance = new LinqMsSqlConverter();
         public static string Convert(QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail)
         {
-            var operationContext = new MemberContext();
-            var sb = new CharWriteBuffer();
-            try
-            {
-                Convert(ref sb, select, where, order, skip, take, graph, modelDetail, operationContext);
-                return sb.ToString();
-            }
-            finally
-            {
-                sb.Dispose();
-            }
+            return instance.ConvertInternal(select, where, order, skip, take, graph, modelDetail);
         }
 
-        private static void Convert(ref CharWriteBuffer sb, QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail, MemberContext operationContext)
-        {
-            var hasWhere = where != null;
-            var hasOrderSkipTake = (select == QueryOperation.Many || select == QueryOperation.First) && (order?.OrderExpressions.Length > 0 || skip > 0 || take > 0);
-
-            GenerateSelect(select, graph, modelDetail, ref sb);
-
-            GenerateFrom(modelDetail, ref sb);
-
-            if (hasWhere || hasOrderSkipTake)
-            {
-                var rootDependant = new ParameterDependant(modelDetail, null);
-                var sbWhereOrder = new CharWriteBuffer();
-                try
-                {
-                    if (hasWhere)
-                        GenerateWhere(where, ref sbWhereOrder, rootDependant, operationContext);
-                    if (hasOrderSkipTake)
-                        GenerateOrderSkipTake(order, skip, take, ref sbWhereOrder, rootDependant, operationContext);
-
-                    GenerateJoin(rootDependant, ref sb);
-
-                    sb.Write(sbWhereOrder);
-                }
-                finally
-                {
-                    sbWhereOrder.Dispose();
-                }
-            }
-        }
-
-        private static void ConvertToSql(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
-        {
-            switch (exp.NodeType)
-            {
-                case ExpressionType.Add:
-                    ConvertToSqlBinary(Operator.Add, exp, ref sb, context);
-                    break;
-                case ExpressionType.AddAssign:
-                    throw new NotImplementedException();
-                case ExpressionType.AddAssignChecked:
-                    throw new NotImplementedException();
-                case ExpressionType.AddChecked:
-                    ConvertToSqlBinary(Operator.Add, exp, ref sb, context);
-                    break;
-                case ExpressionType.And:
-                    ConvertToSqlBinary(context.Inverted ? Operator.Or : Operator.And, exp, ref sb, context);
-                    break;
-                case ExpressionType.AndAlso:
-                    ConvertToSqlBinary(context.Inverted ? Operator.Or : Operator.And, exp, ref sb, context);
-                    break;
-                case ExpressionType.AndAssign:
-                    throw new NotImplementedException();
-                case ExpressionType.ArrayIndex:
-                    throw new NotImplementedException();
-                case ExpressionType.ArrayLength:
-                    throw new NotImplementedException();
-                case ExpressionType.Assign:
-                    throw new NotImplementedException();
-                case ExpressionType.Block:
-                    throw new NotImplementedException();
-                case ExpressionType.Call:
-                    ConvertToSqlCall(exp, ref sb, context);
-                    break;
-                case ExpressionType.Coalesce:
-                    throw new NotImplementedException();
-                case ExpressionType.Conditional:
-                    ConvertToSqlConditional(exp, ref sb, context);
-                    break;
-                case ExpressionType.Constant:
-                    ConvertToSqlConstant(exp, ref sb, context);
-                    break;
-                case ExpressionType.Convert:
-                    ConvertToSqlUnary(Operator.Null, null, exp, ref sb, context);
-                    break;
-                case ExpressionType.ConvertChecked:
-                    ConvertToSqlUnary(Operator.Null, null, exp, ref sb, context);
-                    break;
-                case ExpressionType.DebugInfo:
-                    throw new NotImplementedException();
-                case ExpressionType.Decrement:
-                    throw new NotImplementedException();
-                case ExpressionType.Default:
-                    throw new NotImplementedException();
-                case ExpressionType.Divide:
-                    ConvertToSqlBinary(Operator.Divide, exp, ref sb, context);
-                    break;
-                case ExpressionType.DivideAssign:
-                    throw new NotImplementedException();
-                case ExpressionType.Dynamic:
-                    throw new NotImplementedException();
-                case ExpressionType.Equal:
-                    ConvertToSqlBinary(context.Inverted ? Operator.NotEquals : Operator.Equals, exp, ref sb, context);
-                    break;
-                case ExpressionType.ExclusiveOr:
-                    throw new NotImplementedException();
-                case ExpressionType.ExclusiveOrAssign:
-                    throw new NotImplementedException();
-                case ExpressionType.Extension:
-                    throw new NotImplementedException();
-                case ExpressionType.Goto:
-                    throw new NotImplementedException();
-                case ExpressionType.GreaterThan:
-                    ConvertToSqlBinary(context.Inverted ? Operator.LessThanOrEquals : Operator.GreaterThan, exp, ref sb, context);
-                    break;
-                case ExpressionType.GreaterThanOrEqual:
-                    ConvertToSqlBinary(context.Inverted ? Operator.LessThan : Operator.GreaterThanOrEquals, exp, ref sb, context);
-                    break;
-                case ExpressionType.Increment:
-                    throw new NotImplementedException();
-                case ExpressionType.Index:
-                    throw new NotImplementedException();
-                case ExpressionType.Invoke:
-                    throw new NotImplementedException();
-                case ExpressionType.IsFalse:
-                    throw new NotImplementedException();
-                case ExpressionType.IsTrue:
-                    throw new NotImplementedException();
-                case ExpressionType.Label:
-                    throw new NotImplementedException();
-                case ExpressionType.Lambda:
-                    ConvertToSqlLambda(exp, ref sb, context);
-                    break;
-                case ExpressionType.LeftShift:
-                    throw new NotImplementedException();
-                case ExpressionType.LeftShiftAssign:
-                    throw new NotImplementedException();
-                case ExpressionType.LessThan:
-                    ConvertToSqlBinary(context.Inverted ? Operator.GreaterThanOrEquals : Operator.LessThan, exp, ref sb, context);
-                    break;
-                case ExpressionType.LessThanOrEqual:
-                    ConvertToSqlBinary(context.Inverted ? Operator.GreaterThan : Operator.LessThanOrEquals, exp, ref sb, context);
-                    break;
-                case ExpressionType.ListInit:
-                    throw new NotImplementedException();
-                case ExpressionType.Loop:
-                    throw new NotImplementedException();
-                case ExpressionType.MemberAccess:
-                    ConvertToSqlMember(exp, ref sb, context);
-                    break;
-                case ExpressionType.MemberInit:
-                    throw new NotImplementedException();
-                case ExpressionType.Modulo:
-                    ConvertToSqlBinary(Operator.Modulus, exp, ref sb, context);
-                    break;
-                case ExpressionType.ModuloAssign:
-                    throw new NotImplementedException();
-                case ExpressionType.Multiply:
-                    ConvertToSqlBinary(Operator.Multiply, exp, ref sb, context);
-                    break;
-                case ExpressionType.MultiplyAssign:
-                    throw new NotImplementedException();
-                case ExpressionType.MultiplyAssignChecked:
-                    throw new NotImplementedException();
-                case ExpressionType.MultiplyChecked:
-                    ConvertToSqlBinary(Operator.Multiply, exp, ref sb, context);
-                    break;
-                case ExpressionType.Negate:
-                    ConvertToSqlUnary(Operator.Negative, null, exp, ref sb, context);
-                    break;
-                case ExpressionType.NegateChecked:
-                    ConvertToSqlUnary(Operator.Negative, null, exp, ref sb, context);
-                    break;
-                case ExpressionType.New:
-                    ConvertToSqlNew(exp, ref sb, context);
-                    break;
-                case ExpressionType.NewArrayBounds:
-                    throw new NotImplementedException();
-                case ExpressionType.NewArrayInit:
-                    throw new NotImplementedException();
-                case ExpressionType.Not:
-                    context.InvertStack++;
-                    ConvertToSqlUnary(Operator.Null, null, exp, ref sb, context);
-                    context.InvertStack--;
-                    break;
-                case ExpressionType.NotEqual:
-                    ConvertToSqlBinary(context.Inverted ? Operator.Equals : Operator.NotEquals, exp, ref sb, context);
-                    break;
-                case ExpressionType.OnesComplement:
-                    throw new NotImplementedException();
-                case ExpressionType.Or:
-                    ConvertToSqlBinary(context.Inverted ? Operator.And : Operator.Or, exp, ref sb, context);
-                    break;
-                case ExpressionType.OrAssign:
-                    throw new NotImplementedException();
-                case ExpressionType.OrElse:
-                    ConvertToSqlBinary(context.Inverted ? Operator.And : Operator.Or, exp, ref sb, context);
-                    break;
-                case ExpressionType.Parameter:
-                    ConvertToSqlParameter(exp, ref sb, context);
-                    break;
-                case ExpressionType.PostDecrementAssign:
-                    throw new NotImplementedException();
-                case ExpressionType.PostIncrementAssign:
-                    throw new NotImplementedException();
-                case ExpressionType.Power:
-                    throw new NotImplementedException();
-                case ExpressionType.PowerAssign:
-                    throw new NotImplementedException();
-                case ExpressionType.PreDecrementAssign:
-                    throw new NotImplementedException();
-                case ExpressionType.PreIncrementAssign:
-                    throw new NotImplementedException();
-                case ExpressionType.Quote:
-                    throw new NotImplementedException();
-                case ExpressionType.RightShift:
-                    throw new NotImplementedException();
-                case ExpressionType.RightShiftAssign:
-                    throw new NotImplementedException();
-                case ExpressionType.RuntimeVariables:
-                    throw new NotImplementedException();
-                case ExpressionType.Subtract:
-                    ConvertToSqlBinary(Operator.Subtract, exp, ref sb, context);
-                    break;
-                case ExpressionType.SubtractAssign:
-                    throw new NotImplementedException();
-                case ExpressionType.SubtractAssignChecked:
-                    throw new NotImplementedException();
-                case ExpressionType.SubtractChecked:
-                    ConvertToSqlBinary(Operator.Subtract, exp, ref sb, context);
-                    break;
-                case ExpressionType.Switch:
-                    throw new NotImplementedException();
-                case ExpressionType.Throw:
-                    throw new NotImplementedException();
-                case ExpressionType.Try:
-                    throw new NotImplementedException();
-                case ExpressionType.TypeAs:
-                    throw new NotImplementedException();
-                case ExpressionType.TypeEqual:
-                    throw new NotImplementedException();
-                case ExpressionType.TypeIs:
-                    throw new NotImplementedException();
-                case ExpressionType.UnaryPlus:
-                    throw new NotImplementedException();
-                case ExpressionType.Unbox:
-                    throw new NotImplementedException();
-                default:
-                    throw new NotImplementedException();
-            }
-        }
-        private static void ConvertToSqlLambda(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        protected override void ConvertToSqlLambda(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(Operator.Lambda);
 
@@ -292,8 +40,9 @@ namespace Zerra.Repository.MsSql
                 var property = context.MemberContext.MemberLambdaStack.Peek();
 
                 if (callingModel.IdentityProperties.Count != 1)
-                    throw new NotSupportedException($"Only one identity supported on {callingModel.Type.GetNiceName()}");
+                    throw new NotSupportedException($"Relational queries support only one identity on {callingModel.Type.GetNiceName()}");
                 var callingModelIdentity = callingModel.IdentityProperties[0];
+
                 var modelProperty = callingModel.GetProperty(property.Member.Name);
 
                 sb.Write('[');
@@ -322,123 +71,7 @@ namespace Zerra.Repository.MsSql
 
             context.MemberContext.OperatorStack.Pop();
         }
-        private static void ConvertToSqlUnary(Operator prefixOperation, string suffixOperation, Expression exp, ref CharWriteBuffer sb, BuilderContext context)
-        {
-            context.MemberContext.OperatorStack.Push(prefixOperation);
-
-            var unary = exp as UnaryExpression;
-            sb.Write(OperatorToString(prefixOperation));
-
-            ConvertToSql(unary.Operand, ref sb, context);
-
-            sb.Write(suffixOperation);
-
-            context.MemberContext.OperatorStack.Pop();
-        }
-        private static void ConvertToSqlBinary(Operator operation, Expression exp, ref CharWriteBuffer sb, BuilderContext context)
-        {
-            context.MemberContext.OperatorStack.Push(operation);
-
-            var binary = exp as BinaryExpression;
-
-            var binaryLeft = binary.Left;
-            var binaryRight = binary.Right;
-
-            if (operation == Operator.Equals || operation == Operator.NotEquals)
-            {
-                var leftNull = IsNull(binaryLeft);
-                var rightNull = false;
-                if (leftNull == false)
-                    rightNull = IsNull(binaryRight);
-                if (leftNull || rightNull)
-                {
-                    operation = operation == Operator.Equals ? Operator.EqualsNull : Operator.NotEqualsNull;
-                    if (leftNull)
-                        binaryLeft = binaryRight;
-                    binaryRight = null;
-                }
-            }
-
-            sb.Write('(');
-            ConvertToSql(binaryLeft, ref sb, context);
-            sb.Write(')');
-
-            sb.Write(OperatorToString(operation));
-
-            if (binaryRight != null)
-            {
-                sb.Write('(');
-                ConvertToSql(binaryRight, ref sb, context);
-                sb.Write(')');
-            }
-            else
-            {
-                sb.Write(" NULL");
-            }
-
-            context.MemberContext.OperatorStack.Pop();
-        }
-        private static void ConvertToSqlMember(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
-        {
-            var member = exp as MemberExpression;
-
-            if (member.Expression == null)
-            {
-                ConvertToSqlEvaluate(member, ref sb, context);
-            }
-            else
-            {
-                context.MemberContext.MemberAccessStack.Push(member);
-                ConvertToSql(member.Expression, ref sb, context);
-                context.MemberContext.MemberAccessStack.Pop();
-            }
-        }
-        private static void ConvertToSqlConstant(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
-        {
-            var constant = exp as ConstantExpression;
-
-            ConvertToSqlConstantStack(constant.Type, constant.Value, ref sb, context);
-        }
-        private static void ConvertToSqlConstantStack(Type type, object value, ref CharWriteBuffer sb, BuilderContext context)
-        {
-            if (context.MemberContext.MemberAccessStack.Count > 0)
-            {
-                var memberProperty = context.MemberContext.MemberAccessStack.Pop();
-                if (value == null)
-                {
-                    sb.Write("NULL");
-                }
-                else
-                {
-                    switch (memberProperty.Member.MemberType)
-                    {
-                        case MemberTypes.Field:
-                            {
-                                var field = memberProperty.Member as FieldInfo;
-                                object fieldValue = field.GetValue(value);
-                                ConvertToSqlConstantStack(field.FieldType, fieldValue, ref sb, context);
-                                break;
-                            }
-                        case MemberTypes.Property:
-                            {
-                                var property = memberProperty.Member as PropertyInfo;
-                                object propertyValue = property.GetValue(value);
-                                ConvertToSqlConstantStack(property.PropertyType, propertyValue, ref sb, context);
-                                break;
-                            }
-                        default:
-                            throw new NotImplementedException();
-                    }
-                }
-
-                context.MemberContext.MemberAccessStack.Push(memberProperty);
-            }
-            else
-            {
-                ConvertToSqlValue(type, value, ref sb, context);
-            }
-        }
-        private static void ConvertToSqlCall(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        protected override void ConvertToSqlCall(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(Operator.Call);
 
@@ -465,13 +98,13 @@ namespace Zerra.Repository.MsSql
                                 if (context.Inverted)
                                     sb.Write("NOT ");
 
-                                context.MemberContext.InCallRenderMemberIdentity = true;
-                                ConvertToSqlMember(subMember, ref sb, context);
-                                context.MemberContext.InCallRenderMemberIdentity = false;
-
                                 var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                                 var propertyInfo = subMemberModel.GetProperty(subMember.Member.Name);
                                 var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.InnerType);
+
+                                context.MemberContext.InCallRenderIdentity++;
+                                ConvertToSqlMember(subMember, ref sb, context);
+                                context.MemberContext.InCallRenderIdentity--;
 
                                 context.MemberContext.MemberLambdaStack.Push(subMember);
                                 context.MemberContext.ModelStack.Push(subMemberModel);
@@ -495,13 +128,13 @@ namespace Zerra.Repository.MsSql
                                 if (context.Inverted)
                                     sb.Write("NOT ");
 
-                                context.MemberContext.InCallRenderMemberIdentity = true;
-                                ConvertToSqlMember(subMember, ref sb, context);
-                                context.MemberContext.InCallRenderMemberIdentity = false;
-
                                 var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                                 var propertyInfo = subMemberModel.GetProperty(subMember.Member.Name);
                                 var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.InnerType);
+
+                                context.MemberContext.InCallRenderIdentity++;
+                                ConvertToSqlMember(subMember, ref sb, context);
+                                context.MemberContext.InCallRenderIdentity--;
 
                                 context.MemberContext.MemberLambdaStack.Push(subMember);
                                 context.MemberContext.ModelStack.Push(subMemberModel);
@@ -522,9 +155,9 @@ namespace Zerra.Repository.MsSql
                                 var subMember = (MemberExpression)call.Arguments[0];
                                 var subWhere = call.Arguments.Count > 1 ? call.Arguments[1] : null;
 
-                                context.MemberContext.InCallNoRender = true;
+                                context.MemberContext.InCallNoRender++;
                                 ConvertToSqlMember(subMember, ref sb, context);
-                                context.MemberContext.InCallNoRender = false;
+                                context.MemberContext.InCallNoRender--;
 
                                 var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                                 var propertyInfo = subMemberModel.GetProperty(subMember.Member.Name);
@@ -620,38 +253,7 @@ namespace Zerra.Repository.MsSql
 
             context.MemberContext.OperatorStack.Pop();
         }
-        private static void ConvertToSqlNew(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
-        {
-            context.MemberContext.OperatorStack.Push(Operator.New);
-
-            var newExp = exp as NewExpression;
-
-            var argumentTypes = newExp.Arguments.Select(x => x.Type).ToArray();
-            var constructor = newExp.Type.GetConstructor(argumentTypes);
-
-            var parameters = new List<object>();
-            foreach (var argument in newExp.Arguments)
-            {
-                object argumentValue = Expression.Lambda(argument).Compile().DynamicInvoke();
-                parameters.Add(argumentValue);
-            }
-
-            var value = constructor.Invoke(parameters.ToArray());
-            ConvertToSqlValue(newExp.Type, value, ref sb, context);
-
-            context.MemberContext.OperatorStack.Pop();
-        }
-        private static void ConvertToSqlParameter(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
-        {
-            var parameter = exp as ParameterExpression;
-
-            var modelDetail = context.MemberContext.ModelContexts[parameter.Name];
-
-            var parameterInContext = modelDetail == context.MemberContext.ModelStack.Peek();
-
-            ConvertToSqlParameterModel(modelDetail, ref sb, context, parameterInContext);
-        }
-        private static void ConvertToSqlParameterModel(ModelDetail modelDetail, ref CharWriteBuffer sb, BuilderContext context, bool parameterInContext)
+        protected override void ConvertToSqlParameterModel(ModelDetail modelDetail, ref CharWriteBuffer sb, BuilderContext context, bool parameterInContext)
         {
             var member = context.MemberContext.MemberAccessStack.Pop();
 
@@ -677,14 +279,14 @@ namespace Zerra.Repository.MsSql
                 }
                 context.MemberContext.ModelStack.Pop();
             }
-            else if (context.MemberContext.InCallNoRender)
+            else if (context.MemberContext.InCallNoRender > 0)
             {
 
             }
-            else if (context.MemberContext.InCallRenderMemberIdentity)
+            else if (context.MemberContext.InCallRenderIdentity > 0)
             {
                 if (modelDetail.IdentityProperties.Count != 1)
-                    throw new NotSupportedException($"Only one identity supported on {modelDetail.Type.GetNiceName()}");
+                    throw new NotSupportedException($"Relational queries support only one identity on {modelDetail.Type.GetNiceName()}");
                 var modelIdentity = modelDetail.IdentityProperties[0];
 
                 sb.Write('[');
@@ -775,7 +377,7 @@ namespace Zerra.Repository.MsSql
 
             context.MemberContext.MemberAccessStack.Push(member);
         }
-        private static void ConvertToSqlConditional(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        protected override void ConvertToSqlConditional(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(Operator.Conditional);
 
@@ -797,33 +399,7 @@ namespace Zerra.Repository.MsSql
 
             context.MemberContext.OperatorStack.Pop();
         }
-        private static void ConvertToSqlEvaluate(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
-        {
-            context.MemberContext.OperatorStack.Push(Operator.Evaluate);
-
-            var value = Evaluate(exp);
-            ConvertToSqlValue(exp.Type, value, ref sb, context);
-
-            context.MemberContext.OperatorStack.Pop();
-        }
-
-        private static void ConvertToSqlValue(Type type, object value, ref CharWriteBuffer sb, BuilderContext context)
-        {
-            MemberExpression memberProperty = null;
-
-            if (context.MemberContext.MemberAccessStack.Count > 0)
-                memberProperty = context.MemberContext.MemberAccessStack.Pop();
-
-            bool memberPropertyHandled = ConvertToSqlValueRender(memberProperty, type, value, ref sb, context);
-
-            if (memberProperty != null)
-            {
-                if (!memberPropertyHandled)
-                    throw new NotSupportedException($"{type.FullName}.{memberProperty.Member.Name} not supported");
-                context.MemberContext.MemberAccessStack.Push(memberProperty);
-            }
-        }
-        private static bool ConvertToSqlValueRender(MemberExpression memberProperty, Type type, object value, ref CharWriteBuffer sb, BuilderContext context)
+        protected override bool ConvertToSqlValueRender(MemberExpression memberProperty, Type type, object value, ref CharWriteBuffer sb, BuilderContext context)
         {
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
@@ -1073,355 +649,7 @@ namespace Zerra.Repository.MsSql
             throw new NotImplementedException($"{type.GetNiceName()} value {value?.ToString()} not converted");
         }
 
-        private static bool IsEvaluatable(Expression exp)
-        {
-            return exp.NodeType switch
-            {
-                ExpressionType.Add => IsEvaluatableBinary(exp),
-                ExpressionType.AddAssign => IsEvaluatableBinary(exp),
-                ExpressionType.AddAssignChecked => IsEvaluatableBinary(exp),
-                ExpressionType.AddChecked => IsEvaluatableBinary(exp),
-                ExpressionType.And => IsEvaluatableBinary(exp),
-                ExpressionType.AndAlso => IsEvaluatableBinary(exp),
-                ExpressionType.AndAssign => IsEvaluatableBinary(exp),
-                ExpressionType.ArrayIndex => IsEvaluatableBinary(exp),
-                ExpressionType.ArrayLength => IsEvaluatableUnary(exp),
-                ExpressionType.Assign => IsEvaluatableBinary(exp),
-                ExpressionType.Block => IsEvaluatableBlock(exp),
-                ExpressionType.Call => IsEvaluatableCall(exp),
-                ExpressionType.Coalesce => throw new NotImplementedException(),
-                ExpressionType.Conditional => throw new NotImplementedException(),
-                ExpressionType.Constant => IsEvaluatableConstant(exp),
-                ExpressionType.Convert => IsEvaluatableUnary(exp),
-                ExpressionType.ConvertChecked => throw new NotImplementedException(),
-                ExpressionType.DebugInfo => throw new NotImplementedException(),
-                ExpressionType.Decrement => IsEvaluatableUnary(exp),
-                ExpressionType.Default => throw new NotImplementedException(),
-                ExpressionType.Divide => IsEvaluatableBinary(exp),
-                ExpressionType.DivideAssign => IsEvaluatableBinary(exp),
-                ExpressionType.Dynamic => throw new NotImplementedException(),
-                ExpressionType.Equal => IsEvaluatableBinary(exp),
-                ExpressionType.ExclusiveOr => IsEvaluatableBinary(exp),
-                ExpressionType.ExclusiveOrAssign => IsEvaluatableBinary(exp),
-                ExpressionType.Extension => throw new NotImplementedException(),
-                ExpressionType.Goto => throw new NotImplementedException(),
-                ExpressionType.GreaterThan => throw new NotImplementedException(),
-                ExpressionType.GreaterThanOrEqual => throw new NotImplementedException(),
-                ExpressionType.Increment => IsEvaluatableUnary(exp),
-                ExpressionType.Index => throw new NotImplementedException(),
-                ExpressionType.Invoke => throw new NotImplementedException(),
-                ExpressionType.IsFalse => throw new NotImplementedException(),
-                ExpressionType.IsTrue => throw new NotImplementedException(),
-                ExpressionType.Label => throw new NotImplementedException(),
-                ExpressionType.Lambda => throw new NotImplementedException(),
-                ExpressionType.LeftShift => IsEvaluatableBinary(exp),
-                ExpressionType.LeftShiftAssign => IsEvaluatableBinary(exp),
-                ExpressionType.LessThan => throw new NotImplementedException(),
-                ExpressionType.LessThanOrEqual => throw new NotImplementedException(),
-                ExpressionType.ListInit => throw new NotImplementedException(),
-                ExpressionType.Loop => throw new NotImplementedException(),
-                ExpressionType.MemberAccess => IsEvaluatableMemberAccess(exp),
-                ExpressionType.MemberInit => throw new NotImplementedException(),
-                ExpressionType.Modulo => IsEvaluatableBinary(exp),
-                ExpressionType.ModuloAssign => IsEvaluatableBinary(exp),
-                ExpressionType.Multiply => IsEvaluatableBinary(exp),
-                ExpressionType.MultiplyAssign => IsEvaluatableBinary(exp),
-                ExpressionType.MultiplyAssignChecked => IsEvaluatableBinary(exp),
-                ExpressionType.MultiplyChecked => IsEvaluatableBinary(exp),
-                ExpressionType.Negate => IsEvaluatableUnary(exp),
-                ExpressionType.NegateChecked => IsEvaluatableUnary(exp),
-                ExpressionType.New => throw new NotImplementedException(),
-                ExpressionType.NewArrayBounds => throw new NotImplementedException(),
-                ExpressionType.NewArrayInit => throw new NotImplementedException(),
-                ExpressionType.Not => IsEvaluatableUnary(exp),
-                ExpressionType.NotEqual => IsEvaluatableBinary(exp),
-                ExpressionType.OnesComplement => IsEvaluatableUnary(exp),
-                ExpressionType.Or => IsEvaluatableBinary(exp),
-                ExpressionType.OrAssign => IsEvaluatableBinary(exp),
-                ExpressionType.OrElse => IsEvaluatableBinary(exp),
-                ExpressionType.Parameter => false,
-                ExpressionType.PostDecrementAssign => IsEvaluatableUnary(exp),
-                ExpressionType.PostIncrementAssign => IsEvaluatableUnary(exp),
-                ExpressionType.Power => IsEvaluatableBinary(exp),
-                ExpressionType.PowerAssign => IsEvaluatableBinary(exp),
-                ExpressionType.PreDecrementAssign => IsEvaluatableUnary(exp),
-                ExpressionType.PreIncrementAssign => IsEvaluatableUnary(exp),
-                ExpressionType.Quote => throw new NotImplementedException(),
-                ExpressionType.RightShift => IsEvaluatableBinary(exp),
-                ExpressionType.RightShiftAssign => IsEvaluatableBinary(exp),
-                ExpressionType.RuntimeVariables => throw new NotImplementedException(),
-                ExpressionType.Subtract => IsEvaluatableBinary(exp),
-                ExpressionType.SubtractAssign => IsEvaluatableBinary(exp),
-                ExpressionType.SubtractAssignChecked => IsEvaluatableBinary(exp),
-                ExpressionType.SubtractChecked => IsEvaluatableBinary(exp),
-                ExpressionType.Switch => throw new NotImplementedException(),
-                ExpressionType.Throw => throw new NotImplementedException(),
-                ExpressionType.Try => throw new NotImplementedException(),
-                ExpressionType.TypeAs => IsEvaluatableUnary(exp),
-                ExpressionType.TypeEqual => IsEvaluatableUnary(exp),
-                ExpressionType.TypeIs => IsEvaluatableUnary(exp),
-                ExpressionType.UnaryPlus => IsEvaluatableUnary(exp),
-                ExpressionType.Unbox => IsEvaluatableUnary(exp),
-                _ => throw new NotImplementedException(),
-            };
-            ;
-        }
-        private static bool IsEvaluatableUnary(Expression exp)
-        {
-            var unary = exp as UnaryExpression;
-            return IsEvaluatable(unary.Operand);
-        }
-        private static bool IsEvaluatableBinary(Expression exp)
-        {
-            var binary = exp as BinaryExpression;
-            return IsEvaluatable(binary.Left) && IsEvaluatable(binary.Right);
-        }
-        private static bool IsEvaluatableConstant(Expression exp)
-        {
-            return true;
-        }
-        private static bool IsEvaluatableBlock(Expression exp)
-        {
-            var block = exp as BlockExpression;
-            foreach (var variable in block.Variables)
-                if (!IsEvaluatable(variable))
-                    return false;
-            foreach (var expression in block.Expressions)
-                if (!IsEvaluatable(expression))
-                    return false;
-            return true;
-        }
-        private static bool IsEvaluatableCall(Expression exp)
-        {
-            var call = exp as MethodCallExpression;
-
-            foreach (var arg in call.Arguments)
-                if (!IsEvaluatable(arg))
-                    return false;
-
-            if (call.Object != null)
-                return IsEvaluatable(call.Object);
-
-            return true;
-        }
-        private static bool IsEvaluatableMemberAccess(Expression exp)
-        {
-            var member = exp as MemberExpression;
-            if (member.Expression == null)
-            {
-                return true;
-            }
-            return IsEvaluatable(member.Expression);
-        }
-
-        private static bool IsNull(Expression exp)
-        {
-            return exp.NodeType switch
-            {
-                ExpressionType.Add => throw new NotImplementedException(),
-                ExpressionType.AddAssign => throw new NotImplementedException(),
-                ExpressionType.AddAssignChecked => throw new NotImplementedException(),
-                ExpressionType.AddChecked => throw new NotImplementedException(),
-                ExpressionType.And => throw new NotImplementedException(),
-                ExpressionType.AndAlso => throw new NotImplementedException(),
-                ExpressionType.AndAssign => throw new NotImplementedException(),
-                ExpressionType.ArrayIndex => throw new NotImplementedException(),
-                ExpressionType.ArrayLength => throw new NotImplementedException(),
-                ExpressionType.Assign => throw new NotImplementedException(),
-                ExpressionType.Block => throw new NotImplementedException(),
-                ExpressionType.Call => IsNullCall(exp),
-                ExpressionType.Coalesce => throw new NotImplementedException(),
-                ExpressionType.Conditional => throw new NotImplementedException(),
-                ExpressionType.Constant => IsNullConstant(exp),
-                ExpressionType.Convert => IsNullUnary(exp),
-                ExpressionType.ConvertChecked => throw new NotImplementedException(),
-                ExpressionType.DebugInfo => throw new NotImplementedException(),
-                ExpressionType.Decrement => throw new NotImplementedException(),
-                ExpressionType.Default => throw new NotImplementedException(),
-                ExpressionType.Divide => throw new NotImplementedException(),
-                ExpressionType.DivideAssign => throw new NotImplementedException(),
-                ExpressionType.Dynamic => throw new NotImplementedException(),
-                ExpressionType.Equal => throw new NotImplementedException(),
-                ExpressionType.ExclusiveOr => throw new NotImplementedException(),
-                ExpressionType.ExclusiveOrAssign => throw new NotImplementedException(),
-                ExpressionType.Extension => throw new NotImplementedException(),
-                ExpressionType.Goto => throw new NotImplementedException(),
-                ExpressionType.GreaterThan => throw new NotImplementedException(),
-                ExpressionType.GreaterThanOrEqual => throw new NotImplementedException(),
-                ExpressionType.Increment => throw new NotImplementedException(),
-                ExpressionType.Index => throw new NotImplementedException(),
-                ExpressionType.Invoke => throw new NotImplementedException(),
-                ExpressionType.IsFalse => throw new NotImplementedException(),
-                ExpressionType.IsTrue => throw new NotImplementedException(),
-                ExpressionType.Label => throw new NotImplementedException(),
-                ExpressionType.Lambda => throw new NotImplementedException(),
-                ExpressionType.LeftShift => throw new NotImplementedException(),
-                ExpressionType.LeftShiftAssign => throw new NotImplementedException(),
-                ExpressionType.LessThan => throw new NotImplementedException(),
-                ExpressionType.LessThanOrEqual => throw new NotImplementedException(),
-                ExpressionType.ListInit => throw new NotImplementedException(),
-                ExpressionType.Loop => throw new NotImplementedException(),
-                ExpressionType.MemberAccess => IsNullMemberAccess(exp),
-                ExpressionType.MemberInit => throw new NotImplementedException(),
-                ExpressionType.Modulo => throw new NotImplementedException(),
-                ExpressionType.ModuloAssign => throw new NotImplementedException(),
-                ExpressionType.Multiply => throw new NotImplementedException(),
-                ExpressionType.MultiplyAssign => throw new NotImplementedException(),
-                ExpressionType.MultiplyAssignChecked => throw new NotImplementedException(),
-                ExpressionType.MultiplyChecked => throw new NotImplementedException(),
-                ExpressionType.Negate => throw new NotImplementedException(),
-                ExpressionType.NegateChecked => throw new NotImplementedException(),
-                ExpressionType.New => throw new NotImplementedException(),
-                ExpressionType.NewArrayBounds => throw new NotImplementedException(),
-                ExpressionType.NewArrayInit => throw new NotImplementedException(),
-                ExpressionType.Not => throw new NotImplementedException(),
-                ExpressionType.NotEqual => throw new NotImplementedException(),
-                ExpressionType.OnesComplement => throw new NotImplementedException(),
-                ExpressionType.Or => throw new NotImplementedException(),
-                ExpressionType.OrAssign => throw new NotImplementedException(),
-                ExpressionType.OrElse => throw new NotImplementedException(),
-                ExpressionType.Parameter => false,
-                ExpressionType.PostDecrementAssign => throw new NotImplementedException(),
-                ExpressionType.PostIncrementAssign => throw new NotImplementedException(),
-                ExpressionType.Power => throw new NotImplementedException(),
-                ExpressionType.PowerAssign => throw new NotImplementedException(),
-                ExpressionType.PreDecrementAssign => throw new NotImplementedException(),
-                ExpressionType.PreIncrementAssign => throw new NotImplementedException(),
-                ExpressionType.Quote => throw new NotImplementedException(),
-                ExpressionType.RightShift => throw new NotImplementedException(),
-                ExpressionType.RightShiftAssign => throw new NotImplementedException(),
-                ExpressionType.RuntimeVariables => throw new NotImplementedException(),
-                ExpressionType.Subtract => throw new NotImplementedException(),
-                ExpressionType.SubtractAssign => throw new NotImplementedException(),
-                ExpressionType.SubtractAssignChecked => throw new NotImplementedException(),
-                ExpressionType.SubtractChecked => throw new NotImplementedException(),
-                ExpressionType.Switch => throw new NotImplementedException(),
-                ExpressionType.Throw => throw new NotImplementedException(),
-                ExpressionType.Try => throw new NotImplementedException(),
-                ExpressionType.TypeAs => throw new NotImplementedException(),
-                ExpressionType.TypeEqual => throw new NotImplementedException(),
-                ExpressionType.TypeIs => throw new NotImplementedException(),
-                ExpressionType.UnaryPlus => throw new NotImplementedException(),
-                ExpressionType.Unbox => throw new NotImplementedException(),
-                _ => throw new NotImplementedException(),
-            };
-            ;
-        }
-        private static bool IsNullUnary(Expression exp)
-        {
-            var unary = exp as UnaryExpression;
-            return IsNull(unary.Operand);
-        }
-        private static bool IsNullConstant(Expression exp)
-        {
-            var constant = exp as ConstantExpression;
-            return constant.Value == null;
-        }
-        private static bool IsNullCall(Expression exp)
-        {
-            var call = exp as MethodCallExpression;
-            if (call.Object == null)
-            {
-                bool result = true;
-                foreach (var arg in call.Arguments)
-                {
-                    result &= IsNull(arg);
-                    if (!result)
-                        break;
-                }
-                return result;
-            }
-            else
-            {
-                return IsNull(call.Object);
-            }
-        }
-        private static bool IsNullMemberAccess(Expression exp)
-        {
-            var member = exp as MemberExpression;
-
-            object value;
-            if (member.Expression == null)
-            {
-                value = Evaluate(member);
-            }
-            else
-            {
-                var isEvaluatable = IsEvaluatable(member.Expression);
-                if (!isEvaluatable)
-                    return false;
-
-                var expressionValue = member.Expression == null ? null : Evaluate(member.Expression);
-                switch (member.Member.MemberType)
-                {
-                    case MemberTypes.Field:
-                        var fieldInfo = (FieldInfo)member.Member;
-                        if (expressionValue == null && !fieldInfo.IsStatic)
-                            return true;
-                        value = fieldInfo.GetValue(expressionValue);
-                        break;
-                    case MemberTypes.Property:
-                        var propertyInfo = (PropertyInfo)member.Member;
-                        if (expressionValue == null && !propertyInfo.GetMethod.IsStatic)
-                            return true;
-                        value = propertyInfo.GetValue(expressionValue);
-                        break;
-                    default:
-                        throw new NotImplementedException();
-                }
-            }
-
-            return value == null;
-        }
-
-        private static object Evaluate(Expression exp)
-        {
-            return exp.NodeType switch
-            {
-                ExpressionType.Constant => EvaluateConstant(exp),
-                ExpressionType.MemberAccess => EvaluateMemberAccess(exp),
-                _ => EvaluateInvoke(exp),
-            };
-            ;
-        }
-        private static object EvaluateConstant(Expression exp)
-        {
-            var constant = exp as ConstantExpression;
-            return constant.Value;
-        }
-        private static object EvaluateMemberAccess(Expression exp)
-        {
-            var member = exp as MemberExpression;
-            var expressionValue = member.Expression == null ? null : Evaluate(member.Expression);
-
-            object value;
-            switch (member.Member.MemberType)
-            {
-                case MemberTypes.Field:
-                    var fieldInfo = (FieldInfo)member.Member;
-                    if (expressionValue == null && !fieldInfo.IsStatic)
-                        return null;
-                    value = fieldInfo.GetValue(expressionValue);
-                    break;
-                case MemberTypes.Property:
-                    var propertyInfo = (PropertyInfo)member.Member;
-                    if (expressionValue == null && !propertyInfo.GetMethod.IsStatic)
-                        return null;
-                    value = propertyInfo.GetValue(expressionValue);
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
-
-            return value;
-        }
-        private static object EvaluateInvoke(Expression exp)
-        {
-            var value = Expression.Lambda(exp).Compile().DynamicInvoke();
-            return value;
-        }
-
-        private static void GenerateWhere(Expression where, ref CharWriteBuffer sb, ParameterDependant rootDependant, MemberContext operationContext)
+        protected override void GenerateWhere(Expression where, ref CharWriteBuffer sb, ParameterDependant rootDependant, MemberContext operationContext)
         {
             if (where == null)
                 return;
@@ -1431,7 +659,7 @@ namespace Zerra.Repository.MsSql
             ConvertToSql(where, ref sb, context);
             AppendLineBreak(ref sb);
         }
-        private static void GenerateOrderSkipTake(QueryOrder order, int? skip, int? take, ref CharWriteBuffer sb, ParameterDependant rootDependant, MemberContext operationContext)
+        protected override void GenerateOrderSkipTake(QueryOrder order, int? skip, int? take, ref CharWriteBuffer sb, ParameterDependant rootDependant, MemberContext operationContext)
         {
             if (order?.OrderExpressions.Length > 0)
             {
@@ -1471,7 +699,7 @@ namespace Zerra.Repository.MsSql
                 }
             }
         }
-        private static void GenerateSelect(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriteBuffer sb)
+        protected override void GenerateSelect(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriteBuffer sb)
         {
             switch (select)
             {
@@ -1495,7 +723,7 @@ namespace Zerra.Repository.MsSql
                     break;
             }
         }
-        private static void GenerateSelectProperties(Graph graph, ModelDetail modelDetail, ref CharWriteBuffer sb)
+        protected override void GenerateSelectProperties(Graph graph, ModelDetail modelDetail, ref CharWriteBuffer sb)
         {
             AppendLineBreak(ref sb);
             if (graph.IncludeAllProperties)
@@ -1533,19 +761,19 @@ namespace Zerra.Repository.MsSql
                 }
             }
         }
-        private static void GenerateFrom(ModelDetail modelDetail, ref CharWriteBuffer sb)
+        protected override void GenerateFrom(ModelDetail modelDetail, ref CharWriteBuffer sb)
         {
             sb.Write("FROM[");
             sb.Write(modelDetail.DataSourceEntityName);
             sb.Write(']');
             AppendLineBreak(ref sb);
         }
-        private static void GenerateJoin(ParameterDependant dependant, ref CharWriteBuffer sb)
+        protected override void GenerateJoin(ParameterDependant dependant, ref CharWriteBuffer sb)
         {
             foreach (var child in dependant.Dependants.Values)
             {
                 if (child.ModelDetail.IdentityProperties.Count != 1)
-                    throw new NotSupportedException($"Only one identity supported on {child.ModelDetail.Type.GetNiceName()}");
+                    throw new NotSupportedException($"Relational queries support only one identity on {child.ModelDetail.Type.GetNiceName()}");
                 var dependantIdentity = child.ModelDetail.IdentityProperties[0];
 
                 sb.Write("JOIN[");
@@ -1565,13 +793,17 @@ namespace Zerra.Repository.MsSql
                 GenerateJoin(child, ref sb);
             }
         }
+        protected override void GenerateEnding(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriteBuffer sb)
+        {
 
-        private static void AppendLineBreak(ref CharWriteBuffer sb)
+        }
+
+        protected override void AppendLineBreak(ref CharWriteBuffer sb)
         {
             sb.Write(Environment.NewLine);
         }
 
-        private static string OperatorToString(Operator operation)
+        protected override string OperatorToString(Operator operation)
         {
             return operation switch
             {
@@ -1599,88 +831,6 @@ namespace Zerra.Repository.MsSql
                 Operator.NotEqualsNull => "IS NOT",
                 _ => throw new NotImplementedException(),
             };
-        }
-
-        private class BuilderContext
-        {
-            public ParameterDependant RootDependant;
-
-            public MemberContext MemberContext;
-
-            public int InvertStack;
-            public bool Inverted { get { return InvertStack % 2 != 0; } }
-
-            public BuilderContext(ParameterDependant rootDependant, MemberContext memberContext)
-            {
-                this.RootDependant = rootDependant;
-                this.MemberContext = memberContext;
-                this.InvertStack = 0;
-            }
-        }
-
-        private class MemberContext
-        {
-            public Dictionary<string, ModelDetail> ModelContexts { get; private set; }
-            public Stack<ModelDetail> ModelStack { get; private set; }
-            public Stack<Operator> OperatorStack { get; private set; }
-            public Stack<MemberExpression> MemberAccessStack { get; private set; }
-            public Stack<MemberExpression> MemberLambdaStack { get; private set; }
-            public Stack<ParameterDependant> DependantStack { get; private set; }
-
-            public bool InCallRenderMemberIdentity { get; set; }
-            public bool InCallNoRender { get; set; }
-
-            public MemberContext()
-            {
-                this.ModelContexts = new Dictionary<string, ModelDetail>();
-                this.ModelStack = new Stack<ModelDetail>();
-                this.OperatorStack = new Stack<Operator>();
-                this.MemberAccessStack = new Stack<MemberExpression>();
-                this.MemberLambdaStack = new Stack<MemberExpression>();
-                this.DependantStack = new Stack<ParameterDependant>();
-                this.InCallRenderMemberIdentity = false;
-                this.InCallNoRender = false;
-            }
-        }
-
-        private class ParameterDependant
-        {
-            public ModelDetail ModelDetail;
-            public ModelPropertyDetail ParentMember;
-            public Dictionary<Type, ParameterDependant> Dependants;
-
-            public ParameterDependant(ModelDetail modelDetail, ModelPropertyDetail parentMember)
-            {
-                this.ModelDetail = modelDetail;
-                this.ParentMember = parentMember;
-                this.Dependants = new Dictionary<Type, ParameterDependant>();
-            }
-        }
-
-        private enum Operator
-        {
-            Null,
-            New,
-            Lambda,
-            Evaluate,
-            Conditional,
-            Call,
-            Negative,
-            And,
-            Or,
-            Equals,
-            NotEquals,
-            LessThanOrEquals,
-            GreaterThanOrEquals,
-            LessThan,
-            GreaterThan,
-            Divide,
-            Subtract,
-            Add,
-            Multiply,
-            Modulus,
-            EqualsNull,
-            NotEqualsNull
         }
     }
 }

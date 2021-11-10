@@ -50,7 +50,7 @@ namespace Zerra.IO
 
         private void EnsureBufferSize(int additionalSize)
         {
-            if (buffer.Length - position >= additionalSize)
+            if (position + additionalSize <= buffer.Length)
                 return;
 
             if (!fromPool)

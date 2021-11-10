@@ -11,7 +11,7 @@ namespace Zerra.Repository.Test
     {
         [Identity]
         public Guid KeyA { get; set; }
-        [Identity(true)]
+        //[Identity(true)]
         public int KeyB { get; set; }
 
         public byte ByteThing { get; set; }
@@ -74,7 +74,7 @@ namespace Zerra.Repository.Test
         [Relation("RelationAKey")]
         public T RelationA { get; set; }
 
-        [Relation("RelationKey")]
+        [Relation("RelationBKey")]
         public T[] RelationB { get; set; }
     }
 }

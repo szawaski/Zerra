@@ -4,6 +4,7 @@
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Linq;
 
 namespace Zerra.Repository.Test
 {
@@ -26,18 +27,20 @@ namespace Zerra.Repository.Test
             AssertAreEqual<T, U>(model, modelCheck);
 
             var relationModel = new U();
-            relationModel.RelationKey = Guid.NewGuid();
+            relationModel.RelationAKey = Guid.NewGuid();
             relationProvider.Persist(new Create<U>(relationModel));
-            var relationModelCheck = (U)relationProvider.Query(new QuerySingle<U>(x => x.RelationKey == relationModel.RelationKey));
+            var relationModelCheck = (U)relationProvider.Query(new QuerySingle<U>(x => x.RelationAKey == relationModel.RelationAKey));
             Assert.IsNotNull(relationModelCheck);
 
-            model.RelationAKey = relationModel.RelationKey;
+            model.RelationAKey = relationModel.RelationAKey;
             provider.Persist(new Update<T>(model, new Graph<T>(x => x.RelationAKey)));
             modelCheck = (T)provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA));
             Assert.AreEqual(model.RelationAKey, modelCheck.RelationAKey);
             modelCheck = (T)provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA, new Graph<T>(x => x.RelationA)));
             Assert.IsNotNull(modelCheck.RelationA);
-            Assert.AreEqual(model.RelationAKey, modelCheck.RelationA.RelationKey);
+            Assert.AreEqual(model.RelationAKey, modelCheck.RelationA.RelationAKey);
+
+            TestQuery(provider, model, relationModel);
 
             model.RelationAKey = null;
             provider.Persist(new Update<T>(model, new Graph<T>(x => x.RelationAKey)));
@@ -51,7 +54,7 @@ namespace Zerra.Repository.Test
             Assert.IsNull(modelCheck);
 
             relationProvider.Persist(new Delete<U>(relationModel));
-            relationModelCheck = (U)relationProvider.Query(new QuerySingle<U>(x => x.RelationKey == relationModel.RelationKey));
+            relationModelCheck = (U)relationProvider.Query(new QuerySingle<U>(x => x.RelationAKey == relationModel.RelationAKey));
             Assert.IsNull(relationModelCheck);
         }
 
@@ -216,6 +219,49 @@ namespace Zerra.Repository.Test
 
             Assert.IsNull(model1.BytesThingNull);
             Assert.IsNull(model2.BytesThingNull);
+        }
+
+        public static void TestQuery<T, U>(ITransactStoreProvider<T> provider, T model, U relationModel)
+            where T : BaseTestTypesModel<U>, new()
+            where U : BaseTestRelationsModel, new()
+        {
+            //many
+            provider.Query(new QueryMany<T>(x => x.KeyA == model.KeyA));
+
+            //first
+            provider.Query(new QueryFirst<T>(x => x.KeyA == model.KeyA));
+
+            //single
+            provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA));
+
+            //count
+            provider.Query(new QueryCount<T>(x => x.KeyA == model.KeyA));
+
+            //any
+            provider.Query(new QueryAny<T>(x => x.KeyA == model.KeyA));
+
+            var keyArray = new Guid[] { model.KeyA };
+
+            //array index
+            provider.Query(new QuerySingle<T>(x => x.KeyA == keyArray[0]));
+
+            //date
+            provider.Query(new QuerySingle<T>(x => x.DateTimeThing > DateTime.Now.AddYears(-1)));
+
+            //date
+            provider.Query(new QuerySingle<T>(x => x.DateTimeThing.Year > DateTime.Now.AddYears(-1).Year));
+
+            //time
+            provider.Query(new QuerySingle<T>(x => x.TimeSpanThing > TimeSpan.FromMilliseconds(123)));
+
+            //string like
+            provider.Query(new QuerySingle<T>(x => x.StringThing.Contains("World")));
+
+            //LINQ contains
+            provider.Query(new QuerySingle<T>(x => keyArray.Contains(x.KeyA)));
+
+            //LINQ any
+            provider.Query(new QuerySingle<T>(x => x.RelationB.Any(y => y.RelationAKey == relationModel.RelationAKey)));
         }
     }
 }
