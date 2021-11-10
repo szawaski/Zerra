@@ -564,7 +564,6 @@ namespace Zerra.Repository.MsSql
                             }
 
                         }
-                        //sb.Append('\'').Append(((DateTime)value).ToString("yyyy-MM-dd HH:mm:ss.fff")).Append('\'');
                         sb.Write('\'');
                         sb.Write((DateTime)value, DateTimeFormat.MsSql);
                         sb.Write('\'');
@@ -621,9 +620,59 @@ namespace Zerra.Repository.MsSql
                                     return true;
                             }
                         }
-                        //sb.Append('\'').Append(((DateTimeOffset)value).ToString("yyyy-MM-dd HH:mm:ss.fff")).Append('\'');
                         sb.Write('\'');
                         sb.Write((DateTimeOffset)value, DateTimeFormat.MsSqlOffset);
+                        sb.Write('\'');
+                        return false;
+                    case CoreType.TimeSpan:
+                        if (memberProperty != null)
+                        {
+                            switch (memberProperty.Member.Name)
+                            {
+                                case "Hours":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).Hours);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Minutes":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).Minutes);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Seconds":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).Seconds);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Milliseconds":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).Milliseconds);
+                                    sb.Write('\'');
+                                    return true;
+                                case "TotalHours":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).TotalHours);
+                                    sb.Write('\'');
+                                    return true;
+                                case "TotalMinutes":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).TotalMinutes);
+                                    sb.Write('\'');
+                                    return true;
+                                case "TotalSeconds":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).TotalSeconds);
+                                    sb.Write('\'');
+                                    return true;
+                                case "TotalMilliseconds":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).TotalMilliseconds);
+                                    sb.Write('\'');
+                                    return true;
+                            }
+                        }
+                        sb.Write('\'');
+                        sb.Write((TimeSpan)value, TimeFormat.MsSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.Guid:

@@ -565,7 +565,6 @@ namespace Zerra.Repository.MySql
                             }
 
                         }
-                        //sb.Append('\'').Append(((DateTime)value).ToString("yyyy-MM-dd HH:mm:ss.fff")).Append('\'');
                         sb.Write('\'');
                         sb.Write((DateTime)value, DateTimeFormat.ISO8601);
                         sb.Write('\'');
@@ -622,9 +621,59 @@ namespace Zerra.Repository.MySql
                                     return true;
                             }
                         }
-                        //sb.Append('\'').Append(((DateTimeOffset)value).ToString("yyyy-MM-dd HH:mm:ss.fff")).Append('\'');
                         sb.Write('\'');
                         sb.Write((DateTimeOffset)value, DateTimeFormat.ISO8601);
+                        sb.Write('\'');
+                        return false;
+                    case CoreType.TimeSpan:
+                        if (memberProperty != null)
+                        {
+                            switch (memberProperty.Member.Name)
+                            {
+                                case "Hours":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).Hours);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Minutes":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).Minutes);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Seconds":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).Seconds);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Milliseconds":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).Milliseconds);
+                                    sb.Write('\'');
+                                    return true;
+                                case "TotalHours":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).TotalHours);
+                                    sb.Write('\'');
+                                    return true;
+                                case "TotalMinutes":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).TotalMinutes);
+                                    sb.Write('\'');
+                                    return true;
+                                case "TotalSeconds":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).TotalSeconds);
+                                    sb.Write('\'');
+                                    return true;
+                                case "TotalMilliseconds":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).TotalMilliseconds);
+                                    sb.Write('\'');
+                                    return true;
+                            }
+                        }
+                        sb.Write('\'');
+                        sb.Write((TimeSpan)value, TimeFormat.ISO8601);
                         sb.Write('\'');
                         return false;
                     case CoreType.Guid:
@@ -718,15 +767,17 @@ namespace Zerra.Repository.MySql
                     break;
                 case QueryOperation.Count:
                     sb.Write("SELECT COUNT(1)");
+                    AppendLineBreak(ref sb);
                     break;
                 case QueryOperation.Any:
                     sb.Write("SELECT 1");
+                    AppendLineBreak(ref sb);
                     break;
             }
         }
         protected override void GenerateSelectProperties(Graph graph, ModelDetail modelDetail, ref CharWriteBuffer sb)
         {
-            AppendLineBreak(ref sb);
+            //AppendLineBreak(ref sb);
             if (graph.IncludeAllProperties)
             {
                 sb.Write('`');
@@ -767,7 +818,6 @@ namespace Zerra.Repository.MySql
             sb.Write("FROM`");
             sb.Write(modelDetail.DataSourceEntityName);
             sb.Write('`');
-            sb.Write(modelDetail.DataSourceEntityName);
             AppendLineBreak(ref sb);
         }
         protected override void GenerateJoin(ParameterDependant dependant, ref CharWriteBuffer sb)

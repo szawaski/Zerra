@@ -45,6 +45,7 @@ namespace Zerra.Repository.PostgreSql
 
                 var modelProperty = callingModel.GetProperty(property.Member.Name);
 
+                sb.Write(' ');
                 sb.Write(callingModel.DataSourceEntityName.ToLower());
                 sb.Write('.');
                 sb.Write(callingModelIdentity.PropertySourceName.ToLower());
@@ -205,11 +206,11 @@ namespace Zerra.Repository.PostgreSql
 
                                 ConvertToSql(callingObject, ref sb, context);
 
-                                sb.Write(context.Inverted ? "NOT LIKE '%'+" : "LIKE '%'+");
+                                sb.Write(context.Inverted ? " NOT LIKE '%'||" : " LIKE '%'||");
 
                                 ConvertToSql(text, ref sb, context);
 
-                                sb.Write("+'%'");
+                                sb.Write("||'%'");
                                 break;
                             }
                         default:
@@ -311,31 +312,31 @@ namespace Zerra.Repository.PostgreSql
                         switch (memberProperty.Member.Name)
                         {
                             case "Year":
-                                sb.Write("DATEPART(year,");
+                                sb.Write("DATE_PART('year',");
                                 break;
                             case "Month":
-                                sb.Write("DATEPART(month,");
+                                sb.Write("DATE_PART('month',");
                                 break;
                             case "Day":
-                                sb.Write("DATEPART(day,");
+                                sb.Write("DATE_PART('day',");
                                 break;
                             case "Hour":
-                                sb.Write("DATEPART(hour,");
+                                sb.Write("DATE_PART('hour',");
                                 break;
                             case "Minute":
-                                sb.Write("DATEPART(minute,");
+                                sb.Write("DATE_PART('minute',");
                                 break;
                             case "Second":
-                                sb.Write("DATEPART(second,");
+                                sb.Write("DATE_PART('second',");
                                 break;
                             case "Millisecond":
-                                sb.Write("DATEPART(millisecond,");
+                                sb.Write("DATE_PART('milliseconds',");
                                 break;
                             case "DayOfYear":
-                                sb.Write("DATEPART(dayofyear,");
+                                sb.Write("DATE_PART('doy',");
                                 break;
                             case "DayOfWeek":
-                                sb.Write("DATEPART(weekday,");
+                                sb.Write("DATE_PART('dow',");
                                 break;
                             default:
                                 memberPropertyHandled = false;
@@ -558,7 +559,6 @@ namespace Zerra.Repository.PostgreSql
                             }
 
                         }
-                        //sb.Append('\'').Append(((DateTime)value).ToString("yyyy-MM-dd HH:mm:ss.fff")).Append('\'');
                         sb.Write('\'');
                         sb.Write((DateTime)value, DateTimeFormat.ISO8601);
                         sb.Write('\'');
@@ -615,9 +615,59 @@ namespace Zerra.Repository.PostgreSql
                                     return true;
                             }
                         }
-                        //sb.Append('\'').Append(((DateTimeOffset)value).ToString("yyyy-MM-dd HH:mm:ss.fff")).Append('\'');
                         sb.Write('\'');
                         sb.Write((DateTimeOffset)value, DateTimeFormat.ISO8601);
+                        sb.Write('\'');
+                        return false;
+                    case CoreType.TimeSpan:
+                        if (memberProperty != null)
+                        {
+                            switch (memberProperty.Member.Name)
+                            {
+                                case "Hours":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).Hours);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Minutes":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).Minutes);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Seconds":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).Seconds);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Milliseconds":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).Milliseconds);
+                                    sb.Write('\'');
+                                    return true;
+                                case "TotalHours":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).TotalHours);
+                                    sb.Write('\'');
+                                    return true;
+                                case "TotalMinutes":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).TotalMinutes);
+                                    sb.Write('\'');
+                                    return true;
+                                case "TotalSeconds":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).TotalSeconds);
+                                    sb.Write('\'');
+                                    return true;
+                                case "TotalMilliseconds":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeSpan)value).TotalMilliseconds);
+                                    sb.Write('\'');
+                                    return true;
+                            }
+                        }
+                        sb.Write('\'');
+                        sb.Write((TimeSpan)value, TimeFormat.ISO8601);
                         sb.Write('\'');
                         return false;
                     case CoreType.Guid:
