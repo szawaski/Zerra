@@ -108,6 +108,7 @@ namespace Zerra.Test
         public string[] GuidArrayNullable { get; set; }
 
         public string[] StringArray { get; set; }
+        public string[] StringEmptyArray { get; set; }
 
         public string[] EnumArray { get; set; }
         public string[] EnumArrayNullable { get; set; }

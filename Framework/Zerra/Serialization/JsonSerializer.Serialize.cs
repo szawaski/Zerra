@@ -203,7 +203,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToJsonNameless(Stream stream,Type type, object obj, Graph graph = null)
+        private static void ToJsonNameless(Stream stream, Type type, object obj, Graph graph = null)
         {
             var writer = new CharWriteBuffer(stream, new UTF8Encoding(false));
             try
@@ -1204,12 +1204,13 @@ namespace Zerra.Serialization
                         escapedChar = 't';
                         break;
                     default:
-                        if (c < ' ')
-                        {
-                            var code = lowUnicodeIntToEncodedHex[c];
-                            writer.Write(code);
-                            break;
-                        }
+                        if (c >= ' ')
+                            continue;
+
+                        writer.Write(chars.Slice(start, i - start));
+                        start = i + 1;
+                        var code = lowUnicodeIntToEncodedHex[c];
+                        writer.Write(code);
                         continue;
                 }
 

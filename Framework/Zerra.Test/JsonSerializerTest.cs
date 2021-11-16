@@ -497,11 +497,17 @@ namespace Zerra.Test
             model1.DictionaryThing.Add(1, (string)dictionaryThingJsonObject["1"]);
             model1.DictionaryThing.Add(2, (string)dictionaryThingJsonObject["2"]);
             model1.DictionaryThing.Add(3, (string)dictionaryThingJsonObject["3"]);
+            model1.DictionaryThing.Add(4, (string)dictionaryThingJsonObject["4"]);
 
             var stringArrayOfArrayThingJsonObject = jsonObject[nameof(AllTypesModel.StringArrayOfArrayThing)];
             var stringList = new List<string[]>();
             foreach (var item in stringArrayOfArrayThingJsonObject)
             {
+                if (item.IsNull)
+                {
+                    stringList.Add(null);
+                    continue;
+                }
                 var stringSubList = new List<string>();
                 foreach (var sub in item)
                 {
