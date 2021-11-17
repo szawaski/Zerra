@@ -20,7 +20,7 @@ namespace Zerra.CQRS.Network
         private readonly NetworkType networkType;
         private readonly ContentType? contentType;
         private readonly SymmetricKey encryptionKey;
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.RijndaelManaged;
+        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AES;
 
         public TcpRawCQRSServer(NetworkType networkType, ContentType? contentType, string serverUrl, SymmetricKey encryptionKey)
             : base(serverUrl)
@@ -273,7 +273,7 @@ namespace Zerra.CQRS.Network
 
                     //Response Body Empty
                     responseBodyStream = new TcpRawProtocolBodyStream(stream, null, false);
-                    await responseBodyStream.FlushAsync();
+                    await responseBodyStream.FlushAsync(cancellationToken);
 #if NETSTANDARD2_0
                     responseBodyStream.Dispose();
 #else

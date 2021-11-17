@@ -15,7 +15,7 @@ namespace Zerra.Encryption
         private const int saltByteLength = 16;
         public static byte[] GenerateSaltBytes(int saltLength = saltByteLength)
         {
-            using (var rng = new RNGCryptoServiceProvider())
+            using (var rng = RandomNumberGenerator.Create())
             {
                 var saltBytes = new byte[saltLength];
                 rng.GetNonZeroBytes(saltBytes);
@@ -29,7 +29,7 @@ namespace Zerra.Encryption
         private static readonly char[] passwordCharactersSpecial = "~!@#$%^&*_-+=`|\\(){}[]:;\"'<>,.?/".ToCharArray();
         public static string GeneratePassword(int length, bool upperCase, bool lowerCase, bool numeric, bool special)
         {
-            using (var rng = new RNGCryptoServiceProvider())
+            using (var rng = RandomNumberGenerator.Create())
             {
                 var passwordChars = new List<char>();
                 if (upperCase)
@@ -51,10 +51,10 @@ namespace Zerra.Encryption
             }
         }
 
-        public static int GetRandomNumber(RNGCryptoServiceProvider rng, int minValue, int maxValue)
+        public static int GetRandomNumber(RandomNumberGenerator rng, int minValue, int maxValue)
         {
             if (minValue > maxValue)
-                throw new ArgumentOutOfRangeException("minValue");
+                throw new ArgumentOutOfRangeException(nameof(minValue));
             if (minValue == maxValue)
                 return minValue;
             long diff = maxValue - minValue;
@@ -69,15 +69,15 @@ namespace Zerra.Encryption
         {
             return hashAlgoritmType switch
             {
-                HashAlgoritmType.SHA1Managed => new SHA1Managed(),
-                HashAlgoritmType.SHA256Managed => new SHA256Managed(),
-                HashAlgoritmType.SHA512Managed => new SHA512Managed(),
-                HashAlgoritmType.SHA384Managed => new SHA384Managed(),
-                HashAlgoritmType.SHA1 => new SHA1CryptoServiceProvider(),
-                HashAlgoritmType.SHA256 => new SHA256CryptoServiceProvider(),
-                HashAlgoritmType.SHA512 => new SHA512CryptoServiceProvider(),
-                HashAlgoritmType.SHA384 => new SHA384CryptoServiceProvider(),
-                HashAlgoritmType.MD5 => new MD5CryptoServiceProvider(),
+                HashAlgoritmType.SHA1Managed => SHA1.Create(),
+                HashAlgoritmType.SHA256Managed => SHA256.Create(),
+                HashAlgoritmType.SHA512Managed => SHA512.Create(),
+                HashAlgoritmType.SHA384Managed => SHA384.Create(),
+                HashAlgoritmType.SHA1 => SHA1.Create(),
+                HashAlgoritmType.SHA256 => SHA256.Create(),
+                HashAlgoritmType.SHA512 => SHA512.Create(),
+                HashAlgoritmType.SHA384 => SHA384.Create(),
+                HashAlgoritmType.MD5 => MD5.Create(),
                 _ => throw new NotImplementedException(),
             };
         }

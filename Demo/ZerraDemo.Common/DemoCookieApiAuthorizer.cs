@@ -14,7 +14,7 @@ namespace ZerraDemo.Common
         private const string cookieHeader = "Cookie";
         private const string authorizeHeader = "Authorize";
 
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.RijndaelManaged;
+        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AES;
         private readonly SymmetricKey encryptionKey;
         public DemoCookieApiAuthorizer()
         {

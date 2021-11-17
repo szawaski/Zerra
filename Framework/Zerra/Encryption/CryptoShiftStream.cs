@@ -63,7 +63,7 @@ namespace Zerra.Encryption
 
             if (!deshift)
             {
-                using (var rng = new RNGCryptoServiceProvider())
+                using (var rng = RandomNumberGenerator.Create())
                 {
 #if NETSTANDARD2_0
                     rng.GetBytes(keyBufferOwner, 0, keySizeBytes);

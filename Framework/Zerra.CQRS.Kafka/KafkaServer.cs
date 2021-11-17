@@ -15,7 +15,7 @@ namespace Zerra.CQRS.Kafka
     public partial class KafkaServer : ICommandServer, IEventServer, IDisposable
     {
         private const int retryDelay = 10000;
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.RijndaelManaged;
+        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AES;
 
         private readonly string host;
         private readonly SymmetricKey encryptionKey;

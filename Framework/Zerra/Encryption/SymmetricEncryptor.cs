@@ -14,7 +14,7 @@ namespace Zerra.Encryption
         private static readonly byte[] defaultSalt = Encoding.UTF8.GetBytes("ενγρυπτιον"); //20 bytes
         private const SymmetricKeySize defaultKeySize = SymmetricKeySize.Bits_256;
         private const SymmetricBlockSize defaultBlockSize = SymmetricBlockSize.Bits_128;
-        private static byte[] saltFromPassword(string password, string salt = null)
+        private static byte[] SaltFromPassword(string password, string salt = null)
         {
             var passwordBytes = Encoding.UTF8.GetBytes(password);
             var saltBytes = String.IsNullOrWhiteSpace(salt) ? defaultSalt : Encoding.UTF8.GetBytes(salt);
@@ -24,7 +24,7 @@ namespace Zerra.Encryption
 
         public static SymmetricKey GetKey(string password, string salt = null, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize)
         {
-            var saltBytes = saltFromPassword(password, salt);
+            var saltBytes = SaltFromPassword(password, salt);
 
             using (var deriveBytes = new Rfc2898DeriveBytes(password, saltBytes))
             {
@@ -53,12 +53,11 @@ namespace Zerra.Encryption
         {
             return symmetricAlgorithmType switch
             {
-                SymmetricAlgorithmType.RijndaelManaged => new RijndaelManaged(),
-                SymmetricAlgorithmType.AES => new AesCryptoServiceProvider(),
-                SymmetricAlgorithmType.AESManaged => new AesManaged(),
-                SymmetricAlgorithmType.DES => new DESCryptoServiceProvider(),
-                SymmetricAlgorithmType.TripleDES => new TripleDESCryptoServiceProvider(),
-                SymmetricAlgorithmType.RC2 => new RC2CryptoServiceProvider(),
+                //SymmetricAlgorithmType.Rijndael => Rijndael.Create(),
+                SymmetricAlgorithmType.AES => Aes.Create(),
+                SymmetricAlgorithmType.DES => DES.Create(),
+                SymmetricAlgorithmType.TripleDES => TripleDES.Create(),
+                SymmetricAlgorithmType.RC2 => RC2.Create(),
                 _ => throw new NotImplementedException(),
             };
         }

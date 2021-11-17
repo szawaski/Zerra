@@ -18,7 +18,7 @@ namespace Zerra.CQRS.RabbitMQ
 {
     public class RabbitMQClient : ICommandClient, IEventClient, IDisposable
     {
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.RijndaelManaged;
+        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AES;
 
         private readonly string host;
         private readonly SymmetricKey encryptionKey;

@@ -17,7 +17,7 @@ namespace Zerra.CQRS.Kafka
     //Kafka Producer
     public class KafkaClient : ICommandClient, IEventClient, IDisposable
     {
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.RijndaelManaged;
+        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AES;
 
         private bool listenerStarted = false;
 

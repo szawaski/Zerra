@@ -25,7 +25,7 @@ namespace Zerra.Repository
         public virtual Graph<TModel> Properties { get { return null; } }
         public abstract SymmetricKey EncryptionKey { get; }
 
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.RijndaelManaged;
+        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AES;
 
         private static Expression<Func<TModel, bool>> EncryptWhere(Expression<Func<TModel, bool>> expression)
         {

@@ -123,13 +123,13 @@ namespace Zerra.Test
 
             var values = new List<string>();
             for (var i = 0; i < 100; i++)
-                values.Add(SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.RijndaelManaged, key, test, true));
+                values.Add(SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AES, key, test, true));
 
             Assert.IsTrue(values.Distinct().Count() == values.Count);
 
             for (var i = 0; i < values.Count; i++)
             {
-                var decrypted = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.RijndaelManaged, key, values[i], true);
+                var decrypted = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AES, key, values[i], true);
                 Assert.AreEqual(test, decrypted);
             }
         }
@@ -140,10 +140,10 @@ namespace Zerra.Test
             var test = Convert.ToBase64String(GetTestBytes());
             var key = SymmetricEncryptor.GetKey("test", null, SymmetricKeySize.Bits_256, SymmetricBlockSize.Bits_128);
 
-            var encrypted = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.RijndaelManaged, key, test, true);
+            var encrypted = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AES, key, test, true);
 
             var ms = new MemoryStream(Convert.FromBase64String(encrypted));
-            var decryptionStream = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.RijndaelManaged, key, ms, false, true, false);
+            var decryptionStream = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AES, key, ms, false, true, false);
 
             var msout = new MemoryStream();
             decryptionStream.CopyTo(msout);
@@ -155,13 +155,13 @@ namespace Zerra.Test
         [TestMethod]
         public void WithSerializer()
         {
-            var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AESManaged);
+            var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AES);
 
             var serializer = new ByteSerializer();
             var model1 = Factory.GetTestTypesModel();
             using (var ms = new MemoryStream())
-            using (var cryptoStreamWriter = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AESManaged, key, ms, true, true, false))
-            using (var cryptoStreamReader = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESManaged, key, ms, false, true, false))
+            using (var cryptoStreamWriter = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AES, key, ms, true, true, false))
+            using (var cryptoStreamReader = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AES, key, ms, false, true, false))
             {
                 var expected = serializer.Serialize(model1);
                 serializer.SerializeAsync(cryptoStreamWriter, model1).GetAwaiter().GetResult();
@@ -173,7 +173,7 @@ namespace Zerra.Test
             }
         }
 
-        private byte[] GetTestBytes()
+        private static byte[] GetTestBytes()
         {
             var bytes = new List<byte>();
             for (var i = 0; i < 100000; i++)

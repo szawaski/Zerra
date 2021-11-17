@@ -128,7 +128,7 @@ namespace Zerra
         private static string EncryptToString(string key, string valueDecrypted)
         {
             var symmetricKey = SymmetricEncryptor.GetKey(key, null, SymmetricKeySize.Bits_256, SymmetricBlockSize.Bits_128);
-            var valueEncrypted = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.RijndaelManaged, symmetricKey, valueDecrypted, true);
+            var valueEncrypted = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AES, symmetricKey, valueDecrypted, true);
             return encryptionPrefix + valueEncrypted;
         }
         private static Stream DecryptToStream(string key, string valueEncrypted)
@@ -139,7 +139,7 @@ namespace Zerra
                 valueEncrypted = valueEncrypted.Remove(0, encryptionPrefix.Length);
                 var ms = new MemoryStream(Convert.FromBase64String(valueEncrypted));
                 var symmetricKey = SymmetricEncryptor.GetKey(key, null, SymmetricKeySize.Bits_256, SymmetricBlockSize.Bits_128);
-                var decryptionStream = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.RijndaelManaged, symmetricKey, ms, false, true, false);
+                var decryptionStream = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AES, symmetricKey, ms, false, true, false);
                 return decryptionStream;
             }
             else

@@ -6,9 +6,8 @@ namespace Zerra.Encryption
 {
     public enum SymmetricAlgorithmType : byte
     {
-        RijndaelManaged,
+        //Rijndael,
         AES,
-        AESManaged,
         DES,
         TripleDES,
         RC2

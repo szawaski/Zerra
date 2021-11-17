@@ -18,7 +18,7 @@ namespace Zerra.CQRS.Network
         private readonly NetworkType networkType;
         private readonly ContentType contentType;
         private readonly SymmetricKey encryptionKey;
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.RijndaelManaged;
+        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AES;
 
         public TcpRawCQRSClient(NetworkType networkType, ContentType contentType, string serviceUrl, SymmetricKey encryptionKey)
             : base(serviceUrl)
