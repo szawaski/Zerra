@@ -210,6 +210,8 @@ spec:
         env:
           - name: POSTGRES_PASSWORD
             value: "password123"
+          - name: PGDATA
+            value: /var/lib/postgresql/data/pgdata
         volumeMounts:
           - name: zerrademo-pets-postgresql-volume
             mountPath: /var/lib/postgresql/data
@@ -242,6 +244,8 @@ spec:
         env:
           - name: POSTGRES_PASSWORD
             value: "password123"
+          - name: PGDATA
+            value: /var/lib/postgresql/data/pgdata
         volumeMounts:
           - name: zerrademo-ledger1-postgresql-volume
             mountPath: /var/lib/postgresql/data
@@ -265,6 +269,8 @@ spec:
       labels:
         app: zerrademo-ledger1domain-eventstore-pod
     spec:
+      securityContext:
+        fsGroup: 1000
       containers:
       - name: zerrademo-ledger1domain-eventstore-container
         image: eventstore/eventstore:latest
@@ -291,7 +297,7 @@ spec:
             claimName: zerrademo-ledger1-eventstore-data-volumeclaim
         - name: zerrademo-ledger1-eventstore-log-volume
           persistentVolumeClaim:
-            claimName: zerrademo-ledger1-eventstore-data-volumeclaim
+            claimName: zerrademo-ledger1-eventstore-log-volumeclaim
 
 ---
 
@@ -308,6 +314,8 @@ spec:
       labels:
         app: zerrademo-ledger2domain-eventstore-pod
     spec:
+      securityContext:
+        fsGroup: 1000
       containers:
       - name: zerrademo-ledger2domain-eventstore-container
         image: eventstore/eventstore:latest
@@ -334,7 +342,7 @@ spec:
             claimName: zerrademo-ledger2-eventstore-data-volumeclaim
         - name: zerrademo-ledger2-eventstore-log-volume
           persistentVolumeClaim:
-            claimName: zerrademo-ledger2-eventstore-data-volumeclaim
+            claimName: zerrademo-ledger2-eventstore-log-volumeclaim
 
 ---
 
@@ -354,7 +362,7 @@ spec:
       containers:
       - name: zerrademo-petsdomain-container
         image: szawaski/zerrademo-petsdomain
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         env:
           - name: ZerraDemo.Service.Weather
             value: "http://zerrademo-weatherdomain-service:9002"
@@ -391,7 +399,7 @@ spec:
       containers:
       - name: zerrademo-weatherdomain-container
         image: szawaski/zerrademo-weatherdomain
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         env:
           - name: MessageHost
             value: my-cluster-kafka-external-bootstrap.kafka:31340
@@ -422,7 +430,7 @@ spec:
       containers:
       - name: zerrademo-ledger1domain-container
         image: szawaski/zerrademo-ledger1domain
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         env:
 #         - name: Ledger1SqlConnectionStringMSSQL
 #           value: "Data Source=zerrademo-ledger1domain-mssql-service,1402;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
@@ -459,7 +467,7 @@ spec:
       containers:
       - name: zerrademo-ledger2domain-container
         image: szawaski/zerrademo-ledger2domain
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         env:
           - name: Ledger2EventStoreServer
             value: "tcp://zerrademo-ledger2domain-eventstore-service:2114"
@@ -492,7 +500,7 @@ spec:
       containers:
       - name: zerrademo-web-container
         image: szawaski/zerrademo-web
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         env:
           - name: ZerraDemo.Service.Pets
             value: "http://zerrademo-petsdomain-service:9001"
@@ -675,3 +683,17 @@ spec:
     targetPort: 80
     nodePort: 30000
   type: NodePort
+  
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: zerrademo-web-loadbalancer
+spec:
+  selector:
+    app: zerrademo-web-pod
+  ports:
+    - port: 80
+      targetPort: 80
+  type: LoadBalancer
