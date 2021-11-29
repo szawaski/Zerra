@@ -143,8 +143,13 @@ namespace Zerra.CQRS.Network
             }
             catch
             {
-                if (responseBodyStream != null)
-                    responseBodyStream.Dispose();
+                try
+                {
+                    //crypto stream can error, we want to throw the actual error
+                    if (responseBodyStream != null)
+                        responseBodyStream.Dispose();
+                }
+                catch { }
                 if (requestBodyStream != null)
                     requestBodyStream.Dispose();
                 if (requestBodyCryptoStream != null)
@@ -297,11 +302,17 @@ namespace Zerra.CQRS.Network
             {
                 if (responseBodyStream != null)
                 {
+                    try
+                    {
+                        //crypto stream can error, we want to throw the actual error
+
 #if NETSTANDARD2_0
-                    responseBodyStream.Dispose();
+                        responseBodyStream.Dispose();
 #else
-                    await responseBodyStream.DisposeAsync();
+                        await responseBodyStream.DisposeAsync();
 #endif
+                    }
+                    catch { }
                 }
                 if (requestBodyStream != null)
                 {

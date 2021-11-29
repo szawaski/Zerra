@@ -152,7 +152,7 @@ namespace Zerra.CQRS.Network
 #endif
 
                     //Response Body
-                    responseBodyStream = new TcpRawProtocolBodyStream(stream, null, false);
+                    responseBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
 
                     int bytesRead;
                     if (result.Stream != null)
@@ -272,7 +272,7 @@ namespace Zerra.CQRS.Network
 #endif
 
                     //Response Body Empty
-                    responseBodyStream = new TcpRawProtocolBodyStream(stream, null, false);
+                    responseBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
                     await responseBodyStream.FlushAsync(cancellationToken);
 #if NETSTANDARD2_0
                     responseBodyStream.Dispose();
@@ -337,7 +337,7 @@ namespace Zerra.CQRS.Network
 #endif
 
                         //Response Body
-                        responseBodyStream = new TcpRawProtocolBodyStream(stream, null, false);
+                        responseBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
                         if (encryptionKey != null)
                         {
                             responseBodyCryptoStream = networkType switch
