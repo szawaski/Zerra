@@ -162,6 +162,8 @@ namespace Zerra.Identity.Consumers
             }
             else
             {
+                throw new IdentityProviderException($"OpenID code flow not currently supported");
+
                 var callbackBinding = OpenIDBinding.GetBindingForRequest(context.Request, BindingDirection.Response);
 
                 var callbackDocument = new OpenIDLoginResponse(callbackBinding);
