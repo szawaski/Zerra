@@ -8,7 +8,7 @@ namespace Zerra.Identity.Cryptography
 {
     public static class ConfigSignatureDescriptions
     {
-        private static object locker = new object();
+        private static readonly object locker = new object();
         private static bool registered = false;
         public static void Add()
         {

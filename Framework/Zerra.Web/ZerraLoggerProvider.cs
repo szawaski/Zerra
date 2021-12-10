@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Microsoft.Extensions.Logging;
-using System;
 using Zerra.Collections;
 
 namespace Zerra.Web

@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Buffers;
 using System.Text;
 
 namespace Zerra.IO

@@ -25,7 +25,7 @@ namespace Zerra.Identity.Cryptography
 
             string encryptionAlgorithmUrl = Algorithms.GetEncryptionAlgorithmUrl(encryptionAlgorithm);
             string encryptionKeyAlgorithmUrl = useOeap ? Algorithms.RsaOaep : Algorithms.Rsa;
-            if (!(cert.PublicKey.Key is RSA rsa))
+            if (!(cert.GetRSAPublicKey() is RSA rsa))
                 throw new IdentityProviderException("Cert must be an RSA algorithm");
 
             EncryptedXml encryptedXml = new EncryptedXml(xmlDoc);

@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using Zerra.Encryption;
 
 namespace Zerra.Identity.OpenID.Documents
 {
@@ -33,20 +34,20 @@ namespace Zerra.Identity.OpenID.Documents
                 return;
 
             var keys = json["keys"].ToObject<JwtKey[]>();
-            this.Certs = GetCerts(keys);
+            this.Certs = OpenIDKeysResponse.GetCerts(keys);
         }
 
         public override JObject GetJson()
         {
             var json = new JObject();
 
-            var keys = GetKeys(this.Certs);
+            var keys = OpenIDKeysResponse.GetKeys(this.Certs);
             json.Add("keys", JToken.FromObject(keys));
 
             return json;
         }
 
-        private X509Certificate2[] GetCerts(JwtKey[] keys)
+        private static X509Certificate2[] GetCerts(JwtKey[] keys)
         {
             var certs = new List<X509Certificate2>();
             foreach (var key in keys)
@@ -68,12 +69,12 @@ namespace Zerra.Identity.OpenID.Documents
             return certs.ToArray();
         }
 
-        private JwtKey[] GetKeys(X509Certificate2[] certs)
+        private static JwtKey[] GetKeys(X509Certificate2[] certs)
         {
             var keys = new List<JwtKey>();
             foreach (var cert in certs)
             {
-                if (cert.PublicKey.Key is RSA rsa)
+                if (cert.GetRSAPublicKey() is RSA rsa)
                 {
                     var parameters = rsa.ExportParameters(false);
                     var publicKey = cert.Export(X509ContentType.Cert);
@@ -84,8 +85,8 @@ namespace Zerra.Identity.OpenID.Documents
                         Use = "sig",
                         KeyType = "RSA",
                         X509Thumbprint = cert.Thumbprint, //same as KeyID
-                        Exponent = Base64Url.ToBase64String(parameters.Exponent),
-                        Modulus = Base64Url.ToBase64String(parameters.Modulus),
+                        Exponent = Base64UrlEncoder.ToBase64String(parameters.Exponent),
+                        Modulus = Base64UrlEncoder.ToBase64String(parameters.Modulus),
                         X509Certificates = new string[]
                         {
                             certString
@@ -95,7 +96,7 @@ namespace Zerra.Identity.OpenID.Documents
                 }
                 else
                 {
-                    throw new IdentityProviderException(String.Format("Not implemented loading x509 public key type {0}", cert.PublicKey.Key.GetType()));
+                    throw new IdentityProviderException(String.Format("Not implemented loading x509 public key type {0}", cert.GetRSAPublicKey().GetType()));
                 }
             }
             return keys.ToArray();

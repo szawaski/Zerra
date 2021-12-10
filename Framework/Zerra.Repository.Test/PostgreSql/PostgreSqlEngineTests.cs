@@ -4,7 +4,6 @@
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Npgsql;
-using System;
 using System.Linq;
 using System.Text;
 using Zerra.Providers;

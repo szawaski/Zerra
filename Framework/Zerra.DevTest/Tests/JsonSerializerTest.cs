@@ -6,7 +6,6 @@ using BenchmarkDotNet.Attributes;
 using System;
 using System.Diagnostics;
 using System.Text;
-using Zerra.IO;
 using Zerra.Serialization;
 
 namespace Zerra.DevTest

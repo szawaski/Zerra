@@ -17,37 +17,40 @@ using Zerra.Identity.OpenID.Documents;
 using Zerra.Identity.TokenManagers;
 using System.Text;
 using System.Security.Cryptography;
+using Zerra.Encryption;
 
 namespace Zerra.Identity.Consumers
 {
     public class OpenIDIdentityConsumer : IIdentityConsumer
     {
-        public readonly string LoginUrl;
-        public readonly string RedirectUrl;
-        public readonly string LogoutUrl;
-        public readonly string TokenUrl;
-        public readonly string UserInfoUrl;
-        public readonly string RedirectUrlPostLogout;
-        public readonly string IdentityProviderCertUrl;
-        public readonly string Scope;
-        public readonly bool RequiredSignature;
-        public readonly OpenIDResponseType ResponseType;
+        private readonly string serviceProvider;
+        private readonly string loginUrl;
+        private readonly string redirectUrl;
+        private readonly string logoutUrl;
+        private readonly string tokenUrl;
+        private readonly string userInfoUrl;
+        private readonly string redirectUrlPostLogout;
+        private readonly string identityProviderCertUrl;
+        private readonly string scope;
+        private readonly bool requiredSignature;
+        private readonly OpenIDResponseType responseType;
 
-        public OpenIDIdentityConsumer(string loginUrl, string redirectUrl, string logoutUrl, string tokenUrl, string userInfoUrl, string redirectUrlPostLogout, string identityProviderCertUrl, string scope, bool requiredSignature, OpenIDResponseType responseType)
+        public OpenIDIdentityConsumer(string serviceProvider, string loginUrl, string redirectUrl, string logoutUrl, string tokenUrl, string userInfoUrl, string redirectUrlPostLogout, string identityProviderCertUrl, string scope, bool requiredSignature, OpenIDResponseType responseType)
         {
-            this.LoginUrl = loginUrl;
-            this.RedirectUrl = redirectUrl;
-            this.LogoutUrl = logoutUrl;
-            this.TokenUrl = tokenUrl;
-            this.UserInfoUrl = userInfoUrl;
-            this.RedirectUrlPostLogout = redirectUrlPostLogout;
-            this.IdentityProviderCertUrl = identityProviderCertUrl;
-            this.Scope = scope;
-            this.RequiredSignature = requiredSignature;
-            this.ResponseType = responseType;
+            this.serviceProvider = serviceProvider;
+            this.loginUrl = loginUrl;
+            this.redirectUrl = redirectUrl;
+            this.logoutUrl = logoutUrl;
+            this.tokenUrl = tokenUrl;
+            this.userInfoUrl = userInfoUrl;
+            this.redirectUrlPostLogout = redirectUrlPostLogout;
+            this.identityProviderCertUrl = identityProviderCertUrl;
+            this.scope = scope;
+            this.requiredSignature = requiredSignature;
+            this.responseType = responseType;
         }
 
-        public static async Task<OpenIDIdentityConsumer> FromMetadata(string metadataUrl, string redirectUrl, string redirectUrlPostLogout, OpenIDResponseType responseType)
+        public static async Task<OpenIDIdentityConsumer> FromMetadata(string serviceProvider, string metadataUrl, string redirectUrl, string redirectUrlPostLogout, OpenIDResponseType responseType)
         {
             var request = WebRequest.Create(metadataUrl);
             var response = await request.GetResponseAsync();
@@ -69,6 +72,7 @@ namespace Zerra.Identity.Consumers
             var scope = sb.ToString();
 
             return new OpenIDIdentityConsumer(
+                serviceProvider,
                 document.LoginUrl,
                 redirectUrl,
                 document.LogoutUrl,
@@ -82,26 +86,26 @@ namespace Zerra.Identity.Consumers
             );
         }
 
-        public async ValueTask<IActionResult> Login(string serviceProvider, string state)
+        public async ValueTask<IActionResult> Login(string state)
         {
             var nonce = NonceManager.Generate(serviceProvider);
 
             var requestDocument = new OpenIDLoginRequest(
                 serviceProvider: serviceProvider,
-                redirectUrl: RedirectUrl,
-                responseType: this.ResponseType,
+                redirectUrl: redirectUrl,
+                responseType: this.responseType,
                 responseMode: OpenIDResponseMode.form_post,
                 bindingType: BindingType.Form,
-                scope: this.Scope,
+                scope: this.scope,
                 state: state,
                 nonce: nonce
             );
 
             var requestBinding = OpenIDBinding.GetBindingForDocument(requestDocument, BindingType.Form);
-            return requestBinding.GetResponse(LoginUrl);
+            return requestBinding.GetResponse(loginUrl);
         }
 
-        public async ValueTask<IdentityModel> Callback(HttpContext context, string serviceProvider)
+        public async ValueTask<IdentityModel> Callback(HttpContext context)
         {
             if (OpenIDJwtBinding.IsOpenIDJwtBinding(context.Request))
             {
@@ -116,10 +120,10 @@ namespace Zerra.Identity.Consumers
                 if (callbackDocument.Audience != serviceProvider)
                     throw new IdentityProviderException("OpenID Audience is not valid", $"Received: {serviceProvider}, Expected: {callbackDocument.Audience}");
 
-                var keys = await GetSignaturePublicKeys(this.IdentityProviderCertUrl);
+                var keys = await GetSignaturePublicKeys(this.identityProviderCertUrl);
                 var key = keys.FirstOrDefault(x => x.X509Thumbprint == callbackDocument.X509Thumbprint);
                 if (key == null)
-                    keys.FirstOrDefault(x => x.KeyID == callbackDocument.KeyID);
+                    key = keys.FirstOrDefault(x => x.KeyID == callbackDocument.KeyID);
                 if (key == null)
                     throw new IdentityProviderException("Identity Provider OpenID certificate not found from Json Key Url");
                 if (key.KeyType != "RSA")
@@ -130,8 +134,8 @@ namespace Zerra.Identity.Consumers
                 {
                     var rsaParams = new RSAParameters()
                     {
-                        Modulus = Base64Url.FromBase64String(key.Modulus),
-                        Exponent = Base64Url.FromBase64String(key.Exponent)
+                        Modulus = Base64UrlEncoder.FromBase64String(key.Modulus),
+                        Exponent = Base64UrlEncoder.FromBase64String(key.Exponent)
                     };
                     rsa = RSA.Create();
                     rsa.ImportParameters(rsaParams);
@@ -144,7 +148,7 @@ namespace Zerra.Identity.Consumers
                     rsa = cert.GetRSAPublicKey();
                 }
 
-                callbackBinding.ValidateSignature(rsa, RequiredSignature);
+                callbackBinding.ValidateSignature(rsa, requiredSignature);
                 callbackBinding.ValidateFields();
 
                 var identity = new IdentityModel()
@@ -177,7 +181,7 @@ namespace Zerra.Identity.Consumers
                 var requestTokenBinding = OpenIDBinding.GetBindingForDocument(requestTokenDocument, BindingType.Form);
 
                 var requestTokenBody = requestTokenBinding.GetContent();
-                var requestToken = WebRequest.Create(TokenUrl);
+                var requestToken = WebRequest.Create(tokenUrl);
                 requestToken.Method = "POST";
                 requestToken.ContentType = "application/x-www-form-urlencoded";
 
@@ -218,19 +222,19 @@ namespace Zerra.Identity.Consumers
             return keys.keys;
         }
 
-        public async ValueTask<IActionResult> Logout(string serviceProvider, string state)
+        public async ValueTask<IActionResult> Logout(string state)
         {
             var requestDocument = new OpenIDLogoutRequest(
                 serviceProvider: serviceProvider,
-                redirectUrl: RedirectUrlPostLogout,
+                redirectUrl: redirectUrlPostLogout,
                 state: state
             );
 
             var requestBinding = OpenIDBinding.GetBindingForDocument(requestDocument, BindingType.Query);
-            return requestBinding.GetResponse(LogoutUrl);
+            return requestBinding.GetResponse(logoutUrl);
         }
 
-        public async ValueTask<LogoutModel> LogoutCallback(HttpContext context, string serviceProvider)
+        public async ValueTask<LogoutModel> LogoutCallback(HttpContext context)
         {
             var callbackBinding = OpenIDBinding.GetBindingForRequest(context.Request, BindingDirection.Response);
 

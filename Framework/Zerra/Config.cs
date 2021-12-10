@@ -12,7 +12,7 @@ namespace Zerra
 {
     public static class Config
     {
-        private static IConfigurationRoot configuration;
+        private static IConfiguration configuration;
         public static void LoadConfiguration(string[] commandLineArgs = null, string encryptionKey = null, string path = null)
         {
             var builder = new ConfigurationBuilder();
@@ -36,9 +36,9 @@ namespace Zerra
 
             configuration = builder.Build();
         }
-        public static void LoadConfiguration(IConfigurationRoot configurationRoot)
+        public static void LoadConfiguration(IConfiguration configuration)
         {
-            configuration = configurationRoot ?? throw new ArgumentNullException(nameof(configurationRoot));
+            Config.configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
         public static string GetSetting(string name, params string[] sections)
@@ -57,7 +57,7 @@ namespace Zerra
             return value;
         }
 
-        public static IConfigurationRoot GetConfigurationRoot()
+        public static IConfiguration GetConfiguration()
         {
             if (configuration == null) throw new InvalidOperationException("Configuration has not been loaded");
             return configuration;

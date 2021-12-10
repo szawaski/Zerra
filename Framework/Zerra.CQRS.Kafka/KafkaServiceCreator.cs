@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Zerra.Collections;
-using Zerra.CQRS.Network;
 using Zerra.CQRS.Settings;
 using Zerra.Encryption;
 

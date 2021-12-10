@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using Zerra;
 using Zerra.Repository;
 
 namespace Zerra.DevTest

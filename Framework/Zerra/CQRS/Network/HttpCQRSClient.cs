@@ -9,7 +9,6 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using Zerra.Logging;
 using Zerra.IO;
-using Zerra.Encryption;
 
 namespace Zerra.CQRS.Network
 {

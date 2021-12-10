@@ -6,6 +6,7 @@ using System;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using Zerra.Encryption;
 
 namespace Zerra.Identity.Cryptography
 {
@@ -20,24 +21,24 @@ namespace Zerra.Identity.Cryptography
         {
             var bytes = Encoding.UTF8.GetBytes(text);
             var encrypyedBytes = EncryptBytes(bytes, cert);
-            return base64UrlEncoding ? Base64Url.ToBase64String(encrypyedBytes) : Convert.ToBase64String(encrypyedBytes);
+            return base64UrlEncoding ? Base64UrlEncoder.ToBase64String(encrypyedBytes) : Convert.ToBase64String(encrypyedBytes);
         }
         public static byte[] EncryptBytes(byte[] bytes, X509Certificate2 cert)
         {
-            if (cert.PublicKey.Key is RSA rsa)
+            if (cert.GetRSAPublicKey() is RSA rsa)
             {
                 var encryptedBytes = rsa.Encrypt(bytes, RSAEncryptionPadding.Pkcs1);
                 return encryptedBytes;
             }
             else
             {
-                throw new IdentityProviderException(String.Format("Not implemented loading x509 public key type {0}", cert.PublicKey.Key.GetType()));
+                throw new IdentityProviderException(String.Format("Not implemented loading x509 public key type {0}", cert.GetRSAPublicKey()));
             }
         }
 
         public static string DecryptString(string text, X509Certificate2 cert, bool base64UrlEncoding)
         {
-            var bytes = base64UrlEncoding ? Base64Url.FromBase64String(text) : Convert.FromBase64String(text);
+            var bytes = base64UrlEncoding ? Base64UrlEncoder.FromBase64String(text) : Convert.FromBase64String(text);
             var decryptedBytes = DecryptBytes(bytes, cert);
             return Encoding.UTF8.GetString(decryptedBytes);
         }
@@ -53,7 +54,7 @@ namespace Zerra.Identity.Cryptography
             }
             else
             {
-                throw new IdentityProviderException(String.Format("Not implemented loading x509 private key type {0}", cert.PublicKey.Key.GetType()));
+                throw new IdentityProviderException(String.Format("Not implemented loading x509 private key type {0}", cert.GetRSAPublicKey().GetType()));
             }
         }
     }

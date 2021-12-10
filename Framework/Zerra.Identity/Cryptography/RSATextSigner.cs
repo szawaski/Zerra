@@ -5,6 +5,7 @@
 using System;
 using System.Security.Cryptography;
 using System.Text;
+using Zerra.Encryption;
 
 namespace Zerra.Identity.Cryptography
 {
@@ -23,7 +24,7 @@ namespace Zerra.Identity.Cryptography
         public static string GenerateSignatureString(byte[] bytes, RSA rsa, SignatureAlgorithm signatureAlgorithm, bool base64UrlEncoding)
         {
             var signedBytes = GenerateSignatureBytes(bytes, rsa, signatureAlgorithm);
-            var signedText = base64UrlEncoding ? Base64Url.ToBase64String(signedBytes) : Convert.ToBase64String(signedBytes);
+            var signedText = base64UrlEncoding ? Base64UrlEncoder.ToBase64String(signedBytes) : Convert.ToBase64String(signedBytes);
             return signedText;
         }
         public static byte[] GenerateSignatureBytes(byte[] bytes, RSA rsa, SignatureAlgorithm signatureAlgorithm)
@@ -43,7 +44,7 @@ namespace Zerra.Identity.Cryptography
                 return false;
 
             var textBytes = Encoding.UTF8.GetBytes(text);
-            var signatureBytes = base64UrlEncoding ? Base64Url.FromBase64String(signature) : Convert.FromBase64String(signature);
+            var signatureBytes = base64UrlEncoding ? Base64UrlEncoder.FromBase64String(signature) : Convert.FromBase64String(signature);
             var valid = Validate(textBytes, signatureBytes, rsa, signatureAlgorithm);
             return valid;
         }

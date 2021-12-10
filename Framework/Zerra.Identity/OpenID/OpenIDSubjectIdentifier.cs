@@ -6,9 +6,9 @@ namespace Zerra.Identity.OpenID
 {
     public enum OpenIDSubjectIdentifier
     {
-        [DisplayText("public")]
+        [EnumName("public")]
         public_,
-        [DisplayText("pairwise")]
+        [EnumName("pairwise")]
         pairwise
     }
 }

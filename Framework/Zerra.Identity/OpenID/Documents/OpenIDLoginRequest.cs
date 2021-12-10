@@ -46,12 +46,12 @@ namespace Zerra.Identity.OpenID.Documents
             this.RedirectUrl = json["redirect_uri"]?.ToObject<string>();
 
             if (!String.IsNullOrWhiteSpace(json["response_type"]?.ToObject<string>()))
-                this.ResponseType = DisplayTextExtensions.Parse<OpenIDResponseType>(json["response_type"]?.ToObject<string>());
+                this.ResponseType = EnumName.Parse<OpenIDResponseType>(json["response_type"]?.ToObject<string>());
             else
                 this.ResponseType = OpenIDResponseType.id_token;
 
             if (!String.IsNullOrWhiteSpace(json["response_mode"]?.ToObject<string>()))
-                this.ResponseMode = DisplayTextExtensions.Parse<OpenIDResponseMode>(json["response_mode"]?.ToObject<string>());
+                this.ResponseMode = EnumName.Parse<OpenIDResponseMode>(json["response_mode"]?.ToObject<string>());
             else
                 this.ResponseMode = OpenIDResponseMode.form_post;
 
@@ -83,9 +83,9 @@ namespace Zerra.Identity.OpenID.Documents
             if (this.RedirectUrl != null)
                 json.Add("redirect_uri", JToken.FromObject(this.RedirectUrl));
             if (this.ResponseMode != null)
-                json.Add("response_mode", JToken.FromObject(this.ResponseMode?.DisplayText()));
+                json.Add("response_mode", JToken.FromObject(this.ResponseMode?.EnumName()));
             if (this.ResponseType != null)
-                json.Add("response_type", JToken.FromObject(this.ResponseType?.DisplayText()));
+                json.Add("response_type", JToken.FromObject(this.ResponseType?.EnumName()));
             if (this.Scope != null)
                 json.Add("scope", JToken.FromObject(this.Scope));
             if (this.State != null)

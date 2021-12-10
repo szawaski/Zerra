@@ -9,6 +9,7 @@ using System.Reflection;
 using Zerra.Collections;
 using Zerra.Reflection;
 
+[AttributeUsage(AttributeTargets.Field)]
 public class EnumName : Attribute
 {
     public string Text { get; set; }
@@ -136,7 +137,7 @@ public class EnumName : Attribute
                 var field = fields.First(x => x.Name == name);
                 items.Add(name.ToLower(), enumValue);
                 var attribute = field.GetCustomAttribute<EnumName>(false);
-                if (attribute != null && items.Keys.Contains(attribute.Text))
+                if (attribute != null && items.ContainsKey(attribute.Text))
                     items.Add(attribute.Text.ToLower(), enumValue);
             }
             return items;

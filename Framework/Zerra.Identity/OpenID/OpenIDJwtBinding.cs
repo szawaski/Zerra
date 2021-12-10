@@ -15,6 +15,7 @@ using Zerra.Identity.OpenID.Bindings;
 using System.Security.Cryptography;
 using System.Net;
 using System.Reflection;
+using Zerra.Encryption;
 
 namespace Zerra.Identity.OpenID
 {
@@ -295,12 +296,12 @@ namespace Zerra.Identity.OpenID
         protected static string EncodeJwt(string jwt)
         {
             var bytes = Encoding.UTF8.GetBytes(jwt);
-            return Base64Url.ToBase64String(bytes);
+            return Base64UrlEncoder.ToBase64String(bytes);
         }
 
         protected static string DecodeJwt(string base64)
         {
-            var bytes = Base64Url.FromBase64String(base64);
+            var bytes = Base64UrlEncoder.FromBase64String(base64);
             return Encoding.UTF8.GetString(bytes);
         }
     }

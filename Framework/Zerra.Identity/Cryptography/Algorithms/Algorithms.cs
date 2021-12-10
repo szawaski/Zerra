@@ -344,21 +344,21 @@ namespace Zerra.Identity.Cryptography
             {
                 case EncryptionAlgorithm.Aes128Cbc:
                     {
-                        var aes = new RijndaelManaged();
+                        var aes = Aes.Create();
                         aes.BlockSize = 128;
                         aes.KeySize = 128;
                         return aes;
                     }
                 case EncryptionAlgorithm.Aes192Cbc:
                     {
-                        var aes = new RijndaelManaged();
+                        var aes = Aes.Create();
                         aes.BlockSize = 128;
                         aes.KeySize = 192;
                         return aes;
                     }
                 case EncryptionAlgorithm.Aes256Cbc:
                     {
-                        var aes = new RijndaelManaged();
+                        var aes = Aes.Create();
                         aes.BlockSize = 128;
                         aes.KeySize = 256;
                         return aes;

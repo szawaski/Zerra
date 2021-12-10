@@ -66,7 +66,7 @@ namespace Zerra.Identity.Cryptography
             SignedXml signedXml = new SignedXml(xmlDoc);
             signedXml.LoadXml(signatureElement);
 
-            bool valid = signedXml.CheckSignature(cert.PublicKey.Key);
+            bool valid = signedXml.CheckSignature(cert.GetRSAPublicKey());
             return valid;
         }
 

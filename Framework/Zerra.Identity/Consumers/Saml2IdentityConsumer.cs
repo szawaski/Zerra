@@ -16,50 +16,52 @@ namespace Zerra.Identity.Consumers
 {
     public class Saml2IdentityConsumer : IIdentityConsumer
     {
-        public readonly string LoginUrl;
-        public readonly string RedirectUrl;
-        public readonly string LogoutUrl;
-        public readonly string RedirectUrlPostLogout;
-        public readonly X509Certificate2 ServiceProviderCert;
-        public readonly X509Certificate2 IdentityProviderCert;
-        public readonly bool RequiredSignature;
-        public readonly bool RequiredEncryption;
+        private readonly string serviceProvider;
+        private readonly string loginUrl;
+        private readonly string redirectUrl;
+        private readonly string logoutUrl;
+        private readonly string redirectUrlPostLogout;
+        private readonly X509Certificate2 serviceProviderCert;
+        private readonly X509Certificate2 identityProviderCert;
+        private readonly bool requiredSignature;
+        private readonly bool requiredEncryption;
 
-        public Saml2IdentityConsumer(string loginUrl, string redirectUrl, string logoutUrl, string redirectUrlPostLogout, X509Certificate2 serviceProviderCert, X509Certificate2 identityProviderCert, bool requiredSignature, bool requiredEncryption)
+        public Saml2IdentityConsumer(string serviceProvider, string loginUrl, string redirectUrl, string logoutUrl, string redirectUrlPostLogout, X509Certificate2 serviceProviderCert, X509Certificate2 identityProviderCert, bool requiredSignature, bool requiredEncryption)
         {
-            this.LoginUrl = loginUrl;
-            this.RedirectUrl = redirectUrl;
-            this.LogoutUrl = logoutUrl;
-            this.RedirectUrlPostLogout = redirectUrlPostLogout;
-            this.ServiceProviderCert = serviceProviderCert;
-            this.IdentityProviderCert = identityProviderCert;
-            this.RequiredSignature = requiredSignature;
-            this.RequiredEncryption = requiredEncryption;
+            this.serviceProvider = serviceProvider;
+            this.loginUrl = loginUrl;
+            this.redirectUrl = redirectUrl;
+            this.logoutUrl = logoutUrl;
+            this.redirectUrlPostLogout = redirectUrlPostLogout;
+            this.serviceProviderCert = serviceProviderCert;
+            this.identityProviderCert = identityProviderCert;
+            this.requiredSignature = requiredSignature;
+            this.requiredEncryption = requiredEncryption;
         }
 
-        public async ValueTask<IActionResult> Login(string serviceProvider, string state)
+        public async ValueTask<IActionResult> Login(string state)
         {
             var id = SamlIDManager.Generate(serviceProvider);
 
             var requestDocument = new Saml2AuthnRequest(
                 id: id,
                 issuer: serviceProvider, 
-                assertionConsumerServiceURL: RedirectUrl,
+                assertionConsumerServiceURL: redirectUrl,
                 bindingType: BindingType.Form
             );
 
             var requestBinding = Saml2Binding.GetBindingForDocument(requestDocument, BindingType.Form, SignatureAlgorithm.RsaSha256, null, null);
-            requestBinding.Sign(ServiceProviderCert, RequiredSignature);
-            return requestBinding.GetResponse(LoginUrl);
+            requestBinding.Sign(serviceProviderCert, requiredSignature);
+            return requestBinding.GetResponse(loginUrl);
         }
 
-        public async ValueTask<IdentityModel> Callback(HttpContext context, string serviceProvider)
+        public async ValueTask<IdentityModel> Callback(HttpContext context)
         {
             var callbackBinding = Saml2Binding.GetBindingForRequest(context.Request, BindingDirection.Response);
 
-            callbackBinding.ValidateSignature(IdentityProviderCert, true);
-            callbackBinding.Decrypt(ServiceProviderCert, RequiredEncryption);
-            callbackBinding.ValidateFields(new string[] { RedirectUrl });
+            callbackBinding.ValidateSignature(identityProviderCert, true);
+            callbackBinding.Decrypt(serviceProviderCert, requiredEncryption);
+            callbackBinding.ValidateFields(new string[] { redirectUrl });
 
             var callbackDocument = new Saml2AuthnResponse(callbackBinding);
 
@@ -86,28 +88,28 @@ namespace Zerra.Identity.Consumers
             return identity;
         }
 
-        public async ValueTask<IActionResult> Logout(string serviceProvider, string state)
+        public async ValueTask<IActionResult> Logout(string state)
         {
             var id = SamlIDManager.Generate(serviceProvider);
 
             var requestDocument = new Saml2LogoutRequest(
                 id: id,
                 issuer: serviceProvider,
-                destination: RedirectUrlPostLogout
+                destination: redirectUrlPostLogout
             );
 
             var requestBinding = Saml2Binding.GetBindingForDocument(requestDocument, BindingType.Query, SignatureAlgorithm.RsaSha256, null, null);
-            requestBinding.Sign(ServiceProviderCert, RequiredSignature);
-            requestBinding.GetResponse(LogoutUrl);
-            return requestBinding.GetResponse(LogoutUrl);
+            requestBinding.Sign(serviceProviderCert, requiredSignature);
+            requestBinding.GetResponse(logoutUrl);
+            return requestBinding.GetResponse(logoutUrl);
         }
 
-        public async ValueTask<LogoutModel> LogoutCallback(HttpContext context, string serviceProvider)
+        public async ValueTask<LogoutModel> LogoutCallback(HttpContext context)
         {
             var callbackBinding = Saml2Binding.GetBindingForRequest(context.Request, BindingDirection.Response);
 
-            callbackBinding.ValidateSignature(IdentityProviderCert, true);
-            callbackBinding.ValidateFields(new string[] { RedirectUrl });
+            callbackBinding.ValidateSignature(identityProviderCert, true);
+            callbackBinding.ValidateFields(new string[] { redirectUrl });
 
             var callbackDocument = new Saml2LogoutResponse(callbackBinding);
 

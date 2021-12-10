@@ -5,7 +5,7 @@
 using System;
 using Zerra.IO;
 
-namespace Zerra.CQRS.Network
+namespace Zerra.Encryption
 {
     public static class Base64UrlEncoder
     {

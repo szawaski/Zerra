@@ -14,31 +14,33 @@ namespace Zerra.Identity.Consumers
 {
     public class OAuth2IdentityConsumer : IIdentityConsumer
     {
-        public readonly string LoginUrl;
-        public readonly string RedirectUrl;
-        public readonly string TokenUrl;
-        public readonly string IdentityUrl;
-        public readonly string LogoutUrl;
-        public readonly string RedirectUrlPostLogout;
+        private readonly string serviceProvider;
+        private readonly string loginUrl;
+        private readonly string redirectUrl;
+        private readonly string tokenUrl;
+        private readonly string identityUrl;
+        private readonly string logoutUrl;
+        private readonly string redirectUrlPostLogout;
 
-        public OAuth2IdentityConsumer(string loginUrl, string redirectUrl, string tokenUrl, string identityUrl, string logoutUrl, string redirectUrlPostLogout)
+        public OAuth2IdentityConsumer(string serviceProvider, string loginUrl, string redirectUrl, string tokenUrl, string identityUrl, string logoutUrl, string redirectUrlPostLogout)
         {
-            this.LoginUrl = loginUrl;
-            this.RedirectUrl = redirectUrl;
-            this.TokenUrl = tokenUrl;
-            this.IdentityUrl = identityUrl;
-            this.LogoutUrl = logoutUrl;
-            this.RedirectUrlPostLogout = redirectUrlPostLogout;
+            this.serviceProvider = serviceProvider;
+            this.loginUrl = loginUrl;
+            this.redirectUrl = redirectUrl;
+            this.tokenUrl = tokenUrl;
+            this.identityUrl = identityUrl;
+            this.logoutUrl = logoutUrl;
+            this.redirectUrlPostLogout = redirectUrlPostLogout;
         }
 
-        public async ValueTask<IActionResult> Login(string serviceProvider, string state)
+        public async ValueTask<IActionResult> Login(string state)
         {
-            var requestDocument = new OAuth2LoginRequest(serviceProvider, RedirectUrl, state);
+            var requestDocument = new OAuth2LoginRequest(serviceProvider, redirectUrl, state);
             var requestBinding = OAuth2Binding.GetBindingForDocument(requestDocument, BindingType.Form);
-            return requestBinding.GetResponse(LoginUrl);
+            return requestBinding.GetResponse(loginUrl);
         }
 
-        public async ValueTask<IdentityModel> Callback(HttpContext context, string serviceProvider)
+        public async ValueTask<IdentityModel> Callback(HttpContext context)
         {
             var callbackBinding = OAuth2Binding.GetBindingForRequest(context.Request, BindingDirection.Response);
 
@@ -57,7 +59,7 @@ namespace Zerra.Identity.Consumers
             var requestTokenDocument = new OAuth2TokenRequest(serviceProvider, code);
             var requestTokenBinding = OAuth2Binding.GetBindingForDocument(requestTokenDocument, BindingType.Query);
 
-            var requestTokenAction = (RedirectResult)requestTokenBinding.GetResponse(TokenUrl);
+            var requestTokenAction = (RedirectResult)requestTokenBinding.GetResponse(tokenUrl);
             var requestToken = WebRequest.Create(requestTokenAction.Url);
             var responseToken = await requestToken.GetResponseAsync();
 
@@ -68,7 +70,7 @@ namespace Zerra.Identity.Consumers
             var requestIdentityDocument = new OAuth2IdentityRequest(serviceProvider, responseTokenDocument.Token);
             var requestIdentityBinding = OAuth2Binding.GetBindingForDocument(requestIdentityDocument, BindingType.Query);
 
-            var requestIdentityAction = (RedirectResult)requestIdentityBinding.GetResponse(IdentityUrl);
+            var requestIdentityAction = (RedirectResult)requestIdentityBinding.GetResponse(identityUrl);
             var requestIdentity = WebRequest.Create(requestIdentityAction.Url);
             var responseIdentity = await requestIdentity.GetResponseAsync();
 
@@ -94,19 +96,19 @@ namespace Zerra.Identity.Consumers
             return identity;
         }
 
-        public async ValueTask<IActionResult> Logout(string serviceProvider, string state)
+        public async ValueTask<IActionResult> Logout(string state)
         {
             var requestDocument = new OAuth2LogoutRequest(
                 serviceProvider: serviceProvider,
-                redirectUrl: RedirectUrlPostLogout,
+                redirectUrl: redirectUrlPostLogout,
                 state: state
             );
 
             var requestBinding = OAuth2Binding.GetBindingForDocument(requestDocument , BindingType.Query);
-            return requestBinding.GetResponse(LogoutUrl);
+            return requestBinding.GetResponse(logoutUrl);
         }
 
-        public async ValueTask<LogoutModel> LogoutCallback(HttpContext context, string serviceProvider)
+        public async ValueTask<LogoutModel> LogoutCallback(HttpContext context)
         {
             var callbackBinding = OAuth2Binding.GetBindingForRequest(context.Request, BindingDirection.Response);
 

@@ -128,7 +128,7 @@ namespace Zerra.Identity.Saml2.Documents
             WriteSigningKey(xw);
             WriteEncryptionKey(xw);
 
-            WriteNameIDFormat(xw);
+            Saml2IMetadataResponse.WriteNameIDFormat(xw);
             WriteSingleSignOnService(xw);
             WriteSingleLogoutService(xw);
 
@@ -204,7 +204,7 @@ namespace Zerra.Identity.Saml2.Documents
             xw.WriteEndElement();
         }
 
-        private void WriteNameIDFormat(XmlWriter xw)
+        private static void WriteNameIDFormat(XmlWriter xw)
         {
             foreach (var nameIDFormat in NameIDFormats)
             {

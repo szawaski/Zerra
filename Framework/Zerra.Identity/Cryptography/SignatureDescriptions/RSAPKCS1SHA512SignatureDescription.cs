@@ -21,7 +21,7 @@ namespace Zerra.Identity.Cryptography
         {
             if (key == null)
             {
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
             }
 
             RSAPKCS1SignatureDeformatter deformatter = new RSAPKCS1SignatureDeformatter(key);
@@ -33,7 +33,7 @@ namespace Zerra.Identity.Cryptography
         {
             if (key == null)
             {
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
             }
 
             RSAPKCS1SignatureFormatter formatter = new RSAPKCS1SignatureFormatter(key);

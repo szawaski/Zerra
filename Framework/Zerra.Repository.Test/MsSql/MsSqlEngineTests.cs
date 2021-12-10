@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;

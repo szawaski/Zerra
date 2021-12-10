@@ -6,15 +6,15 @@ namespace Zerra.Identity.OpenID
 {
     public enum OpenIDResponseType
     {
-        [DisplayText("code")]
+        [EnumName("code")]
         code,
-        [DisplayText("id_token")]
+        [EnumName("id_token")]
         id_token,
-        [DisplayText("code id_token")]
+        [EnumName("code id_token")]
         code_id_token,
-        [DisplayText("token id_token")]
+        [EnumName("token id_token")]
         token_id_token,
-        [DisplayText("token")]
+        [EnumName("token")]
         token
     }
 }
