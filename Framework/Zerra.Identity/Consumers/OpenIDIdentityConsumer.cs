@@ -86,7 +86,7 @@ namespace Zerra.Identity.Consumers
             );
         }
 
-        public async ValueTask<IActionResult> Login(string state)
+        public ValueTask<IActionResult> Login(string state)
         {
             var nonce = NonceManager.Generate(serviceProvider);
 
@@ -102,7 +102,8 @@ namespace Zerra.Identity.Consumers
             );
 
             var requestBinding = OpenIDBinding.GetBindingForDocument(requestDocument, BindingType.Form);
-            return requestBinding.GetResponse(loginUrl);
+            var response = requestBinding.GetResponse(loginUrl);
+            return new ValueTask<IActionResult>(response);
         }
 
         public async ValueTask<IdentityModel> Callback(HttpContext context)
@@ -168,40 +169,40 @@ namespace Zerra.Identity.Consumers
             {
                 throw new IdentityProviderException($"OpenID code flow not currently supported");
 
-                var callbackBinding = OpenIDBinding.GetBindingForRequest(context.Request, BindingDirection.Response);
+//                var callbackBinding = OpenIDBinding.GetBindingForRequest(context.Request, BindingDirection.Response);
 
-                var callbackDocument = new OpenIDLoginResponse(callbackBinding);
-                if (!String.IsNullOrWhiteSpace(callbackDocument.Error))
-                    throw new IdentityProviderException($"{callbackDocument.Error}: {callbackDocument.ErrorDescription}");
+//                var callbackDocument = new OpenIDLoginResponse(callbackBinding);
+//                if (!String.IsNullOrWhiteSpace(callbackDocument.Error))
+//                    throw new IdentityProviderException($"{callbackDocument.Error}: {callbackDocument.ErrorDescription}");
 
-                var redirectUrl = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.Path}";
+//                var redirectUrl = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.Path}";
 
-                //Get Token--------------------
-                var requestTokenDocument = new OpenIDTokenRequest(callbackDocument.AccessCode, redirectUrl);
-                var requestTokenBinding = OpenIDBinding.GetBindingForDocument(requestTokenDocument, BindingType.Form);
+//                //Get Token--------------------
+//                var requestTokenDocument = new OpenIDTokenRequest(callbackDocument.AccessCode, redirectUrl);
+//                var requestTokenBinding = OpenIDBinding.GetBindingForDocument(requestTokenDocument, BindingType.Form);
 
-                var requestTokenBody = requestTokenBinding.GetContent();
-                var requestToken = WebRequest.Create(tokenUrl);
-                requestToken.Method = "POST";
-                requestToken.ContentType = "application/x-www-form-urlencoded";
+//                var requestTokenBody = requestTokenBinding.GetContent();
+//                var requestToken = WebRequest.Create(tokenUrl);
+//                requestToken.Method = "POST";
+//                requestToken.ContentType = "application/x-www-form-urlencoded";
 
-                var data = Encoding.UTF8.GetBytes(requestTokenBody);
-                requestToken.ContentLength = data.Length;
-                using (var stream = await requestToken.GetRequestStreamAsync())
-                {
-#if NETSTANDARD2_0
-                    await stream.WriteAsync(data, 0, data.Length);
-#else
-                    await stream.WriteAsync(data.AsMemory());
-#endif
-                }
+//                var data = Encoding.UTF8.GetBytes(requestTokenBody);
+//                requestToken.ContentLength = data.Length;
+//                using (var stream = await requestToken.GetRequestStreamAsync())
+//                {
+//#if NETSTANDARD2_0
+//                    await stream.WriteAsync(data, 0, data.Length);
+//#else
+//                    await stream.WriteAsync(data.AsMemory());
+//#endif
+//                }
 
-                var responseToken = await requestToken.GetResponseAsync();
+//                var responseToken = await requestToken.GetResponseAsync();
 
-                var responseTokenBinding = OpenIDJwtBinding.GetBindingForResponse(responseToken, BindingDirection.Response);
-                var responseTokenDocument = new OpenIDTokenResponse(responseTokenBinding);
+//                var responseTokenBinding = OpenIDJwtBinding.GetBindingForResponse(responseToken, BindingDirection.Response);
+//                var responseTokenDocument = new OpenIDTokenResponse(responseTokenBinding);
 
-                throw new NotImplementedException();
+//                throw new NotImplementedException();
             }
         }
 
@@ -222,7 +223,7 @@ namespace Zerra.Identity.Consumers
             return keys.keys;
         }
 
-        public async ValueTask<IActionResult> Logout(string state)
+        public ValueTask<IActionResult> Logout(string state)
         {
             var requestDocument = new OpenIDLogoutRequest(
                 serviceProvider: serviceProvider,
@@ -231,10 +232,11 @@ namespace Zerra.Identity.Consumers
             );
 
             var requestBinding = OpenIDBinding.GetBindingForDocument(requestDocument, BindingType.Query);
-            return requestBinding.GetResponse(logoutUrl);
+            var response = requestBinding.GetResponse(logoutUrl);
+            return new ValueTask<IActionResult>(response);
         }
 
-        public async ValueTask<LogoutModel> LogoutCallback(HttpContext context)
+        public ValueTask<LogoutModel> LogoutCallback(HttpContext context)
         {
             var callbackBinding = OpenIDBinding.GetBindingForRequest(context.Request, BindingDirection.Response);
 
@@ -247,7 +249,7 @@ namespace Zerra.Identity.Consumers
                 OtherClaims = callbackDocument.OtherClaims
             };
 
-            return logout;
+            return new ValueTask<LogoutModel>(logout);
         }
     }
 }

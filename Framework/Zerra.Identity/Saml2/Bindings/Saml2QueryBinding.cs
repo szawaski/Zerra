@@ -79,7 +79,7 @@ namespace Zerra.Identity.Saml2.Bindings
 
             var samlEncoded = EncodeSaml(this.Document.InnerXml);
             this.singingInput = BuildSignatureQueryString(samlEncoded);
-            this.Signature = RSATextSigner.GenerateSignatureString(this.singingInput, cert.GetRSAPrivateKey(), this.SignatureAlgorithm.Value, false);
+            this.Signature = TextSigner.GenerateSignatureString(this.singingInput, cert.GetRSAPrivateKey(), this.SignatureAlgorithm.Value, false);
         }
 
         public override void ValidateSignature(X509Certificate2 cert, bool requiredSignature)
@@ -92,7 +92,7 @@ namespace Zerra.Identity.Saml2.Bindings
 
             if (this.Signature != null)
             {
-                var valid = RSATextSigner.Validate(this.singingInput, this.Signature, cert.GetRSAPublicKey(), this.SignatureAlgorithm.Value, false);
+                var valid = TextSigner.Validate(this.singingInput, this.Signature, cert.GetRSAPublicKey(), this.SignatureAlgorithm.Value, false);
                 if (!valid)
                     throw new IdentityProviderException(String.Format("Saml2 Document Signature Not Valid Query:{0} Signature:{1}", this.singingInput, this.Signature));
             }

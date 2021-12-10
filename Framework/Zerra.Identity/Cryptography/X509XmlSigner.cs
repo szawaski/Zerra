@@ -27,12 +27,16 @@ namespace Zerra.Identity.Cryptography
 
         private static XmlElement GenerateSignedXml(XmlDocument xmlDoc, X509Certificate2 cert, SignatureAlgorithm signatureAlgorithm, DigestAlgorithm digestAlgorithm)
         {
+            var rsa = cert.GetRSAPrivateKey();
+            if (rsa == null)
+                throw new IdentityProviderException("X509 must be RSA");
+
             string signatureAlgorithmUrl = Algorithms.GetSignatureAlgorithmUrl(signatureAlgorithm);
             string digestAlgorithmUrl = Algorithms.GetDigestAlgorithmUrl(digestAlgorithm);
 
             var signedXml = new PrefixedSignedXml(xmlDoc);
 
-            signedXml.SigningKey = cert.PrivateKey;
+            signedXml.SigningKey = rsa;
             signedXml.SignedInfo.SignatureMethod = signatureAlgorithmUrl;
             signedXml.SignedInfo.CanonicalizationMethod = SignedXml.XmlDsigExcC14NTransformUrl;
 

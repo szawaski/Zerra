@@ -12,7 +12,7 @@ namespace Zerra.Identity.Cryptography
         public RSAPKCS1SHA512SignatureDescription()
         {
             base.KeyAlgorithm = typeof(RSACryptoServiceProvider).FullName;
-            base.DigestAlgorithm = typeof(SHA512Managed).FullName;
+            base.DigestAlgorithm = typeof(SHA512).FullName;
             base.FormatterAlgorithm = typeof(RSAPKCS1SignatureFormatter).FullName;
             base.DeformatterAlgorithm = typeof(RSAPKCS1SignatureDeformatter).FullName;
         }

@@ -57,7 +57,7 @@ namespace Zerra.Identity.OpenID.Documents
                     foreach (var x509String in key.X509Certificates)
                     {
                         var cert = new X509Certificate2(Convert.FromBase64String(x509String));
-                        cert.FriendlyName = key.KeyID;
+                        //cert.FriendlyName = key.KeyID;
                         certs.Add(cert);
                     }
                 }
@@ -74,30 +74,27 @@ namespace Zerra.Identity.OpenID.Documents
             var keys = new List<JwtKey>();
             foreach (var cert in certs)
             {
-                if (cert.GetRSAPublicKey() is RSA rsa)
+                var rsa = cert.GetRSAPublicKey();
+                if (rsa == null)
+                    throw new IdentityProviderException("X509 must be RSA");
+
+                var parameters = rsa.ExportParameters(false);
+                var publicKey = cert.Export(X509ContentType.Cert);
+                var certString = Convert.ToBase64String(publicKey);
+                var key = new JwtKey()
                 {
-                    var parameters = rsa.ExportParameters(false);
-                    var publicKey = cert.Export(X509ContentType.Cert);
-                    var certString = Convert.ToBase64String(publicKey);
-                    var key = new JwtKey()
+                    KeyID = cert.Thumbprint,
+                    Use = "sig",
+                    KeyType = "RSA",
+                    X509Thumbprint = cert.Thumbprint, //same as KeyID
+                    Exponent = Base64UrlEncoder.ToBase64String(parameters.Exponent),
+                    Modulus = Base64UrlEncoder.ToBase64String(parameters.Modulus),
+                    X509Certificates = new string[]
                     {
-                        KeyID = cert.Thumbprint, 
-                        Use = "sig",
-                        KeyType = "RSA",
-                        X509Thumbprint = cert.Thumbprint, //same as KeyID
-                        Exponent = Base64UrlEncoder.ToBase64String(parameters.Exponent),
-                        Modulus = Base64UrlEncoder.ToBase64String(parameters.Modulus),
-                        X509Certificates = new string[]
-                        {
                             certString
-                        }
-                    };
-                    keys.Add(key);
-                }
-                else
-                {
-                    throw new IdentityProviderException(String.Format("Not implemented loading x509 public key type {0}", cert.GetRSAPublicKey().GetType()));
-                }
+                    }
+                };
+                keys.Add(key);
             }
             return keys.ToArray();
         }

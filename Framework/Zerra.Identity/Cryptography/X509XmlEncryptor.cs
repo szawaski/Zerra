@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
 using System.Linq;
@@ -18,17 +17,19 @@ namespace Zerra.Identity.Cryptography
 
         public static XmlDocument EncryptXmlDoc(XmlDocument xmlDoc, X509Certificate2 cert, EncryptionAlgorithm encryptionAlgorithm, string elementPrefix, string elementName, string wrapperElementPrefix = null, string wrapperElementName = null)
         {
+            var rsa = cert.GetRSAPublicKey();
+            if (rsa == null)
+                throw new IdentityProviderException("X509 must be RSA");
+
             if (String.IsNullOrWhiteSpace(wrapperElementName))
                 wrapperElementName = elementName;
 
-            XmlElement element = xmlDoc.DocumentElement.GetSingleElementRequired(null, elementName, true);
+            var element = xmlDoc.DocumentElement.GetSingleElementRequired(null, elementName, true);
 
             string encryptionAlgorithmUrl = Algorithms.GetEncryptionAlgorithmUrl(encryptionAlgorithm);
             string encryptionKeyAlgorithmUrl = useOeap ? Algorithms.RsaOaep : Algorithms.Rsa;
-            if (!(cert.GetRSAPublicKey() is RSA rsa))
-                throw new IdentityProviderException("Cert must be an RSA algorithm");
 
-            EncryptedXml encryptedXml = new EncryptedXml(xmlDoc);
+            var encryptedXml = new EncryptedXml(xmlDoc);
             var symmetricAlgorithm = Algorithms.Create(encryptionAlgorithm);
 
             var encryptedElementBytes = encryptedXml.EncryptData(element, symmetricAlgorithm, false);
@@ -54,7 +55,7 @@ namespace Zerra.Identity.Cryptography
             {
                 xmlDoc.DocumentElement.RemoveChild(element);
 
-                XmlElement newElement = xmlDoc.CreateElement(wrapperElementPrefix, wrapperElementName, element.NamespaceURI);
+                var newElement = xmlDoc.CreateElement(wrapperElementPrefix, wrapperElementName, element.NamespaceURI);
                 xmlDoc.DocumentElement.AppendChild(newElement);
 
                 newElement.AppendChild(element.ChildNodes[0]);
@@ -65,15 +66,16 @@ namespace Zerra.Identity.Cryptography
 
         public static XmlDocument DecryptXmlDoc(XmlDocument xmlDoc, X509Certificate2 cert)
         {
-            if (!(cert.PrivateKey is RSA rsa))
-                throw new IdentityProviderException("Cert must be an RSA algorithm");
+            var rsa = cert.GetRSAPrivateKey();
+            if (rsa == null)
+                throw new IdentityProviderException("X509 must be RSA");
 
             var elements = xmlDoc.DocumentElement.GetElements(null, "EncryptedData", true).Select(x => x.ParentNode).OfType<XmlElement>().ToArray();
 
             foreach (var element in elements)
             {
-                EncryptedXml encryptedXml = new EncryptedXml(xmlDoc);
-                EncryptedData encryptedDataElement = new EncryptedData();
+                var encryptedXml = new EncryptedXml(xmlDoc);
+                var encryptedDataElement = new EncryptedData();
                 encryptedDataElement.LoadXml((XmlElement)element.ChildNodes[0]);
 
                 var encryptedKeyInfo = encryptedDataElement.KeyInfo.OfType<KeyInfoEncryptedKey>().First();

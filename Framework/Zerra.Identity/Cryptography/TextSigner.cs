@@ -9,50 +9,50 @@ using Zerra.Encryption;
 
 namespace Zerra.Identity.Cryptography
 {
-    public static class RSATextSigner
+    public static class TextSigner
     {
-        static RSATextSigner()
+        static TextSigner()
         {
             ConfigSignatureDescriptions.Add();
         }
 
-        public static string GenerateSignatureString(string text, RSA rsa, SignatureAlgorithm signatureAlgorithm, bool base64UrlEncoding)
+        public static string GenerateSignatureString(string text, AsymmetricAlgorithm asymmetricAlgorithm, SignatureAlgorithm signatureAlgorithm, bool base64UrlEncoding)
         {
             var bytes = Encoding.UTF8.GetBytes(text);
-            return GenerateSignatureString(bytes, rsa, signatureAlgorithm, base64UrlEncoding);
+            return GenerateSignatureString(bytes, asymmetricAlgorithm, signatureAlgorithm, base64UrlEncoding);
         }
-        public static string GenerateSignatureString(byte[] bytes, RSA rsa, SignatureAlgorithm signatureAlgorithm, bool base64UrlEncoding)
+        public static string GenerateSignatureString(byte[] bytes, AsymmetricAlgorithm asymmetricAlgorithm, SignatureAlgorithm signatureAlgorithm, bool base64UrlEncoding)
         {
-            var signedBytes = GenerateSignatureBytes(bytes, rsa, signatureAlgorithm);
+            var signedBytes = GenerateSignatureBytes(bytes, asymmetricAlgorithm, signatureAlgorithm);
             var signedText = base64UrlEncoding ? Base64UrlEncoder.ToBase64String(signedBytes) : Convert.ToBase64String(signedBytes);
             return signedText;
         }
-        public static byte[] GenerateSignatureBytes(byte[] bytes, RSA rsa, SignatureAlgorithm signatureAlgorithm)
+        public static byte[] GenerateSignatureBytes(byte[] bytes, AsymmetricAlgorithm asymmetricAlgorithm, SignatureAlgorithm signatureAlgorithm)
         {
             var signatureDescription = Algorithms.Create(signatureAlgorithm);
             var hashAlgorithm = signatureDescription.CreateDigest();
-            var formatter = signatureDescription.CreateFormatter(rsa);
+            var formatter = signatureDescription.CreateFormatter(asymmetricAlgorithm);
 
             var hash = hashAlgorithm.ComputeHash(bytes);
             var signatureBytes = formatter.CreateSignature(hash);
             return signatureBytes;
         }
 
-        public static bool Validate(string text, string signature, RSA rsa, SignatureAlgorithm signatureAlgorithm, bool base64UrlEncoding)
+        public static bool Validate(string text, string signature, AsymmetricAlgorithm asymmetricAlgorithm, SignatureAlgorithm signatureAlgorithm, bool base64UrlEncoding)
         {
             if (signature == null)
                 return false;
 
             var textBytes = Encoding.UTF8.GetBytes(text);
             var signatureBytes = base64UrlEncoding ? Base64UrlEncoder.FromBase64String(signature) : Convert.FromBase64String(signature);
-            var valid = Validate(textBytes, signatureBytes, rsa, signatureAlgorithm);
+            var valid = Validate(textBytes, signatureBytes, asymmetricAlgorithm, signatureAlgorithm);
             return valid;
         }
-        public static bool Validate(byte[] textBytes, byte[] signatureBytes, RSA rsa, SignatureAlgorithm signatureAlgorithm)
+        public static bool Validate(byte[] textBytes, byte[] signatureBytes, AsymmetricAlgorithm asymmetricAlgorithm, SignatureAlgorithm signatureAlgorithm)
         {
             var signatureDescription = Algorithms.Create(signatureAlgorithm);
             var hashAlgorithm = signatureDescription.CreateDigest();
-            var deformatter = signatureDescription.CreateDeformatter(rsa);
+            var deformatter = signatureDescription.CreateDeformatter(asymmetricAlgorithm);
 
             var hash = hashAlgorithm.ComputeHash(textBytes);
             var valid = deformatter.VerifySignature(hash, signatureBytes);

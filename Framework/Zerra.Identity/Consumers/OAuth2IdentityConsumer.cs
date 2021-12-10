@@ -33,11 +33,12 @@ namespace Zerra.Identity.Consumers
             this.redirectUrlPostLogout = redirectUrlPostLogout;
         }
 
-        public async ValueTask<IActionResult> Login(string state)
+        public ValueTask<IActionResult> Login(string state)
         {
             var requestDocument = new OAuth2LoginRequest(serviceProvider, redirectUrl, state);
             var requestBinding = OAuth2Binding.GetBindingForDocument(requestDocument, BindingType.Form);
-            return requestBinding.GetResponse(loginUrl);
+            var response = requestBinding.GetResponse(loginUrl);
+            return new ValueTask<IActionResult>(response);
         }
 
         public async ValueTask<IdentityModel> Callback(HttpContext context)
@@ -96,7 +97,7 @@ namespace Zerra.Identity.Consumers
             return identity;
         }
 
-        public async ValueTask<IActionResult> Logout(string state)
+        public ValueTask<IActionResult> Logout(string state)
         {
             var requestDocument = new OAuth2LogoutRequest(
                 serviceProvider: serviceProvider,
@@ -104,11 +105,12 @@ namespace Zerra.Identity.Consumers
                 state: state
             );
 
-            var requestBinding = OAuth2Binding.GetBindingForDocument(requestDocument , BindingType.Query);
-            return requestBinding.GetResponse(logoutUrl);
+            var requestBinding = OAuth2Binding.GetBindingForDocument(requestDocument, BindingType.Query);
+            var response = requestBinding.GetResponse(logoutUrl);
+            return new ValueTask<IActionResult>(response);
         }
 
-        public async ValueTask<LogoutModel> LogoutCallback(HttpContext context)
+        public ValueTask<LogoutModel> LogoutCallback(HttpContext context)
         {
             var callbackBinding = OAuth2Binding.GetBindingForRequest(context.Request, BindingDirection.Response);
 
@@ -121,7 +123,7 @@ namespace Zerra.Identity.Consumers
                 State = callbackDocument.State
             };
 
-            return logout;
+            return new ValueTask<LogoutModel>(logout);
         }
     }
 }

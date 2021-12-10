@@ -113,7 +113,7 @@ namespace Zerra.Identity.Cryptography
 
         public XmlElement GetXml(string prefix)
         {
-            XmlElement e = base.GetXml();
+            var e = base.GetXml();
             SetPrefix(prefix, e);
             return e;
         }
@@ -122,9 +122,9 @@ namespace Zerra.Identity.Cryptography
         {
             //string securityUrl = (this.m_containingDocument == null) ? null : this.m_containingDocument.BaseURI;
             //XmlResolver xmlResolver = new XmlSecureResolver(new XmlUrlResolver(), securityUrl);
-            XmlDocument document = new XmlDocument();
+            var document = new XmlDocument();
             document.PreserveWhitespace = true;
-            XmlElement e = base.SignedInfo.GetXml();
+            var e = base.SignedInfo.GetXml();
             document.AppendChild(document.ImportNode(e, true));
             //CanonicalXmlNodeList namespaces = (this.m_context == null) ? null : Utils.GetPropagatedAttributes(this.m_context);
             //Utils.AddNamespaces(document.DocumentElement, namespaces);

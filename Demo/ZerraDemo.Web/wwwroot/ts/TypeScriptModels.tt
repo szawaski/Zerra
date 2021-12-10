@@ -1,6 +1,11 @@
+<#
+// Copyright © KaKush LLC
+// Written By Steven Zawaski
+// Licensed to you under the MIT license
+#>
 <#@ template language="C#" debug="false" hostspecific="true" #>
-<#@ output extension=".js" #>
-<#@ assembly name="C:\Users\Steven Zawaski\Documents\Visual Studio Projects\Zerra\Framework\Zerra.T4\bin\Debug\net48\Zerra.T4.dll" #>
+<#@ output extension=".ts" #>
+<#@ assembly name="C:\Users\Steven Zawaski\Documents\Visual Studio Projects\Zerra\Zerra.T4\bin\Debug\net48\Zerra.T4.dll" #>
 <#@ import namespace="System.IO" #>
 <#
     var directory = this.Host.ResolvePath(string.Empty);

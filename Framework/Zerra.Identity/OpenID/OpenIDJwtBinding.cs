@@ -82,7 +82,7 @@ namespace Zerra.Identity.OpenID
 
             this.singingInput = BuildSigningInput();
 
-            this.Signature = RSATextSigner.GenerateSignatureString(this.singingInput, rsa, this.SignatureAlgorithm.Value, true);
+            this.Signature = TextSigner.GenerateSignatureString(this.singingInput, rsa, this.SignatureAlgorithm.Value, true);
         }
 
         public void ValidateSignature(RSA rsa, bool requiredSignature)
@@ -98,7 +98,7 @@ namespace Zerra.Identity.OpenID
 
             if (this.Signature != null)
             {
-                var valid = RSATextSigner.Validate(this.singingInput, this.Signature, rsa, this.SignatureAlgorithm.Value, true);
+                var valid = TextSigner.Validate(this.singingInput, this.Signature, rsa, this.SignatureAlgorithm.Value, true);
                 if (!valid)
                     throw new IdentityProviderException("OpenID Document Signature Not Valid");
             }

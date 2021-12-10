@@ -39,23 +39,24 @@ namespace Zerra.Identity.Consumers
             this.requiredEncryption = requiredEncryption;
         }
 
-        public async ValueTask<IActionResult> Login(string state)
+        public ValueTask<IActionResult> Login(string state)
         {
             var id = SamlIDManager.Generate(serviceProvider);
 
             var requestDocument = new Saml2AuthnRequest(
                 id: id,
-                issuer: serviceProvider, 
+                issuer: serviceProvider,
                 assertionConsumerServiceURL: redirectUrl,
                 bindingType: BindingType.Form
             );
 
             var requestBinding = Saml2Binding.GetBindingForDocument(requestDocument, BindingType.Form, SignatureAlgorithm.RsaSha256, null, null);
             requestBinding.Sign(serviceProviderCert, requiredSignature);
-            return requestBinding.GetResponse(loginUrl);
+            var response = requestBinding.GetResponse(loginUrl);
+            return new ValueTask<IActionResult>(response);
         }
 
-        public async ValueTask<IdentityModel> Callback(HttpContext context)
+        public ValueTask<IdentityModel> Callback(HttpContext context)
         {
             var callbackBinding = Saml2Binding.GetBindingForRequest(context.Request, BindingDirection.Response);
 
@@ -72,7 +73,7 @@ namespace Zerra.Identity.Consumers
                     String.Format("Received: {0}, Expected: {1}", serviceProvider, callbackDocument.Audience));
 
             if (String.IsNullOrWhiteSpace(callbackDocument.UserID))
-                return null;
+                return new ValueTask<IdentityModel>((IdentityModel)null);
 
             var identity = new IdentityModel()
             {
@@ -85,10 +86,10 @@ namespace Zerra.Identity.Consumers
                 OtherClaims = null
             };
 
-            return identity;
+            return new ValueTask<IdentityModel>(identity);
         }
 
-        public async ValueTask<IActionResult> Logout(string state)
+        public ValueTask<IActionResult> Logout(string state)
         {
             var id = SamlIDManager.Generate(serviceProvider);
 
@@ -101,10 +102,11 @@ namespace Zerra.Identity.Consumers
             var requestBinding = Saml2Binding.GetBindingForDocument(requestDocument, BindingType.Query, SignatureAlgorithm.RsaSha256, null, null);
             requestBinding.Sign(serviceProviderCert, requiredSignature);
             requestBinding.GetResponse(logoutUrl);
-            return requestBinding.GetResponse(logoutUrl);
+            var response = requestBinding.GetResponse(logoutUrl);
+            return new ValueTask<IActionResult>(response);
         }
 
-        public async ValueTask<LogoutModel> LogoutCallback(HttpContext context)
+        public ValueTask<LogoutModel> LogoutCallback(HttpContext context)
         {
             var callbackBinding = Saml2Binding.GetBindingForRequest(context.Request, BindingDirection.Response);
 
@@ -116,7 +118,7 @@ namespace Zerra.Identity.Consumers
             SamlIDManager.Validate(serviceProvider, callbackDocument.InResponseTo);
 
             if (String.IsNullOrWhiteSpace(callbackDocument.Issuer))
-                return null;
+                return new ValueTask<LogoutModel>((LogoutModel)null);
 
             var logout = new LogoutModel()
             {
@@ -125,7 +127,7 @@ namespace Zerra.Identity.Consumers
                 OtherClaims = null
             };
 
-            return logout;
+            return new ValueTask<LogoutModel>(logout);
         }
     }
 }

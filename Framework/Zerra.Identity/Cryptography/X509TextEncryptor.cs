@@ -25,15 +25,12 @@ namespace Zerra.Identity.Cryptography
         }
         public static byte[] EncryptBytes(byte[] bytes, X509Certificate2 cert)
         {
-            if (cert.GetRSAPublicKey() is RSA rsa)
-            {
-                var encryptedBytes = rsa.Encrypt(bytes, RSAEncryptionPadding.Pkcs1);
-                return encryptedBytes;
-            }
-            else
-            {
-                throw new IdentityProviderException(String.Format("Not implemented loading x509 public key type {0}", cert.GetRSAPublicKey()));
-            }
+            var rsa = cert.GetRSAPublicKey();
+            if (rsa == null)
+                throw new IdentityProviderException("X509 must be RSA");
+
+            var encryptedBytes = rsa.Encrypt(bytes, RSAEncryptionPadding.Pkcs1);
+            return encryptedBytes;
         }
 
         public static string DecryptString(string text, X509Certificate2 cert, bool base64UrlEncoding)
@@ -44,18 +41,12 @@ namespace Zerra.Identity.Cryptography
         }
         public static byte[] DecryptBytes(byte[] bytes, X509Certificate2 cert)
         {
-            if (cert.PrivateKey == null)
-                throw new IdentityProviderException("x509 does not have a private key");
+            var rsa = cert.GetRSAPrivateKey();
+            if (rsa == null)
+                throw new IdentityProviderException("X509 must be RSA");
 
-            if (cert.PrivateKey is RSA rsa)
-            {
-                var decryptedBytes = rsa.Decrypt(bytes, RSAEncryptionPadding.Pkcs1);
-                return decryptedBytes;
-            }
-            else
-            {
-                throw new IdentityProviderException(String.Format("Not implemented loading x509 private key type {0}", cert.GetRSAPublicKey().GetType()));
-            }
+            var decryptedBytes = rsa.Decrypt(bytes, RSAEncryptionPadding.Pkcs1);
+            return decryptedBytes;
         }
     }
 }
