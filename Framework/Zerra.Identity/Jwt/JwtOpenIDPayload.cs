@@ -43,7 +43,7 @@ namespace Zerra.Identity.Jwt
         [JsonProperty(PropertyName = "unique_name")]
         public string UniqueName { get; set; }
 
-        //Azure Active Directory---------------------------------------
+        //Azure AD---------------------------------------
 
         [JsonProperty(PropertyName = "tid")]
         public string AAD_TenantID { get; set; }
@@ -66,11 +66,6 @@ namespace Zerra.Identity.Jwt
         [JsonProperty(PropertyName = "name")]
         public string AAD_Name { get; set; }
 
-        //Custom For This Assembly--------------------------------------------
-
-        [JsonProperty(PropertyName = "roles")]
-        public string[] Roles { get; set; }
-
         //Azure AD B2C--------------------------------------------
 
         [JsonProperty(PropertyName = "auth_time")]
@@ -81,6 +76,11 @@ namespace Zerra.Identity.Jwt
 
         [JsonProperty(PropertyName = "tfp")]
         public string AAD_UserFlowPolicy { get; set; }
+
+        //Custom For This Assembly--------------------------------------------
+
+        [JsonProperty(PropertyName = "roles")]
+        public string[] Roles { get; set; }
 
 
         //Unidentified Claims Seen---------------------------------------
