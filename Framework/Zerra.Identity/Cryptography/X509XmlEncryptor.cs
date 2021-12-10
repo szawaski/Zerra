@@ -35,21 +35,26 @@ namespace Zerra.Identity.Cryptography
             var encryptedElementBytes = encryptedXml.EncryptData(element, symmetricAlgorithm, false);
             var encryptedKeyBytes = EncryptedXml.EncryptKey(symmetricAlgorithm.Key, rsa, useOeap);
 
-            var encryptedKey = new EncryptedKey();
-            encryptedKey.EncryptionMethod = new EncryptionMethod(encryptionKeyAlgorithmUrl);
-            encryptedKey.CipherData = new CipherData(encryptedKeyBytes);
+            var encryptedKey = new EncryptedKey
+            {
+                EncryptionMethod = new EncryptionMethod(encryptionKeyAlgorithmUrl),
+                CipherData = new CipherData(encryptedKeyBytes)
+            };
 
-            EncryptedData encryptedDataElement = new EncryptedData();
-            encryptedDataElement.Type = EncryptedXml.XmlEncElementUrl;
-            encryptedDataElement.EncryptionMethod = new EncryptionMethod(encryptionAlgorithmUrl);
-            encryptedDataElement.CipherData = new CipherData(encryptedElementBytes);
-            encryptedDataElement.KeyInfo = new KeyInfo();
+            var encryptedDataElement = new EncryptedData
+            {
+                Type = EncryptedXml.XmlEncElementUrl,
+                EncryptionMethod = new EncryptionMethod(encryptionAlgorithmUrl),
+                CipherData = new CipherData(encryptedElementBytes),
+                KeyInfo = new KeyInfo()
+            };
             encryptedDataElement.KeyInfo.AddClause(new KeyInfoX509Data(cert));
             encryptedDataElement.KeyInfo.AddClause(new KeyInfoEncryptedKey(encryptedKey));
 
             EncryptedXml.ReplaceElement(element, encryptedDataElement, true);
 
-            XmlHelper.SetPrefix("xenc", element.ChildNodes[0]);
+            //XmlHelper.SetPrefix("xenc", element.ChildNodes[0]);
+            XmlHelper.SetPrefix(elementPrefix, element.ChildNodes[0]);
 
             if (wrapperElementName != elementName)
             {

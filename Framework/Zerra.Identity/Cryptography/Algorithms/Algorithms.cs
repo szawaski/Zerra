@@ -62,281 +62,160 @@ namespace Zerra.Identity.Cryptography
 
         public static string GetSignatureAlgorithmUrl(SignatureAlgorithm algorithm)
         {
-            switch (algorithm)
+            return algorithm switch
             {
-                case SignatureAlgorithm.RsaSha1:
-                    return RsaSha1Url;
-                case SignatureAlgorithm.RsaSha224:
-                    return RsaSha224Url;
-                case SignatureAlgorithm.RsaSha256:
-                    return RsaSha256Url;
-                case SignatureAlgorithm.RsaSha384:
-                    return RsaSha384Url;
-                case SignatureAlgorithm.RsaSha512:
-                    return RsaSha512Url;
-
-                case SignatureAlgorithm.HmacSha1:
-                    return HmacSha1Url;
-                case SignatureAlgorithm.HmacSha224:
-                    return HmacSha224Url;
-                case SignatureAlgorithm.HmacSha256:
-                    return HmacSha256Url;
-                case SignatureAlgorithm.HmacSha384:
-                    return HmacSha384Url;
-                case SignatureAlgorithm.HmacSha512:
-                    return HmacSha512Url;
-
-                case SignatureAlgorithm.EcdsaSha1:
-                    return EcdsaSha1Url;
-                case SignatureAlgorithm.EcdsaSha224:
-                    return EcdsaSha224Url;
-                case SignatureAlgorithm.EcdsaSha256:
-                    return EcdsaSha256Url;
-                case SignatureAlgorithm.EcdsaSha384:
-                    return EcdsaSha384Url;
-                case SignatureAlgorithm.EcdsaSha512:
-                    return EcdsaSha512Url;
-
-                default:
-                    throw new NotImplementedException();
-            }
+                SignatureAlgorithm.RsaSha1 => RsaSha1Url,
+                SignatureAlgorithm.RsaSha224 => RsaSha224Url,
+                SignatureAlgorithm.RsaSha256 => RsaSha256Url,
+                SignatureAlgorithm.RsaSha384 => RsaSha384Url,
+                SignatureAlgorithm.RsaSha512 => RsaSha512Url,
+                SignatureAlgorithm.HmacSha1 => HmacSha1Url,
+                SignatureAlgorithm.HmacSha224 => HmacSha224Url,
+                SignatureAlgorithm.HmacSha256 => HmacSha256Url,
+                SignatureAlgorithm.HmacSha384 => HmacSha384Url,
+                SignatureAlgorithm.HmacSha512 => HmacSha512Url,
+                SignatureAlgorithm.EcdsaSha1 => EcdsaSha1Url,
+                SignatureAlgorithm.EcdsaSha224 => EcdsaSha224Url,
+                SignatureAlgorithm.EcdsaSha256 => EcdsaSha256Url,
+                SignatureAlgorithm.EcdsaSha384 => EcdsaSha384Url,
+                SignatureAlgorithm.EcdsaSha512 => EcdsaSha512Url,
+                _ => throw new NotImplementedException(),
+            };
         }
         public static string GetSignatureAlgorithmJwt(SignatureAlgorithm algorithm)
         {
-            switch (algorithm)
+            return algorithm switch
             {
-                case SignatureAlgorithm.RsaSha256:
-                    return RsaSha256Jwt;
-                case SignatureAlgorithm.RsaSha384:
-                    return RsaSha384Jwt;
-                case SignatureAlgorithm.RsaSha512:
-                    return RsaSha512Jwt;
-
-                case SignatureAlgorithm.HmacSha256:
-                    return HmacSha256Jwt;
-                case SignatureAlgorithm.HmacSha384:
-                    return HmacSha384Jwt;
-                case SignatureAlgorithm.HmacSha512:
-                    return HmacSha512Jwt;
-
-                case SignatureAlgorithm.EcdsaSha256:
-                    return EcdsaSha256Jwt;
-                case SignatureAlgorithm.EcdsaSha384:
-                    return EcdsaSha384Jwt;
-                case SignatureAlgorithm.EcdsaSha512:
-                    return EcdsaSha512Jwt;
-
-                default:
-                    throw new NotImplementedException();
-            }
+                SignatureAlgorithm.RsaSha256 => RsaSha256Jwt,
+                SignatureAlgorithm.RsaSha384 => RsaSha384Jwt,
+                SignatureAlgorithm.RsaSha512 => RsaSha512Jwt,
+                SignatureAlgorithm.HmacSha256 => HmacSha256Jwt,
+                SignatureAlgorithm.HmacSha384 => HmacSha384Jwt,
+                SignatureAlgorithm.HmacSha512 => HmacSha512Jwt,
+                SignatureAlgorithm.EcdsaSha256 => EcdsaSha256Jwt,
+                SignatureAlgorithm.EcdsaSha384 => EcdsaSha384Jwt,
+                SignatureAlgorithm.EcdsaSha512 => EcdsaSha512Jwt,
+                _ => throw new NotImplementedException(),
+            };
         }
         public static SignatureAlgorithm GetSignatureAlgorithmFromUrl(string url)
         {
-            switch (url)
+            return url switch
             {
-                case RsaSha1Url:
-                    return SignatureAlgorithm.RsaSha1;
-                case RsaSha256Url:
-                    return SignatureAlgorithm.RsaSha256;
-                case RsaSha224Url:
-                    return SignatureAlgorithm.RsaSha224;
-                case RsaSha384Url:
-                    return SignatureAlgorithm.RsaSha384;
-                case RsaSha512Url:
-                    return SignatureAlgorithm.RsaSha512;
-
-                case HmacSha1Url:
-                    return SignatureAlgorithm.HmacSha1;
-                case HmacSha224Url:
-                    return SignatureAlgorithm.HmacSha224;
-                case HmacSha256Url:
-                    return SignatureAlgorithm.HmacSha256;
-                case HmacSha384Url:
-                    return SignatureAlgorithm.HmacSha384;
-                case HmacSha512Url:
-                    return SignatureAlgorithm.HmacSha512;
-
-                case EcdsaSha1Url:
-                    return SignatureAlgorithm.EcdsaSha1;
-                case EcdsaSha224Url:
-                    return SignatureAlgorithm.EcdsaSha224;
-                case EcdsaSha256Url:
-                    return SignatureAlgorithm.EcdsaSha256;
-                case EcdsaSha384Url:
-                    return SignatureAlgorithm.EcdsaSha384;
-                case EcdsaSha512Url:
-                    return SignatureAlgorithm.EcdsaSha512;
-
-                default:
-                    throw new ArgumentException(String.Format("Algorithm not recoginized {0}", url));
-            }
+                RsaSha1Url => SignatureAlgorithm.RsaSha1,
+                RsaSha256Url => SignatureAlgorithm.RsaSha256,
+                RsaSha224Url => SignatureAlgorithm.RsaSha224,
+                RsaSha384Url => SignatureAlgorithm.RsaSha384,
+                RsaSha512Url => SignatureAlgorithm.RsaSha512,
+                HmacSha1Url => SignatureAlgorithm.HmacSha1,
+                HmacSha224Url => SignatureAlgorithm.HmacSha224,
+                HmacSha256Url => SignatureAlgorithm.HmacSha256,
+                HmacSha384Url => SignatureAlgorithm.HmacSha384,
+                HmacSha512Url => SignatureAlgorithm.HmacSha512,
+                EcdsaSha1Url => SignatureAlgorithm.EcdsaSha1,
+                EcdsaSha224Url => SignatureAlgorithm.EcdsaSha224,
+                EcdsaSha256Url => SignatureAlgorithm.EcdsaSha256,
+                EcdsaSha384Url => SignatureAlgorithm.EcdsaSha384,
+                EcdsaSha512Url => SignatureAlgorithm.EcdsaSha512,
+                _ => throw new ArgumentException(String.Format("Algorithm not recoginized {0}", url)),
+            };
         }
         public static SignatureAlgorithm GetSignatureAlgorithmFromJwt(string jwtAlg)
         {
-            switch (jwtAlg)
+            return jwtAlg switch
             {
-                case RsaSha256Jwt:
-                    return SignatureAlgorithm.RsaSha256;
-                case RsaSha384Jwt:
-                    return SignatureAlgorithm.RsaSha384;
-                case RsaSha512Jwt:
-                    return SignatureAlgorithm.RsaSha512;
-
-                case HmacSha256Jwt:
-                    return SignatureAlgorithm.HmacSha256;
-                case HmacSha384Jwt:
-                    return SignatureAlgorithm.HmacSha384;
-                case HmacSha512Jwt:
-                    return SignatureAlgorithm.HmacSha512;
-
-                case EcdsaSha256Jwt:
-                    return SignatureAlgorithm.EcdsaSha256;
-                case EcdsaSha384Jwt:
-                    return SignatureAlgorithm.EcdsaSha384;
-                case EcdsaSha512Jwt:
-                    return SignatureAlgorithm.EcdsaSha512;
-
-                default:
-                    throw new ArgumentException(String.Format("Algorithm not recoginized {0}", jwtAlg));
-            }
+                RsaSha256Jwt => SignatureAlgorithm.RsaSha256,
+                RsaSha384Jwt => SignatureAlgorithm.RsaSha384,
+                RsaSha512Jwt => SignatureAlgorithm.RsaSha512,
+                HmacSha256Jwt => SignatureAlgorithm.HmacSha256,
+                HmacSha384Jwt => SignatureAlgorithm.HmacSha384,
+                HmacSha512Jwt => SignatureAlgorithm.HmacSha512,
+                EcdsaSha256Jwt => SignatureAlgorithm.EcdsaSha256,
+                EcdsaSha384Jwt => SignatureAlgorithm.EcdsaSha384,
+                EcdsaSha512Jwt => SignatureAlgorithm.EcdsaSha512,
+                _ => throw new ArgumentException(String.Format("Algorithm not recoginized {0}", jwtAlg)),
+            };
         }
 
         public static string GetDigestAlgorithmUrl(DigestAlgorithm algorithm)
         {
-            switch (algorithm)
+            return algorithm switch
             {
-                case DigestAlgorithm.Sha1:
-                    return Sha1Url;
-                case DigestAlgorithm.Sha224:
-                    return Sha224Url;
-                case DigestAlgorithm.Sha256:
-                    return Sha256Url;
-                case DigestAlgorithm.Sha384:
-                    return Sha384Url;
-                case DigestAlgorithm.Sha512:
-                    return Sha512Url;
-                default:
-                    throw new NotImplementedException();
-            }
+                DigestAlgorithm.Sha1 => Sha1Url,
+                DigestAlgorithm.Sha224 => Sha224Url,
+                DigestAlgorithm.Sha256 => Sha256Url,
+                DigestAlgorithm.Sha384 => Sha384Url,
+                DigestAlgorithm.Sha512 => Sha512Url,
+                _ => throw new NotImplementedException(),
+            };
         }
         public static DigestAlgorithm GetDigestAlgorithmFromUrl(string url)
         {
-            switch (url)
+            return url switch
             {
-                case Sha1Url:
-                    return DigestAlgorithm.Sha1;
-                case Sha224Url:
-                    return DigestAlgorithm.Sha224;
-                case Sha256Url:
-                    return DigestAlgorithm.Sha256;
-                case Sha384Url:
-                    return DigestAlgorithm.Sha384;
-                case Sha512Url:
-                    return DigestAlgorithm.Sha512;
-                default:
-                    throw new ArgumentException(String.Format("Algorithm not recoginized {0}", url));
-            }
+                Sha1Url => DigestAlgorithm.Sha1,
+                Sha224Url => DigestAlgorithm.Sha224,
+                Sha256Url => DigestAlgorithm.Sha256,
+                Sha384Url => DigestAlgorithm.Sha384,
+                Sha512Url => DigestAlgorithm.Sha512,
+                _ => throw new ArgumentException(String.Format("Algorithm not recoginized {0}", url)),
+            };
         }
 
         public static string GetEncryptionAlgorithmUrl(EncryptionAlgorithm algorithm)
         {
-            switch (algorithm)
+            return algorithm switch
             {
-                case EncryptionAlgorithm.Aes128Cbc:
-                    return Aes128CbcUrl;
-                case EncryptionAlgorithm.Aes192Cbc:
-                    return Aes192CbcUrl;
-                case EncryptionAlgorithm.Aes256Cbc:
-                    return Aes256CbcUrl;
-
-                case EncryptionAlgorithm.Aes128Kw:
-                    return Aes128KwUrl;
-                case EncryptionAlgorithm.Aes192Kw:
-                    return Aes192KwUrl;
-                case EncryptionAlgorithm.Aes256Kw:
-                    return Aes256KwUrl;
-
-                case EncryptionAlgorithm.DesCbc:
-                    return DesCbcUrl;
-                case EncryptionAlgorithm.TrippleDesCbc:
-                    return TrippleDesCbcUrl;
-                case EncryptionAlgorithm.TrippleDesKw:
-                    return TrippleDesKwUrl;
-
-                default:
-                    throw new NotImplementedException();
-            }
+                EncryptionAlgorithm.Aes128Cbc => Aes128CbcUrl,
+                EncryptionAlgorithm.Aes192Cbc => Aes192CbcUrl,
+                EncryptionAlgorithm.Aes256Cbc => Aes256CbcUrl,
+                EncryptionAlgorithm.Aes128Kw => Aes128KwUrl,
+                EncryptionAlgorithm.Aes192Kw => Aes192KwUrl,
+                EncryptionAlgorithm.Aes256Kw => Aes256KwUrl,
+                EncryptionAlgorithm.DesCbc => DesCbcUrl,
+                EncryptionAlgorithm.TrippleDesCbc => TrippleDesCbcUrl,
+                EncryptionAlgorithm.TrippleDesKw => TrippleDesKwUrl,
+                _ => throw new NotImplementedException(),
+            };
         }
         public static EncryptionAlgorithm GetEncryptionAlgorithmFromUrl(string url)
         {
-            switch (url)
+            return url switch
             {
-                case Aes128CbcUrl:
-                    return EncryptionAlgorithm.Aes128Cbc;
-                case Aes192CbcUrl:
-                    return EncryptionAlgorithm.Aes192Cbc;
-                case Aes256CbcUrl:
-                    return EncryptionAlgorithm.Aes256Cbc;
-
-                case Aes128KwUrl:
-                    return EncryptionAlgorithm.Aes128Kw;
-                case Aes192KwUrl:
-                    return EncryptionAlgorithm.Aes192Kw;
-                case Aes256KwUrl:
-                    return EncryptionAlgorithm.Aes256Kw;
-
-                case DesCbcUrl:
-                    return EncryptionAlgorithm.DesCbc;
-                case TrippleDesCbcUrl:
-                    return EncryptionAlgorithm.TrippleDesCbc;
-                case TrippleDesKwUrl:
-                    return EncryptionAlgorithm.TrippleDesKw;
-
-                default:
-                    throw new ArgumentException(String.Format("Algorithm not recoginized {0}", url));
-            }
+                Aes128CbcUrl => EncryptionAlgorithm.Aes128Cbc,
+                Aes192CbcUrl => EncryptionAlgorithm.Aes192Cbc,
+                Aes256CbcUrl => EncryptionAlgorithm.Aes256Cbc,
+                Aes128KwUrl => EncryptionAlgorithm.Aes128Kw,
+                Aes192KwUrl => EncryptionAlgorithm.Aes192Kw,
+                Aes256KwUrl => EncryptionAlgorithm.Aes256Kw,
+                DesCbcUrl => EncryptionAlgorithm.DesCbc,
+                TrippleDesCbcUrl => EncryptionAlgorithm.TrippleDesCbc,
+                TrippleDesKwUrl => EncryptionAlgorithm.TrippleDesKw,
+                _ => throw new ArgumentException(String.Format("Algorithm not recoginized {0}", url)),
+            };
         }
         
         public static SignatureDescription Create(SignatureAlgorithm algorithm)
         {
-            switch (algorithm)
+            return algorithm switch
             {
-                case SignatureAlgorithm.RsaSha1:
-                    return new RSAPKCS1SHA1SignatureDescription();
-                case SignatureAlgorithm.RsaSha224:
-                    throw new NotImplementedException();
-                case SignatureAlgorithm.RsaSha256:
-                    return new RSAPKCS1SHA256SignatureDescription();
-                case SignatureAlgorithm.RsaSha384:
-                    return new RSAPKCS1SHA384SignatureDescription();
-                case SignatureAlgorithm.RsaSha512:
-                    return new RSAPKCS1SHA512SignatureDescription();
-
-                case SignatureAlgorithm.HmacSha1:
-                    throw new NotImplementedException();
-                case SignatureAlgorithm.HmacSha224:
-                    throw new NotImplementedException();
-                case SignatureAlgorithm.HmacSha256:
-                    throw new NotImplementedException();
-                case SignatureAlgorithm.HmacSha384:
-                    throw new NotImplementedException();
-                case SignatureAlgorithm.HmacSha512:
-                    throw new NotImplementedException();
-
-                case SignatureAlgorithm.EcdsaSha1:
-                    throw new NotImplementedException();
-                case SignatureAlgorithm.EcdsaSha224:
-                    throw new NotImplementedException();
-                case SignatureAlgorithm.EcdsaSha256:
-                    throw new NotImplementedException();
-                case SignatureAlgorithm.EcdsaSha384:
-                    throw new NotImplementedException();
-                case SignatureAlgorithm.EcdsaSha512:
-                    throw new NotImplementedException();
-
-                default:
-                    throw new NotImplementedException();
-            }
+                SignatureAlgorithm.RsaSha1 => new RSAPKCS1SHA1SignatureDescription(),
+                SignatureAlgorithm.RsaSha224 => throw new NotImplementedException(),
+                SignatureAlgorithm.RsaSha256 => new RSAPKCS1SHA256SignatureDescription(),
+                SignatureAlgorithm.RsaSha384 => new RSAPKCS1SHA384SignatureDescription(),
+                SignatureAlgorithm.RsaSha512 => new RSAPKCS1SHA512SignatureDescription(),
+                SignatureAlgorithm.HmacSha1 => throw new NotImplementedException(),
+                SignatureAlgorithm.HmacSha224 => throw new NotImplementedException(),
+                SignatureAlgorithm.HmacSha256 => throw new NotImplementedException(),
+                SignatureAlgorithm.HmacSha384 => throw new NotImplementedException(),
+                SignatureAlgorithm.HmacSha512 => throw new NotImplementedException(),
+                SignatureAlgorithm.EcdsaSha1 => throw new NotImplementedException(),
+                SignatureAlgorithm.EcdsaSha224 => throw new NotImplementedException(),
+                SignatureAlgorithm.EcdsaSha256 => throw new NotImplementedException(),
+                SignatureAlgorithm.EcdsaSha384 => throw new NotImplementedException(),
+                SignatureAlgorithm.EcdsaSha512 => throw new NotImplementedException(),
+                _ => throw new NotImplementedException(),
+            };
         }
         public static SymmetricAlgorithm Create(EncryptionAlgorithm algorithm)
         {

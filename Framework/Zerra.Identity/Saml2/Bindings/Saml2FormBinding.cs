@@ -50,20 +50,12 @@ namespace Zerra.Identity.Saml2.Bindings
         internal Saml2FormBinding(HttpRequest request, BindingDirection bindingDirection)
         {
             this.BindingDirection = bindingDirection;
-
-            string samlEncoded = null;
-            switch (this.BindingDirection)
+            string samlEncoded = this.BindingDirection switch
             {
-                case BindingDirection.Request:
-                    samlEncoded = request.Form[Saml2Names.RequestParameterName];
-                    break;
-                case BindingDirection.Response:
-                    samlEncoded = request.Form[Saml2Names.ResponseParameterName];
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
-
+                BindingDirection.Request => request.Form[Saml2Names.RequestParameterName],
+                BindingDirection.Response => request.Form[Saml2Names.ResponseParameterName],
+                _ => throw new NotImplementedException(),
+            };
             var samlRequestDecoded = DecodeSaml(samlEncoded);
             this.Document = new XmlDocument();
             this.Document.LoadXml(samlRequestDecoded);

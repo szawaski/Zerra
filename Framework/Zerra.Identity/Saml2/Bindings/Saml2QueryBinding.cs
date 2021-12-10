@@ -36,21 +36,14 @@ namespace Zerra.Identity.Saml2.Bindings
         internal Saml2QueryBinding(HttpRequest request, BindingDirection bindingDirection)
         {
             this.BindingDirection = bindingDirection;
-
-            string samlEncoded = null;
-            switch (this.BindingDirection)
+            string samlEncoded = this.BindingDirection switch
             {
-                case BindingDirection.Request:
-                    samlEncoded = request.Query[Saml2Names.RequestParameterName];
-                    break;
-                case BindingDirection.Response:
-                    samlEncoded = request.Query[Saml2Names.ResponseParameterName];
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
+                BindingDirection.Request => request.Query[Saml2Names.RequestParameterName],
+                BindingDirection.Response => request.Query[Saml2Names.ResponseParameterName],
+                _ => throw new NotImplementedException(),
+            };
 
-            var relayState = (string)request.Query[Saml2Names.RelayStateParameterName];
+            //var relayState = (string)request.Query[Saml2Names.RelayStateParameterName];
             var sigAlg = (string)request.Query[Saml2Names.SignatureAlgorithmParameterName];
             this.Signature = request.Query[Saml2Names.SignatureParameterName];
 

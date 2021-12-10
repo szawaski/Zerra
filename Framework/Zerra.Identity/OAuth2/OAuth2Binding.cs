@@ -39,19 +39,14 @@ namespace Zerra.Identity.OAuth2
 
         public static OAuth2Binding GetBindingForDocument(OAuth2Document document, BindingType bindingType)
         {
-            switch (bindingType)
+            return bindingType switch
             {
-                case BindingType.Null:
-                    throw new IdentityProviderException("Cannot have null binding type");
-                case BindingType.Form:
-                    return new OAuth2FormBinding(document);
-                case BindingType.Query:
-                    return new OAuth2QueryBinding(document);
-                case BindingType.Stream:
-                    return new OAuth2StreamBinding(document);
-                default:
-                    throw new NotImplementedException();
-            }
+                BindingType.Null => throw new IdentityProviderException("Cannot have null binding type"),
+                BindingType.Form => new OAuth2FormBinding(document),
+                BindingType.Query => new OAuth2QueryBinding(document),
+                BindingType.Stream => new OAuth2StreamBinding(document),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         internal static Dictionary<string, string> GetOtherClaims(JObject document)

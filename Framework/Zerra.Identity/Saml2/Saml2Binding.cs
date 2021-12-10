@@ -38,19 +38,14 @@ namespace Zerra.Identity.Saml2
 
         public static Saml2Binding GetBindingForDocument(Saml2Document document, BindingType bindingType, SignatureAlgorithm? signatureAlgorithm, DigestAlgorithm? digestAlgorithm, EncryptionAlgorithm? encryptionAlgorithm)
         {
-            switch (bindingType)
+            return bindingType switch
             {
-                case BindingType.Null:
-                    throw new IdentityProviderException("Cannot have null binding type");
-                case BindingType.Form:
-                    return new Saml2FormBinding(document, signatureAlgorithm, digestAlgorithm, encryptionAlgorithm);
-                case BindingType.Query:
-                    return new Saml2QueryBinding(document, signatureAlgorithm);
-                case BindingType.Stream:
-                    return new Saml2StreamBinding(document);
-                default:
-                    throw new NotImplementedException();
-            }
+                BindingType.Null => throw new IdentityProviderException("Cannot have null binding type"),
+                BindingType.Form => new Saml2FormBinding(document, signatureAlgorithm, digestAlgorithm, encryptionAlgorithm),
+                BindingType.Query => new Saml2QueryBinding(document, signatureAlgorithm),
+                BindingType.Stream => new Saml2StreamBinding(document),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public abstract void Sign(X509Certificate2 cert, bool requiredSignature);

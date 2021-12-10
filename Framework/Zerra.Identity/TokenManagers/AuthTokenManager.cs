@@ -21,8 +21,10 @@ namespace Zerra.Identity.TokenManagers
         static AuthTokenManager()
         {
             var threadStart = new ThreadStart(ExpireItems);
-            expireThread = new Thread(threadStart);
-            expireThread.Priority = ThreadPriority.Lowest;
+            expireThread = new Thread(threadStart)
+            {
+                Priority = ThreadPriority.Lowest
+            };
             expireThread.Start();
         }
 

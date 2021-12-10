@@ -46,19 +46,14 @@ namespace Zerra.Identity.OpenID
 
         public static OpenIDJwtBinding GetBindingForDocument(OpenIDDocument document, BindingType bindingType, SignatureAlgorithm? signatureAlgorithm)
         {
-            switch (bindingType)
+            return bindingType switch
             {
-                case BindingType.Null:
-                    throw new IdentityProviderException("Cannot have null binding type");
-                case BindingType.Form:
-                    return new OpenIDJwtFormBinding(document, signatureAlgorithm);
-                case BindingType.Query:
-                    return new OpenIDJwtQueryBinding(document, signatureAlgorithm);
-                case BindingType.Stream:
-                    throw new IdentityProviderException("Json Web Tokens do not support content binding");
-                default:
-                    throw new NotImplementedException();
-            }
+                BindingType.Null => throw new IdentityProviderException("Cannot have null binding type"),
+                BindingType.Form => new OpenIDJwtFormBinding(document, signatureAlgorithm),
+                BindingType.Query => new OpenIDJwtQueryBinding(document, signatureAlgorithm),
+                BindingType.Stream => throw new IdentityProviderException("Json Web Tokens do not support content binding"),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public SignatureAlgorithm? SignatureAlgorithm { get; protected set; }

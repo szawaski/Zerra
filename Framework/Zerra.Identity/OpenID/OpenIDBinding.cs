@@ -38,19 +38,14 @@ namespace Zerra.Identity.OpenID
 
         public static OpenIDBinding GetBindingForDocument(OpenIDDocument document, BindingType bindingType)
         {
-            switch (bindingType)
+            return bindingType switch
             {
-                case BindingType.Null:
-                    throw new IdentityProviderException("Cannot have null binding type");
-                case BindingType.Form:
-                    return new OpenIDFormBinding(document);
-                case BindingType.Query:
-                    return new OpenIDQueryBinding(document);
-                case BindingType.Stream:
-                    return new OpenIDStreamBinding(document);
-                default:
-                    throw new NotImplementedException();
-            }
+                BindingType.Null => throw new IdentityProviderException("Cannot have null binding type"),
+                BindingType.Form => new OpenIDFormBinding(document),
+                BindingType.Query => new OpenIDQueryBinding(document),
+                BindingType.Stream => new OpenIDStreamBinding(document),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public void ValidateFields(string[] expectedUrls)

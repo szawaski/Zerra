@@ -34,9 +34,10 @@ namespace Zerra.Identity.Cryptography
             string signatureAlgorithmUrl = Algorithms.GetSignatureAlgorithmUrl(signatureAlgorithm);
             string digestAlgorithmUrl = Algorithms.GetDigestAlgorithmUrl(digestAlgorithm);
 
-            var signedXml = new PrefixedSignedXml(xmlDoc);
-
-            signedXml.SigningKey = rsa;
+            var signedXml = new PrefixedSignedXml(xmlDoc)
+            {
+                SigningKey = rsa
+            };
             signedXml.SignedInfo.SignatureMethod = signatureAlgorithmUrl;
             signedXml.SignedInfo.CanonicalizationMethod = SignedXml.XmlDsigExcC14NTransformUrl;
 
@@ -46,9 +47,11 @@ namespace Zerra.Identity.Cryptography
             if (!String.IsNullOrWhiteSpace(id))
                 referenceUri = "#" + id;
 
-            Reference reference = new Reference();
-            reference.Uri = referenceUri;
-            reference.DigestMethod = digestAlgorithmUrl;
+            Reference reference = new Reference
+            {
+                Uri = referenceUri,
+                DigestMethod = digestAlgorithmUrl
+            };
             reference.AddTransform(new XmlDsigEnvelopedSignatureTransform());
             reference.AddTransform(new XmlDsigExcC14NTransform());
             signedXml.AddReference(reference);

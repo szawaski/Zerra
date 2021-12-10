@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Security.Cryptography.Xml;
@@ -26,7 +27,7 @@ namespace Zerra.Identity.Cryptography
         public void ComputeSignature(string prefix)
         {
             MethodInfo m = typeof(SignedXml).GetMethod("BuildDigestedReferences", BindingFlags.NonPublic | BindingFlags.Instance);
-            m.Invoke(this, new object[] { });
+            m.Invoke(this, Array.Empty<object>());
 
             AsymmetricAlgorithm signingKey = base.SigningKey;
             if (signingKey == null)
@@ -122,8 +123,10 @@ namespace Zerra.Identity.Cryptography
         {
             //string securityUrl = (this.m_containingDocument == null) ? null : this.m_containingDocument.BaseURI;
             //XmlResolver xmlResolver = new XmlSecureResolver(new XmlUrlResolver(), securityUrl);
-            var document = new XmlDocument();
-            document.PreserveWhitespace = true;
+            var document = new XmlDocument
+            {
+                PreserveWhitespace = true
+            };
             var e = base.SignedInfo.GetXml();
             document.AppendChild(document.ImportNode(e, true));
             //CanonicalXmlNodeList namespaces = (this.m_context == null) ? null : Utils.GetPropagatedAttributes(this.m_context);

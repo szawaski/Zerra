@@ -45,14 +45,13 @@ namespace Zerra.Identity.Saml2.Documents
             this.AssertionConsumerServiceURL = xmlDoc.DocumentElement.GetAttribute("AssertionConsumerServiceURL");
             var protocolBinding = xmlDoc.DocumentElement.GetAttribute("ProtocolBinding");
 
-            switch (protocolBinding)
+            this.BindingType = protocolBinding switch
             {
-                case Saml2Names.PostBindingNamespace: this.BindingType = BindingType.Form; break;
-                case Saml2Names.RedirectBindingNamespace: this.BindingType = BindingType.Query; break;
-                default: throw new IdentityProviderException("Binding Type is not supported",
-                    String.Format("Received: {0}", protocolBinding));
-            }
-
+                Saml2Names.PostBindingNamespace => BindingType.Form,
+                Saml2Names.RedirectBindingNamespace => BindingType.Query,
+                _ => throw new IdentityProviderException("Binding Type is not supported",
+String.Format("Received: {0}", protocolBinding)),
+            };
             this.Issuer = xmlDoc.DocumentElement.GetSingleElement(null, "Issuer", true)?.InnerText;
         }
 
@@ -60,8 +59,10 @@ namespace Zerra.Identity.Saml2.Documents
         {
             using (var sw = new StringWriterWithEncoding(Encoding.UTF8))
             {
-                var xws = new XmlWriterSettings();
-                xws.OmitXmlDeclaration = false;
+                var xws = new XmlWriterSettings
+                {
+                    OmitXmlDeclaration = false
+                };
 
                 using (XmlWriter xw = XmlWriter.Create(sw, xws))
                 {
@@ -85,15 +86,13 @@ namespace Zerra.Identity.Saml2.Documents
             xw.WriteAttributeString("IssueInstant", this.IssueInstant);
 
             string protocolBinding = null;
-            switch (this.BindingType)
+            protocolBinding = this.BindingType switch
             {
-                case BindingType.Form: protocolBinding = Saml2Names.PostBindingNamespace; break;
-                case BindingType.Query: protocolBinding = Saml2Names.RedirectBindingNamespace; break;
-                default:
-                    throw new IdentityProviderException("Binding Type is not supported",
-                        String.Format("Received: {0}", protocolBinding));
-            }
-
+                BindingType.Form => Saml2Names.PostBindingNamespace,
+                BindingType.Query => Saml2Names.RedirectBindingNamespace,
+                _ => throw new IdentityProviderException("Binding Type is not supported",
+String.Format("Received: {0}", protocolBinding)),
+            };
             xw.WriteAttributeString("ProtocolBinding", protocolBinding);
 
             xw.WriteAttributeString("AssertionConsumerServiceURL", this.AssertionConsumerServiceURL);

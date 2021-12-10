@@ -87,8 +87,10 @@ namespace Zerra.Identity.Saml2.Documents
         {
             using (var sw = new StringWriterWithEncoding(Encoding.UTF8))
             {
-                var xws = new XmlWriterSettings();
-                xws.OmitXmlDeclaration = false;
+                var xws = new XmlWriterSettings
+                {
+                    OmitXmlDeclaration = false
+                };
 
                 using (XmlWriter xw = XmlWriter.Create(sw, xws))
                 {
