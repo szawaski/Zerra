@@ -18,7 +18,7 @@ namespace Zerra.Encryption
         {
             var passwordBytes = Encoding.UTF8.GetBytes(password);
             var saltBytes = String.IsNullOrWhiteSpace(salt) ? defaultSalt : Encoding.UTF8.GetBytes(salt);
-            var hashBytes = Hasher.GenerateHash(HashAlgoritmType.SHA256Managed, passwordBytes, saltBytes);
+            var hashBytes = Hasher.GenerateHash(HashAlgoritmType.SHA256, passwordBytes, saltBytes);
             return hashBytes;
         }
 
