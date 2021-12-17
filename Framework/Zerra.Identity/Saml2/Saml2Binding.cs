@@ -36,7 +36,7 @@ namespace Zerra.Identity.Saml2
             return new Saml2StreamBinding(request, flowDirection);
         }
 
-        public static Saml2Binding GetBindingForDocument(Saml2Document document, BindingType bindingType, SignatureAlgorithm? signatureAlgorithm, DigestAlgorithm? digestAlgorithm, EncryptionAlgorithm? encryptionAlgorithm)
+        public static Saml2Binding GetBindingForDocument(Saml2Document document, BindingType bindingType, XmlSignatureAlgorithmType? signatureAlgorithm, XmlDigestAlgorithmType? digestAlgorithm, XmlEncryptionAlgorithmType? encryptionAlgorithm)
         {
             return bindingType switch
             {

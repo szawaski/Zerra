@@ -60,182 +60,182 @@ namespace Zerra.Identity.Cryptography
         public const string EcdsaSha384Jwt = "ES384";
         public const string EcdsaSha512Jwt = "ES512";
 
-        public static string GetSignatureAlgorithmUrl(SignatureAlgorithm algorithm)
+        public static string GetSignatureAlgorithmUrl(XmlSignatureAlgorithmType algorithm)
         {
             return algorithm switch
             {
-                SignatureAlgorithm.RsaSha1 => RsaSha1Url,
-                SignatureAlgorithm.RsaSha224 => RsaSha224Url,
-                SignatureAlgorithm.RsaSha256 => RsaSha256Url,
-                SignatureAlgorithm.RsaSha384 => RsaSha384Url,
-                SignatureAlgorithm.RsaSha512 => RsaSha512Url,
-                SignatureAlgorithm.HmacSha1 => HmacSha1Url,
-                SignatureAlgorithm.HmacSha224 => HmacSha224Url,
-                SignatureAlgorithm.HmacSha256 => HmacSha256Url,
-                SignatureAlgorithm.HmacSha384 => HmacSha384Url,
-                SignatureAlgorithm.HmacSha512 => HmacSha512Url,
-                SignatureAlgorithm.EcdsaSha1 => EcdsaSha1Url,
-                SignatureAlgorithm.EcdsaSha224 => EcdsaSha224Url,
-                SignatureAlgorithm.EcdsaSha256 => EcdsaSha256Url,
-                SignatureAlgorithm.EcdsaSha384 => EcdsaSha384Url,
-                SignatureAlgorithm.EcdsaSha512 => EcdsaSha512Url,
+                XmlSignatureAlgorithmType.RsaSha1 => RsaSha1Url,
+                XmlSignatureAlgorithmType.RsaSha224 => RsaSha224Url,
+                XmlSignatureAlgorithmType.RsaSha256 => RsaSha256Url,
+                XmlSignatureAlgorithmType.RsaSha384 => RsaSha384Url,
+                XmlSignatureAlgorithmType.RsaSha512 => RsaSha512Url,
+                XmlSignatureAlgorithmType.HmacSha1 => HmacSha1Url,
+                XmlSignatureAlgorithmType.HmacSha224 => HmacSha224Url,
+                XmlSignatureAlgorithmType.HmacSha256 => HmacSha256Url,
+                XmlSignatureAlgorithmType.HmacSha384 => HmacSha384Url,
+                XmlSignatureAlgorithmType.HmacSha512 => HmacSha512Url,
+                XmlSignatureAlgorithmType.EcdsaSha1 => EcdsaSha1Url,
+                XmlSignatureAlgorithmType.EcdsaSha224 => EcdsaSha224Url,
+                XmlSignatureAlgorithmType.EcdsaSha256 => EcdsaSha256Url,
+                XmlSignatureAlgorithmType.EcdsaSha384 => EcdsaSha384Url,
+                XmlSignatureAlgorithmType.EcdsaSha512 => EcdsaSha512Url,
                 _ => throw new NotImplementedException(),
             };
         }
-        public static string GetSignatureAlgorithmJwt(SignatureAlgorithm algorithm)
+        public static string GetSignatureAlgorithmJwt(XmlSignatureAlgorithmType algorithm)
         {
             return algorithm switch
             {
-                SignatureAlgorithm.RsaSha256 => RsaSha256Jwt,
-                SignatureAlgorithm.RsaSha384 => RsaSha384Jwt,
-                SignatureAlgorithm.RsaSha512 => RsaSha512Jwt,
-                SignatureAlgorithm.HmacSha256 => HmacSha256Jwt,
-                SignatureAlgorithm.HmacSha384 => HmacSha384Jwt,
-                SignatureAlgorithm.HmacSha512 => HmacSha512Jwt,
-                SignatureAlgorithm.EcdsaSha256 => EcdsaSha256Jwt,
-                SignatureAlgorithm.EcdsaSha384 => EcdsaSha384Jwt,
-                SignatureAlgorithm.EcdsaSha512 => EcdsaSha512Jwt,
+                XmlSignatureAlgorithmType.RsaSha256 => RsaSha256Jwt,
+                XmlSignatureAlgorithmType.RsaSha384 => RsaSha384Jwt,
+                XmlSignatureAlgorithmType.RsaSha512 => RsaSha512Jwt,
+                XmlSignatureAlgorithmType.HmacSha256 => HmacSha256Jwt,
+                XmlSignatureAlgorithmType.HmacSha384 => HmacSha384Jwt,
+                XmlSignatureAlgorithmType.HmacSha512 => HmacSha512Jwt,
+                XmlSignatureAlgorithmType.EcdsaSha256 => EcdsaSha256Jwt,
+                XmlSignatureAlgorithmType.EcdsaSha384 => EcdsaSha384Jwt,
+                XmlSignatureAlgorithmType.EcdsaSha512 => EcdsaSha512Jwt,
                 _ => throw new NotImplementedException(),
             };
         }
-        public static SignatureAlgorithm GetSignatureAlgorithmFromUrl(string url)
+        public static XmlSignatureAlgorithmType GetSignatureAlgorithmFromUrl(string url)
         {
             return url switch
             {
-                RsaSha1Url => SignatureAlgorithm.RsaSha1,
-                RsaSha256Url => SignatureAlgorithm.RsaSha256,
-                RsaSha224Url => SignatureAlgorithm.RsaSha224,
-                RsaSha384Url => SignatureAlgorithm.RsaSha384,
-                RsaSha512Url => SignatureAlgorithm.RsaSha512,
-                HmacSha1Url => SignatureAlgorithm.HmacSha1,
-                HmacSha224Url => SignatureAlgorithm.HmacSha224,
-                HmacSha256Url => SignatureAlgorithm.HmacSha256,
-                HmacSha384Url => SignatureAlgorithm.HmacSha384,
-                HmacSha512Url => SignatureAlgorithm.HmacSha512,
-                EcdsaSha1Url => SignatureAlgorithm.EcdsaSha1,
-                EcdsaSha224Url => SignatureAlgorithm.EcdsaSha224,
-                EcdsaSha256Url => SignatureAlgorithm.EcdsaSha256,
-                EcdsaSha384Url => SignatureAlgorithm.EcdsaSha384,
-                EcdsaSha512Url => SignatureAlgorithm.EcdsaSha512,
+                RsaSha1Url => XmlSignatureAlgorithmType.RsaSha1,
+                RsaSha256Url => XmlSignatureAlgorithmType.RsaSha256,
+                RsaSha224Url => XmlSignatureAlgorithmType.RsaSha224,
+                RsaSha384Url => XmlSignatureAlgorithmType.RsaSha384,
+                RsaSha512Url => XmlSignatureAlgorithmType.RsaSha512,
+                HmacSha1Url => XmlSignatureAlgorithmType.HmacSha1,
+                HmacSha224Url => XmlSignatureAlgorithmType.HmacSha224,
+                HmacSha256Url => XmlSignatureAlgorithmType.HmacSha256,
+                HmacSha384Url => XmlSignatureAlgorithmType.HmacSha384,
+                HmacSha512Url => XmlSignatureAlgorithmType.HmacSha512,
+                EcdsaSha1Url => XmlSignatureAlgorithmType.EcdsaSha1,
+                EcdsaSha224Url => XmlSignatureAlgorithmType.EcdsaSha224,
+                EcdsaSha256Url => XmlSignatureAlgorithmType.EcdsaSha256,
+                EcdsaSha384Url => XmlSignatureAlgorithmType.EcdsaSha384,
+                EcdsaSha512Url => XmlSignatureAlgorithmType.EcdsaSha512,
                 _ => throw new ArgumentException(String.Format("Algorithm not recoginized {0}", url)),
             };
         }
-        public static SignatureAlgorithm GetSignatureAlgorithmFromJwt(string jwtAlg)
+        public static XmlSignatureAlgorithmType GetSignatureAlgorithmFromJwt(string jwtAlg)
         {
             return jwtAlg switch
             {
-                RsaSha256Jwt => SignatureAlgorithm.RsaSha256,
-                RsaSha384Jwt => SignatureAlgorithm.RsaSha384,
-                RsaSha512Jwt => SignatureAlgorithm.RsaSha512,
-                HmacSha256Jwt => SignatureAlgorithm.HmacSha256,
-                HmacSha384Jwt => SignatureAlgorithm.HmacSha384,
-                HmacSha512Jwt => SignatureAlgorithm.HmacSha512,
-                EcdsaSha256Jwt => SignatureAlgorithm.EcdsaSha256,
-                EcdsaSha384Jwt => SignatureAlgorithm.EcdsaSha384,
-                EcdsaSha512Jwt => SignatureAlgorithm.EcdsaSha512,
+                RsaSha256Jwt => XmlSignatureAlgorithmType.RsaSha256,
+                RsaSha384Jwt => XmlSignatureAlgorithmType.RsaSha384,
+                RsaSha512Jwt => XmlSignatureAlgorithmType.RsaSha512,
+                HmacSha256Jwt => XmlSignatureAlgorithmType.HmacSha256,
+                HmacSha384Jwt => XmlSignatureAlgorithmType.HmacSha384,
+                HmacSha512Jwt => XmlSignatureAlgorithmType.HmacSha512,
+                EcdsaSha256Jwt => XmlSignatureAlgorithmType.EcdsaSha256,
+                EcdsaSha384Jwt => XmlSignatureAlgorithmType.EcdsaSha384,
+                EcdsaSha512Jwt => XmlSignatureAlgorithmType.EcdsaSha512,
                 _ => throw new ArgumentException(String.Format("Algorithm not recoginized {0}", jwtAlg)),
             };
         }
 
-        public static string GetDigestAlgorithmUrl(DigestAlgorithm algorithm)
+        public static string GetDigestAlgorithmUrl(XmlDigestAlgorithmType algorithm)
         {
             return algorithm switch
             {
-                DigestAlgorithm.Sha1 => Sha1Url,
-                DigestAlgorithm.Sha224 => Sha224Url,
-                DigestAlgorithm.Sha256 => Sha256Url,
-                DigestAlgorithm.Sha384 => Sha384Url,
-                DigestAlgorithm.Sha512 => Sha512Url,
+                XmlDigestAlgorithmType.Sha1 => Sha1Url,
+                XmlDigestAlgorithmType.Sha224 => Sha224Url,
+                XmlDigestAlgorithmType.Sha256 => Sha256Url,
+                XmlDigestAlgorithmType.Sha384 => Sha384Url,
+                XmlDigestAlgorithmType.Sha512 => Sha512Url,
                 _ => throw new NotImplementedException(),
             };
         }
-        public static DigestAlgorithm GetDigestAlgorithmFromUrl(string url)
+        public static XmlDigestAlgorithmType GetDigestAlgorithmFromUrl(string url)
         {
             return url switch
             {
-                Sha1Url => DigestAlgorithm.Sha1,
-                Sha224Url => DigestAlgorithm.Sha224,
-                Sha256Url => DigestAlgorithm.Sha256,
-                Sha384Url => DigestAlgorithm.Sha384,
-                Sha512Url => DigestAlgorithm.Sha512,
+                Sha1Url => XmlDigestAlgorithmType.Sha1,
+                Sha224Url => XmlDigestAlgorithmType.Sha224,
+                Sha256Url => XmlDigestAlgorithmType.Sha256,
+                Sha384Url => XmlDigestAlgorithmType.Sha384,
+                Sha512Url => XmlDigestAlgorithmType.Sha512,
                 _ => throw new ArgumentException(String.Format("Algorithm not recoginized {0}", url)),
             };
         }
 
-        public static string GetEncryptionAlgorithmUrl(EncryptionAlgorithm algorithm)
+        public static string GetEncryptionAlgorithmUrl(XmlEncryptionAlgorithmType algorithm)
         {
             return algorithm switch
             {
-                EncryptionAlgorithm.Aes128Cbc => Aes128CbcUrl,
-                EncryptionAlgorithm.Aes192Cbc => Aes192CbcUrl,
-                EncryptionAlgorithm.Aes256Cbc => Aes256CbcUrl,
-                EncryptionAlgorithm.Aes128Kw => Aes128KwUrl,
-                EncryptionAlgorithm.Aes192Kw => Aes192KwUrl,
-                EncryptionAlgorithm.Aes256Kw => Aes256KwUrl,
-                EncryptionAlgorithm.DesCbc => DesCbcUrl,
-                EncryptionAlgorithm.TrippleDesCbc => TrippleDesCbcUrl,
-                EncryptionAlgorithm.TrippleDesKw => TrippleDesKwUrl,
+                XmlEncryptionAlgorithmType.Aes128Cbc => Aes128CbcUrl,
+                XmlEncryptionAlgorithmType.Aes192Cbc => Aes192CbcUrl,
+                XmlEncryptionAlgorithmType.Aes256Cbc => Aes256CbcUrl,
+                XmlEncryptionAlgorithmType.Aes128Kw => Aes128KwUrl,
+                XmlEncryptionAlgorithmType.Aes192Kw => Aes192KwUrl,
+                XmlEncryptionAlgorithmType.Aes256Kw => Aes256KwUrl,
+                XmlEncryptionAlgorithmType.DesCbc => DesCbcUrl,
+                XmlEncryptionAlgorithmType.TrippleDesCbc => TrippleDesCbcUrl,
+                XmlEncryptionAlgorithmType.TrippleDesKw => TrippleDesKwUrl,
                 _ => throw new NotImplementedException(),
             };
         }
-        public static EncryptionAlgorithm GetEncryptionAlgorithmFromUrl(string url)
+        public static XmlEncryptionAlgorithmType GetEncryptionAlgorithmFromUrl(string url)
         {
             return url switch
             {
-                Aes128CbcUrl => EncryptionAlgorithm.Aes128Cbc,
-                Aes192CbcUrl => EncryptionAlgorithm.Aes192Cbc,
-                Aes256CbcUrl => EncryptionAlgorithm.Aes256Cbc,
-                Aes128KwUrl => EncryptionAlgorithm.Aes128Kw,
-                Aes192KwUrl => EncryptionAlgorithm.Aes192Kw,
-                Aes256KwUrl => EncryptionAlgorithm.Aes256Kw,
-                DesCbcUrl => EncryptionAlgorithm.DesCbc,
-                TrippleDesCbcUrl => EncryptionAlgorithm.TrippleDesCbc,
-                TrippleDesKwUrl => EncryptionAlgorithm.TrippleDesKw,
+                Aes128CbcUrl => XmlEncryptionAlgorithmType.Aes128Cbc,
+                Aes192CbcUrl => XmlEncryptionAlgorithmType.Aes192Cbc,
+                Aes256CbcUrl => XmlEncryptionAlgorithmType.Aes256Cbc,
+                Aes128KwUrl => XmlEncryptionAlgorithmType.Aes128Kw,
+                Aes192KwUrl => XmlEncryptionAlgorithmType.Aes192Kw,
+                Aes256KwUrl => XmlEncryptionAlgorithmType.Aes256Kw,
+                DesCbcUrl => XmlEncryptionAlgorithmType.DesCbc,
+                TrippleDesCbcUrl => XmlEncryptionAlgorithmType.TrippleDesCbc,
+                TrippleDesKwUrl => XmlEncryptionAlgorithmType.TrippleDesKw,
                 _ => throw new ArgumentException(String.Format("Algorithm not recoginized {0}", url)),
             };
         }
         
-        public static SignatureDescription Create(SignatureAlgorithm algorithm)
+        public static SignatureDescription Create(XmlSignatureAlgorithmType algorithm)
         {
             return algorithm switch
             {
-                SignatureAlgorithm.RsaSha1 => new RSAPKCS1SHA1SignatureDescription(),
-                SignatureAlgorithm.RsaSha224 => throw new NotImplementedException(),
-                SignatureAlgorithm.RsaSha256 => new RSAPKCS1SHA256SignatureDescription(),
-                SignatureAlgorithm.RsaSha384 => new RSAPKCS1SHA384SignatureDescription(),
-                SignatureAlgorithm.RsaSha512 => new RSAPKCS1SHA512SignatureDescription(),
-                SignatureAlgorithm.HmacSha1 => throw new NotImplementedException(),
-                SignatureAlgorithm.HmacSha224 => throw new NotImplementedException(),
-                SignatureAlgorithm.HmacSha256 => throw new NotImplementedException(),
-                SignatureAlgorithm.HmacSha384 => throw new NotImplementedException(),
-                SignatureAlgorithm.HmacSha512 => throw new NotImplementedException(),
-                SignatureAlgorithm.EcdsaSha1 => throw new NotImplementedException(),
-                SignatureAlgorithm.EcdsaSha224 => throw new NotImplementedException(),
-                SignatureAlgorithm.EcdsaSha256 => throw new NotImplementedException(),
-                SignatureAlgorithm.EcdsaSha384 => throw new NotImplementedException(),
-                SignatureAlgorithm.EcdsaSha512 => throw new NotImplementedException(),
+                XmlSignatureAlgorithmType.RsaSha1 => new RSAPKCS1SHA1SignatureDescription(),
+                XmlSignatureAlgorithmType.RsaSha224 => throw new NotImplementedException(),
+                XmlSignatureAlgorithmType.RsaSha256 => new RSAPKCS1SHA256SignatureDescription(),
+                XmlSignatureAlgorithmType.RsaSha384 => new RSAPKCS1SHA384SignatureDescription(),
+                XmlSignatureAlgorithmType.RsaSha512 => new RSAPKCS1SHA512SignatureDescription(),
+                XmlSignatureAlgorithmType.HmacSha1 => throw new NotImplementedException(),
+                XmlSignatureAlgorithmType.HmacSha224 => throw new NotImplementedException(),
+                XmlSignatureAlgorithmType.HmacSha256 => throw new NotImplementedException(),
+                XmlSignatureAlgorithmType.HmacSha384 => throw new NotImplementedException(),
+                XmlSignatureAlgorithmType.HmacSha512 => throw new NotImplementedException(),
+                XmlSignatureAlgorithmType.EcdsaSha1 => throw new NotImplementedException(),
+                XmlSignatureAlgorithmType.EcdsaSha224 => throw new NotImplementedException(),
+                XmlSignatureAlgorithmType.EcdsaSha256 => throw new NotImplementedException(),
+                XmlSignatureAlgorithmType.EcdsaSha384 => throw new NotImplementedException(),
+                XmlSignatureAlgorithmType.EcdsaSha512 => throw new NotImplementedException(),
                 _ => throw new NotImplementedException(),
             };
         }
-        public static SymmetricAlgorithm Create(EncryptionAlgorithm algorithm)
+        public static SymmetricAlgorithm Create(XmlEncryptionAlgorithmType algorithm)
         {
             switch (algorithm)
             {
-                case EncryptionAlgorithm.Aes128Cbc:
+                case XmlEncryptionAlgorithmType.Aes128Cbc:
                     {
                         var aes = Aes.Create();
                         aes.BlockSize = 128;
                         aes.KeySize = 128;
                         return aes;
                     }
-                case EncryptionAlgorithm.Aes192Cbc:
+                case XmlEncryptionAlgorithmType.Aes192Cbc:
                     {
                         var aes = Aes.Create();
                         aes.BlockSize = 128;
                         aes.KeySize = 192;
                         return aes;
                     }
-                case EncryptionAlgorithm.Aes256Cbc:
+                case XmlEncryptionAlgorithmType.Aes256Cbc:
                     {
                         var aes = Aes.Create();
                         aes.BlockSize = 128;
@@ -243,24 +243,24 @@ namespace Zerra.Identity.Cryptography
                         return aes;
                     }
 
-                case EncryptionAlgorithm.Aes128Kw:
+                case XmlEncryptionAlgorithmType.Aes128Kw:
                     throw new NotImplementedException("Algorithm not implemented, probably need bouncy castle");
-                case EncryptionAlgorithm.Aes192Kw:
+                case XmlEncryptionAlgorithmType.Aes192Kw:
                     throw new NotImplementedException("Algorithm not implemented, probably need bouncy castle");
-                case EncryptionAlgorithm.Aes256Kw:
+                case XmlEncryptionAlgorithmType.Aes256Kw:
                     throw new NotImplementedException("Algorithm not implemented, probably need bouncy castle");
 
-                case EncryptionAlgorithm.DesCbc:
+                case XmlEncryptionAlgorithmType.DesCbc:
                     {
                         var des = DES.Create();
                         return des;
                     }
-                case EncryptionAlgorithm.TrippleDesCbc:
+                case XmlEncryptionAlgorithmType.TrippleDesCbc:
                     {
                         var des = TripleDES.Create();
                         return des;
                     }
-                case EncryptionAlgorithm.TrippleDesKw:
+                case XmlEncryptionAlgorithmType.TrippleDesKw:
                     throw new NotImplementedException("Algorithm not implemented, probably need bouncy castle");
 
                 default:

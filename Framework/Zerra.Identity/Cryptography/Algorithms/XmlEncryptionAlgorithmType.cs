@@ -4,7 +4,7 @@
 
 namespace Zerra.Identity.Cryptography
 {
-    public enum EncryptionAlgorithm
+    public enum XmlEncryptionAlgorithmType
     {
         Aes128Cbc,
         Aes192Cbc,

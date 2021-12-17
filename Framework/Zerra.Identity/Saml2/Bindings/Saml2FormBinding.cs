@@ -18,13 +18,13 @@ namespace Zerra.Identity.Saml2.Bindings
     {
         public override BindingType BindingType => BindingType.Form;
 
-        public SignatureAlgorithm? SignatureAlgorithm { get; protected set; }
-        public DigestAlgorithm? DigestAlgorithm { get; protected set; }
-        public EncryptionAlgorithm? EncryptionAlgorithm { get; protected set; }
+        public XmlSignatureAlgorithmType? SignatureAlgorithm { get; protected set; }
+        public XmlDigestAlgorithmType? DigestAlgorithm { get; protected set; }
+        public XmlEncryptionAlgorithmType? EncryptionAlgorithm { get; protected set; }
         public bool HasSignature { get; protected set; }
         public bool HasEncryption { get; protected set; }
 
-        internal Saml2FormBinding(Saml2Document document, SignatureAlgorithm? signatureAlgorithm, DigestAlgorithm? digestAlgorithm, EncryptionAlgorithm? encryptionAlgorithm)
+        internal Saml2FormBinding(Saml2Document document, XmlSignatureAlgorithmType? signatureAlgorithm, XmlDigestAlgorithmType? digestAlgorithm, XmlEncryptionAlgorithmType? encryptionAlgorithm)
         {
             this.BindingDirection = document.BindingDirection;
             this.SignatureAlgorithm = signatureAlgorithm;
@@ -86,9 +86,9 @@ namespace Zerra.Identity.Saml2.Bindings
                 return;
 
             if (this.SignatureAlgorithm == null)
-                this.SignatureAlgorithm = Cryptography.SignatureAlgorithm.RsaSha256;
+                this.SignatureAlgorithm = Cryptography.XmlSignatureAlgorithmType.RsaSha256;
             if (this.DigestAlgorithm == null)
-                this.DigestAlgorithm = Cryptography.DigestAlgorithm.Sha256;
+                this.DigestAlgorithm = Cryptography.XmlDigestAlgorithmType.Sha256;
 
             this.Document = X509XmlSigner.SignXmlDoc(this.Document, cert, this.SignatureAlgorithm.Value, this.DigestAlgorithm.Value);
             this.HasSignature = true;
@@ -124,7 +124,7 @@ namespace Zerra.Identity.Saml2.Bindings
                 throw new InvalidOperationException("Saml2 Document is already encrypted");
 
             if (this.EncryptionAlgorithm == null)
-                this.EncryptionAlgorithm = Cryptography.EncryptionAlgorithm.Aes128Cbc;
+                this.EncryptionAlgorithm = Cryptography.XmlEncryptionAlgorithmType.Aes128Cbc;
 
             this.Document = X509XmlEncryptor.EncryptXmlDoc(this.Document, cert, this.EncryptionAlgorithm.Value, Saml2Names.AssertionPrefix, "Assertion", Saml2Names.AssertionPrefix, "EncryptedAssertion");
             this.HasEncryption = true;

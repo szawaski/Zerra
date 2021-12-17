@@ -44,7 +44,7 @@ namespace Zerra.Identity.OpenID
             return new OpenIDJwtStreamBinding(request, flowDirection);
         }
 
-        public static OpenIDJwtBinding GetBindingForDocument(OpenIDDocument document, BindingType bindingType, SignatureAlgorithm? signatureAlgorithm)
+        public static OpenIDJwtBinding GetBindingForDocument(OpenIDDocument document, BindingType bindingType, XmlSignatureAlgorithmType? signatureAlgorithm)
         {
             return bindingType switch
             {
@@ -56,7 +56,7 @@ namespace Zerra.Identity.OpenID
             };
         }
 
-        public SignatureAlgorithm? SignatureAlgorithm { get; protected set; }
+        public XmlSignatureAlgorithmType? SignatureAlgorithm { get; protected set; }
         public string Signature { get; protected set; }
 
         protected string singingInput = null;

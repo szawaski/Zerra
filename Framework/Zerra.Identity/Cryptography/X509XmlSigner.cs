@@ -16,7 +16,7 @@ namespace Zerra.Identity.Cryptography
             ConfigSignatureDescriptions.Add();
         }
 
-        public static XmlDocument SignXmlDoc(XmlDocument xmlDoc, X509Certificate2 cert, SignatureAlgorithm signatureAlgorithm, DigestAlgorithm digestAlgorithm)
+        public static XmlDocument SignXmlDoc(XmlDocument xmlDoc, X509Certificate2 cert, XmlSignatureAlgorithmType signatureAlgorithm, XmlDigestAlgorithmType digestAlgorithm)
         {
             var signedXml = GenerateSignedXml(xmlDoc, cert, signatureAlgorithm, digestAlgorithm);
 
@@ -25,7 +25,7 @@ namespace Zerra.Identity.Cryptography
             return xmlDoc;
         }
 
-        private static XmlElement GenerateSignedXml(XmlDocument xmlDoc, X509Certificate2 cert, SignatureAlgorithm signatureAlgorithm, DigestAlgorithm digestAlgorithm)
+        private static XmlElement GenerateSignedXml(XmlDocument xmlDoc, X509Certificate2 cert, XmlSignatureAlgorithmType signatureAlgorithm, XmlDigestAlgorithmType digestAlgorithm)
         {
             var rsa = cert.GetRSAPrivateKey();
             if (rsa == null)
@@ -87,7 +87,7 @@ namespace Zerra.Identity.Cryptography
             return element.GetSingleElement(null, "Signature", true);
         }
 
-        public static SignatureAlgorithm GetSignatureAlgorithm(XmlElement element)
+        public static XmlSignatureAlgorithmType GetSignatureAlgorithm(XmlElement element)
         {
             var signatureElement = GetSignatureElement(element);
             var signedInfo = signatureElement.GetSingleElementRequired(null, "SignedInfo", false);
@@ -97,7 +97,7 @@ namespace Zerra.Identity.Cryptography
             return signatureAlgorithm;
         }
 
-        public static DigestAlgorithm GetDigestAlgorithm(XmlElement element)
+        public static XmlDigestAlgorithmType GetDigestAlgorithm(XmlElement element)
         {
             var signatureElement = GetSignatureElement(element);
             var signedInfo = signatureElement.GetSingleElementRequired(null, "SignedInfo", false);

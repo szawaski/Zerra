@@ -4,7 +4,7 @@
 
 namespace Zerra.Identity.Cryptography
 {
-    public enum SignatureAlgorithm
+    public enum XmlSignatureAlgorithmType
     {
         RsaSha1,
         RsaSha224,

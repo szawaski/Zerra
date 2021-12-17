@@ -15,7 +15,7 @@ namespace Zerra.Identity.Cryptography
     {
         private const bool useOeap = false;
 
-        public static XmlDocument EncryptXmlDoc(XmlDocument xmlDoc, X509Certificate2 cert, EncryptionAlgorithm encryptionAlgorithm, string elementPrefix, string elementName, string wrapperElementPrefix = null, string wrapperElementName = null)
+        public static XmlDocument EncryptXmlDoc(XmlDocument xmlDoc, X509Certificate2 cert, XmlEncryptionAlgorithmType encryptionAlgorithm, string elementPrefix, string elementName, string wrapperElementPrefix = null, string wrapperElementName = null)
         {
             var rsa = cert.GetRSAPublicKey();
             if (rsa == null)
@@ -100,9 +100,9 @@ namespace Zerra.Identity.Cryptography
             return element.GetElements(null, "EncryptedData", true).Count > 0;
         }
 
-        public static EncryptionAlgorithm GetEncryptionAlgorithm(XmlElement element)
+        public static XmlEncryptionAlgorithmType GetEncryptionAlgorithm(XmlElement element)
         {
-            EncryptionAlgorithm? encryptionAlgorithm = null;
+            XmlEncryptionAlgorithmType? encryptionAlgorithm = null;
 
             var signatureElements = element.GetElements(null, "EncryptedData", true);
 

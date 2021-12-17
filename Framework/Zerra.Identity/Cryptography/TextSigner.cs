@@ -16,18 +16,18 @@ namespace Zerra.Identity.Cryptography
             ConfigSignatureDescriptions.Add();
         }
 
-        public static string GenerateSignatureString(string text, AsymmetricAlgorithm asymmetricAlgorithm, SignatureAlgorithm signatureAlgorithm, bool base64UrlEncoding)
+        public static string GenerateSignatureString(string text, AsymmetricAlgorithm asymmetricAlgorithm, XmlSignatureAlgorithmType signatureAlgorithm, bool base64UrlEncoding)
         {
             var bytes = Encoding.UTF8.GetBytes(text);
             return GenerateSignatureString(bytes, asymmetricAlgorithm, signatureAlgorithm, base64UrlEncoding);
         }
-        public static string GenerateSignatureString(byte[] bytes, AsymmetricAlgorithm asymmetricAlgorithm, SignatureAlgorithm signatureAlgorithm, bool base64UrlEncoding)
+        public static string GenerateSignatureString(byte[] bytes, AsymmetricAlgorithm asymmetricAlgorithm, XmlSignatureAlgorithmType signatureAlgorithm, bool base64UrlEncoding)
         {
             var signedBytes = GenerateSignatureBytes(bytes, asymmetricAlgorithm, signatureAlgorithm);
             var signedText = base64UrlEncoding ? Base64UrlEncoder.ToBase64String(signedBytes) : Convert.ToBase64String(signedBytes);
             return signedText;
         }
-        public static byte[] GenerateSignatureBytes(byte[] bytes, AsymmetricAlgorithm asymmetricAlgorithm, SignatureAlgorithm signatureAlgorithm)
+        public static byte[] GenerateSignatureBytes(byte[] bytes, AsymmetricAlgorithm asymmetricAlgorithm, XmlSignatureAlgorithmType signatureAlgorithm)
         {
             var signatureDescription = Algorithms.Create(signatureAlgorithm);
             var hashAlgorithm = signatureDescription.CreateDigest();
@@ -38,7 +38,7 @@ namespace Zerra.Identity.Cryptography
             return signatureBytes;
         }
 
-        public static bool Validate(string text, string signature, AsymmetricAlgorithm asymmetricAlgorithm, SignatureAlgorithm signatureAlgorithm, bool base64UrlEncoding)
+        public static bool Validate(string text, string signature, AsymmetricAlgorithm asymmetricAlgorithm, XmlSignatureAlgorithmType signatureAlgorithm, bool base64UrlEncoding)
         {
             if (signature == null)
                 return false;
@@ -48,7 +48,7 @@ namespace Zerra.Identity.Cryptography
             var valid = Validate(textBytes, signatureBytes, asymmetricAlgorithm, signatureAlgorithm);
             return valid;
         }
-        public static bool Validate(byte[] textBytes, byte[] signatureBytes, AsymmetricAlgorithm asymmetricAlgorithm, SignatureAlgorithm signatureAlgorithm)
+        public static bool Validate(byte[] textBytes, byte[] signatureBytes, AsymmetricAlgorithm asymmetricAlgorithm, XmlSignatureAlgorithmType signatureAlgorithm)
         {
             var signatureDescription = Algorithms.Create(signatureAlgorithm);
             var hashAlgorithm = signatureDescription.CreateDigest();

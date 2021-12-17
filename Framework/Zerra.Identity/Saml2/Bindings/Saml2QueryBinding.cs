@@ -19,13 +19,13 @@ namespace Zerra.Identity.Saml2.Bindings
     {
         public override BindingType BindingType => BindingType.Query;
 
-        public SignatureAlgorithm? SignatureAlgorithm { get; protected set; }
+        public XmlSignatureAlgorithmType? SignatureAlgorithm { get; protected set; }
         public string RelayState { get; protected set; }
         public string Signature { get; protected set; }
 
         protected string singingInput = null;
 
-        internal Saml2QueryBinding(Saml2Document document, SignatureAlgorithm? signatureAlgorithm)
+        internal Saml2QueryBinding(Saml2Document document, XmlSignatureAlgorithmType? signatureAlgorithm)
         {
             this.BindingDirection = document.BindingDirection;
             this.SignatureAlgorithm = signatureAlgorithm;
@@ -68,7 +68,7 @@ namespace Zerra.Identity.Saml2.Bindings
                 throw new InvalidOperationException("Saml2 Document is Already Signed");
 
             if (this.SignatureAlgorithm == null)
-                this.SignatureAlgorithm = Cryptography.SignatureAlgorithm.RsaSha256;
+                this.SignatureAlgorithm = Cryptography.XmlSignatureAlgorithmType.RsaSha256;
 
             var samlEncoded = EncodeSaml(this.Document.InnerXml);
             this.singingInput = BuildSignatureQueryString(samlEncoded);

@@ -15,11 +15,11 @@ namespace Zerra.Identity.Saml2.Bindings
     {
         public override BindingType BindingType => BindingType.Stream;
 
-        public SignatureAlgorithm? SignatureAlgorithm { get; protected set; }
-        public DigestAlgorithm? DigestAlgorithm { get; protected set; }
+        public XmlSignatureAlgorithmType? SignatureAlgorithm { get; protected set; }
+        public XmlDigestAlgorithmType? DigestAlgorithm { get; protected set; }
         public bool HasSignature { get; protected set; }
 
-        internal Saml2StreamBinding(Saml2Document document, SignatureAlgorithm? signatureAlgorithm = null, DigestAlgorithm? digestAlgorithm = null)
+        internal Saml2StreamBinding(Saml2Document document, XmlSignatureAlgorithmType? signatureAlgorithm = null, XmlDigestAlgorithmType? digestAlgorithm = null)
         {
             this.BindingDirection = document.BindingDirection;
 
@@ -72,9 +72,9 @@ namespace Zerra.Identity.Saml2.Bindings
                 return;
 
             if (this.SignatureAlgorithm == null)
-                this.SignatureAlgorithm = Cryptography.SignatureAlgorithm.RsaSha256;
+                this.SignatureAlgorithm = Cryptography.XmlSignatureAlgorithmType.RsaSha256;
             if (this.DigestAlgorithm == null)
-                this.DigestAlgorithm = Cryptography.DigestAlgorithm.Sha256;
+                this.DigestAlgorithm = Cryptography.XmlDigestAlgorithmType.Sha256;
 
             this.Document = X509XmlSigner.SignXmlDoc(this.Document, cert, this.SignatureAlgorithm.Value, this.DigestAlgorithm.Value);
             this.HasSignature = true;

@@ -26,7 +26,7 @@ namespace Zerra.Encryption
         private static readonly char[] passwordCharactersUpper = "ABCDEFGHIJKLMNOPQRSTUVWXUYZ".ToCharArray();
         private static readonly char[] passwordCharactersLower = "abcdefghijklmnopqrstuvwxyz".ToCharArray();
         private static readonly char[] passwordCharactersNumeric = "0123456789".ToCharArray();
-        private static readonly char[] passwordCharactersSpecial = "~!@#$%^&*_-+=`|\\(){}[]:;\"'<>,.?/".ToCharArray();
+        private static readonly char[] passwordCharactersSpecial = " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~".ToCharArray(); //OWASP
         public static string GeneratePassword(int length, bool upperCase, bool lowerCase, bool numeric, bool special)
         {
             using (var rng = RandomNumberGenerator.Create())
@@ -69,10 +69,6 @@ namespace Zerra.Encryption
         {
             return hashAlgoritmType switch
             {
-                HashAlgoritmType.SHA1Managed => SHA1.Create(),
-                HashAlgoritmType.SHA256Managed => SHA256.Create(),
-                HashAlgoritmType.SHA512Managed => SHA512.Create(),
-                HashAlgoritmType.SHA384Managed => SHA384.Create(),
                 HashAlgoritmType.SHA1 => SHA1.Create(),
                 HashAlgoritmType.SHA256 => SHA256.Create(),
                 HashAlgoritmType.SHA512 => SHA512.Create(),

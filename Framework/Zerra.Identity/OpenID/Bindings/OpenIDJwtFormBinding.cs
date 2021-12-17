@@ -19,13 +19,13 @@ namespace Zerra.Identity.OpenID.Bindings
     {
         public override BindingType BindingType => BindingType.Form;
 
-        internal OpenIDJwtFormBinding(OpenIDDocument document, SignatureAlgorithm? signatureAlgorithm)
+        internal OpenIDJwtFormBinding(OpenIDDocument document, XmlSignatureAlgorithmType? signatureAlgorithm)
         {
             this.BindingDirection = document.BindingDirection;
             this.SignatureAlgorithm = signatureAlgorithm;
 
             if (this.SignatureAlgorithm == null)
-                this.SignatureAlgorithm = Cryptography.SignatureAlgorithm.RsaSha256;
+                this.SignatureAlgorithm = Cryptography.XmlSignatureAlgorithmType.RsaSha256;
 
             this.Document = document.GetJson();
         }

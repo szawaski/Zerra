@@ -18,7 +18,7 @@ namespace Zerra.Identity.OpenID.Documents
         public string UserInfoUrl { get; protected set; }
         public string KeysUrl { get; protected set; }
         public string LogoutUrl { get; protected set; }
-        public SignatureAlgorithm[] SignatureAlgorithms { get; protected set; }
+        public XmlSignatureAlgorithmType[] SignatureAlgorithms { get; protected set; }
 
         public string[] ScopesSupported { get; protected set; }
         public OpenIDResponseType[] ResponseTypesSupported { get; protected set; }
@@ -73,7 +73,7 @@ namespace Zerra.Identity.OpenID.Documents
             var signatureAlgorithms = json["id_token_signing_alg_values_supported"]?.ToObject<string[]>();
             if (signatureAlgorithms != null)
             {
-                var items = new List<SignatureAlgorithm>();
+                var items = new List<XmlSignatureAlgorithmType>();
                 foreach (var x in signatureAlgorithms)
                 {
                     var item = Algorithms.GetSignatureAlgorithmFromJwt(x);

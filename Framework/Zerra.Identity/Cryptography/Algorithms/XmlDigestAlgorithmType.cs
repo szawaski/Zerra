@@ -4,7 +4,7 @@
 
 namespace Zerra.Identity.Cryptography
 {
-    public enum DigestAlgorithm
+    public enum XmlDigestAlgorithmType
     {
         Sha1,
         Sha224,

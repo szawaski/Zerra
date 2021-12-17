@@ -50,7 +50,7 @@ namespace Zerra.Identity.Consumers
                 bindingType: BindingType.Form
             );
 
-            var requestBinding = Saml2Binding.GetBindingForDocument(requestDocument, BindingType.Form, SignatureAlgorithm.RsaSha256, null, null);
+            var requestBinding = Saml2Binding.GetBindingForDocument(requestDocument, BindingType.Form, XmlSignatureAlgorithmType.RsaSha256, null, null);
             requestBinding.Sign(serviceProviderCert, requiredSignature);
             var response = requestBinding.GetResponse(loginUrl);
             return new ValueTask<IActionResult>(response);
@@ -99,7 +99,7 @@ namespace Zerra.Identity.Consumers
                 destination: redirectUrlPostLogout
             );
 
-            var requestBinding = Saml2Binding.GetBindingForDocument(requestDocument, BindingType.Query, SignatureAlgorithm.RsaSha256, null, null);
+            var requestBinding = Saml2Binding.GetBindingForDocument(requestDocument, BindingType.Query, XmlSignatureAlgorithmType.RsaSha256, null, null);
             requestBinding.Sign(serviceProviderCert, requiredSignature);
             requestBinding.GetResponse(logoutUrl);
             var response = requestBinding.GetResponse(logoutUrl);
