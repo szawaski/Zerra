@@ -105,7 +105,7 @@ namespace Zerra.Encryption
             }
         }
 #endif
-        public static FinalBlockStream Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, Stream stream, bool write, bool shiftAlgorithm, bool leaveOpen)
+        public static FinalBlockStream Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, Stream stream, bool write, bool shiftAlgorithm, bool leaveOpen = false)
         {
             var symmetricAlgorithm = GetAlgorithm(symmetricAlgorithmType);
 
@@ -206,7 +206,7 @@ namespace Zerra.Encryption
             }
         }
 #endif
-        public static FinalBlockStream Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, Stream stream, bool write, bool shiftAlgorithm, bool leaveOpen)
+        public static FinalBlockStream Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, Stream stream, bool write, bool shiftAlgorithm, bool leaveOpen = false)
         {
             var symmetricAlgorithm = GetAlgorithm(symmetricAlgorithmType);
 
