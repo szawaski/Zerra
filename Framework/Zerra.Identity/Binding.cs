@@ -17,7 +17,6 @@ namespace Zerra.Identity
             return this.Document;
         }
 
-        public abstract IActionResult GetResponse(string url = null);
         public abstract IdentityHttpResponse GetResponse(string url = null);
         public abstract string GetContent();
     }
