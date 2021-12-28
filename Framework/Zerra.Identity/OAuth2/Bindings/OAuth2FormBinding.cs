@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -23,7 +21,7 @@ namespace Zerra.Identity.OAuth2.Bindings
             this.Document = document.GetJson();
         }
 
-        internal OAuth2FormBinding(HttpRequest request, BindingDirection bindingDirection)
+        internal OAuth2FormBinding(IdentityHttpRequest request, BindingDirection bindingDirection)
         {
             this.BindingDirection = bindingDirection;
 
@@ -79,7 +77,7 @@ namespace Zerra.Identity.OAuth2.Bindings
             return sb.ToString();
         }
 
-        public override IActionResult GetResponse(string url)
+        public override IdentityHttpResponse GetResponse(string url)
         {
             if (String.IsNullOrWhiteSpace(url))
                 throw new ArgumentException("Required url");
@@ -87,12 +85,7 @@ namespace Zerra.Identity.OAuth2.Bindings
             var inputs = GetInputs();
             var content = GeneratePost(url, inputs);
 
-            return new ContentResult()
-            {
-                ContentType = "text/html",
-                StatusCode = (int)HttpStatusCode.OK,
-                Content = content
-            };
+            return new IdentityHttpResponse("text/html", content);
         }
     }
 }

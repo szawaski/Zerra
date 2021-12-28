@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Net;
@@ -22,7 +20,7 @@ namespace Zerra.Identity.OpenID.Bindings
             this.Document = document.GetJson();
         }
 
-        internal OpenIDQueryBinding(HttpRequest request, BindingDirection bindingDirection)
+        internal OpenIDQueryBinding(IdentityHttpRequest request, BindingDirection bindingDirection)
         {
             this.BindingDirection = bindingDirection;
 
@@ -67,13 +65,13 @@ namespace Zerra.Identity.OpenID.Bindings
             }
         }
 
-        public override IActionResult GetResponse(string url)
+        public override IdentityHttpResponse GetResponse(string url)
         {
             if (String.IsNullOrWhiteSpace(url))
                 throw new ArgumentException("Required url");
 
             string redirectUrl = GetRedirectUrl(url);
-            return new RedirectResult(redirectUrl);
+            return new IdentityHttpResponse(redirectUrl);
         }
     }
 }

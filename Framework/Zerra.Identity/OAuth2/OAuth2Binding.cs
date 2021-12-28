@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Zerra.Identity.OAuth2.Bindings;
-using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -16,7 +15,7 @@ namespace Zerra.Identity.OAuth2
     {
         public const string ClientFormName = "client";
 
-        public static bool IsOAuth2Binding(HttpRequest request)
+        public static bool IsOAuth2Binding(IdentityHttpRequest request)
         {
             if (request.HasFormContentType)
                 return request.Form.Keys.Contains(OAuth2Binding.ClientFormName);
@@ -24,7 +23,7 @@ namespace Zerra.Identity.OAuth2
                 return request.Query.Keys.Contains(OAuth2Binding.ClientFormName);
         }
 
-        public static OAuth2Binding GetBindingForRequest(HttpRequest request, BindingDirection flowDirection)
+        public static OAuth2Binding GetBindingForRequest(IdentityHttpRequest request, BindingDirection flowDirection)
         {
             if (request.HasFormContentType)
                 return new OAuth2FormBinding(request, flowDirection);

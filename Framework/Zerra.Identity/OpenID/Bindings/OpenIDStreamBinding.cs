@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System.Net;
 
@@ -37,15 +36,10 @@ namespace Zerra.Identity.OpenID.Bindings
             return json;
         }
 
-        public override IActionResult GetResponse(string url = null)
+        public override IdentityHttpResponse GetResponse(string url = null)
         {
             var content = GetContent();
-            return new ContentResult()
-            {
-                ContentType = "text/html",
-                StatusCode = (int)HttpStatusCode.OK,
-                Content = content
-            };
+            return new IdentityHttpResponse("text/html", content);
         }
     }
 }

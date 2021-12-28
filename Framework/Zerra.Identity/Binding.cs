@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.AspNetCore.Mvc;
-
 namespace Zerra.Identity
 {
     public abstract class Binding<T>
@@ -20,6 +18,7 @@ namespace Zerra.Identity
         }
 
         public abstract IActionResult GetResponse(string url = null);
+        public abstract IdentityHttpResponse GetResponse(string url = null);
         public abstract string GetContent();
     }
 }

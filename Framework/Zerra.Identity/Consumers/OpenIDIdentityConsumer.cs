@@ -4,8 +4,6 @@
 
 using Zerra.Identity.Jwt;
 using Zerra.Identity.OpenID;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System;
 using System.IO;
@@ -86,7 +84,7 @@ namespace Zerra.Identity.Consumers
             );
         }
 
-        public ValueTask<IActionResult> Login(string state)
+        public ValueTask<IdentityHttpResponse> Login(string state)
         {
             var nonce = NonceManager.Generate(serviceProvider);
 
@@ -103,14 +101,14 @@ namespace Zerra.Identity.Consumers
 
             var requestBinding = OpenIDBinding.GetBindingForDocument(requestDocument, BindingType.Form);
             var response = requestBinding.GetResponse(loginUrl);
-            return new ValueTask<IActionResult>(response);
+            return new ValueTask<IdentityHttpResponse>(response);
         }
 
-        public async ValueTask<IdentityModel> Callback(HttpContext context)
+        public async ValueTask<IdentityModel> Callback(IdentityHttpRequest request)
         {
-            if (OpenIDJwtBinding.IsOpenIDJwtBinding(context.Request))
+            if (OpenIDJwtBinding.IsOpenIDJwtBinding(request))
             {
-                var callbackBinding = OpenIDJwtBinding.GetBindingForRequest(context.Request, BindingDirection.Response);
+                var callbackBinding = OpenIDJwtBinding.GetBindingForRequest(request, BindingDirection.Response);
 
                 var callbackDocument = new OpenIDLoginResponse(callbackBinding);
                 if (!String.IsNullOrWhiteSpace(callbackDocument.Error))
@@ -223,7 +221,7 @@ namespace Zerra.Identity.Consumers
             return keys.keys;
         }
 
-        public ValueTask<IActionResult> Logout(string state)
+        public ValueTask<IdentityHttpResponse> Logout(string state)
         {
             var requestDocument = new OpenIDLogoutRequest(
                 serviceProvider: serviceProvider,
@@ -233,12 +231,12 @@ namespace Zerra.Identity.Consumers
 
             var requestBinding = OpenIDBinding.GetBindingForDocument(requestDocument, BindingType.Query);
             var response = requestBinding.GetResponse(logoutUrl);
-            return new ValueTask<IActionResult>(response);
+            return new ValueTask<IdentityHttpResponse>(response);
         }
 
-        public ValueTask<LogoutModel> LogoutCallback(HttpContext context)
+        public ValueTask<LogoutModel> LogoutCallback(IdentityHttpRequest request)
         {
-            var callbackBinding = OpenIDBinding.GetBindingForRequest(context.Request, BindingDirection.Response);
+            var callbackBinding = OpenIDBinding.GetBindingForRequest(request, BindingDirection.Response);
 
             var callbackDocument = new OpenIDLogoutResponse(callbackBinding);
 

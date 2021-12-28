@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Zerra.Identity.Cryptography;
-using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
@@ -49,15 +48,10 @@ namespace Zerra.Identity.Saml2.Bindings
             return xml;
         }
 
-        public override IActionResult GetResponse(string url = null)
+        public override IdentityHttpResponse GetResponse(string url = null)
         {
             var content = GetContent();
-            return new ContentResult()
-            {
-                ContentType = "text/xml",
-                StatusCode = (int)HttpStatusCode.OK,
-                Content = content
-            };
+            return new IdentityHttpResponse("text/xml", content);
         }
 
         public override void Sign(X509Certificate2 cert, bool requiredSignature)

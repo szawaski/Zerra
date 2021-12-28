@@ -4,7 +4,6 @@
 
 using Zerra.Identity.Jwt;
 using Zerra.Identity.Cryptography;
-using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -23,7 +22,7 @@ namespace Zerra.Identity.OpenID
     {
         protected const string TokenFormName = "id_token";
 
-        public static bool IsOpenIDJwtBinding(HttpRequest request)
+        public static bool IsOpenIDJwtBinding(IdentityHttpRequest request)
         {
             if (request.HasFormContentType)
                 return request.Form.Keys.Contains(OpenIDJwtBinding.TokenFormName);
@@ -31,7 +30,7 @@ namespace Zerra.Identity.OpenID
                 return request.Query.Keys.Contains(OpenIDJwtBinding.TokenFormName);
         }
 
-        public static OpenIDJwtBinding GetBindingForRequest(HttpRequest request, BindingDirection bindingDirection)
+        public static OpenIDJwtBinding GetBindingForRequest(IdentityHttpRequest request, BindingDirection bindingDirection)
         {
             if (request.HasFormContentType)
                 return new OpenIDJwtFormBinding(request, bindingDirection);

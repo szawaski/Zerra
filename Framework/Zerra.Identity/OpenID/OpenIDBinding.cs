@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Zerra.Identity.OpenID.Bindings;
-using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Linq;
@@ -23,7 +22,7 @@ namespace Zerra.Identity.OpenID
         //        return request.Query.Keys.Contains(OpenIDBinding.ClientFormName);
         //}
 
-        public static OpenIDBinding GetBindingForRequest(HttpRequest request, BindingDirection flowDirection)
+        public static OpenIDBinding GetBindingForRequest(IdentityHttpRequest request, BindingDirection flowDirection)
         {
             if (request.HasFormContentType)
                 return new OpenIDFormBinding(request, flowDirection);

@@ -4,7 +4,6 @@
 
 using Zerra.Identity.Cryptography;
 using Zerra.Identity.Saml2.Bindings;
-using Microsoft.AspNetCore.Http;
 using System;
 using System.Linq;
 using System.Net;
@@ -15,7 +14,7 @@ namespace Zerra.Identity.Saml2
 {
     public abstract class Saml2Binding : Binding<XmlDocument>
     {
-        public static bool IsSaml2Binding(HttpRequest request)
+        public static bool IsSaml2Binding(IdentityHttpRequest request)
         {
             if (request.HasFormContentType)
                 return request.Form.Keys.Contains(Saml2Names.RequestParameterName) || request.Form.Keys.Contains(Saml2Names.ResponseParameterName);
@@ -23,7 +22,7 @@ namespace Zerra.Identity.Saml2
                 return request.Query.Keys.Contains(Saml2Names.RequestParameterName) || request.Query.Keys.Contains(Saml2Names.ResponseParameterName);
         }
 
-        public static Saml2Binding GetBindingForRequest(HttpRequest request, BindingDirection bindingDirection)
+        public static Saml2Binding GetBindingForRequest(IdentityHttpRequest request, BindingDirection bindingDirection)
         {
             if (request.HasFormContentType)
                 return new Saml2FormBinding(request, bindingDirection);

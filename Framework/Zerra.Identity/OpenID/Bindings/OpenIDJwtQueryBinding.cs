@@ -4,8 +4,6 @@
 
 using Zerra.Identity.Jwt;
 using Zerra.Identity.Cryptography;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -29,7 +27,7 @@ namespace Zerra.Identity.OpenID.Bindings
             this.Document = document.GetJson();
         }
 
-        internal OpenIDJwtQueryBinding(HttpRequest request, BindingDirection bindingDirection)
+        internal OpenIDJwtQueryBinding(IdentityHttpRequest request, BindingDirection bindingDirection)
         {
             this.BindingDirection = bindingDirection;
 
@@ -90,13 +88,13 @@ namespace Zerra.Identity.OpenID.Bindings
                 sb.Append(WebUtility.UrlEncode(otherClaim.Key)).Append('=').Append(WebUtility.UrlEncode(otherClaim.Value));
         }
 
-        public override IActionResult GetResponse(string url)
+        public override IdentityHttpResponse GetResponse(string url)
         {
             if (String.IsNullOrWhiteSpace(url))
                 throw new ArgumentException("Required url");
 
             string redirectUrl = GetRedirectUrl(url);
-            return new RedirectResult(redirectUrl);
+            return new IdentityHttpResponse(redirectUrl);
         }
     }
 }

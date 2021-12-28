@@ -6,8 +6,6 @@ using Zerra.Identity.Cryptography;
 using Zerra.Identity.Saml2;
 using Zerra.Identity.Saml2.Documents;
 using Zerra.Identity.TokenManagers;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
@@ -39,7 +37,7 @@ namespace Zerra.Identity.Consumers
             this.requiredEncryption = requiredEncryption;
         }
 
-        public ValueTask<IActionResult> Login(string state)
+        public ValueTask<IdentityHttpResponse> Login(string state)
         {
             var id = SamlIDManager.Generate(serviceProvider);
 
@@ -53,12 +51,12 @@ namespace Zerra.Identity.Consumers
             var requestBinding = Saml2Binding.GetBindingForDocument(requestDocument, BindingType.Form, XmlSignatureAlgorithmType.RsaSha256, null, null);
             requestBinding.Sign(serviceProviderCert, requiredSignature);
             var response = requestBinding.GetResponse(loginUrl);
-            return new ValueTask<IActionResult>(response);
+            return new ValueTask<IdentityHttpResponse>(response);
         }
 
-        public ValueTask<IdentityModel> Callback(HttpContext context)
+        public ValueTask<IdentityModel> Callback(IdentityHttpRequest request)
         {
-            var callbackBinding = Saml2Binding.GetBindingForRequest(context.Request, BindingDirection.Response);
+            var callbackBinding = Saml2Binding.GetBindingForRequest(request, BindingDirection.Response);
 
             callbackBinding.ValidateSignature(identityProviderCert, true);
             callbackBinding.Decrypt(serviceProviderCert, requiredEncryption);
@@ -89,7 +87,7 @@ namespace Zerra.Identity.Consumers
             return new ValueTask<IdentityModel>(identity);
         }
 
-        public ValueTask<IActionResult> Logout(string state)
+        public ValueTask<IdentityHttpResponse> Logout(string state)
         {
             var id = SamlIDManager.Generate(serviceProvider);
 
@@ -103,12 +101,12 @@ namespace Zerra.Identity.Consumers
             requestBinding.Sign(serviceProviderCert, requiredSignature);
             requestBinding.GetResponse(logoutUrl);
             var response = requestBinding.GetResponse(logoutUrl);
-            return new ValueTask<IActionResult>(response);
+            return new ValueTask<IdentityHttpResponse>(response);
         }
 
-        public ValueTask<LogoutModel> LogoutCallback(HttpContext context)
+        public ValueTask<LogoutModel> LogoutCallback(IdentityHttpRequest request)
         {
-            var callbackBinding = Saml2Binding.GetBindingForRequest(context.Request, BindingDirection.Response);
+            var callbackBinding = Saml2Binding.GetBindingForRequest(request, BindingDirection.Response);
 
             callbackBinding.ValidateSignature(identityProviderCert, true);
             callbackBinding.ValidateFields(new string[] { redirectUrl });

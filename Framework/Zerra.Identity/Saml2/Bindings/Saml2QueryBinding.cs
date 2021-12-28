@@ -3,8 +3,6 @@
 // Licensed to you under the MIT license
 
 using Zerra.Identity.Cryptography;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using System;
 using System.IO;
 using System.IO.Compression;
@@ -33,7 +31,7 @@ namespace Zerra.Identity.Saml2.Bindings
             this.Document = document.GetSaml();
         }
 
-        internal Saml2QueryBinding(HttpRequest request, BindingDirection bindingDirection)
+        internal Saml2QueryBinding(IdentityHttpRequest request, BindingDirection bindingDirection)
         {
             this.BindingDirection = bindingDirection;
             string samlEncoded = this.BindingDirection switch
@@ -47,7 +45,7 @@ namespace Zerra.Identity.Saml2.Bindings
             var sigAlg = (string)request.Query[Saml2Names.SignatureAlgorithmParameterName];
             this.Signature = request.Query[Saml2Names.SignatureParameterName];
 
-            this.singingInput = request.QueryString.Value.Substring(1, request.QueryString.Value.IndexOf("&" + Saml2Names.SignatureParameterName + "=") - 1);
+            this.singingInput = request.QueryString.Substring(1, request.QueryString.IndexOf("&" + Saml2Names.SignatureParameterName + "=") - 1);
 
             if (samlEncoded == null)
                 return;
@@ -188,13 +186,13 @@ namespace Zerra.Identity.Saml2.Bindings
         }
 
 
-        public override IActionResult GetResponse(string url)
+        public override IdentityHttpResponse GetResponse(string url)
         {
             if (String.IsNullOrWhiteSpace(url))
                 throw new ArgumentException("Required url");
 
             string redirectUrl = GetRedirectUrl(url);
-            return new RedirectResult(redirectUrl);
+            return new IdentityHttpResponse(redirectUrl);
         }
     }
 }

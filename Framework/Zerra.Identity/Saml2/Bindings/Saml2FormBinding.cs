@@ -3,8 +3,6 @@
 // Licensed to you under the MIT license
 
 using Zerra.Identity.Cryptography;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -47,7 +45,7 @@ namespace Zerra.Identity.Saml2.Bindings
             }
         }
 
-        internal Saml2FormBinding(HttpRequest request, BindingDirection bindingDirection)
+        internal Saml2FormBinding(IdentityHttpRequest request, BindingDirection bindingDirection)
         {
             this.BindingDirection = bindingDirection;
             string samlEncoded = this.BindingDirection switch
@@ -226,18 +224,13 @@ namespace Zerra.Identity.Saml2.Bindings
             return sb.ToString();
         }
 
-        public override IActionResult GetResponse(string url)
+        public override IdentityHttpResponse GetResponse(string url)
         {
             if (String.IsNullOrWhiteSpace(url))
                 throw new ArgumentException("Required url");
 
             var content = GetPostContent(url);
-            return new ContentResult()
-            {
-                ContentType = "text/html",
-                StatusCode = (int)HttpStatusCode.OK,
-                Content = content
-            };
+            return new IdentityHttpResponse("text/html", content);
         }
     }
 }
