@@ -137,8 +137,12 @@ public class EnumName : Attribute
                 var field = fields.First(x => x.Name == name);
                 items.Add(name.ToLower(), enumValue);
                 var attribute = field.GetCustomAttribute<EnumName>(false);
-                if (attribute != null && items.ContainsKey(attribute.Text))
-                    items.Add(attribute.Text.ToLower(), enumValue);
+                if (attribute != null)
+                {
+                    var attributeName = attribute.Text.ToLower();
+                    if (!items.ContainsKey(attributeName))
+                        items.Add(attributeName, enumValue);
+                }
             }
             return items;
         });
