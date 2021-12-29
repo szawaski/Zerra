@@ -28,10 +28,7 @@ Zerra.Reflection.TypeAnalyzer
 		</Description>
 		<Company>KaKush LLC</Company>
 		<RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-		<Version>1.0.3</Version>
-		<SignAssembly>false</SignAssembly>
-		<AssemblyVersion>1.0.3.0</AssemblyVersion>
-		<FileVersion>1.0.3.0</FileVersion>
+		<Version>2.0.0</Version>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
