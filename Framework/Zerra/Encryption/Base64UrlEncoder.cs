@@ -50,7 +50,7 @@ namespace Zerra.Encryption
                 _ => throw new FormatException("Invalid string"),
             };
             var filtered = BufferArrayPool<char>.Rent(filteredLength);
-            for (var i = 0; i < filteredLength; i++)
+            for (var i = 0; i < chars.Length; i++)
             {
                 var c = chars[i];
                 filtered[i] = c switch
@@ -64,8 +64,8 @@ namespace Zerra.Encryption
             switch (chars.Length % 4)
             {
                 case 2:
+                    filtered[filteredLength - 2] = '=';
                     filtered[filteredLength - 1] = '=';
-                    filtered[filteredLength] = '=';
                     break;
                 case 3:
                     filtered[filteredLength - 1] = '=';
