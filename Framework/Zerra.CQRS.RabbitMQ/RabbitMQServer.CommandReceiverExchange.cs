@@ -167,18 +167,6 @@ namespace Zerra.CQRS.RabbitMQ
                         goto retry;
                     }
                 }
-
-                canceller.Dispose();
-                canceller = null;
-
-                if (channel != null)
-                {
-                    channel.Close();
-                    channel.Dispose();
-                    channel = null;
-                }
-
-                IsOpen = false;
             }
 
             public void Dispose()
@@ -192,6 +180,8 @@ namespace Zerra.CQRS.RabbitMQ
                     channel.Dispose();
                     channel = null;
                 }
+
+                IsOpen = false;
             }
         }
     }
