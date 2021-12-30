@@ -20,7 +20,7 @@
 		</Description>
 		<Company>KaKush LLC</Company>
 		<RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-		<Version>0.7.0</Version>
+		<Version>0.8.0</Version>
 		<SignAssembly>false</SignAssembly>
 		<AssemblyVersion></AssemblyVersion>
 		<FileVersion></FileVersion>
