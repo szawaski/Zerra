@@ -55,7 +55,7 @@ namespace Zerra.Identity.Saml2.Documents
             )
         {
             this.EntityID = entityID;
-            //this.ValidUntil = DateTimeOffset.Now.ToUniversalTime().AddYears(10).ToString("yyyy-MM-ddTHH:mm:ssZ");
+            //this.ValidUntil = DateTimeOffset.UtcNow.AddYears(10).ToString("yyyy-MM-ddTHH:mm:ssZ");
             this.LoginUrl = loginUrl;
             this.LogoutUrl = logoutUrl;
             this.WantAuthnRequestsSigned = wantSigning;

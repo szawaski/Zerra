@@ -62,9 +62,9 @@ namespace Zerra.Identity.OpenID.Documents
                 this.Nonce = nonce;
                 this.State = state;
 
-                this.IssuedAtTime = DateTimeOffset.Now.ToUniversalTime().ToUnixTimeSeconds();
-                this.NotBefore = DateTimeOffset.Now.ToUniversalTime().AddMinutes(-5).ToUnixTimeSeconds();
-                this.Expiration = DateTimeOffset.Now.ToUniversalTime().AddMinutes(5).ToUnixTimeSeconds();
+                this.IssuedAtTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                this.NotBefore = DateTimeOffset.UtcNow.AddMinutes(-5).ToUnixTimeSeconds();
+                this.Expiration = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
             }
             else
             {

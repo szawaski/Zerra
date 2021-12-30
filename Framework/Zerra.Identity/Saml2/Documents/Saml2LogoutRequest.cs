@@ -22,7 +22,7 @@ namespace Zerra.Identity.Saml2.Documents
             this.ID = id;
             this.Issuer = issuer;
             this.Destination = destination;
-            this.IssueInstant = DateTimeOffset.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
+            this.IssueInstant = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
         }
 
         public Saml2LogoutRequest(Binding<XmlDocument> binding)

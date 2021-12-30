@@ -58,24 +58,24 @@ namespace Zerra.Identity.Saml2
         public void ValidateFields(string[] expectedUrls)
         {
             var conditionNotBefore = ConditionNotBefore(this.Document.DocumentElement);
-            if (conditionNotBefore.HasValue && (conditionNotBefore > DateTimeOffset.Now))
+            if (conditionNotBefore.HasValue && (conditionNotBefore < DateTimeOffset.UtcNow))
                 throw new IdentityProviderException("Saml2 Document Invalid: NotBefore",
-                    String.Format("Received: {0}, Expected: {1}", conditionNotBefore, DateTimeOffset.Now));
+                    String.Format("Received: {0}, Expected: {1}", conditionNotBefore, DateTimeOffset.UtcNow));
 
             var conditionNotOnOrAfter = ConditionNotOnOrAfter(this.Document.DocumentElement);
-            if (conditionNotOnOrAfter.HasValue && (conditionNotOnOrAfter <= DateTimeOffset.Now))
+            if (conditionNotOnOrAfter.HasValue && (conditionNotOnOrAfter >= DateTimeOffset.UtcNow))
                 throw new IdentityProviderException("Saml2 Document Invalid: NotOnOrAfter",
-                    String.Format("Received: {0}, Expected: {1}", conditionNotOnOrAfter, DateTimeOffset.Now));
+                    String.Format("Received: {0}, Expected: {1}", conditionNotOnOrAfter, DateTimeOffset.UtcNow));
 
             var entityDescriptorValidUntil = EntityDescriptorValidUntil(this.Document.DocumentElement);
-            if (entityDescriptorValidUntil.HasValue && (entityDescriptorValidUntil <= DateTimeOffset.Now))
+            if (entityDescriptorValidUntil.HasValue && (entityDescriptorValidUntil <= DateTimeOffset.UtcNow))
                 throw new IdentityProviderException("Saml2 Document Invalid: ValidUntil",
-                    String.Format("Received: {0}, Expected: {1}", entityDescriptorValidUntil, DateTimeOffset.Now));
+                    String.Format("Received: {0}, Expected: {1}", entityDescriptorValidUntil, DateTimeOffset.UtcNow));
 
             var subjectNotOnOrAfter = SubjectNotOnOrAfter(this.Document.DocumentElement);
-            if (subjectNotOnOrAfter.HasValue && (subjectNotOnOrAfter <= DateTimeOffset.Now))
+            if (subjectNotOnOrAfter.HasValue && (subjectNotOnOrAfter <= DateTimeOffset.UtcNow))
                 throw new IdentityProviderException("Saml2 Document Invalid: NotOnOrAfter",
-                    String.Format("Received: {0}, Expected: {1}", subjectNotOnOrAfter, DateTimeOffset.Now));
+                    String.Format("Received: {0}, Expected: {1}", subjectNotOnOrAfter, DateTimeOffset.UtcNow));
 
             if (expectedUrls != null)
             {

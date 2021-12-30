@@ -24,7 +24,7 @@ namespace Zerra.Identity.Saml2.Documents
             this.Issuer = issuer;
             this.AssertionConsumerServiceURL = assertionConsumerServiceURL;
             this.BindingType = bindingType;
-            this.IssueInstant = DateTimeOffset.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
+            this.IssueInstant = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
         }
 
         public Saml2AuthnRequest(Binding<XmlDocument> binding)

@@ -26,7 +26,7 @@ namespace Zerra.Identity.Saml2.Documents
             this.Destination = destination;
             this.InResponseTo = inResponseTo;
             this.BindingType = bindingType;
-            this.IssueInstant = DateTimeOffset.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
+            this.IssueInstant = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
         }
 
         public Saml2LogoutResponse(Binding<XmlDocument> binding)

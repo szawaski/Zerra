@@ -39,9 +39,9 @@ namespace Zerra.Identity.Saml2.Documents
             this.UserID = identity.UserID;
             this.UserName = identity.UserName;
             this.Roles = identity.Roles;
-            this.IssueInstant = DateTimeOffset.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
-            this.NotBefore = DateTimeOffset.Now.ToUniversalTime().AddMinutes(-5).ToString("yyyy-MM-ddTHH:mm:ssZ");
-            this.NotOnOrAfter = DateTimeOffset.Now.ToUniversalTime().AddMinutes(5).ToString("yyyy-MM-ddTHH:mm:ssZ");
+            this.IssueInstant = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+            this.NotBefore = DateTimeOffset.UtcNow.AddMinutes(-5).ToString("yyyy-MM-ddTHH:mm:ssZ");
+            this.NotOnOrAfter = DateTimeOffset.UtcNow.AddMinutes(5).ToString("yyyy-MM-ddTHH:mm:ssZ");
             this.AssertionID = "_" + System.Guid.NewGuid().ToString();
             this.SubjectNameID = "_" + System.Guid.NewGuid().ToString();
             this.SessionIndex = "_" + System.Guid.NewGuid().ToString();
