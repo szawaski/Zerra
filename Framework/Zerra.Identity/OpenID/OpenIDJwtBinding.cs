@@ -103,10 +103,10 @@ namespace Zerra.Identity.OpenID
             var valid = true;
 
             var notBefore = NotBefore(this.Document);
-            valid &= !notBefore.HasValue || (notBefore < DateTimeOffset.UtcNow);
+            valid &= !notBefore.HasValue || (notBefore.Value.AddSeconds(-5) <= DateTimeOffset.UtcNow);
 
             var notOnOrAfter = NotOnOrAfter(this.Document);
-            valid &= !notOnOrAfter.HasValue || (notOnOrAfter >= DateTimeOffset.UtcNow);
+            valid &= !notOnOrAfter.HasValue || (notOnOrAfter > DateTimeOffset.UtcNow);
 
             if (!valid)
                 throw new IdentityProviderException("OpenID Document Is Invalid Or Expired");

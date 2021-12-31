@@ -58,12 +58,12 @@ namespace Zerra.Identity.Saml2
         public void ValidateFields(string[] expectedUrls)
         {
             var conditionNotBefore = ConditionNotBefore(this.Document.DocumentElement);
-            if (conditionNotBefore.HasValue && (conditionNotBefore < DateTimeOffset.UtcNow))
+            if (conditionNotBefore.HasValue && (conditionNotBefore.Value.AddSeconds(-5) <= DateTimeOffset.UtcNow))
                 throw new IdentityProviderException("Saml2 Document Invalid: NotBefore",
                     String.Format("Received: {0}, Expected: {1}", conditionNotBefore, DateTimeOffset.UtcNow));
 
             var conditionNotOnOrAfter = ConditionNotOnOrAfter(this.Document.DocumentElement);
-            if (conditionNotOnOrAfter.HasValue && (conditionNotOnOrAfter >= DateTimeOffset.UtcNow))
+            if (conditionNotOnOrAfter.HasValue && (conditionNotOnOrAfter > DateTimeOffset.UtcNow))
                 throw new IdentityProviderException("Saml2 Document Invalid: NotOnOrAfter",
                     String.Format("Received: {0}, Expected: {1}", conditionNotOnOrAfter, DateTimeOffset.UtcNow));
 
