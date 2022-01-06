@@ -18,7 +18,7 @@ namespace Zerra.CQRS.Network
         private readonly NetworkType networkType;
         private readonly ContentType contentType;
         private readonly SymmetricKey encryptionKey;
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AES;
+        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 
         public TcpRawCQRSClient(NetworkType networkType, ContentType contentType, string serviceUrl, SymmetricKey encryptionKey)
             : base(serviceUrl)
@@ -77,7 +77,7 @@ namespace Zerra.CQRS.Network
 
                 if (encryptionKey != null)
                 {
-                    requestBodyCryptoStream = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, requestBodyStream, true, true, true);
+                    requestBodyCryptoStream = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, requestBodyStream, true, true);
                     ContentTypeSerializer.Serialize(contentType, requestBodyCryptoStream, data);
                     requestBodyCryptoStream.FlushFinalBlock();
                     requestBodyCryptoStream.Dispose();
@@ -118,7 +118,7 @@ namespace Zerra.CQRS.Network
                 responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false);
 
                 if (encryptionKey != null)
-                    responseBodyStream = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, responseBodyStream, false, true, false);
+                    responseBodyStream = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, responseBodyStream, false, false);
 
                 if (responseHeader.IsError)
                 {
@@ -213,7 +213,7 @@ namespace Zerra.CQRS.Network
 
                 if (encryptionKey != null)
                 {
-                    requestBodyCryptoStream = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, requestBodyStream, true, true, true);
+                    requestBodyCryptoStream = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, requestBodyStream, true, true);
                     await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
 #if NET5_0_OR_GREATER
                     await requestBodyCryptoStream.FlushFinalBlockAsync();
@@ -267,7 +267,7 @@ namespace Zerra.CQRS.Network
                 responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false);
 
                 if (encryptionKey != null)
-                    responseBodyStream = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, responseBodyStream, false, true, false);
+                    responseBodyStream = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, responseBodyStream, false, false);
 
                 if (responseHeader.IsError)
                 {
@@ -401,7 +401,7 @@ namespace Zerra.CQRS.Network
 
                 if (encryptionKey != null)
                 {
-                    requestBodyCryptoStream = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, requestBodyStream, true, true, true);
+                    requestBodyCryptoStream = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, requestBodyStream, true, true);
                     await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
 #if NET5_0_OR_GREATER
                     await requestBodyCryptoStream.FlushFinalBlockAsync();
@@ -457,7 +457,7 @@ namespace Zerra.CQRS.Network
                 if (responseHeader.IsError)
                 {
                     if (encryptionKey != null)
-                        responseBodyStream = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, responseBodyStream, false, true, false);
+                        responseBodyStream = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, responseBodyStream, false, false);
 
                     var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream);
                     throw responseException;

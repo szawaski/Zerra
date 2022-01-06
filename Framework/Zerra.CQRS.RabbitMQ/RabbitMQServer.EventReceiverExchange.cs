@@ -84,7 +84,7 @@ namespace Zerra.CQRS.RabbitMQ
                                 byte[] body = e.Body;
                                 if (isEncrypted)
                                 {
-                                    body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, e.Body, true);
+                                    body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, e.Body);
                                 }
 
                                 var rabbitMessage = RabbitMQCommon.Deserialize<RabbitMQEventMessage>(body);

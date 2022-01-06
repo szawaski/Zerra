@@ -76,7 +76,7 @@ namespace Zerra.CQRS.Kafka
 
                                 byte[] body = consumerResult.Message.Value;
                                 if (encryptionKey != null)
-                                    body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, body, true);
+                                    body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, body);
 
                                 var message = KafkaCommon.Deserialize<KafkaEventMessage>(body);
 

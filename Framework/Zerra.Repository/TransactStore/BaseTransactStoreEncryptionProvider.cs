@@ -25,7 +25,7 @@ namespace Zerra.Repository
         public virtual Graph<TModel> Properties { get { return null; } }
         public abstract SymmetricKey EncryptionKey { get; }
 
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AES;
+        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 
         private static Expression<Func<TModel, bool>> EncryptWhere(Expression<Func<TModel, bool>> expression)
         {
@@ -62,7 +62,7 @@ namespace Zerra.Repository
                             if (encrypted.Length > encryptionPrefix.Length && encrypted.Substring(0, encryptionPrefix.Length) == encryptionPrefix)
                             {
                                 encrypted = encrypted.Substring(encryptionPrefix.Length, encrypted.Length - encryptionPrefix.Length);
-                                string plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted, true);
+                                string plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
                                 property.Setter(model, plain);
                             }
                         }
@@ -73,7 +73,7 @@ namespace Zerra.Repository
                         byte[] encrypted = (byte[])property.Getter(model);
                         try
                         {
-                            byte[] plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted, true);
+                            byte[] plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
                             property.Setter(model, plain);
                         }
                         catch { }
@@ -113,7 +113,7 @@ namespace Zerra.Repository
                                     if (encrypted.Length > encryptionPrefix.Length && encrypted.Substring(0, encryptionPrefix.Length) == encryptionPrefix)
                                     {
                                         encrypted = encrypted.Substring(encryptionPrefix.Length, encrypted.Length - encryptionPrefix.Length);
-                                        string plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted, true);
+                                        string plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
                                         property.Setter(model, plain);
                                     }
                                 }
@@ -127,7 +127,7 @@ namespace Zerra.Repository
                             {
                                 try
                                 {
-                                    byte[] plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted, true);
+                                    byte[] plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
                                     property.Setter(model, plain);
                                 }
                                 catch { }
@@ -378,7 +378,7 @@ namespace Zerra.Repository
                                 if (plain.Length <= encryptionPrefix.Length || plain.Substring(0, encryptionPrefix.Length) != encryptionPrefix)
                                 {
                                     plain = encryptionPrefix + plain;
-                                    string encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain, true);
+                                    string encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain);
                                     property.Setter(model, encrypted);
                                 }
                             }
@@ -388,7 +388,7 @@ namespace Zerra.Repository
                             byte[] plain = (byte[])property.Getter(model);
                             if (plain != null)
                             {
-                                byte[] encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain, true);
+                                byte[] encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain);
                                 property.Setter(model, encrypted);
                             }
                         }

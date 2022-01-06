@@ -91,7 +91,7 @@ namespace Zerra.CQRS.Kafka
 
                                 byte[] body = consumerResult.Message.Value;
                                 if (encryptionKey != null)
-                                    body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, body, true);
+                                    body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, body);
 
                                 var message = KafkaCommon.Deserialize<KafkaCommandMessage>(body);
 
@@ -142,7 +142,7 @@ namespace Zerra.CQRS.Kafka
                                 };
                                 var body = KafkaCommon.Serialize(ack);
                                 if (encryptionKey != null)
-                                    body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body, true);
+                                    body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
 
                                 await producer.ProduceAsync(ackTopic, new Message<string, byte[]>() { Key = ackKey, Value = body });
                             }

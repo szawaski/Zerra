@@ -17,7 +17,7 @@ namespace Zerra.CQRS.Kafka
     //Kafka Producer
     public class KafkaClient : ICommandClient, IEventClient, IDisposable
     {
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AES;
+        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 
         private bool listenerStarted = false;
 
@@ -82,7 +82,7 @@ namespace Zerra.CQRS.Kafka
 
             var body = KafkaCommon.Serialize(message);
             if (encryptionKey != null)
-                body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body, true);
+                body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
 
             if (requireAcknowledgement)
             {
@@ -144,7 +144,7 @@ namespace Zerra.CQRS.Kafka
 
             var body = KafkaCommon.Serialize(message);
             if (encryptionKey != null)
-                body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body, true);
+                body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
 
             var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = KafkaCommon.MessageKey, Value = body });
             if (producerResult.Status != PersistenceStatus.Persisted)
@@ -180,7 +180,7 @@ namespace Zerra.CQRS.Kafka
 
                         var response = consumerResult.Message.Value;
                         if (encryptionKey != null)
-                            response = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, response, true);
+                            response = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, response);
                         var ack = KafkaCommon.Deserialize<Acknowledgement>(response);
 
                         callback(ack);

@@ -10,6 +10,11 @@ namespace Zerra.Encryption
         AES,
         DES,
         TripleDES,
-        RC2
+        RC2,
+
+        AESwithShift,
+        DESwithShift,
+        TripleDESwithShift,
+        RC2withShift
     }
 }

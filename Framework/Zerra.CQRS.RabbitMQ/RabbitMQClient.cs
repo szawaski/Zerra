@@ -18,7 +18,7 @@ namespace Zerra.CQRS.RabbitMQ
 {
     public class RabbitMQClient : ICommandClient, IEventClient, IDisposable
     {
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AES;
+        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 
         private readonly string host;
         private readonly SymmetricKey encryptionKey;
@@ -81,7 +81,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                 var body = RabbitMQCommon.Serialize(rabbitMessage);
                 if (encryptionKey != null)
-                    body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body, true);
+                    body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
 
                 var exchange = command.GetType().GetNiceName();
 
@@ -128,7 +128,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                             byte[] acknowledgementBody = e.Body;
                             if (encryptionKey != null)
-                                acknowledgementBody = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, acknowledgementBody, true);
+                                acknowledgementBody = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, acknowledgementBody);
                             
                             var affirmation = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
 
@@ -206,7 +206,7 @@ namespace Zerra.CQRS.RabbitMQ
                 byte[] body = RabbitMQCommon.Serialize(rabbitMessage);
                 if (encryptionKey != null)
                 {
-                    body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body, true);
+                    body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
                 }
 
                 string exchange = @event.GetType().GetNiceName();
