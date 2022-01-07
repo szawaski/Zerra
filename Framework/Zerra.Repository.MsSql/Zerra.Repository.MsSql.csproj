@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.1;net5.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0</TargetFrameworks>
     <Authors>Steven Zawaski</Authors>
     <Copyright>KaKush LLC</Copyright>
     <Product>Zerra Framework Repository Sql</Product>
@@ -16,7 +16,7 @@ Zerra.Repository.MsSql.MsSqlDataContext</Description>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, SQL</PackageTags>
     <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-    <Version>2.0.0</Version>
+    <Version>2.1.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
