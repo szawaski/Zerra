@@ -29,7 +29,7 @@ namespace Zerra.Test
         public void Types()
         {
             var serializer = new ByteSerializer();
-            var model1 = Factory.GetTestTypesModel();
+            var model1 = Factory.GetAllTypesModel();
             var bytes = serializer.Serialize(model1);
             var model2 = serializer.Deserialize<AllTypesModel>(bytes);
             Factory.AssertAreEqual(model1, model2);
@@ -94,7 +94,7 @@ namespace Zerra.Test
         public void Arrays()
         {
             var serializer = new ByteSerializer();
-            var model1 = Factory.GetTestArrayModel();
+            var model1 = Factory.GetArrayModel();
             var bytes = serializer.Serialize(model1);
             var model2 = serializer.Deserialize<BasicModel[]>(bytes);
             Factory.AssertAreEqual(model1, model2);
@@ -104,7 +104,7 @@ namespace Zerra.Test
         public void Boxing()
         {
             var serializer = new ByteSerializer(false, true);
-            var model1 = Factory.GetTestBoxingModel();
+            var model1 = Factory.GetBoxingModel();
             var bytes = serializer.Serialize(model1);
             var model2 = serializer.Deserialize<TestBoxingModel>(bytes);
             Factory.AssertAreEqual(model1, model2);
@@ -114,7 +114,7 @@ namespace Zerra.Test
         public void ByPropertyName()
         {
             var serializer = new ByteSerializer(true);
-            var model1 = Factory.GetTestTypesModel();
+            var model1 = Factory.GetAllTypesModel();
             var bytes = serializer.Serialize(model1);
             var model2 = serializer.Deserialize<AllTypesReversedModel>(bytes);
             Factory.AssertAreEqual(model1, model2);
@@ -124,7 +124,7 @@ namespace Zerra.Test
         public void BySerializerIndex()
         {
             var serializer = new ByteSerializer();
-            var model1 = Factory.GetTestSerializerIndex();
+            var model1 = Factory.GetSerializerIndexModel();
             var bytes = serializer.Serialize(model1);
             var model2 = serializer.Deserialize<TestSerializerIndexModel2>(bytes);
             Factory.AssertAreEqual(model1, model2);
@@ -134,7 +134,7 @@ namespace Zerra.Test
         public void ByIgnoreSerailizerIndex()
         {
             var serializer = new ByteSerializer(false, false, true);
-            var model1 = Factory.GetTestSerializerIndex();
+            var model1 = Factory.GetSerializerIndexModel();
             var bytes = serializer.Serialize(model1);
             var model2 = serializer.Deserialize<TestSerializerIndexModel2>(bytes);
             Factory.AssertAreNotEqual(model1, model2);
@@ -144,7 +144,7 @@ namespace Zerra.Test
         public void ByLargeSerializerIndex()
         {
             var serializer = new ByteSerializer(false, false, false, ByteSerializerIndexSize.UInt16);
-            var model1 = Factory.GetTestSerializerLongIndex();
+            var model1 = Factory.GetSerializerLongIndexModel();
             var bytes = serializer.Serialize(model1);
             var model2 = serializer.Deserialize<TestSerializerLongIndexModel>(bytes);
             Factory.AssertAreEqual(model1, model2);
@@ -203,7 +203,7 @@ namespace Zerra.Test
         public void StreamTypes()
         {
             var serializer = new ByteSerializer();
-            var model1 = Factory.GetTestTypesModel();
+            var model1 = Factory.GetAllTypesModel();
             using (var ms = new MemoryStream())
             {
                 serializer.SerializeAsync(ms, model1).GetAwaiter().GetResult();
@@ -217,7 +217,7 @@ namespace Zerra.Test
         public void StreamDeserializeTypes()
         {
             var serializer = new ByteSerializer();
-            var model1 = Factory.GetTestTypesModel();
+            var model1 = Factory.GetAllTypesModel();
             var bytes = serializer.Serialize(model1);
             using (var ms = new MemoryStream(bytes))
             {
@@ -230,7 +230,7 @@ namespace Zerra.Test
         public void StreamSerializeTypes()
         {
             var serializer = new ByteSerializer();
-            var model1 = Factory.GetTestTypesModel();
+            var model1 = Factory.GetAllTypesModel();
             byte[] bytes;
             using (var ms = new MemoryStream())
             {
@@ -246,7 +246,7 @@ namespace Zerra.Test
         public void StreamDeserializeByPropertyName()
         {
             var serializer = new ByteSerializer(true);
-            var model1 = Factory.GetTestTypesModel();
+            var model1 = Factory.GetAllTypesModel();
             var bytes = serializer.Serialize(model1);
             using (var ms = new MemoryStream(bytes))
             {
@@ -259,7 +259,7 @@ namespace Zerra.Test
         public void StreamSerializeArrayByPropertyName()
         {
             var serializer = new ByteSerializer(true);
-            var model1 = Factory.GetTestTypesModel();
+            var model1 = Factory.GetAllTypesModel();
             byte[] bytes;
             using (var ms = new MemoryStream())
             {
@@ -275,7 +275,7 @@ namespace Zerra.Test
         public void StreamDeserializeArray()
         {
             var serializer = new ByteSerializer();
-            var model1 = Factory.GetTestArrayModel();
+            var model1 = Factory.GetArrayModel();
             var bytes = serializer.Serialize(model1);
             using (var ms = new MemoryStream(bytes))
             {
@@ -288,7 +288,7 @@ namespace Zerra.Test
         public void StreamSerializeArray()
         {
             var serializer = new ByteSerializer();
-            var model1 = Factory.GetTestArrayModel();
+            var model1 = Factory.GetArrayModel();
             byte[] bytes;
             using (var ms = new MemoryStream())
             {

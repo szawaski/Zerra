@@ -158,7 +158,7 @@ namespace Zerra.Test
             var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AESwithShift);
 
             var serializer = new ByteSerializer();
-            var model1 = Factory.GetTestTypesModel();
+            var model1 = Factory.GetAllTypesModel();
             using (var ms = new MemoryStream())
             using (var cryptoStreamWriter = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AESwithShift, key, ms, true, false))
             using (var cryptoStreamReader = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESwithShift, key, ms, false, false))

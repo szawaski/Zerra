@@ -17,7 +17,7 @@ namespace Zerra.Test
         [TestMethod]
         public void MatchesStandards()
         {
-            var baseModel = Factory.GetTestTypesModel();
+            var baseModel = Factory.GetAllTypesModel();
             var json1 = JsonSerializer.Serialize(baseModel);
             var json2 = Newtonsoft.Json.JsonConvert.SerializeObject(baseModel, new Newtonsoft.Json.Converters.StringEnumConverter());
             //swap serializers
@@ -29,7 +29,7 @@ namespace Zerra.Test
         [TestMethod]
         public void Types()
         {
-            var baseModel = Factory.GetTestTypesModel();
+            var baseModel = Factory.GetAllTypesModel();
             var json = JsonSerializer.Serialize(baseModel);
             var model = JsonSerializer.Deserialize<AllTypesModel>(json);
             Factory.AssertAreEqual(baseModel, model);
@@ -38,7 +38,7 @@ namespace Zerra.Test
         [TestMethod]
         public void ConvertTypes()
         {
-            var baseModel = Factory.GetTestTypesModel();
+            var baseModel = Factory.GetAllTypesModel();
             var json1 = JsonSerializer.Serialize(baseModel);
             var model1 = JsonSerializer.Deserialize<AllTypesAsStringsModel>(json1);
             Factory.AssertAreEqual(baseModel, model1);
@@ -173,7 +173,7 @@ namespace Zerra.Test
         [TestMethod]
         public void Pretty()
         {
-            var baseModel = Factory.GetTestTypesModel();
+            var baseModel = Factory.GetAllTypesModel();
             var json = JsonSerializer.Serialize(baseModel);
             string jsonPretty;
             using (var stringReader = new StringReader(json))
@@ -191,7 +191,7 @@ namespace Zerra.Test
         [TestMethod]
         public void Nameless()
         {
-            var baseModel = Factory.GetTestTypesModel();
+            var baseModel = Factory.GetAllTypesModel();
             var json = JsonSerializer.SerializeNameless(baseModel);
             var model = JsonSerializer.DeserializeNameless<AllTypesModel>(json);
             Factory.AssertAreEqual(baseModel, model);
@@ -270,7 +270,7 @@ namespace Zerra.Test
         [TestMethod]
         public void JsonObject()
         {
-            var baseModel = Factory.GetTestTypesModel();
+            var baseModel = Factory.GetAllTypesModel();
             var json = JsonSerializer.Serialize(baseModel);
             var jsonObject = JsonSerializer.DeserializeJsonObject(json);
 
@@ -550,7 +550,7 @@ namespace Zerra.Test
         [TestMethod]
         public void DeserializeStream()
         {
-            var model1 = Factory.GetTestTypesModel();
+            var model1 = Factory.GetAllTypesModel();
             var bytes = JsonSerializer.SerializeBytes(model1);
             var test = JsonSerializer.Serialize(model1);
             using (var ms = new MemoryStream(bytes))
@@ -563,7 +563,7 @@ namespace Zerra.Test
         [TestMethod]
         public void SerializeStream()
         {
-            var model1 = Factory.GetTestTypesModel();
+            var model1 = Factory.GetAllTypesModel();
             byte[] bytes;
             using (var ms = new MemoryStream())
             {

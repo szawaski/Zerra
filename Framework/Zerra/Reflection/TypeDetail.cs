@@ -63,6 +63,23 @@ namespace Zerra.Reflection
             return this.membersByName.TryGetValue(name, out member);
         }
 
+        private IDictionary<string, MemberDetail> membersByNameLower;
+        public MemberDetail GetMemberCaseInsensitive(string name)
+        {
+            if (this.membersByNameLower == null || !this.membersByNameLower.TryGetValue(name.ToLower(), out MemberDetail member))
+                throw new Exception($"TypeDetails for {Type.Name} does not contain member {name}");
+            return member;
+        }
+        public bool TryGetMemberCaseInsensitive(string name, out MemberDetail member)
+        {
+            if (this.membersByNameLower == null)
+            {
+                member = default;
+                return false;
+            }
+            return this.membersByNameLower.TryGetValue(name.ToLower(), out member);
+        }
+
         private readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> methodLookups = new ConcurrentFactoryDictionary<TypeKey, MethodDetail>();
         private MethodDetail GetMethodInternal(string name, Type[] parameterTypes = null)
         {
@@ -445,12 +462,14 @@ namespace Zerra.Reflection
 
                 this.MemberDetails = typeMembers.ToArray();
                 this.membersByName = this.MemberDetails.ToDictionary(x => x.Name);
+                this.membersByNameLower = this.MemberDetails.ToDictionary(x => x.Name.ToLower());
             }
             else
             {
                 var typeMembers = Array.Empty<MemberDetail>();
                 this.MemberDetails = typeMembers;
                 this.membersByName = this.MemberDetails.ToDictionary(x => x.Name);
+                this.membersByNameLower = this.MemberDetails.ToDictionary(x => x.Name.ToLower());
             }
 
             if (this.IsTask && this.Type.IsGenericType)
