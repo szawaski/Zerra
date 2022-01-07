@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.Extensions.Primitives;
+using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Runtime.CompilerServices;
 using Zerra.IO;
@@ -8,6 +10,31 @@ namespace Zerra.Serialization
 {
     public static class QueryStringSerializer
     {
+        public static T Deserialize<T>(IEnumerable<KeyValuePair<string, string>> query)
+        {
+            var model = Instantiator.CreateInstance<T>();
+            var typeDetail = TypeAnalyzer.GetTypeDetail(typeof(T));
+
+            foreach (var item in query)
+            {
+                SetValue<T>(typeDetail, model, item.Key, item.Value);
+            }
+
+            return model;
+        }
+        public static T Deserialize<T>(IEnumerable<KeyValuePair<string, StringValues>> query)
+        {
+            var model = Instantiator.CreateInstance<T>();
+            var typeDetail = TypeAnalyzer.GetTypeDetail(typeof(T));
+
+            foreach (var item in query)
+            {
+                SetValue<T>(typeDetail, model, item.Key, item.Value);
+            }
+
+            return model;
+        }
+
         public static unsafe T Deserialize<T>(string queryString)
         {
             var model = Instantiator.CreateInstance<T>();
