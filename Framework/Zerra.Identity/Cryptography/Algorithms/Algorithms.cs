@@ -21,6 +21,12 @@ namespace Zerra.Identity.Cryptography
         public const string RsaSha384Url = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha384";
         public const string RsaSha512Url = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512";
 
+        public const string DsaSha1Url = "http://www.w3.org/2000/09/xmldsig#dsa-sha1";
+        public const string DsaSha224Url = "http://www.w3.org/2001/04/xmldsig-more#dsa-sha224";
+        public const string DsaSha256Url = "http://www.w3.org/2001/04/xmldsig-more#dsa-sha256";
+        public const string DsaSha384Url = "http://www.w3.org/2001/04/xmldsig-more#dsa-sha384";
+        public const string DsaSha512Url = "http://www.w3.org/2001/04/xmldsig-more#dsa-sha512";
+
         public const string HmacSha1Url = "http://www.w3.org/2001/04/xmldsig-more#hmac-sha1";
         public const string HmacSha224Url = "http://www.w3.org/2001/04/xmldsig-more#hmac-sha224";
         public const string HmacSha256Url = "http://www.w3.org/2001/04/xmldsig-more#hmac-sha256";
@@ -69,6 +75,11 @@ namespace Zerra.Identity.Cryptography
                 XmlSignatureAlgorithmType.RsaSha256 => RsaSha256Url,
                 XmlSignatureAlgorithmType.RsaSha384 => RsaSha384Url,
                 XmlSignatureAlgorithmType.RsaSha512 => RsaSha512Url,
+                XmlSignatureAlgorithmType.DsaSha1 => DsaSha1Url,
+                XmlSignatureAlgorithmType.DsaSha224 => DsaSha224Url,
+                XmlSignatureAlgorithmType.DsaSha256 => DsaSha256Url,
+                XmlSignatureAlgorithmType.DsaSha384 => DsaSha384Url,
+                XmlSignatureAlgorithmType.DsaSha512 => DsaSha512Url,
                 XmlSignatureAlgorithmType.HmacSha1 => HmacSha1Url,
                 XmlSignatureAlgorithmType.HmacSha224 => HmacSha224Url,
                 XmlSignatureAlgorithmType.HmacSha256 => HmacSha256Url,
@@ -107,6 +118,11 @@ namespace Zerra.Identity.Cryptography
                 RsaSha224Url => XmlSignatureAlgorithmType.RsaSha224,
                 RsaSha384Url => XmlSignatureAlgorithmType.RsaSha384,
                 RsaSha512Url => XmlSignatureAlgorithmType.RsaSha512,
+                DsaSha1Url => XmlSignatureAlgorithmType.DsaSha1,
+                DsaSha256Url => XmlSignatureAlgorithmType.DsaSha256,
+                DsaSha224Url => XmlSignatureAlgorithmType.DsaSha224,
+                DsaSha384Url => XmlSignatureAlgorithmType.DsaSha384,
+                DsaSha512Url => XmlSignatureAlgorithmType.DsaSha512,
                 HmacSha1Url => XmlSignatureAlgorithmType.HmacSha1,
                 HmacSha224Url => XmlSignatureAlgorithmType.HmacSha224,
                 HmacSha256Url => XmlSignatureAlgorithmType.HmacSha256,
@@ -204,6 +220,11 @@ namespace Zerra.Identity.Cryptography
                 XmlSignatureAlgorithmType.RsaSha256 => new RSAPKCS1SHA256SignatureDescription(),
                 XmlSignatureAlgorithmType.RsaSha384 => new RSAPKCS1SHA384SignatureDescription(),
                 XmlSignatureAlgorithmType.RsaSha512 => new RSAPKCS1SHA512SignatureDescription(),
+                XmlSignatureAlgorithmType.DsaSha1 => throw new NotImplementedException(),
+                XmlSignatureAlgorithmType.DsaSha224 => throw new NotImplementedException(),
+                XmlSignatureAlgorithmType.DsaSha256 => throw new NotImplementedException(),
+                XmlSignatureAlgorithmType.DsaSha384 => throw new NotImplementedException(),
+                XmlSignatureAlgorithmType.DsaSha512 => throw new NotImplementedException(),
                 XmlSignatureAlgorithmType.HmacSha1 => throw new NotImplementedException(),
                 XmlSignatureAlgorithmType.HmacSha224 => throw new NotImplementedException(),
                 XmlSignatureAlgorithmType.HmacSha256 => throw new NotImplementedException(),

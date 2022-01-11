@@ -12,6 +12,12 @@ namespace Zerra.Identity.Cryptography
         RsaSha384,
         RsaSha512,
 
+        DsaSha1,
+        DsaSha224,
+        DsaSha256,
+        DsaSha384,
+        DsaSha512,
+
         HmacSha1,
         HmacSha224,
         HmacSha256,

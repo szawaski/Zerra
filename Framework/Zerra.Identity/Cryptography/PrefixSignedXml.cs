@@ -36,9 +36,9 @@ namespace Zerra.Identity.Cryptography
             if (this.SignedInfo.SignatureMethod == null)
             {
                 if (signingKey is DSA)
-                    base.SignedInfo.SignatureMethod = "http://www.w3.org/2000/09/xmldsig#dsa-sha1";
+                    base.SignedInfo.SignatureMethod = Algorithms.DsaSha1Url;
                 else if (signingKey is RSA)
-                    base.SignedInfo.SignatureMethod = "http://www.w3.org/2000/09/xmldsig#rsa-sha1";
+                    base.SignedInfo.SignatureMethod = Algorithms.RsaSha1Url;
                 else
                     throw new CryptographicException("Cryptography_Xml_CreatedKeyFailed");
             }
