@@ -49,33 +49,39 @@ namespace Zerra.Reflection
         private IDictionary<string, MemberDetail> membersByName;
         public MemberDetail GetMember(string name)
         {
-            if (this.membersByName == null || !this.membersByName.TryGetValue(name, out MemberDetail member))
+            if (!this.membersByName.TryGetValue(name, out MemberDetail member))
                 throw new Exception($"TypeDetails for {Type.Name} does not contain member {name}");
             return member;
         }
         public bool TryGetMember(string name, out MemberDetail member)
         {
-            if (this.membersByName == null)
-            {
-                member = default;
-                return false;
-            }
             return this.membersByName.TryGetValue(name, out member);
         }
 
-        private IDictionary<string, MemberDetail> membersByNameLower;
+        private IDictionary<string, MemberDetail> membersByNameLower = null;
         public MemberDetail GetMemberCaseInsensitive(string name)
         {
-            if (this.membersByNameLower == null || !this.membersByNameLower.TryGetValue(name.ToLower(), out MemberDetail member))
+            if (membersByNameLower == null)
+            {
+                lock (this)
+                {
+                    if (membersByNameLower != null)
+                        this.membersByNameLower = this.MemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First());
+                }
+            }
+            if (!this.membersByNameLower.TryGetValue(name.ToLower(), out MemberDetail member))
                 throw new Exception($"TypeDetails for {Type.Name} does not contain member {name}");
             return member;
         }
         public bool TryGetMemberCaseInsensitive(string name, out MemberDetail member)
         {
-            if (this.membersByNameLower == null)
+            if (membersByNameLower == null)
             {
-                member = default;
-                return false;
+                lock (this)
+                {
+                    if (membersByNameLower != null)
+                        this.membersByNameLower = this.MemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First());
+                }
             }
             return this.membersByNameLower.TryGetValue(name.ToLower(), out member);
         }
@@ -462,14 +468,12 @@ namespace Zerra.Reflection
 
                 this.MemberDetails = typeMembers.ToArray();
                 this.membersByName = this.MemberDetails.ToDictionary(x => x.Name);
-                this.membersByNameLower = this.MemberDetails.ToDictionary(x => x.Name.ToLower());
             }
             else
             {
                 var typeMembers = Array.Empty<MemberDetail>();
                 this.MemberDetails = typeMembers;
                 this.membersByName = this.MemberDetails.ToDictionary(x => x.Name);
-                this.membersByNameLower = this.MemberDetails.ToDictionary(x => x.Name.ToLower());
             }
 
             if (this.IsTask && this.Type.IsGenericType)
