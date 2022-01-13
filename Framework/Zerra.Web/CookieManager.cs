@@ -48,29 +48,20 @@ namespace Zerra.Web
             if (value != null)
             {
                 var decryptedValue = Decrypt(value);
-                if (decryptedValue == null)
-                {
-                    Remove(name);
-                }
                 return decryptedValue;
             }
             return null;
         }
 
-        public void Remove(string name)
+        public void Remove(string name, SameSiteMode sameSite = SameSiteMode.Strict, bool httpOnly = true, bool secure = true)
         {
-            DeleteCookie(name);
-        }
-        public void Clear()
-        {
-            foreach (var cookieName in context.Request.Cookies.Keys)
-                Remove(cookieName);
+            DeleteCookie(name, sameSite, httpOnly, secure);
         }
 
         private string Encrypt(string value)
         {
             if (dataProtectionProvider == null)
-                throw new Exception("CookieManager created witout an IDataProtectionProvider");
+                throw new Exception("CookieManager created without an IDataProtectionProvider");
 
             if (String.IsNullOrWhiteSpace(value))
                 return null;
@@ -84,7 +75,7 @@ namespace Zerra.Web
         private string Decrypt(string encryptedValue)
         {
             if (dataProtectionProvider == null)
-                throw new Exception("CookieManager created witout an IDataProtectionProvider");
+                throw new Exception("CookieManager created without an IDataProtectionProvider");
 
             if (String.IsNullOrWhiteSpace(encryptedValue))
                 return null;
@@ -160,7 +151,7 @@ namespace Zerra.Web
 
             return sb.ToString();
         }
-        private void DeleteCookie(string name)
+        private void DeleteCookie(string name, SameSiteMode sameSite, bool httpOnly, bool secure)
         {
             for (int x = 0; x < maxCookiesPerDomain; x++)
             {
@@ -172,7 +163,10 @@ namespace Zerra.Web
                     {
                         Path = "/",
                         MaxAge = new TimeSpan(0),
-                        Expires = DateTimeOffset.MinValue
+                        Expires = DateTimeOffset.MinValue,
+                        SameSite = sameSite,
+                        HttpOnly = httpOnly,
+                        Secure = secure
                     });
                 }
             }
