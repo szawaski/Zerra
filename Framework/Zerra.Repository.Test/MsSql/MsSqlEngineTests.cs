@@ -93,7 +93,7 @@ namespace Zerra.Repository.Test
                 if (property.IsNullable)
                 {
                     sb.Append("ALTER TABLE [TestTypes] ADD [Junk").Append(property.PropertySourceName).Append("] ");
-                    MsSql.MsSqlEngine.WriteSqlTypeFromModel(sb, property);
+                    MsSql.MsSqlEngine.WriteSqlTypeFromModel(sb, property, true);
                     sb.Insert(sb.Length - 4, "NOT ");
                     sb.Append("\r\n");
                 }
