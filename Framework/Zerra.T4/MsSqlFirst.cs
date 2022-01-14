@@ -1,11 +1,15 @@
-﻿using System;
+﻿// Copyright © KaKush LLC
+// Written By Steven Zawaski
+// Licensed to you under the MIT license
+
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Text;
 
 namespace Zerra.T4
 {
-    public static class SqlFirst
+    public static class MsSqlFirst
     {
         const string tab = "    ";
         const string tableQuery = "SELECT * FROM INFORMATION_SCHEMA.TABLES ORDER BY TABLE_NAME";
