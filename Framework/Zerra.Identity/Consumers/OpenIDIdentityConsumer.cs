@@ -16,7 +16,6 @@ using Zerra.Identity.TokenManagers;
 using System.Text;
 using System.Security.Cryptography;
 using Zerra.Encryption;
-using Newtonsoft.Json.Linq;
 
 namespace Zerra.Identity.Consumers
 {

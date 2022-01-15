@@ -48,7 +48,7 @@ namespace Zerra.Identity.OpenID.Documents
             if (!String.IsNullOrWhiteSpace(json["response_type"]?.ToObject<string>()))
                 this.ResponseType = EnumName.Parse<OpenIDResponseType>(json["response_type"]?.ToObject<string>());
             else
-                this.ResponseType = OpenIDResponseType.id_token;
+                this.ResponseType = OpenIDResponseType.IdToken;
 
             if (!String.IsNullOrWhiteSpace(json["response_mode"]?.ToObject<string>()))
                 this.ResponseMode = EnumName.Parse<OpenIDResponseMode>(json["response_mode"]?.ToObject<string>());

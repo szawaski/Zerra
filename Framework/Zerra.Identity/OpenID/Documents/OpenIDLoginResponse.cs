@@ -43,11 +43,11 @@ namespace Zerra.Identity.OpenID.Documents
 
         public OpenIDLoginResponse(OpenIDResponseType responseType, string id, string issuer, string audience, IdentityModel identity, string x509Thumbprint, string nonce, string state)
         {
-            if (responseType == OpenIDResponseType.code)
+            if (responseType == OpenIDResponseType.Code)
             {
                 this.AccessCode = AuthTokenManager.GenerateAccessCode(id, identity);
             }
-            else if (responseType == OpenIDResponseType.id_token)
+            else if (responseType == OpenIDResponseType.IdToken)
             {
                 this.ID = id;
                 this.Issuer = issuer;

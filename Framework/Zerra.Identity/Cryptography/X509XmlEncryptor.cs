@@ -53,8 +53,8 @@ namespace Zerra.Identity.Cryptography
 
             EncryptedXml.ReplaceElement(element, encryptedDataElement, true);
 
-            //XmlHelper.SetPrefix("xenc", element.ChildNodes[0]);
-            XmlHelper.SetPrefix(elementPrefix, element.ChildNodes[0]);
+            XmlHelper.SetPrefix("xenc", element.ChildNodes[0]);
+            //XmlHelper.SetPrefix(elementPrefix, element.ChildNodes[0]);
 
             if (wrapperElementName != elementName)
             {
