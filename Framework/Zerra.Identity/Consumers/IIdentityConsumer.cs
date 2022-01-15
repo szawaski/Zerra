@@ -9,7 +9,7 @@ namespace Zerra.Identity.Consumers
     public interface IIdentityConsumer
     {
         ValueTask<IdentityHttpResponse> Login(string state = null);
-        ValueTask<IdentityModel> Callback(IdentityHttpRequest context);
+        ValueTask<IdentityModel> LoginCallback(IdentityHttpRequest context);
         ValueTask<IdentityHttpResponse> Logout(string state = null);
         ValueTask<LogoutModel> LogoutCallback(IdentityHttpRequest context);
     }

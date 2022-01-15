@@ -20,14 +20,17 @@ namespace Zerra.Identity.OpenID
 {
     public abstract class OpenIDJwtBinding : Binding<JObject>
     {
-        protected const string TokenFormName = "id_token";
+        protected const string IdTokenFormName = "id_token";
+        protected const string AccessTokenFormName = "access_token";
 
-        public static bool IsOpenIDJwtBinding(IdentityHttpRequest request)
+        public abstract string AccessToken { get; }
+
+        public static bool IsCodeBinding(IdentityHttpRequest request)
         {
             if (request.HasFormContentType)
-                return request.Form.Keys.Contains(OpenIDJwtBinding.TokenFormName);
+                return request.Form.Keys.Contains("code");
             else
-                return request.Query.Keys.Contains(OpenIDJwtBinding.TokenFormName);
+                return request.Query.Keys.Contains("code");
         }
 
         public static OpenIDJwtBinding GetBindingForRequest(IdentityHttpRequest request, BindingDirection bindingDirection)

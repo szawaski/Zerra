@@ -9,16 +9,18 @@ namespace Zerra.Identity.OpenID.Documents
 {
     public class OpenIDTokenRequest : OpenIDDocument
     {
-        public string GrantType { get; protected set; }
+        public OpenIDGrantType? GrantType { get; protected set; }
         public string Code { get; protected set; }
+        public string Secret { get; private set; }
         public string RedirectUrl { get; protected set; }
 
         public override BindingDirection BindingDirection => BindingDirection.Request;
 
-        public OpenIDTokenRequest(string code, string redirectUrl)
+        public OpenIDTokenRequest(string code, string secret, OpenIDGrantType? grantType, string redirectUrl)
         {
-            this.GrantType = "authorization_code";
             this.Code = code;
+            this.Secret = secret;
+            this.GrantType = grantType;
             this.RedirectUrl = redirectUrl;
         }
 
@@ -32,8 +34,12 @@ namespace Zerra.Identity.OpenID.Documents
             if (json == null)
                 return;
 
-            this.GrantType = json["grant_type"]?.ToObject<string>();
             this.Code = json["code"]?.ToObject<string>();
+            this.Secret = json["client_secret"]?.ToObject<string>();
+
+            if (!String.IsNullOrWhiteSpace(json["grant_type"]?.ToObject<string>()))
+                this.GrantType = EnumName.Parse<OpenIDGrantType>(json["grant_type"]?.ToObject<string>());
+
             this.RedirectUrl = json["redirect_uri"]?.ToObject<string>();
         }
 
@@ -42,9 +48,11 @@ namespace Zerra.Identity.OpenID.Documents
             var json = new JObject();
 
             if (this.GrantType != null)
-                json.Add("grant_type", JToken.FromObject(this.GrantType));
+                json.Add("grant_type", JToken.FromObject(this.GrantType?.EnumName()));
             if (this.Code != null)
                 json.Add("code", JToken.FromObject(this.Code));
+            if (this.Secret != null)
+                json.Add("client_secret", JToken.FromObject(this.Secret));
             if (this.RedirectUrl != null)
                 json.Add("redirect_uri", JToken.FromObject(this.RedirectUrl));
 

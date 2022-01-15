@@ -16,12 +16,14 @@ using Zerra.Identity.TokenManagers;
 using System.Text;
 using System.Security.Cryptography;
 using Zerra.Encryption;
+using Newtonsoft.Json.Linq;
 
 namespace Zerra.Identity.Consumers
 {
     public class OpenIDIdentityConsumer : IIdentityConsumer
     {
         private readonly string serviceProvider;
+        private readonly string secret;
         private readonly string loginUrl;
         private readonly string redirectUrl;
         private readonly string logoutUrl;
@@ -33,9 +35,10 @@ namespace Zerra.Identity.Consumers
         private readonly bool requiredSignature;
         private readonly OpenIDResponseType responseType;
 
-        public OpenIDIdentityConsumer(string serviceProvider, string loginUrl, string redirectUrl, string logoutUrl, string tokenUrl, string userInfoUrl, string redirectUrlPostLogout, string identityProviderCertUrl, string scope, bool requiredSignature, OpenIDResponseType responseType)
+        public OpenIDIdentityConsumer(string serviceProvider, string secret, string loginUrl, string redirectUrl, string logoutUrl, string tokenUrl, string userInfoUrl, string redirectUrlPostLogout, string identityProviderCertUrl, string scope, bool requiredSignature, OpenIDResponseType responseType)
         {
             this.serviceProvider = serviceProvider;
+            this.secret = secret;
             this.loginUrl = loginUrl;
             this.redirectUrl = redirectUrl;
             this.logoutUrl = logoutUrl;
@@ -48,7 +51,7 @@ namespace Zerra.Identity.Consumers
             this.responseType = responseType;
         }
 
-        public static async Task<OpenIDIdentityConsumer> FromMetadata(string serviceProvider, string metadataUrl, string redirectUrl, string redirectUrlPostLogout, OpenIDResponseType responseType)
+        public static async Task<OpenIDIdentityConsumer> FromMetadata(string serviceProvider, string secret, string metadataUrl, string redirectUrl, string redirectUrlPostLogout, string scope, OpenIDResponseType responseType)
         {
             var request = WebRequest.Create(metadataUrl);
             var response = await request.GetResponseAsync();
@@ -58,19 +61,23 @@ namespace Zerra.Identity.Consumers
             if (!document.ScopesSupported.Contains("openid"))
                 throw new IdentityProviderException("OpenID Scope Not Supported From This Service.");
 
-            var sb = new StringBuilder();
-            sb.Append("openid");
-            if (document.ScopesSupported.Contains("profile"))
-                sb.Append("+profile");
-            if (document.ScopesSupported.Contains("email"))
-                sb.Append("+email");
-            if (document.ScopesSupported.Contains("offline_access"))
-                sb.Append("+offline_access");
+            if (String.IsNullOrWhiteSpace(scope))
+            {
+                var sb = new StringBuilder();
+                sb.Append("openid");
+                if (document.ScopesSupported.Contains("profile"))
+                    sb.Append("+profile");
+                if (document.ScopesSupported.Contains("email"))
+                    sb.Append("+email");
+                if (document.ScopesSupported.Contains("offline_access"))
+                    sb.Append("+offline_access");
 
-            var scope = sb.ToString();
+                scope = sb.ToString();
+            }
 
             return new OpenIDIdentityConsumer(
                 serviceProvider,
+                secret,
                 document.LoginUrl,
                 redirectUrl,
                 document.LogoutUrl,
@@ -104,104 +111,114 @@ namespace Zerra.Identity.Consumers
             return new ValueTask<IdentityHttpResponse>(response);
         }
 
-        public async ValueTask<IdentityModel> Callback(IdentityHttpRequest request)
+        public async ValueTask<IdentityModel> LoginCallback(IdentityHttpRequest request)
         {
-            if (OpenIDJwtBinding.IsOpenIDJwtBinding(request))
+            OpenIDJwtBinding callbackBinding;
+
+            if (OpenIDJwtBinding.IsCodeBinding(request))
             {
-                var callbackBinding = OpenIDJwtBinding.GetBindingForRequest(request, BindingDirection.Response);
+                var callbackCodeBinding = OpenIDBinding.GetBindingForRequest(request, BindingDirection.Response);
 
-                var callbackDocument = new OpenIDLoginResponse(callbackBinding);
-                if (!String.IsNullOrWhiteSpace(callbackDocument.Error))
-                    throw new IdentityProviderException($"{callbackDocument.Error}: {callbackDocument.ErrorDescription}");
+                var callbackCodeDocument = new OpenIDLoginResponse(callbackCodeBinding);
+                if (!String.IsNullOrWhiteSpace(callbackCodeDocument.Error))
+                    throw new IdentityProviderException($"{callbackCodeDocument.Error}: {callbackCodeDocument.ErrorDescription}");
 
-                NonceManager.Validate(serviceProvider, callbackDocument.Nonce);
+                //Get Token--------------------
+                var requestTokenDocument = new OpenIDTokenRequest(callbackCodeDocument.AccessCode, this.secret, OpenIDGrantType.authorization_code, redirectUrl);
+                var requestTokenBinding = OpenIDBinding.GetBindingForDocument(requestTokenDocument, BindingType.Form);
 
-                if (callbackDocument.Audience != serviceProvider)
-                    throw new IdentityProviderException("OpenID Audience is not valid", $"Received: {serviceProvider}, Expected: {callbackDocument.Audience}");
-
-                var keys = await GetSignaturePublicKeys(this.identityProviderCertUrl);
-                var key = keys.FirstOrDefault(x => x.X509Thumbprint == callbackDocument.X509Thumbprint);
-                if (key == null)
-                    key = keys.FirstOrDefault(x => x.KeyID == callbackDocument.KeyID);
-                if (key == null)
-                    throw new IdentityProviderException("Identity Provider OpenID certificate not found from Json Key Url");
-                if (key.KeyType != "RSA")
-                    throw new IdentityProviderException("Identity Provider OpenID only supporting RSA at the moment");
-
-                RSA rsa;
-                if (key.X509Certificates == null || key.X509Certificates.Length == 0)
+                var requestTokenBody = requestTokenBinding.GetContent();
+                var requestToken = WebRequest.Create(tokenUrl);
+                requestToken.Method = "POST";
+                requestToken.ContentType = "application/x-www-form-urlencoded";
+                var requestTokenBodyBytes = Encoding.UTF8.GetBytes(requestTokenBody);
+                requestToken.ContentLength = requestTokenBodyBytes.Length;
+                using (var stream = await requestToken.GetRequestStreamAsync())
                 {
-                    var rsaParams = new RSAParameters()
-                    {
-                        Modulus = Base64UrlEncoder.FromBase64String(key.Modulus),
-                        Exponent = Base64UrlEncoder.FromBase64String(key.Exponent)
-                    };
-                    rsa = RSA.Create();
-                    rsa.ImportParameters(rsaParams);
-                }
-                else
-                {
-                    var certString = key.X509Certificates.First();
-                    var certBytes = Convert.FromBase64String(certString);
-                    var cert = new X509Certificate2(certBytes);
-                    rsa = cert.GetRSAPublicKey();
+#if NETSTANDARD2_0 || NET461_OR_GREATER
+                    await stream.WriteAsync(requestTokenBodyBytes, 0, requestTokenBodyBytes.Length);
+#else
+                    await stream.WriteAsync(requestTokenBodyBytes.AsMemory());
+#endif
                 }
 
-                callbackBinding.ValidateSignature(rsa, requiredSignature);
-                callbackBinding.ValidateFields();
-
-                var identity = new IdentityModel()
+                WebResponse responseToken;
+                try
                 {
-                    UserID = callbackDocument.UserID,
-                    UserName = callbackDocument.UserName ?? callbackDocument.Emails?.FirstOrDefault(),
-                    Name = callbackDocument.Name,
-                    Roles = callbackDocument.Roles,
-                    ServiceProvider = callbackDocument.Issuer,
-                    OtherClaims = callbackDocument.OtherClaims,
-                    State = callbackDocument.State
-                };
+                    responseToken = await requestToken.GetResponseAsync();
+                }
+                catch (WebException ex)
+                {
+                    if (ex.Response == null)
+                        throw ex;
+                    var responseTokenStream = ex.Response.GetResponseStream();
+                    var error = await new StreamReader(responseTokenStream).ReadToEndAsync();
+                    ex.Response.Close();
+                    ex.Response.Dispose();
+                    throw new IdentityProviderException(error);
+                }
 
-                return identity;
+                //access_code is a JWT
+                callbackBinding = OpenIDJwtBinding.GetBindingForResponse(responseToken, BindingDirection.Response);
             }
             else
             {
-                throw new IdentityProviderException($"OpenID code flow not currently supported");
-
-//                var callbackBinding = OpenIDBinding.GetBindingForRequest(context.Request, BindingDirection.Response);
-
-//                var callbackDocument = new OpenIDLoginResponse(callbackBinding);
-//                if (!String.IsNullOrWhiteSpace(callbackDocument.Error))
-//                    throw new IdentityProviderException($"{callbackDocument.Error}: {callbackDocument.ErrorDescription}");
-
-//                var redirectUrl = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.Path}";
-
-//                //Get Token--------------------
-//                var requestTokenDocument = new OpenIDTokenRequest(callbackDocument.AccessCode, redirectUrl);
-//                var requestTokenBinding = OpenIDBinding.GetBindingForDocument(requestTokenDocument, BindingType.Form);
-
-//                var requestTokenBody = requestTokenBinding.GetContent();
-//                var requestToken = WebRequest.Create(tokenUrl);
-//                requestToken.Method = "POST";
-//                requestToken.ContentType = "application/x-www-form-urlencoded";
-
-//                var data = Encoding.UTF8.GetBytes(requestTokenBody);
-//                requestToken.ContentLength = data.Length;
-//                using (var stream = await requestToken.GetRequestStreamAsync())
-//                {
-//#if NETSTANDARD2_0
-//                    await stream.WriteAsync(data, 0, data.Length);
-//#else
-//                    await stream.WriteAsync(data.AsMemory());
-//#endif
-//                }
-
-//                var responseToken = await requestToken.GetResponseAsync();
-
-//                var responseTokenBinding = OpenIDJwtBinding.GetBindingForResponse(responseToken, BindingDirection.Response);
-//                var responseTokenDocument = new OpenIDTokenResponse(responseTokenBinding);
-
-//                throw new NotImplementedException();
+                callbackBinding = OpenIDJwtBinding.GetBindingForRequest(request, BindingDirection.Response);
             }
+
+            var callbackDocument = new OpenIDLoginResponse(callbackBinding);
+            if (!String.IsNullOrWhiteSpace(callbackDocument.Error))
+                throw new IdentityProviderException($"{callbackDocument.Error}: {callbackDocument.ErrorDescription}");
+
+            NonceManager.Validate(serviceProvider, callbackDocument.Nonce);
+
+            if (callbackDocument.Audience != serviceProvider)
+                throw new IdentityProviderException("OpenID Audience is not valid", $"Received: {serviceProvider}, Expected: {callbackDocument.Audience}");
+
+            var keys = await GetSignaturePublicKeys(this.identityProviderCertUrl);
+            var key = keys.FirstOrDefault(x => x.X509Thumbprint == callbackDocument.X509Thumbprint);
+            if (key == null)
+                key = keys.FirstOrDefault(x => x.KeyID == callbackDocument.KeyID);
+            if (key == null)
+                throw new IdentityProviderException("Identity Provider OpenID certificate not found from Json Key Url");
+            if (key.KeyType != "RSA")
+                throw new IdentityProviderException("Identity Provider OpenID only supporting RSA at the moment");
+
+            RSA rsa;
+            if (key.X509Certificates == null || key.X509Certificates.Length == 0)
+            {
+                var rsaParams = new RSAParameters()
+                {
+                    Modulus = Base64UrlEncoder.FromBase64String(key.Modulus),
+                    Exponent = Base64UrlEncoder.FromBase64String(key.Exponent)
+                };
+                rsa = RSA.Create();
+                rsa.ImportParameters(rsaParams);
+            }
+            else
+            {
+                var certString = key.X509Certificates.First();
+                var certBytes = Convert.FromBase64String(certString);
+                var cert = new X509Certificate2(certBytes);
+                rsa = cert.GetRSAPublicKey();
+            }
+
+            callbackBinding.ValidateSignature(rsa, requiredSignature);
+            callbackBinding.ValidateFields();
+
+            var identity = new IdentityModel()
+            {
+                UserID = callbackDocument.UserID,
+                UserName = callbackDocument.UserName ?? callbackDocument.Emails?.FirstOrDefault(),
+                Name = callbackDocument.Name,
+                Roles = callbackDocument.Roles,
+                ServiceProvider = callbackDocument.Issuer,
+                OtherClaims = callbackDocument.OtherClaims,
+                State = callbackDocument.State,
+                AccessToken = callbackBinding.AccessToken,
+            };
+
+            return identity;
         }
 
         private static async Task<JwtKey[]> GetSignaturePublicKeys(string url)
@@ -209,7 +226,7 @@ namespace Zerra.Identity.Consumers
             var request = WebRequest.Create(url);
             var response = await request.GetResponseAsync();
             var stream = response.GetResponseStream();
-            var content = new StreamReader(stream).ReadToEnd();
+            var content = await new StreamReader(stream).ReadToEndAsync();
             response.Close();
             response.Dispose();
 

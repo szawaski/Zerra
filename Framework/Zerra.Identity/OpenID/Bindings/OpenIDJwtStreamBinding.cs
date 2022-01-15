@@ -15,6 +15,9 @@ namespace Zerra.Identity.OpenID.Bindings
     {
         public override BindingType BindingType => BindingType.Stream;
 
+        private readonly string accessToken;
+        public override string AccessToken { get { return accessToken; } }
+
         internal OpenIDJwtStreamBinding(OpenIDDocument document)
         {
             this.BindingDirection = document.BindingDirection;
@@ -33,9 +36,21 @@ namespace Zerra.Identity.OpenID.Bindings
 
             this.Document = JObject.Parse(body);
 
-            var token = this.Document[OpenIDJwtBinding.TokenFormName]?.ToObject<string>();
-            if (String.IsNullOrEmpty(token))
+            string token;
+            if (this.Document.ContainsKey(OpenIDJwtBinding.IdTokenFormName))
+            {
+                token = this.Document[OpenIDJwtBinding.IdTokenFormName]?.ToObject<string>();
+                accessToken = token;
+            }
+            else if (this.Document.ContainsKey(OpenIDJwtBinding.AccessTokenFormName))
+            {
+                token = this.Document[OpenIDJwtBinding.AccessTokenFormName]?.ToObject<string>();
+                accessToken = token;
+            }
+            else
+            {
                 throw new IdentityProviderException("Missing JWT Token");
+            }
 
             var parts = token.Split(OpenIDJwtFormBinding.tokenDelimiter);
             var jwtHeaderString = DecodeJwt(parts[0]);
@@ -49,14 +64,6 @@ namespace Zerra.Identity.OpenID.Bindings
 
             var jwtHeader = JsonConvert.DeserializeObject<JwtHeader>(jwtHeaderString);
             DeserializeJwtPayload(jwtPayloadString);
-
-            foreach (var child in this.Document.Properties())
-            {
-                if (child.Name != OpenIDJwtBinding.TokenFormName && !this.Document.ContainsKey(OpenIDJwtBinding.TokenFormName))
-                {
-                    this.Document.Add(child.Name, child.Value.ToObject<String>());
-                }
-            }
 
             if (!this.Document.ContainsKey(nameof(JwtHeader.X509Thumbprint)) && jwtHeader.X509Thumbprint != null)
                 this.Document.Add(nameof(JwtHeader.X509Thumbprint), JToken.FromObject(jwtHeader.X509Thumbprint));

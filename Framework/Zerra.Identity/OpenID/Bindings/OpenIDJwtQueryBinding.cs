@@ -16,6 +16,9 @@ namespace Zerra.Identity.OpenID.Bindings
     {
         public override BindingType BindingType => BindingType.Query;
 
+        private readonly string accessToken;
+        public override string AccessToken { get { return accessToken; } }
+
         internal OpenIDJwtQueryBinding(OpenIDDocument document, XmlSignatureAlgorithmType? signatureAlgorithm)
         {
             this.BindingDirection = document.BindingDirection;
@@ -31,9 +34,21 @@ namespace Zerra.Identity.OpenID.Bindings
         {
             this.BindingDirection = bindingDirection;
 
-            var token = (string)request.Query[OpenIDJwtBinding.TokenFormName];
-            if (String.IsNullOrEmpty(token))
+            string token;
+            if (request.Query.ContainsKey(OpenIDJwtBinding.IdTokenFormName))
+            {
+                token = request.Query[OpenIDJwtBinding.IdTokenFormName];
+                accessToken = token;
+            }
+            else if (request.Query.ContainsKey(OpenIDJwtBinding.AccessTokenFormName))
+            {
+                token = request.Query[OpenIDJwtBinding.AccessTokenFormName];
+                accessToken = token;
+            }
+            else
+            {
                 throw new IdentityProviderException("Missing JWT Token");
+            }
 
             var parts = token.Split(OpenIDJwtQueryBinding.tokenDelimiter);
             var jwtHeaderString = DecodeJwt(parts[0]);
@@ -49,12 +64,7 @@ namespace Zerra.Identity.OpenID.Bindings
             DeserializeJwtPayload(jwtPayloadString);
 
             foreach (var queryValue in request.Query)
-            {
-                if (queryValue.Key != OpenIDJwtBinding.TokenFormName && !this.Document.ContainsKey(OpenIDJwtBinding.TokenFormName))
-                {
-                    this.Document.Add(queryValue.Key, (string)queryValue.Value);
-                }
-            }
+                this.Document.Add(queryValue.Key, (string)queryValue.Value);
 
             if (!this.Document.ContainsKey(nameof(JwtHeader.X509Thumbprint)) && jwtHeader.X509Thumbprint != null)
                 this.Document.Add(nameof(JwtHeader.X509Thumbprint), JToken.FromObject(jwtHeader.X509Thumbprint));
@@ -81,7 +91,7 @@ namespace Zerra.Identity.OpenID.Bindings
             var token = BuildToken();
 
             sb.Append('?');
-            sb.Append(OpenIDJwtBinding.TokenFormName).Append('=').Append(WebUtility.UrlEncode(token));
+            sb.Append(OpenIDJwtBinding.IdTokenFormName).Append('=').Append(WebUtility.UrlEncode(token));
 
             var otherClaims = GetOtherClaims(this.Document);
             foreach (var otherClaim in otherClaims)

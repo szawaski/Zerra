@@ -17,6 +17,9 @@ namespace Zerra.Identity.OpenID.Bindings
     {
         public override BindingType BindingType => BindingType.Form;
 
+        private readonly string accessToken;
+        public override string AccessToken { get { return accessToken; } }
+
         internal OpenIDJwtFormBinding(OpenIDDocument document, XmlSignatureAlgorithmType? signatureAlgorithm)
         {
             this.BindingDirection = document.BindingDirection;
@@ -32,9 +35,29 @@ namespace Zerra.Identity.OpenID.Bindings
         {
             this.BindingDirection = bindingDirection;
 
-            var token = (string)request.Form[OpenIDJwtBinding.TokenFormName];
-            if (String.IsNullOrEmpty(token))
+            if (request.Form.ContainsKey("error"))
+            {
+                if (request.Form.ContainsKey("error_description"))
+                    throw new IdentityProviderException(request.Form["error_description"]);
+                else
+                    throw new IdentityProviderException(request.Form["error"]);
+            }
+
+            string token;
+            if (request.Form.ContainsKey(OpenIDJwtBinding.IdTokenFormName))
+            {
+                token = request.Form[OpenIDJwtBinding.IdTokenFormName];
+                accessToken = token;
+            }
+            else if (request.Form.ContainsKey(OpenIDJwtBinding.AccessTokenFormName))
+            {
+                token = request.Form[OpenIDJwtBinding.AccessTokenFormName];
+                accessToken = token;
+            }
+            else
+            {
                 throw new IdentityProviderException("Missing JWT Token");
+            }
 
             var parts = token.Split(OpenIDJwtFormBinding.tokenDelimiter);
             var jwtHeaderString = DecodeJwt(parts[0]);
@@ -50,12 +73,7 @@ namespace Zerra.Identity.OpenID.Bindings
             DeserializeJwtPayload(jwtPayloadString);
 
             foreach (var formValue in request.Form)
-            {
-                if (formValue.Key != OpenIDJwtBinding.TokenFormName && !this.Document.ContainsKey(OpenIDJwtBinding.TokenFormName))
-                {
-                    this.Document.Add(formValue.Key, (string)formValue.Value);
-                }
-            }
+                this.Document.Add(formValue.Key, (string)formValue.Value);
 
             if (!this.Document.ContainsKey(nameof(JwtHeader.X509Thumbprint)) && jwtHeader.X509Thumbprint != null)
                 this.Document.Add(nameof(JwtHeader.X509Thumbprint), JToken.FromObject(jwtHeader.X509Thumbprint));
@@ -70,7 +88,7 @@ namespace Zerra.Identity.OpenID.Bindings
             var token = BuildToken();
 
             var inputs = new Dictionary<string, string>();
-            inputs.Add(OpenIDJwtBinding.TokenFormName, token);
+            inputs.Add(OpenIDJwtBinding.IdTokenFormName, token);
 
             var otherClaims = GetOtherClaims(this.Document);
             foreach (var otherClaim in otherClaims)

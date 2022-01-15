@@ -54,7 +54,7 @@ namespace Zerra.Identity.Consumers
             return new ValueTask<IdentityHttpResponse>(response);
         }
 
-        public ValueTask<IdentityModel> Callback(IdentityHttpRequest request)
+        public ValueTask<IdentityModel> LoginCallback(IdentityHttpRequest request)
         {
             var callbackBinding = Saml2Binding.GetBindingForRequest(request, BindingDirection.Response);
 

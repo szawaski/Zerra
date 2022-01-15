@@ -39,7 +39,7 @@ namespace Zerra.Identity.Consumers
             return new ValueTask<IdentityHttpResponse>(response);
         }
 
-        public async ValueTask<IdentityModel> Callback(IdentityHttpRequest request)
+        public async ValueTask<IdentityModel> LoginCallback(IdentityHttpRequest request)
         {
             var callbackBinding = OAuth2Binding.GetBindingForRequest(request, BindingDirection.Response);
 
@@ -89,7 +89,9 @@ namespace Zerra.Identity.Consumers
                 Name = responseIdentityDocument.UserName,
                 ServiceProvider = responseIdentityDocument.ServiceProvider,
                 Roles = responseIdentityDocument.Roles,
-                OtherClaims = null
+                OtherClaims = null,
+                State = null,
+                AccessToken = responseTokenDocument.Token
             };
 
             return identity;
