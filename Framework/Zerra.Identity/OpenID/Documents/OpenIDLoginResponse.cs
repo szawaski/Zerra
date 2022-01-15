@@ -124,6 +124,9 @@ namespace Zerra.Identity.OpenID.Documents
         {
             var json = new JObject();
 
+            if (this.AccessCode != null)
+                json.Add("code", JToken.FromObject(this.AccessCode));
+
             if (this.ID != null)
                 json.Add(nameof(JwtOpenIDPayload.JsonTokenID), JToken.FromObject(this.ID));
             if (this.Issuer != null)

@@ -10,9 +10,7 @@ namespace Zerra.Identity.OpenID.Documents
 {
     public class OpenIDTokenResponse : OpenIDDocument
     {
-        public string Code { get; private set; }
         public string Token { get; private set; }
-        public string TokenType { get; private set; }
 
         public override BindingDirection BindingDirection => BindingDirection.Response;
 
@@ -23,7 +21,6 @@ namespace Zerra.Identity.OpenID.Documents
                 throw new IdentityProviderException("Invalid access code");
 
             this.Token = token;
-            this.TokenType = "Bearer";
         }
 
         public OpenIDTokenResponse(Binding<JObject> binding)

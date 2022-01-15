@@ -15,5 +15,6 @@ namespace Zerra.Identity
         public string ServiceProvider { get; set; }
         public Dictionary<string, string> OtherClaims { get; set; }
         public string State { get; set; }
+        public string AccessToken { get; set; }
     }
 }
