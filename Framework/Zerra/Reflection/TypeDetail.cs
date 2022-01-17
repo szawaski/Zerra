@@ -79,7 +79,7 @@ namespace Zerra.Reflection
             {
                 lock (this)
                 {
-                    if (membersByNameLower != null)
+                    if (membersByNameLower == null)
                         this.membersByNameLower = this.MemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First());
                 }
             }
