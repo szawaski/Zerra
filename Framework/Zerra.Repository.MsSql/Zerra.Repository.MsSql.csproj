@@ -16,7 +16,7 @@ Zerra.Repository.MsSql.MsSqlDataContext</Description>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, SQL</PackageTags>
     <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-    <Version>2.1.3</Version>
+    <Version>2.1.4</Version>
   </PropertyGroup>
 
   <ItemGroup>

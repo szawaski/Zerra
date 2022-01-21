@@ -1611,7 +1611,7 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName}'";
                     {
                         command.CommandText = sql;
                         var version = (string)command.ExecuteScalar();
-                        if (version.Contains("Microsoft SQL Server"))
+                        if (version.Contains("Microsoft SQL"))
                             return true;
                     }
                 }
