@@ -139,6 +139,7 @@ namespace Zerra.Identity.Consumers
 #else
                     await stream.WriteAsync(requestTokenBodyBytes.AsMemory());
 #endif
+                    await stream.FlushAsync();
                 }
 
                 WebResponse responseToken;
