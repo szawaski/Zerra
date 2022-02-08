@@ -1380,7 +1380,10 @@ namespace Zerra.Repository.MySql
                         break;
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
-                        sb.Append("datetime(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
+                        if (property.DatePart == StoreDatePart.Date)
+                            sb.Append("date");
+                        else
+                            sb.Append("datetime(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
                         break;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
@@ -1554,7 +1557,7 @@ namespace Zerra.Repository.MySql
                     case CoreType.Double: return sqlColumn.DataType == "double" && sqlColumn.IsNullable == false;
                     case CoreType.Decimal: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == false && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
                     case CoreType.Char: return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == false && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
-                    case CoreType.DateTime: return sqlColumn.DataType == "datetime" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.DateTime: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == false;
                     case CoreType.DateTimeOffset: return sqlColumn.DataType == "timestamp" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.TimeSpan: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.Guid: return sqlColumn.DataType == "char" && sqlColumn.IsNullable == false && sqlColumn.CharacterMaximumLength == 32;
@@ -1568,7 +1571,7 @@ namespace Zerra.Repository.MySql
                     case CoreType.DoubleNullable: return sqlColumn.DataType == "double" && sqlColumn.IsNullable == true;
                     case CoreType.DecimalNullable: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == true && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
                     case CoreType.CharNullable: return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == true && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
-                    case CoreType.DateTimeNullable: return sqlColumn.DataType == "datetime" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.DateTimeNullable: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == true;
                     case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "timestamp" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.GuidNullable: return sqlColumn.DataType == "char" && sqlColumn.IsNullable == true && sqlColumn.CharacterMaximumLength == 32;

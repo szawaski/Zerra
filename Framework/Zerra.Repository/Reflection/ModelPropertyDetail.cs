@@ -29,7 +29,8 @@ namespace Zerra.Repository.Reflection
         public bool IsDataSourceNotNull { get; private set; }
         public int? DataSourcePrecisionLength { get; private set; }
         public int? DataSourceScale { get; private set; }
-        public StoreTextEncodingOption TextEncoding { get; private set; }
+        public StoreTextEncoding TextEncoding { get; private set; }
+        public StoreDatePart DatePart { get; private set; }
 
         public Func<object, object> Getter { get; private set; }
         public Action<object, object> Setter { get; private set; }
@@ -79,7 +80,8 @@ namespace Zerra.Repository.Reflection
             this.IsDataSourceNotNull = storePropertyAttribute != null ? storePropertyAttribute.NotNull : (InnerType.IsValueType && !memberDetail.TypeDetail.IsNullable);
             this.DataSourcePrecisionLength = storePropertyAttribute != null ? storePropertyAttribute.PrecisionLength : null;
             this.DataSourceScale = storePropertyAttribute != null ? storePropertyAttribute.Scale : null;
-            this.TextEncoding = storePropertyAttribute != null ? storePropertyAttribute.TextEncoding : StoreTextEncodingOption.NonUnicode;
+            this.TextEncoding = storePropertyAttribute != null ? storePropertyAttribute.TextEncoding : StoreTextEncoding.Unicode;
+            this.DatePart = storePropertyAttribute != null ? storePropertyAttribute.DatePart : StoreDatePart.DateTime;
 
             if (!this.IsDataSourceNotNull && this.IsIdentity)
                 throw new Exception($"{this.Type.GetNiceName()} {this.Name} cannot be both an identity and nullable");
