@@ -2,7 +2,7 @@
 {
     public enum DataStoreGenerationType : byte
     {
-        DataStoreFirst,
+        None,
         CodeFirst,
         CodeFirstPreview
     }
