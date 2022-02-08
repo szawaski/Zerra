@@ -983,7 +983,7 @@ namespace Zerra.Repository.MySql
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ExecuteSql(string sql)
+        internal void ExecuteSql(string sql)
         {
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -1048,42 +1048,50 @@ namespace Zerra.Repository.MySql
             return allValues;
         }
 
-        public void BuildStoreFromModels(ICollection<ModelDetail> modelDetails)
+        public IDataStoreGenerationPlan BuildStoreGenerationPlan(ICollection<ModelDetail> modelDetails)
         {
             var connectionForParsing = new MySqlConnection(connectionString);
             var databaseName = connectionForParsing.Database;
             connectionForParsing.Dispose();
 
+            bool needCreateDatabase;
+            var sql = new List<string>();
             try
             {
-                AssureDatabase(databaseName);
+                needCreateDatabase = NeedCreateDatabase(databaseName);
 
+                var columnsToCheck = new List<ModelDetail>();
                 foreach (var model in modelDetails)
                 {
-                    AssureTable(model);
+                    var needCreateTable = AssureTable(sql, needCreateDatabase, model);
+                    if (!needCreateTable)
+                        columnsToCheck.Add(model);
                 }
 
-                foreach (var model in modelDetails)
+                foreach (var model in columnsToCheck)
                 {
                     var sqlColumns = GetSqlColumns(model);
                     var sqlConstraints = GetSqlConstraints(model);
-                    AssureColumns(model, sqlColumns, sqlConstraints);
+                    AssureColumns(sql, model, sqlColumns, sqlConstraints);
                 }
 
                 foreach (var model in modelDetails)
                 {
-                    var sqlConstraints = GetSqlConstraints(model);
-                    AssureConstraints(model, sqlConstraints);
+                    var sqlConstraints = needCreateDatabase ? Array.Empty<SqlConstraint>() : GetSqlConstraints(model);
+                    AssureConstraints(sql, model, sqlConstraints);
                 }
             }
             catch (Exception ex)
             {
-                Log.ErrorAsync($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} {nameof(MySqlEngine)} error while assuring datastore.", ex);
+                Log.ErrorAsync($"{nameof(MySqlEngine)} error while reading datastore.", ex);
                 throw;
             }
+
+            var plan = new MySqlDataStoreGenerationPlan(this, needCreateDatabase ? databaseName : null, sql);
+            return plan;
         }
 
-        private void AssureDatabase(string databaseName)
+        private bool NeedCreateDatabase(string databaseName)
         {
             var sql = $"SHOW DATABASES WHERE `Database`= '{databaseName}'";
 
@@ -1091,21 +1099,27 @@ namespace Zerra.Repository.MySql
             builder.Database = "sys";
             var connectionStringForMaster = builder.ToString();
 
-            bool exists;
+            bool needCreate;
             using (var connection = new MySqlConnection(connectionStringForMaster))
             {
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = sql;
-                    exists = !String.IsNullOrWhiteSpace((string)command.ExecuteScalar());
+                    needCreate = String.IsNullOrWhiteSpace((string)command.ExecuteScalar());
                 }
             }
 
-            if (exists)
-                return;
+            return needCreate;
+        }
 
-            sql = $"CREATE DATABASE {databaseName}";
+        internal void CreateDatabase(string databaseName)
+        {
+            var sql = $"CREATE DATABASE {databaseName}";
+
+            var builder = new MySqlConnectionStringBuilder(connectionString);
+            builder.Database = "sys";
+            var connectionStringForMaster = builder.ToString();
             using (var connection = new MySqlConnection(connectionStringForMaster))
             {
                 connection.Open();
@@ -1117,18 +1131,21 @@ namespace Zerra.Repository.MySql
             }
         }
 
-        private void AssureTable(ModelDetail model)
+        private bool AssureTable(List<string> sql, bool needCreateDatabase, ModelDetail model)
         {
             var nonIdentityColumns = model.Properties.Where(x => !x.IsIdentity && !x.IsDataSourceEntity && x.CoreType.HasValue || x.Type == typeof(byte[])).ToArray();
             var identityColumns = model.Properties.Where(x => x.IsIdentity).ToArray();
 
             if (nonIdentityColumns.Length + identityColumns.Length == 0)
-                return; //Cannot create table with no columns
+                return false; //Cannot create table with no columns
 
-            var sql = $"SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE' AND TABLE_NAME='{model.DataSourceEntityName}'";
-            var exists = ExecuteSqlScalar<long>(sql) > 0;
-            if (exists)
-                return;
+            if (!needCreateDatabase)
+            {
+                var sqlQuery = $"SELECT COUNT(1) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = '{model.DataSourceEntityName}'";
+                var exists = ExecuteSqlScalar<long>(sqlQuery) > 0;
+                if (exists)
+                    return false;
+            }
 
             var sb = new StringBuilder();
             sb.Append("CREATE TABLE ").Append(model.DataSourceEntityName).Append("(\r\n");
@@ -1170,11 +1187,11 @@ namespace Zerra.Repository.MySql
             }
             sb.Append("\r\n)");
 
-            sql = sb.ToString();
-            ExecuteSql(sql);
+            sql.Add(sb.ToString());
+            return true;
         }
 
-        private void AssureColumns(ModelDetail model, SqlColumnType[] sqlColumns, SqlConstraint[] sqlConstraints)
+        private void AssureColumns(List<string> sql, ModelDetail model, SqlColumnType[] sqlColumns, SqlConstraint[] sqlConstraints)
         {
             var columns = model.Properties.Where(x => !x.IsDataSourceEntity && x.CoreType.HasValue || x.Type == typeof(byte[])).ToArray();
 
@@ -1187,7 +1204,9 @@ namespace Zerra.Repository.MySql
                 {
                     sb.Append("ALTER TABLE `").Append(model.DataSourceEntityName).Append("` ADD `").Append(column.Name).Append("` ");
                     WriteSqlTypeFromModel(sb, column);
-                    sb.Append(";\r\n");
+                    sb.Append(";");
+                    sql.Add(sb.ToString());
+                    sb.Clear();
                 }
                 else
                 {
@@ -1195,20 +1214,24 @@ namespace Zerra.Repository.MySql
                     if (!sameType)
                     {
                         if (sqlColumn.IsPrimaryKey || sqlColumn.IsIdentity || sqlColumn.IsPrimaryKey != column.IsIdentity || sqlColumn.IsIdentity != column.IsIdentityAutoGenerated)
-                            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} {nameof(MySqlEngine)} cannot automatically change column with a Primary Key or Identity {model.Type.GetNiceName()}.{column.Name}");
+                            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} cannot automatically change column with a Primary Key or Identity {model.Type.GetNiceName()}.{column.Name}");
 
                         var theseSqlConstraints = sqlConstraints.Where(x => (x.PK_Table == model.DataSourceEntityName.ToLower() && x.PK_Column == column.Name) || (x.FK_Table == model.DataSourceEntityName && x.FK_Column == column.Name)).ToArray();
                         if (theseSqlConstraints.Length > 0)
                         {
                             foreach (var sqlConstraint in theseSqlConstraints)
                             {
-                                sb.Append("ALTER TABLE `").Append(sqlConstraint.FK_Table).Append("` DROP CONSTRAINT `").Append(sqlConstraint.FK_Name).Append("`;\r\n");
+                                sb.Append("ALTER TABLE `").Append(sqlConstraint.FK_Table).Append("` DROP CONSTRAINT `").Append(sqlConstraint.FK_Name).Append("`;");
+                                sql.Add(sb.ToString());
+                                sb.Clear();
                             }
                         }
 
                         sb.Append("ALTER TABLE `").Append(model.DataSourceEntityName).Append("` MODIFY `").Append(column.Name).Append("` ");
                         WriteSqlTypeFromModel(sb, column);
-                        sb.Append(";\r\n");
+                        sb.Append(";");
+                        sql.Add(sb.ToString());
+                        sb.Clear();
                     }
                 }
             }
@@ -1224,31 +1247,28 @@ namespace Zerra.Repository.MySql
                     {
                         foreach (var sqlConstraint in theseSqlConstraints)
                         {
-                            sb.Append("ALTER TABLE `").Append(sqlConstraint.FK_Table).Append("` DROP CONSTRAINT `").Append(sqlConstraint.FK_Name).Append("`\r\n");
-                            sb.Append(";\r\n");
+                            sb.Append("ALTER TABLE `").Append(sqlConstraint.FK_Table).Append("` DROP CONSTRAINT `").Append(sqlConstraint.FK_Name).Append("`;");
+                            sql.Add(sb.ToString());
+                            sb.Clear();
                         }
                     }
 
                     if (!sqlColumn.IsNullable)
                     {
                         if (sqlColumn.IsPrimaryKey || sqlColumn.IsIdentity)
-                            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} {nameof(MySqlEngine)} needs to make {sqlColumn} nullable but cannot automatically change column with a Primary Key or Identity");
+                            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} needs to make {sqlColumn} nullable but cannot automatically change column with a Primary Key or Identity");
 
                         sb.Append("ALTER TABLE `").Append(model.DataSourceEntityName).Append("` MODIFY `").Append(sqlColumn.Column).Append("` ");
                         WriteSqlTypeFromColumnAsNullable(sb, sqlColumn);
-                        sb.Append(";\r\n");
+                        sb.Append(";");
+                        sql.Add(sb.ToString());
+                        sb.Clear();
                     }
                 }
             }
-
-            var sql = sb.ToString();
-            if (sql.Length > 0)
-            {
-                ExecuteSql(sql);
-            }
         }
 
-        private void AssureConstraints(ModelDetail model, SqlConstraint[] sqlConstraints)
+        private void AssureConstraints(List<string> sql, ModelDetail model, SqlConstraint[] sqlConstraints)
         {
             var constraintNameDictionary = sqlConstraints.Select(x => x.FK_Name).ToDictionary(x => x, x => 0);
 
@@ -1261,13 +1281,13 @@ namespace Zerra.Repository.MySql
             {
                 var relatedModelDetails = ModelAnalyzer.GetModel(columnForRelation.InnerType);
                 if (relatedModelDetails.IdentityProperties.Count != 1)
-                    throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} {nameof(MySqlEngine)} does not support automatic constraints with multiple identities {relatedModelDetails.Type.GetNiceName()}");
+                    throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} does not support automatic constraints with multiple identities {relatedModelDetails.Type.GetNiceName()}");
 
                 var fkColumn = columnForRelation.ForeignIdentity;
                 var pkTable = relatedModelDetails.DataSourceEntityName;
                 var pkColumn = relatedModelDetails.IdentityProperties[0].Name;
 
-                var sqlConstraint = sqlConstraints.FirstOrDefault(x => x.FK_Table == fkTable && x.FK_Column == fkColumn && x.PK_Table == pkTable && x.PK_Column == pkColumn);
+                var sqlConstraint = sqlConstraints.FirstOrDefault(x => x.FK_Table.ToLower() == fkTable.ToLower() && x.FK_Column.ToLower() == fkColumn.ToLower() && x.PK_Table.ToLower() == pkTable.ToLower() && x.PK_Column.ToLower() == pkColumn.ToLower());
                 if (sqlConstraint == null)
                 {
                     var baseConstraintName = $"FK_{fkTable}_{pkTable}";
@@ -1288,8 +1308,9 @@ namespace Zerra.Repository.MySql
                         constraintNameDictionary.Add(baseConstraintName, 0);
                         constraintName = baseConstraintName;
                     }
-                    sb.Append("ALTER TABLE `").Append(fkTable).Append("` ADD CONSTRAINT ").Append(constraintName).Append(" FOREIGN KEY (").Append(fkColumn).Append(") REFERENCES `").Append(pkTable).Append("`(").Append(pkColumn).Append(")\r\n");
-                    sb.Append("\r\n");
+                    sb.Append("ALTER TABLE `").Append(fkTable).Append("` ADD CONSTRAINT ").Append(constraintName).Append(" FOREIGN KEY (").Append(fkColumn).Append(") REFERENCES `").Append(pkTable).Append("`(").Append(pkColumn).Append(");");
+                    sql.Add(sb.ToString());
+                    sb.Clear();
                 }
                 else
                 {
@@ -1302,15 +1323,10 @@ namespace Zerra.Repository.MySql
             {
                 if (!usedSqlConstraints.Contains(sqlConstraint))
                 {
-                    sb.Append("ALTER TABLE `").Append(sqlConstraint.FK_Table).Append("` DROP CONSTRAINT ").Append(sqlConstraint.FK_Name).Append("\r\n");
-                    sb.Append("\r\n");
+                    sb.Append("ALTER TABLE `").Append(sqlConstraint.FK_Table).Append("` DROP CONSTRAINT ").Append(sqlConstraint.FK_Name).Append(";");
+                    sql.Add(sb.ToString());
+                    sb.Clear();
                 }
-            }
-
-            var sql = sb.ToString();
-            if (sql.Length > 0)
-            {
-                ExecuteSql(sql);
             }
         }
 
@@ -1418,7 +1434,7 @@ namespace Zerra.Repository.MySql
             if (property.IsIdentity && property.IsIdentityAutoGenerated)
             {
                 if (!canBeIdentity)
-                    throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} {nameof(MySqlEngine)} {property.Type.GetNiceName()} {property.Name} cannot be an auto generated identity");
+                    throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} {property.Type.GetNiceName()} {property.Name} cannot be an auto generated identity");
                 sb.Append(" AUTO_INCREMENT");
             }
         }
@@ -1514,7 +1530,7 @@ namespace Zerra.Repository.MySql
                     sb.Append(sqlColumn.DataType).Append('(').Append(!sqlColumn.CharacterMaximumLength.HasValue || sqlColumn.CharacterMaximumLength.Value == -1 ? "max" : sqlColumn.CharacterMaximumLength.Value.ToString()).Append(')');
                     break;
                 default:
-                    throw new NotImplementedException($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} {nameof(MySqlEngine)} type {sqlColumn.DataType} not implemented.");
+                    throw new NotImplementedException($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} type {sqlColumn.DataType} not implemented.");
             }
 
             sb.Append(" NULL");
@@ -1571,7 +1587,7 @@ namespace Zerra.Repository.MySql
                 else
                     return sqlColumn.DataType == "blob" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
 
-            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} cannot match type {property.Type.GetNiceName()} to an {nameof(MySqlEngine)} type.");
+            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} cannot match type {property.Type.GetNiceName()} to an {nameof(MySqlEngine)} type.");
         }
         private SqlColumnType[] GetSqlColumns(ModelDetail model)
         {
@@ -1593,8 +1609,8 @@ WHERE C.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
                 NumericPrecision = x[5] != DBNull.Value ? (uint)x[5] : (uint?)null,
                 NumericScale = x[6] != DBNull.Value ? (uint)x[6] : (uint?)null,
                 DatetimePrecision = x[7] != DBNull.Value ? (uint)x[7] : (uint?)null,
-                IsIdentity = x[8] != DBNull.Value ? (long)x[8] == 1 : false,
-                IsPrimaryKey = x[9] != DBNull.Value ? (long)x[9] == 1 : false,
+                IsIdentity = x[8] != DBNull.Value ? (ulong)x[8] == 1 : false,
+                IsPrimaryKey = x[9] != DBNull.Value ? (ulong)x[9] == 1 : false,
             }).ToArray();
 
             return sqlColumns;

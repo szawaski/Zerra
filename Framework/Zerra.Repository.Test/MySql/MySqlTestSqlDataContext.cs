@@ -10,7 +10,7 @@ namespace Zerra.Repository.Test
     [TransactStoreEntity(typeof(MySqlTestRelationsModel))]
     public class MySqlTestSqlDataContext : MySqlDataContext
     {
-        protected override bool DisableBuildStoreFromModels => false;
+        protected override DataStoreGenerationType DataStoreGenerationType => DataStoreGenerationType.CodeFirst;
         public override string ConnectionString => "Server=localhost;Port=3306;Uid=root;Pwd=password123;Database=ZerraSqlTest";
     }
 }

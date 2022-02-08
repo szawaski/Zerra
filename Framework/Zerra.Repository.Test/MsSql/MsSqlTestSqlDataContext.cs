@@ -10,7 +10,7 @@ namespace Zerra.Repository.Test
     [TransactStoreEntity(typeof(MsSqlTestRelationsModel), false)]
     public class MsSqlTestSqlDataContext : MsSqlDataContext
     {
-        protected override bool DisableBuildStoreFromModels => false;
+        protected override DataStoreGenerationType DataStoreGenerationType => DataStoreGenerationType.CodeFirst;
         public override string ConnectionString => "data source=.;initial catalog=ZerraSqlTest;integrated security=True;MultipleActiveResultSets=True;";
     }
 }

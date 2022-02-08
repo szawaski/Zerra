@@ -8,7 +8,7 @@ namespace ZerraDemo.Domain.Ledger2.EventStore
     [EventStoreAggregate(typeof(Transaction2Aggregate))]
     public class Ledger2EventStoreDataContext : EventStoreDBDataContext
     {
-        protected override bool DisableBuildStoreFromModels => false;
+        protected override DataStoreGenerationType DataStoreGenerationType => DataStoreGenerationType.CodeFirst;
         public override string ConnectionString => connectionString;
         public override bool Insecure => true;
 

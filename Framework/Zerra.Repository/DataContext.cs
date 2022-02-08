@@ -5,6 +5,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using Zerra.Logging;
 using Zerra.Providers;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
@@ -17,9 +19,9 @@ namespace Zerra.Repository
         private static bool validated = false;
         private static readonly object validatedLock = new object();
 
-        public bool TryGetEngine<T>(out T engine, out bool disableBuildStore) where T : class, IDataStoreEngine
+        public bool TryGetEngine<T>(out T engine, out DataStoreGenerationType dataStoreGenerationType) where T : class, IDataStoreEngine
         {
-            (engine, disableBuildStore) = GetEngine<T>();
+            (engine, dataStoreGenerationType) = GetEngine<T>();
             if (engine == null)
                 return false;
 
@@ -45,7 +47,7 @@ namespace Zerra.Repository
         private static readonly object initializedLock = new object();
         public T InitializeEngine<T>(bool reinitialize = false) where T : class, IDataStoreEngine
         {
-            var (engine, disableBuildStore) = GetEngine<T>();
+            var (engine, dataStoreGenerationType) = GetEngine<T>();
             if (engine == null)
                 throw new Exception($"{this.GetType().Name} could not produce an engine of {typeof(T).Name}");
 
@@ -66,12 +68,12 @@ namespace Zerra.Repository
                 {
                     initialized = true;
 
-                    if (!disableBuildStore)
+                    if (dataStoreGenerationType == DataStoreGenerationType.CodeFirst || dataStoreGenerationType == DataStoreGenerationType.CodeFirstPreview)
                     {
                         var thisType = this.GetType();
                         var allModelTypes = Discovery.GetTypesFromAttribute(typeof(EntityAttribute));
                         var modelTypesWithThisDataContext = new HashSet<Type>();
-                        foreach(var modelType in allModelTypes.Where(x => !x.IsAbstract))
+                        foreach (var modelType in allModelTypes.Where(x => !x.IsAbstract))
                         {
                             var providerType = typeof(ITransactStoreProvider<>).MakeGenericType(modelType);
                             if (!Resolver.TryGet(providerType, out object provider))
@@ -82,7 +84,7 @@ namespace Zerra.Repository
                                 modelTypesWithThisDataContext.Add(modelType);
                                 continue;
                             }
-                            foreach(var baseType in typeDetails.BaseTypes)
+                            foreach (var baseType in typeDetails.BaseTypes)
                             {
                                 var baseTypeDetails = TypeAnalyzer.GetTypeDetail(baseType);
                                 if (baseTypeDetails.InnerTypes.Contains(thisType))
@@ -94,7 +96,19 @@ namespace Zerra.Repository
                         }
 
                         var modelDetails = modelTypesWithThisDataContext.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
-                        engine.BuildStoreFromModels(modelDetails);
+                        var plan = engine.BuildStoreGenerationPlan(modelDetails);
+                        if (dataStoreGenerationType == DataStoreGenerationType.CodeFirst)
+                        {
+                            plan.Execute();
+                        }
+                        else
+                        {
+                            var sb = new StringBuilder();
+                            sb.AppendLine("CodeFirst Plan Preview:");
+                            foreach (var item in plan.Plan)
+                                sb.AppendLine(item);
+                            Log.InfoAsync(sb.ToString());
+                        }
                     }
                 }
             }
@@ -102,11 +116,11 @@ namespace Zerra.Repository
             return engine;
         }
 
-        protected virtual (T, bool) GetEngine<T>() where T : class, IDataStoreEngine
+        protected virtual (T, DataStoreGenerationType) GetEngine<T>() where T : class, IDataStoreEngine
         {
-            return (GetEngine() as T, DisableBuildStoreFromModels);
+            return (GetEngine() as T, DataStoreGenerationType);
         }
         protected abstract IDataStoreEngine GetEngine();
-        protected virtual bool DisableBuildStoreFromModels => false;
+        protected virtual DataStoreGenerationType DataStoreGenerationType => DataStoreGenerationType.CodeFirst;
     }
 }

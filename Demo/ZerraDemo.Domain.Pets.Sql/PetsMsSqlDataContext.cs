@@ -1,11 +1,12 @@
 ﻿using Zerra;
+using Zerra.Repository;
 using Zerra.Repository.MsSql;
 
 namespace ZerraDemo.Domain.Pets.Sql
 {
     public class PetsMsSqlDataContext : MsSqlDataContext
     {
-        protected override bool DisableBuildStoreFromModels => false;
+        protected override DataStoreGenerationType DataStoreGenerationType => DataStoreGenerationType.CodeFirst;
         public override string ConnectionString => connectionString;
 
         private readonly string connectionString;

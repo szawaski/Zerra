@@ -983,7 +983,7 @@ namespace Zerra.Repository.MsSql
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ExecuteSql(string sql)
+        internal void ExecuteSql(string sql)
         {
             using (var connection = new SqlConnection(connectionString))
             {
@@ -992,6 +992,19 @@ namespace Zerra.Repository.MsSql
                 {
                     command.CommandText = sql;
                     command.ExecuteNonQuery();
+                }
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private T ExecuteSqlScalar<T>(string sql)
+        {
+            using (var connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = sql;
+                    return (T)command.ExecuteScalar();
                 }
             }
         }
@@ -1035,50 +1048,74 @@ namespace Zerra.Repository.MsSql
             return allValues;
         }
 
-        public void BuildStoreFromModels(ICollection<ModelDetail> modelDetails)
+        public IDataStoreGenerationPlan BuildStoreGenerationPlan(ICollection<ModelDetail> modelDetails)
         {
             var connectionForParsing = new SqlConnection(connectionString);
             var databaseName = connectionForParsing.Database;
             connectionForParsing.Dispose();
 
+            bool needCreateDatabase;
+            var sql = new List<string>();
             try
             {
-                AssureDatabase(databaseName);
+                needCreateDatabase = NeedCreateDatabase(databaseName);
 
+                var columnsToCheck = new List<ModelDetail>();
                 foreach (var model in modelDetails)
                 {
-                    AssureTable(model);
+                    var needCreateTable = AssureTable(sql, needCreateDatabase, model);
+                    if (!needCreateTable)
+                        columnsToCheck.Add(model);
                 }
 
-                foreach (var model in modelDetails)
+                foreach (var model in columnsToCheck)
                 {
                     var sqlColumns = GetSqlColumns(model);
                     var sqlConstraints = GetSqlConstraints(model);
-                    AssureColumns(model, sqlColumns, sqlConstraints);
+                    AssureColumns(sql, model, sqlColumns, sqlConstraints);
                 }
 
                 foreach (var model in modelDetails)
                 {
-                    var sqlConstraints = GetSqlConstraints(model);
-                    AssureConstraints(model, sqlConstraints);
+                    var sqlConstraints = needCreateDatabase ? Array.Empty<SqlConstraint>() : GetSqlConstraints(model);
+                    AssureConstraints(sql, model, sqlConstraints);
                 }
             }
             catch (Exception ex)
             {
-                Log.ErrorAsync($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} {nameof(MsSqlEngine)} error while assuring datastore.", ex);
+                Log.ErrorAsync($"{nameof(MsSqlEngine)} error while reading datastore.", ex);
                 throw;
             }
+
+            var plan = new MsSqlDataStoreGenerationPlan(this, needCreateDatabase ? databaseName : null, sql);
+            return plan;
         }
 
-        private void AssureDatabase(string databaseName)
+        private bool NeedCreateDatabase(string databaseName)
         {
-            var sb = new StringBuilder();
-            sb.Append("IF NOT EXISTS (SELECT [dbid] FROM master.dbo.sysdatabases WHERE [name] = '").Append(databaseName).Append("')\r\n");
-            sb.Append("BEGIN\r\n");
-            sb.Append("\tCREATE DATABASE [").Append(databaseName).Append("]\r\n");
-            sb.Append("END\r\n");
+            var sql = $"SELECT COUNT(1) FROM master.dbo.sysdatabases WHERE [name] = '{databaseName}'";
 
-            var sql = sb.ToString();
+            var builder = new SqlConnectionStringBuilder(connectionString);
+            builder.InitialCatalog = "master";
+            var connectionStringForMaster = builder.ToString();
+
+            bool needCreate;
+            using (var connection = new SqlConnection(connectionStringForMaster))
+            {
+                connection.Open();
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = sql;
+                    needCreate = (int)command.ExecuteScalar() == 0;
+                }
+            }
+
+            return needCreate;
+        }
+
+        internal void CreateDatabase(string databaseName)
+        {
+            var sql = $"CREATE DATABASE [{databaseName}]";
 
             var builder = new SqlConnectionStringBuilder(connectionString);
             builder.InitialCatalog = "master";
@@ -1094,17 +1131,23 @@ namespace Zerra.Repository.MsSql
             }
         }
 
-        private void AssureTable(ModelDetail model)
+        private bool AssureTable(List<string> sql, bool needCreateDatabase, ModelDetail model)
         {
             var nonIdentityColumns = model.Properties.Where(x => !x.IsIdentity && !x.IsDataSourceEntity && x.CoreType.HasValue || x.Type == typeof(byte[])).ToArray();
             var identityColumns = model.Properties.Where(x => x.IsIdentity).ToArray();
 
             if (nonIdentityColumns.Length + identityColumns.Length == 0)
-                return; //Cannot create table with no columns
+                return false ; //Cannot create table with no columns
+
+            if (!needCreateDatabase)
+            {
+                var sqlQuery = $"SELECT COUNT(1) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = '{model.DataSourceEntityName}'";
+                var exists = ExecuteSqlScalar<int>(sqlQuery) > 0;
+                if (exists)
+                    return false;
+            }
 
             var sb = new StringBuilder();
-            sb.Append("IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE' AND TABLE_NAME='").Append(model.DataSourceEntityName).Append("')\r\n");
-            sb.Append("BEGIN\r\n");
             sb.Append("CREATE TABLE [").Append(model.DataSourceEntityName).Append("](\r\n");
 
             for (var i = 0; i < identityColumns.Length; i++)
@@ -1139,14 +1182,13 @@ namespace Zerra.Repository.MsSql
             sb.Append("\tON [PRIMARY]");
             sb.Append("\r\n)");
             sb.Append("\r\nON [PRIMARY]");
-            sb.Append("\r\n");
-            sb.Append("END");
 
-            var sql = sb.ToString();
-            ExecuteSql(sql);
+            sql.Add(sb.ToString());
+
+            return true;
         }
 
-        private void AssureColumns(ModelDetail model, SqlColumnType[] sqlColumns, SqlConstraint[] sqlConstraints)
+        private void AssureColumns(List<string> sql, ModelDetail model, SqlColumnType[] sqlColumns, SqlConstraint[] sqlConstraints)
         {
             var columns = model.Properties.Where(x => !x.IsDataSourceEntity && x.CoreType.HasValue || x.Type == typeof(byte[])).ToArray();
 
@@ -1159,7 +1201,8 @@ namespace Zerra.Repository.MsSql
                 {
                     sb.Append("ALTER TABLE [").Append(model.DataSourceEntityName).Append("] ADD [").Append(column.Name).Append("] ");
                     WriteSqlTypeFromModel(sb, column, true);
-                    sb.Append("\r\n");
+                    sql.Add(sb.ToString());
+                    sb.Clear();
                 }
                 else
                 {
@@ -1167,20 +1210,23 @@ namespace Zerra.Repository.MsSql
                     if (!sameType)
                     {
                         if (sqlColumn.IsPrimaryKey || sqlColumn.IsIdentity || sqlColumn.IsPrimaryKey != column.IsIdentity || sqlColumn.IsIdentity != column.IsIdentityAutoGenerated)
-                            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} {nameof(MsSqlEngine)} cannot automatically change column with a Primary Key or Identity {model.Type.GetNiceName()}.{column.Name}");
+                            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MsSqlEngine)} cannot automatically change column with a Primary Key or Identity {model.Type.GetNiceName()}.{column.Name}");
 
                         var theseSqlConstraints = sqlConstraints.Where(x => (x.PK_Table == model.DataSourceEntityName && x.PK_Column == column.Name) || (x.FK_Table == model.DataSourceEntityName && x.FK_Column == column.Name)).ToArray();
                         if (theseSqlConstraints.Length > 0)
                         {
                             foreach (var sqlConstraint in theseSqlConstraints)
                             {
-                                sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append("]\r\n");
+                                sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append("]");
+                                sql.Add(sb.ToString());
+                                sb.Clear();
                             }
                         }
 
                         sb.Append("ALTER TABLE [").Append(model.DataSourceEntityName).Append("] ALTER COLUMN [").Append(column.Name).Append("] ");
                         WriteSqlTypeFromModel(sb, column, false);
-                        sb.Append("\r\n");
+                        sql.Add(sb.ToString());
+                        sb.Clear();
                     }
                 }
             }
@@ -1196,31 +1242,28 @@ namespace Zerra.Repository.MsSql
                     {
                         foreach (var sqlConstraint in theseSqlConstraints)
                         {
-                            sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append("]\r\n");
-                            sb.Append("\r\n");
+                            sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append("]");
+                            sql.Add(sb.ToString());
+                            sb.Clear();
                         }
                     }
 
                     if (!sqlColumn.IsNullable)
                     {
                         if (sqlColumn.IsPrimaryKey || sqlColumn.IsIdentity)
-                            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} {nameof(MsSqlEngine)} needs to make {sqlColumn} nullable but cannot automatically change column with a Primary Key or Identity");
+                            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MsSqlEngine)} needs to make {sqlColumn} nullable but cannot automatically change column with a Primary Key or Identity");
 
                         sb.Append("ALTER TABLE [").Append(model.DataSourceEntityName).Append("] ALTER COLUMN [").Append(sqlColumn.Column).Append("] ");
                         WriteSqlTypeFromColumn(sb, sqlColumn);
-                        sb.Append(" NULL\r\n");
+                        sb.Append(" NULL");
+                        sql.Add(sb.ToString());
+                        sb.Clear();
                     }
                 }
             }
-
-            var sql = sb.ToString();
-            if (sql.Length > 0)
-            {
-                ExecuteSql(sql);
-            }
         }
 
-        private void AssureConstraints(ModelDetail model, SqlConstraint[] sqlConstraints)
+        private void AssureConstraints(List<string> sql, ModelDetail model, SqlConstraint[] sqlConstraints)
         {
             var constraintNameDictionary = sqlConstraints.Select(x => x.FK_Name).ToDictionary(x => x, x => 0);
 
@@ -1233,7 +1276,7 @@ namespace Zerra.Repository.MsSql
             {
                 var relatedModelDetails = ModelAnalyzer.GetModel(columnForRelation.InnerType);
                 if (relatedModelDetails.IdentityProperties.Count != 1)
-                    throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} {nameof(MsSqlEngine)} does not support automatic constraints with multiple identities {relatedModelDetails.Type.GetNiceName()}");
+                    throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MsSqlEngine)} does not support automatic constraints with multiple identities {relatedModelDetails.Type.GetNiceName()}");
 
                 var fkColumn = columnForRelation.ForeignIdentity;
                 var pkTable = relatedModelDetails.DataSourceEntityName;
@@ -1260,8 +1303,9 @@ namespace Zerra.Repository.MsSql
                         constraintNameDictionary.Add(baseConstraintName, 0);
                         constraintName = baseConstraintName;
                     }
-                    sb.Append("ALTER TABLE [").Append(fkTable).Append("] WITH CHECK ADD CONSTRAINT [").Append(constraintName).Append("] FOREIGN KEY ([").Append(fkColumn).Append("]) REFERENCES [").Append(pkTable).Append("]([").Append(pkColumn).Append("])\r\n");
-                    sb.Append("\r\n");
+                    sb.Append("ALTER TABLE [").Append(fkTable).Append("] WITH CHECK ADD CONSTRAINT [").Append(constraintName).Append("] FOREIGN KEY ([").Append(fkColumn).Append("]) REFERENCES [").Append(pkTable).Append("]([").Append(pkColumn).Append("])");
+                    sql.Add(sb.ToString());
+                    sb.Clear();
                 }
                 else
                 {
@@ -1274,15 +1318,10 @@ namespace Zerra.Repository.MsSql
             {
                 if (!usedSqlConstraints.Contains(sqlConstraint))
                 {
-                    sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append("]\r\n");
-                    sb.Append("\r\n");
+                    sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append("]");
+                    sql.Add(sb.ToString());
+                    sb.Clear();
                 }
-            }
-
-            var sql = sb.ToString();
-            if (sql.Length > 0)
-            {
-                ExecuteSql(sql);
             }
         }
 
@@ -1369,7 +1408,7 @@ namespace Zerra.Repository.MsSql
             if (property.IsIdentity && property.IsIdentityAutoGenerated)
             {
                 if (!canBeIdentity)
-                    throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} {nameof(MsSqlEngine)} {property.Type.GetNiceName()} {property.Name} cannot be an auto generated identity");
+                    throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MsSqlEngine)} {property.Type.GetNiceName()} {property.Name} cannot be an auto generated identity");
                 sb.Append(" Identity(1,1)");
             }
 
@@ -1489,7 +1528,7 @@ namespace Zerra.Repository.MsSql
                     sb.Append(sqlColumn.DataType).Append('(').Append(!sqlColumn.CharacterMaximumLength.HasValue || sqlColumn.CharacterMaximumLength.Value == -1 ? "max" : sqlColumn.CharacterMaximumLength.Value.ToString()).Append(')');
                     break;
                 default:
-                    throw new NotImplementedException($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} {nameof(MsSqlEngine)} type {sqlColumn.DataType} not implemented.");
+                    throw new NotImplementedException($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MsSqlEngine)} type {sqlColumn.DataType} not implemented.");
             }
         }
 
@@ -1525,7 +1564,7 @@ namespace Zerra.Repository.MsSql
                     case CoreType.DoubleNullable: return sqlColumn.DataType == "float" && sqlColumn.IsNullable == true;
                     case CoreType.DecimalNullable: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == true && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
                     case CoreType.CharNullable: return sqlColumn.DataType == "nvarchar" && sqlColumn.IsNullable == true && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
-                    case CoreType.DateTimeNullable: return sqlColumn.DataType == "datetime" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.DateTimeNullable: return sqlColumn.DataType == "datetime" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 3);
                     case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "datetimeoffset" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.GuidNullable: return sqlColumn.DataType == "uniqueidentifier" && sqlColumn.IsNullable == true;
@@ -1538,7 +1577,7 @@ namespace Zerra.Repository.MsSql
             if (property.Type == typeof(byte[]))
                 return sqlColumn.DataType == "varbinary" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
 
-            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreFromModels)} cannot match type {property.Type.GetNiceName()} to an {nameof(MsSqlEngine)} type.");
+            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} cannot match type {property.Type.GetNiceName()} to an {nameof(MsSqlEngine)} type.");
         }
         private SqlColumnType[] GetSqlColumns(ModelDetail model)
         {

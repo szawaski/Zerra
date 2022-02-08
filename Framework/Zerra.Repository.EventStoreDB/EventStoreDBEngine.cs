@@ -61,14 +61,14 @@ namespace Zerra.Repository.EventStoreDB
             else
             {
                 StreamState state;
-                switch(expectedState)
+                switch (expectedState)
                 {
                     case EventStoreState.Any: state = StreamState.Any; break;
                     case EventStoreState.NotExisting: state = StreamState.NoStream; break;
                     case EventStoreState.Existing: state = StreamState.StreamExists; break;
                     default: throw new NotImplementedException();
                 }
- 
+
                 var writeResult = await client.AppendToStreamAsync(streamName, state, new EventData[] { eventData });
                 return writeResult.NextExpectedStreamRevision;
             }
@@ -280,9 +280,9 @@ namespace Zerra.Repository.EventStoreDB
             return false;
         }
 
-        public void BuildStoreFromModels(ICollection<ModelDetail> modelDetail)
+        public IDataStoreGenerationPlan BuildStoreGenerationPlan(ICollection<ModelDetail> modelDetail)
         {
-            //nada
+            return new EmptyDataStoreGenerationPlan();
         }
     }
 }
