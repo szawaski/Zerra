@@ -1137,7 +1137,7 @@ namespace Zerra.Repository.MsSql
             var identityColumns = model.Properties.Where(x => x.IsIdentity).ToArray();
 
             if (nonIdentityColumns.Length + identityColumns.Length == 0)
-                return false ; //Cannot create table with no columns
+                return false; //Cannot create table with no columns
 
             if (!needCreateDatabase)
             {
@@ -1390,7 +1390,10 @@ namespace Zerra.Repository.MsSql
                         sb.Append("[uniqueidentifier]");
                         break;
                     case CoreType.String:
-                        sb.Append("[nvarchar](").Append(property.DataSourcePrecisionLength?.ToString() ?? "max").Append(')');
+                        if (property.TextEncoding == StoreTextEncodingOption.NonUnicode)
+                            sb.Append("[varchar](").Append(property.DataSourcePrecisionLength?.ToString() ?? "max").Append(')');
+                        else
+                            sb.Append("[nvarchar](").Append(property.DataSourcePrecisionLength?.ToString() ?? "max").Append(')');
                         break;
                     default:
                         throw new Exception($"Cannot match type {property.Type.GetNiceName()} to an {nameof(MsSqlEngine)} type.");
@@ -1570,7 +1573,7 @@ namespace Zerra.Repository.MsSql
                     case CoreType.GuidNullable: return sqlColumn.DataType == "uniqueidentifier" && sqlColumn.IsNullable == true;
 
                     case CoreType.String:
-                        return sqlColumn.DataType == "nvarchar" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == property.DataSourcePrecisionLength;
+                        return ((sqlColumn.DataType == "nvarchar" && property.TextEncoding == StoreTextEncodingOption.Unicode) || (sqlColumn.DataType == "varchar" && property.TextEncoding == StoreTextEncodingOption.NonUnicode)) && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == property.DataSourcePrecisionLength;
                 }
             }
 
