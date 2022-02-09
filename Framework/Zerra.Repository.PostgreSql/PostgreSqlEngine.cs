@@ -1065,7 +1065,7 @@ namespace Zerra.Repository.PostgreSql
             return allValues;
         }
 
-        public IDataStoreGenerationPlan BuildStoreGenerationPlan(ICollection<ModelDetail> modelDetails)
+        public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool create, bool update, bool delete, ICollection<ModelDetail> modelDetails)
         {
             var connectionForParsing = new NpgsqlConnection(connectionString);
             var databaseName = connectionForParsing.Database;
@@ -1082,7 +1082,7 @@ namespace Zerra.Repository.PostgreSql
                 var columnsToCheck = new List<ModelDetail>();
                 foreach (var model in modelDetails)
                 {
-                    var needCreateTable = AssureTable(sql, needCreateDatabase, model);
+                    var needCreateTable = AssureTable(create, sql, needCreateDatabase, model);
                     if (!needCreateTable)
                         columnsToCheck.Add(model);
                 }
@@ -1091,13 +1091,13 @@ namespace Zerra.Repository.PostgreSql
                 {
                     var sqlColumns = GetSqlColumns(model);
                     var sqlConstraints = GetSqlConstraints(model);
-                    AssureColumns(sql, model, sqlColumns, sqlConstraints);
+                    AssureColumns(create, update, delete, sql, model, sqlColumns, sqlConstraints);
                 }
 
                 foreach (var model in modelDetails)
                 {
                     var sqlConstraints = needCreateDatabase ? Array.Empty<SqlConstraint>() : GetSqlConstraints(model);
-                    AssureConstraints(sql, model, sqlConstraints);
+                    AssureConstraints(create, update, delete, sql, model, sqlConstraints);
                 }
             }
             catch (Exception ex)
@@ -1110,7 +1110,7 @@ namespace Zerra.Repository.PostgreSql
             return plan;
         }
 
-        
+
 
         private bool NeedCreateDatabase(string databaseName)
         {
@@ -1165,7 +1165,7 @@ namespace Zerra.Repository.PostgreSql
             sql.Add("CREATE EXTENSION \"uuid-ossp\";");
         }
 
-        private bool AssureTable(List<string> sql, bool needCreateDatabase, ModelDetail model)
+        private bool AssureTable(bool create, List<string> sql, bool needCreateDatabase, ModelDetail model)
         {
             var nonIdentityColumns = model.Properties.Where(x => !x.IsIdentity && !x.IsDataSourceEntity && x.CoreType.HasValue || x.Type == typeof(byte[])).ToArray();
             var identityColumns = model.Properties.Where(x => x.IsIdentity).ToArray();
@@ -1181,49 +1181,52 @@ namespace Zerra.Repository.PostgreSql
                     return false;
             }
 
-            var sb = new StringBuilder();
-            sb.Append("CREATE TABLE ").Append(model.DataSourceEntityName).Append("(\r\n");
-
-            for (var i = 0; i < identityColumns.Length; i++)
+            if (create)
             {
-                var property = identityColumns[i];
-                if (i > 0)
-                    sb.Append(",\r\n");
-                sb.Append("\t").Append(property.PropertySourceName).Append(" ");
-                WriteSqlTypeFromModel(sb, property);
-                WriteTypeEndingFromModel(sb, property);
-            }
-            for (var i = 0; i < nonIdentityColumns.Length; i++)
-            {
-                var property = nonIdentityColumns[i];
-                if (i > 0 || identityColumns.Length > 0)
-                    sb.Append(",\r\n");
-                sb.Append("\t").Append(property.PropertySourceName).Append(" ");
-                WriteSqlTypeFromModel(sb, property);
-                WriteTypeEndingFromModel(sb, property);
-            }
-            if (identityColumns.Length > 0)
-            {
-                if (identityColumns.Length > 0 || nonIdentityColumns.Length > 0)
-                    sb.Append(',');
-                sb.Append("\r\n\tCONSTRAINT PK_").Append(model.DataSourceEntityName).Append(" PRIMARY KEY(\r\n");
+                var sb = new StringBuilder();
+                sb.Append("CREATE TABLE ").Append(model.DataSourceEntityName).Append("(\r\n");
 
                 for (var i = 0; i < identityColumns.Length; i++)
                 {
                     var property = identityColumns[i];
                     if (i > 0)
                         sb.Append(",\r\n");
-                    sb.Append("\t\t").Append(property.PropertySourceName);
+                    sb.Append("\t").Append(property.PropertySourceName).Append(" ");
+                    WriteSqlTypeFromModel(sb, property);
+                    WriteTypeEndingFromModel(sb, property);
                 }
-                sb.Append("\r\n\t)\r\n");
-            }
-            sb.Append("\r\n)");
+                for (var i = 0; i < nonIdentityColumns.Length; i++)
+                {
+                    var property = nonIdentityColumns[i];
+                    if (i > 0 || identityColumns.Length > 0)
+                        sb.Append(",\r\n");
+                    sb.Append("\t").Append(property.PropertySourceName).Append(" ");
+                    WriteSqlTypeFromModel(sb, property);
+                    WriteTypeEndingFromModel(sb, property);
+                }
+                if (identityColumns.Length > 0)
+                {
+                    if (identityColumns.Length > 0 || nonIdentityColumns.Length > 0)
+                        sb.Append(',');
+                    sb.Append("\r\n\tCONSTRAINT PK_").Append(model.DataSourceEntityName).Append(" PRIMARY KEY(\r\n");
 
-            sql.Add(sb.ToString());
+                    for (var i = 0; i < identityColumns.Length; i++)
+                    {
+                        var property = identityColumns[i];
+                        if (i > 0)
+                            sb.Append(",\r\n");
+                        sb.Append("\t\t").Append(property.PropertySourceName);
+                    }
+                    sb.Append("\r\n\t)\r\n");
+                }
+                sb.Append("\r\n)");
+
+                sql.Add(sb.ToString());
+            }
             return true;
         }
 
-        private void AssureColumns(List<string> sql, ModelDetail model, SqlColumnType[] sqlColumns, SqlConstraint[] sqlConstraints)
+        private void AssureColumns(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlColumnType[] sqlColumns, SqlConstraint[] sqlConstraints)
         {
             var columns = model.Properties.Where(x => !x.IsDataSourceEntity && x.CoreType.HasValue || x.Type == typeof(byte[])).ToArray();
 
@@ -1234,22 +1237,74 @@ namespace Zerra.Repository.PostgreSql
                 var sqlColumn = sqlColumns.FirstOrDefault(x => x.Table == model.DataSourceEntityName.ToLower() && x.Column == column.PropertySourceName.ToLower());
                 if (sqlColumn == null)
                 {
-                    sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ADD ").Append(column.Name).Append(" ");
-                    WriteSqlTypeFromModel(sb, column);
-                    WriteTypeEndingFromModel(sb, column);
-                    sb.Append(";");
-                    sql.Add(sb.ToString());
-                    sb.Clear();
+                    if (create)
+                    {
+                        sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ADD ").Append(column.Name).Append(" ");
+                        WriteSqlTypeFromModel(sb, column);
+                        WriteTypeEndingFromModel(sb, column);
+                        sb.Append(";");
+                        sql.Add(sb.ToString());
+                        sb.Clear();
+                    }
                 }
                 else
                 {
-                    var sameType = ModelMatchesSqlType(column, sqlColumn);
-                    if (!sameType)
+                    if (update)
                     {
-                        if (sqlColumn.IsPrimaryKey || sqlColumn.IsIdentity || sqlColumn.IsPrimaryKey != column.IsIdentity || sqlColumn.IsIdentity != column.IsIdentityAutoGenerated)
-                            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(PostgreSqlEngine)} cannot automatically change column with a Primary Key or Identity {model.Type.GetNiceName()}.{column.Name}");
+                        var sameType = ModelMatchesSqlType(column, sqlColumn);
+                        if (!sameType)
+                        {
+                            if (sqlColumn.IsPrimaryKey || sqlColumn.IsIdentity || sqlColumn.IsPrimaryKey != column.IsIdentity || sqlColumn.IsIdentity != column.IsIdentityAutoGenerated)
+                                throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(PostgreSqlEngine)} cannot automatically change column with a Primary Key or Identity {model.Type.GetNiceName()}.{column.Name}");
 
-                        var theseSqlConstraints = sqlConstraints.Where(x => (x.PK_Table == model.DataSourceEntityName.ToLower() && x.PK_Column == column.Name) || (x.FK_Table == model.DataSourceEntityName && x.FK_Column == column.Name)).ToArray();
+                            var theseSqlConstraints = sqlConstraints.Where(x => (x.PK_Table == model.DataSourceEntityName.ToLower() && x.PK_Column == column.Name) || (x.FK_Table == model.DataSourceEntityName && x.FK_Column == column.Name)).ToArray();
+                            if (theseSqlConstraints.Length > 0)
+                            {
+                                foreach (var sqlConstraint in theseSqlConstraints)
+                                {
+                                    sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(";");
+                                    sql.Add(sb.ToString());
+                                    sb.Clear();
+                                }
+                            }
+
+                            sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.Name.ToLower()).Append(" TYPE ");
+                            WriteSqlTypeFromModel(sb, column);
+                            sb.Append(";");
+                            sql.Add(sb.ToString());
+                            sb.Clear();
+
+                            sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.Name.ToLower());
+                            if (column.IsDataSourceNotNull) //model checks for identity not null
+                            {
+                                sb.Append(" SET NOT NULL");
+                                if (column.IsIdentity && !column.IsIdentityAutoGenerated)
+                                {
+                                    sb.Append(" DEFAULT ");
+                                    WriteDefaultValue(sb, column);
+                                }
+                            }
+                            else
+                            {
+                                sb.Append(" DROP NOT NULL");
+                            }
+                            sb.Append(";");
+                            sql.Add(sb.ToString());
+                            sb.Clear();
+                        }
+                    }
+                }
+            }
+
+            if (delete)
+            {
+                //columns not in model
+                foreach (var sqlColumn in sqlColumns.Where(x => x.Table == model.DataSourceEntityName.ToLower()))
+                {
+                    var column = columns.FirstOrDefault(x => x.PropertySourceName.ToLower() == sqlColumn.Column);
+                    if (column == null)
+                    {
+                        var theseSqlConstraints = sqlConstraints.Where(x => (x.PK_Table == sqlColumn.Table && x.PK_Column == sqlColumn.Column) || (x.FK_Table == sqlColumn.Table && x.FK_Column == sqlColumn.Column)).ToArray();
                         if (theseSqlConstraints.Length > 0)
                         {
                             foreach (var sqlConstraint in theseSqlConstraints)
@@ -1260,64 +1315,21 @@ namespace Zerra.Repository.PostgreSql
                             }
                         }
 
-                        sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.Name.ToLower()).Append(" TYPE ");
-                        WriteSqlTypeFromModel(sb, column);
-                        sb.Append(";");
-                        sql.Add(sb.ToString());
-                        sb.Clear();
+                        if (!sqlColumn.IsNullable)
+                        {
+                            if (sqlColumn.IsPrimaryKey || sqlColumn.IsIdentity)
+                                throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(PostgreSqlEngine)} needs to make {sqlColumn} nullable but cannot automatically change column with a Primary Key or Identity");
 
-                        sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.Name.ToLower());
-                        if (column.IsDataSourceNotNull) //model checks for identity not null
-                        {
-                            sb.Append(" SET NOT NULL");
-                            if (column.IsIdentity && !column.IsIdentityAutoGenerated)
-                            {
-                                sb.Append(" DEFAULT ");
-                                WriteDefaultValue(sb, column);
-                            }
-                        }
-                        else
-                        {
-                            sb.Append(" DROP NOT NULL");
-                        }
-                        sb.Append(";");
-                        sql.Add(sb.ToString());
-                        sb.Clear();
-                    }
-                }
-            }
-
-            //columns not in model
-            foreach (var sqlColumn in sqlColumns.Where(x => x.Table == model.DataSourceEntityName.ToLower()))
-            {
-                var column = columns.FirstOrDefault(x => x.PropertySourceName.ToLower() == sqlColumn.Column);
-                if (column == null)
-                {
-                    var theseSqlConstraints = sqlConstraints.Where(x => (x.PK_Table == sqlColumn.Table && x.PK_Column == sqlColumn.Column) || (x.FK_Table == sqlColumn.Table && x.FK_Column == sqlColumn.Column)).ToArray();
-                    if (theseSqlConstraints.Length > 0)
-                    {
-                        foreach (var sqlConstraint in theseSqlConstraints)
-                        {
-                            sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(";");
+                            sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(sqlColumn.Column.ToLower()).Append(" DROP NOT NULL;");
                             sql.Add(sb.ToString());
                             sb.Clear();
                         }
-                    }
-
-                    if (!sqlColumn.IsNullable)
-                    {
-                        if (sqlColumn.IsPrimaryKey || sqlColumn.IsIdentity)
-                            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(PostgreSqlEngine)} needs to make {sqlColumn} nullable but cannot automatically change column with a Primary Key or Identity");
-
-                        sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(sqlColumn.Column.ToLower()).Append(" DROP NOT NULL;");
-                        sql.Add(sb.ToString());
-                        sb.Clear();
                     }
                 }
             }
         }
 
-        private void AssureConstraints(List<string> sql, ModelDetail model, SqlConstraint[] sqlConstraints)
+        private void AssureConstraints(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlConstraint[] sqlConstraints)
         {
             var constraintNameDictionary = sqlConstraints.Select(x => x.FK_Name).ToDictionary(x => x, x => 0);
 
@@ -1339,27 +1351,30 @@ namespace Zerra.Repository.PostgreSql
                 var sqlConstraint = sqlConstraints.FirstOrDefault(x => x.FK_Table == fkTable.ToLower() && x.FK_Column == fkColumn.ToLower() && x.PK_Table == pkTable.ToLower() && x.PK_Column == pkColumn.ToLower());
                 if (sqlConstraint == null)
                 {
-                    var baseConstraintName = $"FK_{fkTable}_{pkTable}";
-                    string constraintName;
-                    if (constraintNameDictionary.TryGetValue(baseConstraintName, out int constraintNameIndex))
+                    if (create)
                     {
-                        constraintNameIndex++;
-                        constraintName = baseConstraintName + constraintNameIndex;
-                        while (constraintNameDictionary.Keys.Contains(constraintName))
+                        var baseConstraintName = $"FK_{fkTable}_{pkTable}";
+                        string constraintName;
+                        if (constraintNameDictionary.TryGetValue(baseConstraintName, out int constraintNameIndex))
                         {
                             constraintNameIndex++;
                             constraintName = baseConstraintName + constraintNameIndex;
+                            while (constraintNameDictionary.Keys.Contains(constraintName))
+                            {
+                                constraintNameIndex++;
+                                constraintName = baseConstraintName + constraintNameIndex;
+                            }
+                            constraintNameDictionary[constraintName] = constraintNameIndex;
                         }
-                        constraintNameDictionary[constraintName] = constraintNameIndex;
+                        else
+                        {
+                            constraintNameDictionary.Add(baseConstraintName, 0);
+                            constraintName = baseConstraintName;
+                        }
+                        sb.Append("ALTER TABLE ").Append(fkTable.ToLower()).Append(" ADD CONSTRAINT ").Append(constraintName).Append(" FOREIGN KEY (").Append(fkColumn.ToLower()).Append(") REFERENCES ").Append(pkTable.ToLower()).Append("(").Append(pkColumn.ToLower()).Append(");");
+                        sql.Add(sb.ToString());
+                        sb.Clear();
                     }
-                    else
-                    {
-                        constraintNameDictionary.Add(baseConstraintName, 0);
-                        constraintName = baseConstraintName;
-                    }
-                    sb.Append("ALTER TABLE ").Append(fkTable.ToLower()).Append(" ADD CONSTRAINT ").Append(constraintName).Append(" FOREIGN KEY (").Append(fkColumn.ToLower()).Append(") REFERENCES ").Append(pkTable.ToLower()).Append("(").Append(pkColumn.ToLower()).Append(");");
-                    sql.Add(sb.ToString());
-                    sb.Clear();
                 }
                 else
                 {
@@ -1367,14 +1382,17 @@ namespace Zerra.Repository.PostgreSql
                 }
             }
 
-            //foreign keys not in model
-            foreach (var sqlConstraint in sqlConstraints.Where(x => x.FK_Table == fkTable))
+            if (delete)
             {
-                if (!usedSqlConstraints.Contains(sqlConstraint))
+                //foreign keys not in model
+                foreach (var sqlConstraint in sqlConstraints.Where(x => x.FK_Table == fkTable))
                 {
-                    sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(";");
-                    sql.Add(sb.ToString());
-                    sb.Clear();
+                    if (!usedSqlConstraints.Contains(sqlConstraint))
+                    {
+                        sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(";");
+                        sql.Add(sb.ToString());
+                        sb.Clear();
+                    }
                 }
             }
         }

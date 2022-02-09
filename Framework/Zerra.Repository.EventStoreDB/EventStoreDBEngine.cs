@@ -280,7 +280,7 @@ namespace Zerra.Repository.EventStoreDB
             return false;
         }
 
-        public IDataStoreGenerationPlan BuildStoreGenerationPlan(ICollection<ModelDetail> modelDetail)
+        public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool create, bool update, bool delete, ICollection<ModelDetail> modelDetail)
         {
             return new EmptyDataStoreGenerationPlan();
         }

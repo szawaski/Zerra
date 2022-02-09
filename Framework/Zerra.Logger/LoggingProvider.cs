@@ -38,9 +38,9 @@ namespace Zerra.Logger
         {
             await Task.Run(async () =>
             {
-                Debug.WriteLine($"{traceCategory}: {message}", traceCategory);
-
-                Console.WriteLine(message);
+                var msg = $"{traceCategory}: {message}";
+                Debug.WriteLine(msg, traceCategory);
+                Console.WriteLine(msg);
 
                 if (!String.IsNullOrWhiteSpace(tracefile))
                     await LogFile.Log(tracefile, traceCategory, message);
@@ -51,9 +51,9 @@ namespace Zerra.Logger
         {
             await Task.Run(async () =>
             {
-                Debug.WriteLine($"{debugCategory}: {message}", debugCategory);
-
-                Console.WriteLine(message);
+                var msg = $"{debugCategory}: {message}";
+                Debug.WriteLine(msg, debugCategory);
+                Console.WriteLine(msg);
 
                 if (!String.IsNullOrWhiteSpace(tracefile))
                     await LogFile.Log(tracefile, debugCategory, message);
@@ -64,9 +64,9 @@ namespace Zerra.Logger
         {
             await Task.Run(async () =>
             {
-                Debug.WriteLine($"{infoCategory}: {message}", infoCategory);
-
-                Console.WriteLine(message);
+                var msg = $"{infoCategory}: {message}";
+                Debug.WriteLine(msg, infoCategory);
+                Console.WriteLine(msg);
 
                 if (!String.IsNullOrWhiteSpace(tracefile))
                     await LogFile.Log(tracefile, infoCategory, message);
@@ -77,9 +77,9 @@ namespace Zerra.Logger
         {
             await Task.Run(async () =>
             {
-                Debug.WriteLine($"{warnCategory}: {message}", warnCategory);
-
-                Console.WriteLine(message);
+                var msg = $"{warnCategory}: {message}";
+                Debug.WriteLine(msg);
+                Console.WriteLine(msg);
 
                 if (!String.IsNullOrWhiteSpace(infoFile))
                     await LogFile.Log(infoFile, warnCategory, message);
@@ -90,10 +90,8 @@ namespace Zerra.Logger
         {
             await Task.Run(async () =>
             {
-                Debug.WriteLine($"{errorCategory}: {message}", errorCategory);
-
                 var sb = new StringBuilder();
-
+                sb.Append(errorCategory).Append(": ").Append(message).Append(Environment.NewLine);
                 if (exception != null)
                 {
                     Exception ex = exception;
@@ -106,12 +104,13 @@ namespace Zerra.Logger
                     }
                 }
 
-                var builtMessage = sb.ToString();
+                var msg = sb.ToString();
 
-                Console.WriteLine(builtMessage);
+                Debug.WriteLine(msg, errorCategory);
+                Console.WriteLine(msg);
 
                 if (!String.IsNullOrWhiteSpace(infoFile))
-                    await LogFile.Log(infoFile, errorCategory, builtMessage);
+                    await LogFile.Log(infoFile, errorCategory, msg);
             });
         }
 
@@ -119,13 +118,8 @@ namespace Zerra.Logger
         {
             await Task.Run(async () =>
             {
-                Debug.WriteLine($"{criticalCategory}: {message}", criticalCategory);
-
                 var sb = new StringBuilder();
-
-                if (!String.IsNullOrWhiteSpace(message))
-                    sb.Append(message).Append(Environment.NewLine);
-
+                sb.Append(criticalCategory).Append(": ").Append(message).Append(Environment.NewLine);
                 if (exception != null)
                 {
                     Exception ex = exception;
@@ -138,12 +132,13 @@ namespace Zerra.Logger
                     }
                 }
 
-                var builtMessage = sb.ToString();
+                var msg = sb.ToString();
 
-                Console.WriteLine(builtMessage);
+                Debug.WriteLine(msg, criticalCategory);
+                Console.WriteLine(msg);
 
                 if (!String.IsNullOrWhiteSpace(infoFile))
-                    await LogFile.Log(infoFile, criticalCategory, builtMessage);
+                    await LogFile.Log(infoFile, criticalCategory, msg);
             });
         }
     }

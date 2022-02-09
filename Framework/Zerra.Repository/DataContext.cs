@@ -68,7 +68,7 @@ namespace Zerra.Repository
                 {
                     initialized = true;
 
-                    if (dataStoreGenerationType == DataStoreGenerationType.CodeFirst || dataStoreGenerationType == DataStoreGenerationType.CodeFirstPreview)
+                    if (dataStoreGenerationType.HasFlag(DataStoreGenerationType.CodeFirst))
                     {
                         var thisType = this.GetType();
                         var allModelTypes = Discovery.GetTypesFromAttribute(typeof(EntityAttribute));
@@ -96,18 +96,24 @@ namespace Zerra.Repository
                         }
 
                         var modelDetails = modelTypesWithThisDataContext.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
-                        var plan = engine.BuildStoreGenerationPlan(modelDetails);
-                        if (dataStoreGenerationType == DataStoreGenerationType.CodeFirst)
+                        var create = !dataStoreGenerationType.HasFlag(DataStoreGenerationType.NoCreate);
+                        var update = !dataStoreGenerationType.HasFlag(DataStoreGenerationType.NoUpdate);
+                        var delete = !dataStoreGenerationType.HasFlag(DataStoreGenerationType.NoDelete);
+
+                        var plan = engine.BuildStoreGenerationPlan(create, update, delete, modelDetails);
+
+                        if (dataStoreGenerationType.HasFlag(DataStoreGenerationType.Preview))
                         {
-                            plan.Execute();
+                            var sb = new StringBuilder();
+                            var steps = plan.Plan;
+                            sb.AppendLine($"CodeFirst Plan Preview: {steps.Count} Steps");
+                            foreach (var step in steps)
+                                sb.AppendLine(step);
+                            Log.InfoAsync(sb.ToString());
                         }
                         else
                         {
-                            var sb = new StringBuilder();
-                            sb.AppendLine("CodeFirst Plan Preview:");
-                            foreach (var item in plan.Plan)
-                                sb.AppendLine(item);
-                            Log.InfoAsync(sb.ToString());
+                            plan.Execute();
                         }
                     }
                 }
