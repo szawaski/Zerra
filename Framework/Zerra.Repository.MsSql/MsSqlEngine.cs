@@ -1594,7 +1594,7 @@ namespace Zerra.Repository.MsSql
                     case CoreType.GuidNullable: return sqlColumn.DataType == "uniqueidentifier" && sqlColumn.IsNullable == true;
 
                     case CoreType.String:
-                        return ((sqlColumn.DataType == "nvarchar" && property.TextEncoding == StoreTextEncoding.Unicode) || (sqlColumn.DataType == "varchar" && property.TextEncoding == StoreTextEncoding.NonUnicode)) && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == property.DataSourcePrecisionLength;
+                        return ((sqlColumn.DataType == "nvarchar" && property.TextEncoding == StoreTextEncoding.Unicode) || (sqlColumn.DataType == "varchar" && property.TextEncoding == StoreTextEncoding.NonUnicode)) && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? -1);
                 }
             }
 
