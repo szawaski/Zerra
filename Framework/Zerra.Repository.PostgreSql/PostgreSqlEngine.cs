@@ -394,43 +394,50 @@ namespace Zerra.Repository.PostgreSql
             var sbWhere = new CharWriteBuffer();
             try
             {
-                sbWhere.Write($"DELETE FROM ");
+                sbWhere.Write($"DELETE FROM [");
                 sbWhere.Write(modelDetail.DataSourceEntityName);
-                sbWhere.Write(" WHERE ");
-                var first = true;
-                foreach (object id in ids)
-                {
-                    if (first) first = false;
-                    else sbWhere.Write(" OR ");
-                    sbWhere.Write('(');
+                sbWhere.Write("] WHERE ");
 
-                    if (modelDetail.IdentityProperties.Count == 1)
+                if (modelDetail.IdentityProperties.Count == 1)
+                {
+                    var modelPropertyInfo = modelDetail.IdentityProperties[0];
+                    sbWhere.Write(modelPropertyInfo.PropertySourceName);
+                    sbWhere.Write(" IN (");
+
+                    var first = true;
+                    foreach (object id in ids)
                     {
-                        var modelPropertyInfo = modelDetail.IdentityProperties[0];
-                        object value = id;
-                        string property = modelPropertyInfo.PropertySourceName;
-                        sbWhere.Write(property);
-                        AppendSqlValue(ref sbWhere, modelPropertyInfo, value, false, true);
+                        if (first) first = false;
+                        else sbWhere.Write(',');
+                        AppendSqlValue(ref sbWhere, modelPropertyInfo, id, false, false);
                     }
-                    else
+
+                    sbWhere.Write(')');
+                }
+                else
+                {
+                    var first = true;
+                    foreach (object id in ids)
                     {
+                        if (first) first = false;
+                        else sbWhere.Write(" OR ");
+                        sbWhere.Write('(');
+
                         object[] idArray = ((ICollection)id).Cast<object>().ToArray();
 
                         int i = 0;
                         foreach (var modelPropertyInfo in modelDetail.IdentityProperties)
                         {
                             object value = idArray[i];
-                            string property = modelPropertyInfo.PropertySourceName;
 
                             if (i > 0)
                                 sbWhere.Write(" AND ");
-                            sbWhere.Write(property);
+                            sbWhere.Write(modelPropertyInfo.PropertySourceName);
                             AppendSqlValue(ref sbWhere, modelPropertyInfo, value, false, true);
                             i++;
                         }
+                        sbWhere.Write(')');
                     }
-
-                    sbWhere.Write(')');
                 }
 
                 return sbWhere.ToString();

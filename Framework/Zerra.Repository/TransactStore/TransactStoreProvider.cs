@@ -15,13 +15,16 @@ namespace Zerra.Repository
         where TContext : DataContext
         where TModel : class, new()
     {
-        private const int deleteBatchSize = 250;
+        private const int deleteBatchSizeSingleIdentity = 1000;
+        private const int deleteBatchSizeManyIdentity = 250;
         private const string defaultEventName = "Transact Store";
 
+        private readonly int deleteBatchSize;
         protected readonly ITransactStoreEngine Engine;
 
         public TransactStoreProvider()
         {
+            this.deleteBatchSize = ModelDetail.IdentityProperties.Count == 1 ? deleteBatchSizeSingleIdentity : deleteBatchSizeManyIdentity;
             var context = Instantiator.GetSingleInstance<TContext>();
             this.Engine = context.InitializeEngine<ITransactStoreEngine>();
         }
