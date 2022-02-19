@@ -153,6 +153,9 @@ const Bus = {
         if (onFail && typeof onFail === "function") {
             onFail(errorText);
         }
+		if (BusFail) {
+            BusFail(errorText, url);
+        }
     },
 
     _customHeaders: {},
