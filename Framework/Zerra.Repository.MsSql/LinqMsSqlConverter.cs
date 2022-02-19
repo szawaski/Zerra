@@ -506,7 +506,7 @@ namespace Zerra.Repository.MsSql
                         }
                         else
                         {
-                            sb.Write('\'');
+                            sb.Write("N'");
                             sb.Write((char)value);
                             sb.Write('\'');
                         }
@@ -681,7 +681,7 @@ namespace Zerra.Repository.MsSql
                         sb.Write('\'');
                         return false;
                     case CoreType.String:
-                        sb.Write('\'');
+                        sb.Write("N'");
                         sb.Write(((string)value).Replace("'", "''"));
                         sb.Write('\''); return false;
                 }
@@ -689,7 +689,7 @@ namespace Zerra.Repository.MsSql
 
             if (type == typeof(object))
             {
-                sb.Write('\'');
+                sb.Write("N'");
                 sb.Write(value.ToString().Replace("\'", "''"));
                 sb.Write('\'');
                 return false;
