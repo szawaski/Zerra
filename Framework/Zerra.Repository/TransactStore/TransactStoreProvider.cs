@@ -15,8 +15,8 @@ namespace Zerra.Repository
         where TContext : DataContext
         where TModel : class, new()
     {
-        private const int deleteBatchSizeSingleIdentity = 1000;
-        private const int deleteBatchSizeManyIdentity = 250;
+        private const int deleteBatchSizeSingleIdentity = 1028;
+        private const int deleteBatchSizeManyIdentity = 256;
         private const string defaultEventName = "Transact Store";
 
         private readonly int deleteBatchSize;
