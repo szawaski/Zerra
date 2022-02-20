@@ -451,7 +451,7 @@ namespace Zerra.Repository.MsSql
                 switch (modelPropertyDetail.CoreType.Value)
                 {
                     case CoreType.String:
-                        writer.Write('\'');
+                        writer.Write("N'");
                         writer.Write(value.ToString().Replace("'", "''"));
                         writer.Write('\'');
                         return;
@@ -490,7 +490,7 @@ namespace Zerra.Repository.MsSql
                         return;
                     case CoreType.Char:
                     case CoreType.CharNullable:
-                        writer.Write('\'');
+                        writer.Write("N'");
                         var castedChar = (char)value;
                         if (castedChar == '\'')
                             writer.Write("''");
