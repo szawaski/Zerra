@@ -36,14 +36,19 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>TypeScriptModels.js</LastGenOutput>
     </Content>
+    <Content Update="wwwroot\ts\TypeScriptModels.ts">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>TypeScriptModels.tt</DependentUpon>
+    </Content>
+    <Content Update="wwwroot\ts\TypeScriptModels.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>TypeScriptModels.ts</LastGenOutput>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="wwwroot\ts\" />
   </ItemGroup>
 
 </Project>
