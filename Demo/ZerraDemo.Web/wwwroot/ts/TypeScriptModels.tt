@@ -5,7 +5,7 @@
 #>
 <#@ template language="C#" debug="false" hostspecific="true" #>
 <#@ output extension=".ts" #>
-<#@ assembly name="C:\Users\Steven Zawaski\Documents\Visual Studio Projects\Zerra\Zerra.T4\bin\Debug\net48\Zerra.T4.dll" #>
+<#@ assembly name="Framework\Zerra.T4\bin\Debug\net48\Zerra.T4.dll" #>
 <#@ import namespace="System.IO" #>
 <#
     var directory = this.Host.ResolvePath(string.Empty);
