@@ -68,7 +68,6 @@ namespace Zerra.Web
 
                 if (response.Void)
                 {
-                    context.Response.StatusCode = 200;
                     return;
                 }
 

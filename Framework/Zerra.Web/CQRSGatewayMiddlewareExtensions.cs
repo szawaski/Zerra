@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Builder;
 
 namespace Zerra.Web
 {
-    public static class CQRSGatewayMiddlewareMiddlewareExtensions
+    public static class CQRSGatewayMiddlewareExtensions
     {
         public static IApplicationBuilder UseCQRSGateway(this IApplicationBuilder builder, string route = "/CQRS")
         {
