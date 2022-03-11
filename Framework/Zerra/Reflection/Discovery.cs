@@ -103,7 +103,7 @@ namespace Zerra.Reflection
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic).ToList();
 
-            foreach (Assembly assembly in assemblies.Where(x => !initializedAssemblies.Contains(x.FullName)))
+            foreach (var assembly in assemblies.Where(x => !initializedAssemblies.Contains(x.FullName)))
             {
                 initializedAssemblies.Add(assembly.FullName);
 
