@@ -85,7 +85,7 @@ namespace Zerra.T4
                 sb.Append(spacing).Append("constructor(properties: ").Append(command.Name).Append(") {").Append(Environment.NewLine);
                 sb.Append(spacing).Append(spacing).Append("const self: any = this;").Append(Environment.NewLine);
                 sb.Append(spacing).Append(spacing).Append("const props: any = properties;").Append(Environment.NewLine);
-                sb.Append(spacing).Append(spacing).Append("Object.keys(self).forEach(key => self[key] = props[key]);").Append(Environment.NewLine);
+                sb.Append(spacing).Append(spacing).Append("Object.keys(props).forEach(key => self[key] = props[key]);").Append(Environment.NewLine);
                 sb.Append(spacing).Append(spacing).Append("self[\"CommandType\"] = \"").Append(command.Name).Append("\";").Append(Environment.NewLine);
                 sb.Append(spacing).Append("}").Append(Environment.NewLine);
                 foreach (var property in command.Properties)
