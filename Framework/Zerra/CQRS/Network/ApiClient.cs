@@ -35,7 +35,9 @@ namespace Zerra.CQRS.Network
         TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments)
         {
             var providerName = interfaceType.Name;
-            var stringArguments = arguments.Select(x => JsonSerializer.Serialize(x)).ToArray();
+            var stringArguments = new string[arguments.Length];
+            for (var i = 0; i < arguments.Length; i++)
+                stringArguments[i] = JsonSerializer.Serialize(arguments);
 
             var returnType = typeof(TReturn);
 

@@ -19,9 +19,9 @@ namespace Zerra.Reflection
                 {
                     if (moduleBuilderCache == null)
                     {
-                        var assemblyName = new AssemblyName($"ZerraDynamicAssembly");
+                        var assemblyName = new AssemblyName("ZerraDynamicAssembly");
                         var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
-                        moduleBuilderCache = assemblyBuilder.DefineDynamicModule($"MainModule");
+                        moduleBuilderCache = assemblyBuilder.DefineDynamicModule("MainModule");
                     }
                 }
             }
