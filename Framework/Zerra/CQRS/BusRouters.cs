@@ -87,29 +87,25 @@ namespace Zerra.CQRS
 
                 var il = methodBuilder.GetILGenerator();
 
-                il.DeclareLocal(typeof(object[]));
                 il.DeclareLocal(returnType);
-                il.DeclareLocal(typeof(object[]));
 
                 il.Emit(OpCodes.Nop);
+                il.Emit(OpCodes.Ldstr, methodName);
+
                 il.Emit(OpCodes.Ldc_I4, parameterTypes.Length);
                 il.Emit(OpCodes.Newarr, typeof(object));
-                il.Emit(OpCodes.Stloc_2);
 
                 for (int j = 0; j < parameterTypes.Length; j++)
                 {
-                    il.Emit(OpCodes.Ldloc_2);
+                    il.Emit(OpCodes.Dup);
                     il.Emit(OpCodes.Ldc_I4, j);
                     il.Emit(OpCodes.Ldarg, j + 1);
-                    il.Emit(OpCodes.Box, parameterTypes[j]);
+                    if (parameterTypes[j].IsValueType)
+                        il.Emit(OpCodes.Box, parameterTypes[j]);
                     il.Emit(OpCodes.Stelem_Ref);
                 }
 
-                il.Emit(OpCodes.Ldloc_2);
-                il.Emit(OpCodes.Stloc_0);
-                il.Emit(OpCodes.Ldstr, methodName);
-                il.Emit(OpCodes.Ldloc_0);
-                il.Emit(OpCodes.Call, callMethod);
+                il.Emit(OpCodes.Call, callMethod);   
 
                 if (voidMethod)
                 {
@@ -118,11 +114,6 @@ namespace Zerra.CQRS
                 }
                 else
                 {
-                    il.Emit(OpCodes.Stloc_1);
-                    Label ender = il.DefineLabel();
-                    il.Emit(OpCodes.Br_S, ender);
-                    il.MarkLabel(ender);
-                    il.Emit(OpCodes.Ldloc_1);
                     il.Emit(OpCodes.Ret);
                 }
 
