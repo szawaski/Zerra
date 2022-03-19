@@ -108,7 +108,7 @@ namespace Zerra
                     return filePath;
             }
 
-            var executingAssemblyPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().GetName().CodeBase.Replace("file:///", ""));
+            var executingAssemblyPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
             filePath = $"{executingAssemblyPath}/{fileName}";
             if (File.Exists(filePath))
                 return filePath;

@@ -101,7 +101,7 @@ namespace Zerra.Reflection
         }
         private static void Discover()
         {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic).ToList();
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic).ToArray();
 
             foreach (var assembly in assemblies.Where(x => !initializedAssemblies.Contains(x.FullName)))
             {
@@ -133,38 +133,38 @@ namespace Zerra.Reflection
                 typeList2.Add(typeInAssembly);
             }
 
-            if (!excludeMappingTypePrefixes.Any(x => typeInAssembly.FullName.StartsWith(x)))
+            if (excludeMappingTypePrefixes.Any(x => typeInAssembly.FullName.StartsWith(x)))
+                return;
+
+            if (!typeInAssembly.IsAbstract && typeInAssembly.IsClass)
             {
-                if (!typeInAssembly.IsAbstract && typeInAssembly.IsClass)
+                var interfaceTypes = typeInAssembly.GetInterfaces();
+                if (interfaceTypes.Length > 0)
                 {
-                    var interfaceTypes = typeInAssembly.GetInterfaces();
-                    if (interfaceTypes.Length > 0)
+                    var interfaceList = interfaceByType.GetOrAdd(typeInAssembly, (key) => { return new List<Type>(); });
+
+                    foreach (var interfaceType in interfaceTypes)
                     {
-                        var interfaceList = interfaceByType.GetOrAdd(typeInAssembly, (key) => { return new List<Type>(); });
-
-                        foreach (var interfaceType in interfaceTypes)
+                        if (interfaceType.FullName != null && !excludeMappingTypePrefixes.Any(x => interfaceType.FullName.StartsWith(x)))
                         {
-                            if (interfaceType.FullName != null && !excludeMappingTypePrefixes.Any(x => interfaceType.FullName.StartsWith(x)))
-                            {
-                                interfaceList.Add(interfaceType);
+                            interfaceList.Add(interfaceType);
 
-                                var classList = classByInterface.GetOrAdd(interfaceType, (key) => { return new List<Type>(); });
-                                classList.Add(typeInAssembly);
-                            }
+                            var classList = classByInterface.GetOrAdd(interfaceType, (key) => { return new List<Type>(); });
+                            classList.Add(typeInAssembly);
                         }
                     }
                 }
+            }
 
-                var attributeTypes = typeInAssembly.GetCustomAttributes().Select(x => x.GetType()).Distinct().ToArray();
-                foreach (var attributeType in attributeTypes)
+            var attributeTypes = typeInAssembly.GetCustomAttributes().Select(x => x.GetType()).Distinct().ToArray();
+            foreach (var attributeType in attributeTypes)
+            {
+                var thisAttributeType = attributeType;
+                while (thisAttributeType != typeof(Attribute))
                 {
-                    var thisAttributeType = attributeType;
-                    while (thisAttributeType != typeof(Attribute))
-                    {
-                        var list = typeByAttribute.GetOrAdd(thisAttributeType, (key) => { return new List<Type>(); });
-                        list.Add(typeInAssembly);
-                        thisAttributeType = thisAttributeType.BaseType;
-                    }
+                    var list = typeByAttribute.GetOrAdd(thisAttributeType, (key) => { return new List<Type>(); });
+                    list.Add(typeInAssembly);
+                    thisAttributeType = thisAttributeType.BaseType;
                 }
             }
         }
