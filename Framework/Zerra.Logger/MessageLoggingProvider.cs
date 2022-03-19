@@ -2,7 +2,10 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.Extensibility;
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Zerra.CQRS;
 
@@ -12,23 +15,36 @@ namespace Zerra.Logger
     {
         private static readonly string fileName = AppDomain.CurrentDomain.FriendlyName + "-Messages.txt";
 
+        private const string category = "Messages";
+
         private readonly string file;
+        private readonly TelemetryClient telemetryClient;
         public MessageLoggingProvider()
         {
+            var config = TelemetryConfiguration.CreateDefault();
+            telemetryClient = new TelemetryClient(config);
+
             var filePath = Config.GetSetting("LogFileDirectory");
             if (!String.IsNullOrWhiteSpace(filePath))
                 file = $"{filePath}\\{fileName}";
+            else
+                file = null;
         }
 
         public async Task SaveAsync(Type messageType, IMessage message)
         {
-            await Task.Run(async () =>
-            {
-                if (String.IsNullOrWhiteSpace(file))
-                    return;
+            var messageTypeName = messageType.GetNiceName();
 
-                await LogFile.Log(file, null, messageType.GetNiceName());
+            await Task.Run(() =>
+            {
+                var msg = $"{category}: {messageTypeName}";
+                Debug.WriteLine(msg, category);
+                Console.WriteLine(msg);
+                telemetryClient.TrackEvent(messageTypeName);
             });
+
+            if (!String.IsNullOrWhiteSpace(file))
+                await LogFile.Log(file, null, messageTypeName);
         }
     }
 }
