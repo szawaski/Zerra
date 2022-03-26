@@ -174,7 +174,7 @@ namespace Zerra.Reflection
             if (interfaceType == null) throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface) throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
 
-            return classByInterface.Keys.Contains(interfaceType);
+            return classByInterface.ContainsKey(interfaceType);
         }
         public static bool HasImplementationType(Type interfaceType, Type secondaryInterface)
         {

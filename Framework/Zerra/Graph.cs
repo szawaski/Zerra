@@ -537,7 +537,7 @@ namespace Zerra
         {
             if (!String.IsNullOrWhiteSpace(type))
             {
-                if (!results.Keys.Contains(type))
+                if (!results.ContainsKey(type))
                     results.Add(type, new List<Graph>());
                 results[type].Add(this);
             }

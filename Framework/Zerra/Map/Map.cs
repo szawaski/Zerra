@@ -80,7 +80,7 @@ namespace Zerra
                     throw new MapException("Cannot add specific mappings to enumerable types");
 
                 var name = property.ToLinqString(false);
-                if (memberMaps.Keys.Contains(name))
+                if (memberMaps.ContainsKey(name))
                     memberMaps.Remove(name);
                 memberMaps.Add(name, new Tuple<Expression<Func<TSource, object>>, Expression<Func<TTarget, object>>>(value, property));
             }
@@ -107,7 +107,7 @@ namespace Zerra
                     throw new MapException("Cannot add specific mappings to enumerable types");
 
                 var name = property.ToLinqString(false);
-                if (memberMaps.Keys.Contains(name))
+                if (memberMaps.ContainsKey(name))
                     memberMaps.Remove(name);
             }
         }

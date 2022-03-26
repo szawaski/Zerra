@@ -95,7 +95,7 @@ namespace Zerra.CQRS
         {
             Type messageType = command.GetType();
             var messageTypeInfo = TypeAnalyzer.GetTypeDetail(messageType);
-            if (commandClients.Count > 0)
+            if (!commandClients.IsEmpty)
             {
                 //Not a local call so apply cache layer at Bus level
                 var handlerType = TypeAnalyzer.GetGenericType(iCommandHandlerType, messageType);
@@ -134,7 +134,7 @@ namespace Zerra.CQRS
         {
             Type messageType = message.GetType();
             var messageTypeInfo = TypeAnalyzer.GetTypeDetail(messageType);
-            if (commandClients.Count > 0)
+            if (!commandClients.IsEmpty)
             {
                 //Not a local call so apply cache layer at Bus level
                 var handlerType = TypeAnalyzer.GetGenericType(iEventHandlerType, messageType);
@@ -169,7 +169,9 @@ namespace Zerra.CQRS
             return _DispatchEventInternalAsync(message, messageType);
         }
 
+#pragma warning disable IDE1006 // Naming Styles
         public static Task _DispatchCommandInternalAsync(ICommand message, Type messageType, bool requireAffirmation)
+#pragma warning restore IDE1006 // Naming Styles
         {
             ICommandClient client = null;
             Type messageBaseType = messageType;
@@ -199,7 +201,9 @@ namespace Zerra.CQRS
                 return TaskSafePrincipal.Run(async () => { await HandleCommandAsync((ICommand)message, messageType, true); });
             }
         }
+#pragma warning disable IDE1006 // Naming Styles
         public static async Task _DispatchEventInternalAsync(IEvent message, Type messageType)
+#pragma warning restore IDE1006 // Naming Styles
         {
             IEventClient client = null;
             Type messageBaseType = messageType;
@@ -214,6 +218,7 @@ namespace Zerra.CQRS
 
             await HandleEventAsync((IEvent)message, messageType, true);
         }
+
 
         private static Task HandleCommandAsync(ICommand command, Type commandType, bool throwError)
         {
@@ -271,9 +276,9 @@ namespace Zerra.CQRS
         {
             var callerProvider = BusRouters.GetProviderToCallInternalInstance(interfaceType);
 
-            if (queryClients.Count > 0)
+            if (!queryClients.IsEmpty)
             {
-                if (queryClients.Keys.Contains(interfaceType))
+                if (queryClients.ContainsKey(interfaceType))
                 {
                     //Not a local call so apply cache layer at Bus level
                     var providerCacheType = Discovery.GetImplementationType(interfaceType, iCacheProviderType, false);
@@ -298,11 +303,13 @@ namespace Zerra.CQRS
             return callerProvider;
         }
 
+#pragma warning disable IDE1006 // Naming Styles
         public static TReturn _CallInternal<TInterface, TReturn>(string methodName, object[] arguments) where TInterface : IBaseProvider
+#pragma warning restore IDE1006 // Naming Styles
         {
             var interfaceType = typeof(TInterface);
 
-            if (queryClients.Count > 0)
+            if (!queryClients.IsEmpty)
             {
                 if (queryClients.TryGetValue(interfaceType, out IQueryClient methodCaller))
                 {
@@ -358,7 +365,7 @@ namespace Zerra.CQRS
                 {
                     if (commandServerTypes.Contains(commandType))
                         throw new InvalidOperationException($"Cannot create loopback. Command Server already registered for type {commandType.GetNiceName()}");
-                    if (commandClients.Keys.Contains(commandType))
+                    if (commandClients.ContainsKey(commandType))
                         throw new InvalidOperationException($"Command Client already registered for type {commandType.GetNiceName()}");
                     commandClients.TryAdd(commandType, commandClient);
                     //_ = Log.InfoAsync($"{nameof(Bus)} Added Command Client For {commandType.GetNiceName()}");
@@ -383,7 +390,7 @@ namespace Zerra.CQRS
                             var hasHandler = Discovery.HasImplementationType(TypeAnalyzer.GetGenericType(typeof(ICommandHandler<>), type), interfaceStack, interfaceStack.Length - 1);
                             if (hasHandler)
                             {
-                                if (commandClients.Keys.Contains(type))
+                                if (commandClients.ContainsKey(type))
                                     throw new InvalidOperationException($"Cannot create loopback. Command Client already registered for type {type.GetNiceName()}");
                                 if (!commandServerTypes.Contains(type))
                                     commandServerTypes.Add(type);
@@ -410,7 +417,7 @@ namespace Zerra.CQRS
                 {
                     if (eventServerTypes.Contains(type))
                         throw new InvalidOperationException($"Cannot create loopback. Event Server already registered for type {type.GetNiceName()}");
-                    if (eventClients.Keys.Contains(eventType))
+                    if (eventClients.ContainsKey(eventType))
                         throw new InvalidOperationException($"Event Client already registered for type {eventType.GetNiceName()}");
                     eventClients.TryAdd(eventType, eventClient);
                     _ = Log.InfoAsync($"{nameof(Bus)} Added Event Client For {eventType.GetNiceName()}");
@@ -435,7 +442,7 @@ namespace Zerra.CQRS
                             var hasHandler = Discovery.HasImplementationType(TypeAnalyzer.GetGenericType(typeof(IEventHandler<>), type), interfaceStack, interfaceStack.Length - 1);
                             if (hasHandler)
                             {
-                                if (eventClients.Keys.Contains(type))
+                                if (eventClients.ContainsKey(type))
                                     throw new InvalidOperationException($"Cannot create loopback. Event Client already registered for type {type.GetNiceName()}");
                                 if (!eventServerTypes.Contains(type))
                                     eventServerTypes.Add(type);
@@ -459,7 +466,7 @@ namespace Zerra.CQRS
                 Type interfaceType = typeof(TInterface);
                 if (queryServerTypes.Contains(interfaceType))
                     throw new InvalidOperationException($"Cannot create loopback. Query Server already registered for type {interfaceType.GetNiceName()}");
-                if (commandClients.Keys.Contains(interfaceType))
+                if (commandClients.ContainsKey(interfaceType))
                     throw new InvalidOperationException($"Query Client already registered for type {interfaceType.GetNiceName()}");
                 queryClients.TryAdd(interfaceType, queryClient);
                 _ = Log.InfoAsync($"{nameof(Bus)} Added Query Client For {interfaceType.GetNiceName()}");
@@ -481,7 +488,7 @@ namespace Zerra.CQRS
                         var hasImplementation = Discovery.HasImplementationType(type, interfaceStack, interfaceStack.Length - 1);
                         if (hasImplementation)
                         {
-                            if (queryClients.Keys.Contains(type))
+                            if (queryClients.ContainsKey(type))
                                 throw new InvalidOperationException($"Cannot create loopback. Query Client already registered for type {type.GetNiceName()}");
                             if (!queryServerTypes.Contains(type))
                                 queryServerTypes.Add(type);
@@ -721,7 +728,7 @@ namespace Zerra.CQRS
                                 }
                                 foreach (var commandType in commandTypes)
                                 {
-                                    if (commandClients.Keys.Contains(commandType))
+                                    if (commandClients.ContainsKey(commandType))
                                         throw new InvalidOperationException($"Command Client already registered for type {commandType.GetNiceName()}");
                                     if (commandServerTypes.Contains(commandType))
                                         throw new InvalidOperationException($"Command Server already registered for type {commandType.GetNiceName()}");
@@ -743,7 +750,7 @@ namespace Zerra.CQRS
                                     {
                                         if (commandServerTypes.Contains(commandType))
                                             throw new InvalidOperationException($"Command Server already registered for type {commandType.GetNiceName()}");
-                                        if (commandClients.Keys.Contains(commandType))
+                                        if (commandClients.ContainsKey(commandType))
                                             throw new InvalidOperationException($"Command Client already registered for type {commandType.GetNiceName()}");
                                         commandClients.TryAdd(commandType, commandClient);
                                     }
@@ -771,7 +778,7 @@ namespace Zerra.CQRS
                                 }
                                 foreach (var eventType in eventTypes)
                                 {
-                                    if (eventClients.Keys.Contains(eventType))
+                                    if (eventClients.ContainsKey(eventType))
                                         throw new InvalidOperationException($"Event Client already registered for type {eventType.GetNiceName()}");
                                     if (eventServerTypes.Contains(eventType))
                                         throw new InvalidOperationException($"Event Server already registered for type {eventType.GetNiceName()}");
@@ -793,7 +800,7 @@ namespace Zerra.CQRS
                                     {
                                         if (eventServerTypes.Contains(eventType))
                                             throw new InvalidOperationException($"Event Server already registered for type {eventType.GetNiceName()}");
-                                        if (!eventClients.Keys.Contains(eventType))
+                                        if (!eventClients.ContainsKey(eventType))
                                         {
                                             eventClients.TryAdd(eventType, eventClient);
                                         }
@@ -819,7 +826,7 @@ namespace Zerra.CQRS
                                     if (!queryServers.Contains(queryServer))
                                         queryServers.Add(queryServer);
                                 }
-                                if (queryClients.Keys.Contains(type))
+                                if (queryClients.ContainsKey(type))
                                     throw new InvalidOperationException($"Query Client already registered for type {type.GetNiceName()}");
                                 if (queryServerTypes.Contains(type))
                                     throw new InvalidOperationException($"Query Server already registered for type {type.GetNiceName()}");
@@ -837,7 +844,7 @@ namespace Zerra.CQRS
                                 {
                                     if (queryServerTypes.Contains(type))
                                         throw new InvalidOperationException($"Query Server already registered for type {type.GetNiceName()}");
-                                    if (commandClients.Keys.Contains(type))
+                                    if (commandClients.ContainsKey(type))
                                         throw new InvalidOperationException($"Query Client already registered for type {type.GetNiceName()}");
                                     queryClients.TryAdd(type, queryClient);
                                 }
