@@ -2,11 +2,13 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections.Generic;
+
 namespace Zerra.CQRS.Network
 {
     public interface IHttpApiAuthorizer
     {
-        void Authorize(HttpRequestHeader header);
-        HttpAuthHeaders BuildAuthHeaders();
+        void Authorize(IDictionary<string, IList<string>> headers);
+        IDictionary<string, IList<string>> BuildAuthHeaders();
     }
 }

@@ -124,7 +124,7 @@ namespace Zerra.CQRS.Network
 #endif
                 requestBodyStream = null;
 
-                //Authroize
+                //Authorize
                 //------------------------------------------------------------------------------------------------------------
                 switch (networkType)
                 {
@@ -141,7 +141,9 @@ namespace Zerra.CQRS.Network
                         break;
                     case NetworkType.Api:
                         if (this.apiAuthorizer != null)
-                            this.apiAuthorizer.Authorize(requestHeader);
+                        {
+                            this.apiAuthorizer.Authorize(requestHeader.Headers);
+                        }
                         break;
                     default:
                         throw new NotImplementedException();
@@ -168,11 +170,11 @@ namespace Zerra.CQRS.Network
 
 
                     //Response Header
-                    var responseHeaderLength = HttpCommon.BufferHeader(buffer, requestHeader.ProviderType, contentType, requestHeader.Origin, null);
+                    var responseHeaderLength = HttpCommon.BufferHeader(buffer, requestHeader.ProviderType, requestHeader.ContentType.Value, requestHeader.Origin, null);
 #if NETSTANDARD2_0
                     await stream.WriteAsync(bufferOwner, 0, responseHeaderLength);
 #else
-                    await stream.WriteAsync(buffer.Slice(0, responseHeaderLength));
+                    await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
 #endif
 
                     //Response Body
@@ -188,7 +190,7 @@ namespace Zerra.CQRS.Network
                         while ((bytesRead = await result.Stream.ReadAsync(buffer, cancellationToken)) > 0)
                             await responseBodyStream.WriteAsync(buffer.Slice(0, bytesRead), cancellationToken);
 #endif
-                        await responseBodyStream.FlushAsync();
+                        await responseBodyStream.FlushAsync(cancellationToken);
 #if NETSTANDARD2_0
                         responseBodyStream.Dispose();
 #else
@@ -200,7 +202,7 @@ namespace Zerra.CQRS.Network
                     else
                     {
                         await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyStream, result.Model);
-                        await responseBodyStream.FlushAsync();
+                        await responseBodyStream.FlushAsync(cancellationToken);
 #if NETSTANDARD2_0
                         responseBodyStream.Dispose();
 #else

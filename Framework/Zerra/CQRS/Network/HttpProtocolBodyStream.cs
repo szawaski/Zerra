@@ -449,7 +449,7 @@ namespace Zerra.CQRS.Network
 #else
             await stream.WriteAsync(endingBytes.AsMemory(), cancellationToken);
 #endif
-            await stream.FlushAsync();
+            await stream.FlushAsync(cancellationToken);
         }
     }
 }

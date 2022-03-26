@@ -9,6 +9,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using Zerra.Logging;
 using Zerra.IO;
+using System.Collections.Generic;
 
 namespace Zerra.CQRS.Network
 {
@@ -37,7 +38,7 @@ namespace Zerra.CQRS.Network
             };
             data.AddProviderArguments(arguments);
 
-            HttpAuthHeaders authHeaders = null;
+            IDictionary<string, IList<string>> authHeaders = null;
             switch (networkType)
             {
                 case NetworkType.Internal:
@@ -156,7 +157,7 @@ namespace Zerra.CQRS.Network
             };
             data.AddProviderArguments(arguments);
 
-            HttpAuthHeaders authHeaders = null;
+            IDictionary<string, IList<string>> authHeaders = null;
             switch (networkType)
             {
                 case NetworkType.Internal:
@@ -306,7 +307,7 @@ namespace Zerra.CQRS.Network
                 MessageAwait = messageAwait
             };
 
-            HttpAuthHeaders authHeaders = null;
+            IDictionary<string, IList<string>> authHeaders = null;
             switch (networkType)
             {
                 case NetworkType.Internal:

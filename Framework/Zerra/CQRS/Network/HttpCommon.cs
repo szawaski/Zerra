@@ -13,22 +13,26 @@ namespace Zerra.CQRS.Network
         private const string okResponse = "HTTP/1.1 200 OK";
         private const string notFoundResponse = "HTTP/1.1 404 Not Found";
         private const string serverErrorResponse = "HTTP/1.1 500 Server Error";
-        private const string optionsHeader = "OPTIONS";
+        public const string OptionsHeader = "OPTIONS";
 
-        private const string contentLengthHeader = "Content-Length";
-        private const string contentTypeHeader = "Content-Type";
-        private const string providerTypeHeader = "Provider-Type";
-        private const string transferEncodingHeader = "Transfer-Encoding";
-        private const string originHeader = "Origin";
+        public const string ContentLengthHeader = "Content-Length";
+        public const string ContentTypeHeader = "Content-Type";
+        public const string ProviderTypeHeader = "Provider-Type";
+        public const string TransferEncodingHeader = "Transfer-Encoding";
+        public const string OriginHeader = "Origin";
+
+        public const string RelayServiceRemove = "remove";
 
         public const string RelayServiceHeader = "Relay-Service";
         public const string RelayKeyHeader = "Relay-Key";
         public const string RelayServiceAdd = "add";
-        public const string RelayServiceRemove = "remove";
+        public const string AccessControlAllowOriginHeader = "Access-Control-Allow-Origin";
+        public const string AccessControlAllowMethodsHeader = "Access-Control-Allow-Methods";
+        public const string AccessControlAllowHeadersHeader = "Access-Control-Allow-Headers";
 
-        private const string contentTypeBytes = "application/octet-stream";
-        private const string contentTypeJson = "application/json; charset=utf-8";
-        private const string contentTypeJsonNameless = "application/jsonnameless; charset=utf-8";
+        public const string ContentTypeBytes = "application/octet-stream";
+        public const string ContentTypeJson = "application/json; charset=utf-8";
+        public const string ContentTypeJsonNameless = "application/jsonnameless; charset=utf-8";
         private const string transferEncodingChunked = "chunked";
 
         private const string headerSplit = ": ";
@@ -40,19 +44,19 @@ namespace Zerra.CQRS.Network
         private static readonly byte[] notFoundHeaderBytes = encoding.GetBytes(notFoundResponse);
         private static readonly byte[] serverErrorHeaderBytes = encoding.GetBytes(serverErrorResponse);
         private static readonly byte[] transferEncodingChunckedBytes = encoding.GetBytes("Transfer-Encoding: chunked");
-        private static readonly byte[] providerTypeHeaderBytes = encoding.GetBytes($"{providerTypeHeader}{headerSplit}");
+        private static readonly byte[] providerTypeHeaderBytes = encoding.GetBytes($"{ProviderTypeHeader}{headerSplit}");
 
-        private static readonly byte[] contentTypeBytesHeaderBytes = encoding.GetBytes($"{contentTypeHeader}{headerSplit}{contentTypeBytes}");
-        private static readonly byte[] contentTypeJsonHeaderBytes = encoding.GetBytes($"{contentTypeHeader}{headerSplit}{contentTypeJson}");
-        private static readonly byte[] contentTypeJsonNamelessHeaderBytes = encoding.GetBytes($"{contentTypeHeader}{headerSplit}{contentTypeJsonNameless}");
+        private static readonly byte[] contentTypeBytesHeaderBytes = encoding.GetBytes($"{ContentTypeHeader}{headerSplit}{ContentTypeBytes}");
+        private static readonly byte[] contentTypeJsonHeaderBytes = encoding.GetBytes($"{ContentTypeHeader}{headerSplit}{ContentTypeJson}");
+        private static readonly byte[] contentTypeJsonNamelessHeaderBytes = encoding.GetBytes($"{ContentTypeHeader}{headerSplit}{ContentTypeJsonNameless}");
 
         private static readonly byte[] headerSplitBytes = encoding.GetBytes(headerSplit);
         private static readonly byte[] newLineBytes = encoding.GetBytes(newLine);
 
-        private static readonly byte[] corsOriginHeadersBytes = encoding.GetBytes("Origin: ");
-        private static readonly byte[] corsAllowOriginHeadersBytes = encoding.GetBytes("Access-Control-Allow-Origin: ");
-        private static readonly byte[] corsAllOriginsHeadersBytes = encoding.GetBytes("Access-Control-Allow-Origin: *");
-        private static readonly byte[] corsAllowHeadersBytes = encoding.GetBytes("Access-Control-Allow-Methods: *\r\nAccess-Control-Allow-Headers: *");
+        private static readonly byte[] corsOriginHeadersBytes = encoding.GetBytes($"{OriginHeader}: ");
+        private static readonly byte[] corsAllowOriginHeadersBytes = encoding.GetBytes($"{AccessControlAllowOriginHeader}: ");
+        private static readonly byte[] corsAllOriginsHeadersBytes = encoding.GetBytes($"{AccessControlAllowOriginHeader}: *");
+        private static readonly byte[] corsAllowHeadersBytes = encoding.GetBytes($"{AccessControlAllowMethodsHeader}: *\r\n{AccessControlAllowHeadersHeader}: *");
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static unsafe (IList<string>, IDictionary<string, IList<string>>) ParseHeaders(ReadOnlySpan<char> chars)
@@ -198,31 +202,31 @@ namespace Zerra.CQRS.Network
 
                 headerInfo.IsError = declarations[0].StartsWith(serverErrorResponse);
 
-                if (headers.TryGetValue(contentTypeHeader, out IList<string> contentTypeHeaderValue))
-                    if (String.Equals(contentTypeHeaderValue[0], contentTypeBytes, StringComparison.InvariantCultureIgnoreCase))
+                if (headers.TryGetValue(ContentTypeHeader, out IList<string> contentTypeHeaderValue))
+                    if (String.Equals(contentTypeHeaderValue[0], ContentTypeBytes, StringComparison.InvariantCultureIgnoreCase))
                         headerInfo.ContentType = ContentType.Bytes;
-                    else if (String.Equals(contentTypeHeaderValue[0], contentTypeJson, StringComparison.InvariantCultureIgnoreCase))
+                    else if (String.Equals(contentTypeHeaderValue[0], ContentTypeJson, StringComparison.InvariantCultureIgnoreCase))
                         headerInfo.ContentType = ContentType.Json;
-                    else if (String.Equals(contentTypeHeaderValue[0], contentTypeJsonNameless, StringComparison.InvariantCultureIgnoreCase))
+                    else if (String.Equals(contentTypeHeaderValue[0], ContentTypeJsonNameless, StringComparison.InvariantCultureIgnoreCase))
                         headerInfo.ContentType = ContentType.JsonNameless;
                     else
                         throw new Exception("Invalid Header");
 
-                if (headers.TryGetValue(contentLengthHeader, out IList<string> contentLengthHeaderValue))
+                if (headers.TryGetValue(ContentLengthHeader, out IList<string> contentLengthHeaderValue))
                     if (int.TryParse(contentLengthHeaderValue[0], out int contentLengthHeaderValueParsed))
                         headerInfo.ContentLength = contentLengthHeaderValueParsed;
 
-                if (headers.TryGetValue(transferEncodingHeader, out IList<string> transferEncodingHeaderValue))
+                if (headers.TryGetValue(TransferEncodingHeader, out IList<string> transferEncodingHeaderValue))
                     if (transferEncodingHeaderValue[0] == transferEncodingChunked)
                         headerInfo.Chuncked = true;
 
-                if (headers.TryGetValue(providerTypeHeader, out IList<string> providerTypeHeaderValue))
+                if (headers.TryGetValue(ProviderTypeHeader, out IList<string> providerTypeHeaderValue))
                     headerInfo.ProviderType = providerTypeHeaderValue[0];
 
-                if (headers.TryGetValue(originHeader, out IList<string> originHeaderValue))
+                if (headers.TryGetValue(OriginHeader, out IList<string> originHeaderValue))
                     headerInfo.Origin = originHeaderValue[0];
 
-                if (declarations.Count > 0 && declarations[0] == optionsHeader)
+                if (declarations.Count > 0 && declarations[0] == OptionsHeader)
                     headerInfo.Preflight = true;
 
                 if (headers.TryGetValue(RelayServiceHeader, out IList<string> relayServiceHeaderValue))
@@ -325,7 +329,7 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferHeader(Memory<byte> buffer, string providerType, ContentType? contentType, string origin, HttpAuthHeaders authHeaders)
+        public static int BufferHeader(Memory<byte> buffer, string providerType, ContentType? contentType, string origin, IDictionary<string, IList<string>> authHeaders)
         {
             var headerBuffer = new ByteWriter(buffer.Span, encoding);
 

@@ -21,11 +21,11 @@ namespace ZerraDemo.Common
             this.encryptionKey = SymmetricEncryptor.GetKey(Config.GetSetting("AuthenticationKey"));
         }
 
-        public void Authorize(HttpRequestHeader header)
+        public void Authorize(IDictionary<string, IList<string>> headers)
         {
-            if (!header.Headers.TryGetValue(cookieHeader, out IList<string> cookieHeaderValue))
+            if (!headers.TryGetValue(cookieHeader, out IList<string> cookieHeaderValue))
             {
-                if (!header.Headers.TryGetValue(authorizeHeader, out cookieHeaderValue))
+                if (!headers.TryGetValue(authorizeHeader, out cookieHeaderValue))
                 {
                     return;
                 }
@@ -53,7 +53,7 @@ namespace ZerraDemo.Common
             }
         }
 
-        public HttpAuthHeaders BuildAuthHeaders()
+        public IDictionary<string, IList<string>> BuildAuthHeaders()
         {
             var authCookieData = "I can access this";
             var authCookieDataBytes = Encoding.UTF8.GetBytes(authCookieData);
@@ -66,7 +66,7 @@ namespace ZerraDemo.Common
             };
 
             var cookieHeaderValue = CookieParser.CookiesToString(cookies);
-            var headers = new HttpAuthHeaders
+            var headers = new Dictionary<string, IList<string>>
             {
                 { cookieHeader, new List<string>() { cookieHeaderValue } }
             };

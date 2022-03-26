@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0;net6.0</TargetFrameworks>
     <Company>KaKush LLC</Company>
     <Authors>Steven Zawaski</Authors>
     <Product>Zerra Framework Web</Product>
@@ -17,7 +17,7 @@ Zerra.Web.ZerraLogger
 Zerra.Web.CheckBoxList</Description>
     <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
     <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, ASPNET, Web</PackageTags>
-    <Version>2.1.2</Version>
+    <Version>2.3</Version>
   </PropertyGroup>
 
   <ItemGroup>
