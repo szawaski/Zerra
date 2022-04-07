@@ -12,6 +12,7 @@ using Zerra.Collections;
 
 namespace Zerra.Reflection
 {
+
     public static class Discovery
     {
         private static readonly string[] excludeMappingTypePrefixes = new string[] { "System.", "Microsoft.", "netstandard" };
@@ -25,6 +26,8 @@ namespace Zerra.Reflection
 
         static Discovery()
         {
+            DiscoveryConfig.Started = true;
+
             classByInterface = new ConcurrentDictionary<Type, List<Type>>();
             interfaceByType = new ConcurrentDictionary<Type, List<Type>>();
             typeByAttribute = new ConcurrentDictionary<Type, List<Type>>();
@@ -51,6 +54,10 @@ namespace Zerra.Reflection
                 try
                 {
                     var assemblyName = AssemblyName.GetAssemblyName(assemblyFileName);
+
+                    if (!DiscoveryConfig.LoadNamespaces.Any(x => assemblyName.Name.StartsWith(x)))
+                        continue;
+
                     if (!loadedAssemblies.Contains(assemblyName.FullName))
                     {
                         if (assemblyName.Name.EndsWith(".Web.Views"))
@@ -101,7 +108,7 @@ namespace Zerra.Reflection
         }
         private static void Discover()
         {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic).ToArray();
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic && DiscoveryConfig.LoadNamespaces.Any(y => x.FullName.StartsWith(y))).ToArray();
 
             foreach (var assembly in assemblies.Where(x => !initializedAssemblies.Contains(x.FullName)))
             {
@@ -133,9 +140,6 @@ namespace Zerra.Reflection
                 typeList2.Add(typeInAssembly);
             }
 
-            if (excludeMappingTypePrefixes.Any(x => typeInAssembly.FullName.StartsWith(x)))
-                return;
-
             if (!typeInAssembly.IsAbstract && typeInAssembly.IsClass)
             {
                 var interfaceTypes = typeInAssembly.GetInterfaces();
@@ -145,7 +149,7 @@ namespace Zerra.Reflection
 
                     foreach (var interfaceType in interfaceTypes)
                     {
-                        if (interfaceType.FullName != null && !excludeMappingTypePrefixes.Any(x => interfaceType.FullName.StartsWith(x)))
+                        if (interfaceType.FullName != null)
                         {
                             interfaceList.Add(interfaceType);
 
@@ -519,12 +523,12 @@ namespace Zerra.Reflection
             if (!typeByName.TryGetValue(name, out ConcurrentList<Type> matches))
             {
                 var type = ParseType(name);
-                var typeList = typeByName.GetOrAdd(name, (key) => { return new ConcurrentList<Type>(); });
-                lock (typeList)
+                matches = typeByName.GetOrAdd(name, (key) => { return new ConcurrentList<Type>(); });
+                lock (matches)
                 {
-                    if (!typeList.Contains(type))
+                    if (!matches.Contains(type))
                     {
-                        typeList.Add(type);
+                        matches.Add(type);
                     }
                 }
                 return type;
@@ -542,14 +546,9 @@ namespace Zerra.Reflection
 
         private static Type ParseType(string name)
         {
-            var nameArray = name.ToArray();
             var index = 0;
-            var type = ParseType(nameArray, ref index);
-            return type;
-        }
-        private static Type ParseType(char[] chars, ref int index)
-        {
-            string name = null;
+            var chars = name.AsSpan();
+            string currentName = null;
 
             var current = new List<char>();
             var genericArguments = new List<Type>();
@@ -579,7 +578,7 @@ namespace Zerra.Reflection
                             }
                             else if (openArray || (openGeneric && !openGenericType))
                             {
-                                throw new Exception($"ParseType Unexpected '{c}' at position {index - 1}");
+                                throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
                             }
                             else
                             {
@@ -592,7 +591,7 @@ namespace Zerra.Reflection
                         {
                             if (openArray)
                             {
-                                throw new Exception($"ParseType Unexpected '{c}' at position {index - 1}");
+                                throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
                             }
 
                             if (openGenericType)
@@ -606,8 +605,8 @@ namespace Zerra.Reflection
                                 openGeneric = true;
 
                                 if (current.Count == 0)
-                                    throw new Exception($"ParseType Unexpected '{c}' at position {index - 1}");
-                                name = new String(current.ToArray());
+                                    throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
+                                currentName = new String(current.ToArray());
                                 current.Clear();
                             }
                             else if (openGeneric)
@@ -618,11 +617,11 @@ namespace Zerra.Reflection
                             {
                                 openArray = true;
 
-                                if (name == null)
+                                if (currentName == null)
                                 {
                                     if (current.Count == 0)
-                                        throw new Exception($"ParseType Unexpected '{c}' at position {index - 1}");
-                                    name = new String(current.ToArray());
+                                        throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
+                                    currentName = new String(current.ToArray());
                                     current.Clear();
                                 }
                             }
@@ -642,7 +641,7 @@ namespace Zerra.Reflection
                             }
                             else
                             {
-                                throw new Exception($"ParseType Unexpected '{c}' at position {index - 1}");
+                                throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
                             }
                             break;
                         }
@@ -655,13 +654,13 @@ namespace Zerra.Reflection
                             else if (openArray)
                             {
                                 if (current.Count > 0)
-                                    throw new Exception($"ParseType Unexpected {c}");
+                                    throw new Exception($"{nameof(ParseType)} Unexpected {c}");
                                 openArrayOneDimension = true;
                                 current.Add(c);
                             }
                             else
                             {
-                                throw new Exception($"ParseType Unexpected {c}");
+                                throw new Exception($"{nameof(ParseType)} Unexpected {c}");
                             }
                             break;
                         }
@@ -704,7 +703,7 @@ namespace Zerra.Reflection
                             }
                             else
                             {
-                                throw new Exception($"ParseType Unexpected '{c}' at position {index - 1}");
+                                throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
                             }
                             break;
                         }
@@ -712,7 +711,7 @@ namespace Zerra.Reflection
                         {
                             if (openArray || (openGeneric && !openGenericType))
                             {
-                                throw new Exception($"ParseType Unexpected {c}");
+                                throw new Exception($"{nameof(ParseType)} Unexpected {c}");
                             }
 
                             current.Add(c);
@@ -724,15 +723,13 @@ namespace Zerra.Reflection
                     break;
             }
 
-            if (name == null)
+            if (currentName == null)
             {
-                name = new String(current.ToArray());
+                currentName = new String(current.ToArray());
                 current.Clear();
             }
 
-            var type = GetTypeFromNameWithoutParse(name);
-            if (type == null)
-                return null;
+            var type = GetTypeFromNameWithoutParse(currentName);
             if (genericArguments.Count > 0)
             {
                 type = type.MakeGenericType(genericArguments.ToArray());
@@ -753,6 +750,17 @@ namespace Zerra.Reflection
             if (!typeByName.TryGetValue(name, out ConcurrentList<Type> matches))
             {
                 var type = Type.GetType(name);
+                if (type == null)
+                    throw new Exception($"Could not find type {name}");
+
+                matches = typeByName.GetOrAdd(name, (key) => { return new ConcurrentList<Type>(); });
+                lock (matches)
+                {
+                    if (!matches.Contains(type))
+                    {
+                        matches.Add(type);
+                    }
+                }
                 return type;
             }
             else if (matches.Count == 1)
