@@ -12,11 +12,8 @@ using Zerra.Collections;
 
 namespace Zerra.Reflection
 {
-
     public static class Discovery
     {
-        private static readonly string[] excludeMappingTypePrefixes = new string[] { "System.", "Microsoft.", "netstandard" };
-
         private static readonly ArrayPool<short> flagPool = ArrayPool<short>.Shared;
         private static readonly ConcurrentDictionary<Type, List<Type>> classByInterface;
         private static readonly ConcurrentDictionary<Type, List<Type>> interfaceByType;
@@ -55,7 +52,7 @@ namespace Zerra.Reflection
                 {
                     var assemblyName = AssemblyName.GetAssemblyName(assemblyFileName);
 
-                    if (!DiscoveryConfig.LoadNamespaces.Any(x => assemblyName.Name.StartsWith(x)))
+                    if (!DiscoveryConfig.AssemblyNames.Any(x => assemblyName.Name.StartsWith(x)))
                         continue;
 
                     if (loadedAssemblies.Contains(assemblyName.FullName))
@@ -108,7 +105,7 @@ namespace Zerra.Reflection
         }
         private static void Discover()
         {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic && DiscoveryConfig.LoadNamespaces.Any(y => x.FullName.StartsWith(y))).ToArray();
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic && DiscoveryConfig.AssemblyNames.Any(y => x.FullName.StartsWith(y))).ToArray();
 
             foreach (var assembly in assemblies.Where(x => !initializedAssemblies.Contains(x.FullName)))
             {
@@ -139,6 +136,9 @@ namespace Zerra.Reflection
                 var typeList2 = typeByName.GetOrAdd(typeInAssembly.FullName, (key) => { return new ConcurrentList<Type>(); });
                 typeList2.Add(typeInAssembly);
             }
+
+            if (!DiscoveryConfig.AssemblyNames.Any(x => typeInAssembly.Name.StartsWith(x)))
+                return;
 
             if (!typeInAssembly.IsAbstract && typeInAssembly.IsClass)
             {
@@ -520,6 +520,7 @@ namespace Zerra.Reflection
         public static Type GetTypeFromName(string name)
         {
             if (String.IsNullOrWhiteSpace(name)) throw new ArgumentNullException(nameof(name));
+
             if (!typeByName.TryGetValue(name, out ConcurrentList<Type> matches))
             {
                 var type = ParseType(name);
@@ -535,12 +536,12 @@ namespace Zerra.Reflection
             }
             else if (matches.Count == 1)
             {
-                Type type = matches[0];
+                var type = matches[0];
                 return type;
             }
             else
             {
-                throw new Exception($"More than one type matches {name} - , {String.Join(", ", matches.Select(x => x.AssemblyQualifiedName).ToArray())}");
+                throw new Exception($"More than one type matches {name} - {String.Join(", ", matches.Select(x => x.AssemblyQualifiedName).ToArray())}");
             }
         }
 
@@ -765,12 +766,12 @@ namespace Zerra.Reflection
             }
             else if (matches.Count == 1)
             {
-                Type type = matches[0];
+                var type = matches[0];
                 return type;
             }
             else
             {
-                throw new Exception($"More than one type matches {name} - , {String.Join(", ", matches.Select(x => x.AssemblyQualifiedName).ToArray())}");
+                throw new Exception($"More than one type matches {name} - {String.Join(", ", matches.Select(x => x.AssemblyQualifiedName).ToArray())}");
             }
         }
     }

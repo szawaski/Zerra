@@ -11,28 +11,33 @@ namespace Zerra.Reflection
 {
     public static class DiscoveryConfig
     {
-        internal static string[] LoadNamespaces;
+        internal static string[] AssemblyNames;
         internal static bool Started;
+
+        private static readonly string entryNameSpace = Assembly.GetEntryAssembly().GetName().Name.Split('.')[0];
+        private static readonly string frameworkNameSpace = Assembly.GetExecutingAssembly().GetName().Name.Split('.')[0];
 
         static DiscoveryConfig()
         {
-            var entryNameSpace = Assembly.GetEntryAssembly().GetName().Name.Split('.')[0];
-            var frameworkNameSpace = Assembly.GetExecutingAssembly().GetName().Name.Split('.')[0];
-            DiscoveryConfig.LoadNamespaces = new string[] { entryNameSpace, frameworkNameSpace };
-            DiscoveryConfig.Started = false;
+            AssemblyNames = new string[] { entryNameSpace, frameworkNameSpace };
+            Started = false;
         }
 
-        public static void SetLoad(string[] namespaces)
+        public static void SetAssembliesToLoad(string[] assemblyNames)
         {
-            if (DiscoveryConfig.Started)
-                throw new InvalidOperationException($"{nameof(Discovery)} has already started");
-            DiscoveryConfig.LoadNamespaces = namespaces;
+            if (Started)
+                throw new InvalidOperationException("Discovery has already started");
+#if NETSTANDARD2_0
+            AssemblyNames = assemblyNames.Concat(new string[] { frameworkNameSpace }).ToArray();
+#else
+            AssemblyNames = assemblyNames.Append(frameworkNameSpace).ToArray();
+#endif
         }
-        public static void SetLoad(Assembly[] assemblies)
+        public static void SetAssembliesToLoad(Assembly[] assemblies)
         {
-            if (DiscoveryConfig.Started)
-                throw new InvalidOperationException($"{nameof(Discovery)} has already started");
-            DiscoveryConfig.LoadNamespaces = assemblies.Select(x => x.GetName().Name).ToArray();
+            if (Started)
+                throw new InvalidOperationException("Discovery has already started");
+            AssemblyNames = assemblies.Select(x => x.GetName().Name).Append(frameworkNameSpace).ToArray();
         }
     }
 }
