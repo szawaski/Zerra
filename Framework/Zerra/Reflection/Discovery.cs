@@ -46,7 +46,7 @@ namespace Zerra.Reflection
             foreach (var currentAssembly in currentAsssemblies)
                 loadedAssemblies.Add(currentAssembly.FullName);
 
-            var assemblyPath = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            var assemblyPath = AppDomain.CurrentDomain.BaseDirectory;
             var assemblyFileNames = System.IO.Directory.GetFiles(assemblyPath, "*.dll");
 
             foreach (string assemblyFileName in assemblyFileNames)
@@ -58,32 +58,32 @@ namespace Zerra.Reflection
                     if (!DiscoveryConfig.LoadNamespaces.Any(x => assemblyName.Name.StartsWith(x)))
                         continue;
 
-                    if (!loadedAssemblies.Contains(assemblyName.FullName))
-                    {
-                        if (assemblyName.Name.EndsWith(".Web.Views"))
-                            continue;
+                    if (loadedAssemblies.Contains(assemblyName.FullName))
+                        continue;
 
+                    if (assemblyName.Name.EndsWith(".Web.Views"))
+                        continue;
+
+                    try
+                    {
+                        var assembly = Assembly.Load(assemblyName);
+                        loadedAssemblies.Add(assembly.FullName);
+                    }
+                    catch (System.IO.FileNotFoundException)
+                    {
                         try
                         {
-                            var assembly = Assembly.Load(assemblyName);
+                            var assembly = Assembly.LoadFrom(assemblyFileName);
                             loadedAssemblies.Add(assembly.FullName);
-                        }
-                        catch (System.IO.FileNotFoundException)
-                        {
-                            try
-                            {
-                                var assembly = Assembly.LoadFrom(assemblyFileName);
-                                loadedAssemblies.Add(assembly.FullName);
-                            }
-                            catch (Exception)
-                            {
-                                //何も
-                            }
                         }
                         catch (Exception)
                         {
                             //何も
                         }
+                    }
+                    catch (Exception)
+                    {
+                        //何も
                     }
                 }
                 catch { }
