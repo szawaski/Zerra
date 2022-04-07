@@ -567,6 +567,7 @@ namespace Zerra.Repository.PostgreSql
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
                     {
@@ -601,6 +602,7 @@ namespace Zerra.Repository.PostgreSql
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
                     {
@@ -630,6 +632,7 @@ namespace Zerra.Repository.PostgreSql
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
                     {
@@ -663,6 +666,7 @@ namespace Zerra.Repository.PostgreSql
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
                     {
@@ -689,6 +693,7 @@ namespace Zerra.Repository.PostgreSql
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
                     {
@@ -708,6 +713,7 @@ namespace Zerra.Repository.PostgreSql
                 await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
                     {
@@ -742,6 +748,7 @@ namespace Zerra.Repository.PostgreSql
                 await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
                     {
@@ -771,6 +778,7 @@ namespace Zerra.Repository.PostgreSql
                 await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
                     {
@@ -804,6 +812,7 @@ namespace Zerra.Repository.PostgreSql
                 await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
                     {
@@ -830,6 +839,7 @@ namespace Zerra.Repository.PostgreSql
                 await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
                     {
@@ -850,6 +860,7 @@ namespace Zerra.Repository.PostgreSql
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
                     {
@@ -889,6 +900,7 @@ namespace Zerra.Repository.PostgreSql
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     return command.ExecuteNonQuery();
                 }
@@ -903,6 +915,7 @@ namespace Zerra.Repository.PostgreSql
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     return command.ExecuteNonQuery();
                 }
@@ -917,6 +930,7 @@ namespace Zerra.Repository.PostgreSql
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     return command.ExecuteNonQuery();
                 }
@@ -933,6 +947,7 @@ namespace Zerra.Repository.PostgreSql
                 await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
                     {
@@ -972,6 +987,7 @@ namespace Zerra.Repository.PostgreSql
                 await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     return await command.ExecuteNonQueryAsync();
                 }
@@ -986,6 +1002,7 @@ namespace Zerra.Repository.PostgreSql
                 await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     return await command.ExecuteNonQueryAsync();
                 }
@@ -1000,6 +1017,7 @@ namespace Zerra.Repository.PostgreSql
                 await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     return await command.ExecuteNonQueryAsync();
                 }
@@ -1014,6 +1032,7 @@ namespace Zerra.Repository.PostgreSql
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     command.ExecuteNonQuery();
                 }
@@ -1027,6 +1046,7 @@ namespace Zerra.Repository.PostgreSql
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     return (T)command.ExecuteScalar();
                 }
@@ -1041,6 +1061,7 @@ namespace Zerra.Repository.PostgreSql
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
                     {
@@ -1133,6 +1154,7 @@ namespace Zerra.Repository.PostgreSql
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     needCreate = (long)command.ExecuteScalar() == 0;
                 }
@@ -1153,6 +1175,7 @@ namespace Zerra.Repository.PostgreSql
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 0;
                     command.CommandText = sql;
                     command.ExecuteNonQuery();
                 }
@@ -1711,6 +1734,7 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
                     connection.Open();
                     using (var command = connection.CreateCommand())
                     {
+                        command.CommandTimeout = 0;
                         command.CommandText = sql;
                         var version = (string)command.ExecuteScalar();
                         if (version.Contains("PostgreSQL"))
