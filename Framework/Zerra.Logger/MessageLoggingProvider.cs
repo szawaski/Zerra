@@ -25,10 +25,9 @@ namespace Zerra.Logger
             telemetryClient = new TelemetryClient(config);
 
             var filePath = Config.GetSetting("LogFileDirectory");
-            if (!String.IsNullOrWhiteSpace(filePath))
-                file = $"{filePath}\\{fileName}";
-            else
-                file = null;
+            if (String.IsNullOrWhiteSpace(filePath))
+                filePath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            file = $"{filePath}\\{fileName}";
         }
 
         public async Task SaveAsync(Type messageType, IMessage message)

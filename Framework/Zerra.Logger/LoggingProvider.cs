@@ -33,16 +33,11 @@ namespace Zerra.Logger
             telemetryClient = new TelemetryClient(config);
 
             var filePath = Config.GetSetting("LogFileDirectory");
-            if (!String.IsNullOrWhiteSpace(filePath))
-            {
-                infoFile = $"{filePath}\\{infoFileName}";
-                tracefile = $"{filePath}\\{traceFileName}";
-            }
-            else
-            {
-                infoFile = null;
-                tracefile = null;
-            }
+            if (String.IsNullOrWhiteSpace(filePath))
+                filePath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+            infoFile = $"{filePath}\\{infoFileName}";
+            tracefile = $"{filePath}\\{traceFileName}";
         }
 
         public async Task TraceAsync(string message)
