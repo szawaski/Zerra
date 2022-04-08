@@ -11,18 +11,28 @@ namespace Zerra.Repository.MsSql
     {
         public abstract string ConnectionString { get; }
 
+        private IDataStoreEngine engine = null;
         protected override sealed IDataStoreEngine GetEngine()
         {
-            try
+            if (engine == null)
             {
-                var connectionForParsing = new SqlConnectionStringBuilder(ConnectionString);
-                _ = Log.InfoAsync($"{nameof(MsSqlDataContext)} connecting to {connectionForParsing.DataSource}");
+                lock (this)
+                {
+                    if (engine == null)
+                    {
+                        try
+                        {
+                            var connectionForParsing = new SqlConnectionStringBuilder(ConnectionString);
+                            _ = Log.InfoAsync($"{nameof(MsSqlDataContext)} connecting to {connectionForParsing.DataSource}");
+                        }
+                        catch
+                        {
+                            _ = Log.InfoAsync($"{nameof(MsSqlDataContext)} failed to parse {ConnectionString}");
+                        }
+                        engine = new MsSqlEngine(ConnectionString);
+                    }
+                }
             }
-            catch
-            {
-                _ = Log.InfoAsync($"{nameof(MsSqlDataContext)} failed to parse {ConnectionString}");
-            }
-            var engine = new MsSqlEngine(ConnectionString);
             return engine;
         }
     }

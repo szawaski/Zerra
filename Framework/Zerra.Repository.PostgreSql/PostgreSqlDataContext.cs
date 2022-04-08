@@ -11,18 +11,29 @@ namespace Zerra.Repository.PostgreSql
     {
         public abstract string ConnectionString { get; }
 
+
+        private IDataStoreEngine engine = null;
         protected override sealed IDataStoreEngine GetEngine()
         {
-            try
+            if (engine == null)
             {
-                var connectionForParsing = new NpgsqlConnectionStringBuilder(ConnectionString);
-                _ = Log.InfoAsync($"{nameof(PostgreSqlDataContext)} connecting to {connectionForParsing.Host},{connectionForParsing.Port}");
+                lock (this)
+                {
+                    if (engine == null)
+                    {
+                        try
+                        {
+                            var connectionForParsing = new NpgsqlConnectionStringBuilder(ConnectionString);
+                            _ = Log.InfoAsync($"{nameof(PostgreSqlDataContext)} connecting to {connectionForParsing.Host},{connectionForParsing.Port}");
+                        }
+                        catch
+                        {
+                            _ = Log.InfoAsync($"{nameof(PostgreSqlDataContext)} failed to parse {ConnectionString}");
+                        }
+                        engine = new PostgreSqlEngine(ConnectionString);
+                    }
+                }
             }
-            catch
-            {
-                _ = Log.InfoAsync($"{nameof(PostgreSqlDataContext)} failed to parse {ConnectionString}");
-            }
-            var engine = new PostgreSqlEngine(ConnectionString);
             return engine;
         }
     }

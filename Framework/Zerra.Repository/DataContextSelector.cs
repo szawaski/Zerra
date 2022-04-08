@@ -27,6 +27,21 @@ namespace Zerra.Repository
             throw new NotSupportedException();
         }
 
-        protected abstract ICollection<DataContext> GetDataContexts();
+        private ICollection<DataContext> contexts = null;
+        protected ICollection<DataContext> GetDataContexts()
+        {
+            if (contexts == null)
+            {
+                lock (this)
+                {
+                    if (contexts == null)
+                    {
+                        contexts = LoadDataContexts();
+                    }
+                }
+            }
+            return contexts;
+        }
+        protected abstract ICollection<DataContext> LoadDataContexts();
     }
 }

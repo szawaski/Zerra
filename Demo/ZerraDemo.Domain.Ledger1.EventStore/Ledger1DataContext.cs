@@ -7,7 +7,7 @@ namespace ZerraDemo.Domain.Ledger1.EventStore
     [TransactStoreEntity(typeof(Ledger1AccountDataModel))]
     public class Ledger1DataContext : DataContextSelector
     {
-        protected override ICollection<DataContext> GetDataContexts()
+        protected override ICollection<DataContext> LoadDataContexts()
         {
             return new DataContext[]
             {

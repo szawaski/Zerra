@@ -11,18 +11,28 @@ namespace Zerra.Repository.MySql
     {
         public abstract string ConnectionString { get; }
 
+        private IDataStoreEngine engine = null;
         protected override sealed IDataStoreEngine GetEngine()
         {
-            try
+            if (engine == null)
             {
-                var connectionForParsing = new MySqlConnectionStringBuilder(ConnectionString);
-                _ = Log.InfoAsync($"{nameof(MySqlDataContext)} connecting to {connectionForParsing.Database}");
+                lock (this)
+                {
+                    if (engine == null)
+                    {
+                        try
+                        {
+                            var connectionForParsing = new MySqlConnectionStringBuilder(ConnectionString);
+                            _ = Log.InfoAsync($"{nameof(MySqlDataContext)} connecting to {connectionForParsing.Server}");
+                        }
+                        catch
+                        {
+                            _ = Log.InfoAsync($"{nameof(MySqlDataContext)} failed to parse {ConnectionString}");
+                        }
+                        engine = new MySqlEngine(ConnectionString);
+                    }
+                }
             }
-            catch
-            {
-                _ = Log.InfoAsync($"{nameof(MySqlDataContext)} failed to parse {ConnectionString}");
-            }
-            var engine = new MySqlEngine(ConnectionString);
             return engine;
         }
     }

@@ -11,10 +11,21 @@ namespace Zerra.Repository.EventStoreDB
         public abstract string ConnectionString { get; }
         public abstract bool Insecure { get; }
 
+        private IDataStoreEngine engine = null;
         protected override IDataStoreEngine GetEngine()
         {
-            _ = Log.InfoAsync($"{nameof(EventStoreDBDataContext)} connecting to {ConnectionString}");
-            var engine = new EventStoreDBEngine(ConnectionString, Insecure);
+            if (engine == null)
+            {
+                lock (this)
+                {
+                    if (engine == null)
+                    {
+                        _ = Log.InfoAsync($"{nameof(EventStoreDBDataContext)} connecting to {ConnectionString}");
+                        var engine = new EventStoreDBEngine(ConnectionString, Insecure);
+                        return engine;
+                    }
+                }
+            }
             return engine;
         }
     }

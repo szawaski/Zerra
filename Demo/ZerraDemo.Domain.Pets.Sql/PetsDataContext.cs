@@ -9,14 +9,13 @@ namespace ZerraDemo.Domain.Pets.Sql
     [TransactStoreEntity(typeof(SpeciesDataModel))]
     public class PetsDataContext : DataContextSelector
     {
-        protected override ICollection<DataContext> GetDataContexts()
+        protected override ICollection<DataContext> LoadDataContexts()
         {
             return new DataContext[]
             {
                 new PetsMySqlDataContext(),
                 new PetsPostgreSqlDataContext(),
                 new PetsMsSqlDataContext(),
-                
             };
         }
     }
