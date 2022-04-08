@@ -137,7 +137,7 @@ namespace Zerra.Reflection
                 typeList2.Add(typeInAssembly);
             }
 
-            if (!DiscoveryConfig.AssemblyNames.Any(x => typeInAssembly.Name.StartsWith(x)))
+            if (!typeInAssembly.Assembly.IsDynamic && !DiscoveryConfig.AssemblyNames.Any(x => typeInAssembly.FullName.StartsWith(x)))
                 return;
 
             if (!typeInAssembly.IsAbstract && typeInAssembly.IsClass)
