@@ -14,12 +14,15 @@ namespace Zerra.Reflection
         internal static string[] AssemblyNames;
         internal static bool Started;
 
-        private static readonly string entryNameSpace = Assembly.GetEntryAssembly().GetName().Name.Split('.')[0] + '.';
+        private static readonly string entryNameSpace = Assembly.GetEntryAssembly()?.GetName().Name.Split('.')[0] + '.';
         private static readonly string frameworkNameSpace = Assembly.GetExecutingAssembly().GetName().Name.Split('.')[0] + '.';
 
         static DiscoveryConfig()
         {
-            AssemblyNames = new string[] { entryNameSpace, frameworkNameSpace };
+            if (entryNameSpace != null)
+                AssemblyNames = new string[] { entryNameSpace, frameworkNameSpace };
+            else
+                AssemblyNames = new string[] { frameworkNameSpace };
             Started = false;
         }
 
