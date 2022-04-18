@@ -31,17 +31,22 @@ namespace Zerra.Reflection
             typeByName = new ConcurrentDictionary<string, ConcurrentList<Type>>();
             initializedAssemblies = new HashSet<string>();
 
-            ForceLoadAssemblies();
+            LoadAssemblies();
             Discover();
             Generate();
         }
 
-        private static void ForceLoadAssemblies()
+        private static void LoadAssemblies()
         {
             var loadedAssemblies = new HashSet<string>();
             var currentAsssemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic);
             foreach (var currentAssembly in currentAsssemblies)
                 loadedAssemblies.Add(currentAssembly.FullName);
+
+            var currentAssemblyNames = currentAsssemblies.Select(x => x.GetName()).ToArray();
+            var assemblyNames = currentAsssemblies.SelectMany(x => x.GetReferencedAssemblies().Where(y => !currentAssemblyNames.Contains(y))).Distinct(x => x.Name).ToArray();
+            if (DiscoveryConfig.AssemblyNames.Length > 0)
+                assemblyNames = assemblyNames.Where(x => DiscoveryConfig.AssemblyNames.Any(y => x.Name.StartsWith(y))).ToArray();
 
             var assemblyPath = AppDomain.CurrentDomain.BaseDirectory;
             var assemblyFileNames = System.IO.Directory.GetFiles(assemblyPath, "*.dll");
@@ -52,7 +57,7 @@ namespace Zerra.Reflection
                 {
                     var assemblyName = AssemblyName.GetAssemblyName(assemblyFileName);
 
-                    if (!DiscoveryConfig.AssemblyNames.Any(x => assemblyName.Name.StartsWith(x)))
+                    if (DiscoveryConfig.AssemblyNames.Length > 0 && !DiscoveryConfig.AssemblyNames.Any(x => assemblyName.Name.StartsWith(x)))
                         continue;
 
                     if (loadedAssemblies.Contains(assemblyName.FullName))
@@ -105,7 +110,11 @@ namespace Zerra.Reflection
         }
         private static void Discover()
         {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic && DiscoveryConfig.AssemblyNames.Any(y => x.FullName.StartsWith(y))).ToArray();
+            Assembly[] assemblies;
+            if (DiscoveryConfig.AssemblyNames.Length > 0)
+                assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic && DiscoveryConfig.AssemblyNames.Any(y => x.FullName.StartsWith(y))).ToArray();
+            else
+                assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic).ToArray();
 
             foreach (var assembly in assemblies.Where(x => !initializedAssemblies.Contains(x.FullName)))
             {

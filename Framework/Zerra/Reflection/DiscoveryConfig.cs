@@ -26,21 +26,54 @@ namespace Zerra.Reflection
             Started = false;
         }
 
-        public static void SetAssembliesToLoad(string[] assemblyNames)
+        public static void AddAssembliesToLoad(params string[] assemblyNames)
         {
             if (Started)
                 throw new InvalidOperationException("Discovery has already started");
-#if NETSTANDARD2_0
-            AssemblyNames = assemblyNames.Select(x => x + '.').Concat(new string[] { frameworkNameSpace }).ToArray();
-#else
-            AssemblyNames = assemblyNames.Select(x => x + '.').Append(frameworkNameSpace).ToArray();
-#endif
+
+            var newNamespaces = assemblyNames.Select(x => x + '.').ToArray();
+
+            var newAssemblyNames = new string[AssemblyNames.Length + newNamespaces.Length];
+            AssemblyNames.CopyTo(newAssemblyNames, 0);
+            newNamespaces.CopyTo(newNamespaces, AssemblyNames.Length);
+            AssemblyNames = newAssemblyNames;
         }
-        public static void SetAssembliesToLoad(Assembly[] assemblies)
+        public static void AddAssembliesToLoad(params Assembly[] assemblies)
         {
             if (Started)
                 throw new InvalidOperationException("Discovery has already started");
-            AssemblyNames = assemblies.Select(x => x.GetName().Name).Append(frameworkNameSpace).ToArray();
+
+            var newNamespaces = assemblies.Select(x => x.GetName().Name).ToArray();
+
+            var newAssemblyNames = new string[AssemblyNames.Length + newNamespaces.Length];
+            AssemblyNames.CopyTo(newAssemblyNames, 0);
+            newNamespaces.CopyTo(newNamespaces, AssemblyNames.Length);
+            AssemblyNames = newAssemblyNames;
+        }
+
+        public static void SetAssembliesToLoad(params string[] assemblyNames)
+        {
+            if (Started)
+                throw new InvalidOperationException("Discovery has already started");
+
+            var newNamespaces = assemblyNames.Select(x => x + '.').ToArray();
+
+            var newAssemblyNames = new string[newNamespaces.Length + 1];
+            newAssemblyNames[0] = frameworkNameSpace;
+            AssemblyNames.CopyTo(newAssemblyNames, 1);
+            AssemblyNames = newAssemblyNames;
+        }
+        public static void SetAssembliesToLoad(params Assembly[] assemblies)
+        {
+            if (Started)
+                throw new InvalidOperationException("Discovery has already started");
+
+            var newNamespaces = assemblies.Select(x => x.GetName().Name).ToArray();
+
+            var newAssemblyNames = new string[newNamespaces.Length + 1];
+            newAssemblyNames[0] = frameworkNameSpace;
+            AssemblyNames.CopyTo(newAssemblyNames, 1);
+            AssemblyNames = newAssemblyNames;
         }
     }
 }
