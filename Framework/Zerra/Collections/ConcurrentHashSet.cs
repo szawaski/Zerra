@@ -13,7 +13,7 @@ namespace Zerra.Collections
     /// <summary>
     /// Thread safe generic hash set
     /// </summary>
-    public class ConcurrentHashSet<T> : ICollection<T>, IEnumerable<T>, IEnumerable, IReadOnlyCollection<T>, ISet<T>
+    public class ConcurrentHashSet<T> : ICollection<T>, IEnumerable<T>, IEnumerable, IReadOnlyCollection<T>, ISet<T>, IDisposable
     {
         private readonly ReaderWriterLockSlim locker = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
         private readonly HashSet<T> hashSet = new HashSet<T>();
@@ -199,6 +199,12 @@ namespace Zerra.Collections
             IEnumerable<T> items = hashSet.ToArray();
             locker.ExitReadLock();
             return items.GetEnumerator();
+        }
+
+        public void Dispose()
+        {
+            locker.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

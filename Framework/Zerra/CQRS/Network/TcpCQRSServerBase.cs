@@ -132,6 +132,8 @@ namespace Zerra.CQRS.Network
                     return;
                 foreach (var listener in listeners)
                     listener.Dispose();
+                interfaceTypes.Dispose();
+                commandTypes.Dispose();
                 disposed = true;
             }
         }

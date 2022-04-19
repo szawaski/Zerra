@@ -12,7 +12,7 @@ namespace Zerra.Collections
     /// <summary>
     /// Thread safe generic list
     /// </summary>
-    public class ConcurrentList<T> : ICollection<T>, IEnumerable<T>, IEnumerable, IList<T>, IReadOnlyCollection<T>, IReadOnlyList<T>, ICollection, IList
+    public class ConcurrentList<T> : ICollection<T>, IEnumerable<T>, IEnumerable, IList<T>, IReadOnlyCollection<T>, IReadOnlyList<T>, ICollection, IList, IDisposable
     {
         private readonly ReaderWriterLockSlim locker = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
         private readonly List<T> list = new List<T>();
@@ -204,6 +204,12 @@ namespace Zerra.Collections
         IEnumerator IEnumerable.GetEnumerator()
         {
             return this.GetEnumerator();
+        }
+
+        public void Dispose()
+        {
+            locker.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }
