@@ -60,7 +60,7 @@ namespace Zerra.Reflection
 
             var newAssemblyNames = new string[newNamespaces.Length + 1];
             newAssemblyNames[0] = frameworkNameSpace;
-            AssemblyNames.CopyTo(newAssemblyNames, 1);
+            newNamespaces.CopyTo(newAssemblyNames, 1);
             AssemblyNames = newAssemblyNames;
         }
         public static void SetAssembliesToLoad(params Assembly[] assemblies)
@@ -72,7 +72,7 @@ namespace Zerra.Reflection
 
             var newAssemblyNames = new string[newNamespaces.Length + 1];
             newAssemblyNames[0] = frameworkNameSpace;
-            AssemblyNames.CopyTo(newAssemblyNames, 1);
+            newNamespaces.CopyTo(newAssemblyNames, 1);
             AssemblyNames = newAssemblyNames;
         }
     }
