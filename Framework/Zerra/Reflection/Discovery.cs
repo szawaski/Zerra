@@ -45,8 +45,8 @@ namespace Zerra.Reflection
 
             var currentAssemblyNames = currentAsssemblies.Select(x => x.GetName()).ToArray();
             var assemblyNames = currentAsssemblies.SelectMany(x => x.GetReferencedAssemblies().Where(y => !currentAssemblyNames.Contains(y))).Distinct(x => x.Name).ToArray();
-            if (DiscoveryConfig.AssemblyNames.Length > 0)
-                assemblyNames = assemblyNames.Where(x => DiscoveryConfig.AssemblyNames.Any(y => x.Name.StartsWith(y))).ToArray();
+            if (DiscoveryConfig.NamespacesToLoad.Length > 0)
+                assemblyNames = assemblyNames.Where(x => DiscoveryConfig.NamespacesToLoad.Any(y => x.Name.StartsWith(y))).ToArray();
 
             var assemblyPath = AppDomain.CurrentDomain.BaseDirectory;
             var assemblyFileNames = System.IO.Directory.GetFiles(assemblyPath, "*.dll");
@@ -57,7 +57,7 @@ namespace Zerra.Reflection
                 {
                     var assemblyName = AssemblyName.GetAssemblyName(assemblyFileName);
 
-                    if (DiscoveryConfig.AssemblyNames.Length > 0 && !DiscoveryConfig.AssemblyNames.Any(x => assemblyName.Name.StartsWith(x)))
+                    if (DiscoveryConfig.NamespacesToLoad.Length > 0 && !DiscoveryConfig.NamespacesToLoad.Any(x => assemblyName.Name.StartsWith(x)))
                         continue;
 
                     if (loadedAssemblies.Contains(assemblyName.FullName))
@@ -111,8 +111,8 @@ namespace Zerra.Reflection
         private static void Discover()
         {
             Assembly[] assemblies;
-            if (DiscoveryConfig.AssemblyNames.Length > 0)
-                assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic && DiscoveryConfig.AssemblyNames.Any(y => x.FullName.StartsWith(y))).ToArray();
+            if (DiscoveryConfig.NamespacesToLoad.Length > 0)
+                assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic && DiscoveryConfig.NamespacesToLoad.Any(y => x.FullName.StartsWith(y))).ToArray();
             else
                 assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic).ToArray();
 

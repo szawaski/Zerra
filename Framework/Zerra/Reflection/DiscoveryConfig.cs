@@ -11,7 +11,7 @@ namespace Zerra.Reflection
 {
     public static class DiscoveryConfig
     {
-        internal static string[] AssemblyNames;
+        internal static string[] NamespacesToLoad;
         internal static bool Started;
 
         private static readonly string entryNameSpace = Assembly.GetEntryAssembly()?.GetName().Name.Split('.')[0] + '.';
@@ -20,23 +20,23 @@ namespace Zerra.Reflection
         static DiscoveryConfig()
         {
             if (entryNameSpace != null)
-                AssemblyNames = new string[] { entryNameSpace, frameworkNameSpace };
+                NamespacesToLoad = new string[] { entryNameSpace, frameworkNameSpace };
             else
-                AssemblyNames = new string[] { frameworkNameSpace };
+                NamespacesToLoad = new string[] { frameworkNameSpace };
             Started = false;
         }
 
-        public static void AddAssembliesToLoad(params string[] assemblyNames)
+        public static void AddNamespacesToLoad(params string[] assemblyNames)
         {
             if (Started)
                 throw new InvalidOperationException("Discovery has already started");
 
             var newNamespaces = assemblyNames.Select(x => x + '.').ToArray();
 
-            var newAssemblyNames = new string[AssemblyNames.Length + newNamespaces.Length];
-            AssemblyNames.CopyTo(newAssemblyNames, 0);
-            newNamespaces.CopyTo(newNamespaces, AssemblyNames.Length);
-            AssemblyNames = newAssemblyNames;
+            var newNamespacesToLoad = new string[NamespacesToLoad.Length + newNamespaces.Length];
+            NamespacesToLoad.CopyTo(newNamespacesToLoad, 0);
+            newNamespaces.CopyTo(newNamespaces, NamespacesToLoad.Length);
+            NamespacesToLoad = newNamespacesToLoad;
         }
         public static void AddAssembliesToLoad(params Assembly[] assemblies)
         {
@@ -45,23 +45,23 @@ namespace Zerra.Reflection
 
             var newNamespaces = assemblies.Select(x => x.GetName().Name).ToArray();
 
-            var newAssemblyNames = new string[AssemblyNames.Length + newNamespaces.Length];
-            AssemblyNames.CopyTo(newAssemblyNames, 0);
-            newNamespaces.CopyTo(newNamespaces, AssemblyNames.Length);
-            AssemblyNames = newAssemblyNames;
+            var newNamespacesToLoad = new string[NamespacesToLoad.Length + newNamespaces.Length];
+            NamespacesToLoad.CopyTo(newNamespacesToLoad, 0);
+            newNamespaces.CopyTo(newNamespaces, NamespacesToLoad.Length);
+            NamespacesToLoad = newNamespacesToLoad;
         }
 
-        public static void SetAssembliesToLoad(params string[] assemblyNames)
+        public static void SetNamespacesToLoad(params string[] assemblyNames)
         {
             if (Started)
                 throw new InvalidOperationException("Discovery has already started");
 
             var newNamespaces = assemblyNames.Select(x => x + '.').ToArray();
 
-            var newAssemblyNames = new string[newNamespaces.Length + 1];
-            newAssemblyNames[0] = frameworkNameSpace;
-            newNamespaces.CopyTo(newAssemblyNames, 1);
-            AssemblyNames = newAssemblyNames;
+            var newNamespacesToLoad = new string[newNamespaces.Length + 1];
+            newNamespacesToLoad[0] = frameworkNameSpace;
+            newNamespaces.CopyTo(newNamespacesToLoad, 1);
+            NamespacesToLoad = newNamespacesToLoad;
         }
         public static void SetAssembliesToLoad(params Assembly[] assemblies)
         {
@@ -70,10 +70,10 @@ namespace Zerra.Reflection
 
             var newNamespaces = assemblies.Select(x => x.GetName().Name).ToArray();
 
-            var newAssemblyNames = new string[newNamespaces.Length + 1];
-            newAssemblyNames[0] = frameworkNameSpace;
-            newNamespaces.CopyTo(newAssemblyNames, 1);
-            AssemblyNames = newAssemblyNames;
+            var newNamespacesToLoad = new string[newNamespaces.Length + 1];
+            newNamespacesToLoad[0] = frameworkNameSpace;
+            newNamespaces.CopyTo(newNamespacesToLoad, 1);
+            NamespacesToLoad = newNamespacesToLoad;
         }
     }
 }
