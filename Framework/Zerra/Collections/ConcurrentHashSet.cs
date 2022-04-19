@@ -18,9 +18,9 @@ namespace Zerra.Collections
         private readonly ReaderWriterLockSlim locker = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
         private readonly HashSet<T> hashSet = new HashSet<T>();
 
-        public int Count { get; }
+        public int Count => hashSet.Count;
 
-        public bool IsReadOnly => throw new NotImplementedException();
+        public bool IsReadOnly => false;
 
         public bool Add(T item)
         {
@@ -70,6 +70,7 @@ namespace Zerra.Collections
             hashSet.CopyTo(array, arrayIndex, count);
             locker.ExitReadLock();
         }
+
 #if !NETSTANDARD2_0
         public int EnsureCapacity(int capacity)
         {
@@ -85,13 +86,7 @@ namespace Zerra.Collections
             hashSet.ExceptWith(other);
             locker.ExitWriteLock();
         }
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            locker.EnterReadLock();
-            IEnumerable<T> items = hashSet.ToArray();
-            locker.ExitReadLock();
-            return items.GetEnumerator();
-        }
+
         public void IntersectWith(IEnumerable<T> other)
         {
             locker.EnterWriteLock();
@@ -194,6 +189,14 @@ namespace Zerra.Collections
         }
 
         public IEnumerator<T> GetEnumerator()
+        {
+            locker.EnterReadLock();
+            IEnumerable<T> items = hashSet.ToArray();
+            locker.ExitReadLock();
+            return items.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
         {
             locker.EnterReadLock();
             IEnumerable<T> items = hashSet.ToArray();
