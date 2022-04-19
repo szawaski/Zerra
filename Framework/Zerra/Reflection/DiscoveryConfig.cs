@@ -35,7 +35,7 @@ namespace Zerra.Reflection
 
             var newNamespacesToLoad = new string[NamespacesToLoad.Length + newNamespaces.Length];
             NamespacesToLoad.CopyTo(newNamespacesToLoad, 0);
-            newNamespaces.CopyTo(newNamespaces, NamespacesToLoad.Length);
+            newNamespaces.CopyTo(newNamespacesToLoad, NamespacesToLoad.Length);
             NamespacesToLoad = newNamespacesToLoad;
         }
         public static void AddAssembliesToLoad(params Assembly[] assemblies)
@@ -47,7 +47,7 @@ namespace Zerra.Reflection
 
             var newNamespacesToLoad = new string[NamespacesToLoad.Length + newNamespaces.Length];
             NamespacesToLoad.CopyTo(newNamespacesToLoad, 0);
-            newNamespaces.CopyTo(newNamespaces, NamespacesToLoad.Length);
+            newNamespaces.CopyTo(newNamespacesToLoad, NamespacesToLoad.Length);
             NamespacesToLoad = newNamespacesToLoad;
         }
 
