@@ -14,17 +14,17 @@ namespace Zerra.Threading
     {
         private const int defaultMaxRunningTasks = 20;
 
-        private readonly CancellationTokenSource canceller;
+        private readonly CancellationToken cancellationToken;
         private readonly BlockingCollection<Task> queue;
         private readonly ConcurrentList<Task> running;
         private readonly SemaphoreSlim taskLimiter;
         private readonly Thread thread;
 
-        public TaskThrottler(int maxRunningTasks = defaultMaxRunningTasks, CancellationTokenSource canceller = null)
+        public TaskThrottler(int maxRunningTasks = defaultMaxRunningTasks, CancellationToken cancellationToken = default)
         {
             if (maxRunningTasks <= 0) throw new ArgumentException("maxRunningTasks must be greater than zero");
 
-            this.canceller = canceller ?? new CancellationTokenSource();
+            this.cancellationToken = cancellationToken;
             this.queue = new BlockingCollection<Task>();
             this.running = new ConcurrentList<Task>();
             this.taskLimiter = new SemaphoreSlim(maxRunningTasks);
@@ -35,7 +35,7 @@ namespace Zerra.Threading
 
         public void Run(Task task)
         {
-            if (canceller.IsCancellationRequested)
+            if (cancellationToken.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(TaskThrottler));
 
             if (task.Status != TaskStatus.Created)
@@ -53,8 +53,8 @@ namespace Zerra.Threading
 
         public void Dispose()
         {
-            if (!canceller.IsCancellationRequested)
-                canceller.Cancel();
+            if (!cancellationToken.IsCancellationRequested)
+                cancellationToken.Cancel();
 
             thread.Join();
             running.Dispose();
@@ -66,15 +66,15 @@ namespace Zerra.Threading
         {
             try
             {
-                foreach (var task in queue.GetConsumingEnumerable(canceller.Token))
+                foreach (var task in queue.GetConsumingEnumerable(cancellationToken.Token))
                 {
-                    taskLimiter.Wait(canceller.Token);
+                    taskLimiter.Wait(cancellationToken.Token);
                     task.Start();
                 }
             }
             catch (OperationCanceledException) { }
 
-            canceller.Dispose();
+            cancellationToken.Dispose();
 
             try
             {
