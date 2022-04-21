@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Collections;
@@ -15,12 +16,10 @@ namespace Zerra.Threading
         private static readonly int defaultMaxRunningTasks = Environment.ProcessorCount;
 
         private readonly CancellationTokenSource canceller;
-        private readonly Queue<Func<Task>> queue;
+        private readonly AsyncConcurrentQueue<Func<Task>> queue;
         private readonly ConcurrentList<Task> running;
         private readonly SemaphoreSlim taskLimiter;
-        private readonly SemaphoreSlim queueLocker;
-        private readonly SemaphoreSlim emptyQueueAwaiter;
-        private readonly EventWaitHandle startingTaskEvent;
+        private readonly Queue<TaskCompletionSource<object>> waiters;
         private readonly Task mainTask;
 
         public TaskThrottler() : this(defaultMaxRunningTasks) { }
@@ -29,12 +28,10 @@ namespace Zerra.Threading
             if (maxRunningTasks <= 0) throw new ArgumentException("maxRunningTasks must be greater than zero");
 
             this.canceller = canceller ?? new CancellationTokenSource();
-            this.queue = new Queue<Func<Task>>();
+            this.queue = new AsyncConcurrentQueue<Func<Task>>();
             this.running = new ConcurrentList<Task>();
             this.taskLimiter = new SemaphoreSlim(maxRunningTasks, maxRunningTasks);
-            this.queueLocker = new SemaphoreSlim(1, 1);
-            this.emptyQueueAwaiter = new SemaphoreSlim(0, 1);
-            this.startingTaskEvent = new EventWaitHandle(true, EventResetMode.AutoReset);
+            this.waiters = new Queue<TaskCompletionSource<object>>();
 
             mainTask = Task.Run(RunningThread, canceller.Token);
         }
@@ -46,11 +43,7 @@ namespace Zerra.Threading
             if (canceller.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(TaskThrottler));
 
-            queueLocker.Wait();
             queue.Enqueue(taskFunc);
-            if (emptyQueueAwaiter.CurrentCount == 0)
-                emptyQueueAwaiter.Release();
-            queueLocker.Release();
         }
 
         public async ValueTask DisposeAsync()
@@ -62,8 +55,6 @@ namespace Zerra.Threading
 
             running.Dispose();
             taskLimiter.Dispose();
-            queueLocker.Dispose();
-            emptyQueueAwaiter.Dispose();
             GC.SuppressFinalize(this);
         }
 
@@ -74,9 +65,6 @@ namespace Zerra.Threading
 
             running.Dispose();
             taskLimiter.Dispose();
-            queueLocker.Dispose();
-            emptyQueueAwaiter.Dispose();
-            startingTaskEvent.Dispose();
             GC.SuppressFinalize(this);
         }
 
@@ -84,39 +72,29 @@ namespace Zerra.Threading
         {
             try
             {
-                while (!canceller.IsCancellationRequested)
+                while (!canceller.Token.IsCancellationRequested)
                 {
                     await taskLimiter.WaitAsync(canceller.Token);
 
-                    Func<Task> taskFunc;
-                    Task waiter;
-                    await queueLocker.WaitAsync(canceller.Token);
-                    if (queue.Count > 0)
-                    {
-                        taskFunc = queue.Dequeue();
-                        waiter = null;
-                    }
-                    else
-                    {
-                        taskFunc = null;
-                        waiter = emptyQueueAwaiter.WaitAsync(canceller.Token);
-                    }
-                    queueLocker.Release();
-
-                    if (waiter != null)
-                    {
-                        await waiter;
-                        continue;
-                    }
+                    var taskFunc = await queue.DequeueAsync(canceller.Token);
 
                     _ = Task.Run(async () =>
                     {
                         var task = taskFunc();
+                        if (canceller.Token.IsCancellationRequested)
+                            return;
                         running.Add(task);
-                        startingTaskEvent.Set();
                         await task;
                         running.Remove(task);
                         taskLimiter.Release();
+                        if (queue.Count == 0 && running.Count == 0)
+                        {
+                            lock (waiters)
+                            {
+                                waiters.ToArray().ForEach(x => x.SetResult(null));
+                                waiters.Clear();
+                            }
+                        }
                     }, canceller.Token);
                 }
             }
@@ -124,48 +102,35 @@ namespace Zerra.Threading
 
             canceller.Dispose();
 
-            await Task.WhenAll(running.ToArray());
+            if (running.Count > 0)
+                await Task.WhenAll(running.ToArray());
         }
 
-        public void Wait()
+        public void Wait(CancellationToken cancellationToken = default)
         {
-            queueLocker.Wait();
-            var queueCount = queue.Count;
-            queueLocker.Release();
-            var tasks = running.ToArray();
+            if (queue.Count == 0 && running.Count == 0)
+                return;
 
-            while (queueCount > 0 || tasks.Length > 0)
+            lock (waiters)
             {
-                if (queueCount > 0 && tasks.Length == 0)
-                    startingTaskEvent.WaitOne();
-                else
-                    Task.WaitAll(tasks);
-
-                queueLocker.Wait();
-                queueCount = queue.Count;
-                queueLocker.Release();
-                tasks = running.ToArray();
+                var waiter = new TaskCompletionSource<object>();
+                cancellationToken.Register(() => { _ = waiter.TrySetCanceled(cancellationToken); });
+                waiters.Enqueue(waiter);
+                waiter.Task.GetAwaiter().GetResult();
             }
         }
 
-        public async ValueTask WaitAsync()
+        public Task WaitAsync(CancellationToken cancellationToken = default)
         {
-            await queueLocker.WaitAsync();
-            var queueCount = queue.Count;
-            queueLocker.Release();
-            var tasks = running.ToArray();
+            if (queue.Count == 0 && running.Count == 0)
+                return Task.CompletedTask;
 
-            while (queueCount > 0 || tasks.Length > 0)
+            lock (waiters)
             {
-                if (queueCount > 0 && tasks.Length == 0)
-                    startingTaskEvent.WaitOne();
-                else
-                    await Task.WhenAll(tasks);
-
-                await queueLocker.WaitAsync();
-                queueCount = queue.Count;
-                queueLocker.Release();
-                tasks = running.ToArray();
+                var waiter = new TaskCompletionSource<object>();
+                cancellationToken.Register(() => { _ = waiter.TrySetCanceled(cancellationToken); });
+                waiters.Enqueue(waiter);
+                return waiter.Task;
             }
         }
 
@@ -176,18 +141,35 @@ namespace Zerra.Threading
         public static async Task ForEachAsync<TSource>(int maxRunningTasks, IEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body)
         {
             if (maxRunningTasks <= 0) throw new ArgumentException("maxRunningTasks must be greater than zero");
+            var waiter = new TaskCompletionSource<object>();
+            var runningCount = 0;
+            var loopCompleted = false;
             using (var taskLimiter = new SemaphoreSlim(defaultMaxRunningTasks, defaultMaxRunningTasks))
             {
                 foreach (var item in source)
                 {
                     await taskLimiter.WaitAsync();
+                    lock (waiter)
+                        runningCount++;
                     _ = Task.Run(async () =>
+                  {
+
+                      var task = body(item, cancellationToken);
+                      await task;
+                      taskLimiter.Release();
+                      lock (waiter)
                       {
-                          var task = body(item, cancellationToken);
-                          await task;
-                          taskLimiter.Release();
-                      }, cancellationToken);
+                          runningCount--;
+                          if (loopCompleted && runningCount == 0)
+                              waiter.SetResult(null);
+                      }
+                  }, cancellationToken);
                 }
+                lock (waiter)
+                {
+                    loopCompleted = true;
+                }
+                await waiter.Task;
             }
         }
 
@@ -197,18 +179,35 @@ namespace Zerra.Threading
         public static async Task ForEachAsync<TSource>(int maxRunningTasks, IAsyncEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body)
         {
             if (maxRunningTasks <= 0) throw new ArgumentException("maxRunningTasks must be greater than zero");
+            var waiter = new TaskCompletionSource<object>();
+            var runningCount = 0;
+            var loopCompleted = false;
             using (var taskLimiter = new SemaphoreSlim(defaultMaxRunningTasks, defaultMaxRunningTasks))
             {
                 await foreach (var item in source)
                 {
                     await taskLimiter.WaitAsync();
+                    lock (waiter)
+                        runningCount++;
                     _ = Task.Run(async () =>
                     {
+
                         var task = body(item, cancellationToken);
                         await task;
                         taskLimiter.Release();
+                        lock (waiter)
+                        {
+                            runningCount--;
+                            if (loopCompleted && runningCount == 0)
+                                waiter.SetResult(null);
+                        }
                     }, cancellationToken);
                 }
+                lock (waiter)
+                {
+                    loopCompleted = true;
+                }
+                await waiter.Task;
             }
         }
     }
