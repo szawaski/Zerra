@@ -169,7 +169,7 @@ namespace Zerra.Threading
             }
         }
 
-        //for .NET versions before Parallel.ForEachAsync
+        //for .NET versions before Parallel.ForEachAsync which is more efficient
         public static Task ForEachAsync<TSource>(IEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, cancellationToken, body); }
         public static Task ForEachAsync<TSource>(IEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, CancellationToken.None, body); }
         public static Task ForEachAsync<TSource>(int maxRunningTasks, IEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(maxRunningTasks, source, CancellationToken.None, body); }
@@ -187,6 +187,27 @@ namespace Zerra.Threading
                           await task;
                           taskLimiter.Release();
                       }, cancellationToken);
+                }
+            }
+        }
+
+        public static Task ForEachAsync<TSource>(IAsyncEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, cancellationToken, body); }
+        public static Task ForEachAsync<TSource>(IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, CancellationToken.None, body); }
+        public static Task ForEachAsync<TSource>(int maxRunningTasks, IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(maxRunningTasks, source, CancellationToken.None, body); }
+        public static async Task ForEachAsync<TSource>(int maxRunningTasks, IAsyncEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body)
+        {
+            if (maxRunningTasks <= 0) throw new ArgumentException("maxRunningTasks must be greater than zero");
+            using (var taskLimiter = new SemaphoreSlim(defaultMaxRunningTasks, defaultMaxRunningTasks))
+            {
+                await foreach (var item in source)
+                {
+                    await taskLimiter.WaitAsync();
+                    _ = Task.Run(async () =>
+                    {
+                        var task = body(item, cancellationToken);
+                        await task;
+                        taskLimiter.Release();
+                    }, cancellationToken);
                 }
             }
         }
