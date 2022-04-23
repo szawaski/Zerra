@@ -43,7 +43,8 @@ namespace Zerra
 
         public static string GetSetting(string name, params string[] sections)
         {
-            if (configuration == null) throw new InvalidOperationException("Configuration has not been loaded");
+            if (configuration == null) 
+                LoadConfiguration();
             IConfiguration config = configuration;
             if (sections != null && sections.Length > 0)
             {
@@ -59,12 +60,14 @@ namespace Zerra
 
         public static IConfiguration GetConfiguration()
         {
-            if (configuration == null) throw new InvalidOperationException("Configuration has not been loaded");
+            if (configuration == null)
+                LoadConfiguration();
             return configuration;
         }
         public static T Bind<T>(params string[] sections)
         {
-            if (configuration == null) throw new InvalidOperationException("Configuration has not been loaded");
+            if (configuration == null)
+                LoadConfiguration();
             IConfiguration config = configuration;
             if (sections != null && sections.Length > 0)
             {
