@@ -198,7 +198,7 @@ namespace Zerra.CQRS
             else
             {
                 //Task.Run execues on shared principal which can mess things up
-                return TaskSafePrincipal.Run(async () => { await HandleCommandAsync((ICommand)message, messageType, true); });
+                return TaskCopyPrincipal.Run(async () => { await HandleCommandAsync((ICommand)message, messageType, true); });
             }
         }
 #pragma warning disable IDE1006 // Naming Styles

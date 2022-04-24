@@ -5,6 +5,7 @@
 using Microsoft.Extensions.Configuration;
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 
 namespace Zerra
@@ -96,7 +97,7 @@ namespace Zerra
 
         public static string FindFilePath(string fileName)
         {
-            var executingAssemblyPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            var executingAssemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             var filePath = $"{executingAssemblyPath}/{fileName}";
             if (File.Exists(filePath))
                 return filePath;
@@ -108,64 +109,91 @@ namespace Zerra
             return null;
         }
 
-        //private static void AddSettingsFile(ConfigurationBuilder builder, string fileName, string encryptionKey = null)
-        //{
-        //    var text = ReadAppSettingsFile(fileName);
-        //    if (text == null)
-        //        return;
 
-        //    if (!String.IsNullOrWhiteSpace(encryptionKey))
-        //    {
-        //        if (!IsEncrypted(text))
-        //        {
-        //            text = EncryptToString(encryptionKey, text);
-        //            WriteAppSettingsFile(fileName, text);
-        //            builder.AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(text)));
-        //        }
-        //        else
-        //        {
-        //            builder.AddJsonStream(DecryptToStream(encryptionKey, text));
-        //        }
-        //    }
-        //    else
-        //    {
-        //        builder.AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(text)));
-        //    }
-        //}
-        //private static string ReadAppSettingsFile(string fileName)
-        //{
-        //    var filePath = FindFilePath(fileName);
-        //    if (filePath == null)
-        //        return null;
-        //    var data = File.ReadAllText(filePath, Encoding.UTF8);
-        //    Console.WriteLine($"Loaded {filePath}");
-        //    return data;
-        //}
-        //private static void WriteAppSettingsFile(string fileName, string data)
-        //{
-        //    var filePath = FindFilePath(fileName);
-        //    File.WriteAllText(filePath, data);
-        //}
+        private static object discoveryLock = new object();
+        private static bool discoveryStarted;
+        internal static bool DiscoveryStarted
+        {
+            get { lock (discoveryLock) { return discoveryStarted; } }
+            set { lock (discoveryLock) { discoveryStarted = value; } }
+        }
 
-        //private const string encryptionPrefix = "<encrypted>";
-        //private static bool IsEncrypted(string value)
-        //{
-        //    return value.StartsWith(encryptionPrefix);
-        //}
-        //private static string EncryptToString(string key, string valueDecrypted)
-        //{
-        //    var symmetricKey = SymmetricEncryptor.GetKey(key, null, SymmetricKeySize.Bits_256, SymmetricBlockSize.Bits_128);
-        //    var valueEncrypted = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AESwithShift, symmetricKey, valueDecrypted);
-        //    return encryptionPrefix + valueEncrypted;
-        //}
-        //private static Stream DecryptToStream(string key, string valueEncrypted)
-        //{
-        //    if (key == null) throw new InvalidOperationException("Encrypted AppSettings needs a decryption key");
-        //    valueEncrypted = valueEncrypted.Remove(0, encryptionPrefix.Length);
-        //    var ms = new MemoryStream(Convert.FromBase64String(valueEncrypted));
-        //    var symmetricKey = SymmetricEncryptor.GetKey(key, null, SymmetricKeySize.Bits_256, SymmetricBlockSize.Bits_128);
-        //    var decryptionStream = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESwithShift, symmetricKey, ms, false, false);
-        //    return decryptionStream;
-        //}
+        internal static string[] DiscoveryNamespaces;
+
+        private static readonly string entryNameSpace;
+        private static readonly string frameworkNameSpace;
+        static Config()
+        {
+            entryNameSpace = Assembly.GetEntryAssembly()?.GetName().Name.Split('.')[0] + '.';
+            frameworkNameSpace = Assembly.GetExecutingAssembly().GetName().Name.Split('.')[0] + '.';
+
+            if (entryNameSpace != null)
+                DiscoveryNamespaces = new string[] { entryNameSpace, frameworkNameSpace };
+            else
+                DiscoveryNamespaces = new string[] { frameworkNameSpace };
+            discoveryStarted = false;
+        }
+
+        public static void AddDiscoveryNamespaces(params string[] namespaces)
+        {
+            lock (discoveryLock)
+            {
+                if (discoveryStarted)
+                    throw new InvalidOperationException("Discovery has already started");
+
+                var newNamespaces = namespaces.Select(x => x + '.').ToArray();
+
+                var newNamespacesToLoad = new string[DiscoveryNamespaces.Length + newNamespaces.Length];
+                DiscoveryNamespaces.CopyTo(newNamespacesToLoad, 0);
+                newNamespaces.CopyTo(newNamespacesToLoad, DiscoveryNamespaces.Length);
+                DiscoveryNamespaces = newNamespacesToLoad;
+            }
+        }
+        public static void AddDiscoveryAssemblies(params Assembly[] assemblies)
+        {
+            lock (discoveryLock)
+            {
+                if (discoveryStarted)
+                    throw new InvalidOperationException("Discovery has already started");
+
+                var newNamespaces = assemblies.Select(x => x.GetName().Name).ToArray();
+
+                var newNamespacesToLoad = new string[DiscoveryNamespaces.Length + newNamespaces.Length];
+                DiscoveryNamespaces.CopyTo(newNamespacesToLoad, 0);
+                newNamespaces.CopyTo(newNamespacesToLoad, DiscoveryNamespaces.Length);
+                DiscoveryNamespaces = newNamespacesToLoad;
+            }
+        }
+
+        public static void SetDiscoveryNamespaces(params string[] namespaces)
+        {
+            lock (discoveryLock)
+            {
+                if (discoveryStarted)
+                    throw new InvalidOperationException("Discovery has already started");
+
+                var newNamespaces = namespaces.Select(x => x + '.').ToArray();
+
+                var newNamespacesToLoad = new string[newNamespaces.Length + 1];
+                newNamespacesToLoad[0] = frameworkNameSpace;
+                newNamespaces.CopyTo(newNamespacesToLoad, 1);
+                DiscoveryNamespaces = newNamespacesToLoad;
+            }
+        }
+        public static void SetDiscoveryAssemblies(params Assembly[] assemblies)
+        {
+            lock (discoveryLock)
+            {
+                if (discoveryStarted)
+                    throw new InvalidOperationException("Discovery has already started");
+
+                var newNamespaces = assemblies.Select(x => x.GetName().Name).ToArray();
+
+                var newNamespacesToLoad = new string[newNamespaces.Length + 1];
+                newNamespacesToLoad[0] = frameworkNameSpace;
+                newNamespaces.CopyTo(newNamespacesToLoad, 1);
+                DiscoveryNamespaces = newNamespacesToLoad;
+            }
+        }
     }
 }

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Zerra.Threading
 {
-    public static class TaskSafePrincipal
+    public static class TaskCopyPrincipal
     {
         public static Task Run(Action function)
         {

@@ -19,17 +19,17 @@ namespace Zerra.Reflection
         private static readonly ConcurrentDictionary<Type, List<Type>> interfaceByType;
         private static readonly ConcurrentDictionary<Type, List<Type>> typeByAttribute;
         private static readonly ConcurrentDictionary<string, ConcurrentList<Type>> typeByName;
-        private static readonly HashSet<string> initializedAssemblies;
+        private static readonly List<string> discoveredAssemblies;
 
         static Discovery()
         {
-            DiscoveryConfig.Started = true;
+            Config.DiscoveryStarted = true;
 
             classByInterface = new ConcurrentDictionary<Type, List<Type>>();
             interfaceByType = new ConcurrentDictionary<Type, List<Type>>();
             typeByAttribute = new ConcurrentDictionary<Type, List<Type>>();
             typeByName = new ConcurrentDictionary<string, ConcurrentList<Type>>();
-            initializedAssemblies = new HashSet<string>();
+            discoveredAssemblies = new List<string>();
 
             LoadAssemblies();
             Discover();
@@ -52,7 +52,7 @@ namespace Zerra.Reflection
                 {
                     var assemblyName = AssemblyName.GetAssemblyName(assemblyFileName);
 
-                    if (DiscoveryConfig.NamespacesToLoad.Length > 0 && !DiscoveryConfig.NamespacesToLoad.Any(x => assemblyName.Name.StartsWith(x)))
+                    if (Config.DiscoveryNamespaces.Length > 0 && !Config.DiscoveryNamespaces.Any(x => assemblyName.Name.StartsWith(x)))
                         continue;
 
                     if (loadedAssemblies.Contains(assemblyName.FullName))
@@ -106,14 +106,14 @@ namespace Zerra.Reflection
         private static void Discover()
         {
             Assembly[] assemblies;
-            if (DiscoveryConfig.NamespacesToLoad.Length > 0)
-                assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic && DiscoveryConfig.NamespacesToLoad.Any(y => x.FullName.StartsWith(y))).ToArray();
+            if (Config.DiscoveryNamespaces.Length > 0)
+                assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic && Config.DiscoveryNamespaces.Any(y => x.FullName.StartsWith(y))).ToArray();
             else
                 assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic).ToArray();
 
-            foreach (var assembly in assemblies.Where(x => !initializedAssemblies.Contains(x.FullName)))
+            foreach (var assembly in assemblies.Where(x => !discoveredAssemblies.Contains(x.FullName)))
             {
-                initializedAssemblies.Add(assembly.FullName);
+                discoveredAssemblies.Add(assembly.FullName);
 
                 Type[] typesInAssembly = null;
                 try
@@ -342,6 +342,7 @@ namespace Zerra.Reflection
             if (interfaceType == null) throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface) throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
             if (secondaryInterfaces == null) throw new ArgumentNullException(nameof(secondaryInterfaces));
+            if (secondaryInterfaceStartIndex < 0 || secondaryInterfaceStartIndex > secondaryInterfaces.Length - 1) throw new ArgumentOutOfRangeException(nameof(secondaryInterfaceStartIndex));
 
             if (!classByInterface.TryGetValue(interfaceType, out List<Type> classList))
             {
@@ -463,6 +464,7 @@ namespace Zerra.Reflection
             if (interfaceType == null) throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface) throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
             if (secondaryInterfaces == null) throw new ArgumentNullException(nameof(secondaryInterfaces));
+            if (secondaryInterfaceStartIndex < 0 || secondaryInterfaceStartIndex > secondaryInterfaces.Length - 1) throw new ArgumentOutOfRangeException(nameof(secondaryInterfaceStartIndex));
 
             if (!classByInterface.TryGetValue(interfaceType, out List<Type> classList))
                 return Type.EmptyTypes;
