@@ -43,11 +43,6 @@ namespace Zerra.Reflection
             foreach (var currentAssembly in currentAsssemblies)
                 loadedAssemblies.Add(currentAssembly.FullName);
 
-            var currentAssemblyNames = currentAsssemblies.Select(x => x.GetName()).ToArray();
-            var assemblyNames = currentAsssemblies.SelectMany(x => x.GetReferencedAssemblies().Where(y => !currentAssemblyNames.Contains(y))).Distinct(x => x.Name).ToArray();
-            if (DiscoveryConfig.NamespacesToLoad.Length > 0)
-                assemblyNames = assemblyNames.Where(x => DiscoveryConfig.NamespacesToLoad.Any(y => x.Name.StartsWith(y))).ToArray();
-
             var assemblyPath = AppDomain.CurrentDomain.BaseDirectory;
             var assemblyFileNames = System.IO.Directory.GetFiles(assemblyPath, "*.dll");
 

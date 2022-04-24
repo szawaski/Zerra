@@ -14,9 +14,9 @@ namespace Zerra.CQRS.Settings
     {
         public const string SettingsFileName = "cqrssettings.json";
 
-        public static ServiceSettings Get(string path = null)
+        public static ServiceSettings Get()
         {
-            var filePath = Config.GetConfigFile(SettingsFileName, path);
+            var filePath = Config.FindFilePath(SettingsFileName);
             if (filePath == null)
             {
                 Log.InfoAsync($"{filePath} not found").GetAwaiter().GetResult();
