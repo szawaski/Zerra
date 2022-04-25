@@ -16,7 +16,7 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.RabbitMQ
 {
-    public class RabbitMQClient : ICommandClient, IEventClient, IDisposable
+    public class RabbitMQClient : ICommandProducer, IEventProducer, IDisposable
     {
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 
@@ -43,9 +43,9 @@ namespace Zerra.CQRS.RabbitMQ
             }
         }
 
-        Task ICommandClient.DispatchAsync(ICommand command) { return SendAsync(command, false); }
-        Task ICommandClient.DispatchAsyncAwait(ICommand command) { return SendAsync(command, true); }
-        Task IEventClient.DispatchAsync(IEvent @event) { return SendAsync(@event); }
+        Task ICommandProducer.DispatchAsync(ICommand command) { return SendAsync(command, false); }
+        Task ICommandProducer.DispatchAsyncAwait(ICommand command) { return SendAsync(command, true); }
+        Task IEventProducer.DispatchAsync(IEvent @event) { return SendAsync(@event); }
 
         private async Task SendAsync(ICommand command, bool requireAcknowledgement)
         {

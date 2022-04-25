@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Zerra.CQRS
 {
-    public interface IEventServer
+    public interface IEventConsumer
     {
         string ConnectionString { get; }
         void RegisterEventType(Type type);

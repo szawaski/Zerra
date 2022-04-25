@@ -10,8 +10,8 @@ namespace Zerra.CQRS.Kafka
 {
     public class KafkaServiceCreator : IServiceCreator
     {
-        private static readonly ConcurrentFactoryDictionary<string, KafkaServer> kafkaServers = new ConcurrentFactoryDictionary<string, KafkaServer>();
-        private static readonly ConcurrentFactoryDictionary<string, KafkaClient> kakfaClients = new ConcurrentFactoryDictionary<string, KafkaClient>();
+        private static readonly ConcurrentFactoryDictionary<string, KafkaConsumer> kafkaServers = new ConcurrentFactoryDictionary<string, KafkaConsumer>();
+        private static readonly ConcurrentFactoryDictionary<string, KafkaProducer> kakfaClients = new ConcurrentFactoryDictionary<string, KafkaProducer>();
 
         private readonly string host;
         private readonly IServiceCreator serviceCreatorForQueries;
@@ -21,24 +21,24 @@ namespace Zerra.CQRS.Kafka
             this.serviceCreatorForQueries = serviceCreatorForQueries;
         }
 
-        public ICommandClient CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandProducer CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return kakfaClients.GetOrAdd(host, (host) => new KafkaClient(host, encryptionKey));
+            return kakfaClients.GetOrAdd(host, (host) => new KafkaProducer(host, encryptionKey));
         }
 
-        public ICommandServer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandConsumer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return kafkaServers.GetOrAdd(host, (host) => new KafkaServer(host, encryptionKey));
+            return kafkaServers.GetOrAdd(host, (host) => new KafkaConsumer(host, encryptionKey));
         }
 
-        public IEventClient CreateEventClient(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventProducer CreateEventClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return kakfaClients.GetOrAdd(host, (host) => new KafkaClient(host, encryptionKey));
+            return kakfaClients.GetOrAdd(host, (host) => new KafkaProducer(host, encryptionKey));
         }
 
-        public IEventServer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventConsumer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return kafkaServers.GetOrAdd(host, (host) => new KafkaServer(host, encryptionKey));
+            return kafkaServers.GetOrAdd(host, (host) => new KafkaConsumer(host, encryptionKey));
         }
 
         public IQueryClient CreateQueryClient(string serviceUrl, SymmetricKey encryptionKey)

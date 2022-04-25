@@ -16,7 +16,7 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
-    public class ApiClient : IQueryClient, ICommandClient
+    public class ApiClient : IQueryClient, ICommandProducer
     {
         private readonly string endpointAddress;
         private readonly ContentType requestContentType;
@@ -61,7 +61,7 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        Task ICommandClient.DispatchAsync(ICommand message)
+        Task ICommandProducer.DispatchAsync(ICommand message)
         {
             var commandType = message.GetType();
             var commendTypeName = commandType.GetNiceFullName();
@@ -77,7 +77,7 @@ namespace Zerra.CQRS.Network
             return RequestAsync<object>(endpointAddress, commendTypeName, requestContentType, data, false);
         }
 
-        Task ICommandClient.DispatchAsyncAwait(ICommand message)
+        Task ICommandProducer.DispatchAsyncAwait(ICommand message)
         {
             var commandType = message.GetType();
             var commendTypeName = commandType.GetNiceFullName();

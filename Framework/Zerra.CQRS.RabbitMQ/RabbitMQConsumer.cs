@@ -12,7 +12,7 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.RabbitMQ
 {
-    public partial class RabbitMQServer : ICommandServer, IEventServer, IDisposable
+    public partial class RabbitMQConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
         private const int retryDelay = 10000;
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
@@ -29,7 +29,7 @@ namespace Zerra.CQRS.RabbitMQ
 
         public string ConnectionString => host;
 
-        public RabbitMQServer(string host, SymmetricKey encryptionKey)
+        public RabbitMQConsumer(string host, SymmetricKey encryptionKey)
         {
             this.host = host;
             this.encryptionKey = encryptionKey;
@@ -37,29 +37,29 @@ namespace Zerra.CQRS.RabbitMQ
             this.eventExchanges = new List<EventReceiverExchange>();
         }
 
-        void ICommandServer.SetHandler(Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
+        void ICommandConsumer.SetHandler(Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
         {
             if (this.connection != null)
                 throw new InvalidOperationException("Connection already open");
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
         }
-        void IEventServer.SetHandler(Func<IEvent, Task> handlerAsync)
+        void IEventConsumer.SetHandler(Func<IEvent, Task> handlerAsync)
         {
             if (this.connection != null)
                 throw new InvalidOperationException("Connection already open");
             this.eventHandlerAsync = handlerAsync;
         }
 
-        void ICommandServer.Open()
+        void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(RabbitMQServer)} Command Server Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Command Server Started Connected To {this.host}");
         }
-        void IEventServer.Open()
+        void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(RabbitMQServer)} Event Server Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Event Server Started Connected To {this.host}");
         }
         private void Open()
         {
@@ -70,7 +70,7 @@ namespace Zerra.CQRS.RabbitMQ
             }
             catch (Exception ex)
             {
-                Log.ErrorAsync($"{nameof(RabbitMQServer)} failed to open", ex);
+                Log.ErrorAsync($"{nameof(RabbitMQConsumer)} failed to open", ex);
                 throw;
             }
 
@@ -95,15 +95,15 @@ namespace Zerra.CQRS.RabbitMQ
                 exchange.Open(this.connection, this.eventHandlerAsync);
         }
 
-        void ICommandServer.Close()
+        void ICommandConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(RabbitMQServer)} Command Server Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Command Server Closed On {this.host}");
         }
-        void IEventServer.Close()
+        void IEventConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(RabbitMQServer)} Event Server Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Event Server Closed On {this.host}");
         }
         private void Close()
         {
@@ -126,7 +126,7 @@ namespace Zerra.CQRS.RabbitMQ
             this.Close();
         }
 
-        void ICommandServer.RegisterCommandType(Type type)
+        void ICommandConsumer.RegisterCommandType(Type type)
         {
             lock (commandExchanges)
             {
@@ -134,12 +134,12 @@ namespace Zerra.CQRS.RabbitMQ
                 OpenExchanges();
             }
         }
-        ICollection<Type> ICommandServer.GetCommandTypes()
+        ICollection<Type> ICommandConsumer.GetCommandTypes()
         {
             return commandExchanges.Select(x => x.Type).ToArray();
         }
 
-        void IEventServer.RegisterEventType(Type type)
+        void IEventConsumer.RegisterEventType(Type type)
         {
             lock (eventExchanges)
             {
@@ -147,7 +147,7 @@ namespace Zerra.CQRS.RabbitMQ
                 OpenExchanges();
             }
         }
-        ICollection<Type> IEventServer.GetEventTypes()
+        ICollection<Type> IEventConsumer.GetEventTypes()
         {
             return eventExchanges.Select(x => x.Type).ToArray();
         }

@@ -12,7 +12,7 @@ using Zerra.Logging;
 namespace Zerra.CQRS.Kafka
 {
     //Kafka Consumer
-    public partial class KafkaServer : ICommandServer, IEventServer, IDisposable
+    public partial class KafkaConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
         private const int retryDelay = 10000;
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
@@ -30,7 +30,7 @@ namespace Zerra.CQRS.Kafka
 
         public string ConnectionString => host;
 
-        public KafkaServer(string host, SymmetricKey encryptionKey)
+        public KafkaConsumer(string host, SymmetricKey encryptionKey)
         {
             this.host = host;
             this.encryptionKey = encryptionKey;
@@ -38,29 +38,29 @@ namespace Zerra.CQRS.Kafka
             this.eventExchanges = new List<EventConsumer>();
         }
 
-        void ICommandServer.SetHandler(Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
+        void ICommandConsumer.SetHandler(Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
         }
-        void IEventServer.SetHandler(Func<IEvent, Task> handlerAsync)
+        void IEventConsumer.SetHandler(Func<IEvent, Task> handlerAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
             this.eventHandlerAsync = handlerAsync;
         }
 
-        void ICommandServer.Open()
+        void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(KafkaServer)} Command Server Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Command Server Started Connected To {this.host}");
         }
-        void IEventServer.Open()
+        void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(KafkaServer)} Event Server Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Event Server Started Connected To {this.host}");
         }
         private void Open()
         {
@@ -87,15 +87,15 @@ namespace Zerra.CQRS.Kafka
                 exchange.Open(this.host, this.eventHandlerAsync);
         }
 
-        void ICommandServer.Close()
+        void ICommandConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(KafkaServer)} Command Server Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Command Server Closed On {this.host}");
         }
-        void IEventServer.Close()
+        void IEventConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(KafkaServer)} Event Server Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Event Server Closed On {this.host}");
         }
         private void Close()
         {
@@ -116,7 +116,7 @@ namespace Zerra.CQRS.Kafka
             this.Close();
         }
 
-        void ICommandServer.RegisterCommandType(Type type)
+        void ICommandConsumer.RegisterCommandType(Type type)
         {
             lock (commandExchanges)
             {
@@ -124,12 +124,12 @@ namespace Zerra.CQRS.Kafka
                 OpenExchanges();
             }
         }
-        ICollection<Type> ICommandServer.GetCommandTypes()
+        ICollection<Type> ICommandConsumer.GetCommandTypes()
         {
             return commandExchanges.Select(x => x.Type).ToArray();
         }
 
-        void IEventServer.RegisterEventType(Type type)
+        void IEventConsumer.RegisterEventType(Type type)
         {
             lock (eventExchanges)
             {
@@ -137,7 +137,7 @@ namespace Zerra.CQRS.Kafka
                 OpenExchanges();
             }
         }
-        ICollection<Type> IEventServer.GetEventTypes()
+        ICollection<Type> IEventConsumer.GetEventTypes()
         {
             return eventExchanges.Select(x => x.Type).ToArray();
         }

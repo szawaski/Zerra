@@ -95,7 +95,7 @@ namespace Zerra.CQRS
         {
             Type messageType = command.GetType();
             var messageTypeInfo = TypeAnalyzer.GetTypeDetail(messageType);
-            if (!commandClients.IsEmpty)
+            if (!commandProducers.IsEmpty)
             {
                 //Not a local call so apply cache layer at Bus level
                 var handlerType = TypeAnalyzer.GetGenericType(iCommandHandlerType, messageType);
@@ -134,7 +134,7 @@ namespace Zerra.CQRS
         {
             Type messageType = message.GetType();
             var messageTypeInfo = TypeAnalyzer.GetTypeDetail(messageType);
-            if (!commandClients.IsEmpty)
+            if (!commandProducers.IsEmpty)
             {
                 //Not a local call so apply cache layer at Bus level
                 var handlerType = TypeAnalyzer.GetGenericType(iEventHandlerType, messageType);
@@ -173,19 +173,19 @@ namespace Zerra.CQRS
         public static Task _DispatchCommandInternalAsync(ICommand message, Type messageType, bool requireAffirmation)
 #pragma warning restore IDE1006 // Naming Styles
         {
-            ICommandClient client = null;
+            ICommandProducer producer = null;
             Type messageBaseType = messageType;
-            while (client == null && messageBaseType != null)
+            while (producer == null && messageBaseType != null)
             {
-                if (commandClients.TryGetValue(messageBaseType, out client))
+                if (commandProducers.TryGetValue(messageBaseType, out producer))
                 {
                     if (requireAffirmation)
                     {
-                        return client.DispatchAsyncAwait(message);
+                        return producer.DispatchAsyncAwait(message);
                     }
                     else
                     {
-                        return client.DispatchAsync(message);
+                        return producer.DispatchAsync(message);
                     }
                 }
                 messageBaseType = messageBaseType.BaseType;
@@ -205,13 +205,13 @@ namespace Zerra.CQRS
         public static async Task _DispatchEventInternalAsync(IEvent message, Type messageType)
 #pragma warning restore IDE1006 // Naming Styles
         {
-            IEventClient client = null;
+            IEventProducer producer = null;
             Type messageBaseType = messageType;
-            while (client == null && messageBaseType != null)
+            while (producer == null && messageBaseType != null)
             {
-                if (eventClients.TryGetValue(messageBaseType, out client))
+                if (eventProducers.TryGetValue(messageBaseType, out producer))
                 {
-                    await client.DispatchAsync(message);
+                    await producer.DispatchAsync(message);
                 }
                 messageBaseType = messageBaseType.BaseType;
             }
@@ -354,8 +354,8 @@ namespace Zerra.CQRS
 
         private static readonly object serviceLock = new object();
 
-        private static readonly ConcurrentDictionary<Type, ICommandClient> commandClients = new ConcurrentDictionary<Type, ICommandClient>();
-        public static void AddCommandClient<TInterface>(ICommandClient commandClient) where TInterface : IBaseProvider
+        private static readonly ConcurrentDictionary<Type, ICommandProducer> commandProducers = new ConcurrentDictionary<Type, ICommandProducer>();
+        public static void AddCommandClient<TInterface>(ICommandProducer commandProducer) where TInterface : IBaseProvider
         {
             lock (serviceLock)
             {
@@ -363,19 +363,19 @@ namespace Zerra.CQRS
                 var commandTypes = GetCommandTypesFromInterface(type);
                 foreach (var commandType in commandTypes)
                 {
-                    if (commandServerTypes.Contains(commandType))
+                    if (commandConsumerTypes.Contains(commandType))
                         throw new InvalidOperationException($"Cannot create loopback. Command Server already registered for type {commandType.GetNiceName()}");
-                    if (commandClients.ContainsKey(commandType))
+                    if (commandProducers.ContainsKey(commandType))
                         throw new InvalidOperationException($"Command Client already registered for type {commandType.GetNiceName()}");
-                    commandClients.TryAdd(commandType, commandClient);
+                    commandProducers.TryAdd(commandType, commandProducer);
                     //_ = Log.InfoAsync($"{nameof(Bus)} Added Command Client For {commandType.GetNiceName()}");
                 }
             }
         }
 
-        private static readonly ConcurrentHashSet<ICommandServer> commandServers = new ConcurrentHashSet<ICommandServer>();
-        private static readonly HashSet<Type> commandServerTypes = new HashSet<Type>();
-        public static void AddCommandServer(ICommandServer commandServer)
+        private static readonly ConcurrentHashSet<ICommandConsumer> commandConsumers = new ConcurrentHashSet<ICommandConsumer>();
+        private static readonly HashSet<Type> commandConsumerTypes = new HashSet<Type>();
+        public static void AddCommandServer(ICommandConsumer commandConsumer)
         {
             lock (serviceLock)
             {
@@ -390,24 +390,24 @@ namespace Zerra.CQRS
                             var hasHandler = Discovery.HasImplementationType(TypeAnalyzer.GetGenericType(typeof(ICommandHandler<>), type), interfaceStack, interfaceStack.Length - 1);
                             if (hasHandler)
                             {
-                                if (commandClients.ContainsKey(type))
+                                if (commandProducers.ContainsKey(type))
                                     throw new InvalidOperationException($"Cannot create loopback. Command Client already registered for type {type.GetNiceName()}");
-                                if (!commandServerTypes.Contains(type))
-                                    commandServerTypes.Add(type);
-                                commandServer.RegisterCommandType(type);
+                                if (!commandConsumerTypes.Contains(type))
+                                    commandConsumerTypes.Add(type);
+                                commandConsumer.RegisterCommandType(type);
                             }
                         }
                     }
                 }
 
-                commandServer.SetHandler(HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync);
-                commandServers.Add(commandServer);
-                commandServer.Open();
+                commandConsumer.SetHandler(HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync);
+                commandConsumers.Add(commandConsumer);
+                commandConsumer.Open();
             }
         }
 
-        private static readonly ConcurrentDictionary<Type, IEventClient> eventClients = new ConcurrentDictionary<Type, IEventClient>();
-        public static void AddEventClient<TInterface>(IEventClient eventClient) where TInterface : IBaseProvider
+        private static readonly ConcurrentDictionary<Type, IEventProducer> eventProducers = new ConcurrentDictionary<Type, IEventProducer>();
+        public static void AddEventClient<TInterface>(IEventProducer eventProducer) where TInterface : IBaseProvider
         {
             lock (serviceLock)
             {
@@ -415,19 +415,19 @@ namespace Zerra.CQRS
                 var eventTypes = GetEventTypesFromInterface(type);
                 foreach (var eventType in eventTypes)
                 {
-                    if (eventServerTypes.Contains(type))
+                    if (eventConsumerTypes.Contains(type))
                         throw new InvalidOperationException($"Cannot create loopback. Event Server already registered for type {type.GetNiceName()}");
-                    if (eventClients.ContainsKey(eventType))
+                    if (eventProducers.ContainsKey(eventType))
                         throw new InvalidOperationException($"Event Client already registered for type {eventType.GetNiceName()}");
-                    eventClients.TryAdd(eventType, eventClient);
+                    eventProducers.TryAdd(eventType, eventProducer);
                     _ = Log.InfoAsync($"{nameof(Bus)} Added Event Client For {eventType.GetNiceName()}");
                 }
             }
         }
 
-        private static readonly ConcurrentHashSet<IEventServer> eventServers = new ConcurrentHashSet<IEventServer>();
-        private static readonly HashSet<Type> eventServerTypes = new HashSet<Type>();
-        public static void AddEventServer(IEventServer eventServer)
+        private static readonly ConcurrentHashSet<IEventConsumer> eventConsumers = new ConcurrentHashSet<IEventConsumer>();
+        private static readonly HashSet<Type> eventConsumerTypes = new HashSet<Type>();
+        public static void AddEventServer(IEventConsumer eventConsumer)
         {
             lock (serviceLock)
             {
@@ -442,19 +442,19 @@ namespace Zerra.CQRS
                             var hasHandler = Discovery.HasImplementationType(TypeAnalyzer.GetGenericType(typeof(IEventHandler<>), type), interfaceStack, interfaceStack.Length - 1);
                             if (hasHandler)
                             {
-                                if (eventClients.ContainsKey(type))
+                                if (eventProducers.ContainsKey(type))
                                     throw new InvalidOperationException($"Cannot create loopback. Event Client already registered for type {type.GetNiceName()}");
-                                if (!eventServerTypes.Contains(type))
-                                    eventServerTypes.Add(type);
-                                eventServer.RegisterEventType(type);
+                                if (!eventConsumerTypes.Contains(type))
+                                    eventConsumerTypes.Add(type);
+                                eventConsumer.RegisterEventType(type);
                             }
                         }
                     }
                 }
 
-                eventServer.SetHandler(HandleRemoteEventDispatchAsync);
-                eventServers.Add(eventServer);
-                eventServer.Open();
+                eventConsumer.SetHandler(HandleRemoteEventDispatchAsync);
+                eventConsumers.Add(eventConsumer);
+                eventConsumer.Open();
             }
         }
 
@@ -466,7 +466,7 @@ namespace Zerra.CQRS
                 Type interfaceType = typeof(TInterface);
                 if (queryServerTypes.Contains(interfaceType))
                     throw new InvalidOperationException($"Cannot create loopback. Query Server already registered for type {interfaceType.GetNiceName()}");
-                if (commandClients.ContainsKey(interfaceType))
+                if (commandProducers.ContainsKey(interfaceType))
                     throw new InvalidOperationException($"Query Client already registered for type {interfaceType.GetNiceName()}");
                 queryClients.TryAdd(interfaceType, queryClient);
                 _ = Log.InfoAsync($"{nameof(Bus)} Added Query Client For {interfaceType.GetNiceName()}");
@@ -521,47 +521,47 @@ namespace Zerra.CQRS
             {
                 var disposed = new HashSet<IDisposable>();
 
-                foreach (var client in commandClients.Select(x => x.Value))
+                foreach (var commandProducer in commandProducers.Select(x => x.Value))
                 {
-                    if (client is IDisposable disposable && !disposed.Contains(disposable))
+                    if (commandProducer is IDisposable disposable && !disposed.Contains(disposable))
                     {
                         disposable.Dispose();
                         disposed.Add(disposable);
                     }
                 }
-                commandClients.Clear();
+                commandProducers.Clear();
 
-                foreach (var server in commandServers)
+                foreach (var commandConsumer in commandConsumers)
                 {
-                    server.Close();
-                    if (server is IDisposable disposable && !disposed.Contains(disposable))
+                    commandConsumer.Close();
+                    if (commandConsumer is IDisposable disposable && !disposed.Contains(disposable))
                     {
                         disposable.Dispose();
                         disposed.Add(disposable);
                     }
                 }
-                commandServers.Clear();
+                commandConsumers.Clear();
 
-                foreach (var client in eventClients.Select(x => x.Value))
+                foreach (var eventProducer in eventProducers.Select(x => x.Value))
                 {
-                    if (client is IDisposable disposable && !disposed.Contains(disposable))
+                    if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
                     {
                         disposable.Dispose();
                         disposed.Add(disposable);
                     }
                 }
-                commandClients.Clear();
+                commandProducers.Clear();
 
-                foreach (var server in eventServers)
+                foreach (var eventConsumer in eventConsumers)
                 {
-                    server.Close();
-                    if (server is IDisposable disposable && !disposed.Contains(disposable))
+                    eventConsumer.Close();
+                    if (eventConsumer is IDisposable disposable && !disposed.Contains(disposable))
                     {
                         disposable.Dispose();
                         disposed.Add(disposable);
                     }
                 }
-                commandServers.Clear();
+                commandConsumers.Clear();
 
                 foreach (var messageLogger in messageLoggers)
                 {
@@ -662,8 +662,8 @@ namespace Zerra.CQRS
                 if (String.IsNullOrWhiteSpace(serverUrl))
                     serverUrl = serverSetting.ExternalUrl;
 
-                ICommandServer commandServer = null;
-                IEventServer eventServer = null;
+                ICommandConsumer commandConsumer = null;
+                IEventConsumer eventConsumer = null;
                 IQueryServer queryServer = null;
 
                 var serverTypes = new HashSet<Type>();
@@ -700,8 +700,8 @@ namespace Zerra.CQRS
                     if (serviceSetting.Types == null || serviceSetting.Types.Length == 0)
                         continue;
 
-                    ICommandClient commandClient = null;
-                    IEventClient eventClient = null;
+                    ICommandProducer commandProducer = null;
+                    IEventProducer eventProducer = null;
                     IQueryClient queryClient = null;
 
                     foreach (var typeName in serviceSetting.Types)
@@ -718,46 +718,46 @@ namespace Zerra.CQRS
                         {
                             if (serviceSetting == serverSetting)
                             {
-                                if (commandServer == null)
+                                if (commandConsumer == null)
                                 {
                                     var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    commandServer = serviceCreator.CreateCommandServer(serverUrl, encryptionKey);
-                                    commandServer.SetHandler(HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync);
-                                    if (!commandServers.Contains(commandServer))
-                                        commandServers.Add(commandServer);
+                                    commandConsumer = serviceCreator.CreateCommandServer(serverUrl, encryptionKey);
+                                    commandConsumer.SetHandler(HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync);
+                                    if (!commandConsumers.Contains(commandConsumer))
+                                        commandConsumers.Add(commandConsumer);
                                 }
                                 foreach (var commandType in commandTypes)
                                 {
-                                    if (commandClients.ContainsKey(commandType))
+                                    if (commandProducers.ContainsKey(commandType))
                                         throw new InvalidOperationException($"Command Client already registered for type {commandType.GetNiceName()}");
-                                    if (commandServerTypes.Contains(commandType))
+                                    if (commandConsumerTypes.Contains(commandType))
                                         throw new InvalidOperationException($"Command Server already registered for type {commandType.GetNiceName()}");
-                                    commandServerTypes.Add(commandType);
-                                    commandServer.RegisterCommandType(commandType);
+                                    commandConsumerTypes.Add(commandType);
+                                    commandConsumer.RegisterCommandType(commandType);
                                 }
                             }
                             else
                             {
-                                if (commandClient == null)
+                                if (commandProducer == null)
                                 {
                                     var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    commandClient = serviceCreator.CreateCommandClient(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, encryptionKey);
+                                    commandProducer = serviceCreator.CreateCommandClient(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, encryptionKey);
                                 }
                                 var clientCommandTypes = commandTypes.Where(x => !serverTypes.Contains(x)).ToArray();
                                 if (clientCommandTypes.Length > 0)
                                 {
                                     foreach (var commandType in clientCommandTypes)
                                     {
-                                        if (commandServerTypes.Contains(commandType))
+                                        if (commandConsumerTypes.Contains(commandType))
                                             throw new InvalidOperationException($"Command Server already registered for type {commandType.GetNiceName()}");
-                                        if (commandClients.ContainsKey(commandType))
+                                        if (commandProducers.ContainsKey(commandType))
                                             throw new InvalidOperationException($"Command Client already registered for type {commandType.GetNiceName()}");
-                                        commandClients.TryAdd(commandType, commandClient);
+                                        commandProducers.TryAdd(commandType, commandProducer);
                                     }
                                 }
                                 else
                                 {
-                                    if (commandClient is IDisposable disposable)
+                                    if (commandProducer is IDisposable disposable)
                                         disposable.Dispose();
                                 }
                             }
@@ -768,47 +768,47 @@ namespace Zerra.CQRS
                         {
                             if (serviceSetting == serverSetting)
                             {
-                                if (eventServer == null)
+                                if (eventConsumer == null)
                                 {
                                     var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    eventServer = serviceCreator.CreateEventServer(serverUrl, encryptionKey);
-                                    eventServer.SetHandler(HandleRemoteEventDispatchAsync);
-                                    if (!eventServers.Contains(eventServer))
-                                        eventServers.Add(eventServer);
+                                    eventConsumer = serviceCreator.CreateEventServer(serverUrl, encryptionKey);
+                                    eventConsumer.SetHandler(HandleRemoteEventDispatchAsync);
+                                    if (!eventConsumers.Contains(eventConsumer))
+                                        eventConsumers.Add(eventConsumer);
                                 }
                                 foreach (var eventType in eventTypes)
                                 {
-                                    if (eventClients.ContainsKey(eventType))
+                                    if (eventProducers.ContainsKey(eventType))
                                         throw new InvalidOperationException($"Event Client already registered for type {eventType.GetNiceName()}");
-                                    if (eventServerTypes.Contains(eventType))
+                                    if (eventConsumerTypes.Contains(eventType))
                                         throw new InvalidOperationException($"Event Server already registered for type {eventType.GetNiceName()}");
-                                    eventServerTypes.Add(eventType);
-                                    eventServer.RegisterEventType(eventType);
+                                    eventConsumerTypes.Add(eventType);
+                                    eventConsumer.RegisterEventType(eventType);
                                 }
                             }
                             else
                             {
-                                if (eventClient == null)
+                                if (eventProducer == null)
                                 {
                                     var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    eventClient = serviceCreator.CreateEventClient(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, encryptionKey);
+                                    eventProducer = serviceCreator.CreateEventClient(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, encryptionKey);
                                 }
                                 var clientEventTypes = eventTypes.Where(x => !serverTypes.Contains(x)).ToArray();
                                 if (clientEventTypes.Length > 0)
                                 {
                                     foreach (var eventType in eventTypes)
                                     {
-                                        if (eventServerTypes.Contains(eventType))
+                                        if (eventConsumerTypes.Contains(eventType))
                                             throw new InvalidOperationException($"Event Server already registered for type {eventType.GetNiceName()}");
-                                        if (!eventClients.ContainsKey(eventType))
+                                        if (!eventProducers.ContainsKey(eventType))
                                         {
-                                            eventClients.TryAdd(eventType, eventClient);
+                                            eventProducers.TryAdd(eventType, eventProducer);
                                         }
                                     }
                                 }
                                 else
                                 {
-                                    if (eventClient is IDisposable disposable)
+                                    if (eventProducer is IDisposable disposable)
                                         disposable.Dispose();
                                 }
                             }
@@ -844,7 +844,7 @@ namespace Zerra.CQRS
                                 {
                                     if (queryServerTypes.Contains(type))
                                         throw new InvalidOperationException($"Query Server already registered for type {type.GetNiceName()}");
-                                    if (commandClients.ContainsKey(type))
+                                    if (commandProducers.ContainsKey(type))
                                         throw new InvalidOperationException($"Query Client already registered for type {type.GetNiceName()}");
                                     queryClients.TryAdd(type, queryClient);
                                 }
@@ -864,31 +864,31 @@ namespace Zerra.CQRS
                     relayRegisterTypes = new Dictionary<string, HashSet<string>>();
                 }
 
-                if (commandServer != null)
+                if (commandConsumer != null)
                 {
-                    commandServer.Open();
+                    commandConsumer.Open();
                     if (relayRegister != null)
                     {
-                        var commandTypes = commandServer.GetCommandTypes().Select(x => x.GetNiceName()).ToArray();
-                        if (!relayRegisterTypes.TryGetValue(commandServer.ConnectionString, out HashSet<string> relayTypes))
+                        var commandTypes = commandConsumer.GetCommandTypes().Select(x => x.GetNiceName()).ToArray();
+                        if (!relayRegisterTypes.TryGetValue(commandConsumer.ConnectionString, out HashSet<string> relayTypes))
                         {
                             relayTypes = new HashSet<string>();
-                            relayRegisterTypes.Add(commandServer.ConnectionString, relayTypes);
+                            relayRegisterTypes.Add(commandConsumer.ConnectionString, relayTypes);
                         }
                         foreach (var type in commandTypes)
                             relayTypes.Add(type);
                     }
                 }
-                if (eventServer != null)
+                if (eventConsumer != null)
                 {
-                    eventServer.Open();
+                    eventConsumer.Open();
                     if (relayRegister != null)
                     {
-                        var eventTypes = eventServer.GetEventTypes().Select(x => x.GetNiceName()).ToArray();
-                        if (!relayRegisterTypes.TryGetValue(eventServer.ConnectionString, out HashSet<string> relayTypes))
+                        var eventTypes = eventConsumer.GetEventTypes().Select(x => x.GetNiceName()).ToArray();
+                        if (!relayRegisterTypes.TryGetValue(eventConsumer.ConnectionString, out HashSet<string> relayTypes))
                         {
                             relayTypes = new HashSet<string>();
-                            relayRegisterTypes.Add(eventServer.ConnectionString, relayTypes);
+                            relayRegisterTypes.Add(eventConsumer.ConnectionString, relayTypes);
                         }
                         foreach (var type in eventTypes)
                             relayTypes.Add(type);

@@ -7,6 +7,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Security.Claims;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Encryption;
@@ -14,33 +15,36 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.Kafka
 {
-    public partial class KafkaServer
+    public partial class KafkaConsumer
     {
-        public class EventConsumer : IDisposable
+        public class CommandConsumer : IDisposable
         {
             public Type Type { get; private set; }
             public bool IsOpen { get; private set; }
 
             private readonly string topic;
+            private readonly string clientID;
             private readonly SymmetricKey encryptionKey;
-            private CancellationTokenSource canceller;
 
-            public EventConsumer(Type type, SymmetricKey encryptionKey)
+            private CancellationTokenSource canceller = null;
+
+            public CommandConsumer(Type type, SymmetricKey encryptionKey)
             {
                 this.Type = type;
                 this.topic = type.GetNiceName();
+                this.clientID = Guid.NewGuid().ToString();
                 this.encryptionKey = encryptionKey;
             }
 
-            public void Open(string host, Func<IEvent, Task> handlerAsync)
+            public void Open(string host, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
             {
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                Task.Run(() => ListeningThread(host, handlerAsync));
+                Task.Run(() => ListeningThread(host, handlerAsync, handlerAwaitAsync));
             }
 
-            public async Task ListeningThread(string host, Func<IEvent, Task> handlerAsync)
+            private async Task ListeningThread(string host, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
             {
                 canceller = new CancellationTokenSource();
 
@@ -53,7 +57,7 @@ namespace Zerra.CQRS.Kafka
 
                     var consumerConfig = new ConsumerConfig();
                     consumerConfig.BootstrapServers = host;
-                    consumerConfig.GroupId = Guid.NewGuid().ToString();
+                    consumerConfig.GroupId = topic;
                     consumerConfig.EnableAutoCommit = false;
 
                     consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build();
@@ -61,6 +65,10 @@ namespace Zerra.CQRS.Kafka
 
                     for (; ; )
                     {
+                        Exception error = null;
+                        bool awaitResponse = false;
+                        string ackTopic = null;
+                        string ackKey = null;
                         try
                         {
                             if (canceller.Token.IsCancellationRequested)
@@ -69,7 +77,14 @@ namespace Zerra.CQRS.Kafka
                             var consumerResult = consumer.Consume(canceller.Token);
                             consumer.Commit(consumerResult);
 
-                            if (consumerResult.Message.Key == KafkaCommon.MessageKey)
+                            awaitResponse = consumerResult.Message.Key == KafkaCommon.MessageWithAckKey;
+                            if (awaitResponse)
+                            {
+                                ackTopic = Encoding.UTF8.GetString(consumerResult.Message.Headers.GetLastBytes(KafkaCommon.AckTopicHeader));
+                                ackKey = Encoding.UTF8.GetString(consumerResult.Message.Headers.GetLastBytes(KafkaCommon.AckKeyHeader));
+                            }
+
+                            if (consumerResult.Message.Key == KafkaCommon.MessageKey || awaitResponse)
                             {
                                 var stopwatch = new Stopwatch();
                                 stopwatch.Start();
@@ -78,7 +93,7 @@ namespace Zerra.CQRS.Kafka
                                 if (encryptionKey != null)
                                     body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, body);
 
-                                var message = KafkaCommon.Deserialize<KafkaEventMessage>(body);
+                                var message = KafkaCommon.Deserialize<KafkaCommandMessage>(body);
 
                                 if (message.Claims != null)
                                 {
@@ -86,14 +101,17 @@ namespace Zerra.CQRS.Kafka
                                     Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
                                 }
 
-                                await handlerAsync(message.Message);
+                                if (awaitResponse)
+                                    await handlerAwaitAsync(message.Message);
+                                else
+                                    await handlerAsync(message.Message);
 
                                 stopwatch.Stop();
                                 _ = Log.TraceAsync($"Received Await: {topic}  {stopwatch.ElapsedMilliseconds}");
                             }
                             else
                             {
-                                _ = Log.ErrorAsync($"{nameof(KafkaServer)} unrecognized message key {consumerResult.Message.Key}");
+                                _ = Log.ErrorAsync($"{nameof(KafkaConsumer)} unrecognized message key {consumerResult.Message.Key}");
                             }
                         }
                         catch (TaskCanceledException)
@@ -104,6 +122,40 @@ namespace Zerra.CQRS.Kafka
                         {
                             _ = Log.TraceAsync($"Error: Received Await: {topic}");
                             _ = Log.ErrorAsync(ex);
+                            error = ex;
+                        }
+                        if (awaitResponse)
+                        {
+                            IProducer<string, byte[]> producer = null;
+                            try
+                            {
+                                var producerConfig = new ProducerConfig();
+                                producerConfig.BootstrapServers = host;
+                                producerConfig.ClientId = clientID;
+
+                                producer = new ProducerBuilder<string, byte[]>(producerConfig).Build();
+
+                                var ack = new Acknowledgement()
+                                {
+                                    Success = error == null,
+                                    ErrorMessage = error?.Message
+                                };
+                                var body = KafkaCommon.Serialize(ack);
+                                if (encryptionKey != null)
+                                    body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
+
+                                await producer.ProduceAsync(ackTopic, new Message<string, byte[]>() { Key = ackKey, Value = body });
+                            }
+
+                            catch (Exception ex)
+                            {
+                                _ = Log.ErrorAsync(ex);
+                            }
+                            finally
+                            {
+                                if (producer != null)
+                                    producer.Dispose();
+                            }
                         }
                     }
 

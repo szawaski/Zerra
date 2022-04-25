@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Zerra.CQRS
 {
-    public interface IEventClient
+    public interface IEventProducer
     {
         string ConnectionString { get; }
         Task DispatchAsync(IEvent @event);

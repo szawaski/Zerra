@@ -12,7 +12,7 @@ using System.Collections.Generic;
 
 namespace Zerra.CQRS.Network
 {
-    public abstract class TcpCQRSServerBase : IDisposable, IQueryServer, ICommandServer
+    public abstract class TcpCQRSServerBase : IDisposable, IQueryServer, ICommandConsumer
     {
         protected readonly ConcurrentList<Type> interfaceTypes;
         protected readonly ConcurrentList<Type> commandTypes;
@@ -62,17 +62,17 @@ namespace Zerra.CQRS.Network
             return interfaceTypes.ToArray();
         }
 
-        void ICommandServer.SetHandler(Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
+        void ICommandConsumer.SetHandler(Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
         {
             this.handlerAsync = handlerAsync;
             this.handlerAwaitAsync = handlerAwaitAsync;
         }
 
-        void ICommandServer.RegisterCommandType(Type type)
+        void ICommandConsumer.RegisterCommandType(Type type)
         {
             commandTypes.Add(type);
         }
-        ICollection<Type> ICommandServer.GetCommandTypes()
+        ICollection<Type> ICommandConsumer.GetCommandTypes()
         {
             return commandTypes.ToArray();
         }
@@ -82,7 +82,7 @@ namespace Zerra.CQRS.Network
             Open();
             _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} Query Server Started On {this.serviceUrl}");
         }
-        void ICommandServer.Open()
+        void ICommandConsumer.Open()
         {
             Open();
             _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} Command Server Started On {this.serviceUrl}");
@@ -110,7 +110,7 @@ namespace Zerra.CQRS.Network
             Close();
             _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} Query Server Closed On {this.serviceUrl}");
         }
-        void ICommandServer.Close()
+        void ICommandConsumer.Close()
         {
             Close();
             _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} Command Server Closed On {this.serviceUrl}");

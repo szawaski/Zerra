@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Zerra.CQRS
 {
-    public interface ICommandServer
+    public interface ICommandConsumer
     {
         string ConnectionString { get; }
         void RegisterCommandType(Type type);

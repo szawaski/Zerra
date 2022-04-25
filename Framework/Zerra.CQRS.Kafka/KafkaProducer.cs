@@ -15,7 +15,7 @@ using Zerra.Encryption;
 namespace Zerra.CQRS.Kafka
 {
     //Kafka Producer
-    public class KafkaClient : ICommandClient, IEventClient, IDisposable
+    public class KafkaProducer : ICommandProducer, IEventProducer, IDisposable
     {
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 
@@ -28,7 +28,7 @@ namespace Zerra.CQRS.Kafka
         private readonly SemaphoreSlim listenerStartedLock;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
-        public KafkaClient(string host, SymmetricKey encryptionKey)
+        public KafkaProducer(string host, SymmetricKey encryptionKey)
         {
             this.host = host;
             this.encryptionKey = encryptionKey;
@@ -48,9 +48,9 @@ namespace Zerra.CQRS.Kafka
 
         public string ConnectionString => host;
 
-        Task ICommandClient.DispatchAsync(ICommand command) { return SendAsync(command, false); }
-        Task ICommandClient.DispatchAsyncAwait(ICommand command) { return SendAsync(command, true); }
-        Task IEventClient.DispatchAsync(IEvent @event) { return SendAsync(@event); }
+        Task ICommandProducer.DispatchAsync(ICommand command) { return SendAsync(command, false); }
+        Task ICommandProducer.DispatchAsyncAwait(ICommand command) { return SendAsync(command, true); }
+        Task IEventProducer.DispatchAsync(IEvent @event) { return SendAsync(@event); }
 
         private async Task SendAsync(ICommand command, bool requireAcknowledgement)
         {
@@ -106,7 +106,7 @@ namespace Zerra.CQRS.Kafka
 
                     var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Headers = headers, Key = key, Value = body });
                     if (producerResult.Status != PersistenceStatus.Persisted)
-                        throw new Exception($"{nameof(KafkaClient)} failed: {producerResult.Status}");
+                        throw new Exception($"{nameof(KafkaProducer)} failed: {producerResult.Status}");
 
                     await waiter.WaitAsync();
                     if (!ack.Success)
@@ -124,7 +124,7 @@ namespace Zerra.CQRS.Kafka
 
                 var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = key, Value = body });
                 if (producerResult.Status != PersistenceStatus.Persisted)
-                    throw new Exception($"{nameof(KafkaClient)} failed: {producerResult.Status}");
+                    throw new Exception($"{nameof(KafkaProducer)} failed: {producerResult.Status}");
             }
         }
 
@@ -148,7 +148,7 @@ namespace Zerra.CQRS.Kafka
 
             var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = KafkaCommon.MessageKey, Value = body });
             if (producerResult.Status != PersistenceStatus.Persisted)
-                throw new Exception($"{nameof(KafkaClient)} failed: {producerResult.Status}");
+                throw new Exception($"{nameof(KafkaProducer)} failed: {producerResult.Status}");
         }
 
         private async Task AckListeningThread()

@@ -22,22 +22,22 @@ namespace Zerra.CQRS
             this.allowOrigins = allowOrigins;
         }
 
-        public ICommandClient CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandProducer CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
         {
             return HttpCQRSClient.CreateDefault(serviceUrl, apiAuthorizer);
         }
 
-        public ICommandServer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandConsumer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return servers.GetOrAdd(serviceUrl, (url) => HttpCQRSServer.CreateDefault(url, apiAuthorizer, allowOrigins));
         }
 
-        public IEventClient CreateEventClient(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventProducer CreateEventClient(string serviceUrl, SymmetricKey encryptionKey)
         {
             throw new NotSupportedException($"{nameof(TcpApiServiceCreator)} does not support {nameof(CreateEventClient)}");
         }
 
-        public IEventServer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventConsumer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey)
         {
             throw new NotSupportedException($"{nameof(TcpApiServiceCreator)} does not support {nameof(CreateEventServer)}");
         }

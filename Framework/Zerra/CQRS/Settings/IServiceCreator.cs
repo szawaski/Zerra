@@ -8,11 +8,11 @@ namespace Zerra.CQRS.Settings
 {
     public interface IServiceCreator
     {
-        public ICommandServer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey);
-        public IEventServer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey);
+        public ICommandConsumer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey);
+        public IEventConsumer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey);
         public IQueryServer CreateQueryServer(string serviceUrl, SymmetricKey encryptionKey);
-        public ICommandClient CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey);
-        public IEventClient CreateEventClient(string serviceUrl, SymmetricKey encryptionKey);
+        public ICommandProducer CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey);
+        public IEventProducer CreateEventClient(string serviceUrl, SymmetricKey encryptionKey);
         public IQueryClient CreateQueryClient(string serviceUrl, SymmetricKey encryptionKey);
     }
 }

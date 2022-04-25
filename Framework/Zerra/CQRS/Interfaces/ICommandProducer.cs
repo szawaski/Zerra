@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Zerra.CQRS
 {
-    public interface ICommandClient
+    public interface ICommandProducer
     {
         string ConnectionString { get; }
         Task DispatchAsync(ICommand command);

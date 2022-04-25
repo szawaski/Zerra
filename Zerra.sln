@@ -79,6 +79,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.Repository.MySql", "F
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.Identity", "Framework\Zerra.Identity\Zerra.Identity.csproj", "{1685E021-CBB1-4852-B692-C61C0FD7198F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zerra.CQRS.AzureEventHub", "Framework\Zerra.CQRS.AzureEventHub\Zerra.CQRS.AzureEventHub.csproj", "{2063D27C-4092-4539-AB48-2CB57793DD05}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -209,6 +211,10 @@ Global
 		{1685E021-CBB1-4852-B692-C61C0FD7198F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1685E021-CBB1-4852-B692-C61C0FD7198F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1685E021-CBB1-4852-B692-C61C0FD7198F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2063D27C-4092-4539-AB48-2CB57793DD05}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2063D27C-4092-4539-AB48-2CB57793DD05}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2063D27C-4092-4539-AB48-2CB57793DD05}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2063D27C-4092-4539-AB48-2CB57793DD05}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -250,6 +256,7 @@ Global
 		{3AB3C204-9448-457F-85CC-A38AB05A1253} = {B461985F-1828-471F-AD8D-3EFC282A2F57}
 		{A4001192-8BB8-4A59-ADDD-8BB539375E22} = {B461985F-1828-471F-AD8D-3EFC282A2F57}
 		{1685E021-CBB1-4852-B692-C61C0FD7198F} = {B461985F-1828-471F-AD8D-3EFC282A2F57}
+		{2063D27C-4092-4539-AB48-2CB57793DD05} = {B461985F-1828-471F-AD8D-3EFC282A2F57}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1918A883-4E9E-4435-9C14-C86EBD3A3ACE}

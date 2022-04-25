@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.1;net5.0;net6.0</TargetFrameworks>
+		<Authors>Steven Zawaski</Authors>
+		<Product>KaKush LLC</Product>
+		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+		<PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, Kafka</PackageTags>
+		<RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
+		<Description>Azure Event Service implementations of producer and consumer for commands and events in the CQRS Zerra Framework.</Description>
+		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<Version>3.0.0</Version>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\..\LICENSE.txt">
+			<Pack>True</Pack>
+			<PackagePath></PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Azure.Messaging.EventHubs" Version="5.6.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Zerra\Zerra.csproj" />
+	</ItemGroup>
+
+</Project>

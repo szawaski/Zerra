@@ -13,13 +13,13 @@ using Zerra.Reflection;
 
 namespace Zerra.CQRS.Network
 {
-    public abstract class TcpCQRSClientBase : IQueryClient, ICommandClient
+    public abstract class TcpCQRSClientBase : IQueryClient, ICommandProducer
     {
         protected readonly string serviceUrl;
         protected readonly IPEndPoint endpoint;
 
         string IQueryClient.ConnectionString => serviceUrl;
-        string ICommandClient.ConnectionString => serviceUrl;
+        string ICommandProducer.ConnectionString => serviceUrl;
 
         public TcpCQRSClientBase(string serviceUrl)
         {
@@ -61,7 +61,7 @@ namespace Zerra.CQRS.Network
         protected abstract TReturn CallInternal<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments);
         protected abstract Task<TReturn> CallInternalAsync<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments);
 
-        Task ICommandClient.DispatchAsync(ICommand command)
+        Task ICommandProducer.DispatchAsync(ICommand command)
         {
             try
             {
@@ -73,7 +73,7 @@ namespace Zerra.CQRS.Network
                 throw;
             }
         }
-        Task ICommandClient.DispatchAsyncAwait(ICommand command)
+        Task ICommandProducer.DispatchAsyncAwait(ICommand command)
         {
             try
             {

@@ -1,16 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFrameworks>net5.0;net6.0</TargetFrameworks>
     <Authors>Steven Zawaski</Authors>
     <Product>KaKush LLC</Product>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, Kafka</PackageTags>
     <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-    <Description>Kafka implementations of client and server for commands and events in the CQRS Zerra Framework.</Description>
+    <Description>Kafka implementations of client and producer and consumer and events in the CQRS Zerra Framework.</Description>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>2.1.0</Version>
+    <Version>3.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
