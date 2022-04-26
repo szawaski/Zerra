@@ -208,8 +208,17 @@ namespace Zerra.Collections
 
         public void Dispose()
         {
-            locker.Dispose();
+            DisposeInternal();
             GC.SuppressFinalize(this);
+        }
+        ~ConcurrentList()
+        {
+            DisposeInternal();
+        }
+
+        private void DisposeInternal()
+        {
+            locker.Dispose();
         }
     }
 }

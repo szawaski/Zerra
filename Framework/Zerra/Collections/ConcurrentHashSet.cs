@@ -206,8 +206,17 @@ namespace Zerra.Collections
 
         public void Dispose()
         {
-            locker.Dispose();
+            DisposeInternal();
             GC.SuppressFinalize(this);
+        }
+        ~ConcurrentHashSet()
+        {
+            DisposeInternal();
+        }
+
+        private void DisposeInternal()
+        {
+            locker.Dispose();
         }
     }
 }
