@@ -9,7 +9,8 @@ namespace Zerra.Linq
 {
     public static class LinqBatchExtensions
     {
-        public static IEnumerable<IEnumerable<T>> Batch<T>(this IEnumerable<T> source, int size)
+#if !NET6_0_OR_GREATER
+        public static IEnumerable<IEnumerable<T>> Chunk<T>(this IEnumerable<T> source, int size)
         {
             var buffer = new T[size];
             var count = 0;
@@ -32,8 +33,9 @@ namespace Zerra.Linq
                 yield return buffer;
             }
         }
+#endif
 
-        public static IEnumerable<ICollection<T>> Batch<T>(this ICollection<T> source, int size)
+        public static IEnumerable<ICollection<T>> Chunk<T>(this ICollection<T> source, int size)
         {
             if (source.Count == 0)
                 yield break;
@@ -65,7 +67,7 @@ namespace Zerra.Linq
             }
         }
 
-        public static IEnumerable<T[]> Batch<T>(this T[] source, int size)
+        public static IEnumerable<T[]> Chunk<T>(this T[] source, int size)
         {
             if (source.Length == 0)
                 yield break;

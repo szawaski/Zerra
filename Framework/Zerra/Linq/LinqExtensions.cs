@@ -40,7 +40,7 @@ namespace System.Linq
             }
         }
 
-        public static string ToLinqString(this Expression expression, bool useIt = true) { return LinqStringConverter.Convert(expression, useIt); }
+        public static string ToLinqString(this Expression expression) { return LinqStringConverter.Convert(expression); }
 
         public static Expression<Func<T, bool>> AppendAnd<T>(this Expression<Func<T, bool>> it, params Expression<Func<T, bool>>[] expressions) { return LinqAppender.AppendAnd(it, expressions); }
 

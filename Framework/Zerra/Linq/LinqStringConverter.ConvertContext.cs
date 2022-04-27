@@ -13,15 +13,11 @@ namespace Zerra.Linq
         private class ConvertContext
         {
             public StringBuilder Builder { get; private set; }
-            public bool UseIt { get; private set; }
-            public Stack<string> ItStack { get; private set; }
             public Stack<MemberExpression> MemberAccessStack { get; private set; }
 
-            public ConvertContext(StringBuilder sb, bool useIt)
+            public ConvertContext(StringBuilder sb)
             {
                 this.Builder = sb;
-                this.UseIt = useIt;
-                this.ItStack = new Stack<string>();
                 this.MemberAccessStack = new Stack<MemberExpression>();
             }
         }

@@ -15,11 +15,11 @@ namespace Zerra.Linq
 {
     public static partial class LinqStringConverter
     {
-        public static string Convert(Expression exp, bool useIt)
+        public static string Convert(Expression exp)
         {
             var sb = new StringBuilder();
 
-            var context = new ConvertContext(sb, useIt);
+            var context = new ConvertContext(sb);
 
             ConvertToString(exp, context);
 
@@ -112,7 +112,8 @@ namespace Zerra.Linq
                     ConvertToStringUnary(null, "++", exp, context);
                     break;
                 case ExpressionType.Index:
-                    throw new NotImplementedException();
+                    ConvertToStringIndex(exp, context);
+                    break;
                 case ExpressionType.Invoke:
                     throw new NotImplementedException();
                 case ExpressionType.IsFalse:
@@ -262,11 +263,7 @@ namespace Zerra.Linq
             var lambda = exp as LambdaExpression;
             if (lambda.Parameters.Count != 1)
                 throw new NotSupportedException("Can only parse a lambda with one parameter.");
-            if (context.ItStack.Count > 0 && context.ItStack.Peek() == null)
-                context.ItStack.Pop();
-            context.ItStack.Push(lambda.Parameters[0].Name);
             ConvertToString(lambda.Body, context);
-            context.ItStack.Pop();
         }
         private static void ConvertToStringUnary(string prefixOperation, string suffixOperation, Expression exp, ConvertContext context)
         {
@@ -357,7 +354,6 @@ namespace Zerra.Linq
                     context.Builder.Append('.');
                     context.Builder.Append(call.Method.Name);
                     context.Builder.Append('(');
-                    context.ItStack.Push(null);
                     for (int i = 1; i < call.Arguments.Count; i++)
                     {
                         if (i > 1)
@@ -365,8 +361,6 @@ namespace Zerra.Linq
                         var arg = call.Arguments[i];
                         ConvertToString(arg, context);
                     }
-                    if (context.ItStack.Peek() == null)
-                        context.ItStack.Pop();
                     context.Builder.Append(')');
                 }
                 else
@@ -375,7 +369,6 @@ namespace Zerra.Linq
                     context.Builder.Append('.');
                     context.Builder.Append(call.Method.Name);
                     context.Builder.Append('(');
-                    context.ItStack.Push(null);
                     for (int i = 0; i < call.Arguments.Count; i++)
                     {
                         if (i > 1)
@@ -383,8 +376,6 @@ namespace Zerra.Linq
                         var arg = call.Arguments[i];
                         ConvertToString(arg, context);
                     }
-                    if (context.ItStack.Peek() == null)
-                        context.ItStack.Pop();
                     context.Builder.Append(')');
                 }
             }
@@ -393,41 +384,35 @@ namespace Zerra.Linq
         {
             var newExp = exp as NewExpression;
 
-            var argumentTypes = newExp.Arguments.Select(x => x.Type).ToArray();
-            var constructor = newExp.Type.GetConstructor(argumentTypes);
-
-            List<object> parameters = new List<object>();
-            foreach (var argument in newExp.Arguments)
+            context.Builder.Append("new ").Append(newExp.Type.Name).Append('(');
+            for (var i = 0; i < newExp.Arguments.Count; i++)
             {
-                var argumentValue = Evaluate(argument);
-                parameters.Add(argumentValue);
+                if (i > 0)
+                    context.Builder.Append(", ");
+                ConvertToString(newExp.Arguments[i], context);
             }
-
-            var value = constructor.Invoke(parameters.ToArray());
-            ConvertToStringValue(newExp.Type, value, context);
+        }
+        private static void ConvertToStringIndex(Expression exp, ConvertContext context)
+        {
+            var index = exp as IndexExpression;
+            context.Builder.Append(index.Type.Name);
+            context.Builder.Append('[');
+            for (var i = 0; i < index.Arguments.Count; i++)
+            {
+                if (i > 0)
+                    context.Builder.Append(',');
+                ConvertToString(index.Arguments[i], context);
+            }
+            context.Builder.Append(']');
         }
         private static void ConvertToStringParameter(Expression exp, ConvertContext context)
         {
             var parameterExpression = exp as ParameterExpression;
 
-            if (context.UseIt)
-            {
-                if (parameterExpression.Name == context.ItStack.Peek())
-                {
-                    context.Builder.Append("it.");
-                }
-                else
-                {
-                    int rank = 0;
-                    foreach (var pstack in context.ItStack)
-                    {
-                        if (pstack == parameterExpression.Name)
-                            break;
-                        rank++;
-                    }
-                    context.Builder.Append("oIt").Append(rank).Append('.');
-                }
-            }
+            context.Builder.Append(parameterExpression.Type.Name);
+            if (!String.IsNullOrWhiteSpace(parameterExpression.Name))
+                context.Builder.Append('_').Append(parameterExpression.Name);
+            context.Builder.Append('.');
 
             ConvertToStringParameterStack(context);
         }
@@ -465,7 +450,6 @@ namespace Zerra.Linq
         private static void ConvertToStringValue(Type type, object value, ConvertContext context)
         {
             ConvertToStringValueRender(type, value, context);
-
             ConvertToStringValueStack(context);
         }
         private static void ConvertToStringValueRender(Type type, object value, ConvertContext context)
@@ -553,7 +537,7 @@ namespace Zerra.Linq
                 return;
             }
 
-            throw new NotImplementedException($"{type.GetNiceName()} value {value?.ToString()} not converted");
+            throw new NotImplementedException($"{type.Name} value {value?.ToString()} not converted");
         }
         private static void ConvertToStringValueStack(ConvertContext context)
         {
