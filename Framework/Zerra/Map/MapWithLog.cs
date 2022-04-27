@@ -15,17 +15,17 @@ using Zerra.Reflection;
 
 namespace Zerra
 {
-    public class Map<TSource, TTarget> : IMapSetup<TSource, TTarget>
+    public class MapWithLog<TSource, TTarget> : IMapSetup<TSource, TTarget>
     {
         private const int maxBuildDepthBeforeCall = 3;
 
         private readonly TypeDetail sourceType;
         private readonly TypeDetail targetType;
         private readonly Dictionary<string, Tuple<Expression<Func<TSource, object>>, Expression<Func<TTarget, object>>>> memberMaps;
-        private readonly ConcurrentFactoryDictionary<Graph, Func<TSource, TTarget, Dictionary<MapRecursionKey, object>, TTarget>> compiledGraphMaps;
-        private Func<TSource, TTarget, Dictionary<MapRecursionKey, object>, TTarget> compiledMap;
+        private readonly ConcurrentFactoryDictionary<Graph, Func<TSource, TTarget, IMapLogger, Dictionary<MapRecursionKey, object>, TTarget>> compiledGraphMaps;
+        private Func<TSource, TTarget, IMapLogger, Dictionary<MapRecursionKey, object>, TTarget> compiledMap;
 
-        private static readonly Type genericMapType = typeof(Map<,>);
+        private static readonly Type genericMapType = typeof(MapWithLog<,>);
         private static readonly Type genericListType = typeof(List<>);
         private static readonly Type genericHashSetType = typeof(HashSet<>);
         private static readonly Type genericEnumerableType = typeof(IEnumerable<>);
@@ -40,27 +40,32 @@ namespace Zerra
         private static readonly Type uType = typeof(TTarget);
         private static readonly Type mapDefinitionsType = typeof(IMapDefinition<TSource, TTarget>);
         private static readonly Type recursionDictionaryType = typeof(Dictionary<MapRecursionKey, object>);
+        private static readonly Type mapLoggerType = typeof(IMapLogger);
         private static readonly Type exceptionType = typeof(Exception);
         private static readonly ConstructorInfo newException = TypeAnalyzer.GetTypeDetail(typeof(Exception)).GetConstructor(typeof(string), typeof(Exception)).ConstructorInfo;
+        private static readonly MethodInfo mapLoggerChangeMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethod(nameof(IMapLogger.LogPropertyChange)).MethodInfo;
+        private static readonly MethodInfo mapLoggerNoChangeMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethod(nameof(IMapLogger.LogPropertyNoChange)).MethodInfo;
+        private static readonly MethodInfo mapLoggerNewObjectMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethod(nameof(IMapLogger.LogNewObject)).MethodInfo;
+        private static readonly MethodInfo objectToStringMethod = TypeAnalyzer.GetTypeDetail(typeof(object)).GetMethod(nameof(object.ToString)).MethodInfo;
         private static readonly MethodInfo dictionaryAddMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethod("Add").MethodInfo;
         private static readonly MethodInfo dictionaryRemoveMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethod("Remove").MethodInfo;
         private static readonly MethodInfo dictionaryTryGetMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethod("TryGetValue").MethodInfo;
         private static readonly ConstructorInfo newRecursionKey = TypeAnalyzer.GetTypeDetail(typeof(MapRecursionKey)).GetConstructor(typeof(object), typeof(Type)).ConstructorInfo;
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, object> mapsStore = new ConcurrentFactoryDictionary<TypeKey, object>();
-        public static Map<TSource, TTarget> GetMap()
+        public static MapWithLog<TSource, TTarget> GetMap()
         {
             var key = new TypeKey(tType, uType);
-            var map = (Map<TSource, TTarget>)mapsStore.GetOrAdd(key, (k) => { return new Map<TSource, TTarget>(); });
+            var map = (MapWithLog<TSource, TTarget>)mapsStore.GetOrAdd(key, (k) => { return new MapWithLog<TSource, TTarget>(); });
             return map;
         }
 
-        private Map()
+        private MapWithLog()
         {
             sourceType = TypeAnalyzer.GetTypeDetail(tType);
             targetType = TypeAnalyzer.GetTypeDetail(uType);
             memberMaps = new Dictionary<string, Tuple<Expression<Func<TSource, object>>, Expression<Func<TTarget, object>>>>();
-            compiledGraphMaps = new ConcurrentFactoryDictionary<Graph, Func<TSource, TTarget, Dictionary<MapRecursionKey, object>, TTarget>>();
+            compiledGraphMaps = new ConcurrentFactoryDictionary<Graph, Func<TSource, TTarget, IMapLogger, Dictionary<MapRecursionKey, object>, TTarget>>();
             GenerateDefaultMemberMaps();
             RunInitializers();
         }
@@ -89,7 +94,7 @@ namespace Zerra
         {
             ((IMapSetup<TSource, TTarget>)this).Define(propertyU, propertyT);
 
-            var otherWay = (IMapSetup<TTarget, TSource>)Map<TTarget, TSource>.GetMap();
+            var otherWay = (IMapSetup<TTarget, TSource>)MapWithLog<TTarget, TSource>.GetMap();
             otherWay.Define(propertyT, propertyU);
         }
         void IMapSetup<TSource, TTarget>.Undefine(Expression<Func<TTarget, object>> property)
@@ -115,7 +120,7 @@ namespace Zerra
         {
             ((IMapSetup<TSource, TTarget>)this).Undefine(propertyU);
 
-            var otherWay = (IMapSetup<TTarget, TSource>)Map<TTarget, TSource>.GetMap();
+            var otherWay = (IMapSetup<TTarget, TSource>)MapWithLog<TTarget, TSource>.GetMap();
             otherWay.Undefine(propertyT);
         }
         void IMapSetup<TSource, TTarget>.UndefineAll()
@@ -126,7 +131,7 @@ namespace Zerra
             }
         }
 
-        public TTarget Copy(TSource source, Graph graph = null)
+        public TTarget Copy(TSource source, IMapLogger logger = null, Graph graph = null)
         {
             if (source == null)
                 return default;
@@ -200,23 +205,23 @@ namespace Zerra
                         }
                     }
                 }
-                return compiledMap(source, target, new Dictionary<MapRecursionKey, object>());
+                return compiledMap(source, target, logger, new Dictionary<MapRecursionKey, object>());
             }
             else
             {
-                var map = compiledGraphMaps.GetOrAdd(graph ?? Graph.Empty(), (g) => { return CompileMap(g); });
-                return map(source, target, new Dictionary<MapRecursionKey, object>());
+                var map = compiledGraphMaps.GetOrAdd(graph ?? Graph.Empty(), (key) => { return CompileMap(graph); });
+                return map(source, target, logger, new Dictionary<MapRecursionKey, object>());
             }
         }
 
-        public TTarget CopyTo(TSource source, TTarget target, Graph graph = null)
+        public TTarget CopyTo(TSource source, TTarget target, IMapLogger logger = null, Graph graph = null)
         {
             if (source == null)
                 return default;
-            return CopyInternal(source, target, graph, new Dictionary<MapRecursionKey, object>());
+            return CopyInternal(source, target, logger, graph, new Dictionary<MapRecursionKey, object>());
         }
 
-        internal TTarget CopyInternal(TSource source, TTarget target, Graph graph, Dictionary<MapRecursionKey, object> recursionDictionary)
+        internal TTarget CopyInternal(TSource source, TTarget target, IMapLogger logger, Graph graph, Dictionary<MapRecursionKey, object> recursionDictionary)
         {
             if (graph == null)
             {
@@ -230,12 +235,12 @@ namespace Zerra
                         }
                     }
                 }
-                return compiledMap(source, target, recursionDictionary);
+                return compiledMap(source, target, logger, recursionDictionary);
             }
             else
             {
-                var map = compiledGraphMaps.GetOrAdd(graph ?? Graph.Empty(), (g) => { return CompileMap(g); });
-                return map(source, target, recursionDictionary);
+                var map = compiledGraphMaps.GetOrAdd(graph ?? Graph.Empty(), (key) => { return CompileMap(graph); });
+                return map(source, target, logger, recursionDictionary);
             }
         }
 
@@ -291,68 +296,108 @@ namespace Zerra
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Func<TSource, TTarget, Dictionary<MapRecursionKey, object>, TTarget> CompileMap(Graph graph)
+        private Func<TSource, TTarget, IMapLogger, Dictionary<MapRecursionKey, object>, TTarget> CompileMap(Graph graph)
         {
             int depth = 0;
             var sourceParameter = Expression.Parameter(sourceType.Type, "source");
             var targetParameter = Expression.Parameter(targetType.Type, "target");
+            var loggerParameter = Expression.Parameter(mapLoggerType, "logger");
             var recursionDictionaryParameter = Expression.Parameter(recursionDictionaryType, "recursionDictionary");
-            var block = GenerateMap(graph, sourceParameter, targetParameter, recursionDictionaryParameter, ref depth);
-            var lambda = Expression.Lambda<Func<TSource, TTarget, Dictionary<MapRecursionKey, object>, TTarget>>(block, sourceParameter, targetParameter, recursionDictionaryParameter);
+            var block = GenerateMap(graph, sourceParameter, targetParameter, loggerParameter, recursionDictionaryParameter, ref depth);
+            var lambda = Expression.Lambda<Func<TSource, TTarget, IMapLogger, Dictionary<MapRecursionKey, object>, TTarget>>(block, sourceParameter, targetParameter, loggerParameter, recursionDictionaryParameter);
             return lambda.Compile();
         }
 
-        private Expression GenerateMap(Graph graph, Expression source, Expression target, Expression recursionDictionary, ref int depth)
+        private Expression GenerateMap(Graph graph, Expression source, Expression target, Expression logger, Expression recursionDictionary, ref int depth)
         {
             if (sourceType.CoreType.HasValue || targetType.CoreType.HasValue)
             {
-                Expression assigner;
+                var sourceValue = Expression.Variable(targetType.Type, "sourceValue");
+                Expression readSourceValue;
                 if (sourceType.CoreType.HasValue && targetType.CoreType.HasValue && sourceType.CoreType.Value != targetType.CoreType.Value)
                 {
-                    assigner = Expression.Assign(target, Expression.Convert(source, targetType.Type));
+                    readSourceValue = Expression.Assign(sourceValue, Expression.Convert(source, targetType.Type));
                 }
                 else
                 {
-                    assigner = Expression.Assign(target, source);
+                    readSourceValue = Expression.Assign(sourceValue, source);
                 }
+
+                var sourceName = GetMemberName(source);
+                var targetName = GetMemberName(target);
+
+                var assigner = Expression.Assign(target, sourceValue);
+                var callLogChange = Expression.Call(logger, mapLoggerChangeMethod,
+                    Expression.Constant(sourceName),
+                    Expression.Condition(Expression.Equal(sourceValue, Expression.Default(targetType.Type)), Expression.Constant("null"), Expression.Call(sourceValue, objectToStringMethod)),
+                    Expression.Constant(targetName),
+                    Expression.Condition(Expression.Equal(target, Expression.Default(targetType.Type)), Expression.Constant("null"), Expression.Call(target, objectToStringMethod))
+                );
+                var callLogNoChange = Expression.Call(logger, mapLoggerNoChangeMethod,
+                    Expression.Constant(sourceName),
+                    Expression.Constant(targetName),
+                    Expression.Condition(Expression.Equal(target, Expression.Default(targetType.Type)), Expression.Constant("null"), Expression.Call(target, objectToStringMethod))
+                );
+                var ifExpression = Expression.Condition(Expression.NotEqual(target, Expression.Convert(source, targetType.Type)),
+                    Expression.Block(callLogChange, assigner),
+                    Expression.Block(callLogNoChange, Expression.Default(targetType.Type)));
 
                 if (Mapper.DebugMode)
                 {
-                    var tryCatch = Expression.TryCatch(assigner, Expression.Catch(exceptionType, Expression.Throw(Expression.Constant(new MapException($"Failed mapping {source} of {sourceType.Type} to {target} of {targetType.Type}")), assigner.Type)));
-                    return tryCatch;
+                    var tryCatch = Expression.TryCatch(ifExpression, Expression.Catch(exceptionType, Expression.Throw(Expression.Constant(new MapException($"Failed mapping {source} of {sourceType.Type} to {target} of {target.Type}")), assigner.Type)));
+                    return Expression.Block(new[] { sourceValue }, readSourceValue, tryCatch);
                 }
                 else
                 {
-                    return assigner;
+                    return Expression.Block(new[] { sourceValue }, readSourceValue, ifExpression);
                 }
             }
             else if (sourceType.Type.IsEnum || (sourceType.IsNullable && sourceType.InnerTypeDetails[0].Type.IsEnum) || sourceType.Type.IsEnum || (sourceType.IsNullable && targetType.InnerTypeDetails[0].Type.IsEnum))
             {
-                Expression assigner;
+                var sourceValue = Expression.Variable(targetType.Type, "sourceValue");
+                Expression readSourceValue;
                 if (sourceType.Type != targetType.Type)
                 {
-                    assigner = Expression.Assign(target, Expression.Convert(source, targetType.Type));
+                    readSourceValue = Expression.Assign(sourceValue, Expression.Convert(source, targetType.Type));
                 }
                 else
                 {
-                    assigner = Expression.Assign(target, source);
+                    readSourceValue = Expression.Assign(sourceValue, source);
                 }
+
+                var sourceName = GetMemberName(source);
+                var targetName = GetMemberName(target);
+
+                var assigner = Expression.Assign(target, sourceValue);
+                var callLogChange = Expression.Call(logger, mapLoggerChangeMethod,
+                    Expression.Constant(sourceName),
+                    Expression.Condition(Expression.Equal(sourceValue, Expression.Default(targetType.Type)), Expression.Constant("null"), Expression.Call(sourceValue, objectToStringMethod)),
+                    Expression.Constant(targetName),
+                    Expression.Condition(Expression.Equal(target, Expression.Default(targetType.Type)), Expression.Constant("null"), Expression.Call(target, objectToStringMethod))
+                );
+                var callLogNoChange = Expression.Call(logger, mapLoggerNoChangeMethod,
+                    Expression.Constant(sourceName),
+                    Expression.Constant(targetName),
+                    Expression.Condition(Expression.Equal(target, Expression.Default(targetType.Type)), Expression.Constant("null"), Expression.Call(target, objectToStringMethod))
+                );
+                var ifExpression = Expression.Condition(Expression.NotEqual(target, Expression.Convert(source, targetType.Type)),
+                    Expression.Block(callLogChange, assigner),
+                    Expression.Block(callLogNoChange, Expression.Default(targetType.Type)));
 
                 if (Mapper.DebugMode)
                 {
-                    var tryCatch = Expression.TryCatch(assigner, Expression.Catch(exceptionType, Expression.Throw(Expression.Constant(new MapException($"Failed mapping {source} of {sourceType.Type} to {target} of {targetType.Type}")), assigner.Type)));
-                    return tryCatch;
+                    var tryCatch = Expression.TryCatch(ifExpression, Expression.Catch(exceptionType, Expression.Throw(Expression.Constant(new MapException($"Failed mapping {source} of {sourceType.Type} to {target} of {target.Type}")), assigner.Type)));
+                    return Expression.Block(new[] { sourceValue }, readSourceValue, tryCatch);
                 }
                 else
                 {
-                    return assigner;
+                    return Expression.Block(new[] { sourceValue }, readSourceValue, ifExpression);
                 }
             }
 
-            var blockExpressions = new List<Expression>();
-            var blockParameters = new List<ParameterExpression>();
-
             depth++;
+            var blockParameters = new List<ParameterExpression>();
+            var blockExpressions = new List<Expression>();
 
             if (sourceType.IsIEnumerable && targetType.IsIEnumerable)
             {
@@ -369,7 +414,7 @@ namespace Zerra
 
                     var sourceElement = Expression.ArrayAccess(source, loopIndex);
                     var targetElement = Expression.ArrayAccess(target, loopIndex);
-                    var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, targetElement, recursionDictionary, ref depth);
+                    var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, targetElement, logger, recursionDictionary, ref depth);
 
                     var increment = Expression.AddAssign(loopIndex, Expression.Constant(1, intType));
 
@@ -420,7 +465,7 @@ namespace Zerra
 
                     var sourceElement = Expression.Convert(Expression.Call(enumerator, currentMethod.MethodInfo), sourceType.IEnumerableGenericInnerType);
                     var targetElement = Expression.ArrayAccess(target, loopIndex);
-                    var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, targetElement, recursionDictionary, ref depth);
+                    var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, targetElement, logger, recursionDictionary, ref depth);
 
                     var increment = Expression.AddAssign(loopIndex, Expression.Constant(1, intType));
 
@@ -463,13 +508,13 @@ namespace Zerra
                     var moveNextOrBreak = Expression.IfThen(Expression.Not(Expression.Call(enumerator, moveNextMethod.MethodInfo)), Expression.Break(loopBreakTarget));
 
                     var sourceElement = Expression.Convert(Expression.Call(enumerator, currentMethod.MethodInfo), sourceType.IEnumerableGenericInnerType);
-                    var targetElement = listItem;
-                    var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, targetElement, recursionDictionary, ref depth);
+                    var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, listItem, logger, recursionDictionary, ref depth);
                     var addElementToList = Expression.Call(target, addMethod.MethodInfo, listItem);
+                    var clearListItem = Expression.Assign(listItem, Expression.Default(listItem.Type));
 
                     var increment = Expression.AddAssign(loopIndex, Expression.Constant(1, intType));
 
-                    var loopBlock = Expression.Block(moveNextOrBreak, newElementBlock, addElementToList, increment);
+                    var loopBlock = Expression.Block(moveNextOrBreak, clearListItem, newElementBlock, addElementToList, increment);
                     var loop = Expression.Loop(loopBlock, loopBreakTarget);
 
                     var newArrayBlock = Expression.Block(new[] { enumerator, listItem, loopIndex }, assignEnumeratorVariable, assignLoopIndexVariable, loop);
@@ -518,7 +563,7 @@ namespace Zerra
 
                     var sourceElement = Expression.Convert(Expression.Call(enumerator, currentMethod.MethodInfo), sourceType.IEnumerableGenericInnerType);
                     var castedElement = Expression.ArrayAccess(casted, loopIndex);
-                    var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, castedElement, recursionDictionary, ref depth);
+                    var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, castedElement, logger, recursionDictionary, ref depth);
 
                     var increment = Expression.AddAssign(loopIndex, Expression.Constant(1, intType));
 
@@ -575,7 +620,7 @@ namespace Zerra
 
                     var sourceElement = Expression.Convert(Expression.Call(enumerator, currentMethod.MethodInfo), sourceType.IEnumerableGenericInnerType);
                     var castedElement = Expression.ArrayAccess(casted, loopIndex);
-                    var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, castedElement, recursionDictionary, ref depth);
+                    var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, castedElement, logger, recursionDictionary, ref depth);
 
                     var increment = Expression.AddAssign(loopIndex, Expression.Constant(1, intType));
 
@@ -612,7 +657,7 @@ namespace Zerra
                     var list = Expression.Convert(target, listType.Type);
                     var casted = Expression.Variable(listType.Type, "casted");
                     var assignCastedVariable = Expression.Assign(casted, list);
-                    
+
                     var enumerable = Expression.Convert(source, enumerableGeneric.Type);
                     var enumerator = Expression.Variable(enumeratorGeneric.Type, "enumerator");
                     var assignEnumeratorVariable = Expression.Assign(enumerator, Expression.Call(enumerable, getEnumeratorMethod.MethodInfo));
@@ -626,13 +671,13 @@ namespace Zerra
                     var moveNextOrBreak = Expression.IfThen(Expression.Not(Expression.Call(enumerator, moveNextMethod.MethodInfo)), Expression.Break(loopBreakTarget));
 
                     var sourceElement = Expression.Convert(Expression.Call(enumerator, currentMethod.MethodInfo), sourceType.IEnumerableGenericInnerType);
-                    var targetElement = listItem;
-                    var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, targetElement, recursionDictionary, ref depth);
+                    var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, listItem, logger, recursionDictionary, ref depth);
                     var addElementToList = Expression.Call(casted, addMethod.MethodInfo, listItem);
+                    var clearListItem = Expression.Assign(listItem, Expression.Default(listItem.Type));
 
                     var increment = Expression.AddAssign(loopIndex, Expression.Constant(1, intType));
 
-                    var loopBlock = Expression.Block(moveNextOrBreak, newElementBlock, addElementToList, increment);
+                    var loopBlock = Expression.Block(moveNextOrBreak, clearListItem, newElementBlock, addElementToList, increment);
                     var loop = Expression.Loop(loopBlock, loopBreakTarget);
 
                     var newArrayBlock = Expression.Block(new[] { casted, enumerator, listItem, loopIndex }, assignCastedVariable, assignEnumeratorVariable, assignLoopIndexVariable, loop);
@@ -692,7 +737,7 @@ namespace Zerra
                     Expression newObjectBlock;
                     try
                     {
-                        newObjectBlock = GenerateMapAssignTarget(childGraph, sourceMember, targetMember, recursionDictionary, ref depth);
+                        newObjectBlock = GenerateMapAssignTarget(childGraph, sourceMember, targetMember, logger, recursionDictionary, ref depth);
                     }
                     catch (Exception ex)
                     {
@@ -731,7 +776,7 @@ namespace Zerra
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Expression GenerateMapAssignTarget(Graph graph, Expression source, Expression target, Expression recursionDictionary, ref int depth)
+        private static Expression GenerateMapAssignTarget(Graph graph, Expression source, Expression target, Expression logger, Expression recursionDictionary, ref int depth)
         {
             if (source is null) throw new MapException($"{nameof(source)} is null");
             if (target is null) throw new MapException($"{nameof(target)} is null");
@@ -743,7 +788,7 @@ namespace Zerra
             {
                 var sourceMapType = TypeAnalyzer.GetGenericTypeDetail(genericMapType, source.Type, target.Type);
                 var sourceMap = sourceMapType.GetMethod("GetMap").MethodInfo.Invoke(null, null);
-                var generateMapArgs = new object[] { graph, source, target, recursionDictionary, depth };
+                var generateMapArgs = new object[] { graph, source, target, logger, recursionDictionary, depth };
                 var sourceBlockMap = (Expression)sourceMapType.GetMethod("GenerateMap").MethodInfo.Invoke(sourceMap, generateMapArgs);
                 depth = (int)generateMapArgs[generateMapArgs.Length - 1];
                 return sourceBlockMap;
@@ -861,15 +906,18 @@ namespace Zerra
                 {
                     var sourceMapExpression = Expression.Call(sourceMapType.GetMethod(nameof(GetMap)).MethodInfo);
                     var graphExpression = Expression.Constant(graph == null ? null : new Graph(graph), graphType);
-                    sourceBlockMap = Expression.Call(sourceMapExpression, sourceMapType.GetMethod(nameof(CopyInternal)).MethodInfo, source, newTarget, graphExpression, recursionDictionary);
+                    sourceBlockMap = Expression.Call(sourceMapExpression, sourceMapType.GetMethod(nameof(CopyInternal)).MethodInfo, source, newTarget, logger, graphExpression, recursionDictionary);
                 }
                 else
                 {
                     var sourceMap = sourceMapType.GetMethod(nameof(GetMap)).MethodInfo.Invoke(null, null);
-                    var generateMapArgs = new object[] { graph, source, newTarget, recursionDictionary, depth };
+                    var generateMapArgs = new object[] { graph, source, newTarget, logger, recursionDictionary, depth };
                     sourceBlockMap = (Expression)sourceMapType.GetMethod(nameof(GenerateMap)).MethodInfo.Invoke(sourceMap, generateMapArgs);
                     depth = (int)generateMapArgs[generateMapArgs.Length - 1];
                 }
+
+                var sourceName = GetMemberName(source);
+                var targetName = GetMemberName(target);
 
                 Expression assignTarget;
                 if (targetType.Type != newTarget.Type)
@@ -877,7 +925,13 @@ namespace Zerra
                 else
                     assignTarget = Expression.Assign(target, newTarget);
 
-                var block = Expression.Block(new[] { newTarget }, assignNewTarget, sourceBlockMap, assignTarget);
+                var logNewObject = Expression.Call(logger, mapLoggerNewObjectMethod,
+                    Expression.Constant(sourceName),
+                    Expression.Constant(targetName),
+                    Expression.Constant(newTarget.Type.Name)
+                );
+
+                var block = Expression.Block(new[] { newTarget }, logNewObject, assignNewTarget, sourceBlockMap, assignTarget);
 
                 var recursionKey = Expression.New(newRecursionKey, source, Expression.Constant(target.Type, typeof(Type)));
                 var tryGetValue = Expression.Variable(objectType, "value");
@@ -889,6 +943,33 @@ namespace Zerra
                 var nullCheck = Expression.IfThen(Expression.Not(Expression.Equal(source, Expression.Constant(null, source.Type))), recursionCheck);
                 return nullCheck;
             }
+        }
+
+        private static string GetMemberName(Expression source)
+        {
+            if (source == null)
+                return "calculated";
+
+            string name;
+            if (source.NodeType == ExpressionType.MemberAccess)
+                name = $"{((MemberExpression)source).Member.DeclaringType.Name}.{source.ToLinqString()}";
+            else if (source.NodeType == ExpressionType.Index)
+                name = GetMemberName(((IndexExpression)source).Object);
+            else if (source.NodeType == ExpressionType.Parameter)
+                name = $"member of {((ParameterExpression)source).Type.Name}";
+            else if (source.NodeType == ExpressionType.Convert)
+                name = GetMemberName(((UnaryExpression)source).Operand);
+            else if (source.NodeType == ExpressionType.Call)
+            {
+                var callExpression = (MethodCallExpression)source;
+                if (callExpression.Object != null)
+                    name = GetMemberName(callExpression.Object);
+                else
+                    name = source.ToLinqString();
+            }
+            else
+                name = source.ToLinqString();
+            return name;
         }
     }
 }
