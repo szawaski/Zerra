@@ -50,7 +50,7 @@ namespace Zerra.Reflection
         public MemberDetail GetMember(string name)
         {
             if (!this.membersByName.TryGetValue(name, out MemberDetail member))
-                throw new Exception($"TypeDetails for {Type.Name} does not contain member {name}");
+                throw new Exception($"{Type.Name} does not contain member {name}");
             return member;
         }
         public bool TryGetMember(string name, out MemberDetail member)
@@ -70,7 +70,7 @@ namespace Zerra.Reflection
                 }
             }
             if (!this.membersByNameLower.TryGetValue(name.ToLower(), out MemberDetail member))
-                throw new Exception($"TypeDetails for {Type.Name} does not contain member {name}");
+                throw new Exception($"{Type.Name} does not contain member {name}");
             return member;
         }
         public bool TryGetMemberCaseInsensitive(string name, out MemberDetail member)
@@ -120,7 +120,7 @@ namespace Zerra.Reflection
         {
             var method = GetMethodInternal(name, parameterTypes);
             if (method == null)
-                throw new MissingMethodException($"Method for {Type.GetNiceName()} not found for the given parameters {String.Join(",", parameterTypes.Select(x => x.GetNiceName()))}");
+                throw new MissingMethodException($"{Type.Name}.{name} method not found for the given parameters {String.Join(",", parameterTypes.Select(x => x.GetNiceName()))}");
             return method;
         }
         public bool TryGetMethod(string name, out MethodDetail method)
@@ -168,7 +168,7 @@ namespace Zerra.Reflection
         {
             var constructor = GetConstructorInternal(parameterTypes);
             if (constructor == null)
-                throw new MissingMethodException($"Constructor for {Type.GetNiceName()} not found for the given parameters {String.Join(",", parameterTypes.Select(x => x.GetNiceName()))}");
+                throw new MissingMethodException($"{Type.Name} constructor not found for the given parameters {String.Join(",", parameterTypes.Select(x => x.GetNiceName()))}");
             return constructor;
         }
         public bool TryGetConstructor(out ConstructorDetails constructor)
@@ -215,7 +215,7 @@ namespace Zerra.Reflection
                 }
             }
             if (!this.membersFieldBackedByName.TryGetValue(name, out MemberDetail member))
-                throw new Exception($"TypeDetails for {Type.Name} does not contain member {name}");
+                throw new Exception($"{Type.Name} does not contain member {name}");
             return member;
         }
         public bool TryGetSerializableMemberDetails(string name, out MemberDetail property)
