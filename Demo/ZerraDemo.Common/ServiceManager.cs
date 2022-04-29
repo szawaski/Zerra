@@ -1,6 +1,5 @@
 ﻿using System;
 using Zerra.CQRS;
-using Zerra.CQRS.Kafka;
 using Zerra.CQRS.Settings;
 using Zerra.Logger;
 

@@ -4,8 +4,6 @@
 
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
@@ -52,16 +50,20 @@ namespace Zerra.Linq
                     ConvertToStringBinary("&=", exp, context);
                     break;
                 case ExpressionType.ArrayLength:
-                    throw new NotImplementedException();
+                    ConvertToStringUnary(null, ".Length", exp, context);
+                    break;
                 case ExpressionType.Assign:
-                    throw new NotImplementedException();
+                    ConvertToStringBinary("=", exp, context);
+                    break;
                 case ExpressionType.Block:
-                    throw new NotImplementedException();
+                    ConvertToStringBlock(exp, context);
+                    break;
                 case ExpressionType.Call:
                     ConvertToStringCall(exp, context);
                     break;
                 case ExpressionType.Coalesce:
-                    throw new NotImplementedException();
+                    ConvertToStringBinary("??", exp, context);
+                    break;
                 case ExpressionType.Conditional:
                     ConvertToStringConditional(exp, context);
                     break;
@@ -69,18 +71,20 @@ namespace Zerra.Linq
                     ConvertToStringConstant(exp, context);
                     break;
                 case ExpressionType.Convert:
-                    ConvertToStringUnary(null, null, exp, context);
+                    ConvertToStringBox(exp, context);
                     break;
                 case ExpressionType.ConvertChecked:
                     ConvertToStringUnary(null, null, exp, context);
                     break;
                 case ExpressionType.DebugInfo:
-                    throw new NotImplementedException();
+                    ConvertToStringDebugInfo(exp, context);
+                    break;
                 case ExpressionType.Decrement:
                     ConvertToStringUnary(null, "--", exp, context);
                     break;
                 case ExpressionType.Default:
-                    throw new NotImplementedException();
+                    ConvertToStringDefault(exp, context);
+                    break;
                 case ExpressionType.Divide:
                     ConvertToStringBinary("/", exp, context);
                     break;
@@ -88,7 +92,8 @@ namespace Zerra.Linq
                     ConvertToStringBinary("/=", exp, context);
                     break;
                 case ExpressionType.Dynamic:
-                    throw new NotImplementedException();
+                    ConvertToStringDynamic(exp, context);
+                    break;
                 case ExpressionType.Equal:
                     ConvertToStringBinary("=", exp, context);
                     break;
@@ -101,7 +106,8 @@ namespace Zerra.Linq
                 case ExpressionType.Extension:
                     throw new NotImplementedException();
                 case ExpressionType.Goto:
-                    throw new NotImplementedException();
+                    ConvertToStringGoto(exp, context);
+                    break;
                 case ExpressionType.GreaterThan:
                     ConvertToStringBinary(">", exp, context);
                     break;
@@ -115,13 +121,17 @@ namespace Zerra.Linq
                     ConvertToStringIndex(exp, context);
                     break;
                 case ExpressionType.Invoke:
-                    throw new NotImplementedException();
+                    ConvertToStringInvoke(exp, context);
+                    break;
                 case ExpressionType.IsFalse:
-                    throw new NotImplementedException();
+                    ConvertToStringUnary(null, "==false", exp, context);
+                    break;
                 case ExpressionType.IsTrue:
-                    throw new NotImplementedException();
+                    ConvertToStringUnary(null, "==true", exp, context);
+                    break;
                 case ExpressionType.Label:
-                    throw new NotImplementedException();
+                    ConvertToStringLabel(exp, context);
+                    break;
                 case ExpressionType.Lambda:
                     ConvertToStringLambda(exp, context);
                     break;
@@ -138,14 +148,17 @@ namespace Zerra.Linq
                     ConvertToStringBinary("<=", exp, context);
                     break;
                 case ExpressionType.ListInit:
-                    throw new NotImplementedException();
+                    ConvertToStringListInit(exp, context);
+                    break;
                 case ExpressionType.Loop:
-                    throw new NotImplementedException();
+                    ConvertToStringLoop(exp, context);
+                    break;
                 case ExpressionType.MemberAccess:
                     ConvertToStringMember(exp, context);
                     break;
                 case ExpressionType.MemberInit:
-                    throw new NotImplementedException();
+                    ConvertToStringMemberInit(exp, context);
+                    break;
                 case ExpressionType.Modulo:
                     ConvertToStringBinary("%", exp, context);
                     break;
@@ -174,9 +187,11 @@ namespace Zerra.Linq
                     ConvertToStringNew(exp, context);
                     break;
                 case ExpressionType.NewArrayBounds:
-                    throw new NotImplementedException();
+                    ConvertToStringNewArray(exp, context);
+                    break;
                 case ExpressionType.NewArrayInit:
-                    throw new NotImplementedException();
+                    ConvertToStringNewArray(exp, context);
+                    break;
                 case ExpressionType.Not:
                     ConvertToStringUnary("!", null, exp, context);
                     break;
@@ -217,7 +232,8 @@ namespace Zerra.Linq
                     ConvertToStringUnary("++", null, exp, context);
                     break;
                 case ExpressionType.Quote:
-                    throw new NotImplementedException();
+                    ConvertToStringUnary(null, null, exp, context);
+                    break;
                 case ExpressionType.RightShift:
                     ConvertToStringBinary(">>", exp, context);
                     break;
@@ -239,21 +255,29 @@ namespace Zerra.Linq
                     ConvertToStringBinary("-", exp, context);
                     break;
                 case ExpressionType.Switch:
-                    throw new NotImplementedException();
+                    ConvertToStringSwitch(exp, context);
+                    break;
                 case ExpressionType.Throw:
-                    throw new NotImplementedException();
+                    ConvertToStringUnary("throw ", null, exp, context);
+                    break;
                 case ExpressionType.Try:
-                    throw new NotImplementedException();
+                    ConvertToStringTry(exp, context);
+                    break;
                 case ExpressionType.TypeAs:
-                    throw new NotImplementedException();
+                    ConvertToStringTypeBinaryExpression(" as ", exp, context);
+                    break;
                 case ExpressionType.TypeEqual:
-                    throw new NotImplementedException();
+                    ConvertToStringTypeBinaryExpression(" = ", exp, context);
+                    break;
                 case ExpressionType.TypeIs:
-                    throw new NotImplementedException();
+                    ConvertToStringTypeBinaryExpression(" is ", exp, context);
+                    break;
                 case ExpressionType.UnaryPlus:
-                    throw new NotImplementedException();
+                    ConvertToStringUnary("+", null, exp, context);
+                    break;
                 case ExpressionType.Unbox:
-                    throw new NotImplementedException();
+                    ConvertToStringBox(exp, context);
+                    break;
                 default:
                     throw new NotImplementedException();
             }
@@ -271,6 +295,12 @@ namespace Zerra.Linq
             context.Builder.Append(prefixOperation);
             ConvertToString(unary.Operand, context);
             context.Builder.Append(suffixOperation);
+        }
+        private static void ConvertToStringBox(Expression exp, ConvertContext context)
+        {
+            var unary = exp as UnaryExpression;
+            context.Builder.Append('(').Append(unary.Type.Name).Append(')');
+            ConvertToString(unary.Operand, context);
         }
         private static void ConvertToStringBinary(string operation, Expression exp, ConvertContext context)
         {
@@ -391,6 +421,77 @@ namespace Zerra.Linq
                     context.Builder.Append(", ");
                 ConvertToString(newExp.Arguments[i], context);
             }
+            context.Builder.Append(')');
+        }
+        private static void ConvertToStringNewArray(Expression exp, ConvertContext context)
+        {
+            var newExp = exp as NewArrayExpression;
+
+            context.Builder.Append("new ").Append(newExp.Type.Name).Append("[] {");
+            for (var i = 0; i < newExp.Expressions.Count; i++)
+            {
+                if (i > 0)
+                    context.Builder.Append(", ");
+                ConvertToString(newExp.Expressions[i], context);
+            }
+            context.Builder.Append('}');
+        }
+        private static void ConvertToStringLabel(Expression exp, ConvertContext context)
+        {
+            var label = exp as LabelExpression;
+            context.Builder.Append(label.Target.Name).Append(':');
+        }
+        private static void ConvertToStringDebugInfo(Expression exp, ConvertContext context)
+        {
+            var debugInfo = exp as DebugInfoExpression;
+        }
+        private static void ConvertToStringMemberInit(Expression exp, ConvertContext context)
+        {
+            var memberInti = exp as MemberInitExpression;
+            ConvertToString(memberInti.NewExpression, context);
+            context.Builder.Append('{');
+            for (var i = 0; i < memberInti.Bindings.Count; i++)
+            {
+                var binding = memberInti.Bindings[i];
+                if (i > 0)
+                    context.Builder.Append(", ");
+
+                if (binding.Member.MemberType == MemberTypes.Property)
+                    context.Builder.Append(((PropertyInfo)binding.Member).PropertyType.Name).Append(' ');
+                else if (binding.Member.MemberType == MemberTypes.Field)
+                    context.Builder.Append(((FieldInfo)binding.Member).FieldType.Name).Append(' ');
+                context.Builder.Append(binding.Member.Name);
+            }
+            context.Builder.Append('}');
+        }
+        private static void ConvertToStringListInit(Expression exp, ConvertContext context)
+        {
+            var listInti = exp as ListInitExpression;
+            ConvertToString(listInti.NewExpression, context);
+            context.Builder.Append('{');
+            for (var i = 0; i < listInti.Initializers.Count; i++)
+            {
+                var initializers = listInti.Initializers[i];
+                if (i > 0)
+                    context.Builder.Append(", ");
+
+                context.Builder.Append("new (");
+                for (var j = 0; j < initializers.Arguments.Count; j++)
+                {
+                    if (j > 0)
+                        context.Builder.Append(", ");
+                    ConvertToString(initializers.Arguments[j], context);
+                }
+                context.Builder.Append(')');
+            }
+            context.Builder.Append('}');
+        }
+        private static void ConvertToStringLoop(Expression exp, ConvertContext context)
+        {
+            var loop = exp as LoopExpression;
+            context.Builder.Append("while {");
+            ConvertToString(loop.Body, context);
+            context.Builder.Append('}');
         }
         private static void ConvertToStringIndex(Expression exp, ConvertContext context)
         {
@@ -404,6 +505,105 @@ namespace Zerra.Linq
                 ConvertToString(index.Arguments[i], context);
             }
             context.Builder.Append(']');
+        }
+        private static void ConvertToStringTypeBinaryExpression(string operation, Expression exp, ConvertContext context)
+        {
+            var typeBinary = exp as TypeBinaryExpression;
+            ConvertToString(typeBinary.Expression, context);
+            context.Builder.Append(operation);
+            context.Builder.Append(typeBinary.TypeOperand.Name);
+        }
+        private static void ConvertToStringBlock(Expression exp, ConvertContext context)
+        {
+            var block = exp as BlockExpression;
+            context.Builder.Append('{');
+            foreach (var item in block.Expressions)
+            {
+                ConvertToString(item, context);
+                context.Builder.Append(';');
+            }
+            context.Builder.Append('}');
+        }
+        private static void ConvertToStringDefault(Expression exp, ConvertContext context)
+        {
+            var @default = exp as DefaultExpression;
+            context.Builder.Append("default(");
+            context.Builder.Append(@default.Type.Name);
+            context.Builder.Append(')');
+        }
+        private static void ConvertToStringDynamic(Expression exp, ConvertContext context)
+        {
+            var dynamic = exp as DynamicExpression;
+            context.Builder.Append(dynamic.DelegateType.Name);
+            context.Builder.Append('(');
+            for (var i = 0; i < dynamic.Arguments.Count; i++)
+            {
+                if (i > 0)
+                    context.Builder.Append(',');
+                ConvertToString(dynamic.Arguments[i], context);
+            }
+            context.Builder.Append(')');
+        }
+        private static void ConvertToStringTry(Expression exp, ConvertContext context)
+        {
+            var @try = exp as TryExpression;
+            context.Builder.Append("try {");
+            ConvertToString(@try.Body, context);
+            context.Builder.Append('}');
+            if (@try.Fault != null)
+            {
+                context.Builder.Append("catch {");
+                ConvertToString(@try.Fault, context);
+                context.Builder.Append('}');
+            }
+            if (@try.Finally != null)
+            {
+                context.Builder.Append("finally {");
+                ConvertToString(@try.Finally, context);
+                context.Builder.Append('}');
+            }
+        }
+        private static void ConvertToStringSwitch(Expression exp, ConvertContext context)
+        {
+            var @switch = exp as SwitchExpression;
+            context.Builder.Append("switch(");
+            ConvertToString(@switch.SwitchValue, context);
+            context.Builder.Append(") {");
+            foreach (var @case in @switch.Cases)
+            {
+                foreach (var testValue in @case.TestValues)
+                {
+                    context.Builder.Append("case ");
+                    ConvertToString(testValue, context);
+                    context.Builder.Append(':');
+                }
+                ConvertToString(@switch.DefaultBody, context);
+            }
+            if (@switch.DefaultBody != null)
+            {
+                context.Builder.Append("default: ");
+                ConvertToString(@switch.DefaultBody, context);
+            }
+            context.Builder.Append('}');
+        }
+        private static void ConvertToStringGoto(Expression exp, ConvertContext context)
+        {
+            var @goto = exp as GotoExpression;
+            context.Builder.Append("goto ");
+            context.Builder.Append(@goto.Target.Name);
+        }
+        private static void ConvertToStringInvoke(Expression exp, ConvertContext context)
+        {
+            var invocation = exp as InvocationExpression;
+            ConvertToString(invocation, context);
+            context.Builder.Append('(');
+            for (var i = 0; i < invocation.Arguments.Count; i++)
+            {
+                if (i > 0)
+                    context.Builder.Append(',');
+                ConvertToString(invocation.Arguments[i], context);
+            }
+            context.Builder.Append(')');
         }
         private static void ConvertToStringParameter(Expression exp, ConvertContext context)
         {
