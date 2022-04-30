@@ -285,17 +285,17 @@ namespace Zerra.Linq
         private static void ConvertToStringLambda(Expression exp, ConvertContext context)
         {
             var lambda = exp as LambdaExpression;
-            context.Builder.Append('(');
-            for (var i = 0; i < lambda.Parameters.Count; i++)
-            {
-                if (i > 0)
-                    context.Builder.Append(',');
-                var parameter = lambda.Parameters[i];
-                context.Builder.Append(parameter.Type.Name);
-                if (!String.IsNullOrWhiteSpace(parameter.Name))
-                    context.Builder.Append(' ').Append(parameter.Name);
-            }
-            context.Builder.Append(")=>");
+            //context.Builder.Append('(');
+            //for (var i = 0; i < lambda.Parameters.Count; i++)
+            //{
+            //    if (i > 0)
+            //        context.Builder.Append(',');
+            //    var parameter = lambda.Parameters[i];
+            //    context.Builder.Append(parameter.Type.Name);
+            //    if (!String.IsNullOrWhiteSpace(parameter.Name))
+            //        context.Builder.Append(' ').Append(parameter.Name);
+            //}
+            //context.Builder.Append(")=>");
             ConvertToString(lambda.Body, context);
         }
         private static void ConvertToStringUnary(string prefixOperation, string suffixOperation, Expression exp, ConvertContext context)
@@ -618,10 +618,15 @@ namespace Zerra.Linq
         {
             var parameterExpression = exp as ParameterExpression;
 
-            if (!String.IsNullOrWhiteSpace(parameterExpression.Name))
-                context.Builder.Append(parameterExpression.Name);
-            else
+            //if (!String.IsNullOrWhiteSpace(parameterExpression.Name))
+            //{
+            //    context.Builder.Append('(').Append(parameterExpression.Type.Name).Append(')');
+            //    context.Builder.Append(parameterExpression.Name);
+            //}
+            //else
+            //{
                 context.Builder.Append(parameterExpression.Type.Name);
+            //}
             if (context.MemberAccessStack.Count > 0)
             {
                 context.Builder.Append('.');
