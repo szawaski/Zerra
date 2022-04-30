@@ -285,8 +285,8 @@ namespace Zerra.Linq
         private static void ConvertToStringLambda(Expression exp, ConvertContext context)
         {
             var lambda = exp as LambdaExpression;
-            if (lambda.Parameters.Count != 1)
-                throw new NotSupportedException("Can only parse a lambda with one parameter.");
+            //if (lambda.Parameters.Count != 1)
+            //    throw new NotSupportedException("Can only parse a lambda with one parameter.");
             ConvertToString(lambda.Body, context);
         }
         private static void ConvertToStringUnary(string prefixOperation, string suffixOperation, Expression exp, ConvertContext context)
@@ -612,25 +612,25 @@ namespace Zerra.Linq
             context.Builder.Append(parameterExpression.Type.Name);
             if (!String.IsNullOrWhiteSpace(parameterExpression.Name))
                 context.Builder.Append('_').Append(parameterExpression.Name);
-            context.Builder.Append('.');
-
-            ConvertToStringParameterStack(context);
+            if (context.MemberAccessStack.Count > 0)
+            {
+                context.Builder.Append('.');
+                ConvertToStringParameterStack(context);
+            }
         }
 
         private static void ConvertToStringParameterStack(ConvertContext context)
         {
+            var member = context.MemberAccessStack.Pop();
+
+            context.Builder.Append(member.Member.Name);
             if (context.MemberAccessStack.Count > 0)
             {
-                var member = context.MemberAccessStack.Pop();
-
-                context.Builder.Append(member.Member.Name);
-                if (context.MemberAccessStack.Count > 0)
-                    context.Builder.Append('.');
-
+                context.Builder.Append('.');
                 ConvertToStringParameterStack(context);
-
-                context.MemberAccessStack.Push(member);
             }
+
+            context.MemberAccessStack.Push(member);
         }
         private static void ConvertToStringConditional(Expression exp, ConvertContext context)
         {
@@ -748,7 +748,11 @@ namespace Zerra.Linq
                 context.Builder.Append('.');
                 context.Builder.Append(member.Member.Name);
 
-                ConvertToStringParameterStack(context);
+                if (context.MemberAccessStack.Count > 0)
+                {
+                    context.Builder.Append('.');
+                    ConvertToStringParameterStack(context);
+                }
 
                 context.MemberAccessStack.Push(member);
             }
