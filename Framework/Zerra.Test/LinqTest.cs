@@ -28,7 +28,7 @@ namespace Zerra.Test
         [TestMethod]
         public void TestToStringMultipleParameters()
         {
-            Expression<Func<int, int, decimal>> exp = (x, y) => x + y + 15;
+            Expression<Func<int, int, decimal>> exp = (x, y) => x + (y + 15);
             var str = exp.ToLinqString();
         }
 
