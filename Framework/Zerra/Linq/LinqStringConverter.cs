@@ -95,7 +95,7 @@ namespace Zerra.Linq
                     ConvertToStringDynamic(exp, context);
                     break;
                 case ExpressionType.Equal:
-                    ConvertToStringBinary("=", exp, context);
+                    ConvertToStringBinary("==", exp, context);
                     break;
                 case ExpressionType.ExclusiveOr:
                     ConvertToStringBinary("^", exp, context);
@@ -267,7 +267,7 @@ namespace Zerra.Linq
                     ConvertToStringTypeBinaryExpression(" as ", exp, context);
                     break;
                 case ExpressionType.TypeEqual:
-                    ConvertToStringTypeBinaryExpression(" = ", exp, context);
+                    ConvertToStringTypeBinaryExpression("==", exp, context);
                     break;
                 case ExpressionType.TypeIs:
                     ConvertToStringTypeBinaryExpression(" is ", exp, context);
@@ -285,17 +285,17 @@ namespace Zerra.Linq
         private static void ConvertToStringLambda(Expression exp, ConvertContext context)
         {
             var lambda = exp as LambdaExpression;
-            //context.Builder.Append('(');
-            //for (var i = 0; i < lambda.Parameters.Count; i++)
-            //{
-            //    if (i > 0)
-            //        context.Builder.Append(',');
-            //    var parameter = lambda.Parameters[i];
-            //    context.Builder.Append(parameter.Type.Name);
-            //    if (!String.IsNullOrWhiteSpace(parameter.Name))
-            //        context.Builder.Append(' ').Append(parameter.Name);
-            //}
-            //context.Builder.Append(")=>");
+            context.Builder.Append('(');
+            for (var i = 0; i < lambda.Parameters.Count; i++)
+            {
+                if (i > 0)
+                    context.Builder.Append(',');
+                var parameter = lambda.Parameters[i];
+                context.Builder.Append(parameter.Type.Name);
+                if (!String.IsNullOrWhiteSpace(parameter.Name))
+                    context.Builder.Append(' ').Append(parameter.Name);
+            }
+            context.Builder.Append(")=>");
             ConvertToString(lambda.Body, context);
         }
         private static void ConvertToStringUnary(string prefixOperation, string suffixOperation, Expression exp, ConvertContext context)
