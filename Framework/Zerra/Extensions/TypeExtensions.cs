@@ -85,12 +85,12 @@ public static class TypeExtensions
         }
         else
         {
-            sb.Append(type.Name);
+            sb.Append(type.Name.Split('`')[0]);
 
             if (type.IsGenericType)
             {
                 var genericTypes = typeDetails.InnerTypes;
-                sb.Append('[');
+                sb.Append('<');
                 bool first = true;
                 foreach (var genericType in genericTypes)
                 {
@@ -99,7 +99,7 @@ public static class TypeExtensions
                     first = false;
                     sb.Append(genericType.GetNiceFullName());
                 }
-                sb.Append(']');
+                sb.Append('>');
             }
         }
 
