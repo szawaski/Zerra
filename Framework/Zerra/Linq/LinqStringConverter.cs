@@ -308,7 +308,7 @@ namespace Zerra.Linq
         private static void ConvertToStringBox(Expression exp, ConvertContext context)
         {
             var unary = exp as UnaryExpression;
-            context.Builder.Append('(').Append(unary.Type.Name).Append(')');
+            context.Builder.Append('(').Append(unary.Type.GetNiceName()).Append(')');
             ConvertToString(unary.Operand, context);
         }
         private static void ConvertToStringBinary(string operation, Expression exp, ConvertContext context)
@@ -328,7 +328,12 @@ namespace Zerra.Linq
 
             if (member.Expression == null)
             {
-                ConvertToStringEvaluate(member, context);
+                context.Builder.Append(member.Member.DeclaringType.GetNiceName()).Append('.').Append(member.Member.Name);
+                if (context.MemberAccessStack.Count > 0)
+                {
+                    context.Builder.Append('.');
+                    ConvertToStringMemberStack(context);
+                }
             }
             else
             {
@@ -379,51 +384,44 @@ namespace Zerra.Linq
         private static void ConvertToStringCall(Expression exp, ConvertContext context)
         {
             var call = exp as MethodCallExpression;
-            bool isEvaluatable = IsEvaluatable(exp);
-            if (isEvaluatable)
+
+            if (call.Object == null)
             {
-                ConvertToStringEvaluate(exp, context);
+                var callingObject = call.Arguments[0];
+                ConvertToString(callingObject, context);
+                context.Builder.Append('.');
+                context.Builder.Append(call.Method.Name);
+                context.Builder.Append('(');
+                for (int i = 1; i < call.Arguments.Count; i++)
+                {
+                    if (i > 1)
+                        context.Builder.Append(',');
+                    var arg = call.Arguments[i];
+                    ConvertToString(arg, context);
+                }
+                context.Builder.Append(')');
             }
             else
             {
-                if (call.Object == null)
+                ConvertToString(call.Object, context);
+                context.Builder.Append('.');
+                context.Builder.Append(call.Method.Name);
+                context.Builder.Append('(');
+                for (int i = 0; i < call.Arguments.Count; i++)
                 {
-                    var callingObject = call.Arguments[0];
-                    ConvertToString(callingObject, context);
-                    context.Builder.Append('.');
-                    context.Builder.Append(call.Method.Name);
-                    context.Builder.Append('(');
-                    for (int i = 1; i < call.Arguments.Count; i++)
-                    {
-                        if (i > 1)
-                            context.Builder.Append(',');
-                        var arg = call.Arguments[i];
-                        ConvertToString(arg, context);
-                    }
-                    context.Builder.Append(')');
+                    if (i > 1)
+                        context.Builder.Append(',');
+                    var arg = call.Arguments[i];
+                    ConvertToString(arg, context);
                 }
-                else
-                {
-                    ConvertToString(call.Object, context);
-                    context.Builder.Append('.');
-                    context.Builder.Append(call.Method.Name);
-                    context.Builder.Append('(');
-                    for (int i = 0; i < call.Arguments.Count; i++)
-                    {
-                        if (i > 1)
-                            context.Builder.Append(',');
-                        var arg = call.Arguments[i];
-                        ConvertToString(arg, context);
-                    }
-                    context.Builder.Append(')');
-                }
+                context.Builder.Append(')');
             }
         }
         private static void ConvertToStringNew(Expression exp, ConvertContext context)
         {
             var newExp = exp as NewExpression;
 
-            context.Builder.Append("new ").Append(newExp.Type.Name).Append('(');
+            context.Builder.Append("new ").Append(newExp.Type.GetNiceName()).Append('(');
             for (var i = 0; i < newExp.Arguments.Count; i++)
             {
                 if (i > 0)
@@ -436,7 +434,7 @@ namespace Zerra.Linq
         {
             var newExp = exp as NewArrayExpression;
 
-            context.Builder.Append("new ").Append(newExp.Type.Name).Append("[] {");
+            context.Builder.Append("new ").Append(newExp.Type.GetNiceName()).Append("[] {");
             for (var i = 0; i < newExp.Expressions.Count; i++)
             {
                 if (i > 0)
@@ -466,9 +464,9 @@ namespace Zerra.Linq
                     context.Builder.Append(", ");
 
                 if (binding.Member.MemberType == MemberTypes.Property)
-                    context.Builder.Append(((PropertyInfo)binding.Member).PropertyType.Name).Append(' ');
+                    context.Builder.Append(((PropertyInfo)binding.Member).PropertyType.GetNiceName()).Append(' ');
                 else if (binding.Member.MemberType == MemberTypes.Field)
-                    context.Builder.Append(((FieldInfo)binding.Member).FieldType.Name).Append(' ');
+                    context.Builder.Append(((FieldInfo)binding.Member).FieldType.GetNiceName()).Append(' ');
                 context.Builder.Append(binding.Member.Name);
             }
             context.Builder.Append('}');
@@ -505,7 +503,7 @@ namespace Zerra.Linq
         private static void ConvertToStringIndex(Expression exp, ConvertContext context)
         {
             var index = exp as IndexExpression;
-            context.Builder.Append(index.Type.Name);
+            context.Builder.Append(index.Type.GetNiceName());
             context.Builder.Append('[');
             for (var i = 0; i < index.Arguments.Count; i++)
             {
@@ -520,7 +518,7 @@ namespace Zerra.Linq
             var typeBinary = exp as TypeBinaryExpression;
             ConvertToString(typeBinary.Expression, context);
             context.Builder.Append(operation);
-            context.Builder.Append(typeBinary.TypeOperand.Name);
+            context.Builder.Append(typeBinary.TypeOperand.GetNiceName());
         }
         private static void ConvertToStringBlock(Expression exp, ConvertContext context)
         {
@@ -537,13 +535,13 @@ namespace Zerra.Linq
         {
             var @default = exp as DefaultExpression;
             context.Builder.Append("default(");
-            context.Builder.Append(@default.Type.Name);
+            context.Builder.Append(@default.Type.GetNiceName());
             context.Builder.Append(')');
         }
         private static void ConvertToStringDynamic(Expression exp, ConvertContext context)
         {
             var dynamic = exp as DynamicExpression;
-            context.Builder.Append(dynamic.DelegateType.Name);
+            context.Builder.Append(dynamic.DelegateType.GetNiceName());
             context.Builder.Append('(');
             for (var i = 0; i < dynamic.Arguments.Count; i++)
             {
@@ -625,16 +623,16 @@ namespace Zerra.Linq
             //}
             //else
             //{
-                context.Builder.Append(parameterExpression.Type.Name);
+            context.Builder.Append(parameterExpression.Type.GetNiceName());
             //}
             if (context.MemberAccessStack.Count > 0)
             {
                 context.Builder.Append('.');
-                ConvertToStringParameterStack(context);
+                ConvertToStringMemberStack(context);
             }
         }
 
-        private static void ConvertToStringParameterStack(ConvertContext context)
+        private static void ConvertToStringMemberStack(ConvertContext context)
         {
             var member = context.MemberAccessStack.Pop();
 
@@ -642,7 +640,7 @@ namespace Zerra.Linq
             if (context.MemberAccessStack.Count > 0)
             {
                 context.Builder.Append('.');
-                ConvertToStringParameterStack(context);
+                ConvertToStringMemberStack(context);
             }
 
             context.MemberAccessStack.Push(member);
@@ -655,11 +653,6 @@ namespace Zerra.Linq
             ConvertToString(conditional.IfTrue, context);
             context.Builder.Append(':');
             ConvertToString(conditional.IfFalse, context);
-        }
-        private static void ConvertToStringEvaluate(Expression exp, ConvertContext context)
-        {
-            var value = Evaluate(exp);
-            ConvertToStringValue(exp.Type, value, context);
         }
 
         private static void ConvertToStringValue(Type type, object value, ConvertContext context)
@@ -686,7 +679,7 @@ namespace Zerra.Linq
 
             if (type.IsEnum)
             {
-                context.Builder.Append(type.Name).Append('.').Append(value);
+                context.Builder.Append(type.GetNiceName()).Append('.').Append(value);
                 return;
             }
 
@@ -752,7 +745,7 @@ namespace Zerra.Linq
                 return;
             }
 
-            throw new NotImplementedException($"{type.Name} value {value?.ToString()} not converted");
+            throw new NotImplementedException($"{type.GetNiceName()} value {value?.ToString()} not converted");
         }
         private static void ConvertToStringValueStack(ConvertContext context)
         {
@@ -766,194 +759,11 @@ namespace Zerra.Linq
                 if (context.MemberAccessStack.Count > 0)
                 {
                     context.Builder.Append('.');
-                    ConvertToStringParameterStack(context);
+                    ConvertToStringMemberStack(context);
                 }
 
                 context.MemberAccessStack.Push(member);
             }
-        }
-
-        private static bool IsEvaluatable(Expression exp)
-        {
-            return exp.NodeType switch
-            {
-                ExpressionType.Add => IsEvaluatableBinary(exp),
-                ExpressionType.AddAssign => IsEvaluatableBinary(exp),
-                ExpressionType.AddAssignChecked => IsEvaluatableBinary(exp),
-                ExpressionType.AddChecked => IsEvaluatableBinary(exp),
-                ExpressionType.And => IsEvaluatableBinary(exp),
-                ExpressionType.AndAlso => IsEvaluatableBinary(exp),
-                ExpressionType.AndAssign => IsEvaluatableBinary(exp),
-                ExpressionType.ArrayIndex => throw new NotImplementedException(),
-                ExpressionType.ArrayLength => IsEvaluatableUnary(exp),
-                ExpressionType.Assign => IsEvaluatableBinary(exp),
-                ExpressionType.Block => IsEvaluatableBlock(exp),
-                ExpressionType.Call => IsEvaluatableCall(exp),
-                ExpressionType.Coalesce => throw new NotImplementedException(),
-                ExpressionType.Conditional => throw new NotImplementedException(),
-                ExpressionType.Constant => true,
-                ExpressionType.Convert => IsEvaluatableUnary(exp),
-                ExpressionType.ConvertChecked => throw new NotImplementedException(),
-                ExpressionType.DebugInfo => throw new NotImplementedException(),
-                ExpressionType.Decrement => IsEvaluatableUnary(exp),
-                ExpressionType.Default => throw new NotImplementedException(),
-                ExpressionType.Divide => IsEvaluatableBinary(exp),
-                ExpressionType.DivideAssign => IsEvaluatableBinary(exp),
-                ExpressionType.Dynamic => throw new NotImplementedException(),
-                ExpressionType.Equal => IsEvaluatableBinary(exp),
-                ExpressionType.ExclusiveOr => IsEvaluatableBinary(exp),
-                ExpressionType.ExclusiveOrAssign => IsEvaluatableBinary(exp),
-                ExpressionType.Extension => throw new NotImplementedException(),
-                ExpressionType.Goto => throw new NotImplementedException(),
-                ExpressionType.GreaterThan => throw new NotImplementedException(),
-                ExpressionType.GreaterThanOrEqual => throw new NotImplementedException(),
-                ExpressionType.Increment => IsEvaluatableUnary(exp),
-                ExpressionType.Index => throw new NotImplementedException(),
-                ExpressionType.Invoke => throw new NotImplementedException(),
-                ExpressionType.IsFalse => throw new NotImplementedException(),
-                ExpressionType.IsTrue => throw new NotImplementedException(),
-                ExpressionType.Label => throw new NotImplementedException(),
-                ExpressionType.Lambda => throw new NotImplementedException(),
-                ExpressionType.LeftShift => IsEvaluatableBinary(exp),
-                ExpressionType.LeftShiftAssign => IsEvaluatableBinary(exp),
-                ExpressionType.LessThan => throw new NotImplementedException(),
-                ExpressionType.LessThanOrEqual => throw new NotImplementedException(),
-                ExpressionType.ListInit => throw new NotImplementedException(),
-                ExpressionType.Loop => throw new NotImplementedException(),
-                ExpressionType.MemberAccess => IsEvaluatableMemberAccess(exp),
-                ExpressionType.MemberInit => throw new NotImplementedException(),
-                ExpressionType.Modulo => IsEvaluatableBinary(exp),
-                ExpressionType.ModuloAssign => IsEvaluatableBinary(exp),
-                ExpressionType.Multiply => IsEvaluatableBinary(exp),
-                ExpressionType.MultiplyAssign => IsEvaluatableBinary(exp),
-                ExpressionType.MultiplyAssignChecked => IsEvaluatableBinary(exp),
-                ExpressionType.MultiplyChecked => IsEvaluatableBinary(exp),
-                ExpressionType.Negate => IsEvaluatableUnary(exp),
-                ExpressionType.NegateChecked => IsEvaluatableUnary(exp),
-                ExpressionType.New => throw new NotImplementedException(),
-                ExpressionType.NewArrayBounds => throw new NotImplementedException(),
-                ExpressionType.NewArrayInit => throw new NotImplementedException(),
-                ExpressionType.Not => IsEvaluatableUnary(exp),
-                ExpressionType.NotEqual => IsEvaluatableBinary(exp),
-                ExpressionType.OnesComplement => IsEvaluatableUnary(exp),
-                ExpressionType.Or => IsEvaluatableBinary(exp),
-                ExpressionType.OrAssign => IsEvaluatableBinary(exp),
-                ExpressionType.OrElse => IsEvaluatableBinary(exp),
-                ExpressionType.Parameter => false,
-                ExpressionType.PostDecrementAssign => IsEvaluatableUnary(exp),
-                ExpressionType.PostIncrementAssign => IsEvaluatableUnary(exp),
-                ExpressionType.Power => IsEvaluatableBinary(exp),
-                ExpressionType.PowerAssign => IsEvaluatableBinary(exp),
-                ExpressionType.PreDecrementAssign => IsEvaluatableUnary(exp),
-                ExpressionType.PreIncrementAssign => IsEvaluatableUnary(exp),
-                ExpressionType.Quote => throw new NotImplementedException(),
-                ExpressionType.RightShift => IsEvaluatableBinary(exp),
-                ExpressionType.RightShiftAssign => IsEvaluatableBinary(exp),
-                ExpressionType.RuntimeVariables => throw new NotImplementedException(),
-                ExpressionType.Subtract => IsEvaluatableBinary(exp),
-                ExpressionType.SubtractAssign => IsEvaluatableBinary(exp),
-                ExpressionType.SubtractAssignChecked => IsEvaluatableBinary(exp),
-                ExpressionType.SubtractChecked => IsEvaluatableBinary(exp),
-                ExpressionType.Switch => throw new NotImplementedException(),
-                ExpressionType.Throw => throw new NotImplementedException(),
-                ExpressionType.Try => throw new NotImplementedException(),
-                ExpressionType.TypeAs => IsEvaluatableUnary(exp),
-                ExpressionType.TypeEqual => IsEvaluatableUnary(exp),
-                ExpressionType.TypeIs => IsEvaluatableUnary(exp),
-                ExpressionType.UnaryPlus => IsEvaluatableUnary(exp),
-                ExpressionType.Unbox => IsEvaluatableUnary(exp),
-                _ => throw new NotImplementedException(),
-            };
-            ;
-        }
-        private static bool IsEvaluatableUnary(Expression exp)
-        {
-            var unary = exp as UnaryExpression;
-            return IsEvaluatable(unary.Operand);
-        }
-        private static bool IsEvaluatableBinary(Expression exp)
-        {
-            var binary = exp as BinaryExpression;
-            return IsEvaluatable(binary.Left) && IsEvaluatable(binary.Right);
-        }
-        private static bool IsEvaluatableBlock(Expression exp)
-        {
-            var block = exp as BlockExpression;
-            foreach (var variable in block.Variables)
-                if (!IsEvaluatable(variable))
-                    return false;
-            foreach (var expression in block.Expressions)
-                if (!IsEvaluatable(expression))
-                    return false;
-            return true;
-        }
-        private static bool IsEvaluatableCall(Expression exp)
-        {
-            var call = exp as MethodCallExpression;
-
-            foreach (var arg in call.Arguments)
-                if (!IsEvaluatable(arg))
-                    return false;
-
-            if (call.Object != null)
-                return IsEvaluatable(call.Object);
-
-            return true;
-        }
-        private static bool IsEvaluatableMemberAccess(Expression exp)
-        {
-            var member = exp as MemberExpression;
-            if (member.Expression == null)
-            {
-                return true;
-            }
-            return IsEvaluatable(member.Expression);
-        }
-
-        private static object Evaluate(Expression exp)
-        {
-            return exp.NodeType switch
-            {
-                ExpressionType.Constant => EvaluateConstant(exp),
-                ExpressionType.MemberAccess => EvaluateMemberAccess(exp),
-                _ => EvaluateInvoke(exp),
-            };
-        }
-        private static object EvaluateConstant(Expression exp)
-        {
-            var constant = exp as ConstantExpression;
-            return constant.Value;
-        }
-        private static object EvaluateMemberAccess(Expression exp)
-        {
-            var member = exp as MemberExpression;
-            var expressionValue = member.Expression == null ? null : Evaluate(member.Expression);
-
-            object value;
-            switch (member.Member.MemberType)
-            {
-                case MemberTypes.Field:
-                    var fieldInfo = (FieldInfo)member.Member;
-                    if (expressionValue == null && !fieldInfo.IsStatic)
-                        return null;
-                    value = fieldInfo.GetValue(expressionValue);
-                    break;
-                case MemberTypes.Property:
-                    var propertyInfo = (PropertyInfo)member.Member;
-                    if (expressionValue == null && !propertyInfo.GetMethod.IsStatic)
-                        return null;
-                    value = propertyInfo.GetValue(expressionValue);
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
-
-            return value;
-        }
-        private static object EvaluateInvoke(Expression exp)
-        {
-            var value = Expression.Lambda(exp).Compile().DynamicInvoke();
-            return value;
         }
     }
 }
