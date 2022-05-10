@@ -25,10 +25,11 @@ public class EnumName : Attribute
             return underlyingType;
         });
     }
-    private static readonly ConcurrentFactoryDictionary<Type, Dictionary<long, string>> nameLookups = new ConcurrentFactoryDictionary<Type, Dictionary<long, string>>();
-    private static Dictionary<long, string> GetNameLookup(Type type)
+
+    private static readonly ConcurrentFactoryDictionary<Type, Dictionary<long, string>> nameCache = new ConcurrentFactoryDictionary<Type, Dictionary<long, string>>();
+    private static Dictionary<long, string> GetNamesForType(Type type)
     {
-        var nameLookup = nameLookups.GetOrAdd(type, (t) =>
+        var nameLookup = nameCache.GetOrAdd(type, (t) =>
         {
             var items = new Dictionary<long, string>();
             var fields = t.GetFields();
@@ -101,31 +102,50 @@ public class EnumName : Attribute
         });
         return nameLookup;
     }
-    public static string LookupName(Type type, object value)
+
+    public static string GetName(Type type, object value)
     {
         if (!type.IsEnum) throw new ArgumentException($"Type {type.GetNiceName()} is not an Enum");
-        var nameLookup = GetNameLookup(type);
+        var namesLookup = GetNamesForType(type);
         var underlyingType = GetUnderlyingType(type);
 
         unchecked
         {
             return underlyingType switch
             {
-                CoreType.Byte => nameLookup[(byte)value],
-                CoreType.SByte => nameLookup[(sbyte)value],
-                CoreType.Int16 => nameLookup[(int)value],
-                CoreType.UInt16 => nameLookup[(uint)value],
-                CoreType.Int32 => nameLookup[(int)value],
-                CoreType.UInt32 => nameLookup[(uint)value],
-                CoreType.Int64 => nameLookup[(long)value],
-                CoreType.UInt64 => nameLookup[(long)(ulong)value],
+                CoreType.Byte => namesLookup[(byte)value],
+                CoreType.SByte => namesLookup[(sbyte)value],
+                CoreType.Int16 => namesLookup[(int)value],
+                CoreType.UInt16 => namesLookup[(uint)value],
+                CoreType.Int32 => namesLookup[(int)value],
+                CoreType.UInt32 => namesLookup[(uint)value],
+                CoreType.Int64 => namesLookup[(long)value],
+                CoreType.UInt64 => namesLookup[(long)(ulong)value],
                 _ => throw new NotImplementedException(),
             };
         }
     }
+    public static string GetName<T>(object value)
+        where T : Enum
+    {
+        var type = typeof(T);
+        return GetName(type, value);
+    }
+    public static string[] GetNames(Type type)
+    {
+        if (!type.IsEnum) throw new ArgumentException($"Type {type.GetNiceName()} is not an Enum");
+        var namesLookup = GetNamesForType(type);
+        return namesLookup.Values.ToArray();
+    }
+    public static string[] GetNames<T>()
+        where T : Enum
+    {
+        var type = typeof(T);
+        return GetNames(type);
+    }
 
     private static readonly ConcurrentFactoryDictionary<Type, Dictionary<string, object>> valueLookups = new ConcurrentFactoryDictionary<Type, Dictionary<string, object>>();
-    private static Dictionary<string, object> GetValueLookup(Type type)
+    private static Dictionary<string, object> GetValuesForType(Type type)
     {
         var valueLookup = valueLookups.GetOrAdd(type, (t) =>
         {
@@ -155,7 +175,7 @@ public class EnumName : Attribute
     }
     public static object Parse(string enumString, Type type)
     {
-        var valueLookup = GetValueLookup(type);
+        var valueLookup = GetValuesForType(type);
         if (valueLookup.TryGetValue(enumString.ToLower(), out object value))
             return value;
 
@@ -178,7 +198,7 @@ public class EnumName : Attribute
     }
     public static bool TryParse(string enumString, Type type, out object value)
     {
-        var valueLookup = GetValueLookup(type);
+        var valueLookup = GetValuesForType(type);
         if (valueLookup.TryGetValue(enumString.ToLower(), out value))
             return true;
 
@@ -191,15 +211,6 @@ public class EnumName : Attribute
         where T : Enum
     {
         var type = typeLookup.GetOrAdd(value, (o) => { return o.GetType(); });
-        return LookupName(type, value);
-    }
-}
-
-public static class EnumNameExtensions
-{
-    public static string EnumName<T>(this T value)
-        where T : Enum
-    {
-        return global::EnumName.GetEnumName(value);
+        return GetName(type, value);
     }
 }
