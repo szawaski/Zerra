@@ -7,8 +7,16 @@ using System;
 public static class EnumNameExtensions
 {
     public static string EnumName<T>(this T value)
-        where T : Enum
+        where T : struct, Enum 
     {
-        return global::EnumName.GetEnumName(value);
+        return global::EnumName.GetName<T>(value);
+    }
+
+    public static string EnumName<T>(this T? value)
+    where T : struct, Enum
+    {
+        if (value == null)
+            return null;
+        return global::EnumName.GetName<T>(value.Value);
     }
 }

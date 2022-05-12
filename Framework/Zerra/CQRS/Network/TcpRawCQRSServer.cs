@@ -87,7 +87,7 @@ namespace Zerra.CQRS.Network
                     requestBodyStream = networkType switch
                     {
                         NetworkType.Internal => SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, requestBodyStream, false, false),
-                        NetworkType.Api => throw new NotSupportedException($"Encryption Not Supported for Network Type {EnumName.GetEnumName(networkType)}"),
+                        NetworkType.Api => throw new NotSupportedException($"Encryption Not Supported for Network Type {EnumName.GetName(networkType)}"),
                         _ => throw new NotImplementedException(),
                     };
                 }
@@ -162,7 +162,7 @@ namespace Zerra.CQRS.Network
                             responseBodyCryptoStream = networkType switch
                             {
                                 NetworkType.Internal => SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, responseBodyStream, true, false),
-                                NetworkType.Api => throw new NotSupportedException($"Encryption Not Supported for Network Type {EnumName.GetEnumName(networkType)}"),
+                                NetworkType.Api => throw new NotSupportedException($"Encryption Not Supported for Network Type {EnumName.GetName(networkType)}"),
                                 _ => throw new NotImplementedException(),
                             };
 
@@ -212,7 +212,7 @@ namespace Zerra.CQRS.Network
                             responseBodyCryptoStream = networkType switch
                             {
                                 NetworkType.Internal => SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, responseBodyStream, true, false),
-                                NetworkType.Api => throw new NotSupportedException($"Encryption Not Supported for Network Type {EnumName.GetEnumName(networkType)}"),
+                                NetworkType.Api => throw new NotSupportedException($"Encryption Not Supported for Network Type {EnumName.GetName(networkType)}"),
                                 _ => throw new NotImplementedException(),
                             };
 
@@ -343,7 +343,7 @@ namespace Zerra.CQRS.Network
                             responseBodyCryptoStream = networkType switch
                             {
                                 NetworkType.Internal => SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, responseBodyStream, true, false),
-                                NetworkType.Api => throw new NotSupportedException($"Encryption Not Supported for Network Type {EnumName.GetEnumName(networkType)}"),
+                                NetworkType.Api => throw new NotSupportedException($"Encryption Not Supported for Network Type {EnumName.GetName(networkType)}"),
                                 _ => throw new NotImplementedException(),
                             };
                             await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, ex);

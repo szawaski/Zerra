@@ -125,11 +125,10 @@ public class EnumName : Attribute
             };
         }
     }
-    public static string GetName<T>(object value)
+    public static string GetName<T>(T value)
         where T : Enum
     {
-        var type = typeof(T);
-        return GetName(type, value);
+        return GetName(typeof(T), value);
     }
     public static string[] GetNames(Type type)
     {
@@ -140,8 +139,7 @@ public class EnumName : Attribute
     public static string[] GetNames<T>()
         where T : Enum
     {
-        var type = typeof(T);
-        return GetNames(type);
+        return GetNames(typeof(T));
     }
 
     private static readonly ConcurrentFactoryDictionary<Type, Dictionary<string, object>> valueLookups = new ConcurrentFactoryDictionary<Type, Dictionary<string, object>>();
@@ -204,13 +202,5 @@ public class EnumName : Attribute
 
         value = default;
         return false;
-    }
-
-    private static readonly ConcurrentFactoryDictionary<object, Type> typeLookup = new ConcurrentFactoryDictionary<object, Type>();
-    public static string GetEnumName<T>(T value)
-        where T : Enum
-    {
-        var type = typeLookup.GetOrAdd(value, (o) => { return o.GetType(); });
-        return GetName(type, value);
     }
 }

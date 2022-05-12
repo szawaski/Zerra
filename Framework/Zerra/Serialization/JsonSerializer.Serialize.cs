@@ -241,14 +241,14 @@ namespace Zerra.Serialization
             if (typeDetail.Type.IsEnum)
             {
                 writer.Write('\"');
-                writer.Write(EnumName.GetEnumName(((Enum)value)));
+                writer.Write(EnumName.GetName(typeDetail.InnerTypes[0], value));
                 writer.Write('\"');
                 return;
             }
             if (typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
             {
                 writer.Write('\"');
-                writer.Write(EnumName.GetEnumName(((Enum)value)));
+                writer.Write(EnumName.GetName(typeDetail.InnerTypes[0], value));
                 writer.Write('\"');
                 return;
             }
@@ -339,7 +339,7 @@ namespace Zerra.Serialization
                     if (first) first = false;
                     else writer.Write(',');
                     writer.Write('\"');
-                    writer.Write(EnumName.GetEnumName(((Enum)value)));
+                    writer.Write(EnumName.GetName(typeDetail.Type, value));
                     writer.Write('\"');
                 }
                 return;
@@ -354,7 +354,7 @@ namespace Zerra.Serialization
                     if (value != null)
                     {
                         writer.Write('\"');
-                        writer.Write(EnumName.GetEnumName(((Enum)value)));
+                        writer.Write(EnumName.GetName(typeDetail.InnerTypes[0], (Enum)value));
                         writer.Write('\"');
                     }
                     else

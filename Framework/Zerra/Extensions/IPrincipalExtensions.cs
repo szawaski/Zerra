@@ -27,7 +27,7 @@ public static class IPrincipalExtensions
             return false;
         foreach (var role in roles)
         {
-            if (it.IsInRole(EnumName.GetEnumName(role)))
+            if (it.IsInRole(EnumName.GetName(role)))
                 return true;
         }
         return false;
