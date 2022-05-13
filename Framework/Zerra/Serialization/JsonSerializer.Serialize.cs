@@ -338,9 +338,16 @@ namespace Zerra.Serialization
                 {
                     if (first) first = false;
                     else writer.Write(',');
-                    writer.Write('\"');
-                    writer.Write(EnumName.GetName(typeDetail.Type, value));
-                    writer.Write('\"');
+                    if (value != null)
+                    {
+                        writer.Write('\"');
+                        writer.Write(EnumName.GetName(typeDetail.Type, value));
+                        writer.Write('\"');
+                    }
+                    else
+                    {
+                        writer.Write("null");
+                    }
                 }
                 return;
             }
@@ -401,48 +408,55 @@ namespace Zerra.Serialization
                 {
                     if (first) first = false;
                     else writer.Write(',');
-                    if (!nameless)
-                        writer.Write('{');
-                    else
-                        writer.Write('[');
-
-                    bool firstProperty = true;
-                    foreach (var member in typeDetail.SerializableMemberDetails)
+                    if (value != null)
                     {
-                        if (graph != null)
-                        {
-                            if (member.TypeDetail.IsGraphLocalProperty)
-                            {
-                                if (!graph.HasLocalProperty(member.Name))
-                                    continue;
-                            }
-                            else
-                            {
-                                if (!graph.HasChildGraph(member.Name))
-                                    continue;
-                            }
-                        }
+                        if (!nameless)
+                            writer.Write('{');
+                        else
+                            writer.Write('[');
 
-                        if (firstProperty) firstProperty = false;
-                        else writer.Write(',');
+                        bool firstProperty = true;
+                        foreach (var member in typeDetail.SerializableMemberDetails)
+                        {
+                            if (graph != null)
+                            {
+                                if (member.TypeDetail.IsGraphLocalProperty)
+                                {
+                                    if (!graph.HasLocalProperty(member.Name))
+                                        continue;
+                                }
+                                else
+                                {
+                                    if (!graph.HasChildGraph(member.Name))
+                                        continue;
+                                }
+                            }
+
+                            if (firstProperty) firstProperty = false;
+                            else writer.Write(',');
+
+                            if (!nameless)
+                            {
+                                writer.Write('\"');
+                                writer.Write(member.Name);
+                                writer.Write('\"');
+                                writer.Write(':');
+                            }
+
+                            object propertyValue = member.Getter(value);
+                            var childGraph = graph?.GetChildGraph(member.Name);
+                            ToJson(propertyValue, member.TypeDetail, childGraph, ref writer, nameless);
+                        }
 
                         if (!nameless)
-                        {
-                            writer.Write('\"');
-                            writer.Write(member.Name);
-                            writer.Write('\"');
-                            writer.Write(':');
-                        }
-
-                        object propertyValue = member.Getter(value);
-                        var childGraph = graph?.GetChildGraph(member.Name);
-                        ToJson(propertyValue, member.TypeDetail, childGraph, ref writer, nameless);
+                            writer.Write('}');
+                        else
+                            writer.Write(']');
                     }
-
-                    if (!nameless)
-                        writer.Write('}');
                     else
-                        writer.Write(']');
+                    {
+                        writer.Write("null");
+                    }
                 }
             }
         }
