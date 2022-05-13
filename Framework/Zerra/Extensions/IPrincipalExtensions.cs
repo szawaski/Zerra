@@ -21,7 +21,8 @@ public static class IPrincipalExtensions
         return false;
     }
 
-    public static bool IsInRole(this IPrincipal it, params Enum[] roles)
+    public static bool IsInRole<T>(this IPrincipal it, params T[] roles)
+        where T : Enum
     {
         if (it == null)
             return false;
