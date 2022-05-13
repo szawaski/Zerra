@@ -34,7 +34,7 @@ namespace Zerra.Logger
 
             var filePath = Config.GetSetting("LogFileDirectory");
             if (String.IsNullOrWhiteSpace(filePath))
-                filePath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                filePath = System.IO.Path.GetDirectoryName(Environment.CurrentDirectory);
 
             infoFile = $"{filePath}\\{infoFileName}";
             tracefile = $"{filePath}\\{traceFileName}";

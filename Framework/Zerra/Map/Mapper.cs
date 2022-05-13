@@ -10,7 +10,7 @@ namespace Zerra
 {
     public static class Mapper
     {
-        public static bool DebugMode { get; set; } = false;
+        public static bool DebugMode { get; set; } = Config.IsDebugBuild;
 
         private static readonly Type mapType = typeof(Map<,>);
         private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object, Graph, object>> copyFuncs = new ConcurrentFactoryDictionary<TypeKey, Func<object, Graph, object>>();

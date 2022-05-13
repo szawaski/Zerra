@@ -102,7 +102,7 @@ namespace Zerra.CQRS.Relay
             await stateLock.WaitAsync();
             try
             {
-                var path = $"{GetAssemblyLocation()}\\relaystate.dat";
+                var path = Config.FindFilePath("relaystate.dat");
 
                 var infos = new List<ServiceInfo>();
                 foreach (var service in servicesByUrl.Values)
@@ -137,7 +137,7 @@ namespace Zerra.CQRS.Relay
             await stateLock.WaitAsync();
             try
             {
-                var path = $"{GetAssemblyLocation()}\\relaystate.dat";
+                var path = Config.FindFilePath("relaystate.dat");
                 if (File.Exists(path))
                 {
                     ServiceInfo[] infoArray = null;
@@ -170,14 +170,6 @@ namespace Zerra.CQRS.Relay
             {
                 stateLock.Release();
             }
-        }
-
-        private static string GetAssemblyLocation()
-        {
-            var assemblyUri = new UriBuilder(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            var assemblyUriPath = Uri.UnescapeDataString(assemblyUri.Path);
-            var assemblyPath = System.IO.Path.GetDirectoryName(assemblyUriPath);
-            return assemblyPath;
         }
     }
 }

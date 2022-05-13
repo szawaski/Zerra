@@ -1,4 +1,5 @@
 ﻿using System;
+using Zerra;
 using Zerra.CQRS;
 using Zerra.CQRS.Settings;
 using Zerra.Logger;
@@ -9,7 +10,7 @@ namespace ZerraDemo.Common
     {
         public static void StartServices()
         {
-            var entryAssembly = System.Reflection.Assembly.GetEntryAssembly();
+            var entryAssembly = Config.EntryAssembly;
             if (entryAssembly == null)
                 throw new Exception($"Entry Assembly is null, {nameof(ServiceManager)} cannot identify which service is running");
                     

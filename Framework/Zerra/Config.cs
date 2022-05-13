@@ -4,6 +4,7 @@
 
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -14,6 +15,35 @@ namespace Zerra
     {
         private const string settingsFileName = "appsettings.json";
         private const string genericSettingsFileName = "appsettings.{0}.json";
+
+        private static object discoveryLock = new object();
+        private static bool discoveryStarted;
+        internal static bool DiscoveryStarted
+        {
+            get { lock (discoveryLock) { return discoveryStarted; } }
+            set { lock (discoveryLock) { discoveryStarted = value; } }
+        }
+
+        internal static string[] DiscoveryNamespaces;
+
+        private static readonly Assembly entryAssembly;
+        private static readonly Assembly executingAssembly;
+        private static readonly string entryNameSpace;
+        private static readonly string frameworkNameSpace;
+        static Config()
+        {
+            entryAssembly = Assembly.GetEntryAssembly();
+            executingAssembly = Assembly.GetExecutingAssembly();
+
+            entryNameSpace = entryAssembly?.GetName().Name.Split('.')[0] + '.';
+            frameworkNameSpace = executingAssembly.GetName().Name.Split('.')[0] + '.';
+
+            if (entryNameSpace != null)
+                DiscoveryNamespaces = new string[] { entryNameSpace, frameworkNameSpace };
+            else
+                DiscoveryNamespaces = new string[] { frameworkNameSpace };
+            discoveryStarted = false;
+        }
 
         private static IConfiguration configuration;
         public static void LoadConfiguration(string[] args = null, Action<ConfigurationBuilder> build = null)
@@ -97,7 +127,7 @@ namespace Zerra
 
         public static string FindFilePath(string fileName)
         {
-            var executingAssemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            var executingAssemblyPath = Path.GetDirectoryName(executingAssembly.Location);
             var filePath = $"{executingAssemblyPath}/{fileName}";
             if (File.Exists(filePath))
                 return filePath;
@@ -107,32 +137,7 @@ namespace Zerra
                 return filePath;
 
             return null;
-        }
-
-
-        private static object discoveryLock = new object();
-        private static bool discoveryStarted;
-        internal static bool DiscoveryStarted
-        {
-            get { lock (discoveryLock) { return discoveryStarted; } }
-            set { lock (discoveryLock) { discoveryStarted = value; } }
-        }
-
-        internal static string[] DiscoveryNamespaces;
-
-        private static readonly string entryNameSpace;
-        private static readonly string frameworkNameSpace;
-        static Config()
-        {
-            entryNameSpace = Assembly.GetEntryAssembly()?.GetName().Name.Split('.')[0] + '.';
-            frameworkNameSpace = Assembly.GetExecutingAssembly().GetName().Name.Split('.')[0] + '.';
-
-            if (entryNameSpace != null)
-                DiscoveryNamespaces = new string[] { entryNameSpace, frameworkNameSpace };
-            else
-                DiscoveryNamespaces = new string[] { frameworkNameSpace };
-            discoveryStarted = false;
-        }
+        } 
 
         public static void AddDiscoveryNamespaces(params string[] namespaces)
         {
@@ -195,5 +200,10 @@ namespace Zerra
                 DiscoveryNamespaces = newNamespacesToLoad;
             }
         }
+
+        public static Assembly EntryAssembly { get { return entryAssembly; } }
+
+        private static Lazy<bool> isDebugEntryAssembly = new Lazy<bool>(() => entryAssembly.GetCustomAttributes(false).OfType<DebuggableAttribute>().Any(x => x.IsJITTrackingEnabled));
+        public static bool IsDebugBuild { get { return isDebugEntryAssembly.Value; } }
     }
 }
