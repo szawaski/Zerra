@@ -13,7 +13,7 @@
     <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, Logging</PackageTags>
     <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
     <Description>Basic Console and File Logging for the Zerra Framework for a quick start.  Ideally replaced with a custom implementation of ILoggingProvider and IMessageLogger later on.</Description>
-	  <Version>2.4.0</Version>
+	  <Version>3.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
