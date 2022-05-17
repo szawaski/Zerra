@@ -97,7 +97,10 @@ public static class TypeExtensions
                     if (!first)
                         sb.Append(',');
                     first = false;
-                    sb.Append(GenerateNiceName(genericType, ns));
+                    if (ns)
+                        sb.Append(genericType.GetNiceFullName());
+                    else
+                        sb.Append(genericType.GetNiceName());
                 }
                 sb.Append('>');
             }
