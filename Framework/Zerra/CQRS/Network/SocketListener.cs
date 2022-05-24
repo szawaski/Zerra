@@ -102,10 +102,16 @@ namespace Zerra.CQRS.Network
 
         ~SocketListener()
         {
-            Disposing();
+            DisposeInternal();
         }
 
-        private void Disposing()
+        public void Dispose()
+        {
+            DisposeInternal();
+            GC.SuppressFinalize(this);
+        }
+
+        private void DisposeInternal()
         {
             lock (this)
             {
@@ -115,12 +121,6 @@ namespace Zerra.CQRS.Network
                 disposed = true;
             }
             Close();
-        }
-
-        public void Dispose()
-        {
-            Disposing();
-            GC.SuppressFinalize(this);
         }
     }
 }

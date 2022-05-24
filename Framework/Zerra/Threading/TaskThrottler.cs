@@ -27,7 +27,7 @@ namespace Zerra.Threading
         {
             if (maxRunningTasks <= 0) throw new ArgumentException("maxRunningTasks must be greater than zero");
 
-            this.canceller = canceller ?? new CancellationTokenSource();
+            this.canceller = new CancellationTokenSource();
             this.queue = new AsyncConcurrentQueue<Func<Task>>();
             this.running = new ConcurrentList<Task>();
             this.taskLimiter = new SemaphoreSlim(maxRunningTasks, maxRunningTasks);
@@ -53,8 +53,7 @@ namespace Zerra.Threading
 
             await mainTask;
 
-            running.Dispose();
-            taskLimiter.Dispose();
+            DisposeInternal();
             GC.SuppressFinalize(this);
         }
 
@@ -63,9 +62,21 @@ namespace Zerra.Threading
             if (!canceller.IsCancellationRequested)
                 canceller.Cancel();
 
+            DisposeInternal();
+            GC.SuppressFinalize(this);
+        }
+
+        ~TaskThrottler()
+        {
+            if (!canceller.IsCancellationRequested)
+                canceller.Cancel();
+            DisposeInternal();
+        }
+
+        private void DisposeInternal()
+        {
             running.Dispose();
             taskLimiter.Dispose();
-            GC.SuppressFinalize(this);
         }
 
         private async Task RunningThread()

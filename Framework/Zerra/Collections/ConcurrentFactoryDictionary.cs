@@ -66,7 +66,7 @@ namespace Zerra.Collections
         bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item) { return ContainsKey(item.Key); }
         bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).IsReadOnly;
         void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) { ((IDictionary<TKey, TValue>)dictionary).CopyTo(array, arrayIndex); }
-        IEnumerator IEnumerable.GetEnumerator() { return this.GetEnumerator(); }
+        IEnumerator IEnumerable.GetEnumerator() { return GetEnumerator(); }
         IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys;
         IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
         int ICollection.Count => dictionary.Count;
