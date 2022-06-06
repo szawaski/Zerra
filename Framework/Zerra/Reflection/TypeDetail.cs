@@ -433,8 +433,8 @@ namespace Zerra.Reflection
             var test = type.Name;
             this.Attributes = type.GetCustomAttributes().ToArray();
 
-            if (!this.CoreType.HasValue)
-            {
+            //if (!this.CoreType.HasValue)
+            //{
                 var typeMembers = new List<MemberDetail>();
                 if (!type.IsGenericTypeDefinition)
                 {
@@ -468,13 +468,13 @@ namespace Zerra.Reflection
 
                 this.MemberDetails = typeMembers.ToArray();
                 this.membersByName = this.MemberDetails.ToDictionary(x => x.Name);
-            }
-            else
-            {
-                var typeMembers = Array.Empty<MemberDetail>();
-                this.MemberDetails = typeMembers;
-                this.membersByName = this.MemberDetails.ToDictionary(x => x.Name);
-            }
+            //}
+            //else
+            //{
+            //    var typeMembers = Array.Empty<MemberDetail>();
+            //    this.MemberDetails = typeMembers;
+            //    this.membersByName = this.MemberDetails.ToDictionary(x => x.Name);
+            //}
 
             if (this.IsTask && this.Type.IsGenericType)
             {

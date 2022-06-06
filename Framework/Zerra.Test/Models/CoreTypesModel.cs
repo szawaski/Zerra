@@ -25,5 +25,23 @@ namespace Zerra.Test
         public DateTimeOffset DateTimeOffsetThing { get; set; }
         public TimeSpan TimeSpanThing { get; set; }
         public Guid GuidThing { get; set; }
+
+        public bool? BooleanThingNullable { get; set; }
+        public byte? ByteThingNullable { get; set; }
+        public sbyte? SByteThingNullable { get; set; }
+        public short? Int16ThingNullable { get; set; }
+        public ushort? UInt16ThingNullable { get; set; }
+        public int? Int32ThingNullable { get; set; }
+        public uint? UInt32ThingNullable { get; set; }
+        public long? Int64ThingNullable { get; set; }
+        public ulong? UInt64ThingNullable { get; set; }
+        public float? SingleThingNullable { get; set; }
+        public double? DoubleThingNullable { get; set; }
+        public decimal? DecimalThingNullable { get; set; }
+        public char? CharThingNullable { get; set; }
+        public DateTime? DateTimeThingNullable { get; set; }
+        public DateTimeOffset? DateTimeOffsetThingNullable { get; set; }
+        public TimeSpan? TimeSpanThingNullable { get; set; }
+        public Guid? GuidThingNullable { get; set; }
     }
 }

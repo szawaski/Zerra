@@ -46,6 +46,8 @@ namespace Zerra
         private static readonly MethodInfo dictionaryRemoveMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethod("Remove").MethodInfo;
         private static readonly MethodInfo dictionaryTryGetMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethod("TryGetValue").MethodInfo;
         private static readonly ConstructorInfo newRecursionKey = TypeAnalyzer.GetTypeDetail(typeof(MapRecursionKey)).GetConstructor(typeof(object), typeof(Type)).ConstructorInfo;
+        private static readonly MethodInfo toStringMethod = TypeAnalyzer.GetTypeDetail(objectType).GetMethod("ToString").MethodInfo;
+
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, object> mapsStore = new ConcurrentFactoryDictionary<TypeKey, object>();
         public static Map<TSource, TTarget> GetMap()
@@ -309,7 +311,78 @@ namespace Zerra
                 Expression assigner;
                 if (sourceType.CoreType.HasValue && targetType.CoreType.HasValue && sourceType.CoreType.Value != targetType.CoreType.Value)
                 {
-                    assigner = Expression.Assign(target, Expression.Convert(source, targetType.Type));
+                    if (targetType.CoreType == CoreType.String)
+                    {
+                        //special case convert to string
+                        if (sourceType.IsNullable)
+                        {
+                            assigner = Expression.Assign(target, Expression.Condition(Expression.MakeMemberAccess(source, sourceType.GetMember("HasValue").MemberInfo), Expression.Call(Expression.MakeMemberAccess(source, sourceType.GetMember("Value").MemberInfo), toStringMethod), Expression.Constant(null, targetType.Type)));
+                        }
+                        else
+                        {
+                            assigner = Expression.Assign(target, Expression.Call(source, toStringMethod));
+                        }
+                    }
+                    else if (sourceType.CoreType == CoreType.String)
+                    {
+                        //special case parse string
+
+                        Expression convert;
+                        switch (targetType.CoreType)
+                        {
+                            case CoreType.Boolean:
+                            case CoreType.Byte:
+                            case CoreType.SByte:
+                            case CoreType.Int16:
+                            case CoreType.UInt16:
+                            case CoreType.Int32:
+                            case CoreType.UInt32:
+                            case CoreType.Int64:
+                            case CoreType.UInt64:
+                            case CoreType.Single:
+                            case CoreType.Double:
+                            case CoreType.Decimal:
+                            case CoreType.Char:
+                            case CoreType.DateTime:
+                            case CoreType.DateTimeOffset:
+                            case CoreType.TimeSpan:
+                            case CoreType.Guid:
+                                convert = Expression.Call(TypeAnalyzer.GetMethodDetail(targetType.Type, "Parse").MethodInfo, source);
+                                break;
+
+                            case CoreType.BooleanNullable:
+                            case CoreType.ByteNullable:
+                            case CoreType.SByteNullable:
+                            case CoreType.Int16Nullable:
+                            case CoreType.UInt16Nullable:
+                            case CoreType.Int32Nullable:
+                            case CoreType.UInt32Nullable:
+                            case CoreType.Int64Nullable:
+                            case CoreType.UInt64Nullable:
+                            case CoreType.SingleNullable:
+                            case CoreType.DoubleNullable:
+                            case CoreType.DecimalNullable:
+                            case CoreType.CharNullable:
+                            case CoreType.DateTimeNullable:
+                            case CoreType.DateTimeOffsetNullable:
+                            case CoreType.TimeSpanNullable:
+                            case CoreType.GuidNullable:
+                                convert = Expression.Condition(Expression.Equal(source, Expression.Constant(null)), Expression.Constant(null, targetType.Type), Expression.Convert(Expression.Call(TypeAnalyzer.GetMethodDetail(targetType.InnerTypes[0], "Parse").MethodInfo, source), targetType.Type));
+                                break;
+
+                            case CoreType.String:
+                                throw new Exception("Should not happen");
+
+                            default:
+                                throw new NotImplementedException();
+                        }
+
+                        assigner = Expression.Assign(target, convert);
+                    }
+                    else
+                    {
+                        assigner = Expression.Assign(target, Expression.Convert(source, targetType.Type));
+                    }
                 }
                 else
                 {
@@ -612,7 +685,7 @@ namespace Zerra
                     var list = Expression.Convert(target, listType.Type);
                     var casted = Expression.Variable(listType.Type, "casted");
                     var assignCastedVariable = Expression.Assign(casted, list);
-                    
+
                     var enumerable = Expression.Convert(source, enumerableGeneric.Type);
                     var enumerator = Expression.Variable(enumeratorGeneric.Type, "enumerator");
                     var assignEnumeratorVariable = Expression.Assign(enumerator, Expression.Call(enumerable, getEnumeratorMethod.MethodInfo));

@@ -58,7 +58,25 @@ namespace Zerra.Test
                 DateTimeThing = DateTime.Now,
                 DateTimeOffsetThing = DateTimeOffset.Now.AddDays(1),
                 TimeSpanThing = DateTime.Now.TimeOfDay,
-                GuidThing = Guid.NewGuid()
+                GuidThing = Guid.NewGuid(),
+
+                BooleanThingNullable = true,
+                ByteThingNullable = 11,
+                SByteThingNullable = -12,
+                Int16ThingNullable = -13,
+                UInt16ThingNullable = 14,
+                Int32ThingNullable = -15,
+                UInt32ThingNullable = 16,
+                Int64ThingNullable = -17,
+                UInt64ThingNullable = 18,
+                SingleThingNullable = -19.1f,
+                DoubleThingNullable = -110.2,
+                DecimalThingNullable = -111.3m,
+                CharThingNullable = 'X',
+                DateTimeThingNullable = DateTime.Now.AddMonths(1),
+                DateTimeOffsetThingNullable = DateTimeOffset.Now.AddMonths(1).AddDays(1),
+                TimeSpanThingNullable = DateTime.Now.AddHours(1).TimeOfDay,
+                GuidThingNullable = Guid.NewGuid(),
             };
             return model;
         }
@@ -85,6 +103,66 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DateTimeOffsetThing, model2.DateTimeOffsetThing);
             Assert.AreEqual(model1.TimeSpanThing, model2.TimeSpanThing);
             Assert.AreEqual(model1.GuidThing, model2.GuidThing);
+
+            Assert.AreEqual(model1.BooleanThingNullable, model2.BooleanThingNullable);
+            Assert.AreEqual(model1.ByteThingNullable, model2.ByteThingNullable);
+            Assert.AreEqual(model1.SByteThingNullable, model2.SByteThingNullable);
+            Assert.AreEqual(model1.Int16ThingNullable, model2.Int16ThingNullable);
+            Assert.AreEqual(model1.UInt16ThingNullable, model2.UInt16ThingNullable);
+            Assert.AreEqual(model1.Int32ThingNullable, model2.Int32ThingNullable);
+            Assert.AreEqual(model1.UInt32ThingNullable, model2.UInt32ThingNullable);
+            Assert.AreEqual(model1.Int64ThingNullable, model2.Int64ThingNullable);
+            Assert.AreEqual(model1.UInt64ThingNullable, model2.UInt64ThingNullable);
+            Assert.AreEqual(model1.SingleThingNullable, model2.SingleThingNullable);
+            Assert.AreEqual(model1.DoubleThingNullable, model2.DoubleThingNullable);
+            Assert.AreEqual(model1.DecimalThingNullable, model2.DecimalThingNullable);
+            Assert.AreEqual(model1.CharThingNullable, model2.CharThingNullable);
+            Assert.AreEqual(model1.DateTimeThingNullable, model2.DateTimeThingNullable);
+            Assert.AreEqual(model1.DateTimeOffsetThingNullable, model2.DateTimeOffsetThingNullable);
+            Assert.AreEqual(model1.TimeSpanThingNullable, model2.TimeSpanThingNullable);
+            Assert.AreEqual(model1.GuidThingNullable, model2.GuidThingNullable);
+        }
+        public static void AssertAreEqual(CoreTypesModel model1, CoreTypesAsStringsModel model2)
+        {
+            Assert.IsNotNull(model1);
+            Assert.IsNotNull(model2);
+            Assert.AreNotEqual(model1, model2);
+
+            Assert.AreEqual(model1.BooleanThing.ToString(), model2.BooleanThing);
+            Assert.AreEqual(model1.ByteThing.ToString(), model2.ByteThing);
+            Assert.AreEqual(model1.SByteThing.ToString(), model2.SByteThing);
+            Assert.AreEqual(model1.Int16Thing.ToString(), model2.Int16Thing);
+            Assert.AreEqual(model1.UInt16Thing.ToString(), model2.UInt16Thing);
+            Assert.AreEqual(model1.Int32Thing.ToString(), model2.Int32Thing);
+            Assert.AreEqual(model1.UInt32Thing.ToString(), model2.UInt32Thing);
+            Assert.AreEqual(model1.Int64Thing.ToString(), model2.Int64Thing);
+            Assert.AreEqual(model1.UInt64Thing.ToString(), model2.UInt64Thing);
+            Assert.AreEqual(model1.SingleThing.ToString(), model2.SingleThing);
+            Assert.AreEqual(model1.DoubleThing.ToString(), model2.DoubleThing);
+            Assert.AreEqual(model1.DecimalThing.ToString(), model2.DecimalThing);
+            Assert.AreEqual(model1.CharThing.ToString(), model2.CharThing);
+            Assert.AreEqual(model1.DateTimeThing.ToString(), model2.DateTimeThing);
+            Assert.AreEqual(model1.DateTimeOffsetThing.ToString(), model2.DateTimeOffsetThing);
+            Assert.AreEqual(model1.TimeSpanThing.ToString(), model2.TimeSpanThing);
+            Assert.AreEqual(model1.GuidThing.ToString(), model2.GuidThing);
+
+            Assert.AreEqual(model1.BooleanThingNullable?.ToString(), model2.BooleanThingNullable);
+            Assert.AreEqual(model1.ByteThingNullable?.ToString(), model2.ByteThingNullable);
+            Assert.AreEqual(model1.SByteThingNullable?.ToString(), model2.SByteThingNullable);
+            Assert.AreEqual(model1.Int16ThingNullable?.ToString(), model2.Int16ThingNullable);
+            Assert.AreEqual(model1.UInt16ThingNullable?.ToString(), model2.UInt16ThingNullable);
+            Assert.AreEqual(model1.Int32ThingNullable?.ToString(), model2.Int32ThingNullable);
+            Assert.AreEqual(model1.UInt32ThingNullable?.ToString(), model2.UInt32ThingNullable);
+            Assert.AreEqual(model1.Int64ThingNullable?.ToString(), model2.Int64ThingNullable);
+            Assert.AreEqual(model1.UInt64ThingNullable?.ToString(), model2.UInt64ThingNullable);
+            Assert.AreEqual(model1.SingleThingNullable?.ToString(), model2.SingleThingNullable);
+            Assert.AreEqual(model1.DoubleThingNullable?.ToString(), model2.DoubleThingNullable);
+            Assert.AreEqual(model1.DecimalThingNullable?.ToString(), model2.DecimalThingNullable);
+            Assert.AreEqual(model1.CharThingNullable?.ToString(), model2.CharThingNullable);
+            Assert.AreEqual(model1.DateTimeThingNullable?.ToString(), model2.DateTimeThingNullable);
+            Assert.AreEqual(model1.DateTimeOffsetThingNullable?.ToString(), model2.DateTimeOffsetThingNullable);
+            Assert.AreEqual(model1.TimeSpanThingNullable?.ToString(), model2.TimeSpanThingNullable);
+            Assert.AreEqual(model1.GuidThingNullable?.ToString(), model2.GuidThingNullable);
         }
 
         public static AllTypesModel GetAllTypesModel()

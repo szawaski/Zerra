@@ -573,46 +573,16 @@ namespace Zerra.Test
             }
         }
 
-        //[TestMethod]
-        //public void DebugMode()
-        //{
-        //    Mapper.DebugMode = true;
+        [TestMethod]
+        public void StringConversions()
+        {
+            var model = Factory.GetCoreTypesModel();
 
-        //    Exception expectedException = null;
-        //    try
-        //    {
-        //        var model = new TestDebug1() { Prop = "Test" };
-        //        var result = Mapper.Map<TestDebug2>(model);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        expectedException = ex;
-        //    }
+            var modelStrings = model.Map<CoreTypesAsStringsModel>();
+            Factory.AssertAreEqual(model, modelStrings);
 
-        //    Assert.IsNotNull(expectedException);
-
-        //    Mapper.DebugMode = false;
-        //}
-        //[TestMethod]
-        //public void DebugModeLogger()
-        //{
-        //    var log = new MapperLog();
-        //    Mapper.DebugMode = true;
-
-        //    Exception expectedException = null;
-        //    try
-        //    {
-        //        var model = new TestDebug1() { Prop = "Test" };
-        //        var result = MapperWithLog.Map<TestDebug2>(model, log);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        expectedException = ex;
-        //    }
-
-        //    Assert.IsNotNull(expectedException);
-
-        //    Mapper.DebugMode = false;
-        //}
+            model = modelStrings.Map<CoreTypesModel>();
+            Factory.AssertAreEqual(model, modelStrings);
+        }
     }
 }
