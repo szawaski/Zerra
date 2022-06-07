@@ -4,6 +4,7 @@
 
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -50,21 +51,24 @@ namespace Zerra
         {
             var builder = new ConfigurationBuilder();
 
-            AddSettingsFile(builder, settingsFileName);
+            var settingsFileNames = GetEnvironmentFiles(settingsFileName);
+            foreach (var settingsFileName in settingsFileNames)
+                AddSettingsFile(builder, settingsFileName);
+
             var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
             if (!String.IsNullOrWhiteSpace(environmentName))
             {
-                var environmentSettingsFileName = String.Format(genericSettingsFileName, environmentName);
-                AddSettingsFile(builder, environmentSettingsFileName);
+                var environmentSettingsFileNames = GetEnvironmentFiles(String.Format(genericSettingsFileName, environmentName));
+                foreach (var environmentSettingsFileName in environmentSettingsFileNames)
+                    AddSettingsFile(builder, environmentSettingsFileName);
             }
             builder.AddEnvironmentVariables();
 
             if (args != null && args.Length > 0)
                 builder.AddCommandLine(args);
 
-            var entryAssembly = Assembly.GetEntryAssembly();
             if (entryAssembly != null)
-                builder.AddUserSecrets(entryAssembly);
+                builder.AddUserSecrets(entryAssembly, true);
 
             build?.Invoke(builder);
 
@@ -77,7 +81,7 @@ namespace Zerra
 
         private static void AddSettingsFile(ConfigurationBuilder builder, string fileName)
         {
-            var filePath = FindFilePath(fileName);
+            var filePath = GetEnvironmentFilePath(fileName);
             if (filePath == null)
                 return;
             var file = File.OpenRead(filePath);
@@ -125,7 +129,7 @@ namespace Zerra
             return value;
         }
 
-        public static string FindFilePath(string fileName)
+        public static string GetEnvironmentFilePath(string fileName)
         {
             var executingAssemblyPath = Path.GetDirectoryName(executingAssembly.Location);
             var filePath = $"{executingAssemblyPath}/{fileName}";
@@ -137,7 +141,25 @@ namespace Zerra
                 return filePath;
 
             return null;
-        } 
+        }
+        private static IEnumerable<string> GetEnvironmentFiles(string fileSuffix)
+        {
+            var files = new List<string>();
+
+            var searchPattern = $"*{fileSuffix}";
+
+            var executingAssemblyPath = Path.GetDirectoryName(executingAssembly.Location);
+            var executingAssemblyPathFiles = Directory.GetFiles(executingAssemblyPath, searchPattern);
+            files.AddRange(executingAssemblyPathFiles);
+
+            if (Environment.CurrentDirectory != executingAssemblyPath)
+            {
+                var currentDirectoryFiles = Directory.GetFiles(Environment.CurrentDirectory, searchPattern);
+                files.AddRange(currentDirectoryFiles);
+            }
+
+            return files;
+        }
 
         public static void AddDiscoveryNamespaces(params string[] namespaces)
         {

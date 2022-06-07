@@ -102,7 +102,7 @@ namespace Zerra.CQRS.Relay
             await stateLock.WaitAsync();
             try
             {
-                var path = Config.FindFilePath("relaystate.dat");
+                var path = Config.GetEnvironmentFilePath("relaystate.dat");
 
                 var infos = new List<ServiceInfo>();
                 foreach (var service in servicesByUrl.Values)
@@ -137,7 +137,7 @@ namespace Zerra.CQRS.Relay
             await stateLock.WaitAsync();
             try
             {
-                var path = Config.FindFilePath("relaystate.dat");
+                var path = Config.GetEnvironmentFilePath("relaystate.dat");
                 if (File.Exists(path))
                 {
                     ServiceInfo[] infoArray = null;

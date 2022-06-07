@@ -16,7 +16,7 @@ namespace Zerra.CQRS.Settings
 
         public static ServiceSettings Get()
         {
-            var filePath = Config.FindFilePath(SettingsFileName);
+            var filePath = Config.GetEnvironmentFilePath(SettingsFileName);
             if (filePath == null)
             {
                 Log.InfoAsync($"{filePath} not found").GetAwaiter().GetResult();
