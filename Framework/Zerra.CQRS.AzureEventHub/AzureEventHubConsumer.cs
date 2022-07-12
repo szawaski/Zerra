@@ -4,31 +4,38 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Logging;
 
 namespace Zerra.CQRS.AzureEventHub
 {
-    //Kafka Consumer
     public partial class AzureEventHubConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 
         private readonly string host;
+        private readonly string eventHubName;
         private readonly SymmetricKey encryptionKey;
+
+        private readonly List<CommandConsumer> commandExchanges;
+        private readonly List<EventConsumer> eventExchanges;
 
         private bool isOpen;
         private Func<ICommand, Task> commandHandlerAsync = null;
         private Func<ICommand, Task> commandHandlerAwaitAsync = null;
         private Func<IEvent, Task> eventHandlerAsync = null;
 
-        public string ConnectionString => host;
+        public string ConnectionString => host;       
 
-        public AzureEventHubConsumer(string host, SymmetricKey encryptionKey)
+        public AzureEventHubConsumer(string host, string eventHubName, SymmetricKey encryptionKey)
         {
             this.host = host;
+            this.eventHubName = eventHubName;
             this.encryptionKey = encryptionKey;
+            this.commandExchanges = new List<CommandConsumer>();
+            this.eventExchanges = new List<EventConsumer>();
         }
 
         void ICommandConsumer.SetHandler(Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
@@ -59,13 +66,13 @@ namespace Zerra.CQRS.AzureEventHub
         {
             isOpen = true;
 
-            //lock (commandExchanges)
-            //{
-            //    lock (eventExchanges)
-            //    {
-            //        OpenExchanges();
-            //    }
-            //}
+            lock (commandExchanges)
+            {
+                lock (eventExchanges)
+                {
+                    OpenExchanges();
+                }
+            }
         }
 
         private void OpenExchanges()
@@ -73,11 +80,11 @@ namespace Zerra.CQRS.AzureEventHub
             if (!isOpen)
                 return;
 
-            //foreach (var exchange in commandExchanges.Where(x => !x.IsOpen))
-            //    exchange.Open(this.host, this.commandHandlerAsync, this.commandHandlerAwaitAsync);
+            foreach (var exchange in commandExchanges.Where(x => !x.IsOpen))
+                exchange.Open(this.host, this.eventHubName, this.commandHandlerAsync, this.commandHandlerAwaitAsync);
 
-            //foreach (var exchange in eventExchanges.Where(x => !x.IsOpen))
-            //    exchange.Open(this.host, this.eventHandlerAsync);
+            foreach (var exchange in eventExchanges.Where(x => !x.IsOpen))
+                exchange.Open(this.host, this.eventHubName, this.eventHandlerAsync);
         }
 
         void ICommandConsumer.Close()
@@ -94,12 +101,12 @@ namespace Zerra.CQRS.AzureEventHub
         {
             if (!isOpen)
             {
-                //foreach (var exchange in commandExchanges.Where(x => x.IsOpen))
-                //    exchange.Dispose();
-                //foreach (var exchange in eventExchanges.Where(x => x.IsOpen))
-                //    exchange.Dispose();
-                //this.commandExchanges.Clear();
-                //this.eventExchanges.Clear();
+                foreach (var exchange in commandExchanges.Where(x => x.IsOpen))
+                    exchange.Dispose();
+                foreach (var exchange in eventExchanges.Where(x => x.IsOpen))
+                    exchange.Dispose();
+                this.commandExchanges.Clear();
+                this.eventExchanges.Clear();
                 isOpen = false;
             }
         }
@@ -111,30 +118,28 @@ namespace Zerra.CQRS.AzureEventHub
 
         void ICommandConsumer.RegisterCommandType(Type type)
         {
-            //lock (commandExchanges)
-            //{
-            //    commandExchanges.Add(new CommandConsumer(type, encryptionKey));
-            //    OpenExchanges();
-            //}
+            lock (commandExchanges)
+            {
+                commandExchanges.Add(new CommandConsumer(type, encryptionKey));
+                OpenExchanges();
+            }
         }
         ICollection<Type> ICommandConsumer.GetCommandTypes()
         {
-            throw new NotImplementedException();
-            //return commandExchanges.Select(x => x.Type).ToArray();
+            return commandExchanges.Select(x => x.Type).ToArray();
         }
 
         void IEventConsumer.RegisterEventType(Type type)
         {
-            //lock (eventExchanges)
-            //{
-            //    eventExchanges.Add(new EventConsumer(type, encryptionKey));
-            //    OpenExchanges();
-            //}
+            lock (eventExchanges)
+            {
+                eventExchanges.Add(new EventConsumer(type, encryptionKey));
+                OpenExchanges();
+            }
         }
         ICollection<Type> IEventConsumer.GetEventTypes()
         {
-            throw new NotImplementedException();
-            //return eventExchanges.Select(x => x.Type).ToArray();
+            return eventExchanges.Select(x => x.Type).ToArray();
         }
     }
 }

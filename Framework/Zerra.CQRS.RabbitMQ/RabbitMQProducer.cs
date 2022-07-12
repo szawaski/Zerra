@@ -16,7 +16,7 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.RabbitMQ
 {
-    public class RabbitMQClient : ICommandProducer, IEventProducer, IDisposable
+    public class RabbitMQProducer : ICommandProducer, IEventProducer, IDisposable
     {
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 
@@ -26,7 +26,7 @@ namespace Zerra.CQRS.RabbitMQ
 
         public string ConnectionString => host;
 
-        public RabbitMQClient(string host, SymmetricKey encryptionKey)
+        public RabbitMQProducer(string host, SymmetricKey encryptionKey)
         {
             this.host = host;
             this.encryptionKey = encryptionKey;
@@ -34,7 +34,7 @@ namespace Zerra.CQRS.RabbitMQ
             {
                 var factory = new ConnectionFactory() { HostName = host };
                 this.connection = factory.CreateConnection();
-                _ = Log.TraceAsync($"{nameof(RabbitMQClient)} Started For {this.host}");
+                _ = Log.TraceAsync($"{nameof(RabbitMQProducer)} Started For {this.host}");
             }
             catch (Exception ex)
             {
@@ -115,7 +115,7 @@ namespace Zerra.CQRS.RabbitMQ
                 if (requireAcknowledgement)
                 {
                     Exception exception = null;
-                    var syncEvent = new SemaphoreSlim(0, 1);
+                    var waiter = new SemaphoreSlim(0, 1);
 
                     consumer.Received += (sender, e) =>
                     {
@@ -148,12 +148,12 @@ namespace Zerra.CQRS.RabbitMQ
                         }
                         finally
                         {
-                            syncEvent.Release();
+                            waiter.Release();
                         }
                     };
 
-                    await syncEvent.WaitAsync();
-                    syncEvent.Dispose();
+                    await waiter.WaitAsync();
+                    waiter.Dispose();
 
                     if (exception != null)
                     {

@@ -215,7 +215,7 @@ namespace Zerra.Serialization
                             item = Enum.ToObject(typeDetail.TypeDetail.InnerTypes[0], numValue);
                         else
                             item = null;
-                        list.Add(item);
+                        _ = list.Add(item);
                     }
                     return list;
                 }
@@ -267,7 +267,7 @@ namespace Zerra.Serialization
                     var hasObject = reader.ReadBoolean();
                     if (!hasObject)
                     {
-                        list.Add(null);
+                        _ = list.Add(null);
                         count++;
                         if (count == length)
                             return list;
@@ -275,7 +275,7 @@ namespace Zerra.Serialization
                     }
 
                     obj = FromBytes(ref reader, typeDetail, false, false);
-                    list.Add(obj);
+                    _ = list.Add(obj);
                     count++;
                     if (count == length)
                         return list;
@@ -611,11 +611,11 @@ namespace Zerra.Serialization
                                 {
                                     var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false);
                                     var item = Instantiator.CreateInstance(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
-                                    list.Add(item);
+                                    _ = list.Add(item);
                                 }
                                 else
                                 {
-                                    list.Add(null);
+                                    _ = list.Add(null);
                                 }
                             }
                             return list;

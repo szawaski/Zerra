@@ -37,7 +37,7 @@ namespace Zerra.CQRS.Kafka
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                Task.Run(() => ListeningThread(host, handlerAsync));
+                _ = Task.Run(() => ListeningThread(host, handlerAsync));
             }
 
             public async Task ListeningThread(string host, Func<IEvent, Task> handlerAsync)
@@ -46,7 +46,6 @@ namespace Zerra.CQRS.Kafka
 
             retry:
 
-                IConsumer<string, byte[]> consumer = null;
                 try
                 {
                     await KafkaCommon.AssureTopic(host, topic);
@@ -56,77 +55,68 @@ namespace Zerra.CQRS.Kafka
                     consumerConfig.GroupId = Guid.NewGuid().ToString();
                     consumerConfig.EnableAutoCommit = false;
 
-                    consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build();
-                    consumer.Subscribe(topic);
-
-                    for (; ; )
+                    using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build())
                     {
-                        try
+                        consumer.Subscribe(topic);
+
+                        for (; ; )
                         {
-                            if (canceller.Token.IsCancellationRequested)
-                                break;
-
-                            var consumerResult = consumer.Consume(canceller.Token);
-                            consumer.Commit(consumerResult);
-
-                            if (consumerResult.Message.Key == KafkaCommon.MessageKey)
+                            try
                             {
-                                var stopwatch = new Stopwatch();
-                                stopwatch.Start();
+                                var consumerResult = consumer.Consume(canceller.Token);
+                                consumer.Commit(consumerResult);
 
-                                byte[] body = consumerResult.Message.Value;
-                                if (encryptionKey != null)
-                                    body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, body);
-
-                                var message = KafkaCommon.Deserialize<KafkaEventMessage>(body);
-
-                                if (message.Claims != null)
+                                if (consumerResult.Message.Key == KafkaCommon.MessageKey)
                                 {
-                                    var claimsIdentity = new ClaimsIdentity(message.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
-                                    Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
+                                    var stopwatch = new Stopwatch();
+                                    stopwatch.Start();
+
+                                    var body = consumerResult.Message.Value;
+                                    if (encryptionKey != null)
+                                        body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, body);
+
+                                    var message = KafkaCommon.Deserialize<KafkaEventMessage>(body);
+
+                                    if (message.Claims != null)
+                                    {
+                                        var claimsIdentity = new ClaimsIdentity(message.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
+                                        Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
+                                    }
+
+                                    await handlerAsync(message.Message);
+
+                                    stopwatch.Stop();
+                                    _ = Log.TraceAsync($"Received Await: {topic}  {stopwatch.ElapsedMilliseconds}");
                                 }
-
-                                await handlerAsync(message.Message);
-
-                                stopwatch.Stop();
-                                _ = Log.TraceAsync($"Received Await: {topic}  {stopwatch.ElapsedMilliseconds}");
+                                else
+                                {
+                                    _ = Log.ErrorAsync($"{nameof(KafkaConsumer)} unrecognized message key {consumerResult.Message.Key}");
+                                }
                             }
-                            else
+                            catch (TaskCanceledException)
                             {
-                                _ = Log.ErrorAsync($"{nameof(KafkaConsumer)} unrecognized message key {consumerResult.Message.Key}");
+                                break;
+                            }
+                            catch (Exception ex)
+                            {
+                                _ = Log.TraceAsync($"Error: Received Await: {topic}");
+                                _ = Log.ErrorAsync(ex);
                             }
                         }
-                        catch (TaskCanceledException)
-                        {
-                            break;
-                        }
-                        catch (Exception ex)
-                        {
-                            _ = Log.TraceAsync($"Error: Received Await: {topic}");
-                            _ = Log.ErrorAsync(ex);
-                        }
-                    }
 
-                    consumer.Unsubscribe();
+                        consumer.Unsubscribe();
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(ex);
-
-                    if (consumer != null)
-                        consumer.Dispose();
-                    consumer = null;
-
                     if (!canceller.IsCancellationRequested)
                     {
-                        await Task.Delay(retryDelay);
+                        _ = Log.ErrorAsync(ex);
+                        await Task.Delay(KafkaCommon.RetryDelay);
                         goto retry;
                     }
                 }
                 canceller.Dispose();
-                canceller = null;
-                if (consumer != null)
-                    consumer.Dispose();
                 IsOpen = false;
             }
 

@@ -11,10 +11,8 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.Kafka
 {
-    //Kafka Consumer
     public partial class KafkaConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
-        private const int retryDelay = 10000;
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 
         private readonly string host;

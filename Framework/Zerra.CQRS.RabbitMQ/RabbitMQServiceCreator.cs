@@ -11,7 +11,7 @@ namespace Zerra.CQRS.RabbitMQ
     public class RabbitMQServiceCreator : IServiceCreator
     {
         private static readonly ConcurrentFactoryDictionary<string, RabbitMQConsumer> rabbitServers = new ConcurrentFactoryDictionary<string, RabbitMQConsumer>();
-        private static readonly ConcurrentFactoryDictionary<string, RabbitMQClient> rabbitClients = new ConcurrentFactoryDictionary<string, RabbitMQClient>();
+        private static readonly ConcurrentFactoryDictionary<string, RabbitMQProducer> rabbitClients = new ConcurrentFactoryDictionary<string, RabbitMQProducer>();
 
         private readonly string rabbitHost;
         private readonly IServiceCreator serviceCreatorForQueries;
@@ -23,7 +23,7 @@ namespace Zerra.CQRS.RabbitMQ
 
         public ICommandProducer CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQClient(host, encryptionKey));
+            return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQProducer(host, encryptionKey));
         }
 
         public ICommandConsumer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
@@ -33,7 +33,7 @@ namespace Zerra.CQRS.RabbitMQ
 
         public IEventProducer CreateEventClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQClient(host, encryptionKey));
+            return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQProducer(host, encryptionKey));
         }
 
         public IEventConsumer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey)

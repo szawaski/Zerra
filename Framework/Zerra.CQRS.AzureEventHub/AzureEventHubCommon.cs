@@ -8,10 +8,9 @@ namespace Zerra.CQRS.AzureEventHub
 {
     internal static class AzureEventHubCommon
     {
-        public const string MessageKey = "Body";
-        public const string MessageWithAckKey = "BodyAck";
-        public const string AckTopicHeader = "AckTopic";
-        public const string AckKeyHeader = "AckKey";
+        public const int RetryDelay = 10000;
+
+        public const string AckKey = "AckKey";
 
         public static byte[] Serialize(object obj)
         {

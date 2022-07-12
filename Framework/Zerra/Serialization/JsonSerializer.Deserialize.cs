@@ -27,7 +27,7 @@ namespace Zerra.Serialization
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
             if (json == null || json.Length == 0)
-                return (T)ConvertStringToType(string.Empty, typeDetails);
+                return (T)ConvertStringToType(String.Empty, typeDetails);
 
             var reader = new CharReader(json);
             var decodeBuffer = new CharWriteBuffer();
@@ -52,7 +52,7 @@ namespace Zerra.Serialization
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
             if (json == null || json.Length == 0)
-                return ConvertStringToType(string.Empty, typeDetails);
+                return ConvertStringToType(String.Empty, typeDetails);
 
             var reader = new CharReader(json);
             var decodeBuffer = new CharWriteBuffer();
@@ -88,7 +88,7 @@ namespace Zerra.Serialization
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
             if (bytes == null || bytes.Length == 0)
-                return ConvertStringToType(string.Empty, typeDetails);
+                return ConvertStringToType(String.Empty, typeDetails);
 
 
 #if NETSTANDARD2_0
@@ -163,7 +163,7 @@ namespace Zerra.Serialization
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
             if (json == null || json.Length == 0)
-                return ConvertStringToType(string.Empty, typeDetails);
+                return ConvertStringToType(String.Empty, typeDetails);
 
             var reader = new CharReader(json);
             var decodeBuffer = new CharWriteBuffer();
@@ -199,10 +199,10 @@ namespace Zerra.Serialization
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
             if (bytes.Length == 0)
-                return ConvertStringToType(string.Empty, typeDetails);
+                return ConvertStringToType(String.Empty, typeDetails);
 
             if (bytes == null || bytes.Length == 0)
-                return ConvertStringToType(string.Empty, typeDetails);
+                return ConvertStringToType(String.Empty, typeDetails);
 
 #if NETSTANDARD2_0
             Span<char> chars = Encoding.UTF8.GetChars(bytes.ToArray(), 0, bytes.Length).AsSpan();
@@ -338,7 +338,7 @@ namespace Zerra.Serialization
                                 {
                                     var key = TypeAnalyzer.Convert(propertyName, typeDetail.InnerTypeDetails[0].InnerTypes[0]);
                                     var method = typeDetail.GetMethod("Add");
-                                    method.Caller(obj, new object[] { key, value });
+                                    _ = method.Caller(obj, new object[] { key, value });
                                 }
                             }
                             else
@@ -476,7 +476,7 @@ namespace Zerra.Serialization
                         if (collection != null)
                         {
                             addMethodArgs[0] = value;
-                            addMethod.Caller(collection, addMethodArgs);
+                            _ = addMethod.Caller(collection, addMethodArgs);
                         }
                         canExpectComma = true;
                         break;
@@ -524,7 +524,7 @@ namespace Zerra.Serialization
                                     {
                                         var itemKey = keyGetter(item);
                                         var itemValue = valueGetter(item);
-                                        addMethod.Caller(dictionary, new object[] { itemKey, itemValue });
+                                        _ = addMethod.Caller(dictionary, new object[] { itemKey, itemValue });
                                     }
                                     memberDetail.Setter(obj, dictionary);
                                 }
