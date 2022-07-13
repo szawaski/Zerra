@@ -353,6 +353,7 @@ namespace Zerra.CQRS
         }
 
         private static readonly object serviceLock = new object();
+        private static readonly SemaphoreSlim asyncServiceLock = new SemaphoreSlim(1, 1);
 
         private static readonly ConcurrentDictionary<Type, ICommandProducer> commandProducers = new ConcurrentDictionary<Type, ICommandProducer>();
         public static void AddCommandClient<TInterface>(ICommandProducer commandProducer) where TInterface : IBaseProvider
@@ -514,16 +515,23 @@ namespace Zerra.CQRS
 
         private static readonly HashSet<object> instanciations = new HashSet<object>();
 
-        public static void DisposeServices()
+        public static async Task DisposeServices()
         {
             _ = Log.InfoAsync($"{nameof(Bus)} Shutting Down");
-            lock (serviceLock)
+            await asyncServiceLock.WaitAsync();
+            try
             {
+                var asyncDisposed = new HashSet<IAsyncDisposable>();
                 var disposed = new HashSet<IDisposable>();
 
                 foreach (var commandProducer in commandProducers.Select(x => x.Value))
                 {
-                    if (commandProducer is IDisposable disposable && !disposed.Contains(disposable))
+                    if (commandProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (commandProducer is IDisposable disposable && !disposed.Contains(disposable))
                     {
                         disposable.Dispose();
                         _ = disposed.Add(disposable);
@@ -534,7 +542,12 @@ namespace Zerra.CQRS
                 foreach (var commandConsumer in commandConsumers)
                 {
                     commandConsumer.Close();
-                    if (commandConsumer is IDisposable disposable && !disposed.Contains(disposable))
+                    if (commandConsumer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (commandConsumer is IDisposable disposable && !disposed.Contains(disposable))
                     {
                         disposable.Dispose();
                         _ = disposed.Add(disposable);
@@ -544,7 +557,12 @@ namespace Zerra.CQRS
 
                 foreach (var eventProducer in eventProducers.Select(x => x.Value))
                 {
-                    if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
+                    if (eventProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
                     {
                         disposable.Dispose();
                         _ = disposed.Add(disposable);
@@ -555,7 +573,12 @@ namespace Zerra.CQRS
                 foreach (var eventConsumer in eventConsumers)
                 {
                     eventConsumer.Close();
-                    if (eventConsumer is IDisposable disposable && !disposed.Contains(disposable))
+                    if (eventConsumer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (eventConsumer is IDisposable disposable && !disposed.Contains(disposable))
                     {
                         disposable.Dispose();
                         _ = disposed.Add(disposable);
@@ -565,7 +588,12 @@ namespace Zerra.CQRS
 
                 foreach (var messageLogger in messageLoggers)
                 {
-                    if (messageLogger is IDisposable disposable && !disposed.Contains(disposable))
+                    if (messageLogger is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (messageLogger is IDisposable disposable && !disposed.Contains(disposable))
                     {
                         disposable.Dispose();
                         _ = disposed.Add(disposable);
@@ -575,7 +603,12 @@ namespace Zerra.CQRS
 
                 foreach (var client in queryClients.Select(x => x.Value))
                 {
-                    if (client is IDisposable disposable && !disposed.Contains(disposable))
+                    if (client is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (client is IDisposable disposable && !disposed.Contains(disposable))
                     {
                         disposable.Dispose();
                         _ = disposed.Add(disposable);
@@ -586,7 +619,12 @@ namespace Zerra.CQRS
                 foreach (var server in queryServers)
                 {
                     server.Close();
-                    if (server is IDisposable disposable && !disposed.Contains(disposable))
+                    if (server is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (server is IDisposable disposable && !disposed.Contains(disposable))
                     {
                         disposable.Dispose();
                         _ = disposed.Add(disposable);
@@ -596,13 +634,23 @@ namespace Zerra.CQRS
 
                 foreach (var instance in instanciations)
                 {
-                    if (instance is IDisposable disposable && !disposed.Contains(disposable))
+                    if (instance is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (instance is IDisposable disposable && !disposed.Contains(disposable))
                     {
                         disposable.Dispose();
                         _ = disposed.Add(disposable);
                     }
                 }
                 instanciations.Clear();
+            }
+            finally
+            {
+                _ = asyncServiceLock.Release();
+                asyncServiceLock.Dispose();
             }
         }
 
@@ -611,7 +659,7 @@ namespace Zerra.CQRS
             var waiter = new SemaphoreSlim(0, 1);
             AppDomain.CurrentDomain.ProcessExit += (sender, e) => { _ = waiter.Release(); };
             waiter.Wait();
-            DisposeServices();
+            DisposeServices().GetAwaiter().GetResult();
         }
         public static void WaitUntilExit(CancellationToken cancellationToken)
         {
@@ -622,7 +670,7 @@ namespace Zerra.CQRS
                 waiter.Wait(cancellationToken);
             }
             catch { }
-            DisposeServices();
+            DisposeServices().GetAwaiter().GetResult();
         }
 
         public static async Task WaitUntilExitAsync()
@@ -631,7 +679,7 @@ namespace Zerra.CQRS
             AppDomain.CurrentDomain.ProcessExit += (sender, e) => { _ = waiter.Release(); };
             await waiter.WaitAsync();
             _ = Log.InfoAsync($"{nameof(Bus)} Exiting");
-            DisposeServices();
+            await DisposeServices();
         }
         public static async Task WaitUntilExitAsync(CancellationToken cancellationToken)
         {
@@ -642,7 +690,7 @@ namespace Zerra.CQRS
                 await waiter.WaitAsync(cancellationToken);
             }
             catch { }
-            DisposeServices();
+            await DisposeServices();
         }
 
         public static void StartServices(string serviceName, ServiceSettings serviceSettings, IServiceCreator serviceCreator, IRelayRegister relayRegister = null)
