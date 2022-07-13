@@ -285,7 +285,7 @@ namespace Zerra.Serialization
             else
                 writer.Write('[');
 
-            bool firstProperty = true;
+            var firstProperty = true;
             foreach (var member in typeDetail.SerializableMemberDetails)
             {
                 if (graph != null)
@@ -302,8 +302,10 @@ namespace Zerra.Serialization
                     }
                 }
 
-                if (firstProperty) firstProperty = false;
-                else writer.Write(',');
+                if (firstProperty)
+                    firstProperty = false;
+                else
+                    writer.Write(',');
 
                 if (!nameless)
                 {
@@ -313,7 +315,7 @@ namespace Zerra.Serialization
                     writer.Write(':');
                 }
 
-                object propertyValue = member.Getter(value);
+                var propertyValue = member.Getter(value);
                 var childGraph = graph?.GetChildGraph(member.Name);
                 ToJson(propertyValue, member.TypeDetail, childGraph, ref writer, nameless);
             }
@@ -333,11 +335,13 @@ namespace Zerra.Serialization
 
             if (typeDetail.Type.IsEnum)
             {
-                bool first = true;
+                var first = true;
                 foreach (var value in values)
                 {
-                    if (first) first = false;
-                    else writer.Write(',');
+                    if (first)
+                        first = false;
+                    else
+                        writer.Write(',');
                     if (value != null)
                     {
                         writer.Write('\"');
@@ -353,11 +357,13 @@ namespace Zerra.Serialization
             }
             if (typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
             {
-                bool first = true;
+                var first = true;
                 foreach (var value in values)
                 {
-                    if (first) first = false;
-                    else writer.Write(',');
+                    if (first)
+                        first = false;
+                    else
+                        writer.Write(',');
                     if (value != null)
                     {
                         writer.Write('\"');
@@ -382,11 +388,13 @@ namespace Zerra.Serialization
 
             if (typeDetail.IsIEnumerableGeneric)
             {
-                bool first = true;
+                var first = true;
                 foreach (var value in values)
                 {
-                    if (first) first = false;
-                    else writer.Write(',');
+                    if (first)
+                        first = false;
+                    else
+                        writer.Write(',');
                     if (value != null)
                     {
                         var enumerable = value as IEnumerable;
@@ -403,11 +411,13 @@ namespace Zerra.Serialization
             }
 
             {
-                bool first = true;
+                var first = true;
                 foreach (var value in values)
                 {
-                    if (first) first = false;
-                    else writer.Write(',');
+                    if (first)
+                        first = false;
+                    else
+                        writer.Write(',');
                     if (value != null)
                     {
                         if (!nameless)
@@ -415,7 +425,7 @@ namespace Zerra.Serialization
                         else
                             writer.Write('[');
 
-                        bool firstProperty = true;
+                        var firstProperty = true;
                         foreach (var member in typeDetail.SerializableMemberDetails)
                         {
                             if (graph != null)
@@ -432,8 +442,10 @@ namespace Zerra.Serialization
                                 }
                             }
 
-                            if (firstProperty) firstProperty = false;
-                            else writer.Write(',');
+                            if (firstProperty)
+                                firstProperty = false;
+                            else
+                                writer.Write(',');
 
                             if (!nameless)
                             {
@@ -443,7 +455,7 @@ namespace Zerra.Serialization
                                 writer.Write(':');
                             }
 
-                            object propertyValue = member.Getter(value);
+                            var propertyValue = member.Getter(value);
                             var childGraph = graph?.GetChildGraph(member.Name);
                             ToJson(propertyValue, member.TypeDetail, childGraph, ref writer, nameless);
                         }
@@ -555,11 +567,13 @@ namespace Zerra.Serialization
             {
                 case CoreType.String:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<string>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
 
                             ToJsonString(value, ref writer);
                         }
@@ -568,132 +582,156 @@ namespace Zerra.Serialization
 
                 case CoreType.Boolean:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<bool>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             writer.Write(value == false ? "false" : "true");
                         }
                     }
                     return;
                 case CoreType.Byte:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<byte>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             writer.Write(value);
                         }
                     }
                     return;
                 case CoreType.SByte:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<sbyte>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             writer.Write(value);
                         }
                     }
                     return;
                 case CoreType.Int16:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<short>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             writer.Write(value);
                         }
                     }
                     return;
                 case CoreType.UInt16:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<ushort>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             writer.Write(value);
                         }
                     }
                     return;
                 case CoreType.Int32:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<int>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             writer.Write(value);
                         }
                     }
                     return;
                 case CoreType.UInt32:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<uint>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             writer.Write(value);
                         }
                     }
                     return;
                 case CoreType.Int64:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<long>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             writer.Write(value);
                         }
                     }
                     return;
                 case CoreType.UInt64:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<ulong>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             writer.Write(value);
                         }
                     }
                     return;
                 case CoreType.Single:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<float>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             writer.Write(value);
                         }
                     }
                     return;
                 case CoreType.Double:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<double>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             writer.Write(value);
                         }
                     }
                     return;
                 case CoreType.Decimal:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<decimal>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             writer.Write(value);
                         }
                     }
@@ -703,19 +741,23 @@ namespace Zerra.Serialization
                         var first = true;
                         foreach (var value in (IEnumerable<char>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             ToJsonChar(value, ref writer);
                         }
                     }
                     return;
                 case CoreType.DateTime:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<DateTime>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             writer.Write('\"');
                             writer.Write(value, DateTimeFormat.ISO8601);
                             writer.Write('\"');
@@ -724,11 +766,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.DateTimeOffset:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<DateTimeOffset>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             writer.Write('\"');
                             writer.Write(value, DateTimeFormat.ISO8601);
                             writer.Write('\"');
@@ -737,11 +781,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.TimeSpan:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<TimeSpan>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             writer.Write('\"');
                             writer.Write(value, TimeFormat.ISO8601);
                             writer.Write('\"');
@@ -750,11 +796,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.Guid:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<Guid>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             writer.Write('\"');
                             writer.Write(value);
                             writer.Write('\"');
@@ -764,11 +812,13 @@ namespace Zerra.Serialization
 
                 case CoreType.BooleanNullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<bool?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                                 writer.Write(value == false ? "false" : "true");
                             else
@@ -778,11 +828,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.ByteNullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<byte?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                                 writer.Write(value.Value);
                             else
@@ -792,11 +844,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.SByteNullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<sbyte?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                                 writer.Write(value.Value);
                             else
@@ -806,11 +860,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.Int16Nullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<short?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                                 writer.Write(value.Value);
                             else
@@ -820,11 +876,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.UInt16Nullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<ushort?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                                 writer.Write(value.Value);
                             else
@@ -834,11 +892,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.Int32Nullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<int?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                                 writer.Write(value.Value);
                             else
@@ -848,11 +908,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.UInt32Nullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<uint?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                                 writer.Write(value.Value);
                             else
@@ -862,11 +924,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.Int64Nullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<long?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                                 writer.Write(value.Value);
                             else
@@ -876,11 +940,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.UInt64Nullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<ulong?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                                 writer.Write(value.Value);
                             else
@@ -890,11 +956,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.SingleNullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<float?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                                 writer.Write(value.Value);
                             else
@@ -904,11 +972,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.DoubleNullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<double?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                                 writer.Write(value.Value);
                             else
@@ -918,11 +988,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.DecimalNullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<decimal?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                                 writer.Write(value.Value);
                             else
@@ -932,11 +1004,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.CharNullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<char?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                             {
                                 ToJsonChar(value.Value, ref writer);
@@ -950,11 +1024,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.DateTimeNullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<DateTime?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                             {
                                 writer.Write('\"');
@@ -970,11 +1046,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.DateTimeOffsetNullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<DateTimeOffset?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                             {
                                 writer.Write('\"');
@@ -990,11 +1068,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.TimeSpanNullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<TimeSpan?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                             {
                                 writer.Write('\"');
@@ -1010,11 +1090,13 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.GuidNullable:
                     {
-                        bool first = true;
+                        var first = true;
                         foreach (var value in (IEnumerable<Guid?>)values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value.HasValue)
                             {
                                 writer.Write('\"');
@@ -1065,8 +1147,10 @@ namespace Zerra.Serialization
                             var firstkvp = true;
                             foreach (var kvp in innerValue)
                             {
-                                if (firstkvp) firstkvp = false;
-                                else writer.Write(',');
+                                if (firstkvp)
+                                    firstkvp = false;
+                                else
+                                    writer.Write(',');
                                 var kvpKey = keyGetter(kvp);
                                 var kvpValue = valueGetter(kvp);
                                 if (!nameless)
@@ -1109,8 +1193,10 @@ namespace Zerra.Serialization
                         var first = true;
                         foreach (var value in values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             var valueType = value == null ? null : (Type)value;
                             if (valueType != null)
                                 ToJsonString(valueType.FullName, ref writer);
@@ -1124,8 +1210,10 @@ namespace Zerra.Serialization
                         var first = true;
                         foreach (var value in values)
                         {
-                            if (first) first = false;
-                            else writer.Write(',');
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
                             if (value != null)
                             {
                                 var innerTypeDetail = typeDetail.InnerTypeDetails[0];
@@ -1142,8 +1230,10 @@ namespace Zerra.Serialization
                                 var firstkvp = true;
                                 foreach (var kvp in innerValue)
                                 {
-                                    if (firstkvp) firstkvp = false;
-                                    else writer.Write(',');
+                                    if (firstkvp)
+                                        firstkvp = false;
+                                    else
+                                        writer.Write(',');
                                     var kvpKey = keyGetter(kvp);
                                     var kvpValue = valueGetter(kvp);
                                     if (!nameless)
@@ -1190,10 +1280,10 @@ namespace Zerra.Serialization
             var chars = value.AsSpan();
 
             var start = 0;
-            char escapedChar = default(char);
-            for (int i = 0; i < chars.Length; i++)
+            for (var i = 0; i < chars.Length; i++)
             {
                 var c = chars[i];
+                char escapedChar;
                 switch (c)
                 {
                     case '"':

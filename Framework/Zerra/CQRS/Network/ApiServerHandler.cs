@@ -52,7 +52,7 @@ namespace Zerra.CQRS.Network
                 throw new ArgumentException($"Provider {data.ProviderType} is not an interface type");
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(providerType);
-            bool exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == NetworkType.Api))
+            var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == NetworkType.Api))
                 && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (attribute.NetworkType == NetworkType.Api || !attribute.NetworkType.HasValue));
 
             MethodBase method = null;
@@ -80,7 +80,7 @@ namespace Zerra.CQRS.Network
             if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
                 throw new Exception($"Type {data.MessageType} is not a command");
 
-            bool exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == NetworkType.Api))
+            var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == NetworkType.Api))
                 && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == NetworkType.Api));
             if (!exposed)
                 throw new Exception($"Command {data.MessageType} is not exposed to {NetworkType.Api}");

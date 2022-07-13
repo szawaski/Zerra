@@ -28,7 +28,7 @@ namespace Zerra.Repository
         }
         public virtual Expression<Func<TModel, bool>> GetWhereExpressionIncludingBase(Graph<TModel> graph)
         {
-            Expression<Func<TModel, bool>> expression = ProviderRelation.GetWhereExpressionIncludingBase(graph);
+            var expression = ProviderRelation.GetWhereExpressionIncludingBase(graph);
             return expression;
         }
 

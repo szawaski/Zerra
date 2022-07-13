@@ -24,11 +24,11 @@ namespace Zerra.CQRS
         private static readonly ConcurrentFactoryDictionary<Type, Type> callerClasses = new ConcurrentFactoryDictionary<Type, Type>();
         public static object GetProviderToCallInternalInstance(Type interfaceType)
         {
-            Type callerClassType = callerClasses.GetOrAdd(interfaceType, (t) =>
+            var callerClassType = callerClasses.GetOrAdd(interfaceType, (t) =>
             {
                 return GenerateProviderToCallInternalClass(t);
             });
-            object instance = Instantiator.GetSingleInstance(callerClassType);
+            var instance = Instantiator.GetSingleInstance(callerClassType);
             return instance;
         }
         private static Type GenerateProviderToCallInternalClass(Type interfaceType)
@@ -53,7 +53,7 @@ namespace Zerra.CQRS
             if (!inheritsBaseProvider)
                 throw new ArgumentException($"Type {interfaceType.GetNiceName()} does not inherit {baseProviderType.GetNiceName()}");
 
-            string typeSignature = interfaceType.Name + "_Caller";
+            var typeSignature = interfaceType.Name + "_Caller";
 
             var moduleBuilder = GeneratedAssembly.GetModuleBuilder();
             var typeBuilder = moduleBuilder.DefineType(typeSignature, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AutoLayout, null);
@@ -66,9 +66,9 @@ namespace Zerra.CQRS
             {
                 var methodName = method.Name;
                 var returnType = method.ReturnType;
-                Type[] parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
+                var parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
 
-                bool voidMethod = false;
+                var voidMethod = false;
                 if (returnType.Name == "Void")
                 {
                     returnType = typeof(object);
@@ -95,7 +95,7 @@ namespace Zerra.CQRS
                 il.Emit(OpCodes.Ldc_I4, parameterTypes.Length);
                 il.Emit(OpCodes.Newarr, typeof(object));
 
-                for (int j = 0; j < parameterTypes.Length; j++)
+                for (var j = 0; j < parameterTypes.Length; j++)
                 {
                     il.Emit(OpCodes.Dup);
                     il.Emit(OpCodes.Ldc_I4, j);
@@ -122,11 +122,11 @@ namespace Zerra.CQRS
 
             foreach (var method in notSupportedMethods)
             {
-                string methodName = method.Name;
+                var methodName = method.Name;
                 var returnType = method.ReturnType;
-                Type[] parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
+                var parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
 
-                bool voidMethod = false;
+                var voidMethod = false;
                 if (returnType.Name == "Void")
                 {
                     returnType = typeof(object);
@@ -162,11 +162,11 @@ namespace Zerra.CQRS
         private static readonly ConcurrentFactoryDictionary<Type, Type> commandDispatcherClasses = new ConcurrentFactoryDictionary<Type, Type>();
         public static object GetCommandHandlerToDispatchInternalInstance(Type interfaceType)
         {
-            Type dispatcherClassType = commandDispatcherClasses.GetOrAdd(interfaceType, (t) =>
+            var dispatcherClassType = commandDispatcherClasses.GetOrAdd(interfaceType, (t) =>
             {
                 return GenerateCommandHandlerToDispatchInternalClass(t);
             });
-            object instance = Instantiator.GetSingleInstance(dispatcherClassType);
+            var instance = Instantiator.GetSingleInstance(dispatcherClassType);
             return instance;
         }
         private static Type GenerateCommandHandlerToDispatchInternalClass(Type interfaceType)
@@ -190,7 +190,7 @@ namespace Zerra.CQRS
             if (!inheritsBaseProvider)
                 throw new ArgumentException($"Type {interfaceType.GetNiceName()} does not inherit {baseProviderType.GetNiceName()}");
 
-            string typeSignature = interfaceType.Name + "_CommandDispatcher";
+            var typeSignature = interfaceType.Name + "_CommandDispatcher";
 
             var moduleBuilder = GeneratedAssembly.GetModuleBuilder();
             var typeBuilder = moduleBuilder.DefineType(typeSignature, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AutoLayout, null);
@@ -201,8 +201,8 @@ namespace Zerra.CQRS
 
             foreach (var method in methods)
             {
-                string methodName = method.Name;
-                Type[] parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
+                var methodName = method.Name;
+                var parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
 
                 var methodBuilder = typeBuilder.DefineMethod(
                     methodName,
@@ -236,7 +236,7 @@ namespace Zerra.CQRS
             foreach (var method in notSupportedMethods)
             {
                 var methodName = method.Name;
-                Type[] parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
+                var parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
 
                 var methodBuilder = typeBuilder.DefineMethod(
                     methodName,
@@ -246,7 +246,7 @@ namespace Zerra.CQRS
                     parameterTypes);
                 methodBuilder.SetImplementationFlags(MethodImplAttributes.Managed);
 
-                ILGenerator il = methodBuilder.GetILGenerator();
+                var il = methodBuilder.GetILGenerator();
 
                 il.Emit(OpCodes.Nop);
                 il.Emit(OpCodes.Ldstr, $"Interface method does not inherit {commandHandlerType.Name}");
@@ -265,11 +265,11 @@ namespace Zerra.CQRS
         private static readonly ConcurrentFactoryDictionary<Type, Type> eventDispatcherClasses = new ConcurrentFactoryDictionary<Type, Type>();
         public static object GetEventHandlerToDispatchInternalInstance(Type interfaceType)
         {
-            Type dispatcherClassType = eventDispatcherClasses.GetOrAdd(interfaceType, (t) =>
+            var dispatcherClassType = eventDispatcherClasses.GetOrAdd(interfaceType, (t) =>
             {
                 return GenerateEventHandlerToDispatchInternalClass(t);
             });
-            object instance = Instantiator.GetSingleInstance(dispatcherClassType);
+            var instance = Instantiator.GetSingleInstance(dispatcherClassType);
             return instance;
         }
         private static Type GenerateEventHandlerToDispatchInternalClass(Type interfaceType)
@@ -293,7 +293,7 @@ namespace Zerra.CQRS
             if (!inheritsBaseProvider)
                 throw new ArgumentException($"Type {interfaceType.GetNiceName()} does not inherit {baseProviderType.GetNiceName()}");
 
-            string typeSignature = interfaceType.Name + "_EventDispatcher";
+            var typeSignature = interfaceType.Name + "_EventDispatcher";
 
             var moduleBuilder = GeneratedAssembly.GetModuleBuilder();
             var typeBuilder = moduleBuilder.DefineType(typeSignature, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AutoLayout, null);
@@ -304,8 +304,8 @@ namespace Zerra.CQRS
 
             foreach (var method in methods)
             {
-                string methodName = method.Name;
-                Type[] parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
+                var methodName = method.Name;
+                var parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
 
                 var methodBuilder = typeBuilder.DefineMethod(
                     methodName,
@@ -338,7 +338,7 @@ namespace Zerra.CQRS
             foreach (var method in notSupportedMethods)
             {
                 var methodName = method.Name;
-                Type[] parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
+                var parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
 
                 var methodBuilder = typeBuilder.DefineMethod(
                     methodName,
@@ -348,7 +348,7 @@ namespace Zerra.CQRS
                     parameterTypes);
                 methodBuilder.SetImplementationFlags(MethodImplAttributes.Managed);
 
-                ILGenerator il = methodBuilder.GetILGenerator();
+                var il = methodBuilder.GetILGenerator();
 
                 il.Emit(OpCodes.Nop);
                 il.Emit(OpCodes.Ldstr, $"Interface method does not inherit {eventHandlerType.Name}");

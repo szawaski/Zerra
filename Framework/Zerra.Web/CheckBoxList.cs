@@ -65,7 +65,7 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
             if (!(defaultValues is IEnumerable defaultValuesList))
                 return selectList;
 
-            IEnumerable<string> values = from object value in defaultValuesList
+            var values = from object value in defaultValuesList
                                          select Convert.ToString(value, CultureInfo.CurrentCulture);
 
             var selectedValues = new HashSet<string>(values, StringComparer.OrdinalIgnoreCase);

@@ -19,7 +19,7 @@ namespace Zerra.DevTest
         private static Dictionary<int, DateTime> test = new();
         private static DateTime Get(int id)
         {
-            if (!test.TryGetValue(id, out DateTime value))
+            if (!test.TryGetValue(id, out var value))
             {
                 lock (test)
                 {
@@ -274,7 +274,7 @@ namespace Zerra.DevTest
             get
             {
                 locker.EnterReadLock();
-                bool isEmpty = dictionary.Count == 0;
+                var isEmpty = dictionary.Count == 0;
                 locker.ExitReadLock();
                 return isEmpty;
             }
@@ -315,7 +315,7 @@ namespace Zerra.DevTest
         public TValue AddOrUpdate(TKey key, Func<TKey, TValue> addValueFactory, Func<TKey, TValue, TValue> updateValueFactory)
         {
             locker.EnterUpgradeableReadLock();
-            if (dictionary.TryGetValue(key, out TValue value))
+            if (dictionary.TryGetValue(key, out var value))
             {
                 var newValue = updateValueFactory(key, value);
                 locker.EnterWriteLock();
@@ -337,7 +337,7 @@ namespace Zerra.DevTest
         public TValue AddOrUpdate(TKey key, TValue addValue, Func<TKey, TValue, TValue> updateValueFactory)
         {
             locker.EnterUpgradeableReadLock();
-            if (dictionary.TryGetValue(key, out TValue value))
+            if (dictionary.TryGetValue(key, out var value))
             {
                 var newValue = updateValueFactory(key, value);
                 locker.EnterWriteLock();
@@ -375,7 +375,7 @@ namespace Zerra.DevTest
         public TValue GetOrAdd(TKey key, TValue value)
         {
             locker.EnterUpgradeableReadLock();
-            if (dictionary.TryGetValue(key, out TValue currentValue))
+            if (dictionary.TryGetValue(key, out var currentValue))
             {
                 locker.ExitUpgradeableReadLock();
                 return currentValue;
@@ -400,7 +400,7 @@ namespace Zerra.DevTest
         public TValue GetOrAdd(TKey key, Func<TKey, TValue> valueFactory)
         {
             locker.EnterUpgradeableReadLock();
-            if (dictionary.TryGetValue(key, out TValue value))
+            if (dictionary.TryGetValue(key, out var value))
             {
                 locker.ExitUpgradeableReadLock();
                 return value;
@@ -431,14 +431,14 @@ namespace Zerra.DevTest
         public KeyValuePair<TKey, TValue>[] ToArray()
         {
             locker.EnterReadLock();
-            KeyValuePair<TKey, TValue>[] values = dictionary.ToArray();
+            var values = dictionary.ToArray();
             locker.ExitReadLock();
             return values;
         }
         public bool TryAdd(TKey key, TValue value)
         {
             locker.EnterWriteLock();
-            bool added = false;
+            var added = false;
             if (!dictionary.ContainsKey(key))
             {
                 dictionary.Add(key, value);
@@ -456,9 +456,9 @@ namespace Zerra.DevTest
         }
         public bool TryUpdate(TKey key, TValue value, TValue comparisonValue)
         {
-            bool updated = false;
+            var updated = false;
             locker.EnterUpgradeableReadLock();
-            if (dictionary.TryGetValue(key, out TValue existingValue))
+            if (dictionary.TryGetValue(key, out var existingValue))
             {
                 if (existingValue.Equals(comparisonValue))
                 {

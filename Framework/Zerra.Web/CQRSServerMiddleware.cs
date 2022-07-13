@@ -72,7 +72,7 @@ namespace Zerra.Web
             }
 
             string originRequestHeader;
-            if (!context.Request.Headers.TryGetValue(HttpCommon.OriginHeader, out StringValues originRequestHeaderValue))
+            if (!context.Request.Headers.TryGetValue(HttpCommon.OriginHeader, out var originRequestHeaderValue))
             {
                 context.Response.StatusCode = 400;
                 return;
@@ -80,7 +80,7 @@ namespace Zerra.Web
             originRequestHeader = originRequestHeaderValue;
 
             string providerTypeRequestHeader;
-            if (!context.Request.Headers.TryGetValue(HttpCommon.ProviderTypeHeader, out StringValues providerTypeRequestHeaderValue))
+            if (!context.Request.Headers.TryGetValue(HttpCommon.ProviderTypeHeader, out var providerTypeRequestHeaderValue))
             {
                 context.Response.StatusCode = 400;
                 return;
@@ -155,7 +155,7 @@ namespace Zerra.Web
                     //if (!this.interfaceTypes.Contains(providerType))
                     //    throw new Exception($"Unhandled Provider Type {providerType.FullName}");
 
-                    bool exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType))
+                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType))
                         && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType));
                     if (!exposed)
                         throw new Exception($"Provider {data.MessageType} is not exposed to {networkType}");
@@ -222,7 +222,7 @@ namespace Zerra.Web
                     if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
                         throw new Exception($"Type {data.MessageType} is not a command");
 
-                    bool exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType))
+                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType))
                         && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType));
                     if (!exposed)
                         throw new Exception($"Command {data.MessageType} is not exposed to {networkType}");

@@ -19,7 +19,7 @@ public static class StringExtensions
             return false;
         if (obj == "-1")
             return false;
-        if (Boolean.TryParse(obj, out bool tryvalue))
+        if (Boolean.TryParse(obj, out var tryvalue))
             return tryvalue;
         else
             return false;
@@ -30,7 +30,7 @@ public static class StringExtensions
             return null;
         if (it == string.Empty)
             return null;
-        if (Boolean.TryParse(it, out bool tryvalue))
+        if (Boolean.TryParse(it, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -42,7 +42,7 @@ public static class StringExtensions
             return default;
         if (it == string.Empty)
             return default;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return (byte)tryvalue;
         else
             return default;
@@ -53,7 +53,7 @@ public static class StringExtensions
             return null;
         if (it == string.Empty)
             return null;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return (byte)tryvalue;
         else
             return null;
@@ -65,7 +65,7 @@ public static class StringExtensions
             return default;
         if (it == string.Empty)
             return default;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return (short)tryvalue;
         else
             return default;
@@ -76,7 +76,7 @@ public static class StringExtensions
             return null;
         if (it == string.Empty)
             return null;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return (short)tryvalue;
         else
             return null;
@@ -88,7 +88,7 @@ public static class StringExtensions
             return default;
         if (it == string.Empty)
             return default;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return (ushort)tryvalue;
         else
             return default;
@@ -99,7 +99,7 @@ public static class StringExtensions
             return null;
         if (it == string.Empty)
             return null;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return (ushort)tryvalue;
         else
             return null;
@@ -111,7 +111,7 @@ public static class StringExtensions
             return default;
         if (it == string.Empty)
             return default;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return (int)tryvalue;
         else
             return default;
@@ -122,7 +122,7 @@ public static class StringExtensions
             return null;
         if (it == string.Empty)
             return null;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return (int)tryvalue;
         else
             return null;
@@ -134,7 +134,7 @@ public static class StringExtensions
             return default;
         if (it == string.Empty)
             return default;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return (uint)tryvalue;
         else
             return default;
@@ -145,7 +145,7 @@ public static class StringExtensions
             return null;
         if (it == string.Empty)
             return null;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return (uint)tryvalue;
         else
             return null;
@@ -157,7 +157,7 @@ public static class StringExtensions
             return default;
         if (it == string.Empty)
             return default;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return (long)tryvalue;
         else
             return default;
@@ -168,7 +168,7 @@ public static class StringExtensions
             return null;
         if (it == string.Empty)
             return null;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return (long)tryvalue;
         else
             return null;
@@ -180,7 +180,7 @@ public static class StringExtensions
             return default;
         if (it == string.Empty)
             return default;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return (ulong)tryvalue;
         else
             return default;
@@ -191,7 +191,7 @@ public static class StringExtensions
             return null;
         if (it == string.Empty)
             return null;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return (ulong)tryvalue;
         else
             return null;
@@ -203,7 +203,7 @@ public static class StringExtensions
             return default;
         if (it == string.Empty)
             return default;
-        if (Decimal.TryParse(it, out decimal tryvalue))
+        if (Decimal.TryParse(it, out var tryvalue))
             return tryvalue;
         else
             return default;
@@ -214,7 +214,7 @@ public static class StringExtensions
             return null;
         if (it == string.Empty)
             return null;
-        if (decimal.TryParse(it, out decimal tryvalue))
+        if (decimal.TryParse(it, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -226,7 +226,7 @@ public static class StringExtensions
             return default;
         if (it == string.Empty)
             return default;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return (float)tryvalue;
         else
             return default;
@@ -237,7 +237,7 @@ public static class StringExtensions
             return null;
         if (it == string.Empty)
             return null;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return (float)tryvalue;
         else
             return null;
@@ -249,7 +249,7 @@ public static class StringExtensions
             return default;
         if (it == string.Empty)
             return default;
-        if (Double.TryParse(it, out double tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return tryvalue;
         else
             return default;
@@ -260,7 +260,7 @@ public static class StringExtensions
             return null;
         if (it == string.Empty)
             return null;
-        if (double.TryParse(it, out double tryvalue))
+        if (double.TryParse(it, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -329,22 +329,22 @@ public static class StringExtensions
     public static TimeSpan ToTimeSpan(this string it, string formatExpression) { return ToTimeSpan(it, formatExpression, false); }
     public static TimeSpan ToTimeSpan(this string it, string formatExpression, bool rightBased)
     {
-        char[] splits = new char[] { ':', '.' };
+        var splits = new char[] { ':', '.' };
         var formats = formatExpression.ToLower().Split(splits);
         var times = it.Split(splits);
         if (formats.Length < times.Length)
             throw new ArgumentException("Incompatible format expression for input");
 
-        int days = 0;
-        int hours = 0;
-        int minutes = 0;
-        int seconds = 0;
-        int milliseconds = 0;
+        var days = 0;
+        var hours = 0;
+        var minutes = 0;
+        var seconds = 0;
+        var milliseconds = 0;
 
-        for (int i = 0; i < formats.Length && i < times.Length; i++)
+        for (var i = 0; i < formats.Length && i < times.Length; i++)
         {
             var format = rightBased ? formats[formats.Length - 1 - i] : formats[i];
-            int value = times[i].ToInt32();
+            var value = times[i].ToInt32();
 
             if (format.Contains("d"))
                 days = value;
@@ -390,7 +390,7 @@ public static class StringExtensions
             return Guid.Empty;
         if (it == string.Empty)
             return Guid.Empty;
-        if (Guid.TryParse(it, out Guid tryvalue))
+        if (Guid.TryParse(it, out var tryvalue))
             return tryvalue;
         else
             return default;
@@ -401,7 +401,7 @@ public static class StringExtensions
             return null;
         if (it == string.Empty)
             return null;
-        if (Guid.TryParse(it, out Guid tryvalue))
+        if (Guid.TryParse(it, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -428,7 +428,7 @@ public static class StringExtensions
         if (it == null)
             return null;
 
-        IntPtr valuePtr = IntPtr.Zero;
+        var valuePtr = IntPtr.Zero;
         try
         {
             valuePtr = System.Runtime.InteropServices.Marshal.SecureStringToGlobalAllocUnicode(it);

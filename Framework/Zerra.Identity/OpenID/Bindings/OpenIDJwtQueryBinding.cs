@@ -74,7 +74,7 @@ namespace Zerra.Identity.OpenID.Bindings
 
         private string GetRedirectUrl(string baseUrl)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             sb.Append(baseUrl);
             GenerateQueryString(sb);
             return sb.ToString();
@@ -103,7 +103,7 @@ namespace Zerra.Identity.OpenID.Bindings
             if (String.IsNullOrWhiteSpace(url))
                 throw new ArgumentException("Required url");
 
-            string redirectUrl = GetRedirectUrl(url);
+            var redirectUrl = GetRedirectUrl(url);
             return new IdentityHttpResponse(redirectUrl);
         }
     }

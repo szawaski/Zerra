@@ -86,7 +86,7 @@ namespace Zerra.CQRS.Relay
 
             for (var i = 0; i < numberToRemove; i++)
             {
-                if (!runtimes.TryDequeue(out long runtime))
+                if (!runtimes.TryDequeue(out var runtime))
                     break;
 
                 lock (loadLock)

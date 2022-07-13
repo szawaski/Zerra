@@ -52,7 +52,7 @@ namespace Zerra.Identity.OAuth2.Bindings
             sb.Append("<form method=\"POST\" name=\"name=\"hiddenform\" action=\"").Append(url).Append("\">");
             if (inputs != null)
             {
-                foreach (KeyValuePair<string, string> input in inputs)
+                foreach (var input in inputs)
                     sb.Append(String.Format("<input type=\"hidden\" name=\"{0}\" value=\"{1}\">", WebUtility.HtmlEncode(input.Key), WebUtility.HtmlEncode(input.Value)));
             }
             sb.Append("<noscript><p>Script is disabled. Click Submit to continue.</p><input type=\"submit\" value=\"Submit\" /></noscript>");

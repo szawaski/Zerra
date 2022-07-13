@@ -56,7 +56,7 @@ namespace Zerra.Logger
 
         private static Task WriteAsync(this FileStream fileStream, string text)
         {
-            byte[] bytes = Encoding.UTF8.GetBytes(text);
+            var bytes = Encoding.UTF8.GetBytes(text);
             return fileStream.WriteAsync(bytes, 0, bytes.Length);
         }
     }

@@ -23,7 +23,7 @@ namespace ZerraDemo.Common
 
         public void Authorize(IDictionary<string, IList<string>> headers)
         {
-            if (!headers.TryGetValue(cookieHeader, out IList<string> cookieHeaderValue))
+            if (!headers.TryGetValue(cookieHeader, out var cookieHeaderValue))
             {
                 if (!headers.TryGetValue(authorizeHeader, out cookieHeaderValue))
                 {
@@ -32,7 +32,7 @@ namespace ZerraDemo.Common
             }
 
             var cookies = CookieParser.CookiesFromString(cookieHeaderValue[0]);
-            if (cookies.TryGetValue(cookieName, out string authCookieDataEncoded))
+            if (cookies.TryGetValue(cookieName, out var authCookieDataEncoded))
             {
                 var authCookieDataEncrypted = Base64UrlEncoder.FromBase64String(authCookieDataEncoded);
                 var authCookieDataBytes = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, authCookieDataEncrypted);

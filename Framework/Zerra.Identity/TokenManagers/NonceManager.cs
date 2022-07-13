@@ -43,9 +43,9 @@ namespace Zerra.Identity.TokenManagers
 
         public static void Validate(string serviceProvider, string nonce)
         {
-            nonces.TryRemove(nonce, out NonceInfo nonceInfo);
+            nonces.TryRemove(nonce, out var nonceInfo);
 
-            bool valid = true;
+            var valid = true;
             if (nonceInfo == null)
                 valid = false;
             else if (serviceProvider != nonceInfo.ServiceProvider)
@@ -67,7 +67,7 @@ namespace Zerra.Identity.TokenManagers
                 var expiredNonces = nonces.ToArray().Where(x => x.Value.Time < DateTime.Now.AddSeconds(-expirationSeconds)).ToArray();
                 foreach (var nonceInfo in expiredNonces)
                 {
-                    nonces.TryRemove(nonceInfo.Key, out NonceInfo removed);
+                    nonces.TryRemove(nonceInfo.Key, out var removed);
                 }
 
                 Thread.Sleep(60000);

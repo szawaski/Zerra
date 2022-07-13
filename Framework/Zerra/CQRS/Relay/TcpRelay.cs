@@ -57,7 +57,7 @@ namespace Zerra.CQRS.Relay
             CQRSProtocolType? protocolType = null;
             RelayConnectedService service = null;
             Stopwatch stopwatch = null;
-            bool responseStarted = false;
+            var responseStarted = false;
 
             var bufferOwner = BufferArrayPool<byte>.Rent(bufferLength);
             var buffer = bufferOwner.AsMemory();

@@ -12,7 +12,8 @@ namespace Zerra.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Read(out char c)
         {
-            if (bufferLength - bufferPosition < 1) ReadBuffer(1);
+            if (bufferLength - bufferPosition < 1)
+                ReadBuffer(1);
             if (bufferPosition >= bufferLength)
             {
                 c = default;
@@ -24,7 +25,8 @@ namespace Zerra.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ReadSkipWhiteSpace(out char c)
         {
-            if (bufferLength - bufferPosition < 1) ReadBuffer(1);
+            if (bufferLength - bufferPosition < 1)
+                ReadBuffer(1);
             if (bufferPosition >= bufferLength)
             {
                 c = default;
@@ -33,7 +35,8 @@ namespace Zerra.IO
             c = buffer[bufferPosition++];
             while (c == ' ' || c == '\r' || c == '\n' || c == '\t')
             {
-                if (bufferLength - bufferPosition < 1) ReadBuffer(1);
+                if (bufferLength - bufferPosition < 1)
+                    ReadBuffer(1);
                 if (bufferPosition >= bufferLength)
                     return false;
                 c = buffer[bufferPosition++];
@@ -43,7 +46,8 @@ namespace Zerra.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ReadUntil(out char c, char value)
         {
-            if (bufferLength - bufferPosition < 1) ReadBuffer(1);
+            if (bufferLength - bufferPosition < 1)
+                ReadBuffer(1);
             if (bufferPosition >= bufferLength)
             {
                 c = default;
@@ -52,7 +56,8 @@ namespace Zerra.IO
             c = buffer[bufferPosition++];
             while (c != value)
             {
-                if (bufferLength - bufferPosition < 1) ReadBuffer(1);
+                if (bufferLength - bufferPosition < 1)
+                    ReadBuffer(1);
                 if (bufferPosition >= bufferLength)
                     return false;
                 c = buffer[bufferPosition++];
@@ -62,7 +67,8 @@ namespace Zerra.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ReadUntil(out char c, char value1, char value2)
         {
-            if (bufferLength - bufferPosition < 1) ReadBuffer(1);
+            if (bufferLength - bufferPosition < 1)
+                ReadBuffer(1);
             if (bufferPosition >= bufferLength)
             {
                 c = default;
@@ -71,7 +77,8 @@ namespace Zerra.IO
             c = buffer[bufferPosition++];
             while (c != value1 && c != value2)
             {
-                if (bufferLength - bufferPosition < 1) ReadBuffer(1);
+                if (bufferLength - bufferPosition < 1)
+                    ReadBuffer(1);
                 if (bufferPosition >= bufferLength)
                     return false;
                 c = buffer[bufferPosition++];
@@ -82,7 +89,8 @@ namespace Zerra.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Foward(int count)
         {
-            if (bufferLength - bufferPosition < count) ReadBuffer(count);
+            if (bufferLength - bufferPosition < count)
+                ReadBuffer(count);
             if (bufferPosition + count >= bufferLength)
                 return false;
             bufferPosition += count;

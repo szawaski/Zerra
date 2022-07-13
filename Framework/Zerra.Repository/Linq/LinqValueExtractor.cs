@@ -303,14 +303,14 @@ namespace Zerra.Repository
                         case MemberTypes.Field:
                             {
                                 var field = memberProperty.Member as FieldInfo;
-                                object fieldValue = field.GetValue(value);
+                                var fieldValue = field.GetValue(value);
                                 ret = ExtractConstantStack(field.FieldType, fieldValue, context);
                                 break;
                             }
                         case MemberTypes.Property:
                             {
                                 var property = memberProperty.Member as PropertyInfo;
-                                object propertyValue = property.GetValue(value);
+                                var propertyValue = property.GetValue(value);
                                 ret = ExtractConstantStack(property.PropertyType, propertyValue, context);
                                 break;
                             }
@@ -333,7 +333,7 @@ namespace Zerra.Repository
             Return ret = null;
 
             var call = exp as MethodCallExpression;
-            bool isEvaluatable = IsEvaluatable(exp);
+            var isEvaluatable = IsEvaluatable(exp);
             if (isEvaluatable)
             {
                 ret = ExtractEvaluate(exp, context);
@@ -443,10 +443,10 @@ namespace Zerra.Repository
             var argumentTypes = newExp.Arguments.Select(x => x.Type).ToArray();
             var constructor = newExp.Type.GetConstructor(argumentTypes);
 
-            List<object> parameters = new List<object>();
+            var parameters = new List<object>();
             foreach (var argument in newExp.Arguments)
             {
-                object argumentValue = Expression.Lambda(argument).Compile().DynamicInvoke();
+                var argumentValue = Expression.Lambda(argument).Compile().DynamicInvoke();
                 parameters.Add(argumentValue);
             }
 
@@ -474,7 +474,7 @@ namespace Zerra.Repository
             {
                 if (context.MemberAccessStack.Count > 0)
                 {
-                    bool memberPropertyHandled = false;
+                    var memberPropertyHandled = false;
                     var memberProperty = context.MemberAccessStack.Pop();
 
                     if (member.Type.Name == typeof(Nullable<>).Name && memberProperty.Member.Name == "Value")
@@ -528,14 +528,14 @@ namespace Zerra.Repository
             if (type.IsArray)
             {
                 var values = new List<object>();
-                foreach (object item in (IEnumerable)value)
+                foreach (var item in (IEnumerable)value)
                     values.Add(item);
                 ret = new Return(values.ToArray());
             }
             else if (value is IEnumerable enumerable)
             {
                 var values = new List<object>();
-                foreach (object item in enumerable)
+                foreach (var item in enumerable)
                     values.Add(item);
                 ret = new Return(values.ToArray());
             }
@@ -789,7 +789,7 @@ namespace Zerra.Repository
             var call = exp as MethodCallExpression;
             if (call.Object == null)
             {
-                bool result = true;
+                var result = true;
                 foreach (var arg in call.Arguments)
                 {
                     result &= IsNull(arg);

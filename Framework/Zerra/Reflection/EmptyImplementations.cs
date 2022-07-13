@@ -46,7 +46,7 @@ namespace Zerra.Reflection
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
 
-            string typeSignature = interfaceType.FullName + "_EmptyImplementation";
+            var typeSignature = interfaceType.FullName + "_EmptyImplementation";
 
             var moduleBuilder = GeneratedAssembly.GetModuleBuilder();
             var typeBuilder = moduleBuilder.DefineType(typeSignature, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AutoLayout, null);
@@ -68,7 +68,7 @@ namespace Zerra.Reflection
                 if (method.Name.StartsWith("get_") || method.Name.StartsWith("set_"))
                     continue;
 
-                Type[] parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
+                var parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
 
                 var voidMethod = method.ReturnType.Name == "Void";
 
@@ -168,7 +168,7 @@ namespace Zerra.Reflection
         }
         private static void EmitDefault(ILGenerator il, Type type)
         {
-            if (TypeLookup.CoreTypeLookup(type, out CoreType coreType))
+            if (TypeLookup.CoreTypeLookup(type, out var coreType))
             {
                 switch (coreType)
                 {

@@ -54,7 +54,8 @@ namespace Zerra.Providers
             where InterfaceT : IBaseProvider
         {
             var interfaceType = typeof(InterfaceT);
-            if (!interfaceType.IsInterface) throw new ArgumentException($"Generic parameter must be an interface derived from {typeof(IBaseProvider).Name}");
+            if (!interfaceType.IsInterface)
+                throw new ArgumentException($"Generic parameter must be an interface derived from {typeof(IBaseProvider).Name}");
 
             if (providerInterface != null && (!providerInterface.IsInterface || !ProviderLayers.GetProviderInterfaceStack().Contains(providerInterface)))
                 throw new ArgumentException($"Provider Interface parameter must be one of the following {String.Join(", ", ProviderLayers.GetProviderInterfaceStack().Select(x => x.Name).ToArray())}");

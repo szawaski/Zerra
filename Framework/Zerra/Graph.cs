@@ -228,7 +228,7 @@ namespace Zerra
 
         private void AddProperty(string property)
         {
-            if (childGraphs.TryGetValue(property, out Graph childGraph))
+            if (childGraphs.TryGetValue(property, out var childGraph))
             {
                 childGraph.includeAllProperties = true;
             }
@@ -255,7 +255,7 @@ namespace Zerra
             if (String.IsNullOrWhiteSpace(graph.name))
                 throw new InvalidOperationException("Cannot add a child graph without a name.");
 
-            if (childGraphs.TryGetValue(graph.name, out Graph childGraph))
+            if (childGraphs.TryGetValue(graph.name, out var childGraph))
             {
                 childGraph.includeAllProperties |= graph.includeAllProperties;
                 childGraph.AddProperties(graph.properties);
@@ -294,7 +294,7 @@ namespace Zerra
             }
             else
             {
-                if (!childGraphs.TryGetValue(member.Name, out Graph childGraph))
+                if (!childGraphs.TryGetValue(member.Name, out var childGraph))
                 {
                     childGraph = new Graph();
                     childGraph.name = member.Name;
@@ -324,7 +324,7 @@ namespace Zerra
             }
             else
             {
-                if (childGraphs.TryGetValue(member.Name, out Graph childGraph))
+                if (childGraphs.TryGetValue(member.Name, out var childGraph))
                     childGraph.RemoveMembers(members);
             }
         }
@@ -357,7 +357,7 @@ namespace Zerra
         {
             if (childGraphs.Count == 0)
                 return null;
-            if (!childGraphs.TryGetValue(name, out Graph childGraph))
+            if (!childGraphs.TryGetValue(name, out var childGraph))
                 return null;
             return childGraph;
         }
@@ -365,7 +365,7 @@ namespace Zerra
         {
             if (childGraphs.Count == 0)
                 return null;
-            if (!childGraphs.TryGetValue(name, out Graph nonGenericGraph))
+            if (!childGraphs.TryGetValue(name, out var nonGenericGraph))
                 return null;
             return Convert(nonGenericGraph, type);
         }
@@ -373,7 +373,7 @@ namespace Zerra
         {
             if (childGraphs.Count == 0)
                 return null;
-            if (!childGraphs.TryGetValue(name, out Graph nonGenericGraph))
+            if (!childGraphs.TryGetValue(name, out var nonGenericGraph))
                 return null;
             return new Graph<T>(nonGenericGraph);
         }
@@ -382,7 +382,7 @@ namespace Zerra
         {
             if (childGraphs.Count == 0)
                 return new Graph(name, true);
-            if (childGraphs.TryGetValue(name, out Graph childGraph))
+            if (childGraphs.TryGetValue(name, out var childGraph))
                 return childGraph;
             if (properties.Contains(name))
                 return new Graph(name, true);
@@ -392,7 +392,7 @@ namespace Zerra
         {
             if (childGraphs.Count == 0)
                 return Convert(new Graph(name, true), type);
-            if (childGraphs.TryGetValue(name, out Graph nonGenericGraph))
+            if (childGraphs.TryGetValue(name, out var nonGenericGraph))
                 return Convert(nonGenericGraph, type);
             if (properties.Contains(name))
                 return Convert(new Graph(name, true), type);
@@ -402,7 +402,7 @@ namespace Zerra
         {
             if (childGraphs.Count == 0)
                 return new Graph<T>(name, true);
-            if (childGraphs.TryGetValue(name, out Graph nonGenericGraph))
+            if (childGraphs.TryGetValue(name, out var nonGenericGraph))
                 return new Graph<T>(nonGenericGraph);
             if (properties.Contains(name))
                 return new Graph<T>(name, true);
@@ -412,7 +412,7 @@ namespace Zerra
         public static Graph Convert(Graph graph, Type type)
         {
             var constructor = TypeAnalyzer.GetGenericTypeDetail(typeof(Graph<>), type).GetConstructor(new Type[] { typeof(Graph) });
-            Graph genericGraph = (Graph)constructor.Creator(new object[] { graph });
+            var genericGraph = (Graph)constructor.Creator(new object[] { graph });
             return genericGraph;
         }
 
@@ -443,7 +443,7 @@ namespace Zerra
         {
             foreach (var property in this.properties)
             {
-                for (int i = 0; i < depth * 3; i++)
+                for (var i = 0; i < depth * 3; i++)
                     writer.Write(' ');
 
                 writer.Write(property);
@@ -451,7 +451,7 @@ namespace Zerra
             }
             foreach (var childGraph in this.childGraphs.Values)
             {
-                for (int i = 0; i < depth * 3; i++)
+                for (var i = 0; i < depth * 3; i++)
                     writer.Write(' ');
 
                 writer.Write(childGraph.name);
@@ -480,13 +480,13 @@ namespace Zerra
         private void ApplyModelTypeToChildGraphs(Graph parent)
         {
             type = null;
-            Type modelType = parent.GetModelType();
+            var modelType = parent.GetModelType();
             if (modelType != null)
             {
                 var modelInfo = TypeAnalyzer.GetTypeDetail(modelType);
-                if (modelInfo.TryGetMember(name, out MemberDetail property))
+                if (modelInfo.TryGetMember(name, out var property))
                 {
-                    Type subModelType = property.Type;
+                    var subModelType = property.Type;
                     var subModelTypeDetails = TypeAnalyzer.GetTypeDetail(subModelType);
                     if (subModelTypeDetails.IsIEnumerableGeneric)
                     {
@@ -565,14 +565,14 @@ namespace Zerra
         }
         private static Expression<Func<TSource, TTarget>> GenerateSelectorExpression<TSource, TTarget>(Graph graph)
         {
-            Type typeSource = typeof(TSource);
-            Type typeTarget = typeof(TTarget);
+            var typeSource = typeof(TSource);
+            var typeTarget = typeof(TTarget);
 
-            ParameterExpression sourceParameterExpression = Expression.Parameter(typeSource, "x");
+            var sourceParameterExpression = Expression.Parameter(typeSource, "x");
 
-            Expression selectorExpression = GenerateSelectorExpression(typeSource, typeTarget, sourceParameterExpression, graph, new Stack<Type>());
+            var selectorExpression = GenerateSelectorExpression(typeSource, typeTarget, sourceParameterExpression, graph, new Stack<Type>());
 
-            Expression<Func<TSource, TTarget>> lambda = Expression.Lambda<Func<TSource, TTarget>>(selectorExpression, sourceParameterExpression);
+            var lambda = Expression.Lambda<Func<TSource, TTarget>>(selectorExpression, sourceParameterExpression);
             return lambda;
         }
         private static Expression GenerateSelectorExpression(Type typeSource, Type typeTarget, Expression sourceExpression, Graph graph, Stack<Type> stack)
@@ -582,11 +582,11 @@ namespace Zerra
 
             stack.Push(typeSource);
 
-            List<MemberBinding> bindings = new List<MemberBinding>();
+            var bindings = new List<MemberBinding>();
 
-            foreach (PropertyInfo targetProperty in targetProperites.Where(x => x.CanWrite))
+            foreach (var targetProperty in targetProperites.Where(x => x.CanWrite))
             {
-                PropertyInfo sourceProperty = sourceProperties.FirstOrDefault(x => x.CanRead && x.Name == targetProperty.Name);
+                var sourceProperty = sourceProperties.FirstOrDefault(x => x.CanRead && x.Name == targetProperty.Name);
 
                 if (sourceProperty != null)
                 {
@@ -608,23 +608,23 @@ namespace Zerra
                         {
                             if (targetProperty.PropertyType.IsGenericType)
                             {
-                                Type sourcePropertyGenericType = sourceProperty.PropertyType.GetGenericArguments()[0];
-                                Graph childGraph = graph.GetChildGraph(targetProperty.Name);
+                                var sourcePropertyGenericType = sourceProperty.PropertyType.GetGenericArguments()[0];
+                                var childGraph = graph.GetChildGraph(targetProperty.Name);
 
                                 if (stack.Where(x => x == sourcePropertyGenericType).Count() < maxSelectRecursive)
                                 {
-                                    Type targetPropertyGenericType = targetProperty.PropertyType.GetGenericArguments()[0];
+                                    var targetPropertyGenericType = targetProperty.PropertyType.GetGenericArguments()[0];
                                     Expression sourcePropertyExpression = Expression.Property(sourceExpression, sourceProperty);
 
-                                    ParameterExpression sourcePropertyParameterExpression = Expression.Parameter(sourcePropertyGenericType, "y");
-                                    Expression mapperExpression = GenerateSelectorExpression(sourcePropertyGenericType, targetPropertyGenericType, sourcePropertyParameterExpression, childGraph, stack);
+                                    var sourcePropertyParameterExpression = Expression.Parameter(sourcePropertyGenericType, "y");
+                                    var mapperExpression = GenerateSelectorExpression(sourcePropertyGenericType, targetPropertyGenericType, sourcePropertyParameterExpression, childGraph, stack);
                                     Expression sourcePropertyLambda = Expression.Lambda(mapperExpression, new ParameterExpression[] { sourcePropertyParameterExpression });
 
-                                    MethodInfo selectMethodGeneric = selectMethod.MakeGenericMethod(sourcePropertyGenericType, targetPropertyGenericType);
-                                    MethodCallExpression callSelect = Expression.Call(selectMethodGeneric, sourcePropertyExpression, sourcePropertyLambda);
+                                    var selectMethodGeneric = selectMethod.MakeGenericMethod(sourcePropertyGenericType, targetPropertyGenericType);
+                                    var callSelect = Expression.Call(selectMethodGeneric, sourcePropertyExpression, sourcePropertyLambda);
 
-                                    MethodInfo listMethodGeneric = listMethod.MakeGenericMethod(targetPropertyGenericType);
-                                    MethodCallExpression listSelect = Expression.Call(listMethodGeneric, callSelect);
+                                    var listMethodGeneric = listMethod.MakeGenericMethod(targetPropertyGenericType);
+                                    var listSelect = Expression.Call(listMethodGeneric, callSelect);
 
                                     MemberBinding binding = Expression.Bind(targetProperty, listSelect);
                                     bindings.Add(binding);
@@ -637,12 +637,12 @@ namespace Zerra
                         //Related Single
                         if (graph.HasChildGraph(targetProperty.Name))
                         {
-                            Graph childGraph = graph.GetChildGraph(targetProperty.Name);
+                            var childGraph = graph.GetChildGraph(targetProperty.Name);
                             if (stack.Where(x => x == sourceProperty.PropertyType).Count() < maxSelectRecursive)
                             {
                                 Expression sourcePropertyExpression = Expression.Property(sourceExpression, sourceProperty);
                                 Expression sourceNullIf = Expression.Equal(sourcePropertyExpression, Expression.Constant(null));
-                                Expression mapperExpression = GenerateSelectorExpression(sourceProperty.PropertyType, targetProperty.PropertyType, sourcePropertyExpression, childGraph, stack);
+                                var mapperExpression = GenerateSelectorExpression(sourceProperty.PropertyType, targetProperty.PropertyType, sourcePropertyExpression, childGraph, stack);
                                 Expression sourcePropertyConditionalExpression = Expression.Condition(sourceNullIf, Expression.Convert(Expression.Constant(null), targetProperty.PropertyType), mapperExpression, targetProperty.PropertyType);
                                 MemberBinding binding = Expression.Bind(targetProperty, sourcePropertyConditionalExpression);
                                 bindings.Add(binding);
@@ -654,7 +654,7 @@ namespace Zerra
 
             _ = stack.Pop();
 
-            MemberInitExpression initializer = Expression.MemberInit(Expression.New(typeTarget), bindings);
+            var initializer = Expression.MemberInit(Expression.New(typeTarget), bindings);
             return initializer;
         }
     }

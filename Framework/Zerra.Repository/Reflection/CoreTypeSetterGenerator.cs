@@ -32,7 +32,7 @@ namespace Zerra.Repository.Reflection
         {
             var interfaceType = TypeAnalyzer.GetGenericType(iCoreTypeSetterType, memberInfo.ReflectedType);
 
-            string typeSignature = $"{interfaceType.FullName}_{memberInfo.Name}_CoreTypeSetterGenerator";
+            var typeSignature = $"{interfaceType.FullName}_{memberInfo.Name}_CoreTypeSetterGenerator";
 
             var moduleBuilder = GeneratedAssembly.GetModuleBuilder();
             var typeBuilder = moduleBuilder.DefineType(typeSignature, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AutoLayout, null);
@@ -54,7 +54,7 @@ namespace Zerra.Repository.Reflection
                 if (method.Name.StartsWith("get_") || method.Name.StartsWith("set_"))
                     continue;
 
-                Type[] parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
+                var parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
 
                 var methodBuilder = typeBuilder.DefineMethod(
                     method.Name,
@@ -69,7 +69,7 @@ namespace Zerra.Repository.Reflection
 
                 CoreType? methodCoreType;
                 bool methodIsByteArray;
-                if (TypeLookup.CoreTypeLookup(parameterTypes[1], out CoreType coreTypeLookup))
+                if (TypeLookup.CoreTypeLookup(parameterTypes[1], out var coreTypeLookup))
                 {
                     methodCoreType = coreTypeLookup;
                     methodIsByteArray = false;

@@ -301,8 +301,8 @@ namespace Zerra.T4
         private static (bool, string, bool, bool) GetJavaScriptPropertyType(CSharpType csharpType, IEnumerable<CSharpObject> references)
         {
             bool isJavaScriptType;
-            bool hasMany = false;
-            bool nullable = false;
+            var hasMany = false;
+            var nullable = false;
             while (csharpType.GenericArguments.Count == 1)
             {
                 if (csharpType.Name == "Array`1" || csharpType.NativeType != null && (csharpType.NativeType.Name == "IEnumerable`1" || csharpType.NativeType.GetInterface(typeof(IEnumerable<>).Name) != null))
@@ -353,87 +353,159 @@ namespace Zerra.T4
         }
         private static bool IsCoreType(Type type)
         {
-            if (type == typeof(bool)) return true;
-            if (type == typeof(char)) return true;
-            if (type == typeof(DateTime)) return true;
-            if (type == typeof(DateTimeOffset)) return true;
-            if (type == typeof(TimeSpan)) return true;
-            if (type == typeof(Guid)) return true;
-            if (type == typeof(byte)) return true;
-            if (type == typeof(sbyte)) return true;
-            if (type == typeof(short)) return true;
-            if (type == typeof(ushort)) return true;
-            if (type == typeof(int)) return true;
-            if (type == typeof(uint)) return true;
-            if (type == typeof(long)) return true;
-            if (type == typeof(ulong)) return true;
-            if (type == typeof(float)) return true;
-            if (type == typeof(double)) return true;
-            if (type == typeof(decimal)) return true;
-            if (type == typeof(string)) return true;
+            if (type == typeof(bool))
+                return true;
+            if (type == typeof(char))
+                return true;
+            if (type == typeof(DateTime))
+                return true;
+            if (type == typeof(DateTimeOffset))
+                return true;
+            if (type == typeof(TimeSpan))
+                return true;
+            if (type == typeof(Guid))
+                return true;
+            if (type == typeof(byte))
+                return true;
+            if (type == typeof(sbyte))
+                return true;
+            if (type == typeof(short))
+                return true;
+            if (type == typeof(ushort))
+                return true;
+            if (type == typeof(int))
+                return true;
+            if (type == typeof(uint))
+                return true;
+            if (type == typeof(long))
+                return true;
+            if (type == typeof(ulong))
+                return true;
+            if (type == typeof(float))
+                return true;
+            if (type == typeof(double))
+                return true;
+            if (type == typeof(decimal))
+                return true;
+            if (type == typeof(string))
+                return true;
 
-            if (type == typeof(bool?)) return true;
-            if (type == typeof(char?)) return true;
-            if (type == typeof(DateTime?)) return true;
-            if (type == typeof(DateTimeOffset?)) return true;
-            if (type == typeof(TimeSpan?)) return true;
-            if (type == typeof(Guid?)) return true;
-            if (type == typeof(byte?)) return true;
-            if (type == typeof(sbyte?)) return true;
-            if (type == typeof(short?)) return true;
-            if (type == typeof(ushort?)) return true;
-            if (type == typeof(int?)) return true;
-            if (type == typeof(uint?)) return true;
-            if (type == typeof(long?)) return true;
-            if (type == typeof(ulong?)) return true;
-            if (type == typeof(float?)) return true;
-            if (type == typeof(double?)) return true;
-            if (type == typeof(decimal?)) return true;
+            if (type == typeof(bool?))
+                return true;
+            if (type == typeof(char?))
+                return true;
+            if (type == typeof(DateTime?))
+                return true;
+            if (type == typeof(DateTimeOffset?))
+                return true;
+            if (type == typeof(TimeSpan?))
+                return true;
+            if (type == typeof(Guid?))
+                return true;
+            if (type == typeof(byte?))
+                return true;
+            if (type == typeof(sbyte?))
+                return true;
+            if (type == typeof(short?))
+                return true;
+            if (type == typeof(ushort?))
+                return true;
+            if (type == typeof(int?))
+                return true;
+            if (type == typeof(uint?))
+                return true;
+            if (type == typeof(long?))
+                return true;
+            if (type == typeof(ulong?))
+                return true;
+            if (type == typeof(float?))
+                return true;
+            if (type == typeof(double?))
+                return true;
+            if (type == typeof(decimal?))
+                return true;
 
-            if (type == typeof(byte[])) return true;
+            if (type == typeof(byte[]))
+                return true;
 
             return false;
         }
         private static string ConvertCoreTypeToJavaScriptType(Type type)
         {
-            if (type == typeof(bool)) return "boolean";
-            if (type == typeof(char)) return "string";
-            if (type == typeof(DateTime)) return "Date";
-            if (type == typeof(DateTimeOffset)) return "Date";
-            if (type == typeof(TimeSpan)) return "Date";
-            if (type == typeof(Guid)) return "string";
-            if (type == typeof(byte)) return "number";
-            if (type == typeof(sbyte)) return "number";
-            if (type == typeof(short)) return "number";
-            if (type == typeof(ushort)) return "number";
-            if (type == typeof(int)) return "number";
-            if (type == typeof(uint)) return "number";
-            if (type == typeof(long)) return "number";
-            if (type == typeof(ulong)) return "number";
-            if (type == typeof(float)) return "number";
-            if (type == typeof(double)) return "number";
-            if (type == typeof(decimal)) return "number";
-            if (type == typeof(string)) return "string";
+            if (type == typeof(bool))
+                return "boolean";
+            if (type == typeof(char))
+                return "string";
+            if (type == typeof(DateTime))
+                return "Date";
+            if (type == typeof(DateTimeOffset))
+                return "Date";
+            if (type == typeof(TimeSpan))
+                return "Date";
+            if (type == typeof(Guid))
+                return "string";
+            if (type == typeof(byte))
+                return "number";
+            if (type == typeof(sbyte))
+                return "number";
+            if (type == typeof(short))
+                return "number";
+            if (type == typeof(ushort))
+                return "number";
+            if (type == typeof(int))
+                return "number";
+            if (type == typeof(uint))
+                return "number";
+            if (type == typeof(long))
+                return "number";
+            if (type == typeof(ulong))
+                return "number";
+            if (type == typeof(float))
+                return "number";
+            if (type == typeof(double))
+                return "number";
+            if (type == typeof(decimal))
+                return "number";
+            if (type == typeof(string))
+                return "string";
 
-            if (type == typeof(bool?)) return "boolean";
-            if (type == typeof(char?)) return "string";
-            if (type == typeof(DateTime?)) return "Date";
-            if (type == typeof(DateTimeOffset?)) return "Date";
-            if (type == typeof(TimeSpan?)) return "Date";
-            if (type == typeof(Guid?)) return "string";
-            if (type == typeof(byte?)) return "number";
-            if (type == typeof(sbyte?)) return "number";
-            if (type == typeof(short?)) return "number";
-            if (type == typeof(ushort?)) return "number";
-            if (type == typeof(int?)) return "number";
-            if (type == typeof(uint?)) return "number";
-            if (type == typeof(long?)) return "number";
-            if (type == typeof(ulong?)) return "number";
-            if (type == typeof(float?)) return "number";
-            if (type == typeof(double?)) return "number";
-            if (type == typeof(decimal?)) return "number";
+            if (type == typeof(bool?))
+                return "boolean";
+            if (type == typeof(char?))
+                return "string";
+            if (type == typeof(DateTime?))
+                return "Date";
+            if (type == typeof(DateTimeOffset?))
+                return "Date";
+            if (type == typeof(TimeSpan?))
+                return "Date";
+            if (type == typeof(Guid?))
+                return "string";
+            if (type == typeof(byte?))
+                return "number";
+            if (type == typeof(sbyte?))
+                return "number";
+            if (type == typeof(short?))
+                return "number";
+            if (type == typeof(ushort?))
+                return "number";
+            if (type == typeof(int?))
+                return "number";
+            if (type == typeof(uint?))
+                return "number";
+            if (type == typeof(long?))
+                return "number";
+            if (type == typeof(ulong?))
+                return "number";
+            if (type == typeof(float?))
+                return "number";
+            if (type == typeof(double?))
+                return "number";
+            if (type == typeof(decimal?))
+                return "number";
 
-            if (type == typeof(byte[])) return "Array<number>";
+            if (type == typeof(byte[]))
+                return "Array<number>";
 
             throw new NotImplementedException();
         }

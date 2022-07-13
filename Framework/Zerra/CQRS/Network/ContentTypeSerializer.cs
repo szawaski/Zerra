@@ -99,7 +99,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.Json:
                     {
-                        using (MemoryStream ms = new MemoryStream())
+                        using (var ms = new MemoryStream())
                         {
                             stream.CopyTo(ms);
                             return System.Text.Json.JsonSerializer.Deserialize<T>(ms.ToArray());
@@ -107,7 +107,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.JsonNameless:
                     {
-                        using (MemoryStream ms = new MemoryStream())
+                        using (var ms = new MemoryStream())
                         {
                             stream.CopyTo(ms);
                             return JsonSerializer.DeserializeNameless<T>(ms.ToArray());
@@ -162,7 +162,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.JsonNameless:
                     {
-                        using (MemoryStream ms = new MemoryStream())
+                        using (var ms = new MemoryStream())
                         {
                             await stream.CopyToAsync(ms);
                             return JsonSerializer.DeserializeNameless<T>(ms.ToArray());
@@ -219,7 +219,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.Json:
                     {
-                        using (MemoryStream ms = new MemoryStream())
+                        using (var ms = new MemoryStream())
                         {
                             stream.CopyTo(ms);
                             var model = System.Text.Json.JsonSerializer.Deserialize<ExceptionModel>(ms.ToArray());
@@ -228,7 +228,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.JsonNameless:
                     {
-                        using (MemoryStream ms = new MemoryStream())
+                        using (var ms = new MemoryStream())
                         {
                             stream.CopyTo(ms);
                             var model = JsonSerializer.DeserializeNameless<ExceptionModel>(ms.ToArray());
@@ -291,7 +291,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.JsonNameless:
                     {
-                        using (MemoryStream ms = new MemoryStream())
+                        using (var ms = new MemoryStream())
                         {
                             await stream.CopyToAsync(ms);
                             var model = JsonSerializer.DeserializeNameless<ExceptionModel>(ms.ToArray());

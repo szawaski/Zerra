@@ -923,7 +923,7 @@ namespace Zerra.IO
         public unsafe void Write(float value)
         {
             EnsureBufferSize(4);
-            uint tmpValue = *(uint*)&value;
+            var tmpValue = *(uint*)&value;
             buffer[position++] = (byte)tmpValue;
             buffer[position++] = (byte)(tmpValue >> 8);
             buffer[position++] = (byte)(tmpValue >> 16);
@@ -943,8 +943,8 @@ namespace Zerra.IO
                 {
                     EnsureBufferSize(4);
                 }
-                float temp = value.Value;
-                uint tmpValue = *(uint*)&temp;
+                var temp = value.Value;
+                var tmpValue = *(uint*)&temp;
                 buffer[position++] = (byte)tmpValue;
                 buffer[position++] = (byte)(tmpValue >> 8);
                 buffer[position++] = (byte)(tmpValue >> 16);
@@ -962,7 +962,7 @@ namespace Zerra.IO
             EnsureBufferSize(4 * maxLength);
             foreach (var value in values)
             {
-                uint tmpValue = *(uint*)&value;
+                var tmpValue = *(uint*)&value;
                 buffer[position++] = (byte)tmpValue;
                 buffer[position++] = (byte)(tmpValue >> 8);
                 buffer[position++] = (byte)(tmpValue >> 16);
@@ -978,8 +978,8 @@ namespace Zerra.IO
                 if (value.HasValue)
                 {
                     buffer[position++] = notNullByte;
-                    float temp = value.Value;
-                    uint tmpValue = *(uint*)&temp;
+                    var temp = value.Value;
+                    var tmpValue = *(uint*)&temp;
                     buffer[position++] = (byte)tmpValue;
                     buffer[position++] = (byte)(tmpValue >> 8);
                     buffer[position++] = (byte)(tmpValue >> 16);
@@ -998,7 +998,7 @@ namespace Zerra.IO
             foreach (var value in values)
             {
                 var cast = (float)value;
-                uint tmpValue = *(uint*)&cast;
+                var tmpValue = *(uint*)&cast;
                 buffer[position++] = (byte)tmpValue;
                 buffer[position++] = (byte)(tmpValue >> 8);
                 buffer[position++] = (byte)(tmpValue >> 16);
@@ -1015,8 +1015,8 @@ namespace Zerra.IO
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
-                    float temp = cast.Value;
-                    uint tmpValue = *(uint*)&temp;
+                    var temp = cast.Value;
+                    var tmpValue = *(uint*)&temp;
                     buffer[position++] = (byte)tmpValue;
                     buffer[position++] = (byte)(tmpValue >> 8);
                     buffer[position++] = (byte)(tmpValue >> 16);
@@ -1033,7 +1033,7 @@ namespace Zerra.IO
         public unsafe void Write(double value)
         {
             EnsureBufferSize(8);
-            ulong tmpValue = *(ulong*)&value;
+            var tmpValue = *(ulong*)&value;
             buffer[position++] = (byte)tmpValue;
             buffer[position++] = (byte)(tmpValue >> 8);
             buffer[position++] = (byte)(tmpValue >> 16);
@@ -1057,8 +1057,8 @@ namespace Zerra.IO
                 {
                     EnsureBufferSize(8);
                 }
-                double temp = value.Value;
-                ulong tmpValue = *(ulong*)&temp;
+                var temp = value.Value;
+                var tmpValue = *(ulong*)&temp;
                 buffer[position++] = (byte)tmpValue;
                 buffer[position++] = (byte)(tmpValue >> 8);
                 buffer[position++] = (byte)(tmpValue >> 16);
@@ -1080,7 +1080,7 @@ namespace Zerra.IO
             EnsureBufferSize(8 * maxLength);
             foreach (var value in values)
             {
-                ulong tmpValue = *(ulong*)&value;
+                var tmpValue = *(ulong*)&value;
                 buffer[position++] = (byte)tmpValue;
                 buffer[position++] = (byte)(tmpValue >> 8);
                 buffer[position++] = (byte)(tmpValue >> 16);
@@ -1100,8 +1100,8 @@ namespace Zerra.IO
                 if (value.HasValue)
                 {
                     buffer[position++] = notNullByte;
-                    double temp = value.Value;
-                    ulong tmpValue = *(ulong*)&temp;
+                    var temp = value.Value;
+                    var tmpValue = *(ulong*)&temp;
                     buffer[position++] = (byte)tmpValue;
                     buffer[position++] = (byte)(tmpValue >> 8);
                     buffer[position++] = (byte)(tmpValue >> 16);
@@ -1124,7 +1124,7 @@ namespace Zerra.IO
             foreach (var value in values)
             {
                 var cast = (double)value;
-                ulong tmpValue = *(ulong*)&cast;
+                var tmpValue = *(ulong*)&cast;
                 buffer[position++] = (byte)tmpValue;
                 buffer[position++] = (byte)(tmpValue >> 8);
                 buffer[position++] = (byte)(tmpValue >> 16);
@@ -1145,8 +1145,8 @@ namespace Zerra.IO
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
-                    double temp = cast.Value;
-                    ulong tmpValue = *(ulong*)&temp;
+                    var temp = cast.Value;
+                    var tmpValue = *(ulong*)&temp;
                     buffer[position++] = (byte)tmpValue;
                     buffer[position++] = (byte)(tmpValue >> 8);
                     buffer[position++] = (byte)(tmpValue >> 16);
@@ -1167,11 +1167,11 @@ namespace Zerra.IO
         public void Write(decimal value)
         {
             EnsureBufferSize(16);
-            int[] bits = decimal.GetBits(value);
-            int lo = bits[0];
-            int mid = bits[1];
-            int hi = bits[2];
-            int flags = bits[3];
+            var bits = decimal.GetBits(value);
+            var lo = bits[0];
+            var mid = bits[1];
+            var hi = bits[2];
+            var flags = bits[3];
             buffer[position++] = (byte)lo;
             buffer[position++] = (byte)(lo >> 8);
             buffer[position++] = (byte)(lo >> 16);
@@ -1203,11 +1203,11 @@ namespace Zerra.IO
                 {
                     EnsureBufferSize(16);
                 }
-                int[] bits = decimal.GetBits(value.Value);
-                int lo = bits[0];
-                int mid = bits[1];
-                int hi = bits[2];
-                int flags = bits[3];
+                var bits = decimal.GetBits(value.Value);
+                var lo = bits[0];
+                var mid = bits[1];
+                var hi = bits[2];
+                var flags = bits[3];
                 buffer[position++] = (byte)lo;
                 buffer[position++] = (byte)(lo >> 8);
                 buffer[position++] = (byte)(lo >> 16);
@@ -1237,11 +1237,11 @@ namespace Zerra.IO
             EnsureBufferSize(16 * maxLength);
             foreach (var value in values)
             {
-                int[] bits = decimal.GetBits(value);
-                int lo = bits[0];
-                int mid = bits[1];
-                int hi = bits[2];
-                int flags = bits[3];
+                var bits = decimal.GetBits(value);
+                var lo = bits[0];
+                var mid = bits[1];
+                var hi = bits[2];
+                var flags = bits[3];
                 buffer[position++] = (byte)lo;
                 buffer[position++] = (byte)(lo >> 8);
                 buffer[position++] = (byte)(lo >> 16);
@@ -1269,11 +1269,11 @@ namespace Zerra.IO
                 if (value.HasValue)
                 {
                     buffer[position++] = notNullByte;
-                    int[] bits = decimal.GetBits(value.Value);
-                    int lo = bits[0];
-                    int mid = bits[1];
-                    int hi = bits[2];
-                    int flags = bits[3];
+                    var bits = decimal.GetBits(value.Value);
+                    var lo = bits[0];
+                    var mid = bits[1];
+                    var hi = bits[2];
+                    var flags = bits[3];
                     buffer[position++] = (byte)lo;
                     buffer[position++] = (byte)(lo >> 8);
                     buffer[position++] = (byte)(lo >> 16);
@@ -1304,11 +1304,11 @@ namespace Zerra.IO
             foreach (var value in values)
             {
                 var cast = (decimal)value;
-                int[] bits = decimal.GetBits(cast);
-                int lo = bits[0];
-                int mid = bits[1];
-                int hi = bits[2];
-                int flags = bits[3];
+                var bits = decimal.GetBits(cast);
+                var lo = bits[0];
+                var mid = bits[1];
+                var hi = bits[2];
+                var flags = bits[3];
                 buffer[position++] = (byte)lo;
                 buffer[position++] = (byte)(lo >> 8);
                 buffer[position++] = (byte)(lo >> 16);
@@ -1337,11 +1337,11 @@ namespace Zerra.IO
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
-                    int[] bits = decimal.GetBits(cast.Value);
-                    int lo = bits[0];
-                    int mid = bits[1];
-                    int hi = bits[2];
-                    int flags = bits[3];
+                    var bits = decimal.GetBits(cast.Value);
+                    var lo = bits[0];
+                    var mid = bits[1];
+                    var hi = bits[2];
+                    var flags = bits[3];
                     buffer[position++] = (byte)lo;
                     buffer[position++] = (byte)(lo >> 8);
                     buffer[position++] = (byte)(lo >> 16);

@@ -27,7 +27,8 @@ namespace Zerra.IO
 
         public ByteReader(ReadOnlySpan<byte> bytes, Encoding encoding = null)
         {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            if (bytes == null)
+                throw new ArgumentNullException(nameof(bytes));
             this.buffer = bytes;
             this.guidBuffer = new byte[16];
             this.encoding = encoding ?? defaultEncoding;
@@ -37,7 +38,8 @@ namespace Zerra.IO
         }
         public ByteReader(ReadOnlySpan<byte> bytes, bool isFinal = true, Encoding encoding = null)
         {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            if (bytes == null)
+                throw new ArgumentNullException(nameof(bytes));
             this.buffer = bytes;
             this.guidBuffer = new byte[16];
             this.encoding = encoding ?? defaultEncoding;

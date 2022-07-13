@@ -87,7 +87,7 @@ namespace Zerra
 
             if (this.TypeArray != null)
             {
-                for (int i = 0; i < this.TypeArray.Length; i++)
+                for (var i = 0; i < this.TypeArray.Length; i++)
                     if (this.TypeArray[i] != objCasted.TypeArray[i])
                         return false;
             }
@@ -99,7 +99,7 @@ namespace Zerra
         {
             unchecked
             {
-                int hash = (int)2166136261;
+                var hash = (int)2166136261;
                 if (Str != null)
                     hash = (hash * 16777619) ^ Str.GetHashCode();
                 if (Type1 != null)
@@ -108,7 +108,7 @@ namespace Zerra
                     hash = (hash * 16777619) ^ Type2.GetHashCode();
                 if (TypeArray != null)
                 {
-                    for (int i = 0; i < TypeArray.Length; i++)
+                    for (var i = 0; i < TypeArray.Length; i++)
                         hash = (hash * 16777619) ^ TypeArray[i].GetHashCode();
                 }
                 return hash;
@@ -126,21 +126,25 @@ namespace Zerra
                 }
                 if (Type1 != null)
                 {
-                    if (writer.Length > 0) writer.Write(", ");
+                    if (writer.Length > 0)
+                        writer.Write(", ");
                     writer.Write(Type1.GetNiceName());
                 }
                 if (Type2 != null)
                 {
-                    if (writer.Length > 0) writer.Write(", ");
+                    if (writer.Length > 0)
+                        writer.Write(", ");
                     writer.Write(Type2.GetNiceName());
                 }
                 if (TypeArray != null)
                 {
-                    if (writer.Length > 0) writer.Write(", ");
+                    if (writer.Length > 0)
+                        writer.Write(", ");
                     writer.Write("[");
-                    for (int i = 0; i < TypeArray.Length; i++)
+                    for (var i = 0; i < TypeArray.Length; i++)
                     {
-                        if (i > 0) writer.Write(", ");
+                        if (i > 0)
+                            writer.Write(", ");
                         writer.Write(TypeArray[i].GetNiceName());
                     }
                     writer.Write("]");

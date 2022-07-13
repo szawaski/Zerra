@@ -52,12 +52,12 @@ namespace Zerra.Linq
 
         public Expression<Func<TModel, bool>> Build()
         {
-            ParameterExpression parameter = Expression.Parameter(typeof(TModel), "$root");
+            var parameter = Expression.Parameter(typeof(TModel), "$root");
 
-            int i = 0;
+            var i = 0;
             var exp = BuildGroup(ref i, parameter);
 
-            Expression<Func<TModel, bool>> lambda = Expression.Lambda<Func<TModel, bool>>(exp, parameter);
+            var lambda = Expression.Lambda<Func<TModel, bool>>(exp, parameter);
             return lambda;
         }
         private Expression BuildGroup(ref int i, ParameterExpression parameter)

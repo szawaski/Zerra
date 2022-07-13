@@ -23,7 +23,7 @@ namespace Zerra.Web
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
         {
-            string message = formatter(state, null);
+            var message = formatter(state, null);
             if (Resolver.TryGet(out ILoggingProvider provider))
             {
                 switch (logLevel)

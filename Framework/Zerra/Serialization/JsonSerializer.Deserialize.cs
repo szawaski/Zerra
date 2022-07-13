@@ -92,7 +92,7 @@ namespace Zerra.Serialization
 
 
 #if NETSTANDARD2_0
-            Span<char> chars = Encoding.UTF8.GetChars(bytes.ToArray(), 0, bytes.Length).AsSpan();
+            var chars = Encoding.UTF8.GetChars(bytes.ToArray(), 0, bytes.Length).AsSpan();
 #else
             Span<char> chars = new char[Encoding.UTF8.GetMaxCharCount(bytes.Length)];
             var count = Encoding.UTF8.GetChars(bytes, chars);
@@ -205,7 +205,7 @@ namespace Zerra.Serialization
                 return ConvertStringToType(String.Empty, typeDetails);
 
 #if NETSTANDARD2_0
-            Span<char> chars = Encoding.UTF8.GetChars(bytes.ToArray(), 0, bytes.Length).AsSpan();
+            var chars = Encoding.UTF8.GetChars(bytes.ToArray(), 0, bytes.Length).AsSpan();
 #else
             Span<char> chars = new char[Encoding.UTF8.GetMaxCharCount(bytes.Length)];
             var count = Encoding.UTF8.GetChars(bytes, chars);
@@ -343,7 +343,7 @@ namespace Zerra.Serialization
                             }
                             else
                             {
-                                if (typeDetail.TryGetSerializableMemberDetails(propertyName, out MemberDetail memberDetail))
+                                if (typeDetail.TryGetSerializableMemberDetails(propertyName, out var memberDetail))
                                 {
                                     var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
                                     var value = FromJson(c, ref reader, ref decodeBuffer, memberDetail.TypeDetail, propertyGraph, nameless);
@@ -446,7 +446,7 @@ namespace Zerra.Serialization
                 }
             }
 
-            bool canExpectComma = false;
+            var canExpectComma = false;
             while (reader.ReadSkipWhiteSpace(out var c))
             {
                 switch (c)
@@ -458,7 +458,7 @@ namespace Zerra.Serialization
                         {
                             var list = (IList)collection;
                             var array = Array.CreateInstance(arrayElementType.Type, list.Count);
-                            for (int i = 0; i < list.Count; i++)
+                            for (var i = 0; i < list.Count; i++)
                                 array.SetValue(list[i], i);
                             return array;
                         }
@@ -488,8 +488,8 @@ namespace Zerra.Serialization
         private static object FromJsonArrayNameless(ref CharReader reader, ref CharWriteBuffer decodeBuffer, TypeDetail typeDetail, Graph graph)
         {
             var obj = typeDetail?.Creator();
-            bool canExpectComma = false;
-            int propertyIndexForNameless = 0;
+            var canExpectComma = false;
+            var propertyIndexForNameless = 0;
             while (reader.ReadSkipWhiteSpace(out var c))
             {
                 switch (c)
@@ -574,38 +574,58 @@ namespace Zerra.Serialization
             {
                 case 'n':
                     {
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'u') throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'l') throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'l') throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'u')
+                            throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'l')
+                            throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'l')
+                            throw reader.CreateException("Expected number/true/false/null");
                         if (typeDetail != null && typeDetail.CoreType.HasValue)
                             return ConvertNullToType(typeDetail.CoreType.Value);
                         return null;
                     }
                 case 't':
                     {
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'r') throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'u') throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'e') throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'r')
+                            throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'u')
+                            throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'e')
+                            throw reader.CreateException("Expected number/true/false/null");
                         if (typeDetail != null && typeDetail.CoreType.HasValue)
                             return ConvertTrueToType(typeDetail.CoreType.Value);
                         return null;
                     }
                 case 'f':
                     {
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'a') throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'l') throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 's') throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'e') throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'a')
+                            throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'l')
+                            throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 's')
+                            throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'e')
+                            throw reader.CreateException("Expected number/true/false/null");
                         if (typeDetail != null && typeDetail.CoreType.HasValue)
                             return ConvertFalseToType(typeDetail.CoreType.Value);
                         return null;
@@ -647,7 +667,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (Boolean.TryParse(s, out bool value))
+                            if (Boolean.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -656,7 +676,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (Byte.TryParse(s, out byte value))
+                            if (Byte.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -665,7 +685,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (SByte.TryParse(s, out sbyte value))
+                            if (SByte.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -674,7 +694,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (Int16.TryParse(s, out short value))
+                            if (Int16.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -683,7 +703,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (UInt16.TryParse(s, out ushort value))
+                            if (UInt16.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -692,7 +712,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (Int32.TryParse(s, out int value))
+                            if (Int32.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -701,7 +721,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (UInt32.TryParse(s, out uint value))
+                            if (UInt32.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -710,7 +730,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (Int64.TryParse(s, out long value))
+                            if (Int64.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -719,7 +739,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (UInt64.TryParse(s, out ulong value))
+                            if (UInt64.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -728,7 +748,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (Single.TryParse(s, out float value))
+                            if (Single.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -737,7 +757,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (Double.TryParse(s, out double value))
+                            if (Double.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -746,7 +766,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (Decimal.TryParse(s, out decimal value))
+                            if (Decimal.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -763,7 +783,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (DateTime.TryParse(s, out DateTime value))
+                            if (DateTime.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -772,7 +792,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (DateTimeOffset.TryParse(s, out DateTimeOffset value))
+                            if (DateTimeOffset.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -781,7 +801,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (TimeSpan.TryParse(s, out TimeSpan value))
+                            if (TimeSpan.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -790,7 +810,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (Guid.TryParse(s, out Guid value))
+                            if (Guid.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -800,7 +820,7 @@ namespace Zerra.Serialization
             if (typeDetail.Type.IsEnum)
             {
                 var valueString = s.ToString();
-                if (EnumName.TryParse(valueString, typeDetail.Type, out object value))
+                if (EnumName.TryParse(valueString, typeDetail.Type, out var value))
                     return value;
                 return null;
             }
@@ -808,7 +828,7 @@ namespace Zerra.Serialization
             if (typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].Type.IsEnum)
             {
                 var valueString = s.ToString();
-                if (EnumName.TryParse(valueString, typeDetail.InnerTypeDetails[0].Type, out object value))
+                if (EnumName.TryParse(valueString, typeDetail.InnerTypeDetails[0].Type, out var value))
                     return value;
                 return null;
             }
@@ -907,7 +927,7 @@ namespace Zerra.Serialization
         {
             var arrayList = new List<JsonObject>();
 
-            bool canExpectComma = false;
+            var canExpectComma = false;
             while (reader.ReadSkipWhiteSpace(out var c))
             {
                 switch (c)
@@ -939,34 +959,54 @@ namespace Zerra.Serialization
             {
                 case 'n':
                     {
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'u') throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'l') throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'l') throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'u')
+                            throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'l')
+                            throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'l')
+                            throw reader.CreateException("Expected number/true/false/null");
                         return new JsonObject(null, true);
                     }
                 case 't':
                     {
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'r') throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'u') throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'e') throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'r')
+                            throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'u')
+                            throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'e')
+                            throw reader.CreateException("Expected number/true/false/null");
                         return new JsonObject("true", true);
                     }
                 case 'f':
                     {
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'a') throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'l') throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 's') throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
-                        if (c != 'e') throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'a')
+                            throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'l')
+                            throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 's')
+                            throw reader.CreateException("Expected number/true/false/null");
+                        if (!reader.Read(out c))
+                            throw reader.CreateException("Json ended prematurely");
+                        if (c != 'e')
+                            throw reader.CreateException("Expected number/true/false/null");
                         return new JsonObject("false", true);
                     }
                 default:
@@ -1010,7 +1050,8 @@ namespace Zerra.Serialization
                         {
                             reader.EndSegmentCopyTo(false, ref decodeBuffer);
 
-                            if (!reader.Read(out c)) throw reader.CreateException("Json ended prematurely");
+                            if (!reader.Read(out c))
+                                throw reader.CreateException("Json ended prematurely");
 
                             switch (c)
                             {
@@ -1031,9 +1072,10 @@ namespace Zerra.Serialization
                                     break;
                                 case 'u':
                                     reader.BeginSegment(false);
-                                    if (!reader.Foward(4)) throw reader.CreateException("Json ended prematurely");
+                                    if (!reader.Foward(4))
+                                        throw reader.CreateException("Json ended prematurely");
                                     var unicodeString = reader.EndSegmentToString(true);
-                                    if (!lowUnicodeHexToChar.TryGetValue(unicodeString, out char unicodeChar))
+                                    if (!lowUnicodeHexToChar.TryGetValue(unicodeString, out var unicodeChar))
                                         throw reader.CreateException("Incomplete escape sequence");
                                     decodeBuffer.Write(unicodeChar);
                                     break;
@@ -1299,7 +1341,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long ReadLiteralNumberAsInt64(char c, ref CharReader reader)
         {
-            bool negative = false;
+            var negative = false;
             long number;
 
             switch (c)
@@ -1355,7 +1397,7 @@ namespace Zerra.Serialization
                                             if (!reader.Read(out c))
                                                 throw reader.CreateException("Json ended prematurely");
 
-                                            bool negativeExponent = false;
+                                            var negativeExponent = false;
                                             double exponent;
 
                                             switch (c)
@@ -1392,38 +1434,46 @@ namespace Zerra.Serialization
                                                     case '\r':
                                                     case '\n':
                                                     case '\t':
-                                                        if (negativeExponent) exponent *= -1;
+                                                        if (negativeExponent)
+                                                            exponent *= -1;
                                                         number *= (long)Math.Pow(10, (double)exponent);
-                                                        if (negative) number *= -1;
+                                                        if (negative)
+                                                            number *= -1;
                                                         return number;
                                                     case ',':
                                                     case '}':
                                                     case ']':
                                                         reader.BackOne();
-                                                        if (negativeExponent) exponent *= -1;
+                                                        if (negativeExponent)
+                                                            exponent *= -1;
                                                         number *= (long)Math.Pow(10, (double)exponent);
-                                                        if (negative) number *= -1;
+                                                        if (negative)
+                                                            number *= -1;
                                                         return number;
                                                     default:
                                                         throw reader.CreateException("Unexpected character");
                                                 }
                                             }
-                                            if (negativeExponent) exponent *= -1;
+                                            if (negativeExponent)
+                                                exponent *= -1;
                                             number *= (long)Math.Pow(10, (double)exponent);
-                                            if (negative) number *= -1;
+                                            if (negative)
+                                                number *= -1;
                                             return number;
                                         }
                                     case ' ':
                                     case '\r':
                                     case '\n':
                                     case '\t':
-                                        if (negative) number *= -1;
+                                        if (negative)
+                                            number *= -1;
                                         return number;
                                     case ',':
                                     case '}':
                                     case ']':
                                         reader.BackOne();
-                                        if (negative) number *= -1;
+                                        if (negative)
+                                            number *= -1;
                                         return number;
                                     default:
                                         throw reader.CreateException("Unexpected character");
@@ -1437,7 +1487,7 @@ namespace Zerra.Serialization
                             if (!reader.Read(out c))
                                 throw reader.CreateException("Json ended prematurely");
 
-                            bool negativeExponent = false;
+                            var negativeExponent = false;
                             double exponent;
 
                             switch (c)
@@ -1474,45 +1524,54 @@ namespace Zerra.Serialization
                                     case '\r':
                                     case '\n':
                                     case '\t':
-                                        if (negativeExponent) exponent *= -1;
+                                        if (negativeExponent)
+                                            exponent *= -1;
                                         number *= (long)Math.Pow(10, (double)exponent);
-                                        if (negative) number *= -1;
+                                        if (negative)
+                                            number *= -1;
                                         return number;
                                     case ',':
                                     case '}':
                                     case ']':
                                         reader.BackOne();
-                                        if (negativeExponent) exponent *= -1;
+                                        if (negativeExponent)
+                                            exponent *= -1;
                                         number *= (long)Math.Pow(10, (double)exponent);
-                                        if (negative) number *= -1;
+                                        if (negative)
+                                            number *= -1;
                                         return number;
                                     default:
                                         throw reader.CreateException("Unexpected character");
                                 }
                             }
-                            if (negativeExponent) exponent *= -1;
+                            if (negativeExponent)
+                                exponent *= -1;
                             number *= (long)Math.Pow(10, (double)exponent);
-                            if (negative) number *= -1;
+                            if (negative)
+                                number *= -1;
                             return number;
                         }
                     case ' ':
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (negative) number *= -1;
+                        if (negative)
+                            number *= -1;
                         return number;
                     case ',':
                     case '}':
                     case ']':
                         reader.BackOne();
-                        if (negative) number *= -1;
+                        if (negative)
+                            number *= -1;
                         return number;
                     default:
                         throw reader.CreateException("Unexpected character");
                 }
             }
 
-            if (negative) number *= -1;
+            if (negative)
+                number *= -1;
             return number;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1570,7 +1629,7 @@ namespace Zerra.Serialization
                                             if (!reader.Read(out c))
                                                 throw reader.CreateException("Json ended prematurely");
 
-                                            bool negativeExponent = false;
+                                            var negativeExponent = false;
                                             double exponent;
 
                                             switch (c)
@@ -1607,21 +1666,24 @@ namespace Zerra.Serialization
                                                     case '\r':
                                                     case '\n':
                                                     case '\t':
-                                                        if (negativeExponent) exponent *= -1;
+                                                        if (negativeExponent)
+                                                            exponent *= -1;
                                                         number *= (ulong)Math.Pow(10, (double)exponent);
                                                         return number;
                                                     case ',':
                                                     case '}':
                                                     case ']':
                                                         reader.BackOne();
-                                                        if (negativeExponent) exponent *= -1;
+                                                        if (negativeExponent)
+                                                            exponent *= -1;
                                                         number *= (ulong)Math.Pow(10, (double)exponent);
                                                         return number;
                                                     default:
                                                         throw reader.CreateException("Unexpected character");
                                                 }
                                             }
-                                            if (negativeExponent) exponent *= -1;
+                                            if (negativeExponent)
+                                                exponent *= -1;
                                             number *= (ulong)Math.Pow(10, (double)exponent);
                                             return number;
                                         }
@@ -1647,7 +1709,7 @@ namespace Zerra.Serialization
                             if (!reader.Read(out c))
                                 throw reader.CreateException("Json ended prematurely");
 
-                            bool negativeExponent = false;
+                            var negativeExponent = false;
                             double exponent;
 
                             switch (c)
@@ -1684,21 +1746,24 @@ namespace Zerra.Serialization
                                     case '\r':
                                     case '\n':
                                     case '\t':
-                                        if (negativeExponent) exponent *= -1;
+                                        if (negativeExponent)
+                                            exponent *= -1;
                                         number *= (ulong)Math.Pow(10, (double)exponent);
                                         return number;
                                     case ',':
                                     case '}':
                                     case ']':
                                         reader.BackOne();
-                                        if (negativeExponent) exponent *= -1;
+                                        if (negativeExponent)
+                                            exponent *= -1;
                                         number *= (ulong)Math.Pow(10, (double)exponent);
                                         return number;
                                     default:
                                         throw reader.CreateException("Unexpected character");
                                 }
                             }
-                            if (negativeExponent) exponent *= -1;
+                            if (negativeExponent)
+                                exponent *= -1;
                             number *= (ulong)Math.Pow(10, (double)exponent);
                             return number;
                         }
@@ -1722,7 +1787,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static double ReadLiteralNumberAsDouble(char c, ref CharReader reader)
         {
-            bool negative = false;
+            var negative = false;
             double number;
 
             switch (c)
@@ -1778,7 +1843,7 @@ namespace Zerra.Serialization
                                             if (!reader.Read(out c))
                                                 throw reader.CreateException("Json ended prematurely");
 
-                                            bool negativeExponent = false;
+                                            var negativeExponent = false;
                                             double exponent;
 
                                             switch (c)
@@ -1815,38 +1880,46 @@ namespace Zerra.Serialization
                                                     case '\r':
                                                     case '\n':
                                                     case '\t':
-                                                        if (negativeExponent) exponent *= -1;
+                                                        if (negativeExponent)
+                                                            exponent *= -1;
                                                         number *= Math.Pow(10, exponent);
-                                                        if (negative) number *= -1;
+                                                        if (negative)
+                                                            number *= -1;
                                                         return number;
                                                     case ',':
                                                     case '}':
                                                     case ']':
                                                         reader.BackOne();
-                                                        if (negativeExponent) exponent *= -1;
+                                                        if (negativeExponent)
+                                                            exponent *= -1;
                                                         number *= Math.Pow(10, exponent);
-                                                        if (negative) number *= -1;
+                                                        if (negative)
+                                                            number *= -1;
                                                         return number;
                                                     default:
                                                         throw reader.CreateException("Unexpected character");
                                                 }
                                             }
-                                            if (negativeExponent) exponent *= -1;
+                                            if (negativeExponent)
+                                                exponent *= -1;
                                             number *= Math.Pow(10, exponent);
-                                            if (negative) number *= -1;
+                                            if (negative)
+                                                number *= -1;
                                             return number;
                                         }
                                     case ' ':
                                     case '\r':
                                     case '\n':
                                     case '\t':
-                                        if (negative) number *= -1;
+                                        if (negative)
+                                            number *= -1;
                                         return number;
                                     case ',':
                                     case '}':
                                     case ']':
                                         reader.BackOne();
-                                        if (negative) number *= -1;
+                                        if (negative)
+                                            number *= -1;
                                         return number;
                                     default:
                                         throw reader.CreateException("Unexpected character");
@@ -1861,7 +1934,7 @@ namespace Zerra.Serialization
                             if (!reader.Read(out c))
                                 throw reader.CreateException("Json ended prematurely");
 
-                            bool negativeExponent = false;
+                            var negativeExponent = false;
                             double exponent;
 
                             switch (c)
@@ -1898,51 +1971,60 @@ namespace Zerra.Serialization
                                     case '\r':
                                     case '\n':
                                     case '\t':
-                                        if (negativeExponent) exponent *= -1;
+                                        if (negativeExponent)
+                                            exponent *= -1;
                                         number *= Math.Pow(10, exponent);
-                                        if (negative) number *= -1;
+                                        if (negative)
+                                            number *= -1;
                                         return number;
                                     case ',':
                                     case '}':
                                     case ']':
                                         reader.BackOne();
-                                        if (negativeExponent) exponent *= -1;
+                                        if (negativeExponent)
+                                            exponent *= -1;
                                         number *= Math.Pow(10, exponent);
-                                        if (negative) number *= -1;
+                                        if (negative)
+                                            number *= -1;
                                         return number;
                                     default:
                                         throw reader.CreateException("Unexpected character");
                                 }
                             }
-                            if (negativeExponent) exponent *= -1;
+                            if (negativeExponent)
+                                exponent *= -1;
                             number *= Math.Pow(10, exponent);
-                            if (negative) number *= -1;
+                            if (negative)
+                                number *= -1;
                             return number;
                         }
                     case ' ':
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (negative) number *= -1;
+                        if (negative)
+                            number *= -1;
                         return number;
                     case ',':
                     case '}':
                     case ']':
                         reader.BackOne();
-                        if (negative) number *= -1;
+                        if (negative)
+                            number *= -1;
                         return number;
                     default:
                         throw reader.CreateException("Unexpected character");
                 }
             }
 
-            if (negative) number *= -1;
+            if (negative)
+                number *= -1;
             return number;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static decimal ReadLiteralNumberAsDecimal(char c, ref CharReader reader)
         {
-            bool negative = false;
+            var negative = false;
             decimal number;
 
             switch (c)
@@ -1998,7 +2080,7 @@ namespace Zerra.Serialization
                                             if (!reader.Read(out c))
                                                 throw reader.CreateException("Json ended prematurely");
 
-                                            bool negativeExponent = false;
+                                            var negativeExponent = false;
                                             decimal exponent;
 
                                             switch (c)
@@ -2035,38 +2117,46 @@ namespace Zerra.Serialization
                                                     case '\r':
                                                     case '\n':
                                                     case '\t':
-                                                        if (negativeExponent) exponent *= -1;
+                                                        if (negativeExponent)
+                                                            exponent *= -1;
                                                         number *= (decimal)Math.Pow(10, (double)exponent);
-                                                        if (negative) number *= -1;
+                                                        if (negative)
+                                                            number *= -1;
                                                         return number;
                                                     case ',':
                                                     case '}':
                                                     case ']':
                                                         reader.BackOne();
-                                                        if (negativeExponent) exponent *= -1;
+                                                        if (negativeExponent)
+                                                            exponent *= -1;
                                                         number *= (decimal)Math.Pow(10, (double)exponent);
-                                                        if (negative) number *= -1;
+                                                        if (negative)
+                                                            number *= -1;
                                                         return number;
                                                     default:
                                                         throw reader.CreateException("Unexpected character");
                                                 }
                                             }
-                                            if (negativeExponent) exponent *= -1;
+                                            if (negativeExponent)
+                                                exponent *= -1;
                                             number *= (decimal)Math.Pow(10, (double)exponent);
-                                            if (negative) number *= -1;
+                                            if (negative)
+                                                number *= -1;
                                             return number;
                                         }
                                     case ' ':
                                     case '\r':
                                     case '\n':
                                     case '\t':
-                                        if (negative) number *= -1;
+                                        if (negative)
+                                            number *= -1;
                                         return number;
                                     case ',':
                                     case '}':
                                     case ']':
                                         reader.BackOne();
-                                        if (negative) number *= -1;
+                                        if (negative)
+                                            number *= -1;
                                         return number;
                                     default:
                                         throw reader.CreateException("Unexpected character");
@@ -2081,7 +2171,7 @@ namespace Zerra.Serialization
                             if (!reader.Read(out c))
                                 throw reader.CreateException("Json ended prematurely");
 
-                            bool negativeExponent = false;
+                            var negativeExponent = false;
                             decimal exponent;
 
                             switch (c)
@@ -2118,45 +2208,54 @@ namespace Zerra.Serialization
                                     case '\r':
                                     case '\n':
                                     case '\t':
-                                        if (negativeExponent) exponent *= -1;
+                                        if (negativeExponent)
+                                            exponent *= -1;
                                         number *= (decimal)Math.Pow(10, (double)exponent);
-                                        if (negative) number *= -1;
+                                        if (negative)
+                                            number *= -1;
                                         return number;
                                     case ',':
                                     case '}':
                                     case ']':
                                         reader.BackOne();
-                                        if (negativeExponent) exponent *= -1;
+                                        if (negativeExponent)
+                                            exponent *= -1;
                                         number *= (decimal)Math.Pow(10, (double)exponent);
-                                        if (negative) number *= -1;
+                                        if (negative)
+                                            number *= -1;
                                         return number;
                                     default:
                                         throw reader.CreateException("Unexpected character");
                                 }
                             }
-                            if (negativeExponent) exponent *= -1;
+                            if (negativeExponent)
+                                exponent *= -1;
                             number *= (decimal)Math.Pow(10, (double)exponent);
-                            if (negative) number *= -1;
+                            if (negative)
+                                number *= -1;
                             return number;
                         }
                     case ' ':
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (negative) number *= -1;
+                        if (negative)
+                            number *= -1;
                         return number;
                     case ',':
                     case '}':
                     case ']':
                         reader.BackOne();
-                        if (negative) number *= -1;
+                        if (negative)
+                            number *= -1;
                         return number;
                     default:
                         throw reader.CreateException("Unexpected character");
                 }
             }
 
-            if (negative) number *= -1;
+            if (negative)
+                number *= -1;
             return number;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

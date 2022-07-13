@@ -66,8 +66,10 @@ namespace Zerra.Serialization
 
         public void Serialize(Stream stream, object obj)
         {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (obj == null) throw new ArgumentNullException(nameof(obj));
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (obj == null)
+                throw new ArgumentNullException(nameof(obj));
             Serialize(stream, obj, obj.GetType());
         }
         public void Serialize<T>(Stream stream, T obj)
@@ -76,8 +78,10 @@ namespace Zerra.Serialization
         }
         public void Serialize(Stream stream, object obj, Type type)
         {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (type == null) throw new ArgumentNullException(nameof(type));
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
 
             var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
@@ -124,7 +128,8 @@ namespace Zerra.Serialization
 
         public async Task SerializeAsync(Stream stream, object obj)
         {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
             if (obj == null)
                 return;
 
@@ -168,7 +173,8 @@ namespace Zerra.Serialization
         }
         public async Task SerializeAsync<T>(Stream stream, T obj)
         {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
             if (obj == null)
                 return;
 
@@ -212,8 +218,10 @@ namespace Zerra.Serialization
         }
         public async Task SerializeAsync(Stream stream, object obj, Type type)
         {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (type == null) throw new ArgumentNullException(nameof(type));
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
             if (obj == null)
                 return;
 
@@ -359,7 +367,7 @@ namespace Zerra.Serialization
             if (includePropertyTypes)
             {
                 var typeFromValue = state.CurrentFrame.Object.GetType();
-                string typeName = typeFromValue.FullName;
+                var typeName = typeFromValue.FullName;
 
                 int sizeNeeded;
                 if (!writer.TryWrite(typeName, false, out sizeNeeded))
@@ -776,7 +784,7 @@ namespace Zerra.Serialization
                 case SpecialType.Type:
                     {
                         var valueType = state.CurrentFrame.Object == null ? null : (Type)state.CurrentFrame.Object;
-                        if (!writer.TryWrite(valueType?.FullName, state.CurrentFrame.NullFlags, out int sizeNeeded))
+                        if (!writer.TryWrite(valueType?.FullName, state.CurrentFrame.NullFlags, out var sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -794,7 +802,7 @@ namespace Zerra.Serialization
                                 {
                                     if (!state.CurrentFrame.HasWrittenIsNull)
                                     {
-                                        if (!writer.TryWriteNotNull(out int sizeNeeded))
+                                        if (!writer.TryWriteNotNull(out var sizeNeeded))
                                         {
                                             state.BytesNeeded = sizeNeeded;
                                             return;
@@ -818,7 +826,7 @@ namespace Zerra.Serialization
                             }
                             else if (state.CurrentFrame.NullFlags)
                             {
-                                if (!writer.TryWriteNull(out int sizeNeeded))
+                                if (!writer.TryWriteNull(out var sizeNeeded))
                                 {
                                     state.BytesNeeded = sizeNeeded;
                                     return;
@@ -871,7 +879,7 @@ namespace Zerra.Serialization
                 var indexProperty = state.CurrentFrame.PropertyEnumerator.Current;
                 state.CurrentFrame.EnumeratorObjectInProgress = true;
 
-                object propertyValue = indexProperty.Value.Getter(value);
+                var propertyValue = indexProperty.Value.Getter(value);
                 if (propertyValue == null)
                 {
                     state.CurrentFrame.EnumeratorObjectInProgress = false;

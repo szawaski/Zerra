@@ -59,9 +59,9 @@ namespace Zerra.Repository
         }
         private static GetWhereExpressionMethodInfo GenerateRelatedPropertyGetWhereExpressionMethod(Type type)
         {
-            Type propertyType = type;
+            var propertyType = type;
             var propertyTypeDetails = TypeAnalyzer.GetTypeDetail(propertyType);
-            bool enumerable = false;
+            var enumerable = false;
             if (propertyTypeDetails.Interfaces.Select(x => x.Name).Contains(TypeAnalyzer.GetGenericType(enumerableType, propertyType).Name))
             {
                 propertyType = propertyTypeDetails.InnerTypes[0];
@@ -71,9 +71,9 @@ namespace Zerra.Repository
             if (!propertyType.IsClass)
                 return null;
 
-            Type relatedProviderType = TypeAnalyzer.GetGenericType(dataQueryProviderType, propertyType);
+            var relatedProviderType = TypeAnalyzer.GetGenericType(dataQueryProviderType, propertyType);
 
-            if (Resolver.TryGet(relatedProviderType, out object relatedProvider))
+            if (Resolver.TryGet(relatedProviderType, out var relatedProvider))
             {
                 return new GetWhereExpressionMethodInfo
                 {
@@ -94,12 +94,12 @@ namespace Zerra.Repository
             {
                 if (graph.HasChildGraph(property.Name))
                 {
-                    GetWhereExpressionMethodInfo appendWhereExpressionMethodInfo = GetRelatedPropertyGetWhereExpressionMethod(property.Type);
+                    var appendWhereExpressionMethodInfo = GetRelatedPropertyGetWhereExpressionMethod(property.Type);
 
                     if (appendWhereExpressionMethodInfo != null)
                     {
-                        object relatedProvider = Resolver.Get(appendWhereExpressionMethodInfo.RelatedProviderType);
-                        Graph relatedGraph = graph.GetChildGraphNotNull(property.Name, appendWhereExpressionMethodInfo.PropertyType);
+                        var relatedProvider = Resolver.Get(appendWhereExpressionMethodInfo.RelatedProviderType);
+                        var relatedGraph = graph.GetChildGraphNotNull(property.Name, appendWhereExpressionMethodInfo.PropertyType);
 
                         Expression returnWhereExpression = null;
                         if (relatedProvider is IProviderRelation relatedProviderGeneric)
@@ -156,7 +156,7 @@ namespace Zerra.Repository
 
             var relatedProviderType = TypeAnalyzer.GetGenericType(dataQueryProviderType, propertyType);
 
-            if (Resolver.TryGet(relatedProviderType, out object relatedProvider))
+            if (Resolver.TryGet(relatedProviderType, out var relatedProvider))
             {
                 return new OnQueryMethodInfo
                 {
@@ -220,7 +220,7 @@ namespace Zerra.Repository
         {
             var propertyType = type;
             var propertyTypeDetails = TypeAnalyzer.GetTypeDetail(propertyType);
-            bool enumerable = false;
+            var enumerable = false;
             if (propertyTypeDetails.Interfaces.Select(x => x.Name).Contains(TypeAnalyzer.GetGenericType(enumerableType, propertyType).Name))
             {
                 propertyType = propertyTypeDetails.InnerTypes[0];
@@ -232,7 +232,7 @@ namespace Zerra.Repository
 
             var relatedProviderType = TypeAnalyzer.GetGenericType(dataQueryProviderType, propertyType);
 
-            if (Resolver.TryGet(relatedProviderType, out object relatedProvider))
+            if (Resolver.TryGet(relatedProviderType, out var relatedProvider))
             {
                 return new OnGetMethodInfo
                 {
@@ -279,7 +279,7 @@ namespace Zerra.Repository
         private static readonly MethodInfo containsMethod = typeof(Enumerable).GetMethods().First(m => m.Name == nameof(Enumerable.Contains) && m.GetParameters().Length == 2);
         public ICollection<TModel> OnGetWithRelations(ICollection<TModel> models, Graph<TModel> graph)
         {
-            ICollection<TModel> returnModels = models;
+            var returnModels = models;
             if (EventLinking)
             {
                 returnModels = OnGet(models, graph);
@@ -303,7 +303,7 @@ namespace Zerra.Repository
 
                             var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
-                            if (!ModelDetail.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail foreignIdentityPropertyInfo))
+                            if (!ModelDetail.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var foreignIdentityPropertyInfo))
                                 throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, ModelDetail.Name, ModelDetail.Name));
 
                             if (relatedModelInfo.IdentityProperties.Count == 0)
@@ -336,7 +336,7 @@ namespace Zerra.Repository
                             var relatedModels = (ICollection)repoQueryMany.Caller(repoQueryMany, new object[] { query });
 
                             var relatedModelIdentities = new Dictionary<object, object>();
-                            foreach (object relatedModel in relatedModels)
+                            foreach (var relatedModel in relatedModels)
                             {
                                 var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
                                 if (relatedIdentity != null)
@@ -364,7 +364,7 @@ namespace Zerra.Repository
 
                             var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
-                            if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
+                            if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var relatedForeignIdentityPropertyInfo))
                                 throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
 
                             relatedGraph.AddProperties(modelPropertyInfo.ForeignIdentity);
@@ -374,7 +374,7 @@ namespace Zerra.Repository
                             var foreignIdentities = (IList)foreignIdentityListTypeDetail.Creator();
                             foreach (var model in returnModels)
                             {
-                                object identity = ModelAnalyzer.GetIdentity(model);
+                                var identity = ModelAnalyzer.GetIdentity(model);
                                 foreignIdentities.Add(identity);
                             }
 
@@ -394,9 +394,9 @@ namespace Zerra.Repository
                             var relatedModels = (ICollection)repoQueryMany.Caller(repoQueryMany, new object[] { query });
 
                             var relatedModelIdentities = new Dictionary<object, object>();
-                            foreach (object relatedModel in relatedModels)
+                            foreach (var relatedModel in relatedModels)
                             {
-                                object relatedIdentity = ModelAnalyzer.GetForeignIdentity(relatedType, modelPropertyInfo.ForeignIdentity, relatedModel);
+                                var relatedIdentity = ModelAnalyzer.GetForeignIdentity(relatedType, modelPropertyInfo.ForeignIdentity, relatedModel);
                                 if (relatedIdentity != null)
                                     relatedModelIdentities.Add(relatedModel, relatedIdentity);
                             }
@@ -428,7 +428,7 @@ namespace Zerra.Repository
         }
         public async Task<ICollection<TModel>> OnGetWithRelationsAsync(ICollection<TModel> models, Graph<TModel> graph)
         {
-            ICollection<TModel> returnModels = models;
+            var returnModels = models;
             if (EventLinking)
             {
                 returnModels = await OnGetAsync(models, graph);
@@ -452,7 +452,7 @@ namespace Zerra.Repository
 
                             var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
-                            if (!ModelDetail.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail foreignIdentityPropertyInfo))
+                            if (!ModelDetail.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var foreignIdentityPropertyInfo))
                                 throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, ModelDetail.Name, ModelDetail.Name));
 
                             if (relatedModelInfo.IdentityProperties.Count == 0)
@@ -485,7 +485,7 @@ namespace Zerra.Repository
                             var relatedModels = (ICollection)(await repoQueryMany.CallerAsync(repoQueryMany, new object[] { query }));
 
                             var relatedModelIdentities = new Dictionary<object, object>();
-                            foreach (object relatedModel in relatedModels)
+                            foreach (var relatedModel in relatedModels)
                             {
                                 var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
                                 if (relatedIdentity != null)
@@ -513,7 +513,7 @@ namespace Zerra.Repository
 
                             var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
-                            if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
+                            if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var relatedForeignIdentityPropertyInfo))
                                 throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
 
                             relatedGraph.AddProperties(modelPropertyInfo.ForeignIdentity);
@@ -523,7 +523,7 @@ namespace Zerra.Repository
                             var foreignIdentities = (IList)foreignIdentityListTypeDetail.Creator();
                             foreach (var model in returnModels)
                             {
-                                object identity = ModelAnalyzer.GetIdentity(model);
+                                var identity = ModelAnalyzer.GetIdentity(model);
                                 foreignIdentities.Add(identity);
                             }
 
@@ -543,9 +543,9 @@ namespace Zerra.Repository
                             var relatedModels = (ICollection)(await repoQueryMany.CallerAsync(repoQueryMany, new object[] { query }));
 
                             var relatedModelIdentities = new Dictionary<object, object>();
-                            foreach (object relatedModel in relatedModels)
+                            foreach (var relatedModel in relatedModels)
                             {
-                                object relatedIdentity = ModelAnalyzer.GetForeignIdentity(relatedType, modelPropertyInfo.ForeignIdentity, relatedModel);
+                                var relatedIdentity = ModelAnalyzer.GetForeignIdentity(relatedType, modelPropertyInfo.ForeignIdentity, relatedModel);
                                 if (relatedIdentity != null)
                                     relatedModelIdentities.Add(relatedModel, relatedIdentity);
                             }
@@ -615,7 +615,7 @@ namespace Zerra.Repository
                                     if (related != null)
                                     {
                                         relatedModels.Add(related);
-                                        if (!relatedModelsDictionary.TryGetValue(model, out List<TModel> relatedModelList))
+                                        if (!relatedModelsDictionary.TryGetValue(model, out var relatedModelList))
                                         {
                                             relatedModelList = new List<TModel>();
                                             relatedModelsDictionary.Add(related, relatedModelList);
@@ -687,7 +687,7 @@ namespace Zerra.Repository
                                     if (related != null)
                                     {
                                         relatedModels.Add(related);
-                                        if (!relatedModelsDictionary.TryGetValue(model, out List<TModel> relatedModelList))
+                                        if (!relatedModelsDictionary.TryGetValue(model, out var relatedModelList))
                                         {
                                             relatedModelList = new List<TModel>();
                                             relatedModelsDictionary.Add(related, relatedModelList);
@@ -809,7 +809,7 @@ namespace Zerra.Repository
 
             var model = QueryFirst(appenedQuery);
 
-            TModel returnModel = model;
+            var returnModel = model;
             if (model != null)
             {
                 returnModel = (OnGetWithRelations(new TModel[] { model }, graph)).FirstOrDefault();
@@ -828,7 +828,7 @@ namespace Zerra.Repository
 
             var model = QuerySingle(appenedQuery);
 
-            TModel returnModel = model;
+            var returnModel = model;
             if (model != null)
             {
                 returnModel = (OnGetWithRelations(new TModel[] { model }, graph)).FirstOrDefault();
@@ -898,7 +898,7 @@ namespace Zerra.Repository
 
             var model = await QueryFirstAsync(appenedQuery);
 
-            TModel returnModel = model;
+            var returnModel = model;
             if (model != null)
             {
                 returnModel = (await OnGetWithRelationsAsync(new TModel[] { model }, graph)).FirstOrDefault();
@@ -917,7 +917,7 @@ namespace Zerra.Repository
 
             var model = await QuerySingleAsync(appenedQuery);
 
-            TModel returnModel = model;
+            var returnModel = model;
             if (model != null)
             {
                 returnModel = (await OnGetWithRelationsAsync(new TModel[] { model }, graph)).FirstOrDefault();
@@ -1092,7 +1092,7 @@ namespace Zerra.Repository
                 var idList = new List<object>();
                 foreach (var model in persist.Models)
                 {
-                    object id = ModelAnalyzer.GetIdentity<TModel>(model);
+                    var id = ModelAnalyzer.GetIdentity<TModel>(model);
                     idList.Add(id);
                 }
                 ids = idList.ToArray();
@@ -1170,7 +1170,7 @@ namespace Zerra.Repository
                 var idList = new List<object>();
                 foreach (var model in persist.Models)
                 {
-                    object id = ModelAnalyzer.GetIdentity<TModel>(model);
+                    var id = ModelAnalyzer.GetIdentity<TModel>(model);
                     idList.Add(id);
                 }
                 ids = idList.ToArray();
@@ -1264,7 +1264,7 @@ namespace Zerra.Repository
 
                     var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
-                    if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
+                    if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var relatedForeignIdentityPropertyInfo))
                         throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
 
                     var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
@@ -1313,7 +1313,7 @@ namespace Zerra.Repository
                     }
 
                     var relatedModelsExistingIdentities = new Dictionary<object, object>();
-                    foreach (object relatedExisting in relatedModelsExisting)
+                    foreach (var relatedExisting in relatedModelsExisting)
                     {
                         var relatedExistingIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedExisting);
                         relatedModelsExistingIdentities.Add(relatedExisting, relatedExistingIdentity);
@@ -1323,7 +1323,7 @@ namespace Zerra.Repository
 
                     foreach (var relatedModel in relatedModelIdentities)
                     {
-                        bool foundExisting = false;
+                        var foundExisting = false;
                         foreach (var relatedExisting in relatedModelsExistingIdentities)
                         {
                             var relatedExistingIdentity = relatedExisting.Value;
@@ -1343,7 +1343,7 @@ namespace Zerra.Repository
 
                     foreach (var relatedExisting in relatedModelsExistingIdentities)
                     {
-                        bool foundUpdating = false;
+                        var foundUpdating = false;
                         foreach (var relatedModelUpdate in relatedModelsUpdateIdentities)
                         {
                             var relatedIdentity = relatedModelUpdate.Value;
@@ -1407,7 +1407,7 @@ namespace Zerra.Repository
 
                     var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
-                    if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
+                    if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var relatedForeignIdentityPropertyInfo))
                         throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
 
                     var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
@@ -1523,7 +1523,7 @@ namespace Zerra.Repository
 
                     var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
-                    if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
+                    if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var relatedForeignIdentityPropertyInfo))
                         throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
 
                     var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
@@ -1572,7 +1572,7 @@ namespace Zerra.Repository
                     }
 
                     var relatedModelsExistingIdentities = new Dictionary<object, object>();
-                    foreach (object relatedExisting in relatedModelsExisting)
+                    foreach (var relatedExisting in relatedModelsExisting)
                     {
                         var relatedExistingIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedExisting);
                         relatedModelsExistingIdentities.Add(relatedExisting, relatedExistingIdentity);
@@ -1582,7 +1582,7 @@ namespace Zerra.Repository
 
                     foreach (var relatedModel in relatedModelIdentities)
                     {
-                        bool foundExisting = false;
+                        var foundExisting = false;
                         foreach (var relatedExisting in relatedModelsExistingIdentities)
                         {
                             var relatedExistingIdentity = relatedExisting.Value;
@@ -1602,7 +1602,7 @@ namespace Zerra.Repository
 
                     foreach (var relatedExisting in relatedModelsExistingIdentities)
                     {
-                        bool foundUpdating = false;
+                        var foundUpdating = false;
                         foreach (var relatedModelUpdate in relatedModelsUpdateIdentities)
                         {
                             var relatedIdentity = relatedModelUpdate.Value;
@@ -1666,7 +1666,7 @@ namespace Zerra.Repository
 
                     var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
-                    if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out ModelPropertyDetail relatedForeignIdentityPropertyInfo))
+                    if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var relatedForeignIdentityPropertyInfo))
                         throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
 
                     var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);

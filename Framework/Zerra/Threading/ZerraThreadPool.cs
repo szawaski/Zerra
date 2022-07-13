@@ -121,7 +121,7 @@ namespace Zerra.Threading
                 }
                 while (workerThreads.Count > maxThreadCount)
                 {
-                    WorkerThread availableThread = workerThreads.FirstOrDefault(x => x.IsAvailable);
+                    var availableThread = workerThreads.FirstOrDefault(x => x.IsAvailable);
                     if (availableThread == null)
                         break;
                     _ = workerThreads.Remove(availableThread);
@@ -133,7 +133,7 @@ namespace Zerra.Threading
                     {
                         if (disposed)
                             return;
-                        WorkerThread availableThread = workerThreads.FirstOrDefault(x => x.IsAvailable);
+                        var availableThread = workerThreads.FirstOrDefault(x => x.IsAvailable);
                         if (availableThread == null)
                             break;
                         var workItem = workItems.Dequeue();
@@ -166,7 +166,7 @@ namespace Zerra.Threading
             _ = checkQueuedWorkItems.Set(); //let background thread proceed and exit
             (checkQueuedWorkItems as IDisposable).Dispose();
 
-            foreach (WorkerThread workerThread in workerThreads)
+            foreach (var workerThread in workerThreads)
             {
                 workerThread.Dispose();
             }
@@ -216,14 +216,16 @@ namespace Zerra.Threading
             {
                 while (true)
                 {
-                    if (disposed) return;
+                    if (disposed)
+                        return;
                     _ = startNewWorkItem.WaitOne();
-                    if (disposed) return;
+                    if (disposed)
+                        return;
 
                     try
                     {
                         Thread.CurrentPrincipal = principal;
-                        object result = task.DynamicInvoke(null);
+                        var result = task.DynamicInvoke(null);
                         if (asyncResult != null)
                         {
                             asyncResult.SetCompleted(result);
@@ -239,7 +241,8 @@ namespace Zerra.Threading
                     isAvailable = true;
                     asyncResult = null;
                     task = null;
-                    if (disposed) return;
+                    if (disposed)
+                        return;
                     _ = workItemComplete.Set();
                 }
             }
@@ -295,7 +298,13 @@ namespace Zerra.Threading
             public object AsyncState { get; set; }
             WaitHandle IAsyncResult.AsyncWaitHandle { get { return waitHandle; } }
             bool IAsyncResult.CompletedSynchronously { get { return false; } }
-            bool IAsyncResult.IsCompleted { get { lock (syncObject) { return isCompleted; } } }
+            bool IAsyncResult.IsCompleted { get
+                {
+                    lock (syncObject)
+                    {
+                        return isCompleted; }
+                }
+            }
 
             public bool ExceptionOccured
             {

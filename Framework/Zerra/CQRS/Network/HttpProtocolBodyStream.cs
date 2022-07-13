@@ -124,7 +124,7 @@ namespace Zerra.CQRS.Network
                 while (totalBytesRead < buffer.Length)
                 {
                     int bytesRead;
-                    int segmentLengthStringStart = 0;
+                    var segmentLengthStringStart = 0;
                     if (segmentLength < 0)
                     {
                         segmentLengthBufferLength = 0;
@@ -268,7 +268,7 @@ namespace Zerra.CQRS.Network
                 while (totalBytesRead < buffer.Length)
                 {
                     int bytesRead;
-                    int segmentLengthStringStart = 0;
+                    var segmentLengthStringStart = 0;
                     if (segmentLength < 0)
                     {
                         segmentLengthBufferLength = 0;

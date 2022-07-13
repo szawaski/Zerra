@@ -36,7 +36,8 @@ namespace ZerraDemo.Domain.Ledger2.Aggregates
 
         public async Task Deposit(decimal amount, string description)
         {
-            if (amount < 0) throw new ArgumentException("Invalid Amount");
+            if (amount < 0)
+                throw new ArgumentException("Invalid Amount");
 
             await Rebuild();
 
@@ -51,7 +52,8 @@ namespace ZerraDemo.Domain.Ledger2.Aggregates
 
         public async Task Withdraw(decimal amount, string description)
         {
-            if (amount < 0) throw new ArgumentException("Invalid Amount");
+            if (amount < 0)
+                throw new ArgumentException("Invalid Amount");
 
             await Rebuild();
 
@@ -69,7 +71,8 @@ namespace ZerraDemo.Domain.Ledger2.Aggregates
 
         public async Task TransferFrom(Guid toAccountID, decimal amount, string description)
         {
-            if (amount < 0) throw new ArgumentException("Invalid Amount");
+            if (amount < 0)
+                throw new ArgumentException("Invalid Amount");
 
             await Rebuild();
 
@@ -88,7 +91,8 @@ namespace ZerraDemo.Domain.Ledger2.Aggregates
 
         public async Task TransferTo(Guid fromAccountID, decimal amount, string description)
         {
-            if (amount < 0) throw new ArgumentException("Invalid Amount");
+            if (amount < 0)
+                throw new ArgumentException("Invalid Amount");
 
             var @eventTo = new Transfer2Event()
             {

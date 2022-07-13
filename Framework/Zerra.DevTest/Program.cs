@@ -15,7 +15,7 @@ namespace Zerra.DevTest
     {
         static void Main(string[] args)
         {
-            int loops = 10000;
+            var loops = 10000;
             //var tasks = new List<Task>();
             //for (var i = 0; i < loops; i++)
             //    tasks.Add(Task.Run(PointerTest));
@@ -107,7 +107,7 @@ namespace Zerra.DevTest
 
             fixed (int* pstuffFixed = stuff)
             {
-                int* pstuff = pstuffFixed;
+                var pstuff = pstuffFixed;
                 for (var i = 0; i < stuff.Length; i++)
                 {
                     *pstuff = *pstuff + 1;

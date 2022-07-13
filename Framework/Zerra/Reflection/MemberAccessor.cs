@@ -274,7 +274,7 @@ namespace Zerra.Reflection
         {
             get
             {
-                if (!indexMap.TryGetValue(name, out int index))
+                if (!indexMap.TryGetValue(name, out var index))
                     throw new ArgumentOutOfRangeException("name", name, $"{Type.Name}.{name} getter not found");
                 return index;
             }
@@ -284,13 +284,13 @@ namespace Zerra.Reflection
         {
             get
             {
-                if (!indexMap.TryGetValue(name, out int index))
+                if (!indexMap.TryGetValue(name, out var index))
                     throw new ArgumentOutOfRangeException("name", name, $"{Type.Name}.{name} member not found");
                 return getter(target, index);
             }
             set
             {
-                if (!indexMap.TryGetValue(name, out int index))
+                if (!indexMap.TryGetValue(name, out var index))
                     throw new ArgumentOutOfRangeException("name", name, $"{Type.Name}.{name} member not found");
                 setter(target, index, value);
             }

@@ -59,7 +59,7 @@ namespace Zerra.T4.CSharp
         private static void ParseText(CSharpSolution solution, CSharpFileContext context, string text)
         {
             var chars = text.ToCharArray();
-            int index = 0;
+            var index = 0;
             ParseNamespaceBody(solution, context, chars, ref index);
         }
 
@@ -320,7 +320,7 @@ namespace Zerra.T4.CSharp
         private static CSharpEnum ParseEnum(CSharpSolution solution, CSharpFileContext context, char[] chars, ref int index, IList<string> modifiers)
         {
             var ns = context.Namespaces.Count > 0 ? context.Namespaces.Peek() : null;
-            Type type = typeof(int);
+            var type = typeof(int);
             var isPublic = modifiers.Contains("public");
             var attributes = AttributesFromKeywords(context, modifiers);
 
@@ -386,7 +386,7 @@ namespace Zerra.T4.CSharp
                 {
                     index++;
                     var valueKeyword = ReadKeywordOrToken(context, chars, ref index);
-                    if (!Int64.TryParse(valueKeyword, out long parsedValue))
+                    if (!Int64.TryParse(valueKeyword, out var parsedValue))
                         throw new Exception($"Invalid keyword {valueKeyword} at {index} in {context.FileName}");
                     value = parsedValue;
                     if (value.Value > largestValue)
@@ -729,7 +729,8 @@ namespace Zerra.T4.CSharp
             for (; index < chars.Length; index++)
             {
                 var c = chars[index];
-                if (c == '\n') context.Line++;
+                if (c == '\n')
+                    context.Line++;
                 switch (comment)
                 {
                     case 0:

@@ -58,7 +58,7 @@ namespace Zerra.Reflection
                 {
                     if (constructorDetail.ParametersInfo.Count == parameterTypes.Length)
                     {
-                        bool match = true;
+                        var match = true;
                         if (parameterTypes != null)
                         {
                             for (var i = 0; i < parameterTypes.Length; i++)

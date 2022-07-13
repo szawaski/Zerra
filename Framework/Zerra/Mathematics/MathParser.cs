@@ -310,7 +310,7 @@ namespace Zerra.Mathematics
             var args = new object[mathExpression.Parameters.Length];
             for (var i = 0; i < mathExpression.Parameters.Length; i++)
             {
-                if (!variables.TryGetValue(mathExpression.Parameters[i].Name, out double arg))
+                if (!variables.TryGetValue(mathExpression.Parameters[i].Name, out var arg))
                     throw new MathParserException($"Missing parameter {mathExpression.Parameters[i].Name}");
                 args[i] = arg;
             }
@@ -352,7 +352,8 @@ namespace Zerra.Mathematics
                 _ = sb.Append("f(");
                 for (var i = 0; i < parameters.Length; i++)
                 {
-                    if (i > 0) _ = sb.Append(',');
+                    if (i > 0)
+                        _ = sb.Append(',');
                     _ = sb.Append(parameters[i].Name);
                 }
                 _ = sb.Append(") = ");
@@ -389,7 +390,7 @@ namespace Zerra.Mathematics
         }
         private StatementPart ParseOperators(ref ParserContext context)
         {
-            int startIndex = context.Index;
+            var startIndex = context.Index;
             MethodOperator methodFound = null;
             UnaryOperator unaryFound = null;
             BinaryOperator binaryFound = null;
@@ -397,7 +398,7 @@ namespace Zerra.Mathematics
             {
                 context.Next();
 
-                int length = context.Index - startIndex;
+                var length = context.Index - startIndex;
                 if (length > operatorStringsMaxLength)
                     break;
                 var partTokens = context.Chars.Slice(startIndex, length);
@@ -504,13 +505,13 @@ namespace Zerra.Mathematics
         {
             if (numbersAndLetters.Contains(context.Current))
             {
-                int startIndex = context.Index;
+                var startIndex = context.Index;
                 while (context.Index < context.Chars.Length)
                 {
                     context.Next();
                     if (!numbersAndLetters.Contains(context.Current))
                     {
-                        int length = context.Index - startIndex;
+                        var length = context.Index - startIndex;
                         var token = context.Chars.Slice(startIndex, length).ToString();
                         var part = new StatementPart(startIndex, token);
                         return part;
@@ -537,7 +538,7 @@ namespace Zerra.Mathematics
             }
             else if (part.Number != null)
             {
-                if (!Double.TryParse(part.Number, out double value))
+                if (!Double.TryParse(part.Number, out var value))
                     throw new MathParserException($"Invalid expression \"{part.Number}\" at \"{part.Index}\"");
                 var expression = Expression.Constant(value, typeof(double));
                 return expression;

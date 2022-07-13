@@ -52,7 +52,7 @@ namespace Zerra.Linq
             if (exp == null)
                 return null;
 
-            if (context.ExpressionReplacements != null && context.ExpressionReplacements.TryGetValue(exp, out Expression newExpression))
+            if (context.ExpressionReplacements != null && context.ExpressionReplacements.TryGetValue(exp, out var newExpression))
             {
                 return newExpression;
             }
@@ -127,7 +127,7 @@ namespace Zerra.Linq
                         var replacementParameters = new List<ParameterExpression>();
                         for (var i = 0; i < cast.Variables.Count; i++)
                         {
-                            Expression replacementExpression = Rebind(cast.Variables[i], context);
+                            var replacementExpression = Rebind(cast.Variables[i], context);
                             var replacementParameter = ExtractParametersExpression(replacementExpression);
                             replacementParameters.AddRange(replacementParameter);
                         }
@@ -161,7 +161,7 @@ namespace Zerra.Linq
                     {
                         var cast = exp as MethodCallExpression;
 
-                        Expression obj = Rebind(cast.Object, context);
+                        var obj = Rebind(cast.Object, context);
 
                         var replacementExpressions = new Expression[cast.Arguments.Count];
                         for (var i = 0; i < cast.Arguments.Count; i++)
@@ -338,12 +338,12 @@ namespace Zerra.Linq
                         var replacementParameters = new List<ParameterExpression>();
                         for (var i = 0; i < cast.Parameters.Count; i++)
                         {
-                            Expression replacementExpression = Rebind(cast.Parameters[i], context);
+                            var replacementExpression = Rebind(cast.Parameters[i], context);
                             var replacementParameter = ExtractParametersExpression(replacementExpression);
                             replacementParameters.AddRange(replacementParameter);
                         }
 
-                        Expression body = Rebind(cast.Body, context);
+                        var body = Rebind(cast.Body, context);
 
                         return Expression.Lambda(body, replacementParameters);
                     }
@@ -592,7 +592,7 @@ namespace Zerra.Linq
                         var replacementParameters = new List<ParameterExpression>();
                         for (var i = 0; i < cast.Variables.Count; i++)
                         {
-                            Expression replacementExpression = Rebind(cast.Variables[i], context);
+                            var replacementExpression = Rebind(cast.Variables[i], context);
                             var replacementParameter = ExtractParametersExpression(replacementExpression);
                             replacementParameters.AddRange(replacementParameter);
                         }
@@ -771,7 +771,7 @@ namespace Zerra.Linq
                     {
                         var cast = exp as MethodCallExpression;
                         ExtractParametersExpressionInternal(cast.Object, parameters);
-                        foreach (Expression arg in cast.Arguments)
+                        foreach (var arg in cast.Arguments)
                             ExtractParametersExpressionInternal(arg, parameters);
                         return;
                     }

@@ -92,7 +92,7 @@ namespace Zerra.CQRS.RabbitMQ
                 string correlationId = null;
                 if (requireAcknowledgement)
                 {
-                    string replyQueueName = channel.QueueDeclare().QueueName;
+                    var replyQueueName = channel.QueueDeclare().QueueName;
                     consumer = new EventingBasicConsumer(channel);
                     consumerTag = channel.BasicConsume(replyQueueName, false, consumer);
 
@@ -126,7 +126,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                             channel.BasicCancel(consumerTag);
 
-                            byte[] acknowledgementBody = e.Body;
+                            var acknowledgementBody = e.Body;
                             if (encryptionKey != null)
                                 acknowledgementBody = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, acknowledgementBody);
                             
@@ -203,13 +203,13 @@ namespace Zerra.CQRS.RabbitMQ
                     Claims = claims
                 };
 
-                byte[] body = RabbitMQCommon.Serialize(rabbitMessage);
+                var body = RabbitMQCommon.Serialize(rabbitMessage);
                 if (encryptionKey != null)
                 {
                     body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
                 }
 
-                string exchange = @event.GetType().GetNiceName();
+                var exchange = @event.GetType().GetNiceName();
 
                 channel.ExchangeDeclare(exchange, "fanout");
 
@@ -217,7 +217,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                 if (encryptionKey != null)
                 {
-                    Dictionary<string, object> messageHeaders = new Dictionary<string, object>();
+                    var messageHeaders = new Dictionary<string, object>();
                     messageHeaders.Add("Encryption", true);
                     properties.Headers = messageHeaders;
                 }

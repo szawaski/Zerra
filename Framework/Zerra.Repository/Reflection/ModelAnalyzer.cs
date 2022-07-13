@@ -17,7 +17,7 @@ namespace Zerra.Repository.Reflection
         private static readonly ConcurrentFactoryDictionary<Type, ModelDetail> modelInfos = new ConcurrentFactoryDictionary<Type, ModelDetail>();
         public static ModelDetail GetModel<TModel>()
         {
-            Type type = typeof(TModel);
+            var type = typeof(TModel);
 
             return GetModel(type);
         }
@@ -50,15 +50,15 @@ namespace Zerra.Repository.Reflection
         }
         private static Func<T, object> GenerateGetterFunctionByNameOrAttribute<T>(string propertyNames, Type attributeType)
         {
-            Type type = typeof(T);
+            var type = typeof(T);
 
-            string[] propertyNamesArray = propertyNames == null ? null : propertyNames.Split(',');
+            var propertyNamesArray = propertyNames == null ? null : propertyNames.Split(',');
 
-            ParameterExpression sourceExpression = Expression.Parameter(type, "x");
+            var sourceExpression = Expression.Parameter(type, "x");
 
-            PropertyInfo[] typeProperties = type.GetProperties();
-            List<Expression> propertyExpressions = new List<Expression>();
-            foreach (PropertyInfo typeProperty in typeProperties)
+            var typeProperties = type.GetProperties();
+            var propertyExpressions = new List<Expression>();
+            foreach (var typeProperty in typeProperties)
             {
                 if (propertyNamesArray != null && propertyNamesArray.Contains(typeProperty.Name))
                 {
@@ -67,7 +67,7 @@ namespace Zerra.Repository.Reflection
                 }
                 else if (attributeType != null)
                 {
-                    Attribute attribute = typeProperty.GetCustomAttribute(attributeType, true);
+                    var attribute = typeProperty.GetCustomAttribute(attributeType, true);
                     if (attribute != null)
                     {
                         Expression propertyExpression = Expression.Property(sourceExpression, typeProperty);
@@ -91,7 +91,7 @@ namespace Zerra.Repository.Reflection
                 //throw new InvalidOperationException(String.Format("Attribute {0} on property not found in object {1}.", attributeType.FullName, type.FullName));
             }
 
-            Expression<Func<T, object>> lambda = Expression.Lambda<Func<T, object>>(accessor, sourceExpression);
+            var lambda = Expression.Lambda<Func<T, object>>(accessor, sourceExpression);
             return lambda.Compile();
         }
 
@@ -114,16 +114,16 @@ namespace Zerra.Repository.Reflection
         }
         private static Action<T, object> GenerateSetterFunctionByNameOrAttribute<T>(string propertyNames, Type attributeType)
         {
-            Type type = typeof(T);
+            var type = typeof(T);
 
-            string[] propertyNamesArray = propertyNames == null ? null : propertyNames.Split(',');
+            var propertyNamesArray = propertyNames == null ? null : propertyNames.Split(',');
 
-            ParameterExpression sourceExpression = Expression.Parameter(type, "x");
-            ParameterExpression parameterValue = Expression.Parameter(typeof(object), "y");
+            var sourceExpression = Expression.Parameter(type, "x");
+            var parameterValue = Expression.Parameter(typeof(object), "y");
 
-            PropertyInfo[] typeProperties = type.GetProperties();
-            List<Expression> propertyExpressions = new List<Expression>();
-            foreach (PropertyInfo typeProperty in typeProperties)
+            var typeProperties = type.GetProperties();
+            var propertyExpressions = new List<Expression>();
+            foreach (var typeProperty in typeProperties)
             {
                 if (propertyNamesArray != null && propertyNamesArray.Contains(typeProperty.Name))
                 {
@@ -132,7 +132,7 @@ namespace Zerra.Repository.Reflection
                 }
                 else if (attributeType != null)
                 {
-                    Attribute attribute = typeProperty.GetCustomAttribute(attributeType, true);
+                    var attribute = typeProperty.GetCustomAttribute(attributeType, true);
                     if (attribute != null)
                     {
                         Expression propertyExpression = Expression.Property(sourceExpression, typeProperty);
@@ -148,8 +148,8 @@ namespace Zerra.Repository.Reflection
             }
             else if (propertyExpressions.Count > 1)
             {
-                List<Expression> setters = new List<Expression>();
-                int index = 0;
+                var setters = new List<Expression>();
+                var index = 0;
                 foreach (var propertyExpression in propertyExpressions)
                 {
                     Expression parameterValueIndex = Expression.ArrayIndex(parameterValue, Expression.Constant(index));
@@ -164,7 +164,7 @@ namespace Zerra.Repository.Reflection
                 throw new InvalidOperationException($"Attribute {attributeType.FullName} on property not found in object {type.FullName}.");
             }
 
-            Expression<Action<T, object>> lambda = Expression.Lambda<Action<T, object>>(setter, sourceExpression, parameterValue);
+            var lambda = Expression.Lambda<Action<T, object>>(setter, sourceExpression, parameterValue);
             return lambda.Compile();
         }
 
@@ -179,11 +179,11 @@ namespace Zerra.Repository.Reflection
         }
         private static string[] GenerateIdentityPropertyNames(Type type)
         {
-            List<PropertyInfo> properties = new List<PropertyInfo>();
-            PropertyInfo[] typeProperties = type.GetProperties();
-            foreach (PropertyInfo typeProperty in typeProperties)
+            var properties = new List<PropertyInfo>();
+            var typeProperties = type.GetProperties();
+            foreach (var typeProperty in typeProperties)
             {
-                Attribute attribute = typeProperty.GetCustomAttribute(typeof(IdentityAttribute), true);
+                var attribute = typeProperty.GetCustomAttribute(typeof(IdentityAttribute), true);
                 if (attribute != null)
                 {
                     properties.Add(typeProperty);
@@ -195,8 +195,8 @@ namespace Zerra.Repository.Reflection
         private static readonly MethodInfo getIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.GetIdentity) && x.IsGenericMethod);
         public static object GetIdentity<TModel>(TModel model) where TModel : class, new()
         {
-            Func<TModel, object> modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(null, typeof(IdentityAttribute));
-            object id = modelIdentityAccessor.Invoke(model);
+            var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(null, typeof(IdentityAttribute));
+            var id = modelIdentityAccessor.Invoke(model);
             return id;
         }
         public static object GetIdentity(Type type, object model)
@@ -208,7 +208,7 @@ namespace Zerra.Repository.Reflection
         private static readonly MethodInfo setIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.SetIdentity) && x.IsGenericMethod);
         public static void SetIdentity<TModel>(TModel model, object identity) where TModel : class, new()
         {
-            Action<TModel, object> setter = GetSetterFunctionByNameOrAttribute<TModel>(null, typeof(IdentityAttribute));
+            var setter = GetSetterFunctionByNameOrAttribute<TModel>(null, typeof(IdentityAttribute));
             setter.Invoke(model, identity);
         }
         public static void SetIdentity(Type type, object model, object identity)
@@ -220,8 +220,8 @@ namespace Zerra.Repository.Reflection
         private static readonly MethodInfo getForeignIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.GetForeignIdentity) && x.IsGenericMethod);
         public static object GetForeignIdentity<TModel>(string foreignIdentityNames, TModel model) where TModel : class, new()
         {
-            Func<TModel, object> modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(foreignIdentityNames, null);
-            object id = modelIdentityAccessor.Invoke(model);
+            var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(foreignIdentityNames, null);
+            var id = modelIdentityAccessor.Invoke(model);
             return id;
         }
         public static object GetForeignIdentity(Type type, string foreignIdentityNames, object model)
@@ -233,7 +233,7 @@ namespace Zerra.Repository.Reflection
         private static readonly MethodInfo setForeignIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.SetForeignIdentity) && x.IsGenericMethod);
         public static void SetForeignIdentity<TModel>(string foreignIdentityNames, TModel model, object identity) where TModel : class, new()
         {
-            Action<TModel, object> setter = GetSetterFunctionByNameOrAttribute<TModel>(foreignIdentityNames, null);
+            var setter = GetSetterFunctionByNameOrAttribute<TModel>(foreignIdentityNames, null);
             setter.Invoke(model, identity);
         }
         public static void SetForeignIdentity(Type type, string foreignIdentityNames, object model, object identity)
@@ -250,7 +250,7 @@ namespace Zerra.Repository.Reflection
 
         public static Expression<Func<TModel, bool>> GetIdentityExpression<TModel>(object identity)
         {
-            Type type = typeof(TModel);
+            var type = typeof(TModel);
             var queryExpressionParameter = Expression.Parameter(type, "x");
             var identityProperties = GetModel(type).IdentityProperties;
 
@@ -261,7 +261,7 @@ namespace Zerra.Repository.Reflection
                 ids = new object[] { identity };
 
             Expression where = null;
-            int i = 0;
+            var i = 0;
             foreach (var identityProperty in identityProperties)
             {
                 var id = ids[i];

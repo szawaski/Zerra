@@ -31,8 +31,8 @@ namespace Zerra.Identity.Cryptography
             if (rsa == null)
                 throw new IdentityProviderException("X509 must be RSA");
 
-            string signatureAlgorithmUrl = Algorithms.GetSignatureAlgorithmUrl(signatureAlgorithm);
-            string digestAlgorithmUrl = Algorithms.GetDigestAlgorithmUrl(digestAlgorithm);
+            var signatureAlgorithmUrl = Algorithms.GetSignatureAlgorithmUrl(signatureAlgorithm);
+            var digestAlgorithmUrl = Algorithms.GetDigestAlgorithmUrl(digestAlgorithm);
 
             var signedXml = new PrefixedSignedXml(xmlDoc)
             {
@@ -47,7 +47,7 @@ namespace Zerra.Identity.Cryptography
             if (!String.IsNullOrWhiteSpace(id))
                 referenceUri = "#" + id;
 
-            Reference reference = new Reference
+            var reference = new Reference
             {
                 Uri = referenceUri,
                 DigestMethod = digestAlgorithmUrl
@@ -70,10 +70,10 @@ namespace Zerra.Identity.Cryptography
         {
             var signatureElement = GetSignatureElement(xmlDoc.DocumentElement);
 
-            SignedXml signedXml = new SignedXml(xmlDoc);
+            var signedXml = new SignedXml(xmlDoc);
             signedXml.LoadXml(signatureElement);
 
-            bool valid = signedXml.CheckSignature(cert.GetRSAPublicKey());
+            var valid = signedXml.CheckSignature(cert.GetRSAPublicKey());
             return valid;
         }
 

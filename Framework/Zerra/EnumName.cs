@@ -20,7 +20,7 @@ public class EnumName : Attribute
     {
         return underlyingTypes.GetOrAdd(type, (t) =>
         {
-            if (!TypeLookup.CoreTypeLookup(Enum.GetUnderlyingType(t), out CoreType underlyingType))
+            if (!TypeLookup.CoreTypeLookup(Enum.GetUnderlyingType(t), out var underlyingType))
                 throw new NotImplementedException("Should not happen");
             return underlyingType;
         });
@@ -105,7 +105,8 @@ public class EnumName : Attribute
 
     public static string GetName(Type type, object value)
     {
-        if (!type.IsEnum) throw new ArgumentException($"Type {type.GetNiceName()} is not an Enum");
+        if (!type.IsEnum)
+            throw new ArgumentException($"Type {type.GetNiceName()} is not an Enum");
         var namesLookup = GetNamesForType(type);
         var underlyingType = GetUnderlyingType(type);
 
@@ -132,7 +133,8 @@ public class EnumName : Attribute
     }
     public static string[] GetNames(Type type)
     {
-        if (!type.IsEnum) throw new ArgumentException($"Type {type.GetNiceName()} is not an Enum");
+        if (!type.IsEnum)
+            throw new ArgumentException($"Type {type.GetNiceName()} is not an Enum");
         var namesLookup = GetNamesForType(type);
         return namesLookup.Values.ToArray();
     }
@@ -174,7 +176,7 @@ public class EnumName : Attribute
     public static object Parse(string enumString, Type type)
     {
         var valueLookup = GetValuesForType(type);
-        if (valueLookup.TryGetValue(enumString.ToLower(), out object value))
+        if (valueLookup.TryGetValue(enumString.ToLower(), out var value))
             return value;
 
         throw new Exception($"Could not parse \"{enumString}\" into enum type {type.GetNiceName()}");
@@ -183,7 +185,7 @@ public class EnumName : Attribute
     public static bool TryParse<T>(string enumString, out T value)
         where T : Enum
     {
-        if (TryParse(enumString, typeof(T), out object valueObject))
+        if (TryParse(enumString, typeof(T), out var valueObject))
         {
             value = (T)valueObject;
             return true;

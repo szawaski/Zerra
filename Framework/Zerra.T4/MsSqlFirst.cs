@@ -75,7 +75,7 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                 sb.Append("namespace ").Append(namespaceString).Append(Environment.NewLine);
                 sb.Append("{").Append(Environment.NewLine);
 
-                bool usedFirst = false;
+                var usedFirst = false;
                 foreach (var table in tables)
                 {
                     var schemaName = table.Item1;
@@ -89,7 +89,7 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
 
                     sb.Append(tab).Append("[Entity(\"").Append(tableName).Append("\")]").Append(Environment.NewLine);
 
-                    IsSafeName(tableName, out string safeTableName);
+                    IsSafeName(tableName, out var safeTableName);
 
                     sb.Append(tab).Append("public class ").Append(safeTableName).Append(modelSuffix).Append(Environment.NewLine);
                     sb.Append(tab).Append("{").Append(Environment.NewLine);
@@ -136,7 +136,7 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                                     if (dataSourceTypeAttribute != null)
                                         sb.Append(tab).Append(tab).Append(dataSourceTypeAttribute).Append(Environment.NewLine);
 
-                                    if (!IsSafeName(columnName, out string safeColumnName))
+                                    if (!IsSafeName(columnName, out var safeColumnName))
                                         sb.Append(tab).Append(tab).Append("[StoreName(\"").Append(columnName).Append("\")]").Append(Environment.NewLine);
                                     sb.Append(tab).Append(tab).Append("public ").Append(csharpType).Append(" ").Append(safeColumnName).Append(" { get; set; }").Append(Environment.NewLine);
 
@@ -463,7 +463,7 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                 sb.Append("namespace ").Append(namespaceString).Append(Environment.NewLine);
                 sb.Append("{").Append(Environment.NewLine);
 
-                bool usedFirst = false;
+                var usedFirst = false;
                 foreach (var tableName in tableNames)
                 {
                     var usedNames = new Dictionary<string, int>();
@@ -483,7 +483,7 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
 
         public static bool IsSafeName(string name, out string safeName)
         {
-            bool safe = true;
+            var safe = true;
             var sb = new StringBuilder();
 
             for (var i = 0; i < name.Length; i++)

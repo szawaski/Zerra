@@ -16,7 +16,7 @@ namespace Zerra.Repository
             var contexts = GetDataContexts();
             foreach (var context in contexts)
             {
-                if (!context.TryGetEngine(out T engine, out DataStoreGenerationType dataStoreGenerationType))
+                if (!context.TryGetEngine(out T engine, out var dataStoreGenerationType))
                     continue;
                 return (engine, dataStoreGenerationType);
             }

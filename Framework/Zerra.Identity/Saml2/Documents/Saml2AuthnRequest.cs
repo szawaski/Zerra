@@ -64,7 +64,7 @@ String.Format("Received: {0}", protocolBinding)),
                     OmitXmlDeclaration = false
                 };
 
-                using (XmlWriter xw = XmlWriter.Create(sw, xws))
+                using (var xw = XmlWriter.Create(sw, xws))
                 {
                     WriteAuthnRequest(xw);
                 }

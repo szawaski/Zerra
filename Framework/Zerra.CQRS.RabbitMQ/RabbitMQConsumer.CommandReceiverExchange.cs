@@ -64,7 +64,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.Received += async (sender, e) =>
                     {
-                        bool isEncrypted = e.BasicProperties.Headers != null && e.BasicProperties.Headers.Keys.Contains("Encryption") == true;
+                        var isEncrypted = e.BasicProperties.Headers != null && e.BasicProperties.Headers.Keys.Contains("Encryption") == true;
 
                         var stopwatch = new Stopwatch();
                         stopwatch.Start();
@@ -83,7 +83,7 @@ namespace Zerra.CQRS.RabbitMQ
                         {
                             try
                             {
-                                byte[] body = e.Body;
+                                var body = e.Body;
                                 if (isEncrypted)
                                     body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, e.Body);
 

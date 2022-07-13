@@ -59,7 +59,7 @@ namespace Zerra.Identity.Saml2.Documents
                     OmitXmlDeclaration = false
                 };
 
-                using (XmlWriter xw = XmlWriter.Create(sw, xws))
+                using (var xw = XmlWriter.Create(sw, xws))
                 {
                     WriteLogoutResponse(xw);
                 }

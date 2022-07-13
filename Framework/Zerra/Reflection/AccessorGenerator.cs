@@ -327,7 +327,7 @@ namespace Zerra.Reflection
             var variableAddressOpCode = parameters.Length < 256 ? OpCodes.Ldloca_S : OpCodes.Ldloca;
             var variableLoadOpCode = parameters.Length < 256 ? OpCodes.Ldloc_S : OpCodes.Ldloc;
 
-            for (int i = 0; i < parameters.Length; i++)
+            for (var i = 0; i < parameters.Length; i++)
             {
                 var parameter = parameters[i];
                 var parameterType = parameter.ParameterType;
@@ -336,7 +336,7 @@ namespace Zerra.Reflection
                 {
                     parameterType = parameterType.GetElementType();
 
-                    LocalBuilder localVariable = il.DeclareLocal(parameterType);
+                    var localVariable = il.DeclareLocal(parameterType);
 
                     // don't need to set variable for 'out' parameter
                     if (!parameter.IsOut)
@@ -347,8 +347,8 @@ namespace Zerra.Reflection
 
                         if (parameterType.IsValueType)
                         {
-                            Label skipSettingDefault = il.DefineLabel();
-                            Label finishedProcessingParameter = il.DefineLabel();
+                            var skipSettingDefault = il.DefineLabel();
+                            var finishedProcessingParameter = il.DefineLabel();
 
                             // check if parameter is not null
                             il.Emit(OpCodes.Brtrue_S, skipSettingDefault);
@@ -388,15 +388,15 @@ namespace Zerra.Reflection
 
                     // have to check that value type parameters aren't null
                     // otherwise they will error when unboxed
-                    Label skipSettingDefault = il.DefineLabel();
-                    Label finishedProcessingParameter = il.DefineLabel();
+                    var skipSettingDefault = il.DefineLabel();
+                    var finishedProcessingParameter = il.DefineLabel();
 
                     // check if parameter is not null
                     il.Emit(OpCodes.Ldloc_S, localObject);
                     il.Emit(OpCodes.Brtrue_S, skipSettingDefault);
 
                     // parameter has no value, initialize to default
-                    LocalBuilder localVariable = il.DeclareLocal(parameterType);
+                    var localVariable = il.DeclareLocal(parameterType);
                     il.Emit(variableAddressOpCode, localVariable);
                     il.Emit(OpCodes.Initobj, parameterType);
                     il.Emit(variableLoadOpCode, localVariable);
@@ -408,11 +408,11 @@ namespace Zerra.Reflection
                     if (parameterType.IsPrimitive)
                     {
                         // for primitive types we need to handle type widening (e.g. short -> int)
-                        MethodInfo toParameterTypeMethod = typeof(IConvertible).GetMethod("To" + parameterType.Name, new[] { typeof(IFormatProvider) });
+                        var toParameterTypeMethod = typeof(IConvertible).GetMethod("To" + parameterType.Name, new[] { typeof(IFormatProvider) });
 
                         if (toParameterTypeMethod != null)
                         {
-                            Label skipConvertible = il.DefineLabel();
+                            var skipConvertible = il.DefineLabel();
 
                             // check if argument type is an exact match for parameter type
                             // in this case we may use cheap unboxing instead

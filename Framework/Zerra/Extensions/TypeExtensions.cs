@@ -40,7 +40,7 @@ public static class TypeExtensions
             {
                 if (!loadedTypeGetIsZSArrayGetter)
                 {
-                    if (TypeAnalyzer.GetTypeDetail(typeof(Type)).TryGetMember("IsSZArray", out MemberDetail member))
+                    if (TypeAnalyzer.GetTypeDetail(typeof(Type)).TryGetMember("IsSZArray", out var member))
                         typeGetIsZSArrayGetter = member.Getter;
                     loadedTypeGetIsZSArrayGetter = true;
                 }
@@ -91,7 +91,7 @@ public static class TypeExtensions
             {
                 var genericTypes = typeDetails.InnerTypes;
                 _ = sb.Append('<');
-                bool first = true;
+                var first = true;
                 foreach (var genericType in genericTypes)
                 {
                     if (!first)

@@ -75,7 +75,7 @@ namespace Zerra.Repository.PostgreSql
             context.MemberContext.OperatorStack.Push(Operator.Call);
 
             var call = exp as MethodCallExpression;
-            bool isEvaluatable = IsEvaluatable(exp);
+            var isEvaluatable = IsEvaluatable(exp);
             if (isEvaluatable)
             {
                 ConvertToSqlEvaluate(exp, ref sb, context);
@@ -264,7 +264,7 @@ namespace Zerra.Repository.PostgreSql
                 if (parameterInContext)
                 {
                     var parentDependant = context.MemberContext.DependantStack.Peek();
-                    if (!parentDependant.Dependants.TryGetValue(subModelInfo.Type, out ParameterDependant dependant))
+                    if (!parentDependant.Dependants.TryGetValue(subModelInfo.Type, out var dependant))
                     {
                         dependant = new ParameterDependant(subModelInfo, modelProperty);
                         parentDependant.Dependants.Add(subModelInfo.Type, dependant);
@@ -294,11 +294,11 @@ namespace Zerra.Repository.PostgreSql
             }
             else
             {
-                bool closeBrace = false;
+                var closeBrace = false;
 
                 if (context.MemberContext.MemberAccessStack.Count > 0)
                 {
-                    bool memberPropertyHandled = false;
+                    var memberPropertyHandled = false;
                     var memberProperty = context.MemberContext.MemberAccessStack.Pop();
 
                     if (member.Type.Name == typeof(Nullable<>).Name && memberProperty.Member.Name == "Value")
@@ -419,7 +419,7 @@ namespace Zerra.Repository.PostgreSql
 
             if (type.IsArray)
             {
-                Type arrayType = typeDetails.InnerTypes[0];
+                var arrayType = typeDetails.InnerTypes[0];
                 if (arrayType == typeof(byte))
                 {
                     sb.Write("decode('");
@@ -433,8 +433,8 @@ namespace Zerra.Repository.PostgreSql
 
                     var builderLength = sb.Length;
 
-                    bool first = true;
-                    foreach (object item in (IEnumerable)value)
+                    var first = true;
+                    foreach (var item in (IEnumerable)value)
                     {
                         if (!first)
                             sb.Write(',');
@@ -456,8 +456,8 @@ namespace Zerra.Repository.PostgreSql
 
                 var builderLength = sb.Length;
 
-                bool first = true;
-                foreach (object item in (IEnumerable)value)
+                var first = true;
+                foreach (var item in (IEnumerable)value)
                 {
                     if (!first)
                         sb.Write(',');
@@ -472,7 +472,7 @@ namespace Zerra.Repository.PostgreSql
                 return false;
             }
 
-            if (TypeLookup.CoreTypeLookup(type, out CoreType coreType))
+            if (TypeLookup.CoreTypeLookup(type, out var coreType))
             {
                 switch (coreType)
                 {
@@ -781,7 +781,7 @@ namespace Zerra.Repository.PostgreSql
                 var passedfirst = false;
                 foreach (var property in graph.LocalProperties)
                 {
-                    if (modelDetail.TryGetProperty(property, out ModelPropertyDetail modelProperty))
+                    if (modelDetail.TryGetProperty(property, out var modelProperty))
                     {
                         if (modelProperty.PropertySourceName != null && modelProperty.ForeignIdentity == null)
                         {

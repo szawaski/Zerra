@@ -34,7 +34,7 @@ namespace Zerra.Identity.Saml2.Bindings
         internal Saml2QueryBinding(IdentityHttpRequest request, BindingDirection bindingDirection)
         {
             this.BindingDirection = bindingDirection;
-            string samlEncoded = this.BindingDirection switch
+            var samlEncoded = this.BindingDirection switch
             {
                 BindingDirection.Request => request.Query[Saml2Names.RequestParameterName],
                 BindingDirection.Response => request.Query[Saml2Names.ResponseParameterName],
@@ -101,7 +101,7 @@ namespace Zerra.Identity.Saml2.Bindings
 
         private string BuildSignatureQueryString(string samlEncoded)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
             switch (this.BindingDirection)
             {
@@ -159,7 +159,7 @@ namespace Zerra.Identity.Saml2.Bindings
 
         private string GetRedirectUrl(string baseUrl)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             sb.Append(baseUrl);
             GenerateQueryString(sb);
             return sb.ToString();
@@ -191,7 +191,7 @@ namespace Zerra.Identity.Saml2.Bindings
             if (String.IsNullOrWhiteSpace(url))
                 throw new ArgumentException("Required url");
 
-            string redirectUrl = GetRedirectUrl(url);
+            var redirectUrl = GetRedirectUrl(url);
             return new IdentityHttpResponse(redirectUrl);
         }
     }

@@ -26,8 +26,8 @@ namespace Zerra.Identity.Cryptography
 
             var element = xmlDoc.DocumentElement.GetSingleElementRequired(null, elementName, true);
 
-            string encryptionAlgorithmUrl = Algorithms.GetEncryptionAlgorithmUrl(encryptionAlgorithm);
-            string encryptionKeyAlgorithmUrl = useOeap ? Algorithms.RsaOaep : Algorithms.Rsa;
+            var encryptionAlgorithmUrl = Algorithms.GetEncryptionAlgorithmUrl(encryptionAlgorithm);
+            var encryptionKeyAlgorithmUrl = useOeap ? Algorithms.RsaOaep : Algorithms.Rsa;
 
             var encryptedXml = new EncryptedXml(xmlDoc);
             var symmetricAlgorithm = Algorithms.Create(encryptionAlgorithm);

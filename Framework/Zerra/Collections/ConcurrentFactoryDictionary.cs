@@ -97,7 +97,7 @@ namespace Zerra.Collections
             {
                 lock (GetFactoryLock(factoryKey))
                 {
-                    if (dictionary.TryGetValue(factoryKey, out TValue value))
+                    if (dictionary.TryGetValue(factoryKey, out var value))
                         return value;
 
                     value = addValueFactory(factoryKey);
@@ -143,7 +143,7 @@ namespace Zerra.Collections
             {
                 lock (GetFactoryLock(factoryKey))
                 {
-                    if (dictionary.TryGetValue(factoryKey, out TValue value))
+                    if (dictionary.TryGetValue(factoryKey, out var value))
                         return value;
 
                     value = valueFactory(factoryKey);
@@ -159,7 +159,7 @@ namespace Zerra.Collections
         public bool TryUpdate(TKey key, TValue value, TValue comparisonValue) { return dictionary.TryUpdate(key, value, comparisonValue); }
         public bool TryRemove(TKey key, out TValue value)
         {
-            bool removed = dictionary.TryRemove(key, out value);
+            var removed = dictionary.TryRemove(key, out value);
             RemoveFactoryLock(key);
             return removed;
         }

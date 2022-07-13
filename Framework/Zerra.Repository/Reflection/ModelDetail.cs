@@ -26,7 +26,7 @@ namespace Zerra.Repository.Reflection
         private readonly IDictionary<string, ModelPropertyDetail> propertiesByName;
         public ModelPropertyDetail GetProperty(string name)
         {
-            if (!this.propertiesByName.TryGetValue(name, out ModelPropertyDetail property))
+            if (!this.propertiesByName.TryGetValue(name, out var property))
                 throw new Exception($"{nameof(ModelDetail)} for {Type.Name} does not contain property {name}");
             return property;
         }
@@ -38,7 +38,7 @@ namespace Zerra.Repository.Reflection
         private readonly IDictionary<string, ModelPropertyDetail> propertiesByNameLower;
         public ModelPropertyDetail GetPropertyLower(string name)
         {
-            if (!this.propertiesByNameLower.TryGetValue(name, out ModelPropertyDetail property))
+            if (!this.propertiesByNameLower.TryGetValue(name, out var property))
                 throw new Exception($"{nameof(ModelDetail)} for {Type.Name} does not contain property {name}");
             return property;
         }

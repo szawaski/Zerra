@@ -47,7 +47,7 @@ namespace Zerra.Identity.OAuth2.Bindings
         }
         private void GenerateQueryString(StringBuilder sb)
         {
-            bool first = true;
+            var first = true;
             foreach (var jsonObject in this.Document)
             {
                 if (first)
@@ -70,7 +70,7 @@ namespace Zerra.Identity.OAuth2.Bindings
             if (String.IsNullOrWhiteSpace(url))
                 throw new ArgumentException("Required url");
 
-            string redirectUrl = GetRedirectUrl(url);
+            var redirectUrl = GetRedirectUrl(url);
             return new IdentityHttpResponse(redirectUrl);
         }
     }

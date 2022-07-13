@@ -381,14 +381,14 @@ namespace Zerra.Repository
                         case MemberTypes.Field:
                             {
                                 var field = memberProperty.Member as FieldInfo;
-                                object fieldValue = field.GetValue(value);
+                                var fieldValue = field.GetValue(value);
                                 ConvertToSqlConstantStack(field.FieldType, fieldValue, ref sb, context);
                                 break;
                             }
                         case MemberTypes.Property:
                             {
                                 var property = memberProperty.Member as PropertyInfo;
-                                object propertyValue = property.GetValue(value);
+                                var propertyValue = property.GetValue(value);
                                 ConvertToSqlConstantStack(property.PropertyType, propertyValue, ref sb, context);
                                 break;
                             }
@@ -417,7 +417,7 @@ namespace Zerra.Repository
             var parameters = new List<object>();
             foreach (var argument in newExp.Arguments)
             {
-                object argumentValue = Expression.Lambda(argument).Compile().DynamicInvoke();
+                var argumentValue = Expression.Lambda(argument).Compile().DynamicInvoke();
                 parameters.Add(argumentValue);
             }
 
@@ -455,7 +455,7 @@ namespace Zerra.Repository
             if (context.MemberContext.MemberAccessStack.Count > 0)
                 memberProperty = context.MemberContext.MemberAccessStack.Pop();
 
-            bool memberPropertyHandled = ConvertToSqlValueRender(memberProperty, type, value, ref sb, context);
+            var memberPropertyHandled = ConvertToSqlValueRender(memberProperty, type, value, ref sb, context);
 
             if (memberProperty != null)
             {
@@ -715,7 +715,7 @@ namespace Zerra.Repository
             var call = exp as MethodCallExpression;
             if (call.Object == null)
             {
-                bool result = true;
+                var result = true;
                 foreach (var arg in call.Arguments)
                 {
                     result &= IsNull(arg);

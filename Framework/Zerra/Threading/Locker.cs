@@ -76,7 +76,8 @@ namespace Zerra.Threading
 
         public static Locker<T> Lock(string purpose, T key)
         {
-            if (purpose == null) throw new ArgumentException();
+            if (purpose == null)
+                throw new ArgumentException();
             var locker = new Locker<T>(purpose, key);
             locker.Lock();
             return locker;
@@ -84,7 +85,8 @@ namespace Zerra.Threading
 
         public static async Task<Locker<T>> LockAsync(string purpose, T key)
         {
-            if (purpose == null) throw new ArgumentException();
+            if (purpose == null)
+                throw new ArgumentException();
             var locker = new Locker<T>(purpose, key);
             await locker.LockAsync();
             return locker;

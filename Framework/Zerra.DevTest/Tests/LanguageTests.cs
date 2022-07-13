@@ -27,7 +27,7 @@ namespace Zerra.DevTest
 
         public static void TestTypeComparison()
         {
-            Type type = typeof(char);
+            var type = typeof(char);
             var itterations = 10000000;
 
             {
@@ -431,7 +431,7 @@ namespace Zerra.DevTest
 
         public static void TestStringBuilderBoxing()
         {
-            int loops = 30000;
+            var loops = 30000;
             var value = (object)loops;
 
 

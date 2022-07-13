@@ -37,7 +37,7 @@ namespace Zerra.Encryption
         {
             unchecked
             {
-                int hash = (int)2166136261;
+                var hash = (int)2166136261;
                 hash = (hash * 16777619) ^ Key.GetHashCode();
                 hash = (hash * 16777619) ^ IV.GetHashCode();
                 return hash;

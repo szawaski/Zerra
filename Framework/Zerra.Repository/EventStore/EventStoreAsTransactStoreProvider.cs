@@ -29,11 +29,11 @@ namespace Zerra.Repository
         {
             var models = ReadModels(query);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
-            TModel[] selectedArray = queriedSet.ToArray();
+            var selectedArray = queriedSet.ToArray();
 
             return selectedArray;
         }
@@ -41,11 +41,11 @@ namespace Zerra.Repository
         {
             var models = ReadModels(query);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
-            TModel selected = queriedSet.FirstOrDefault();
+            var selected = queriedSet.FirstOrDefault();
 
             return selected;
         }
@@ -55,13 +55,13 @@ namespace Zerra.Repository
 
             var models = ReadModels(query);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
-            IQueryable<TModel> select = queriedSet.Select(selector);
+            var select = queriedSet.Select(selector);
 
-            TModel selected = select.SingleOrDefault();
+            var selected = select.SingleOrDefault();
 
             return selected;
         }
@@ -69,9 +69,9 @@ namespace Zerra.Repository
         {
             var models = ReadModels(query);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
             long count = queriedSet.Count();
 
@@ -81,11 +81,11 @@ namespace Zerra.Repository
         {
             var models = ReadModels(query);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
-            bool any = queriedSet.Any();
+            var any = queriedSet.Any();
 
             return any;
         }
@@ -95,13 +95,13 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
-            TModel[] selectedArray = queriedSet.ToArray();
+            var selectedArray = queriedSet.ToArray();
 
-            EventModel<TModel>[] eventModelSelectedArray = eventModels.Where(x => selectedArray.Contains(x.Model)).ToArray();
+            var eventModelSelectedArray = eventModels.Where(x => selectedArray.Contains(x.Model)).ToArray();
 
             return eventModelSelectedArray;
         }
@@ -111,11 +111,11 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
-            TModel selected = queriedSet.FirstOrDefault();
+            var selected = queriedSet.FirstOrDefault();
 
             var eventModelSelected = eventModels.First(x => x.Model == selected);
 
@@ -127,11 +127,11 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
-            TModel selected = queriedSet.FirstOrDefault();
+            var selected = queriedSet.FirstOrDefault();
 
             var eventModelSelected = eventModels.Single(x => x.Model == selected);
 
@@ -143,9 +143,9 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
             long count = queriedSet.Count();
 
@@ -157,11 +157,11 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
-            bool any = queriedSet.Any();
+            var any = queriedSet.Any();
 
             return any;
         }
@@ -170,11 +170,11 @@ namespace Zerra.Repository
         {
             var models = await ReadModelsAsync(query);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
-            TModel[] selectedArray = queriedSet.ToArray();
+            var selectedArray = queriedSet.ToArray();
 
             return selectedArray;
         }
@@ -182,11 +182,11 @@ namespace Zerra.Repository
         {
             var models = await ReadModelsAsync(query);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
-            TModel selected = queriedSet.FirstOrDefault();
+            var selected = queriedSet.FirstOrDefault();
 
             return selected;
         }
@@ -196,13 +196,13 @@ namespace Zerra.Repository
 
             var models = await ReadModelsAsync(query);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
-            IQueryable<TModel> select = queriedSet.Select(selector);
+            var select = queriedSet.Select(selector);
 
-            TModel selected = select.SingleOrDefault();
+            var selected = select.SingleOrDefault();
 
             return selected;
         }
@@ -210,9 +210,9 @@ namespace Zerra.Repository
         {
             var models = await ReadModelsAsync(query);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
             long count = queriedSet.Count();
 
@@ -222,11 +222,11 @@ namespace Zerra.Repository
         {
             var models = await ReadModelsAsync(query);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
-            bool any = queriedSet.Any();
+            var any = queriedSet.Any();
 
             return any;
         }
@@ -236,13 +236,13 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
-            TModel[] selectedArray = queriedSet.ToArray();
+            var selectedArray = queriedSet.ToArray();
 
-            EventModel<TModel>[] eventModelSelectedArray = eventModels.Where(x => selectedArray.Contains(x.Model)).ToArray();
+            var eventModelSelectedArray = eventModels.Where(x => selectedArray.Contains(x.Model)).ToArray();
 
             return eventModelSelectedArray;
         }
@@ -252,11 +252,11 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
-            TModel selected = queriedSet.FirstOrDefault();
+            var selected = queriedSet.FirstOrDefault();
 
             var eventModelSelected = eventModels.First(x => x.Model == selected);
 
@@ -268,11 +268,11 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
-            TModel selected = queriedSet.FirstOrDefault();
+            var selected = queriedSet.FirstOrDefault();
 
             var eventModelSelected = eventModels.Single(x => x.Model == selected);
 
@@ -284,9 +284,9 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
             long count = queriedSet.Count();
 
@@ -298,11 +298,11 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            IQueryable<TModel> set = models.AsQueryable();
+            var set = models.AsQueryable();
 
-            IQueryable<TModel> queriedSet = set.Query(query);
+            var queriedSet = set.Query(query);
 
-            bool any = queriedSet.Any();
+            var any = queriedSet.Any();
 
             return any;
         }
@@ -777,8 +777,8 @@ namespace Zerra.Repository
         {
             var list = new List<object>();
 
-            int indexer = 0;
-            int[] indexes = new int[sets.Count];
+            var indexer = 0;
+            var indexes = new int[sets.Count];
             while (true)
             {
                 var permutation = new List<object>();

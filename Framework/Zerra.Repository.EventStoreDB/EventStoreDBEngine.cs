@@ -107,13 +107,13 @@ namespace Zerra.Repository.EventStoreDB
             var models = new List<EventStoreEventData>();
 
             var streamStart = startEventNumber.HasValue ? new StreamPosition(startEventNumber.Value) : StreamPosition.Start;
-            long remaining = eventCount ?? (long)(endEventNumber.HasValue ? endEventNumber.Value - (startEventNumber ?? 0) + 1 : maxPerQuery);
-            int streamCount = endEventDate.HasValue ? maxPerQuery : (remaining <= maxPerQuery ? (int)remaining : maxPerQuery);
+            var remaining = eventCount ?? (long)(endEventNumber.HasValue ? endEventNumber.Value - (startEventNumber ?? 0) + 1 : maxPerQuery);
+            var streamCount = endEventDate.HasValue ? maxPerQuery : (remaining <= maxPerQuery ? (int)remaining : maxPerQuery);
 
             if (streamCount == 0)
                 return Array.Empty<EventStoreEventData>();
 
-            DateTime currentDate = DateTime.MinValue;
+            var currentDate = DateTime.MinValue;
             ulong currentEventNumber = 0;
 
             for (; ; )
@@ -186,9 +186,9 @@ namespace Zerra.Repository.EventStoreDB
         {
             var models = new List<EventStoreEventData>();
 
-            long remaining = eventCount ?? maxPerQuery;
+            var remaining = eventCount ?? maxPerQuery;
             var streamStart = startEventNumber.HasValue ? new StreamPosition(startEventNumber.Value) : StreamPosition.End;
-            int streamCount = endEventDate.HasValue ? maxPerQuery : (remaining <= maxPerQuery ? (int)remaining : maxPerQuery);
+            var streamCount = endEventDate.HasValue ? maxPerQuery : (remaining <= maxPerQuery ? (int)remaining : maxPerQuery);
 
             DateTime currentDate = default;
             ulong currentEventNumber = default;

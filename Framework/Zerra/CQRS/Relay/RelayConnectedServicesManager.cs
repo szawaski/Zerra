@@ -75,7 +75,7 @@ namespace Zerra.CQRS.Relay
 
         public static RelayConnectedService GetBestService(string providerType)
         {
-            if (!servicesByProviderType.TryGetValue(providerType, out ConcurrentDictionary<string, RelayConnectedService> servicesForProvider))
+            if (!servicesByProviderType.TryGetValue(providerType, out var servicesForProvider))
                 return null;
 
             return servicesForProvider.Values.Where(x => !x.Failed).OrderBy(x => x.Load).FirstOrDefault();

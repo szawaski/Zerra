@@ -54,7 +54,7 @@ namespace Zerra.Serialization
             if (includePropertyTypes)
             {
                 var typeFromValue = value.GetType();
-                string typeName = typeFromValue.FullName;
+                var typeName = typeFromValue.FullName;
                 writer.Write(typeName, false);
                 typeDetail = GetTypeInformation(typeFromValue, this.indexSize, this.ignoreIndexAttribute);
             }
@@ -121,7 +121,7 @@ namespace Zerra.Serialization
             }
             foreach (var indexProperty in typeDetail.IndexedProperties)
             {
-                object propertyValue = indexProperty.Value.Getter(value);
+                var propertyValue = indexProperty.Value.Getter(value);
                 if (propertyValue != null)
                 {
                     if (usePropertyNames)

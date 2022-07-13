@@ -56,7 +56,7 @@ namespace Zerra.Identity.TokenManagers
 
         public static string GetToken(string serviceProvider, string code)
         {
-            accessCodes.TryRemove(code, out AccessCodeInfo accessCode);
+            accessCodes.TryRemove(code, out var accessCode);
 
             if (accessCode == null)
                 return null;
@@ -70,7 +70,7 @@ namespace Zerra.Identity.TokenManagers
 
         public static IdentityModel GetIdentity(string serviceProvider, string token)
         {
-            auths.TryGetValue(token, out AuthInfo auth);
+            auths.TryGetValue(token, out var auth);
 
             if (auth == null)
                 return null;
@@ -90,14 +90,14 @@ namespace Zerra.Identity.TokenManagers
                 var expiredAccessCodes = accessCodes.ToArray().Where(x => x.Value.Time < DateTime.Now.AddSeconds(-accessCodeExpirationSeconds)).ToArray();
                 foreach (var expired in expiredAccessCodes)
                 {
-                    accessCodes.TryRemove(expired.Key, out AccessCodeInfo removed);
+                    accessCodes.TryRemove(expired.Key, out var removed);
                 }
 
                 //ToArray is special ConcurrentDictionary method to capture state
                 var expiredAuths = auths.ToArray().Where(x => x.Value.Time < DateTime.Now.AddSeconds(-authExpirationSeconds)).ToArray();
                 foreach (var expired in expiredAuths)
                 {
-                    auths.TryRemove(expired.Key, out AuthInfo removed);
+                    auths.TryRemove(expired.Key, out var removed);
                 }
 
                 Thread.Sleep(60000);

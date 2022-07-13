@@ -43,7 +43,7 @@ namespace Zerra.CQRS
             var args = new object[arguments != null ? arguments.Length : 0];
             if (arguments != null && arguments.Length > 0)
             {
-                int i = 0;
+                var i = 0;
                 foreach (var argument in arguments)
                 {
                     var parameter = JsonSerializer.Deserialize(argument, methodDetails.ParametersInfo[i].ParameterType);
@@ -93,7 +93,7 @@ namespace Zerra.CQRS
         public static Task DispatchAwaitAsync(ICommand command) { return DispatchAsync(command, true); }
         private static Task DispatchAsync(ICommand command, bool requireAffirmation)
         {
-            Type messageType = command.GetType();
+            var messageType = command.GetType();
             var messageTypeInfo = TypeAnalyzer.GetTypeDetail(messageType);
             if (!commandProducers.IsEmpty)
             {
@@ -111,9 +111,9 @@ namespace Zerra.CQRS
                             var instance = Instantiator.CreateInstance(providerCacheType);
 
                             var methodGetProviderInterfaceType = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(BaseLayerProvider<IBaseProvider>.GetProviderInterfaceType));
-                            Type interfaceType = (Type)methodGetProviderInterfaceType.Caller(instance, null);
+                            var interfaceType = (Type)methodGetProviderInterfaceType.Caller(instance, null);
 
-                            object messageHandlerToDispatchProvider = BusRouters.GetCommandHandlerToDispatchInternalInstance(interfaceType);
+                            var messageHandlerToDispatchProvider = BusRouters.GetCommandHandlerToDispatchInternalInstance(interfaceType);
                             _ = methodSetNextProvider.Caller(instance, new object[] { messageHandlerToDispatchProvider });
 
                             return instance;
@@ -132,7 +132,7 @@ namespace Zerra.CQRS
 
         public static Task DispatchAsync(IEvent message)
         {
-            Type messageType = message.GetType();
+            var messageType = message.GetType();
             var messageTypeInfo = TypeAnalyzer.GetTypeDetail(messageType);
             if (!commandProducers.IsEmpty)
             {
@@ -150,9 +150,9 @@ namespace Zerra.CQRS
                             var instance = Instantiator.CreateInstance(providerCacheType);
 
                             var methodGetProviderInterfaceType = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(BaseLayerProvider<IBaseProvider>.GetProviderInterfaceType));
-                            Type interfaceType = (Type)methodGetProviderInterfaceType.Caller(instance, null);
+                            var interfaceType = (Type)methodGetProviderInterfaceType.Caller(instance, null);
 
-                            object messageHandlerToDispatchProvider = BusRouters.GetEventHandlerToDispatchInternalInstance(interfaceType);
+                            var messageHandlerToDispatchProvider = BusRouters.GetEventHandlerToDispatchInternalInstance(interfaceType);
                             _ = methodSetNextProvider.Caller(instance, new object[] { messageHandlerToDispatchProvider });
 
                             return instance;
@@ -174,7 +174,7 @@ namespace Zerra.CQRS
 #pragma warning restore IDE1006 // Naming Styles
         {
             ICommandProducer producer = null;
-            Type messageBaseType = messageType;
+            var messageBaseType = messageType;
             while (producer == null && messageBaseType != null)
             {
                 if (commandProducers.TryGetValue(messageBaseType, out producer))
@@ -206,7 +206,7 @@ namespace Zerra.CQRS
 #pragma warning restore IDE1006 // Naming Styles
         {
             IEventProducer producer = null;
-            Type messageBaseType = messageType;
+            var messageBaseType = messageType;
             while (producer == null && messageBaseType != null)
             {
                 if (eventProducers.TryGetValue(messageBaseType, out producer))
@@ -239,7 +239,7 @@ namespace Zerra.CQRS
         }
         private static Task HandleEventAsync(IEvent @event, Type eventType, bool throwError)
         {
-            Type interfaceType = TypeAnalyzer.GetGenericType(iEventHandlerType, eventType);
+            var interfaceType = TypeAnalyzer.GetGenericType(iEventHandlerType, eventType);
 
             var providerType = Discovery.GetImplementationType(interfaceType, ProviderLayers.GetProviderInterfaceStack(), 0, throwError);
             if (providerType == null)
@@ -311,7 +311,7 @@ namespace Zerra.CQRS
 
             if (!queryClients.IsEmpty)
             {
-                if (queryClients.TryGetValue(interfaceType, out IQueryClient methodCaller))
+                if (queryClients.TryGetValue(interfaceType, out var methodCaller))
                 {
                     var result = methodCaller.Call<TReturn>(interfaceType, methodName, arguments);
                     return result;
@@ -359,7 +359,7 @@ namespace Zerra.CQRS
         {
             lock (serviceLock)
             {
-                Type type = typeof(TInterface);
+                var type = typeof(TInterface);
                 var commandTypes = GetCommandTypesFromInterface(type);
                 foreach (var commandType in commandTypes)
                 {
@@ -411,7 +411,7 @@ namespace Zerra.CQRS
         {
             lock (serviceLock)
             {
-                Type type = typeof(TInterface);
+                var type = typeof(TInterface);
                 var eventTypes = GetEventTypesFromInterface(type);
                 foreach (var eventType in eventTypes)
                 {
@@ -463,7 +463,7 @@ namespace Zerra.CQRS
         {
             lock (serviceLock)
             {
-                Type interfaceType = typeof(TInterface);
+                var interfaceType = typeof(TInterface);
                 if (queryServerTypes.Contains(interfaceType))
                     throw new InvalidOperationException($"Cannot create loopback. Query Server already registered for type {interfaceType.GetNiceName()}");
                 if (commandProducers.ContainsKey(interfaceType))
@@ -870,7 +870,7 @@ namespace Zerra.CQRS
                     if (relayRegister != null)
                     {
                         var commandTypes = commandConsumer.GetCommandTypes().Select(x => x.GetNiceName()).ToArray();
-                        if (!relayRegisterTypes.TryGetValue(commandConsumer.ConnectionString, out HashSet<string> relayTypes))
+                        if (!relayRegisterTypes.TryGetValue(commandConsumer.ConnectionString, out var relayTypes))
                         {
                             relayTypes = new HashSet<string>();
                             relayRegisterTypes.Add(commandConsumer.ConnectionString, relayTypes);
@@ -885,7 +885,7 @@ namespace Zerra.CQRS
                     if (relayRegister != null)
                     {
                         var eventTypes = eventConsumer.GetEventTypes().Select(x => x.GetNiceName()).ToArray();
-                        if (!relayRegisterTypes.TryGetValue(eventConsumer.ConnectionString, out HashSet<string> relayTypes))
+                        if (!relayRegisterTypes.TryGetValue(eventConsumer.ConnectionString, out var relayTypes))
                         {
                             relayTypes = new HashSet<string>();
                             relayRegisterTypes.Add(eventConsumer.ConnectionString, relayTypes);
@@ -900,7 +900,7 @@ namespace Zerra.CQRS
                     if (relayRegister != null)
                     {
                         var queryTypes = queryServer.GetInterfaceTypes().Select(x => x.GetNiceName()).ToArray();
-                        if (!relayRegisterTypes.TryGetValue(queryServer.ConnectionString, out HashSet<string> relayTypes))
+                        if (!relayRegisterTypes.TryGetValue(queryServer.ConnectionString, out var relayTypes))
                         {
                             relayTypes = new HashSet<string>();
                             relayRegisterTypes.Add(queryServer.ConnectionString, relayTypes);

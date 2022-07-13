@@ -85,7 +85,7 @@ namespace Zerra.Serialization
                                     default:
                                         throw new NotImplementedException();
                                 }
-                                ushort index = (ushort)(member.Item2.Index + IndexOffset);
+                                var index = (ushort)(member.Item2.Index + IndexOffset);
 
                                 indexProperties.Add(index, new SerializerMemberDetails(indexSize, ignoreIndexAttribute, member.Item1));
                             }
@@ -94,7 +94,7 @@ namespace Zerra.Serialization
 
                     if (indexProperties.Count == 0)
                     {
-                        int orderIndex = 0;
+                        var orderIndex = 0;
                         foreach (var member in memberSets.Where(x => x.Item3 == null))
                         {
                             switch (indexSize)
@@ -110,7 +110,7 @@ namespace Zerra.Serialization
                                 default:
                                     throw new NotImplementedException();
                             }
-                            ushort index = (ushort)(orderIndex + IndexOffset);
+                            var index = (ushort)(orderIndex + IndexOffset);
 
                             indexProperties.Add(index, new SerializerMemberDetails(indexSize, ignoreIndexAttribute, member.Item1));
                             orderIndex++;

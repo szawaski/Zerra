@@ -38,7 +38,7 @@ namespace Zerra.Repository
         public static IOrderedQueryable<TModel> OrderBy<TModel>(this IQueryable<TModel> source, QueryOrder<TModel> linqOrder)
             where TModel : class, new()
         {
-            IQueryable<TModel> result = source;
+            var result = source;
             foreach (var order in linqOrder.OrderExpressions.Reverse())
             {
                 var propertyType = ((LambdaExpression)order.Expression).ReturnType;
@@ -84,19 +84,19 @@ namespace Zerra.Repository
         public static IQueryable<TModel> Query<TModel>(this IQueryable<TModel> source, Query<TModel> query)
             where TModel : class, new()
         {
-            IQueryable<TModel> whereQuery = source;
+            var whereQuery = source;
             if (query.Where != null)
             {
                 whereQuery = whereQuery.Where(query.Where);
             }
 
-            IQueryable<TModel> orderQuery = whereQuery;
+            var orderQuery = whereQuery;
             if (query.Order != null)
             {
                 orderQuery = orderQuery.OrderBy(query.Order);
             }
 
-            IQueryable<TModel> skiptake = orderQuery;
+            var skiptake = orderQuery;
             if (query.Skip.HasValue)
                 skiptake = skiptake.Skip(query.Skip.Value);
             if (query.Take.HasValue)

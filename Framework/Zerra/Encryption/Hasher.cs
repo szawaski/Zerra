@@ -85,7 +85,7 @@ namespace Zerra.Encryption
         {
             using (var hashAlgorithm = GetHashAlgorithm(hashAlgoritmType))
             {
-                int hashSizeBytes = hashAlgorithm.HashSize / 8;
+                var hashSizeBytes = hashAlgorithm.HashSize / 8;
                 if (hashWithSaltBytes.Length < hashSizeBytes)
                     return false;
 

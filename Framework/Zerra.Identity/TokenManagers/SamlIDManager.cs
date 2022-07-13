@@ -43,9 +43,9 @@ namespace Zerra.Identity.TokenManagers
 
         public static void Validate(string serviceProvider, string samlID)
         {
-            ids.TryRemove(samlID, out SamlIDInfo samlIDInfo);
+            ids.TryRemove(samlID, out var samlIDInfo);
 
-            bool valid = true;
+            var valid = true;
             if (samlIDInfo == null)
                 valid = false;
             else if (serviceProvider != samlIDInfo.ServiceProvider)
@@ -67,7 +67,7 @@ namespace Zerra.Identity.TokenManagers
                 var expiredIDs = ids.ToArray().Where(x => x.Value.Time < DateTime.Now.AddSeconds(-expirationSeconds)).ToArray();
                 foreach (var samlIDInfo in expiredIDs)
                 {
-                    ids.TryRemove(samlIDInfo.Key, out SamlIDInfo removed);
+                    ids.TryRemove(samlIDInfo.Key, out var removed);
                 }
 
                 Thread.Sleep(60000);

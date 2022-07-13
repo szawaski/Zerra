@@ -91,7 +91,7 @@ namespace Zerra.DevTest
         {
             const int testlength = 30000;
             const int sbLoops = 100;
-            string sbString = "asdfasdfasdfasdfasdfasdfa15245234523452asfasfasdfzsdfsdfs";
+            var sbString = "asdfasdfasdfasdfasdfasdfa15245234523452asfasfasdfzsdfsdfs";
 
             var timerZa = Stopwatch.StartNew();
             for (var i = 0; i < testlength; i++)

@@ -359,14 +359,14 @@ namespace Zerra.Linq
                     case MemberTypes.Field:
                         {
                             var field = memberProperty.Member as FieldInfo;
-                            object fieldValue = field.GetValue(value);
+                            var fieldValue = field.GetValue(value);
                             ConvertToStringConstantStack(field.FieldType, fieldValue, context);
                             break;
                         }
                     case MemberTypes.Property:
                         {
                             var property = memberProperty.Member as PropertyInfo;
-                            object propertyValue = property.GetValue(value);
+                            var propertyValue = property.GetValue(value);
                             ConvertToStringConstantStack(property.PropertyType, propertyValue, context);
                             break;
                         }
@@ -391,7 +391,7 @@ namespace Zerra.Linq
                 _ = context.Builder.Append('.');
                 _ = context.Builder.Append(call.Method.Name);
                 _ = context.Builder.Append('(');
-                for (int i = 1; i < call.Arguments.Count; i++)
+                for (var i = 1; i < call.Arguments.Count; i++)
                 {
                     if (i > 1)
                         _ = context.Builder.Append(',');
@@ -406,7 +406,7 @@ namespace Zerra.Linq
                 _ = context.Builder.Append('.');
                 _ = context.Builder.Append(call.Method.Name);
                 _ = context.Builder.Append('(');
-                for (int i = 0; i < call.Arguments.Count; i++)
+                for (var i = 0; i < call.Arguments.Count; i++)
                 {
                     if (i > 1)
                         _ = context.Builder.Append(',');
@@ -449,7 +449,6 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringDebugInfo(Expression exp, ConvertContext context)
         {
-            var debugInfo = exp as DebugInfoExpression;
         }
         private static void ConvertToStringMemberInit(Expression exp, ConvertContext context)
         {
@@ -684,10 +683,10 @@ namespace Zerra.Linq
 
             if (type.IsArray)
             {
-                Type arrayType = typeDetails.InnerTypes[0];
+                var arrayType = typeDetails.InnerTypes[0];
                 _ = context.Builder.Append('[');
-                bool first = true;
-                foreach (object item in (IEnumerable)value)
+                var first = true;
+                foreach (var item in (IEnumerable)value)
                 {
                     if (!first)
                         _ = context.Builder.Append(',');
@@ -701,8 +700,8 @@ namespace Zerra.Linq
             if (typeDetails.IsIEnumerableGeneric)
             {
                 _ = context.Builder.Append('[');
-                bool first = true;
-                foreach (object item in (IEnumerable)value)
+                var first = true;
+                foreach (var item in (IEnumerable)value)
                 {
                     if (!first)
                         _ = context.Builder.Append(',');
@@ -713,7 +712,7 @@ namespace Zerra.Linq
                 return;
             }
 
-            if (TypeLookup.CoreTypeLookup(type, out CoreType coreType))
+            if (TypeLookup.CoreTypeLookup(type, out var coreType))
             {
                 switch (coreType)
                 {

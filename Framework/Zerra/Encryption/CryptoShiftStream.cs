@@ -34,7 +34,8 @@ namespace Zerra.Encryption
 
         public CryptoShiftStream(Stream stream, int cryptoBlockSize, CryptoStreamMode mode, bool deshift, bool leaveOpen) : base(stream, leaveOpen)
         {
-            if (cryptoBlockSize < 16 || cryptoBlockSize % 8 != 0) throw new ArgumentException($"must be minimum of 16 and a multiple of 8.", nameof(cryptoBlockSize));
+            if (cryptoBlockSize < 16 || cryptoBlockSize % 8 != 0)
+                throw new ArgumentException($"must be minimum of 16 and a multiple of 8.", nameof(cryptoBlockSize));
 
             this.cryptoStream = stream as CryptoStream;
             this.blockSizeBytes = cryptoBlockSize / 8;
@@ -142,8 +143,10 @@ namespace Zerra.Encryption
 
         protected override int InternalRead(Span<byte> buffer)
         {
-            if (buffer == null) throw new ArgumentNullException(nameof(buffer));
-            if (!CanRead) throw new InvalidOperationException($"Cannot read in {nameof(CryptoStreamMode)}.{mode}");
+            if (buffer == null)
+                throw new ArgumentNullException(nameof(buffer));
+            if (!CanRead)
+                throw new InvalidOperationException($"Cannot read in {nameof(CryptoStreamMode)}.{mode}");
 
             var readTotal = 0;
 
@@ -216,7 +219,8 @@ namespace Zerra.Encryption
         }
         protected override async ValueTask<int> InternalReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
-            if (!CanRead) throw new InvalidOperationException($"Cannot read in {nameof(CryptoStreamMode)}.{mode}");
+            if (!CanRead)
+                throw new InvalidOperationException($"Cannot read in {nameof(CryptoStreamMode)}.{mode}");
 
             var readTotal = 0;
 
@@ -290,8 +294,10 @@ namespace Zerra.Encryption
 
         protected override void InternalWrite(ReadOnlySpan<byte> buffer)
         {
-            if (buffer == null) throw new ArgumentNullException(nameof(buffer));
-            if (!CanWrite) throw new InvalidOperationException($"Cannot read in {nameof(CryptoStreamMode)}.{mode}");
+            if (buffer == null)
+                throw new ArgumentNullException(nameof(buffer));
+            if (!CanWrite)
+                throw new InvalidOperationException($"Cannot read in {nameof(CryptoStreamMode)}.{mode}");
 
             var readTotal = 0;
 
@@ -339,7 +345,8 @@ namespace Zerra.Encryption
         }
         protected override async ValueTask InternalWriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
         {
-            if (!CanWrite) throw new InvalidOperationException($"Cannot read in {nameof(CryptoStreamMode)}.{mode}");
+            if (!CanWrite)
+                throw new InvalidOperationException($"Cannot read in {nameof(CryptoStreamMode)}.{mode}");
 
             var readTotal = 0;
 

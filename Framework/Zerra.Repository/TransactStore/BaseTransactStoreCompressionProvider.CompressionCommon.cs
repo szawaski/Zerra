@@ -45,7 +45,7 @@ namespace Zerra.Repository
                     {
                         msIn.CopyTo(gzipStream);
                     }
-                    byte[] compressed = msOut.ToArray();
+                    var compressed = msOut.ToArray();
                     return compressed;
                 }
             }
@@ -68,7 +68,7 @@ namespace Zerra.Repository
 
                 var compressedBytes = Convert.FromBase64String(compressedWithoutPrefix);
                 var plainBytes = DecompressGZip(compressedBytes);
-                string plain = Encoding.Unicode.GetString(plainBytes);
+                var plain = Encoding.Unicode.GetString(plainBytes);
                 return plain;
             }
             public static byte[] DecompressGZip(byte[] compressed)
@@ -83,7 +83,7 @@ namespace Zerra.Repository
                     {
                         gzipStream.CopyTo(msOut);
                     }
-                    byte[] plain = msOut.ToArray();
+                    var plain = msOut.ToArray();
                     return plain;
                 }
             }

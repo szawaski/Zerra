@@ -49,7 +49,7 @@ namespace Zerra.Reflection
         private IDictionary<string, MemberDetail> membersByName;
         public MemberDetail GetMember(string name)
         {
-            if (!this.membersByName.TryGetValue(name, out MemberDetail member))
+            if (!this.membersByName.TryGetValue(name, out var member))
                 throw new Exception($"{Type.Name} does not contain member {name}");
             return member;
         }
@@ -69,7 +69,7 @@ namespace Zerra.Reflection
                         this.membersByNameLower = this.MemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First());
                 }
             }
-            if (!this.membersByNameLower.TryGetValue(name.ToLower(), out MemberDetail member))
+            if (!this.membersByNameLower.TryGetValue(name.ToLower(), out var member))
                 throw new Exception($"{Type.Name} does not contain member {name}");
             return member;
         }
@@ -96,7 +96,7 @@ namespace Zerra.Reflection
                 {
                     if (methodDetail.Name == name && (parameterTypes == null || methodDetail.ParametersInfo.Count == parameterTypes.Length))
                     {
-                        bool match = true;
+                        var match = true;
                         if (parameterTypes != null)
                         {
                             for (var i = 0; i < parameterTypes.Length; i++)
@@ -144,7 +144,7 @@ namespace Zerra.Reflection
                 {
                     if (parameterTypes == null || constructorDetail.ParametersInfo.Count == parameterTypes.Length)
                     {
-                        bool match = true;
+                        var match = true;
                         if (parameterTypes != null)
                         {
                             for (var i = 0; i < parameterTypes.Length; i++)
@@ -214,7 +214,7 @@ namespace Zerra.Reflection
                     }
                 }
             }
-            if (!this.membersFieldBackedByName.TryGetValue(name, out MemberDetail member))
+            if (!this.membersFieldBackedByName.TryGetValue(name, out var member))
                 throw new Exception($"{Type.Name} does not contain member {name}");
             return member;
         }
@@ -337,10 +337,10 @@ namespace Zerra.Reflection
             else
                 this.InnerTypes = Type.EmptyTypes;
 
-            if (TypeLookup.CoreTypeLookup(type, out CoreType coreTypeLookup))
+            if (TypeLookup.CoreTypeLookup(type, out var coreTypeLookup))
                 this.CoreType = coreTypeLookup;
 
-            if (TypeLookup.SpecialTypeLookup(type, out SpecialType specialTypeLookup))
+            if (TypeLookup.SpecialTypeLookup(type, out var specialTypeLookup))
             {
                 this.SpecialType = specialTypeLookup;
                 switch (specialTypeLookup)
@@ -358,14 +358,14 @@ namespace Zerra.Reflection
             if (type.IsEnum)
             {
                 var enumEnderlyingType = Enum.GetUnderlyingType(this.Type);
-                if (!TypeLookup.CoreTypeLookup(enumEnderlyingType, out CoreType enumCoreTypeLookup))
+                if (!TypeLookup.CoreTypeLookup(enumEnderlyingType, out var enumCoreTypeLookup))
                     throw new NotImplementedException("Should not happen");
                 this.EnumUnderlyingType = enumCoreTypeLookup;
             }
             else if (this.IsNullable && this.InnerTypes[0].IsEnum)
             {
                 var enumEnderlyingType = Enum.GetUnderlyingType(this.InnerTypes[0]);
-                if (!TypeLookup.CoreTypeLookup(enumEnderlyingType, out CoreType enumCoreTypeLookup))
+                if (!TypeLookup.CoreTypeLookup(enumEnderlyingType, out var enumCoreTypeLookup))
                     throw new NotImplementedException("Should not happen");
                 enumCoreTypeLookup = enumCoreTypeLookup switch
                 {
@@ -478,7 +478,7 @@ namespace Zerra.Reflection
 
             if (this.IsTask && this.Type.IsGenericType)
             {
-                if (this.membersByName.TryGetValue("Result", out MemberDetail resultMember))
+                if (this.membersByName.TryGetValue("Result", out var resultMember))
                     this.TaskResultGetter = resultMember.Getter;
             }
         }

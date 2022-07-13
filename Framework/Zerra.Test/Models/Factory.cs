@@ -18,8 +18,10 @@ namespace Zerra.Test
                 Assert.IsNotNull(model2);
                 var count1 = 0;
                 var count2 = 0;
-                foreach (var item1 in model1) count1++;
-                foreach (var item2 in model2) count2++;
+                foreach (var item1 in model1)
+                    count1++;
+                foreach (var item2 in model2)
+                    count2++;
                 Assert.AreEqual(count1, count1);
 
                 var enumerator1 = model1.GetEnumerator();

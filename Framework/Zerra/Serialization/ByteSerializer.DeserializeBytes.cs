@@ -39,7 +39,7 @@ namespace Zerra.Serialization
                 throw new NotSupportedException("Cannot deserialize without type information");
             if (includePropertyTypes)
             {
-                string typeName = reader.ReadString(false);
+                var typeName = reader.ReadString(false);
                 var typeFromBytes = Discovery.GetTypeFromName(typeName);
                 //overrides potentially boxed type with actual type if exists in assembly
                 if (typeFromBytes != null)
@@ -102,7 +102,7 @@ namespace Zerra.Serialization
                 }
             }
 
-            object obj = typeDetail.TypeDetail.Creator();
+            var obj = typeDetail.TypeDetail.Creator();
 
             for (; ; )
             {
@@ -110,7 +110,7 @@ namespace Zerra.Serialization
 
                 if (usePropertyNames)
                 {
-                    string name = reader.ReadString(false);
+                    var name = reader.ReadString(false);
 
                     if (name == String.Empty)
                         return obj;
@@ -123,12 +123,12 @@ namespace Zerra.Serialization
                             throw new Exception($"Cannot deserialize with property {name} undefined and no types.");
 
                         //consume bytes but object does not have property
-                        object value = FromBytes(ref reader, null, false, true);
+                        var value = FromBytes(ref reader, null, false, true);
                         indexProperty.Setter(obj, value);
                     }
                     else
                     {
-                        object value = FromBytes(ref reader, indexProperty.SerailzierTypeDetails, false, false);
+                        var value = FromBytes(ref reader, indexProperty.SerailzierTypeDetails, false, false);
                         indexProperty.Setter(obj, value);
                     }
                 }
@@ -153,12 +153,12 @@ namespace Zerra.Serialization
                             throw new Exception($"Cannot deserialize with property {propertyIndex} undefined and no types.");
 
                         //consume bytes but object does not have property
-                        object value = FromBytes(ref reader, null, false, true);
+                        var value = FromBytes(ref reader, null, false, true);
                         indexProperty.Setter(obj, value);
                     }
                     else
                     {
-                        object value = FromBytes(ref reader, indexProperty.SerailzierTypeDetails, false, false);
+                        var value = FromBytes(ref reader, indexProperty.SerailzierTypeDetails, false, false);
                         indexProperty.Setter(obj, value);
                     }
                 }
@@ -168,7 +168,7 @@ namespace Zerra.Serialization
         }
         private object FromBytesEnumerable(ref ByteReader reader, SerializerTypeDetails typeDetail, bool asList)
         {
-            int length = reader.ReadInt32();
+            var length = reader.ReadInt32();
 
             if (length == 0)
             {
@@ -188,7 +188,7 @@ namespace Zerra.Serialization
                 if (!asList)
                 {
                     var array = Array.CreateInstance(typeDetail.Type, length);
-                    for (int i = 0; i < length; i++)
+                    for (var i = 0; i < length; i++)
                     {
                         var numValue = FromBytesCoreType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, true);
                         object item;
@@ -205,7 +205,7 @@ namespace Zerra.Serialization
                 else
                 {
                     var list = (IList)typeDetail.ListCreator(length);
-                    for (int i = 0; i < length; i++)
+                    for (var i = 0; i < length; i++)
                     {
                         var numValue = FromBytesCoreType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, true);
                         object item;
@@ -234,7 +234,7 @@ namespace Zerra.Serialization
                 if (length == 0)
                     return array;
 
-                int count = 0;
+                var count = 0;
                 for (; ; )
                 {
                     var hasObject = reader.ReadBoolean();
@@ -261,7 +261,7 @@ namespace Zerra.Serialization
                 if (length == 0)
                     return list;
 
-                int count = 0;
+                var count = 0;
                 for (; ; )
                 {
                     var hasObject = reader.ReadBoolean();
@@ -537,7 +537,7 @@ namespace Zerra.Serialization
                             return null;
                         var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false);
                         var innerItemEnumerable = TypeAnalyzer.GetGenericType(enumerableType, typeDetail.TypeDetail.IEnumerableGenericInnerType);
-                        object value = Instantiator.CreateInstance(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
+                        var value = Instantiator.CreateInstance(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
                         return value;
                     }
                 default:
@@ -555,7 +555,7 @@ namespace Zerra.Serialization
                         if (!asList)
                         {
                             var array = new Type[length];
-                            for (int i = 0; i < length; i++)
+                            for (var i = 0; i < length; i++)
                             {
                                 var typeName = reader.ReadString(true);
                                 if (typeName != null)
@@ -569,7 +569,7 @@ namespace Zerra.Serialization
                         else
                         {
                             var list = new List<Type>(length);
-                            for (int i = 0; i < length; i++)
+                            for (var i = 0; i < length; i++)
                             {
                                 var typeName = reader.ReadString(true);
                                 if (typeName != null)
@@ -591,7 +591,7 @@ namespace Zerra.Serialization
                         if (!asList)
                         {
                             var array = Array.CreateInstance(typeDetail.Type, length);
-                            for (int i = 0; i < length; i++)
+                            for (var i = 0; i < length; i++)
                             {
                                 if (!reader.ReadIsNull())
                                 {
@@ -605,7 +605,7 @@ namespace Zerra.Serialization
                         else
                         {
                             var list = (IList)typeDetail.ListCreator(length);
-                            for (int i = 0; i < length; i++)
+                            for (var i = 0; i < length; i++)
                             {
                                 if (!reader.ReadIsNull())
                                 {

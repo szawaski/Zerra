@@ -56,13 +56,13 @@ namespace Zerra.Repository
                 {
                     if (property.TypeDetail.CoreType == CoreType.String)
                     {
-                        string encrypted = (string)property.Getter(model);
+                        var encrypted = (string)property.Getter(model);
                         try
                         {
                             if (encrypted.Length > encryptionPrefix.Length && encrypted.Substring(0, encryptionPrefix.Length) == encryptionPrefix)
                             {
                                 encrypted = encrypted.Substring(encryptionPrefix.Length, encrypted.Length - encryptionPrefix.Length);
-                                string plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
+                                var plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
                                 property.Setter(model, plain);
                             }
                         }
@@ -70,10 +70,10 @@ namespace Zerra.Repository
                     }
                     else if (property.Type == typeof(byte[]))
                     {
-                        byte[] encrypted = (byte[])property.Getter(model);
+                        var encrypted = (byte[])property.Getter(model);
                         try
                         {
-                            byte[] plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
+                            var plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
                             property.Setter(model, plain);
                         }
                         catch { }
@@ -97,7 +97,7 @@ namespace Zerra.Repository
             if (newCopy)
                 models = Mapper.Map<ICollection<TModel>, TModel[]>(models, graph);
 
-            foreach (TModel model in models)
+            foreach (var model in models)
             {
                 foreach (var property in properties)
                 {
@@ -105,7 +105,7 @@ namespace Zerra.Repository
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
-                            string encrypted = (string)property.Getter(model);
+                            var encrypted = (string)property.Getter(model);
                             if (encrypted != null)
                             {
                                 try
@@ -113,7 +113,7 @@ namespace Zerra.Repository
                                     if (encrypted.Length > encryptionPrefix.Length && encrypted.Substring(0, encryptionPrefix.Length) == encryptionPrefix)
                                     {
                                         encrypted = encrypted.Substring(encryptionPrefix.Length, encrypted.Length - encryptionPrefix.Length);
-                                        string plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
+                                        var plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
                                         property.Setter(model, plain);
                                     }
                                 }
@@ -122,12 +122,12 @@ namespace Zerra.Repository
                         }
                         else if (property.Type == typeof(byte[]))
                         {
-                            byte[] encrypted = (byte[])property.Getter(model);
+                            var encrypted = (byte[])property.Getter(model);
                             if (encrypted != null)
                             {
                                 try
                                 {
-                                    byte[] plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
+                                    var plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
                                     property.Setter(model, plain);
                                 }
                                 catch { }
@@ -146,14 +146,14 @@ namespace Zerra.Repository
         }
         public override sealed ICollection<TModel> OnGetIncludingBase(ICollection<TModel> models, Graph<TModel> graph)
         {
-            ICollection<TModel> returnModels1 = DecryptModels(models, graph, false);
-            ICollection<TModel> returnModels2 = ProviderRelation.OnGetIncludingBase(returnModels1, graph);
+            var returnModels1 = DecryptModels(models, graph, false);
+            var returnModels2 = ProviderRelation.OnGetIncludingBase(returnModels1, graph);
             return returnModels2;
         }
         public override sealed async Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel> graph)
         {
-            ICollection<TModel> returnModels1 = DecryptModels(models, graph, false);
-            ICollection<TModel> returnModels2 = await ProviderRelation.OnGetIncludingBaseAsync(returnModels1, graph);
+            var returnModels1 = DecryptModels(models, graph, false);
+            var returnModels2 = await ProviderRelation.OnGetIncludingBaseAsync(returnModels1, graph);
             return returnModels2;
         }
 
@@ -242,7 +242,7 @@ namespace Zerra.Repository
 
             var encryptedModels = eventModels.Select(x => x.Model).ToArray();
             var models = DecryptModels(encryptedModels, query.Graph, true);
-            int i = 0;
+            var i = 0;
             foreach (var eventModel in eventModels)
             {
                 eventModel.Model = encryptedModels[i];
@@ -337,7 +337,7 @@ namespace Zerra.Repository
 
             var encryptedModels = eventModels.Select(x => x.Model).ToArray();
             var models = DecryptModels(encryptedModels, query.Graph, true);
-            int i = 0;
+            var i = 0;
             foreach (var eventModel in eventModels)
             {
                 eventModel.Model = encryptedModels[i];
@@ -364,7 +364,7 @@ namespace Zerra.Repository
             if (newCopy)
                 models = Mapper.Map<TModel[], TModel[]>(models, graph);
 
-            foreach (TModel model in models)
+            foreach (var model in models)
             {
                 foreach (var property in properties)
                 {
@@ -372,23 +372,23 @@ namespace Zerra.Repository
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
-                            string plain = (string)property.Getter(model);
+                            var plain = (string)property.Getter(model);
                             if (plain != null)
                             {
                                 if (plain.Length <= encryptionPrefix.Length || plain.Substring(0, encryptionPrefix.Length) != encryptionPrefix)
                                 {
                                     plain = encryptionPrefix + plain;
-                                    string encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain);
+                                    var encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain);
                                     property.Setter(model, encrypted);
                                 }
                             }
                         }
                         else if (property.Type == typeof(byte[]))
                         {
-                            byte[] plain = (byte[])property.Getter(model);
+                            var plain = (byte[])property.Getter(model);
                             if (plain != null)
                             {
-                                byte[] encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain);
+                                var encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain);
                                 property.Setter(model, encrypted);
                             }
                         }
@@ -403,12 +403,12 @@ namespace Zerra.Repository
             if (persist.Models.Length == 0)
                 return;
 
-            TModel[] encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
+            var encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
             NextProvider.Persist(new Create<TModel>(encryptedModels, persist.Graph));
 
             for (var i = 0; i < persist.Models.Length; i++)
             {
-                object identity = ModelAnalyzer.GetIdentity(encryptedModels[i]);
+                var identity = ModelAnalyzer.GetIdentity(encryptedModels[i]);
                 ModelAnalyzer.SetIdentity(persist.Models[i], identity);
             }
         }
@@ -430,12 +430,12 @@ namespace Zerra.Repository
             if (persist.Models.Length == 0)
                 return;
 
-            TModel[] encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
+            var encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
             await NextProvider.PersistAsync(new Create<TModel>(encryptedModels, persist.Graph));
 
             for (var i = 0; i < persist.Models.Length; i++)
             {
-                object identity = ModelAnalyzer.GetIdentity(encryptedModels[i]);
+                var identity = ModelAnalyzer.GetIdentity(encryptedModels[i]);
                 ModelAnalyzer.SetIdentity(persist.Models[i], identity);
             }
         }

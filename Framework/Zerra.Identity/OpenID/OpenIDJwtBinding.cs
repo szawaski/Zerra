@@ -191,7 +191,7 @@ namespace Zerra.Identity.OpenID
             var jwtHeaderEncoded = EncodeJwt(jwtHeaderString);
             var jwtPayloadEncoded = EncodeJwt(jwtPayloadString);
 
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             sb.Append(jwtHeaderEncoded);
             sb.Append(OpenIDJwtFormBinding.tokenDelimiter);
             sb.Append(jwtPayloadEncoded);
@@ -214,7 +214,7 @@ namespace Zerra.Identity.OpenID
             var jwtHeaderEncoded = EncodeJwt(jwtHeaderString);
             var jwtPayloadEncoded = EncodeJwt(jwtPayloadString);
 
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             sb.Append(jwtHeaderEncoded);
             sb.Append(OpenIDJwtFormBinding.tokenDelimiter);
             sb.Append(jwtPayloadEncoded);
@@ -259,7 +259,7 @@ namespace Zerra.Identity.OpenID
 
             foreach (var jwtProperty in jwtPayload.Properties())
             {
-                if (jwtProperties.TryGetValue(jwtProperty.Name, out string propertyName))
+                if (jwtProperties.TryGetValue(jwtProperty.Name, out var propertyName))
                     this.Document.Add(propertyName, jwtProperty.Value);
                 else
                     this.Document.Add(jwtProperty);

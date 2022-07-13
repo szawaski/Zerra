@@ -27,8 +27,9 @@ namespace Zerra.Providers
         }
         public static Type GetProviderInterfaceLayerAfter(Type providerInterfaceLayerType)
         {
-            if (providerInterfaceLayerType == null) throw new ArgumentNullException(nameof(providerInterfaceLayerType));
-            for (int i = 0; i < providerInterfaceLayersStack.Length - 1; i++)
+            if (providerInterfaceLayerType == null)
+                throw new ArgumentNullException(nameof(providerInterfaceLayerType));
+            for (var i = 0; i < providerInterfaceLayersStack.Length - 1; i++)
             {
                 if (providerInterfaceLayersStack[i] == providerInterfaceLayerType)
                     return providerInterfaceLayersStack[i + 1];
@@ -37,8 +38,9 @@ namespace Zerra.Providers
         }
         public static int GetProviderInterfaceIndex(Type providerInterfaceType)
         {
-            if (providerInterfaceType == null) throw new ArgumentNullException(nameof(providerInterfaceType));
-            int i = 0;
+            if (providerInterfaceType == null)
+                throw new ArgumentNullException(nameof(providerInterfaceType));
+            var i = 0;
             for (; i < providerInterfaceLayersStack.Length; i++)
             {
                 if (providerInterfaceLayersStack[i] == providerInterfaceType)
@@ -50,7 +52,8 @@ namespace Zerra.Providers
         private static readonly ConcurrentFactoryDictionary<Type, Type> highestProviderInterfaces = new ConcurrentFactoryDictionary<Type, Type>();
         public static Type GetHighestProviderInterface(Type providerType)
         {
-            if (providerType == null) throw new ArgumentNullException(nameof(providerType));
+            if (providerType == null)
+                throw new ArgumentNullException(nameof(providerType));
             var highestProviderInterface = highestProviderInterfaces.GetOrAdd(providerType, (t) =>
             {
                 Type highest = null;

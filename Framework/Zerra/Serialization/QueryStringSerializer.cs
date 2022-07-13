@@ -47,7 +47,7 @@ namespace Zerra.Serialization
             {
                 fixed (char* pFixed = queryString)
                 {
-                    char* p = pFixed;
+                    var p = pFixed;
                     string name = null;
                     for (var i = 0; i < queryString.Length; i++)
                     {
@@ -216,7 +216,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void SetValue<T>(TypeDetail typeDetail, T model, string name, string value)
         {
-            if (!typeDetail.TryGetMemberCaseInsensitive(name, out MemberDetail member))
+            if (!typeDetail.TryGetMemberCaseInsensitive(name, out var member))
                 return;
 
             var convertedValue = TypeAnalyzer.Convert(value, member.Type);

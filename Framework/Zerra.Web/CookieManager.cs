@@ -68,7 +68,7 @@ namespace Zerra.Web
 
             var provider = dataProtectionProvider.CreateProtector("Cookies");
 
-            string encryptedValue = provider.Protect(value);
+            var encryptedValue = provider.Protect(value);
 
             return encryptedValue;
         }
@@ -84,7 +84,7 @@ namespace Zerra.Web
 
             try
             {
-                string value = protector.Unprotect(encryptedValue);
+                var value = protector.Unprotect(encryptedValue);
                 return value;
             }
             catch (System.Security.Cryptography.CryptographicException)
@@ -97,7 +97,7 @@ namespace Zerra.Web
         {
             if (value == null)
                 value = string.Empty;
-            int cookieSeriesCount = value.Length * 2 / maxCookieSizeBytes + 1;
+            var cookieSeriesCount = value.Length * 2 / maxCookieSizeBytes + 1;
 
             if (cookieSeriesCount > maxCookiesPerDomain)
                 throw new Exception("Cookie too large");
@@ -105,8 +105,8 @@ namespace Zerra.Web
             int x;
             for (x = 0; x < cookieSeriesCount; x++)
             {
-                string seriesName = x == 0 ? name : $"{name}-{x}";
-                string seriesValue = value.Substring(x * maxCookieSizeBytes / 2, Math.Min(maxCookieSizeBytes / 2, value.Length - x * maxCookieSizeBytes / 2));
+                var seriesName = x == 0 ? name : $"{name}-{x}";
+                var seriesValue = value.Substring(x * maxCookieSizeBytes / 2, Math.Min(maxCookieSizeBytes / 2, value.Length - x * maxCookieSizeBytes / 2));
 
                 context.Response.Cookies.Delete(seriesName);
                 context.Response.Cookies.Append(seriesName, seriesValue, new CookieOptions()
@@ -119,9 +119,9 @@ namespace Zerra.Web
                     Expires = maxAge.HasValue ? DateTimeOffset.UtcNow.Add(maxAge.Value) : (DateTimeOffset?)null
                 });
             }
-            for (int y = x; y < maxCookiesPerDomain; y++)
+            for (var y = x; y < maxCookiesPerDomain; y++)
             {
-                string seriesName = y == 0 ? name : $"{name}-{y}";
+                var seriesName = y == 0 ? name : $"{name}-{y}";
                 if (context.Request.Cookies.Keys.Contains(seriesName))
                 {
                     context.Response.Cookies.Delete(seriesName);
@@ -137,9 +137,9 @@ namespace Zerra.Web
         private string ReadCookie(string name)
         {
             var sb = new StringBuilder();
-            for (int x = 0; x < maxCookiesPerDomain; x++)
+            for (var x = 0; x < maxCookiesPerDomain; x++)
             {
-                string seriesName = x == 0 ? name : $"{name}-{x}";
+                var seriesName = x == 0 ? name : $"{name}-{x}";
                 if (!context.Request.Cookies.Keys.Contains(seriesName))
                     break;
                 var cookie = context.Request.Cookies[seriesName];
@@ -153,9 +153,9 @@ namespace Zerra.Web
         }
         private void DeleteCookie(string name, SameSiteMode sameSite, bool httpOnly, bool secure)
         {
-            for (int x = 0; x < maxCookiesPerDomain; x++)
+            for (var x = 0; x < maxCookiesPerDomain; x++)
             {
-                string seriesName = x == 0 ? name : $"{name}-{x}";
+                var seriesName = x == 0 ? name : $"{name}-{x}";
                 if (context.Request.Cookies.Keys.Contains(seriesName))
                 {
                     context.Response.Cookies.Delete(seriesName);

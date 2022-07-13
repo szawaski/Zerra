@@ -64,10 +64,10 @@ namespace Zerra.CQRS.Network
             var declarations = new List<string>();
             var headers = new Dictionary<string, IList<string>>();
 
-            int start = 0;
-            int length = 0;
+            var start = 0;
+            var length = 0;
 
-            bool firstLineDone = false;
+            var firstLineDone = false;
             fixed (char* pChars = chars)
             {
                 for (var index = 0; index < chars.Length; index++)
@@ -110,7 +110,7 @@ namespace Zerra.CQRS.Network
                 }
 
                 string key = null;
-                bool keyPartDone = false;
+                var keyPartDone = false;
                 for (var index = start; index < chars.Length; index++)
                 {
                     var c = pChars[index];
@@ -152,7 +152,7 @@ namespace Zerra.CQRS.Network
 #else
                                 var value = chars.Slice(start, length).ToString();
 #endif
-                                if (headers.TryGetValue(key, out IList<string> values))
+                                if (headers.TryGetValue(key, out var values))
                                 {
                                     values.Add(value);
                                 }
@@ -202,7 +202,7 @@ namespace Zerra.CQRS.Network
 
                 headerInfo.IsError = declarations[0].StartsWith(serverErrorResponse);
 
-                if (headers.TryGetValue(ContentTypeHeader, out IList<string> contentTypeHeaderValue))
+                if (headers.TryGetValue(ContentTypeHeader, out var contentTypeHeaderValue))
                     if (String.Equals(contentTypeHeaderValue[0], ContentTypeBytes, StringComparison.InvariantCultureIgnoreCase))
                         headerInfo.ContentType = ContentType.Bytes;
                     else if (String.Equals(contentTypeHeaderValue[0], ContentTypeJson, StringComparison.InvariantCultureIgnoreCase))
@@ -212,30 +212,30 @@ namespace Zerra.CQRS.Network
                     else
                         throw new Exception("Invalid Header");
 
-                if (headers.TryGetValue(ContentLengthHeader, out IList<string> contentLengthHeaderValue))
-                    if (int.TryParse(contentLengthHeaderValue[0], out int contentLengthHeaderValueParsed))
+                if (headers.TryGetValue(ContentLengthHeader, out var contentLengthHeaderValue))
+                    if (int.TryParse(contentLengthHeaderValue[0], out var contentLengthHeaderValueParsed))
                         headerInfo.ContentLength = contentLengthHeaderValueParsed;
 
-                if (headers.TryGetValue(TransferEncodingHeader, out IList<string> transferEncodingHeaderValue))
+                if (headers.TryGetValue(TransferEncodingHeader, out var transferEncodingHeaderValue))
                     if (transferEncodingHeaderValue[0] == transferEncodingChunked)
                         headerInfo.Chuncked = true;
 
-                if (headers.TryGetValue(ProviderTypeHeader, out IList<string> providerTypeHeaderValue))
+                if (headers.TryGetValue(ProviderTypeHeader, out var providerTypeHeaderValue))
                     headerInfo.ProviderType = providerTypeHeaderValue[0];
 
-                if (headers.TryGetValue(OriginHeader, out IList<string> originHeaderValue))
+                if (headers.TryGetValue(OriginHeader, out var originHeaderValue))
                     headerInfo.Origin = originHeaderValue[0];
 
                 if (declarations.Count > 0 && declarations[0] == OptionsHeader)
                     headerInfo.Preflight = true;
 
-                if (headers.TryGetValue(RelayServiceHeader, out IList<string> relayServiceHeaderValue))
+                if (headers.TryGetValue(RelayServiceHeader, out var relayServiceHeaderValue))
                     if (relayServiceHeaderValue[0] == RelayServiceAdd)
                         headerInfo.RelayServiceAddRemove = true;
                     else if (relayServiceHeaderValue[0] == RelayServiceRemove)
                         headerInfo.RelayServiceAddRemove = false;
 
-                if (headers.TryGetValue(RelayKeyHeader, out IList<string> relayKeyHeaderValue))
+                if (headers.TryGetValue(RelayKeyHeader, out var relayKeyHeaderValue))
                     headerInfo.RelayKey = relayKeyHeaderValue[0];
 
                 headerInfo.BodyStartBuffer = buffer.Slice(position, length - position);

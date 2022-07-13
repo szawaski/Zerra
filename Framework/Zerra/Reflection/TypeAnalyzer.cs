@@ -13,7 +13,7 @@ namespace Zerra.Reflection
         public static T Convert<T>(object obj) { return (T)Convert(obj, typeof(T)); }
         public static object Convert(object obj, Type type)
         {
-            if (!TypeLookup.CoreTypeLookup(type, out CoreType coreType))
+            if (!TypeLookup.CoreTypeLookup(type, out var coreType))
                 throw new NotImplementedException($"Type convert not available for {type.Name}");
 
             if (obj == null)
@@ -146,7 +146,7 @@ namespace Zerra.Reflection
                 {
                     if (methodDetail.Name == name && (parameterTypes == null || methodDetail.ParametersInfo.Count == parameterTypes.Length))
                     {
-                        bool match = true;
+                        var match = true;
                         if (parameterTypes != null)
                         {
                             for (var i = 0; i < parameterTypes.Length; i++)
@@ -178,7 +178,7 @@ namespace Zerra.Reflection
                 {
                     if (parameterTypes == null || constructorDetail.ParametersInfo.Count == parameterTypes.Length)
                     {
-                        bool match = true;
+                        var match = true;
                         if (parameterTypes != null)
                         {
                             for (var i = 0; i < parameterTypes.Length; i++)

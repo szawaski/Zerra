@@ -257,7 +257,7 @@ namespace Zerra
             var targetParameter = Expression.Parameter(targetType.Type, "target");
             foreach (var memberT in sourceType.MemberDetails)
             {
-                if (targetType.TryGetMember(memberT.Name, out MemberDetail memberU))
+                if (targetType.TryGetMember(memberT.Name, out var memberU))
                 {
                     Expression sourceMemberAccess;
                     if (memberT.MemberInfo.MemberType == MemberTypes.Property)
@@ -295,7 +295,7 @@ namespace Zerra
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Func<TSource, TTarget, Dictionary<MapRecursionKey, object>, TTarget> CompileMap(Graph graph)
         {
-            int depth = 0;
+            var depth = 0;
             var sourceParameter = Expression.Parameter(sourceType.Type, "source");
             var targetParameter = Expression.Parameter(targetType.Type, "target");
             var recursionDictionaryParameter = Expression.Parameter(recursionDictionaryType, "recursionDictionary");
@@ -806,9 +806,12 @@ namespace Zerra
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Expression GenerateMapAssignTarget(Graph graph, Expression source, Expression target, Expression recursionDictionary, ref int depth)
         {
-            if (source is null) throw new MapException($"{nameof(source)} is null");
-            if (target is null) throw new MapException($"{nameof(target)} is null");
-            if (recursionDictionary is null) throw new MapException($"{nameof(recursionDictionary)} is null");
+            if (source is null)
+                throw new MapException($"{nameof(source)} is null");
+            if (target is null)
+                throw new MapException($"{nameof(target)} is null");
+            if (recursionDictionary is null)
+                throw new MapException($"{nameof(recursionDictionary)} is null");
             var sourceType = TypeAnalyzer.GetTypeDetail(source.Type);
             var targetType = TypeAnalyzer.GetTypeDetail(target.Type);
 

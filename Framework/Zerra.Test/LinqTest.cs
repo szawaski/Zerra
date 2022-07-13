@@ -42,7 +42,7 @@ namespace Zerra.Test
         [TestMethod]
         public void TestToStringExternalReference()
         {
-            decimal external = 15m;
+            var external = 15m;
             Expression<Func<AllTypesModel, decimal>> exp = x => (decimal)x.Int16Thing + external;
             var str = exp.ToLinqString();
         }

@@ -58,9 +58,9 @@ namespace Zerra.CQRS.Network
                 string providerType = null;
                 ContentType? contentType = null;
 
-                int propertyIndex = 0;
-                int startIndex = 0;
-                int indexLength = 0;
+                var propertyIndex = 0;
+                var startIndex = 0;
+                var indexLength = 0;
                 fixed (char* pChars = chars)
                 {
                     for (var index = 0; index < charsLength; index++)
@@ -89,7 +89,7 @@ namespace Zerra.CQRS.Network
                                     case 2:
                                         {
                                             var contentTypeString = new String(pChars, startIndex, indexLength);
-                                            if (Int32.TryParse(contentTypeString, out int contentTypeValue))
+                                            if (Int32.TryParse(contentTypeString, out var contentTypeValue))
                                                 contentType = (ContentType)contentTypeValue;
 
                                             startIndex = index + 1;

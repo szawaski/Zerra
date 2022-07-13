@@ -40,12 +40,14 @@ namespace Zerra.Serialization
 
         public T Deserialize<T>(Stream stream)
         {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
             return (T)Deserialize(typeof(T), stream);
         }
         public object Deserialize(Type type, Stream stream)
         {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
 
             var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
 
@@ -126,7 +128,8 @@ namespace Zerra.Serialization
 
         public async Task<T> DeserializeAsync<T>(Stream stream)
         {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
 
             var type = typeof(T);
 
@@ -208,8 +211,10 @@ namespace Zerra.Serialization
         }
         public async Task<object> DeserializeAsync(Type type, Stream stream)
         {
-            if (type == null) throw new ArgumentNullException(nameof(type));
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
 
             var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
 
@@ -398,7 +403,7 @@ namespace Zerra.Serialization
                 int sizeNeeded;
                 if (!state.CurrentFrame.StringLength.HasValue)
                 {
-                    if (!reader.TryReadStringLength(false, out int? stringLength, out sizeNeeded))
+                    if (!reader.TryReadStringLength(false, out var stringLength, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
@@ -406,7 +411,7 @@ namespace Zerra.Serialization
                     state.CurrentFrame.StringLength = stringLength;
                 }
 
-                if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out string value, out sizeNeeded))
+                if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out var value, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
                     return;
@@ -453,7 +458,7 @@ namespace Zerra.Serialization
             {
                 case CoreType.Boolean:
                     {
-                        if (!reader.TryReadBoolean(out bool value, out sizeNeeded))
+                        if (!reader.TryReadBoolean(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -463,7 +468,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Byte:
                     {
-                        if (!reader.TryReadByte(out byte value, out sizeNeeded))
+                        if (!reader.TryReadByte(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -473,7 +478,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.SByte:
                     {
-                        if (!reader.TryReadSByte(out sbyte value, out sizeNeeded))
+                        if (!reader.TryReadSByte(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -483,7 +488,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Int16:
                     {
-                        if (!reader.TryReadInt16(out short value, out sizeNeeded))
+                        if (!reader.TryReadInt16(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -493,7 +498,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.UInt16:
                     {
-                        if (!reader.TryReadUInt16(out ushort value, out sizeNeeded))
+                        if (!reader.TryReadUInt16(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -503,7 +508,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Int32:
                     {
-                        if (!reader.TryReadInt32(out int value, out sizeNeeded))
+                        if (!reader.TryReadInt32(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -513,7 +518,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.UInt32:
                     {
-                        if (!reader.TryReadUInt32(out uint value, out sizeNeeded))
+                        if (!reader.TryReadUInt32(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -523,7 +528,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Int64:
                     {
-                        if (!reader.TryReadInt64(out long value, out sizeNeeded))
+                        if (!reader.TryReadInt64(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -533,7 +538,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.UInt64:
                     {
-                        if (!reader.TryReadUInt64(out ulong value, out sizeNeeded))
+                        if (!reader.TryReadUInt64(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -543,7 +548,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Single:
                     {
-                        if (!reader.TryReadSingle(out float value, out sizeNeeded))
+                        if (!reader.TryReadSingle(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -553,7 +558,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Double:
                     {
-                        if (!reader.TryReadDouble(out double value, out sizeNeeded))
+                        if (!reader.TryReadDouble(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -563,7 +568,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Decimal:
                     {
-                        if (!reader.TryReadDecimal(out decimal value, out sizeNeeded))
+                        if (!reader.TryReadDecimal(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -573,7 +578,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Char:
                     {
-                        if (!reader.TryReadChar(out char value, out sizeNeeded))
+                        if (!reader.TryReadChar(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -583,7 +588,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.DateTime:
                     {
-                        if (!reader.TryReadDateTime(out DateTime value, out sizeNeeded))
+                        if (!reader.TryReadDateTime(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -593,7 +598,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.DateTimeOffset:
                     {
-                        if (!reader.TryReadDateTimeOffset(out DateTimeOffset value, out sizeNeeded))
+                        if (!reader.TryReadDateTimeOffset(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -603,7 +608,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.TimeSpan:
                     {
-                        if (!reader.TryReadTimeSpan(out TimeSpan value, out sizeNeeded))
+                        if (!reader.TryReadTimeSpan(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -613,7 +618,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Guid:
                     {
-                        if (!reader.TryReadGuid(out Guid value, out sizeNeeded))
+                        if (!reader.TryReadGuid(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -624,7 +629,7 @@ namespace Zerra.Serialization
 
                 case CoreType.BooleanNullable:
                     {
-                        if (!reader.TryReadBooleanNullable(nullFlags, out bool? value, out sizeNeeded))
+                        if (!reader.TryReadBooleanNullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -634,7 +639,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.ByteNullable:
                     {
-                        if (!reader.TryReadByteNullable(nullFlags, out byte? value, out sizeNeeded))
+                        if (!reader.TryReadByteNullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -644,7 +649,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.SByteNullable:
                     {
-                        if (!reader.TryReadSByteNullable(nullFlags, out sbyte? value, out sizeNeeded))
+                        if (!reader.TryReadSByteNullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -654,7 +659,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Int16Nullable:
                     {
-                        if (!reader.TryReadInt16Nullable(nullFlags, out short? value, out sizeNeeded))
+                        if (!reader.TryReadInt16Nullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -664,7 +669,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.UInt16Nullable:
                     {
-                        if (!reader.TryReadUInt16Nullable(nullFlags, out ushort? value, out sizeNeeded))
+                        if (!reader.TryReadUInt16Nullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -674,7 +679,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Int32Nullable:
                     {
-                        if (!reader.TryReadInt32Nullable(nullFlags, out int? value, out sizeNeeded))
+                        if (!reader.TryReadInt32Nullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -684,7 +689,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.UInt32Nullable:
                     {
-                        if (!reader.TryReadUInt32Nullable(nullFlags, out uint? value, out sizeNeeded))
+                        if (!reader.TryReadUInt32Nullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -694,7 +699,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Int64Nullable:
                     {
-                        if (!reader.TryReadInt64Nullable(nullFlags, out long? value, out sizeNeeded))
+                        if (!reader.TryReadInt64Nullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -704,7 +709,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.UInt64Nullable:
                     {
-                        if (!reader.TryReadUInt64Nullable(nullFlags, out ulong? value, out sizeNeeded))
+                        if (!reader.TryReadUInt64Nullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -714,7 +719,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.SingleNullable:
                     {
-                        if (!reader.TryReadSingleNullable(nullFlags, out float? value, out sizeNeeded))
+                        if (!reader.TryReadSingleNullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -724,7 +729,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.DoubleNullable:
                     {
-                        if (!reader.TryReadDoubleNullable(nullFlags, out double? value, out sizeNeeded))
+                        if (!reader.TryReadDoubleNullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -734,7 +739,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.DecimalNullable:
                     {
-                        if (!reader.TryReadDecimalNullable(nullFlags, out decimal? value, out sizeNeeded))
+                        if (!reader.TryReadDecimalNullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -744,7 +749,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.CharNullable:
                     {
-                        if (!reader.TryReadCharNullable(nullFlags, out char? value, out sizeNeeded))
+                        if (!reader.TryReadCharNullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -754,7 +759,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.DateTimeNullable:
                     {
-                        if (!reader.TryReadDateTimeNullable(nullFlags, out DateTime? value, out sizeNeeded))
+                        if (!reader.TryReadDateTimeNullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -764,7 +769,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.DateTimeOffsetNullable:
                     {
-                        if (!reader.TryReadDateTimeOffsetNullable(nullFlags, out DateTimeOffset? value, out sizeNeeded))
+                        if (!reader.TryReadDateTimeOffsetNullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -774,7 +779,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.TimeSpanNullable:
                     {
-                        if (!reader.TryReadTimeSpanNullable(nullFlags, out TimeSpan? value, out sizeNeeded))
+                        if (!reader.TryReadTimeSpanNullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -784,7 +789,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.GuidNullable:
                     {
-                        if (!reader.TryReadGuidNullable(nullFlags, out Guid? value, out sizeNeeded))
+                        if (!reader.TryReadGuidNullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -797,7 +802,7 @@ namespace Zerra.Serialization
                     {
                         if (!state.CurrentFrame.StringLength.HasValue)
                         {
-                            if (!reader.TryReadStringLength(nullFlags, out int? stringLength, out sizeNeeded))
+                            if (!reader.TryReadStringLength(nullFlags, out var stringLength, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -811,7 +816,7 @@ namespace Zerra.Serialization
                             break;
                         }
 
-                        if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out string value, out sizeNeeded))
+                        if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -835,7 +840,7 @@ namespace Zerra.Serialization
             {
                 case CoreType.Byte:
                     {
-                        if (!reader.TryReadByte(out byte value, out sizeNeeded))
+                        if (!reader.TryReadByte(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -845,7 +850,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.SByte:
                     {
-                        if (!reader.TryReadSByte(out sbyte value, out sizeNeeded))
+                        if (!reader.TryReadSByte(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -855,7 +860,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Int16:
                     {
-                        if (!reader.TryReadInt16(out short value, out sizeNeeded))
+                        if (!reader.TryReadInt16(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -865,7 +870,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.UInt16:
                     {
-                        if (!reader.TryReadUInt16(out ushort value, out sizeNeeded))
+                        if (!reader.TryReadUInt16(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -875,7 +880,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Int32:
                     {
-                        if (!reader.TryReadInt32(out int value, out sizeNeeded))
+                        if (!reader.TryReadInt32(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -885,7 +890,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.UInt32:
                     {
-                        if (!reader.TryReadUInt32(out uint value, out sizeNeeded))
+                        if (!reader.TryReadUInt32(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -895,7 +900,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Int64:
                     {
-                        if (!reader.TryReadInt64(out long value, out sizeNeeded))
+                        if (!reader.TryReadInt64(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -905,7 +910,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.UInt64:
                     {
-                        if (!reader.TryReadUInt64(out ulong value, out sizeNeeded))
+                        if (!reader.TryReadUInt64(out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -915,7 +920,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.ByteNullable:
                     {
-                        if (!reader.TryReadByteNullable(nullFlags, out byte? value, out sizeNeeded))
+                        if (!reader.TryReadByteNullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -925,7 +930,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.SByteNullable:
                     {
-                        if (!reader.TryReadSByteNullable(nullFlags, out sbyte? value, out sizeNeeded))
+                        if (!reader.TryReadSByteNullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -935,7 +940,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Int16Nullable:
                     {
-                        if (!reader.TryReadInt16Nullable(nullFlags, out short? value, out sizeNeeded))
+                        if (!reader.TryReadInt16Nullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -945,7 +950,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.UInt16Nullable:
                     {
-                        if (!reader.TryReadUInt16Nullable(nullFlags, out ushort? value, out sizeNeeded))
+                        if (!reader.TryReadUInt16Nullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -955,7 +960,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Int32Nullable:
                     {
-                        if (!reader.TryReadInt32Nullable(nullFlags, out int? value, out sizeNeeded))
+                        if (!reader.TryReadInt32Nullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -965,7 +970,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.UInt32Nullable:
                     {
-                        if (!reader.TryReadUInt32Nullable(nullFlags, out uint? value, out sizeNeeded))
+                        if (!reader.TryReadUInt32Nullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -975,7 +980,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Int64Nullable:
                     {
-                        if (!reader.TryReadInt64Nullable(nullFlags, out long? value, out sizeNeeded))
+                        if (!reader.TryReadInt64Nullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -985,7 +990,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.UInt64Nullable:
                     {
-                        if (!reader.TryReadUInt64Nullable(nullFlags, out ulong? value, out sizeNeeded))
+                        if (!reader.TryReadUInt64Nullable(nullFlags, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -1020,7 +1025,7 @@ namespace Zerra.Serialization
                         int sizeNeeded;
                         if (!state.CurrentFrame.StringLength.HasValue)
                         {
-                            if (!reader.TryReadStringLength(nullFlags, out int? stringLength, out sizeNeeded))
+                            if (!reader.TryReadStringLength(nullFlags, out var stringLength, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1033,7 +1038,7 @@ namespace Zerra.Serialization
                             state.CurrentFrame.StringLength = stringLength;
                         }
 
-                        if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out string value, out sizeNeeded))
+                        if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out var value, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -1055,7 +1060,7 @@ namespace Zerra.Serialization
                         {
                             if (nullFlags)
                             {
-                                if (!reader.TryReadIsNull(out bool value, out int moreBytesNeeded))
+                                if (!reader.TryReadIsNull(out var value, out var moreBytesNeeded))
                                 {
                                     state.BytesNeeded = moreBytesNeeded;
                                     return;
@@ -1098,7 +1103,7 @@ namespace Zerra.Serialization
 
             if (nullFlags && !state.CurrentFrame.HasNullChecked)
             {
-                if (!reader.TryReadIsNull(out bool isNull, out var sizeNeeded))
+                if (!reader.TryReadIsNull(out var isNull, out var sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
                     return;
@@ -1136,7 +1141,7 @@ namespace Zerra.Serialization
                     int sizeNeeded;
                     if (!state.CurrentFrame.StringLength.HasValue)
                     {
-                        if (!reader.TryReadStringLength(false, out int? stringLength, out sizeNeeded))
+                        if (!reader.TryReadStringLength(false, out var stringLength, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
@@ -1150,7 +1155,7 @@ namespace Zerra.Serialization
                         return;
                     }
 
-                    if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out string name, out sizeNeeded))
+                    if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out var name, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
@@ -1184,7 +1189,7 @@ namespace Zerra.Serialization
                     {
                         case ByteSerializerIndexSize.Byte:
                             {
-                                if (!reader.TryReadByte(out byte value, out int sizeNeeded))
+                                if (!reader.TryReadByte(out var value, out var sizeNeeded))
                                 {
                                     state.BytesNeeded = sizeNeeded;
                                     return;
@@ -1194,7 +1199,7 @@ namespace Zerra.Serialization
                             }
                         case ByteSerializerIndexSize.UInt16:
                             {
-                                if (!reader.TryReadUInt16(out ushort value, out int sizeNeeded))
+                                if (!reader.TryReadUInt16(out var value, out var sizeNeeded))
                                 {
                                     state.BytesNeeded = sizeNeeded;
                                     return;
@@ -1245,7 +1250,7 @@ namespace Zerra.Serialization
             int sizeNeeded;
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
-                if (!reader.TryReadInt32(out int value, out sizeNeeded))
+                if (!reader.TryReadInt32(out var value, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
                     return;
@@ -1261,7 +1266,7 @@ namespace Zerra.Serialization
                 {
                     case CoreType.Boolean:
                         {
-                            if (!reader.TryReadBooleanList(length, out List<bool> value, out sizeNeeded))
+                            if (!reader.TryReadBooleanList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1271,7 +1276,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Byte:
                         {
-                            if (!reader.TryReadByteList(length, out List<byte> value, out sizeNeeded))
+                            if (!reader.TryReadByteList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1281,7 +1286,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.SByte:
                         {
-                            if (!reader.TryReadSByteList(length, out List<sbyte> value, out sizeNeeded))
+                            if (!reader.TryReadSByteList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1291,7 +1296,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int16:
                         {
-                            if (!reader.TryReadInt16List(length, out List<short> value, out sizeNeeded))
+                            if (!reader.TryReadInt16List(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1301,7 +1306,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt16:
                         {
-                            if (!reader.TryReadUInt16List(length, out List<ushort> value, out sizeNeeded))
+                            if (!reader.TryReadUInt16List(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1311,7 +1316,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int32:
                         {
-                            if (!reader.TryReadInt32List(length, out List<int> value, out sizeNeeded))
+                            if (!reader.TryReadInt32List(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1321,7 +1326,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt32:
                         {
-                            if (!reader.TryReadUInt32List(length, out List<uint> value, out sizeNeeded))
+                            if (!reader.TryReadUInt32List(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1331,7 +1336,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int64:
                         {
-                            if (!reader.TryReadInt64List(length, out List<long> value, out sizeNeeded))
+                            if (!reader.TryReadInt64List(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1341,7 +1346,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt64:
                         {
-                            if (!reader.TryReadUInt64List(length, out List<ulong> value, out sizeNeeded))
+                            if (!reader.TryReadUInt64List(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1351,7 +1356,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Single:
                         {
-                            if (!reader.TryReadSingleList(length, out List<float> value, out sizeNeeded))
+                            if (!reader.TryReadSingleList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1361,7 +1366,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Double:
                         {
-                            if (!reader.TryReadDoubleList(length, out List<double> value, out sizeNeeded))
+                            if (!reader.TryReadDoubleList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1371,7 +1376,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Decimal:
                         {
-                            if (!reader.TryReadDecimalList(length, out List<decimal> value, out sizeNeeded))
+                            if (!reader.TryReadDecimalList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1381,7 +1386,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Char:
                         {
-                            if (!reader.TryReadCharList(length, out List<char> value, out sizeNeeded))
+                            if (!reader.TryReadCharList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1391,7 +1396,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.DateTime:
                         {
-                            if (!reader.TryReadDateTimeList(length, out List<DateTime> value, out sizeNeeded))
+                            if (!reader.TryReadDateTimeList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1401,7 +1406,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.DateTimeOffset:
                         {
-                            if (!reader.TryReadDateTimeOffsetList(length, out List<DateTimeOffset> value, out sizeNeeded))
+                            if (!reader.TryReadDateTimeOffsetList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1411,7 +1416,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.TimeSpan:
                         {
-                            if (!reader.TryReadTimeSpanList(length, out List<TimeSpan> value, out sizeNeeded))
+                            if (!reader.TryReadTimeSpanList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1421,7 +1426,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Guid:
                         {
-                            if (!reader.TryReadGuidList(length, out List<Guid> value, out sizeNeeded))
+                            if (!reader.TryReadGuidList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1432,7 +1437,7 @@ namespace Zerra.Serialization
 
                     case CoreType.BooleanNullable:
                         {
-                            if (!reader.TryReadBooleanNullableList(length, out List<bool?> value, out sizeNeeded))
+                            if (!reader.TryReadBooleanNullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1442,7 +1447,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.ByteNullable:
                         {
-                            if (!reader.TryReadByteNullableList(length, out List<byte?> value, out sizeNeeded))
+                            if (!reader.TryReadByteNullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1452,7 +1457,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.SByteNullable:
                         {
-                            if (!reader.TryReadSByteNullableList(length, out List<sbyte?> value, out sizeNeeded))
+                            if (!reader.TryReadSByteNullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1462,7 +1467,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int16Nullable:
                         {
-                            if (!reader.TryReadInt16NullableList(length, out List<short?> value, out sizeNeeded))
+                            if (!reader.TryReadInt16NullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1472,7 +1477,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt16Nullable:
                         {
-                            if (!reader.TryReadUInt16NullableList(length, out List<ushort?> value, out sizeNeeded))
+                            if (!reader.TryReadUInt16NullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1482,7 +1487,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int32Nullable:
                         {
-                            if (!reader.TryReadInt32NullableList(length, out List<int?> value, out sizeNeeded))
+                            if (!reader.TryReadInt32NullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1492,7 +1497,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt32Nullable:
                         {
-                            if (!reader.TryReadUInt32NullableList(length, out List<uint?> value, out sizeNeeded))
+                            if (!reader.TryReadUInt32NullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1502,7 +1507,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int64Nullable:
                         {
-                            if (!reader.TryReadInt64NullableList(length, out List<long?> value, out sizeNeeded))
+                            if (!reader.TryReadInt64NullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1512,7 +1517,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt64Nullable:
                         {
-                            if (!reader.TryReadUInt64NullableList(length, out List<ulong?> value, out sizeNeeded))
+                            if (!reader.TryReadUInt64NullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1522,7 +1527,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.SingleNullable:
                         {
-                            if (!reader.TryReadSingleNullableList(length, out List<float?> value, out sizeNeeded))
+                            if (!reader.TryReadSingleNullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1532,7 +1537,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.DoubleNullable:
                         {
-                            if (!reader.TryReadDoubleNullableList(length, out List<double?> value, out sizeNeeded))
+                            if (!reader.TryReadDoubleNullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1542,7 +1547,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.DecimalNullable:
                         {
-                            if (!reader.TryReadDecimalNullableList(length, out List<decimal?> value, out sizeNeeded))
+                            if (!reader.TryReadDecimalNullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1552,7 +1557,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.CharNullable:
                         {
-                            if (!reader.TryReadCharNullableList(length, out List<char?> value, out sizeNeeded))
+                            if (!reader.TryReadCharNullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1562,7 +1567,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.DateTimeNullable:
                         {
-                            if (!reader.TryReadDateTimeNullableList(length, out List<DateTime?> value, out sizeNeeded))
+                            if (!reader.TryReadDateTimeNullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1572,7 +1577,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.DateTimeOffsetNullable:
                         {
-                            if (!reader.TryReadDateTimeOffsetNullableList(length, out List<DateTimeOffset?> value, out sizeNeeded))
+                            if (!reader.TryReadDateTimeOffsetNullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1582,7 +1587,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.TimeSpanNullable:
                         {
-                            if (!reader.TryReadTimeSpanNullableList(length, out List<TimeSpan?> value, out sizeNeeded))
+                            if (!reader.TryReadTimeSpanNullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1592,7 +1597,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.GuidNullable:
                         {
-                            if (!reader.TryReadGuidNullableList(length, out List<Guid?> value, out sizeNeeded))
+                            if (!reader.TryReadGuidNullableList(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1617,7 +1622,7 @@ namespace Zerra.Serialization
                             {
                                 if (!state.CurrentFrame.StringLength.HasValue)
                                 {
-                                    if (!reader.TryReadStringLength(true, out int? stringLength, out sizeNeeded))
+                                    if (!reader.TryReadStringLength(true, out var stringLength, out sizeNeeded))
                                     {
                                         state.BytesNeeded = sizeNeeded;
                                         return;
@@ -1666,7 +1671,7 @@ namespace Zerra.Serialization
                 {
                     case CoreType.Boolean:
                         {
-                            if (!reader.TryReadBooleanArray(length, out bool[] value, out sizeNeeded))
+                            if (!reader.TryReadBooleanArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1676,7 +1681,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Byte:
                         {
-                            if (!reader.TryReadByteArray(length, out byte[] value, out sizeNeeded))
+                            if (!reader.TryReadByteArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1686,7 +1691,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.SByte:
                         {
-                            if (!reader.TryReadSByteArray(length, out sbyte[] value, out sizeNeeded))
+                            if (!reader.TryReadSByteArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1696,7 +1701,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int16:
                         {
-                            if (!reader.TryReadInt16Array(length, out short[] value, out sizeNeeded))
+                            if (!reader.TryReadInt16Array(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1706,7 +1711,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt16:
                         {
-                            if (!reader.TryReadUInt16Array(length, out ushort[] value, out sizeNeeded))
+                            if (!reader.TryReadUInt16Array(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1716,7 +1721,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int32:
                         {
-                            if (!reader.TryReadInt32Array(length, out int[] value, out sizeNeeded))
+                            if (!reader.TryReadInt32Array(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1726,7 +1731,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt32:
                         {
-                            if (!reader.TryReadUInt32Array(length, out uint[] value, out sizeNeeded))
+                            if (!reader.TryReadUInt32Array(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1736,7 +1741,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int64:
                         {
-                            if (!reader.TryReadInt64Array(length, out long[] value, out sizeNeeded))
+                            if (!reader.TryReadInt64Array(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1746,7 +1751,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt64:
                         {
-                            if (!reader.TryReadUInt64Array(length, out ulong[] value, out sizeNeeded))
+                            if (!reader.TryReadUInt64Array(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1756,7 +1761,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Single:
                         {
-                            if (!reader.TryReadSingleArray(length, out float[] value, out sizeNeeded))
+                            if (!reader.TryReadSingleArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1766,7 +1771,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Double:
                         {
-                            if (!reader.TryReadDoubleArray(length, out double[] value, out sizeNeeded))
+                            if (!reader.TryReadDoubleArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1776,7 +1781,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Decimal:
                         {
-                            if (!reader.TryReadDecimalArray(length, out decimal[] value, out sizeNeeded))
+                            if (!reader.TryReadDecimalArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1786,7 +1791,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Char:
                         {
-                            if (!reader.TryReadCharArray(length, out char[] value, out sizeNeeded))
+                            if (!reader.TryReadCharArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1796,7 +1801,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.DateTime:
                         {
-                            if (!reader.TryReadDateTimeArray(length, out DateTime[] value, out sizeNeeded))
+                            if (!reader.TryReadDateTimeArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1806,7 +1811,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.DateTimeOffset:
                         {
-                            if (!reader.TryReadDateTimeOffsetArray(length, out DateTimeOffset[] value, out sizeNeeded))
+                            if (!reader.TryReadDateTimeOffsetArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1816,7 +1821,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.TimeSpan:
                         {
-                            if (!reader.TryReadTimeSpanArray(length, out TimeSpan[] value, out sizeNeeded))
+                            if (!reader.TryReadTimeSpanArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1826,7 +1831,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Guid:
                         {
-                            if (!reader.TryReadGuidArray(length, out Guid[] value, out sizeNeeded))
+                            if (!reader.TryReadGuidArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1837,7 +1842,7 @@ namespace Zerra.Serialization
 
                     case CoreType.BooleanNullable:
                         {
-                            if (!reader.TryReadBooleanNullableArray(length, out bool?[] value, out sizeNeeded))
+                            if (!reader.TryReadBooleanNullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1847,7 +1852,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.ByteNullable:
                         {
-                            if (!reader.TryReadByteNullableArray(length, out byte?[] value, out sizeNeeded))
+                            if (!reader.TryReadByteNullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1857,7 +1862,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.SByteNullable:
                         {
-                            if (!reader.TryReadSByteNullableArray(length, out sbyte?[] value, out sizeNeeded))
+                            if (!reader.TryReadSByteNullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1867,7 +1872,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int16Nullable:
                         {
-                            if (!reader.TryReadInt16NullableArray(length, out short?[] value, out sizeNeeded))
+                            if (!reader.TryReadInt16NullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1877,7 +1882,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt16Nullable:
                         {
-                            if (!reader.TryReadUInt16NullableArray(length, out ushort?[] value, out sizeNeeded))
+                            if (!reader.TryReadUInt16NullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1887,7 +1892,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int32Nullable:
                         {
-                            if (!reader.TryReadInt32NullableArray(length, out int?[] value, out sizeNeeded))
+                            if (!reader.TryReadInt32NullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1897,7 +1902,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt32Nullable:
                         {
-                            if (!reader.TryReadUInt32NullableArray(length, out uint?[] value, out sizeNeeded))
+                            if (!reader.TryReadUInt32NullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1907,7 +1912,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int64Nullable:
                         {
-                            if (!reader.TryReadInt64NullableArray(length, out long?[] value, out sizeNeeded))
+                            if (!reader.TryReadInt64NullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1917,7 +1922,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt64Nullable:
                         {
-                            if (!reader.TryReadUInt64NullableArray(length, out ulong?[] value, out sizeNeeded))
+                            if (!reader.TryReadUInt64NullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1927,7 +1932,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.SingleNullable:
                         {
-                            if (!reader.TryReadSingleNullableArray(length, out float?[] value, out sizeNeeded))
+                            if (!reader.TryReadSingleNullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1937,7 +1942,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.DoubleNullable:
                         {
-                            if (!reader.TryReadDoubleNullableArray(length, out double?[] value, out sizeNeeded))
+                            if (!reader.TryReadDoubleNullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1947,7 +1952,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.DecimalNullable:
                         {
-                            if (!reader.TryReadDecimalNullableArray(length, out decimal?[] value, out sizeNeeded))
+                            if (!reader.TryReadDecimalNullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1957,7 +1962,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.CharNullable:
                         {
-                            if (!reader.TryReadCharNullableArray(length, out char?[] value, out sizeNeeded))
+                            if (!reader.TryReadCharNullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1967,7 +1972,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.DateTimeNullable:
                         {
-                            if (!reader.TryReadDateTimeNullableArray(length, out DateTime?[] value, out sizeNeeded))
+                            if (!reader.TryReadDateTimeNullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1977,7 +1982,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.DateTimeOffsetNullable:
                         {
-                            if (!reader.TryReadDateTimeOffsetNullableArray(length, out DateTimeOffset?[] value, out sizeNeeded))
+                            if (!reader.TryReadDateTimeOffsetNullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1987,7 +1992,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.TimeSpanNullable:
                         {
-                            if (!reader.TryReadTimeSpanNullableArray(length, out TimeSpan?[] value, out sizeNeeded))
+                            if (!reader.TryReadTimeSpanNullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -1997,7 +2002,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.GuidNullable:
                         {
-                            if (!reader.TryReadGuidNullableArray(length, out Guid?[] value, out sizeNeeded))
+                            if (!reader.TryReadGuidNullableArray(length, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2022,7 +2027,7 @@ namespace Zerra.Serialization
                             {
                                 if (!state.CurrentFrame.StringLength.HasValue)
                                 {
-                                    if (!reader.TryReadStringLength(true, out int? stringLength, out sizeNeeded))
+                                    if (!reader.TryReadStringLength(true, out var stringLength, out sizeNeeded))
                                     {
                                         state.BytesNeeded = sizeNeeded;
                                         return;
@@ -2115,7 +2120,7 @@ namespace Zerra.Serialization
                 {
                     case CoreType.Byte:
                         {
-                            if (!reader.TryReadByte(out byte value, out sizeNeeded))
+                            if (!reader.TryReadByte(out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2125,7 +2130,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.SByte:
                         {
-                            if (!reader.TryReadSByte(out sbyte value, out sizeNeeded))
+                            if (!reader.TryReadSByte(out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2135,7 +2140,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int16:
                         {
-                            if (!reader.TryReadInt16(out short value, out sizeNeeded))
+                            if (!reader.TryReadInt16(out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2145,7 +2150,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt16:
                         {
-                            if (!reader.TryReadUInt16(out ushort value, out sizeNeeded))
+                            if (!reader.TryReadUInt16(out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2155,7 +2160,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int32:
                         {
-                            if (!reader.TryReadInt32(out int value, out sizeNeeded))
+                            if (!reader.TryReadInt32(out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2165,7 +2170,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt32:
                         {
-                            if (!reader.TryReadUInt32(out uint value, out sizeNeeded))
+                            if (!reader.TryReadUInt32(out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2175,7 +2180,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int64:
                         {
-                            if (!reader.TryReadInt64(out long value, out sizeNeeded))
+                            if (!reader.TryReadInt64(out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2185,7 +2190,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt64:
                         {
-                            if (!reader.TryReadUInt64(out ulong value, out sizeNeeded))
+                            if (!reader.TryReadUInt64(out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2195,7 +2200,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.ByteNullable:
                         {
-                            if (!reader.TryReadByteNullable(nullFlags, out byte? value, out sizeNeeded))
+                            if (!reader.TryReadByteNullable(nullFlags, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2205,7 +2210,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.SByteNullable:
                         {
-                            if (!reader.TryReadSByteNullable(nullFlags, out sbyte? value, out sizeNeeded))
+                            if (!reader.TryReadSByteNullable(nullFlags, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2215,7 +2220,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int16Nullable:
                         {
-                            if (!reader.TryReadInt16Nullable(nullFlags, out short? value, out sizeNeeded))
+                            if (!reader.TryReadInt16Nullable(nullFlags, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2225,7 +2230,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt16Nullable:
                         {
-                            if (!reader.TryReadUInt16Nullable(nullFlags, out ushort? value, out sizeNeeded))
+                            if (!reader.TryReadUInt16Nullable(nullFlags, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2235,7 +2240,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int32Nullable:
                         {
-                            if (!reader.TryReadInt32Nullable(nullFlags, out int? value, out sizeNeeded))
+                            if (!reader.TryReadInt32Nullable(nullFlags, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2245,7 +2250,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt32Nullable:
                         {
-                            if (!reader.TryReadUInt32Nullable(nullFlags, out uint? value, out sizeNeeded))
+                            if (!reader.TryReadUInt32Nullable(nullFlags, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2255,7 +2260,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.Int64Nullable:
                         {
-                            if (!reader.TryReadInt64Nullable(nullFlags, out long? value, out sizeNeeded))
+                            if (!reader.TryReadInt64Nullable(nullFlags, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2265,7 +2270,7 @@ namespace Zerra.Serialization
                         }
                     case CoreType.UInt64Nullable:
                         {
-                            if (!reader.TryReadUInt64Nullable(nullFlags, out ulong? value, out sizeNeeded))
+                            if (!reader.TryReadUInt64Nullable(nullFlags, out var value, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
@@ -2349,7 +2354,7 @@ namespace Zerra.Serialization
             {
                 if (!state.CurrentFrame.HasNullChecked)
                 {
-                    if (!reader.TryReadIsNull(out bool isNull, out sizeNeeded))
+                    if (!reader.TryReadIsNull(out var isNull, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;

@@ -24,7 +24,7 @@ namespace Zerra.Identity.Cryptography
                 throw new ArgumentNullException(nameof(key));
             }
 
-            RSAPKCS1SignatureDeformatter deformatter = new RSAPKCS1SignatureDeformatter(key);
+            var deformatter = new RSAPKCS1SignatureDeformatter(key);
             deformatter.SetHashAlgorithm("SHA512");
             return deformatter;
         }
@@ -36,7 +36,7 @@ namespace Zerra.Identity.Cryptography
                 throw new ArgumentNullException(nameof(key));
             }
 
-            RSAPKCS1SignatureFormatter formatter = new RSAPKCS1SignatureFormatter(key);
+            var formatter = new RSAPKCS1SignatureFormatter(key);
             formatter.SetHashAlgorithm("SHA512");
             return formatter;
         }

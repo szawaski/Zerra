@@ -8,8 +8,10 @@ public static class ArrayExtensions
     public static T[] ConcatToArray<T>(this T[] it, params T[] array) { return ConcatToArray(it, it.Length, array); }
     public static T[] ConcatToArray<T>(this T[] it, int start, params T[] array)
     {
-        if (start < 0) throw new ArgumentException("start cannot be less than zero");
-        if (start > it.Length) throw new ArgumentException("start cannot be greater than the array length");
+        if (start < 0)
+            throw new ArgumentException("start cannot be less than zero");
+        if (start > it.Length)
+            throw new ArgumentException("start cannot be greater than the array length");
 
         var newArray = Array.CreateInstance(typeof(T), it.Length + array.Length);
         if (start > 0)
@@ -22,19 +24,19 @@ public static class ArrayExtensions
 
     public static unsafe bool BytesEquals(this byte[] strA, byte[] strB)
     {
-        int length = strA.Length;
+        var length = strA.Length;
         if (length != strB.Length)
         {
             return false;
         }
         fixed (byte* str = strA)
         {
-            byte* chPtr = str;
+            var chPtr = str;
             fixed (byte* str2 = strB)
             {
-                byte* chPtr2 = str2;
-                byte* chPtr3 = chPtr;
-                byte* chPtr4 = chPtr2;
+                var chPtr2 = str2;
+                var chPtr3 = chPtr;
+                var chPtr4 = chPtr2;
                 while (length >= 10)
                 {
                     if ((((*(((int*)chPtr3)) != *(((int*)chPtr4))) || (*(((int*)(chPtr3 + 2))) != *(((int*)(chPtr4 + 2))))) || ((*(((int*)(chPtr3 + 4))) != *(((int*)(chPtr4 + 4)))) || (*(((int*)(chPtr3 + 6))) != *(((int*)(chPtr4 + 6)))))) || (*(((int*)(chPtr3 + 8))) != *(((int*)(chPtr4 + 8)))))

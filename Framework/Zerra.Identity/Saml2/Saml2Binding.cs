@@ -106,7 +106,7 @@ namespace Zerra.Identity.Saml2
         }
         protected static DateTimeOffset? EntityDescriptorValidUntil(XmlElement element)
         {
-            string value = element?.GetAttribute("validUntil");
+            var value = element?.GetAttribute("validUntil");
             return !String.IsNullOrWhiteSpace(value) ? DateTimeOffset.Parse(value) : (DateTimeOffset?)null;
         }
         protected static string SubjectRecipient(XmlElement element)
@@ -130,7 +130,7 @@ namespace Zerra.Identity.Saml2
         }
         protected static string AuthnRequestAssertionConsumerServiceURL(XmlElement element)
         {
-            string value = element?.GetAttribute("AssertionConsumerServiceURL");
+            var value = element?.GetAttribute("AssertionConsumerServiceURL");
             return value;
         }
     }

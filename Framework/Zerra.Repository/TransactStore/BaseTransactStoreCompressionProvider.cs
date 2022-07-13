@@ -54,12 +54,12 @@ namespace Zerra.Repository
                 {
                     if (property.TypeDetail.CoreType == CoreType.String)
                     {
-                        string compressed = (string)property.Getter(model);
+                        var compressed = (string)property.Getter(model);
                         if (compressed != null)
                         {
                             try
                             {
-                                string plain = CompressionCommon.DecompressGZip(compressed);
+                                var plain = CompressionCommon.DecompressGZip(compressed);
                                 property.Setter(model, plain);
                             }
                             catch { }
@@ -67,12 +67,12 @@ namespace Zerra.Repository
                     }
                     else if (property.Type == typeof(byte[]))
                     {
-                        byte[] compressed = (byte[])property.Getter(model);
+                        var compressed = (byte[])property.Getter(model);
                         if (compressed != null)
                         {
                             try
                             {
-                                byte[] plain = CompressionCommon.DecompressGZip(compressed);
+                                var plain = CompressionCommon.DecompressGZip(compressed);
                                 property.Setter(model, plain);
                             }
                             catch { }
@@ -97,7 +97,7 @@ namespace Zerra.Repository
             if (newCopy)
                 models = Mapper.Map<ICollection<TModel>, TModel[]>(models, graph);
 
-            foreach (TModel model in models)
+            foreach (var model in models)
             {
                 foreach (var property in properties)
                 {
@@ -105,12 +105,12 @@ namespace Zerra.Repository
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
-                            string compressed = (string)property.Getter(model);
+                            var compressed = (string)property.Getter(model);
                             if (compressed != null)
                             {
                                 try
                                 {
-                                    string plain = CompressionCommon.DecompressGZip(compressed);
+                                    var plain = CompressionCommon.DecompressGZip(compressed);
                                     property.Setter(model, plain);
                                 }
                                 catch { }
@@ -118,12 +118,12 @@ namespace Zerra.Repository
                         }
                         else if (property.Type == typeof(byte[]))
                         {
-                            byte[] compressed = (byte[])property.Getter(model);
+                            var compressed = (byte[])property.Getter(model);
                             if (compressed != null)
                             {
                                 try
                                 {
-                                    byte[] plain = CompressionCommon.DecompressGZip(compressed);
+                                    var plain = CompressionCommon.DecompressGZip(compressed);
                                     property.Setter(model, plain);
                                 }
                                 catch { }
@@ -143,14 +143,14 @@ namespace Zerra.Repository
 
         public override sealed ICollection<TModel> OnGetIncludingBase(ICollection<TModel> models, Graph<TModel> graph)
         {
-            ICollection<TModel> returnModels1 = DecompressModels(models, graph, false);
-            ICollection<TModel> returnModels2 = ProviderRelation.OnGetIncludingBase(returnModels1, graph);
+            var returnModels1 = DecompressModels(models, graph, false);
+            var returnModels2 = ProviderRelation.OnGetIncludingBase(returnModels1, graph);
             return returnModels2;
         }
         public override sealed async Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel> graph)
         {
-            ICollection<TModel> returnModels1 = DecompressModels(models, graph, false);
-            ICollection<TModel> returnModels2 = await ProviderRelation.OnGetIncludingBaseAsync(returnModels1, graph);
+            var returnModels1 = DecompressModels(models, graph, false);
+            var returnModels2 = await ProviderRelation.OnGetIncludingBaseAsync(returnModels1, graph);
             return returnModels2;
         }
 
@@ -239,7 +239,7 @@ namespace Zerra.Repository
 
             var compressedModels = eventModels.Select(x => x.Model).ToArray();
             var models = DecompressModels(compressedModels, query.Graph, true);
-            int i = 0;
+            var i = 0;
             foreach (var eventModel in eventModels)
             {
                 eventModel.Model = compressedModels[i];
@@ -334,7 +334,7 @@ namespace Zerra.Repository
 
             var compressedModels = eventModels.Select(x => x.Model).ToArray();
             var models = DecompressModels(compressedModels, query.Graph, true);
-            int i = 0;
+            var i = 0;
             foreach (var eventModel in eventModels)
             {
                 eventModel.Model = compressedModels[i];
@@ -361,7 +361,7 @@ namespace Zerra.Repository
             if (newCopy)
                 models = Mapper.Map<TModel[], TModel[]>(models, graph);
 
-            foreach (TModel model in models)
+            foreach (var model in models)
             {
                 foreach (var property in properties)
                 {
@@ -369,19 +369,19 @@ namespace Zerra.Repository
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
-                            string plain = (string)property.Getter(model);
+                            var plain = (string)property.Getter(model);
                             if (plain != null)
                             {
-                                string compressed = CompressionCommon.CompressGZip(plain);
+                                var compressed = CompressionCommon.CompressGZip(plain);
                                 property.Setter(model, compressed);
                             }
                         }
                         else if (property.Type == typeof(byte[]))
                         {
-                            byte[] plain = (byte[])property.Getter(model);
+                            var plain = (byte[])property.Getter(model);
                             if (plain != null)
                             {
-                                byte[] compressed = CompressionCommon.CompressGZip(plain);
+                                var compressed = CompressionCommon.CompressGZip(plain);
                                 property.Setter(model, compressed);
                             }
                         }
@@ -396,12 +396,12 @@ namespace Zerra.Repository
             if (persist.Models.Length == 0)
                 return;
 
-            TModel[] compressedModels = CompressModels(persist.Models, persist.Graph, true);
+            var compressedModels = CompressModels(persist.Models, persist.Graph, true);
             NextProvider.Persist(new Create<TModel>(persist.Event, compressedModels, persist.Graph));
 
             for (var i = 0; i < persist.Models.Length; i++)
             {
-                object identity = ModelAnalyzer.GetIdentity(compressedModels[i]);
+                var identity = ModelAnalyzer.GetIdentity(compressedModels[i]);
                 ModelAnalyzer.SetIdentity(persist.Models[i], identity);
             }
         }
@@ -423,12 +423,12 @@ namespace Zerra.Repository
             if (persist.Models.Length == 0)
                 return;
 
-            TModel[] compressedModels = CompressModels(persist.Models, persist.Graph, true);
+            var compressedModels = CompressModels(persist.Models, persist.Graph, true);
             await NextProvider.PersistAsync(new Create<TModel>(persist.Event, compressedModels, persist.Graph));
 
             for (var i = 0; i < persist.Models.Length; i++)
             {
-                object identity = ModelAnalyzer.GetIdentity(compressedModels[i]);
+                var identity = ModelAnalyzer.GetIdentity(compressedModels[i]);
                 ModelAnalyzer.SetIdentity(persist.Models[i], identity);
             }
         }

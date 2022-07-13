@@ -511,8 +511,8 @@ namespace Zerra.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public long ReadInt64()
         {
-            uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             return (long)((ulong)hi) << 32 | lo;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -523,8 +523,8 @@ namespace Zerra.IO
                 if (buffer[position++] == nullByte)
                     return null;
             }
-            uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             return (long)((ulong)hi) << 32 | lo;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -533,8 +533,8 @@ namespace Zerra.IO
             var array = new long[length];
             for (var i = 0; i < length; i++)
             {
-                uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = (long)((ulong)hi) << 32 | lo;
                 array[i] = item;
             }
@@ -546,8 +546,8 @@ namespace Zerra.IO
             var list = new List<long>(length);
             for (var i = 0; i < length; i++)
             {
-                uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = (long)((ulong)hi) << 32 | lo;
                 list.Add(item);
             }
@@ -561,8 +561,8 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = (long)((ulong)hi) << 32 | lo;
                     array[i] = item;
                 }
@@ -577,8 +577,8 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = (long)((ulong)hi) << 32 | lo;
                     list.Add(item);
                 }
@@ -593,8 +593,8 @@ namespace Zerra.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ulong ReadUInt64()
         {
-            uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             return ((ulong)hi) << 32 | lo;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -605,8 +605,8 @@ namespace Zerra.IO
                 if (buffer[position++] == nullByte)
                     return null;
             }
-            uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             return ((ulong)hi) << 32 | lo;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -615,8 +615,8 @@ namespace Zerra.IO
             var array = new ulong[length];
             for (var i = 0; i < length; i++)
             {
-                uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = ((ulong)hi) << 32 | lo;
                 array[i] = item;
             }
@@ -628,8 +628,8 @@ namespace Zerra.IO
             var list = new List<ulong>(length);
             for (var i = 0; i < length; i++)
             {
-                uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = ((ulong)hi) << 32 | lo;
                 list.Add(item);
             }
@@ -643,8 +643,8 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = ((ulong)hi) << 32 | lo;
                     array[i] = item;
                 }
@@ -659,8 +659,8 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = ((ulong)hi) << 32 | lo;
                     list.Add(item);
                 }
@@ -675,7 +675,7 @@ namespace Zerra.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe float ReadSingle()
         {
-            uint tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             return *((float*)&tmpBuffer);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -686,7 +686,7 @@ namespace Zerra.IO
                 if (buffer[position++] == nullByte)
                     return null;
             }
-            uint tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             return *((float*)&tmpBuffer);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -695,7 +695,7 @@ namespace Zerra.IO
             var array = new float[length];
             for (var i = 0; i < length; i++)
             {
-                uint tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = *((float*)&tmpBuffer);
                 array[i] = item;
             }
@@ -707,7 +707,7 @@ namespace Zerra.IO
             var list = new List<float>(length);
             for (var i = 0; i < length; i++)
             {
-                uint tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = *((float*)&tmpBuffer);
                 list.Add(item);
             }
@@ -721,7 +721,7 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    uint tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = *((float*)&tmpBuffer);
                     array[i] = item;
                 }
@@ -736,7 +736,7 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    uint tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = *((float*)&tmpBuffer);
                     list.Add(item);
                 }
@@ -751,9 +751,9 @@ namespace Zerra.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe double ReadDouble()
         {
-            uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            ulong tmpBuffer = ((ulong)hi) << 32 | lo;
+            var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var tmpBuffer = ((ulong)hi) << 32 | lo;
             return *((double*)&tmpBuffer);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -764,9 +764,9 @@ namespace Zerra.IO
                 if (buffer[position++] == nullByte)
                     return null;
             }
-            uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            ulong tmpBuffer = ((ulong)hi) << 32 | lo;
+            var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var tmpBuffer = ((ulong)hi) << 32 | lo;
             return *((double*)&tmpBuffer);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -775,9 +775,9 @@ namespace Zerra.IO
             var array = new double[length];
             for (var i = 0; i < length; i++)
             {
-                uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                ulong tmpBuffer = ((ulong)hi) << 32 | lo;
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var tmpBuffer = ((ulong)hi) << 32 | lo;
                 var item = *((double*)&tmpBuffer);
                 array[i] = item;
             }
@@ -789,9 +789,9 @@ namespace Zerra.IO
             var list = new List<double>(length);
             for (var i = 0; i < length; i++)
             {
-                uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                ulong tmpBuffer = ((ulong)hi) << 32 | lo;
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var tmpBuffer = ((ulong)hi) << 32 | lo;
                 var item = *((double*)&tmpBuffer);
                 list.Add(item);
             }
@@ -805,9 +805,9 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    ulong tmpBuffer = ((ulong)hi) << 32 | lo;
+                    var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var tmpBuffer = ((ulong)hi) << 32 | lo;
                     var item = *((double*)&tmpBuffer);
                     array[i] = item;
                 }
@@ -822,9 +822,9 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    ulong tmpBuffer = ((ulong)hi) << 32 | lo;
+                    var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var tmpBuffer = ((ulong)hi) << 32 | lo;
                     var item = *((double*)&tmpBuffer);
                     list.Add(item);
                 }
@@ -839,10 +839,10 @@ namespace Zerra.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public decimal ReadDecimal()
         {
-            int lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-            int mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-            int hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-            int flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+            var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+            var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+            var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+            var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             return new Decimal(new int[] { lo, mid, hi, flags });
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -853,10 +853,10 @@ namespace Zerra.IO
                 if (buffer[position++] == nullByte)
                     return null;
             }
-            int lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-            int mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-            int hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-            int flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+            var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+            var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+            var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+            var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             return new Decimal(new int[] { lo, mid, hi, flags });
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -865,10 +865,10 @@ namespace Zerra.IO
             var array = new decimal[length];
             for (var i = 0; i < length; i++)
             {
-                int lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                int mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                int hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                int flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var item = new Decimal(new int[] { lo, mid, hi, flags });
                 array[i] = item;
             }
@@ -880,10 +880,10 @@ namespace Zerra.IO
             var list = new List<decimal>(length);
             for (var i = 0; i < length; i++)
             {
-                int lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                int mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                int hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                int flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var item = new Decimal(new int[] { lo, mid, hi, flags });
                 list.Add(item);
             }
@@ -897,10 +897,10 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    int lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                    int mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                    int hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                    int flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                    var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                    var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                    var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                    var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var item = new Decimal(new int[] { lo, mid, hi, flags });
                     array[i] = item;
                 }
@@ -915,10 +915,10 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    int lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                    int mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                    int hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                    int flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                    var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                    var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                    var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                    var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var item = new Decimal(new int[] { lo, mid, hi, flags });
                     list.Add(item);
                 }
@@ -933,8 +933,8 @@ namespace Zerra.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public DateTime ReadDateTime()
         {
-            uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
             return new DateTime(ticks);
         }
@@ -946,8 +946,8 @@ namespace Zerra.IO
                 if (buffer[position++] == nullByte)
                     return null;
             }
-            uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
             return new DateTime(ticks);
         }
@@ -957,8 +957,8 @@ namespace Zerra.IO
             var array = new DateTime[length];
             for (var i = 0; i < length; i++)
             {
-                uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var item = new DateTime(ticks);
                 array[i] = item;
@@ -971,8 +971,8 @@ namespace Zerra.IO
             var list = new List<DateTime>(length);
             for (var i = 0; i < length; i++)
             {
-                uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var item = new DateTime(ticks);
                 list.Add(item);
@@ -987,8 +987,8 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var item = new DateTime(ticks);
                     array[i] = item;
@@ -1004,8 +1004,8 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var item = new DateTime(ticks);
                     list.Add(item);
@@ -1021,8 +1021,8 @@ namespace Zerra.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public DateTimeOffset ReadDateTimeOffset()
         {
-            uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
             var offset = (short)(buffer[position++] | buffer[position++] << 8);
             return new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
@@ -1035,8 +1035,8 @@ namespace Zerra.IO
                 if (buffer[position++] == nullByte)
                     return null;
             }
-            uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
             var offset = (short)(buffer[position++] | buffer[position++] << 8);
             return new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
@@ -1047,8 +1047,8 @@ namespace Zerra.IO
             var array = new DateTimeOffset[length];
             for (var i = 0; i < length; i++)
             {
-                uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var offset = (short)(buffer[position++] | buffer[position++] << 8);
                 var item = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
@@ -1062,8 +1062,8 @@ namespace Zerra.IO
             var list = new List<DateTimeOffset>(length);
             for (var i = 0; i < length; i++)
             {
-                uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var offset = (short)(buffer[position++] | buffer[position++] << 8);
                 var item = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
@@ -1079,8 +1079,8 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var offset = (short)(buffer[position++] | buffer[position++] << 8);
                     var item = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
@@ -1097,8 +1097,8 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var offset = (short)(buffer[position++] | buffer[position++] << 8);
                     var item = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
@@ -1115,8 +1115,8 @@ namespace Zerra.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TimeSpan ReadTimeSpan()
         {
-            uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
             return new TimeSpan(ticks);
         }
@@ -1128,8 +1128,8 @@ namespace Zerra.IO
                 if (buffer[position++] == nullByte)
                     return null;
             }
-            uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
             return new TimeSpan(ticks);
         }
@@ -1139,8 +1139,8 @@ namespace Zerra.IO
             var array = new TimeSpan[length];
             for (var i = 0; i < length; i++)
             {
-                uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var item = new TimeSpan(ticks);
                 array[i] = item;
@@ -1153,8 +1153,8 @@ namespace Zerra.IO
             var list = new List<TimeSpan>(length);
             for (var i = 0; i < length; i++)
             {
-                uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var item = new TimeSpan(ticks);
                 list.Add(item);
@@ -1169,8 +1169,8 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var item = new TimeSpan(ticks);
                     array[i] = item;
@@ -1186,8 +1186,8 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    uint lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    uint hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var item = new TimeSpan(ticks);
                     list.Add(item);

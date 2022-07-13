@@ -29,7 +29,7 @@ namespace Zerra.Encryption
                     passwordChars.AddRange(passwordCharactersSpecial);
 
                 var chars = new char[length];
-                for (int x = 0; x < length; x++)
+                for (var x = 0; x < length; x++)
                 {
                     var random = GetRandomNumber(rng, 0, passwordChars.Count);
                     chars[x] = passwordChars[random];

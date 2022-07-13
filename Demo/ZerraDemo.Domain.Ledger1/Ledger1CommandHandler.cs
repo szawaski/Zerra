@@ -17,13 +17,14 @@ namespace ZerraDemo.Domain.Ledger1
         {
             Access.CheckRole("Admin");
 
-            if (command.Amount < 0) throw new ArgumentException("Invalid Amount");
+            if (command.Amount < 0)
+                throw new ArgumentException("Invalid Amount");
 
             using (await Locker<Guid>.LockAsync(lockPurpose, command.AccountID))
             {
                 decimal currentBalance;
                 var account = await Repo.QueryAsync(new QuerySingle<Ledger1AccountDataModel>(x => x.AccountID == command.AccountID));
-                bool hasBalance = account?.HasBalance == true;
+                var hasBalance = account?.HasBalance == true;
                 if (hasBalance)
                 {
                     var current = await Repo.QueryAsync(new QuerySingle<Ledger1DataModel>(x => x.AccountID == command.AccountID));
@@ -62,13 +63,14 @@ namespace ZerraDemo.Domain.Ledger1
         {
             Access.CheckRole("Admin");
 
-            if (command.Amount < 0) throw new ArgumentException("Invalid Amount");
+            if (command.Amount < 0)
+                throw new ArgumentException("Invalid Amount");
 
             using (await Locker<Guid>.LockAsync(lockPurpose, command.AccountID))
             {
                 decimal currentBalance;
                 var account = await Repo.QueryAsync(new QuerySingle<Ledger1AccountDataModel>(x => x.AccountID == command.AccountID));
-                bool hasBalance = account?.HasBalance == true;
+                var hasBalance = account?.HasBalance == true;
                 if (hasBalance)
                 {
                     var current = await Repo.QueryAsync(new QuerySingle<Ledger1DataModel>(x => x.AccountID == command.AccountID));
@@ -108,14 +110,15 @@ namespace ZerraDemo.Domain.Ledger1
         {
             Access.CheckRole("Admin");
 
-            if (command.Amount < 0) throw new ArgumentException("Invalid Amount");
+            if (command.Amount < 0)
+                throw new ArgumentException("Invalid Amount");
 
             using (await Locker<Guid>.LockAsync(lockPurpose, command.FromAccountID))
             using (await Locker<Guid>.LockAsync(lockPurpose, command.ToAccountID))
             {
                 decimal fromCurrentBalance;
                 var fromAccount = await Repo.QueryAsync(new QuerySingle<Ledger1AccountDataModel>(x => x.AccountID == command.FromAccountID));
-                bool fromHasBalance = fromAccount?.HasBalance == true;
+                var fromHasBalance = fromAccount?.HasBalance == true;
                 if (fromHasBalance)
                 {
                     var current = await Repo.QueryAsync(new QuerySingle<Ledger1DataModel>(x => x.AccountID == command.FromAccountID));
@@ -128,7 +131,7 @@ namespace ZerraDemo.Domain.Ledger1
 
                 decimal toCurrentBalance;
                 var toAccount = await Repo.QueryAsync(new QuerySingle<Ledger1AccountDataModel>(x => x.AccountID == command.ToAccountID));
-                bool toHasBalance = fromAccount?.HasBalance == true;
+                var toHasBalance = fromAccount?.HasBalance == true;
                 if (toHasBalance)
                 {
                     var current = await Repo.QueryAsync(new QuerySingle<Ledger1DataModel>(x => x.AccountID == command.ToAccountID));

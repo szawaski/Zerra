@@ -46,7 +46,7 @@ namespace Zerra.CQRS.Relay
             }
             var prefix = encoding.GetString(buffer.Slice(0, position));
 
-            if (!protocolLookup.TryGetValue(prefix, out CQRSProtocolType protocol))
+            if (!protocolLookup.TryGetValue(prefix, out var protocol))
                 throw new NotSupportedException("Unknown Protocol");
 
             return protocol;

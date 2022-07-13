@@ -9,7 +9,8 @@ public static class TimeSpanExtensions
 {
     public static string ToStringTime(this TimeSpan it, string formatExpression, bool removeZeros = false)
     {
-        if (String.IsNullOrWhiteSpace(formatExpression)) throw new ArgumentException("formatExpression is empty");
+        if (String.IsNullOrWhiteSpace(formatExpression))
+            throw new ArgumentException("formatExpression is empty");
 
         Span<char> buffer = stackalloc char[32];
         var writer = new CharWriter(buffer);
@@ -23,9 +24,9 @@ public static class TimeSpanExtensions
             hasWrittenOffset = -1;
         }
 
-        int startIndex = 0;
-        char lastChar = chars[0];
-        for (int i = 1; i < chars.Length; i++)
+        var startIndex = 0;
+        var lastChar = chars[0];
+        for (var i = 1; i < chars.Length; i++)
         {
             var c = chars[i];
             if (i == chars.Length - 1 || c != lastChar)
@@ -66,16 +67,26 @@ public static class TimeSpanExtensions
                 if (!removeZeros || writer.Length + hasWrittenOffset > 0)
                 {
                     int digits;
-                    if (value < 10) digits = 1;
-                    else if (value < 100) digits = 2;
-                    else if (value < 1000) digits = 3;
-                    else if (value < 10000) digits = 4;
-                    else if (value < 100000) digits = 5;
-                    else if (value < 1000000) digits = 6;
-                    else if (value < 10000000) digits = 7;
-                    else if (value < 100000000) digits = 8;
-                    else if (value < 1000000000) digits = 9;
-                    else digits = 10;
+                    if (value < 10)
+                        digits = 1;
+                    else if (value < 100)
+                        digits = 2;
+                    else if (value < 1000)
+                        digits = 3;
+                    else if (value < 10000)
+                        digits = 4;
+                    else if (value < 100000)
+                        digits = 5;
+                    else if (value < 1000000)
+                        digits = 6;
+                    else if (value < 10000000)
+                        digits = 7;
+                    else if (value < 100000000)
+                        digits = 8;
+                    else if (value < 1000000000)
+                        digits = 9;
+                    else
+                        digits = 10;
 
                     while (digits < token.Length)
                     {

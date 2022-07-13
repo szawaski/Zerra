@@ -95,7 +95,7 @@ namespace Zerra.CQRS.Network
 
         private TReturn Request<TReturn>(string address, string providerType, ContentType contentType, object data, bool getResponseData)
         {
-            HttpWebRequest request = WebRequest.CreateHttp(address);
+            var request = WebRequest.CreateHttp(address);
 
             request.Method = "POST";
             switch (contentType)
@@ -117,7 +117,7 @@ namespace Zerra.CQRS.Network
             if (!String.IsNullOrWhiteSpace(providerType))
                 request.Headers.Add("Provider-Type", providerType);
 
-            CookieContainer cookieContainer = new CookieContainer();
+            var cookieContainer = new CookieContainer();
             if (cookies != null)
                 cookieContainer.Add(cookies);
             request.CookieContainer = cookieContainer;
@@ -134,7 +134,7 @@ namespace Zerra.CQRS.Network
 
                 if (getResponseData)
                 {
-                    using (Stream stream = response.GetResponseStream())
+                    using (var stream = response.GetResponseStream())
                     {
                         var result = ContentTypeSerializer.Deserialize<TReturn>(contentType, stream);
                         return result;
@@ -149,7 +149,7 @@ namespace Zerra.CQRS.Network
                 if (ex.Response != null)
                 {
                     Exception innerException;
-                    using (Stream exStream = ex.Response.GetResponseStream())
+                    using (var exStream = ex.Response.GetResponseStream())
                     {
                         innerException = ContentTypeSerializer.DeserializeException(contentType, exStream);
                     }
@@ -167,7 +167,7 @@ namespace Zerra.CQRS.Network
         }
         private async Task<TReturn> RequestAsync<TReturn>(string address, string providerType, ContentType contentType, object data, bool getResponseData)
         {
-            HttpWebRequest request = WebRequest.CreateHttp(address);
+            var request = WebRequest.CreateHttp(address);
 
             request.Method = "POST";
             switch (contentType)
@@ -189,7 +189,7 @@ namespace Zerra.CQRS.Network
             if (!String.IsNullOrWhiteSpace(providerType))
                 request.Headers.Add("Provider-Type", providerType);
 
-            CookieContainer cookieContainer = new CookieContainer();
+            var cookieContainer = new CookieContainer();
             if (cookies != null)
                 cookieContainer.Add(cookies);
             request.CookieContainer = cookieContainer;
@@ -206,7 +206,7 @@ namespace Zerra.CQRS.Network
 
                 if (getResponseData)
                 {
-                    using (Stream stream = response.GetResponseStream())
+                    using (var stream = response.GetResponseStream())
                     {
                         var result = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, stream);
                         return result;
@@ -221,7 +221,7 @@ namespace Zerra.CQRS.Network
                 if (ex.Response != null)
                 {
                     Exception innerException;
-                    using (Stream exStream = ex.Response.GetResponseStream())
+                    using (var exStream = ex.Response.GetResponseStream())
                     {
                         innerException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, exStream);
                     }

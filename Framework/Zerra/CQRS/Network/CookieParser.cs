@@ -15,8 +15,8 @@ namespace Zerra.CQRS.Network
             var cookies = new Dictionary<string, string>();
             var chars = cookieString.AsSpan();
 
-            int startIndex = 0;
-            int indexLength = 0;
+            var startIndex = 0;
+            var indexLength = 0;
             string key = null;
             fixed (char* pChars = chars)
             {

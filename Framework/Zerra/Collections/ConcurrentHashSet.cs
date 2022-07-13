@@ -165,7 +165,7 @@ namespace Zerra.Collections
         public bool TryGetValue(T equalValue, out T actualValue)
         {
             locker.EnterReadLock();
-            var result = hashSet.TryGetValue(equalValue, out T tryActualValue);
+            var result = hashSet.TryGetValue(equalValue, out var tryActualValue);
             if (result)
                 actualValue = tryActualValue;
             else

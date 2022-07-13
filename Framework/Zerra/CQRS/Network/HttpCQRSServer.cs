@@ -36,7 +36,7 @@ namespace Zerra.CQRS.Network
         protected override async void Handle(TcpClient client, CancellationToken cancellationToken)
         {
             HttpRequestHeader requestHeader = null;
-            bool responseStarted = false;
+            var responseStarted = false;
 
             var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
             var buffer = bufferOwner.AsMemory();
@@ -159,7 +159,7 @@ namespace Zerra.CQRS.Network
                     if (!this.interfaceTypes.Contains(providerType))
                         throw new Exception($"Unhandled Provider Type {providerType.FullName}");
 
-                    bool exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType))
+                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType))
                         && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType));
                     if (!exposed)
                         throw new Exception($"Provider {data.MessageType} is not exposed to {networkType}");
@@ -220,7 +220,7 @@ namespace Zerra.CQRS.Network
                     if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
                         throw new Exception($"Type {data.MessageType} is not a command");
 
-                    bool exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType))
+                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType))
                         && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType));
                     if (!exposed)
                         throw new Exception($"Command {data.MessageType} is not exposed to {networkType}");

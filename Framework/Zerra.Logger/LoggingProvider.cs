@@ -102,7 +102,7 @@ namespace Zerra.Logger
             sb.Append(errorCategory).Append(": ").Append(message).Append(Environment.NewLine);
             if (exception != null)
             {
-                Exception ex = exception;
+                var ex = exception;
                 while (ex != null)
                 {
                     sb.Append(exception.GetType().Name).Append(": ").Append(exception.Message).Append(Environment.NewLine);
@@ -134,7 +134,7 @@ namespace Zerra.Logger
             sb.Append(criticalCategory).Append(": ").Append(message).Append(Environment.NewLine);
             if (exception != null)
             {
-                Exception ex = exception;
+                var ex = exception;
                 while (ex != null)
                 {
                     sb.Append(exception.GetType().Name).Append(": ").Append(exception.Message).Append(Environment.NewLine);

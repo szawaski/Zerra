@@ -25,7 +25,8 @@ namespace Zerra.Threading
         public TaskThrottler() : this(defaultMaxRunningTasks) { }
         public TaskThrottler(int maxRunningTasks)
         {
-            if (maxRunningTasks <= 0) throw new ArgumentException("maxRunningTasks must be greater than zero");
+            if (maxRunningTasks <= 0)
+                throw new ArgumentException("maxRunningTasks must be greater than zero");
 
             this.canceller = new CancellationTokenSource();
             this.queue = new AsyncConcurrentQueue<Func<Task>>();
@@ -38,7 +39,8 @@ namespace Zerra.Threading
 
         public void Run(Func<Task> taskFunc)
         {
-            if (taskFunc == null) throw new ArgumentNullException(nameof(taskFunc));
+            if (taskFunc == null)
+                throw new ArgumentNullException(nameof(taskFunc));
 
             if (canceller.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(TaskThrottler));
@@ -151,7 +153,8 @@ namespace Zerra.Threading
         public static Task ForEachAsync<TSource>(int maxRunningTasks, IEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(maxRunningTasks, source, CancellationToken.None, body); }
         public static async Task ForEachAsync<TSource>(int maxRunningTasks, IEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body)
         {
-            if (maxRunningTasks <= 0) throw new ArgumentException("maxRunningTasks must be greater than zero");
+            if (maxRunningTasks <= 0)
+                throw new ArgumentException("maxRunningTasks must be greater than zero");
             var waiter = new TaskCompletionSource<object>();
             var runningCount = 0;
             var loopCompleted = false;
@@ -189,7 +192,8 @@ namespace Zerra.Threading
         public static Task ForEachAsync<TSource>(int maxRunningTasks, IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(maxRunningTasks, source, CancellationToken.None, body); }
         public static async Task ForEachAsync<TSource>(int maxRunningTasks, IAsyncEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body)
         {
-            if (maxRunningTasks <= 0) throw new ArgumentException("maxRunningTasks must be greater than zero");
+            if (maxRunningTasks <= 0)
+                throw new ArgumentException("maxRunningTasks must be greater than zero");
             var waiter = new TaskCompletionSource<object>();
             var runningCount = 0;
             var loopCompleted = false;

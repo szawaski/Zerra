@@ -14,7 +14,7 @@ namespace Zerra.Encryption
             var arrayString = Convert.ToBase64String(inArray);
             var chars = arrayString.AsSpan();
 
-            int filteredLength = chars.Length;
+            var filteredLength = chars.Length;
             if (chars.Length > 0 && chars[chars.Length - 1] == '=')
             {
                 filteredLength--;

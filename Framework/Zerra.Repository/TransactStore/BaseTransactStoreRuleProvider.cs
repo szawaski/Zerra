@@ -19,7 +19,7 @@ namespace Zerra.Repository
     {
         private Expression<Func<TModel, bool>> AppendWhereExpression(Expression<Func<TModel, bool>> whereExpression, Graph<TModel> graph)
         {
-            Expression<Func<TModel, bool>> appendWhereExpression = WhereExpression(graph);
+            var appendWhereExpression = WhereExpression(graph);
             if (whereExpression == null && appendWhereExpression == null)
             {
                 return null;
@@ -48,8 +48,8 @@ namespace Zerra.Repository
         }
         public override sealed Expression<Func<TModel, bool>> GetWhereExpressionIncludingBase(Graph<TModel> graph)
         {
-            Expression<Func<TModel, bool>> expression1 = this.GetWhereExpression(graph);
-            Expression<Func<TModel, bool>> expression2 = ProviderRelation.GetWhereExpressionIncludingBase(graph);
+            var expression1 = this.GetWhereExpression(graph);
+            var expression2 = ProviderRelation.GetWhereExpressionIncludingBase(graph);
             if (expression1 == null && expression2 == null)
             {
                 return null;
@@ -78,8 +78,8 @@ namespace Zerra.Repository
         public virtual ICollection<TModel> OnGet(ICollection<TModel> models, Graph<TModel> graph) { return models; }
         public override sealed async Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel> graph)
         {
-            ICollection<TModel> returnModels1 = await ProviderRelation.OnGetIncludingBaseAsync(models, graph);
-            ICollection<TModel> returnModels2 = this.OnGet(returnModels1, graph);
+            var returnModels1 = await ProviderRelation.OnGetIncludingBaseAsync(models, graph);
+            var returnModels2 = this.OnGet(returnModels1, graph);
             return returnModels2;
         }
 
@@ -215,7 +215,7 @@ namespace Zerra.Repository
         public override sealed async Task CreateAsync(Persist<TModel> persist)
         {
             var appenedPersist = new Persist<TModel>(persist);
-            ICollection<TModel> returnModels = OnCreate(appenedPersist.Models, appenedPersist.Graph);
+            var returnModels = OnCreate(appenedPersist.Models, appenedPersist.Graph);
             await NextProvider.PersistAsync(new Create<TModel>(appenedPersist.Event, returnModels, appenedPersist.Graph));
             OnCreateComplete(returnModels, appenedPersist.Graph);
         }
@@ -223,7 +223,7 @@ namespace Zerra.Repository
         public override sealed async Task UpdateAsync(Persist<TModel> persist)
         {
             var appenedPersist = new Persist<TModel>(persist);
-            ICollection<TModel> returnModels = OnUpdate(appenedPersist.Models, appenedPersist.Graph);
+            var returnModels = OnUpdate(appenedPersist.Models, appenedPersist.Graph);
             await NextProvider.PersistAsync(new Update<TModel>(appenedPersist.Event, returnModels, appenedPersist.Graph));
             OnUpdateComplete(returnModels, appenedPersist.Graph);
         }
@@ -237,8 +237,8 @@ namespace Zerra.Repository
             }
             else
             {
-                List<object> ids = new List<object>();
-                foreach (TModel model in persist.Models)
+                var ids = new List<object>();
+                foreach (var model in persist.Models)
                     ids.Add(ModelAnalyzer.GetIdentity<TModel>(model));
 
                 returnIds = OnDelete(ids);
