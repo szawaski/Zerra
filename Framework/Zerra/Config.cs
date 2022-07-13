@@ -16,13 +16,26 @@ namespace Zerra
     {
         private const string settingsFileName = "appsettings.json";
         private const string genericSettingsFileName = "appsettings.{0}.json";
+        private const string environmentalVariable = "ASPNETCORE_ENVIRONMENT";
 
-        private static object discoveryLock = new object();
+        private static readonly object discoveryLock = new object();
         private static bool discoveryStarted;
         internal static bool DiscoveryStarted
         {
-            get { lock (discoveryLock) { return discoveryStarted; } }
-            set { lock (discoveryLock) { discoveryStarted = value; } }
+            get
+            {
+                lock (discoveryLock)
+                {
+                    return discoveryStarted;
+                }
+            }
+            set
+            {
+                lock (discoveryLock)
+                {
+                    discoveryStarted = value;
+                }
+            }
         }
 
         internal static string[] DiscoveryNamespaces;
@@ -39,15 +52,16 @@ namespace Zerra
             entryNameSpace = entryAssembly?.GetName().Name.Split('.')[0] + '.';
             frameworkNameSpace = executingAssembly.GetName().Name.Split('.')[0] + '.';
 
-            if (entryNameSpace != null)
-                DiscoveryNamespaces = new string[] { entryNameSpace, frameworkNameSpace };
-            else
-                DiscoveryNamespaces = new string[] { frameworkNameSpace };
+            DiscoveryNamespaces = entryNameSpace != null ? (new string[] { entryNameSpace, frameworkNameSpace }) : (new string[] { frameworkNameSpace });
             discoveryStarted = false;
         }
 
         private static IConfiguration configuration;
-        public static void LoadConfiguration(string[] args = null, Action<ConfigurationBuilder> build = null)
+        public static void LoadConfiguration() { LoadConfiguration(null, null, null); }
+        public static void LoadConfiguration(string[] args) { LoadConfiguration(args, null, null); }
+        public static void LoadConfiguration(string[] args, Action<ConfigurationBuilder> build) { LoadConfiguration(args, null, build); }
+        public static void LoadConfiguration(string[] args, string[] settingsFiles) { LoadConfiguration(args, settingsFiles, null); }
+        public static void LoadConfiguration(string[] args, string[] settingsFiles, Action<ConfigurationBuilder> build)
         {
             var builder = new ConfigurationBuilder();
 
@@ -55,20 +69,32 @@ namespace Zerra
             foreach (var settingsFileName in settingsFileNames)
                 AddSettingsFile(builder, settingsFileName);
 
-            var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            var environmentName = Environment.GetEnvironmentVariable(environmentalVariable);
             if (!String.IsNullOrWhiteSpace(environmentName))
             {
                 var environmentSettingsFileNames = GetEnvironmentFiles(String.Format(genericSettingsFileName, environmentName));
                 foreach (var environmentSettingsFileName in environmentSettingsFileNames)
                     AddSettingsFile(builder, environmentSettingsFileName);
             }
-            builder.AddEnvironmentVariables();
+
+            if (settingsFiles != null && settingsFiles.Length > 0)
+            {
+                foreach (var settingsFile in settingsFiles)
+                {
+                    var file = settingsFile;
+                    while (file.StartsWith("/") || file.StartsWith("\\"))
+                        file = settingsFile.Substring(1);
+                    AddSettingsFile(builder, file);
+                }
+            }
+
+            _ = builder.AddEnvironmentVariables();
 
             if (args != null && args.Length > 0)
-                builder.AddCommandLine(args);
+                _ = builder.AddCommandLine(args);
 
             if (entryAssembly != null)
-                builder.AddUserSecrets(entryAssembly, true);
+                _ = builder.AddUserSecrets(entryAssembly, true);
 
             build?.Invoke(builder);
 
@@ -83,23 +109,27 @@ namespace Zerra
         {
             var filePath = GetEnvironmentFilePath(fileName);
             if (filePath == null)
+            {
+                Console.WriteLine($"{nameof(Config)} Missing {fileName}");
                 return;
+            }
             var file = File.OpenRead(filePath);
-            builder.AddJsonStream(file);
-            Console.WriteLine($"Loaded {filePath}");
+            _ = builder.AddJsonStream(file);
+            Console.WriteLine($"{nameof(Config)} Loaded {filePath}");
         }
 
         public static string GetSetting(string name, params string[] sections)
         {
             if (configuration == null)
                 LoadConfiguration();
-            IConfiguration config = configuration;
+            var config = configuration;
             if (sections != null && sections.Length > 0)
             {
                 foreach (var section in sections)
                 {
                     config = config.GetSection(section);
-                    if (config == null) throw new Exception($"Config section {section} not found");
+                    if (config == null)
+                        throw new Exception($"Config section {section} not found");
                 }
             }
             var value = config[name];
@@ -116,13 +146,14 @@ namespace Zerra
         {
             if (configuration == null)
                 LoadConfiguration();
-            IConfiguration config = configuration;
+            var config = configuration;
             if (sections != null && sections.Length > 0)
             {
                 foreach (var section in sections)
                 {
                     config = config.GetSection(section);
-                    if (config == null) throw new Exception($"Config section {section} not found");
+                    if (config == null)
+                        throw new Exception($"Config section {section} not found");
                 }
             }
             var value = config.Get<T>();
@@ -137,10 +168,7 @@ namespace Zerra
                 return filePath;
 
             filePath = $"{Environment.CurrentDirectory}/{fileName}";
-            if (File.Exists(filePath))
-                return filePath;
-
-            return null;
+            return File.Exists(filePath) ? filePath : null;
         }
         private static IEnumerable<string> GetEnvironmentFiles(string fileSuffix)
         {
@@ -225,7 +253,7 @@ namespace Zerra
 
         public static Assembly EntryAssembly { get { return entryAssembly; } }
 
-        private static Lazy<bool> isDebugEntryAssembly = new Lazy<bool>(() => entryAssembly.GetCustomAttributes(false).OfType<DebuggableAttribute>().Any(x => x.IsJITTrackingEnabled));
+        private static readonly Lazy<bool> isDebugEntryAssembly = new Lazy<bool>(() => entryAssembly.GetCustomAttributes(false).OfType<DebuggableAttribute>().Any(x => x.IsJITTrackingEnabled));
         public static bool IsDebugBuild { get { return isDebugEntryAssembly.Value; } }
     }
 }
