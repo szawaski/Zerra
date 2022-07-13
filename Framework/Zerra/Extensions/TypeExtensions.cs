@@ -57,7 +57,7 @@ public static class TypeExtensions
 
         if (ns && !String.IsNullOrWhiteSpace(type.Namespace))
         {
-            sb.Append(type.Namespace).Append('.');
+            _ = sb.Append(type.Namespace).Append('.');
         }
 
         if (type.IsArray)
@@ -65,44 +65,44 @@ public static class TypeExtensions
             var rank = type.GetArrayRank();
             var elementType = typeDetails.InnerTypes[0];
             var elementTypeName = elementType.GetNiceName();
-            sb.Append(elementTypeName);
-            sb.Append('[');
+            _ = sb.Append(elementTypeName);
+            _ = sb.Append('[');
             var getter = GetTypeGetIsZSArrayGetter();
             var szArray = getter != null && (bool)getter(type);
             if (!szArray)
             {
                 if (rank == 1)
                 {
-                    sb.Append('*');
+                    _ = sb.Append('*');
                 }
                 else if (rank > 1)
                 {
                     for (var i = 0; i < rank - 1; i++)
-                        sb.Append(',');
+                        _ = sb.Append(',');
                 }
             }
-            sb.Append(']');
+            _ = sb.Append(']');
         }
         else
         {
-            sb.Append(type.Name.Split('`')[0]);
+            _ = sb.Append(type.Name.Split('`')[0]);
 
             if (type.IsGenericType)
             {
                 var genericTypes = typeDetails.InnerTypes;
-                sb.Append('<');
+                _ = sb.Append('<');
                 bool first = true;
                 foreach (var genericType in genericTypes)
                 {
                     if (!first)
-                        sb.Append(',');
+                        _ = sb.Append(',');
                     first = false;
                     if (ns)
-                        sb.Append(genericType.GetNiceFullName());
+                        _ = sb.Append(genericType.GetNiceFullName());
                     else
-                        sb.Append(genericType.GetNiceName());
+                        _ = sb.Append(genericType.GetNiceName());
                 }
-                sb.Append('>');
+                _ = sb.Append('>');
             }
         }
 

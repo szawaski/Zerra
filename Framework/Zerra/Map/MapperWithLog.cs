@@ -31,7 +31,7 @@ namespace Zerra
             if (source == null)
                 return;
             var map = Zerra.MapWithLog<TSource, TTarget>.GetMap();
-            map.CopyTo(source, target, logger, graph);
+            _ = map.CopyTo(source, target, logger, graph);
         }
 
         public static TTarget Map<TTarget>(this object source, IMapLogger logger) { return Map<TTarget>(source, logger, null); }
@@ -79,7 +79,7 @@ namespace Zerra
                 return (s, t, l, g) => { return genericMapType.GetMethod("CopyTo").Caller(map, new object[] { s, t, l, g }); };
             });
 
-            copyToFunc(source, target, logger, graph);
+            _ = copyToFunc(source, target, logger, graph);
         }
     }
 }

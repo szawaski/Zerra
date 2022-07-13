@@ -41,7 +41,7 @@ namespace Zerra.Reflection
             var loadedAssemblies = new HashSet<string>();
             var currentAsssemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic);
             foreach (var currentAssembly in currentAsssemblies)
-                loadedAssemblies.Add(currentAssembly.FullName);
+                _ = loadedAssemblies.Add(currentAssembly.FullName);
 
             var assemblyPath = AppDomain.CurrentDomain.BaseDirectory;
             var assemblyFileNames = System.IO.Directory.GetFiles(assemblyPath, "*.dll");
@@ -64,14 +64,14 @@ namespace Zerra.Reflection
                     try
                     {
                         var assembly = Assembly.Load(assemblyName);
-                        loadedAssemblies.Add(assembly.FullName);
+                        _ = loadedAssemblies.Add(assembly.FullName);
                     }
                     catch (System.IO.FileNotFoundException)
                     {
                         try
                         {
                             var assembly = Assembly.LoadFrom(assemblyFileName);
-                            loadedAssemblies.Add(assembly.FullName);
+                            _ = loadedAssemblies.Add(assembly.FullName);
                         }
                         catch (Exception)
                         {

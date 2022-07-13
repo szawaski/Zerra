@@ -78,8 +78,8 @@ namespace Zerra.CQRS.Network
             foreach (var cookie in cookies)
             {
                 if (sb.Length > 0)
-                    sb.Append("; ");
-                sb.Append(cookie.Key).Append('=').Append(cookie.Value);
+                    _ = sb.Append("; ");
+                _ = sb.Append(cookie.Key).Append('=').Append(cookie.Value);
             }
             return sb.ToString();
         }

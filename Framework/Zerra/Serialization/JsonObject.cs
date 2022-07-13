@@ -685,7 +685,7 @@ namespace Zerra.Serialization
                         foreach (var item in valueArray)
                         {
                             var value = item.Bind(innerType);
-                            list.Add(value);
+                            _ = list.Add(value);
                         }
                         return list;
                     }

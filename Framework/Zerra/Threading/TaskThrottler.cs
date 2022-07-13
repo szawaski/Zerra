@@ -96,8 +96,8 @@ namespace Zerra.Threading
                             return;
                         running.Add(task);
                         await task;
-                        running.Remove(task);
-                        taskLimiter.Release();
+                        _ = running.Remove(task);
+                        _ = taskLimiter.Release();
                         if (queue.Count == 0 && running.Count == 0)
                         {
                             lock (waiters)
@@ -125,9 +125,9 @@ namespace Zerra.Threading
             lock (waiters)
             {
                 var waiter = new TaskCompletionSource<object>();
-                cancellationToken.Register(() => { _ = waiter.TrySetCanceled(cancellationToken); });
+                _ = cancellationToken.Register(() => { _ = waiter.TrySetCanceled(cancellationToken); });
                 waiters.Enqueue(waiter);
-                waiter.Task.GetAwaiter().GetResult();
+                _ = waiter.Task.GetAwaiter().GetResult();
             }
         }
 
@@ -139,7 +139,7 @@ namespace Zerra.Threading
             lock (waiters)
             {
                 var waiter = new TaskCompletionSource<object>();
-                cancellationToken.Register(() => { _ = waiter.TrySetCanceled(cancellationToken); });
+                _ = cancellationToken.Register(() => { _ = waiter.TrySetCanceled(cancellationToken); });
                 waiters.Enqueue(waiter);
                 return waiter.Task;
             }
@@ -167,7 +167,7 @@ namespace Zerra.Threading
 
                       var task = body(item, cancellationToken);
                       await task;
-                      taskLimiter.Release();
+                      _ = taskLimiter.Release();
                       lock (waiter)
                       {
                           runningCount--;
@@ -180,7 +180,7 @@ namespace Zerra.Threading
                 {
                     loopCompleted = true;
                 }
-                await waiter.Task;
+                _ = await waiter.Task;
             }
         }
 
@@ -205,7 +205,7 @@ namespace Zerra.Threading
 
                         var task = body(item, cancellationToken);
                         await task;
-                        taskLimiter.Release();
+                        _ = taskLimiter.Release();
                         lock (waiter)
                         {
                             runningCount--;
@@ -218,7 +218,7 @@ namespace Zerra.Threading
                 {
                     loopCompleted = true;
                 }
-                await waiter.Task;
+                _ = await waiter.Task;
             }
         }
     }

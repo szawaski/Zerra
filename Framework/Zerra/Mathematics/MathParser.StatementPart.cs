@@ -82,24 +82,24 @@ namespace Zerra.Mathematics
             private void ToString(StringBuilder sb)
             {
                 if (Token != null)
-                    sb.Append(Token);
+                    _ = sb.Append(Token);
                 else
-                    sb.Append('[');
+                    _ = sb.Append('[');
                 if (SubParts != null)
                 {
                     if (Token != null)
-                        sb.Append(MethodOperator.ArgumentOpener);
+                        _ = sb.Append(MethodOperator.ArgumentOpener);
                     for (var i = 0; i < SubParts.Count; i++)
                     {
                         if (i > 0 && Token != null)
-                            sb.Append(MethodOperator.ArgumentSeperator);
+                            _ = sb.Append(MethodOperator.ArgumentSeperator);
                         SubParts[i].ToString(sb);
                     }
                     if (Token != null)
-                        sb.Append(MethodOperator.ArgumentCloser);
+                        _ = sb.Append(MethodOperator.ArgumentCloser);
                 }
                 if (Token == null)
-                    sb.Append(']');
+                    _ = sb.Append(']');
             }
         }
     }

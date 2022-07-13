@@ -118,7 +118,7 @@ namespace Zerra.CQRS.Relay
         public void EndRequestRunning(Stopwatch requestRunningContext)
         {
             requestRunningContext.Stop();
-            Task.Run(() =>
+            _ = Task.Run(() =>
             {
                 lock (requestsLock)
                 {
@@ -148,7 +148,7 @@ namespace Zerra.CQRS.Relay
                 {
                     RelayConnectedServicesManager.Remove(this.Url);
                     if (Resolver.TryGet(out ILoggingProvider logger))
-                        logger.InfoAsync($"Service {this.Url} Failed {maxFailures} times, removing...");
+                        _ = logger.InfoAsync($"Service {this.Url} Failed {maxFailures} times, removing...");
                 }
             }
         }

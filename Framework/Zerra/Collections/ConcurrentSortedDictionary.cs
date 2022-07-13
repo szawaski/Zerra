@@ -32,9 +32,9 @@ namespace Zerra.Collections
             this.dictionary = new SortedDictionary<TKey, TValue>(dictionary, comparer);
         }
 
-        void IDictionary<TKey, TValue>.Add(TKey key, TValue value) { TryAdd(key, value); }
+        void IDictionary<TKey, TValue>.Add(TKey key, TValue value) { _ = TryAdd(key, value); }
         bool IDictionary<TKey, TValue>.Remove(TKey key) { return TryRemove(key, out _); }
-        void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item) { TryAdd(item.Key, item.Value); }
+        void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item) { _ = TryAdd(item.Key, item.Value); }
         bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item) { return TryRemove(item.Key, out _); }
         bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item) { return ContainsKey(item.Key); }
         bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).IsReadOnly;

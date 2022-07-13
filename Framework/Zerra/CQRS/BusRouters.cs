@@ -87,7 +87,7 @@ namespace Zerra.CQRS
 
                 var il = methodBuilder.GetILGenerator();
 
-                il.DeclareLocal(returnType);
+                _ = il.DeclareLocal(returnType);
 
                 il.Emit(OpCodes.Nop);
                 il.Emit(OpCodes.Ldstr, methodName);
@@ -214,7 +214,7 @@ namespace Zerra.CQRS
 
                 var il = methodBuilder.GetILGenerator();
 
-                il.DeclareLocal(typeof(Type));
+                _ = il.DeclareLocal(typeof(Type));
 
                 il.Emit(OpCodes.Nop);
 
@@ -317,7 +317,7 @@ namespace Zerra.CQRS
 
                 var il = methodBuilder.GetILGenerator();
 
-                il.DeclareLocal(typeof(Type));
+                _ = il.DeclareLocal(typeof(Type));
 
                 il.Emit(OpCodes.Nop);
 

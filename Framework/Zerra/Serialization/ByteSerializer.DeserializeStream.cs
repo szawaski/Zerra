@@ -1624,7 +1624,7 @@ namespace Zerra.Serialization
                                     }
                                     if (!stringLength.HasValue)
                                     {
-                                        state.CurrentFrame.EnumerableList.Add(null);
+                                        _ = state.CurrentFrame.EnumerableList.Add(null);
                                         state.CurrentFrame.EnumerablePosition++;
                                         continue;
                                     }
@@ -1649,7 +1649,7 @@ namespace Zerra.Serialization
                                     state.CurrentFrame.StringLength = null;
                                 }
 
-                                state.CurrentFrame.EnumerableList.Add(str);
+                                _ = state.CurrentFrame.EnumerableList.Add(str);
                                 state.CurrentFrame.EnumerablePosition++;
 
                                 if (state.CurrentFrame.EnumerablePosition == length)
@@ -2287,7 +2287,7 @@ namespace Zerra.Serialization
                 if (!state.CurrentFrame.DrainBytes)
                 {
                     if (asList)
-                        state.CurrentFrame.EnumerableList.Add(enumValue);
+                        _ = state.CurrentFrame.EnumerableList.Add(enumValue);
                     else
                         state.CurrentFrame.EnumerableArray.SetValue(enumValue, state.CurrentFrame.EnumerablePosition);
                 }
@@ -2358,7 +2358,7 @@ namespace Zerra.Serialization
                     if (isNull)
                     {
                         if (asList)
-                            state.CurrentFrame.EnumerableList.Add(null);
+                            _ = state.CurrentFrame.EnumerableList.Add(null);
                         state.CurrentFrame.EnumerablePosition++;
                         if (state.CurrentFrame.EnumerablePosition == length)
                         {
@@ -2381,7 +2381,7 @@ namespace Zerra.Serialization
                 if (!state.CurrentFrame.DrainBytes)
                 {
                     if (asList)
-                        state.CurrentFrame.EnumerableList.Add(state.LastFrameResult);
+                        _ = state.CurrentFrame.EnumerableList.Add(state.LastFrameResult);
                     else
                         state.CurrentFrame.EnumerableArray.SetValue(state.LastFrameResult, state.CurrentFrame.EnumerablePosition);
                 }

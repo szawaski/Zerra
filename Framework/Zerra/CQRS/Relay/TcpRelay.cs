@@ -32,17 +32,17 @@ namespace Zerra.CQRS.Relay
 
         public void Run()
         {
-            Log.InfoAsync($"{nameof(TcpRelay)} Starting");
+            _ = Log.InfoAsync($"{nameof(TcpRelay)} Starting");
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
 
             RelayConnectedServicesManager.LoadState().GetAwaiter().GetResult();
-            RelayConnectedServicesManager.StartExpireStatistics(canceller.Token);
+            _ = RelayConnectedServicesManager.StartExpireStatistics(canceller.Token);
 
-            Log.InfoAsync($"{nameof(TcpRelay)} Opened On {ConnectionString}");
+            _ = Log.InfoAsync($"{nameof(TcpRelay)} Opened On {ConnectionString}");
 
             Open();
 
-            Log.InfoAsync($"{nameof(TcpRelay)} Closed On {ConnectionString}");
+            _ = Log.InfoAsync($"{nameof(TcpRelay)} Closed On {ConnectionString}");
         }
 
         private void CurrentDomain_ProcessExit(object sender, EventArgs e)

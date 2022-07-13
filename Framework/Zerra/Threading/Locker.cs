@@ -58,7 +58,7 @@ namespace Zerra.Threading
 
         public void Dispose()
         {
-            itemLocker.Semaphore.Release();
+            _ = itemLocker.Semaphore.Release();
 
             lock (itemLocker)
             {
@@ -67,7 +67,7 @@ namespace Zerra.Threading
                 {
                     if (itemLocker.Checkouts == 0)
                     {
-                        itemLockers.TryRemove(key, out ItemLocker _);
+                        _ = itemLockers.TryRemove(key, out _);
                         itemLocker.Semaphore.Dispose();
                     }
                 }

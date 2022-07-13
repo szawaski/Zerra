@@ -23,7 +23,7 @@ namespace Zerra.Collections
         }
         private void RemoveFactoryLock(TKey key)
         {
-            factoryLocks.TryRemove(key, out _);
+            _ = factoryLocks.TryRemove(key, out _);
         }
         private void ClearFactoryLocks()
         {
@@ -59,9 +59,9 @@ namespace Zerra.Collections
             this.dictionary = new ConcurrentDictionary<TKey, TValue>(concurrencyLevel, capacity, comparer);
         }
 
-        void IDictionary<TKey, TValue>.Add(TKey key, TValue value) { TryAdd(key, value); }
+        void IDictionary<TKey, TValue>.Add(TKey key, TValue value) { _ = TryAdd(key, value); }
         bool IDictionary<TKey, TValue>.Remove(TKey key) { return TryRemove(key, out _); }
-        void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item) { TryAdd(item.Key, item.Value); }
+        void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item) { _ = TryAdd(item.Key, item.Value); }
         bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item) { return TryRemove(item.Key, out _); }
         bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item) { return ContainsKey(item.Key); }
         bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).IsReadOnly;
@@ -101,7 +101,7 @@ namespace Zerra.Collections
                         return value;
 
                     value = addValueFactory(factoryKey);
-                    dictionary.TryAdd(factoryKey, value);
+                    _ = dictionary.TryAdd(factoryKey, value);
                     return value;
                 }
             }
@@ -110,7 +110,7 @@ namespace Zerra.Collections
                 lock (GetFactoryLock(factoryKey))
                 {
                     var newValue = updateValueFactory(factoryKey, value);
-                    dictionary.TryUpdate(factoryKey, newValue, value);
+                    _ = dictionary.TryUpdate(factoryKey, newValue, value);
                     return value;
                 }
             }
@@ -123,7 +123,7 @@ namespace Zerra.Collections
                 lock (GetFactoryLock(factoryKey))
                 {
                     var newValue = updateValueFactory(factoryKey, value);
-                    dictionary.TryUpdate(factoryKey, newValue, value);
+                    _ = dictionary.TryUpdate(factoryKey, newValue, value);
                     return value;
                 }
             }
@@ -147,7 +147,7 @@ namespace Zerra.Collections
                         return value;
 
                     value = valueFactory(factoryKey);
-                    dictionary.TryAdd(factoryKey, value);
+                    _ = dictionary.TryAdd(factoryKey, value);
                     return value;
                 }
             }

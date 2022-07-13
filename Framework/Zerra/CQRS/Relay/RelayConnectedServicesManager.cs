@@ -38,19 +38,19 @@ namespace Zerra.CQRS.Relay
                 {
                     if (!info.ProviderTypes.Contains(serviceByProviderType.Key))
                     {
-                        serviceByProviderType.Value.TryRemove(info.Url, out _);
+                        _ = serviceByProviderType.Value.TryRemove(info.Url, out _);
                     }
                 }
                 foreach (var providerType in info.ProviderTypes)
                 {
                     var servicesForProvider = servicesByProviderType.GetOrAdd(providerType, (key) => { return new ConcurrentDictionary<string, RelayConnectedService>(); });
-                    servicesForProvider.TryAdd(info.Url, service);
-                    Log.InfoAsync($"Service Added {providerType} {service.Url}");
+                    _ = servicesForProvider.TryAdd(info.Url, service);
+                    _ = Log.InfoAsync($"Service Added {providerType} {service.Url}");
                 }
             }
             if (saveState)
             {
-                Task.Run(async () => { await SaveState(); });
+                _ = Task.Run(async () => { await SaveState(); });
             }
         }
         public static void AddOrUpdate(ServiceInfo info) { AddOrUpdate(info, true); }
@@ -61,16 +61,16 @@ namespace Zerra.CQRS.Relay
                 var service = servicesByUrl[url];
                 if (service != null)
                 {
-                    servicesByUrl.TryRemove(service.Url, out _);
+                    _ = servicesByUrl.TryRemove(service.Url, out _);
                     foreach (var servicesForProvider in servicesByProviderType.Values)
                     {
-                        servicesForProvider.TryRemove(service.Url, out _);
+                        _ = servicesForProvider.TryRemove(service.Url, out _);
                     }
 
-                    Log.InfoAsync($"Service Removed {service.Url}");
+                    _ = Log.InfoAsync($"Service Removed {service.Url}");
                 }
             }
-            Task.Run(async () => { await SaveState(); });
+            _ = Task.Run(async () => { await SaveState(); });
         }
 
         public static RelayConnectedService GetBestService(string providerType)
@@ -128,7 +128,7 @@ namespace Zerra.CQRS.Relay
             }
             finally
             {
-                stateLock.Release();
+                _ = stateLock.Release();
             }
         }
 
@@ -168,7 +168,7 @@ namespace Zerra.CQRS.Relay
             }
             finally
             {
-                stateLock.Release();
+                _ = stateLock.Release();
             }
         }
     }

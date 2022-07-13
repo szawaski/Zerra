@@ -83,7 +83,7 @@ namespace Zerra
 
                 var name = property.ToLinqString();
                 if (memberMaps.ContainsKey(name))
-                    memberMaps.Remove(name);
+                    _ = memberMaps.Remove(name);
                 memberMaps.Add(name, new Tuple<Expression<Func<TSource, object>>, Expression<Func<TTarget, object>>>(value, property));
             }
         }
@@ -110,7 +110,7 @@ namespace Zerra
 
                 var name = property.ToLinqString();
                 if (memberMaps.ContainsKey(name))
-                    memberMaps.Remove(name);
+                    _ = memberMaps.Remove(name);
             }
         }
         void IMapSetup<TSource, TTarget>.UndefineTwoWay(Expression<Func<TTarget, object>> propertyU, Expression<Func<TSource, object>> propertyT)

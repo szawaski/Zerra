@@ -202,8 +202,8 @@ namespace Zerra.Reflection
                     case CoreType.DateTimeOffset:
                     case CoreType.TimeSpan:
                     case CoreType.Guid:
-                        il.DeclareLocal(type);
-                        il.DeclareLocal(type);
+                        _ = il.DeclareLocal(type);
+                        _ = il.DeclareLocal(type);
                         il.Emit(OpCodes.Ldloca_S, 0);
                         il.Emit(OpCodes.Initobj, type);
                         il.Emit(OpCodes.Ldloc_0);

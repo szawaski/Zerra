@@ -218,7 +218,7 @@ namespace Zerra.Mathematics
                     throw new MathParserException($"Operators must be added before creating any instances");
                 if (methodOperators.Select(x => x.Token).Contains(token))
                     throw new MathParserException($"Method already exisist \"{token}\"");
-                methodOperators.Add(new MethodOperator(token, operation));
+                _ = methodOperators.Add(new MethodOperator(token, operation));
                 CalculateMaxOperationLength();
             }
         }
@@ -284,7 +284,7 @@ namespace Zerra.Mathematics
                     throw new MathParserException($"Operators must be added before creating any instances");
                 if (methodOperators.Select(x => x.Token).Contains(token))
                     throw new MathParserException($"Method already exisist \"{token}\"");
-                methodOperators.Add(new MethodOperator(token, operation));
+                _ = methodOperators.Add(new MethodOperator(token, operation));
                 CalculateMaxOperationLength();
             }
         }
@@ -349,14 +349,14 @@ namespace Zerra.Mathematics
                 var compiled = lambda.Compile();
 
                 var sb = new StringBuilder();
-                sb.Append("f(");
+                _ = sb.Append("f(");
                 for (var i = 0; i < parameters.Length; i++)
                 {
-                    if (i > 0) sb.Append(',');
-                    sb.Append(parameters[i].Name);
+                    if (i > 0) _ = sb.Append(',');
+                    _ = sb.Append(parameters[i].Name);
                 }
-                sb.Append(") = ");
-                sb.Append(part);
+                _ = sb.Append(") = ");
+                _ = sb.Append(part);
 
                 return new CompiledExpression()
                 {

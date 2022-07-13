@@ -34,7 +34,7 @@ namespace Zerra.Collections
                 if (queue.Count > 0)
                     return Task.FromResult(queue.Dequeue());
                 var waiter = new TaskCompletionSource<T>();
-                cancellationToken.Register(() => { _ = waiter.TrySetCanceled(cancellationToken); });
+                _ = cancellationToken.Register(() => { _ = waiter.TrySetCanceled(cancellationToken); });
                 waiters.Enqueue(waiter);
                 return waiter.Task;
             }

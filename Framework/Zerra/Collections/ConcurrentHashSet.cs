@@ -184,7 +184,7 @@ namespace Zerra.Collections
         void ICollection<T>.Add(T item)
         {
             locker.EnterWriteLock();
-            hashSet.Add(item);
+            _ = hashSet.Add(item);
             locker.ExitWriteLock();
         }
 

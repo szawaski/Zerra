@@ -213,7 +213,7 @@ namespace Zerra
             foreach (var graph in graphs)
             {
                 if (childGraphs.ContainsKey(graph.name))
-                    childGraphs.Remove(graph.name);
+                    _ = childGraphs.Remove(graph.name);
                 childGraphs.Add(graph.name, graph);
             }
             this.signature = null;
@@ -237,18 +237,18 @@ namespace Zerra
                 if (!this.properties.Contains(property))
                     this.properties.Add(property);
                 if (removedProperties.Contains(property))
-                    this.properties.Remove(property);
+                    _ = this.properties.Remove(property);
             }
         }
         private void RemoveProperty(string property)
         {
             if (this.properties.Contains(property))
-                this.properties.Remove(property);
+                _ = this.properties.Remove(property);
             if (!removedProperties.Contains(property))
                 removedProperties.Add(property);
 
             if (childGraphs.ContainsKey(property))
-                childGraphs.Remove(property);
+                _ = childGraphs.Remove(property);
         }
         private void AddChildGraph(Graph graph)
         {
@@ -263,7 +263,7 @@ namespace Zerra
                 if (this.properties.Contains(childGraph.name))
                 {
                     childGraph.includeAllProperties = true;
-                    this.properties.Remove(childGraph.name);
+                    _ = this.properties.Remove(childGraph.name);
                 }
             }
             else
@@ -275,12 +275,12 @@ namespace Zerra
         private void RemoveChildGraph(Graph graph)
         {
             if (this.properties.Contains(graph.name))
-                this.properties.Remove(graph.name);
+                _ = this.properties.Remove(graph.name);
             if (!removedProperties.Contains(graph.name))
                 removedProperties.Add(graph.name);
 
             if (childGraphs.ContainsKey(graph.name))
-                childGraphs.Remove(graph.name);
+                _ = childGraphs.Remove(graph.name);
         }
         protected void AddMembers(Stack<MemberInfo> members)
         {
@@ -307,7 +307,7 @@ namespace Zerra
                 if (this.properties.Contains(childGraph.name))
                 {
                     childGraph.includeAllProperties = true;
-                    this.properties.Remove(childGraph.name);
+                    _ = this.properties.Remove(childGraph.name);
                 }
                 childGraph.AddMembers(members);
             }
@@ -652,7 +652,7 @@ namespace Zerra
                 }
             }
 
-            stack.Pop();
+            _ = stack.Pop();
 
             MemberInitExpression initializer = Expression.MemberInit(Expression.New(typeTarget), bindings);
             return initializer;

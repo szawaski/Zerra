@@ -121,7 +121,7 @@ namespace Zerra.Threading
                 return default;
             return it.Value;
         }
-        public static explicit operator Concurrent<T>(T it)
+        public static implicit operator Concurrent<T>(T it)
         {
             return new Concurrent<T>(it);
         }

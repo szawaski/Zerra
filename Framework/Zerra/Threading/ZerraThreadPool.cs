@@ -77,7 +77,7 @@ namespace Zerra.Threading
                 workItems.Enqueue(new WorkItem(work, null, principal));
             }
 
-            checkQueuedWorkItems.Set();
+            _ = checkQueuedWorkItems.Set();
         }
 
         public IAsyncResult Run<TResult>(Func<TResult> work, AsyncCallback asyncCallback, IPrincipal principal = null)
@@ -105,7 +105,7 @@ namespace Zerra.Threading
             {
                 workItems.Enqueue(new WorkItem(work, asyncResult, principal));
             }
-            checkQueuedWorkItems.Set();
+            _ = checkQueuedWorkItems.Set();
             return asyncResult;
         }
 
@@ -124,7 +124,7 @@ namespace Zerra.Threading
                     WorkerThread availableThread = workerThreads.FirstOrDefault(x => x.IsAvailable);
                     if (availableThread == null)
                         break;
-                    workerThreads.Remove(availableThread);
+                    _ = workerThreads.Remove(availableThread);
                     availableThread.Dispose();
                 }
                 lock (workItems)
@@ -142,7 +142,7 @@ namespace Zerra.Threading
                 }
                 if (disposed)
                     return;
-                checkQueuedWorkItems.WaitOne();
+                _ = checkQueuedWorkItems.WaitOne();
                 if (disposed)
                     return;
             }
@@ -163,7 +163,7 @@ namespace Zerra.Threading
                 return;
             disposed = true;
 
-            checkQueuedWorkItems.Set(); //let background thread proceed and exit
+            _ = checkQueuedWorkItems.Set(); //let background thread proceed and exit
             (checkQueuedWorkItems as IDisposable).Dispose();
 
             foreach (WorkerThread workerThread in workerThreads)
@@ -217,7 +217,7 @@ namespace Zerra.Threading
                 while (true)
                 {
                     if (disposed) return;
-                    startNewWorkItem.WaitOne();
+                    _ = startNewWorkItem.WaitOne();
                     if (disposed) return;
 
                     try
@@ -240,7 +240,7 @@ namespace Zerra.Threading
                     asyncResult = null;
                     task = null;
                     if (disposed) return;
-                    workItemComplete.Set();
+                    _ = workItemComplete.Set();
                 }
             }
             public void ExecuteWorkItem(WorkItem workItem)
@@ -254,7 +254,7 @@ namespace Zerra.Threading
                 task = workItem.Delegate;
                 asyncResult = workItem.AsyncResult;
                 isAvailable = false;
-                startNewWorkItem.Set();
+                _ = startNewWorkItem.Set();
             }
             public void Dispose()
             {
@@ -272,7 +272,7 @@ namespace Zerra.Threading
                 disposed = true;
                 if (startNewWorkItem != null)
                 {
-                    startNewWorkItem.Set();
+                    _ = startNewWorkItem.Set();
                     (startNewWorkItem as IDisposable).Dispose();
                 }
             }
@@ -323,7 +323,7 @@ namespace Zerra.Threading
                 {
                     AsyncState = result;
                     isCompleted = true;
-                    waitHandle.Set();
+                    _ = waitHandle.Set();
                     if (asyncCallback != null)
                     {
                         asyncCallback(this);
@@ -336,7 +336,7 @@ namespace Zerra.Threading
                 {
                     this.ex = ex;
                     isCompleted = true;
-                    waitHandle.Set();
+                    _ = waitHandle.Set();
                     if (asyncCallback != null)
                     {
                         asyncCallback(this);

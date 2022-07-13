@@ -39,7 +39,7 @@ namespace Zerra.CQRS.Network
 
                 this.canceller = new CancellationTokenSource();
 
-                Task.Run(() =>
+                _ = Task.Run(() =>
                 {
                     AcceptConnections();
                 });
@@ -52,7 +52,7 @@ namespace Zerra.CQRS.Network
         {
             while (!canceller.Token.IsCancellationRequested)
             {
-                socket.BeginAccept(BeginAcceptCallback, null);
+                _ = socket.BeginAccept(BeginAcceptCallback, null);
                 waiter.Wait();
             }
 
@@ -77,7 +77,7 @@ namespace Zerra.CQRS.Network
             if (!started)
                 return;
 
-            waiter.Release();
+            _ = waiter.Release();
 
             var incommingSocket = socket.EndAccept(result);
 
@@ -95,7 +95,7 @@ namespace Zerra.CQRS.Network
                 if (canceller != null)
                 {
                     canceller.Cancel();
-                    waiter.Release();
+                    _ = waiter.Release();
                 }
             }
         }
