@@ -107,15 +107,9 @@ namespace Zerra
 
         private static void AddSettingsFile(ConfigurationBuilder builder, string fileName)
         {
-            var filePath = GetEnvironmentFilePath(fileName);
-            if (filePath == null)
-            {
-                Console.WriteLine($"{nameof(Config)} Missing {fileName}");
-                return;
-            }
-            var file = File.OpenRead(filePath);
+            var file = File.OpenRead(fileName);
             _ = builder.AddJsonStream(file);
-            Console.WriteLine($"{nameof(Config)} Loaded {filePath}");
+            Console.WriteLine($"{nameof(Config)} Loaded {fileName}");
         }
 
         public static string GetSetting(string name, params string[] sections)
