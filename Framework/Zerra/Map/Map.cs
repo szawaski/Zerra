@@ -81,7 +81,7 @@ namespace Zerra
                 if (sourceType.IsIEnumerable || targetType.IsIEnumerable)
                     throw new MapException("Cannot add specific mappings to enumerable types");
 
-                var name = property.ToLinqString();
+                var name = property.ReadMemberName();
                 if (memberMaps.ContainsKey(name))
                     _ = memberMaps.Remove(name);
                 memberMaps.Add(name, new Tuple<Expression<Func<TSource, object>>, Expression<Func<TTarget, object>>>(value, property));
@@ -108,7 +108,7 @@ namespace Zerra
                 if (sourceType.IsIEnumerable || targetType.IsIEnumerable)
                     throw new MapException("Cannot add specific mappings to enumerable types");
 
-                var name = property.ToLinqString();
+                var name = property.ReadMemberName();
                 if (memberMaps.ContainsKey(name))
                     _ = memberMaps.Remove(name);
             }
@@ -275,7 +275,7 @@ namespace Zerra
                     var convertTargetMemberAccess = Expression.Convert(targetMemberAccess, objectType);
                     var targetLambda = Expression.Lambda<Func<TTarget, object>>(convertTargetMemberAccess, targetParameter);
 
-                    var name = sourceLambda.ToLinqString();
+                    var name = sourceLambda.ReadMemberName();
                     memberMaps.Add(name, new Tuple<Expression<Func<TSource, object>>, Expression<Func<TTarget, object>>>(sourceLambda, targetLambda));
                 }
             }

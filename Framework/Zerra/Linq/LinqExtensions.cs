@@ -14,9 +14,14 @@ namespace System.Linq
         public static bool Contains<T>(this IEnumerable<T> it, IEnumerable<T> predicate)
         {
             foreach (var itemIt in it)
+            {
                 foreach (var itemPredicate in predicate)
+                {
                     if (itemIt.Equals(itemPredicate))
                         return true;
+                }
+            }
+
             return false;
         }
 
@@ -47,5 +52,24 @@ namespace System.Linq
         public static Expression<Func<T, bool>> AppendOr<T>(this Expression<Func<T, bool>> it, params Expression<Func<T, bool>>[] expressions) { return LinqAppender.AppendOr(it, expressions); }
 
         public static Expression<Func<T, bool>> AppendExpressionOnMember<T>(this Expression<Func<T, bool>> it, MemberInfo member, params Expression[] expressions) { return LinqAppender.AppendExpressionOnMember(it, member, expressions); }
+
+        public static string ReadMemberName(this Expression it)
+        {
+            var body = it is LambdaExpression lambda ? lambda.Body : it;
+
+            if (body.NodeType == ExpressionType.Convert)
+            {
+                var convert = (UnaryExpression)body;
+                body = convert.Operand;
+            }
+
+            if (body is not MemberExpression member)
+                throw new Exception($"{nameof(ReadMemberName)} Invalid member expression");
+
+            if (member.Expression is not ParameterExpression parameter)
+                throw new Exception($"{nameof(ReadMemberName)} Invalid member expression");
+
+            return member.Member.Name;
+        }
     }
 }
