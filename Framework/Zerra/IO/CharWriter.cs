@@ -276,70 +276,6 @@ namespace Zerra.IO
 
                         break;
                     }
-                case DateTimeFormat.MsSqlOffset:
-                    {
-                        //yyyy-MM-dd HH:mm:ss.fff zzz
-
-                        if (value.Year < 10)
-                            buffer[position++] = '0';
-                        if (value.Year < 100)
-                            buffer[position++] = '0';
-                        if (value.Year < 1000)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Year);
-                        buffer[position++] = '-';
-
-                        if (value.Month < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Month);
-                        buffer[position++] = '-';
-
-                        if (value.Day < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Day);
-
-                        buffer[position++] = ' ';
-
-                        if (value.Hour < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Hour);
-                        buffer[position++] = ':';
-
-                        if (value.Minute < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Minute);
-                        buffer[position++] = ':';
-
-                        if (value.Second < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Second);
-                        buffer[position++] = '.';
-
-                        var fraction = (value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000) / 10000;
-                        if (fraction < 10)
-                            buffer[position++] = '0';
-                        if (fraction < 100)
-                            buffer[position++] = '0';
-                        WriteInt64(fraction);
-
-                        buffer[position++] = ' ';
-
-                        var offset = (DateTimeOffset)value;
-                        if (offset.Offset.Hours > 0)
-                            buffer[position++] = '+';
-                        else
-                            buffer[position++] = '-';
-                        if (offset.Offset.Hours < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(offset.Offset.Hours < 0 ? -offset.Offset.Hours : offset.Offset.Hours);
-                        buffer[position++] = ':';
-
-                        if (offset.Offset.Minutes < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(offset.Offset.Minutes);
-
-                        break;
-                    }
                 default:
                     throw new NotImplementedException();
             }
@@ -420,54 +356,6 @@ namespace Zerra.IO
                         break;
                     }
                 case DateTimeFormat.MsSql:
-                    {
-                        //yyyy-MM-dd HH:mm:ss.fff
-
-                        if (value.Year < 10)
-                            buffer[position++] = '0';
-                        if (value.Year < 100)
-                            buffer[position++] = '0';
-                        if (value.Year < 1000)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Year);
-                        buffer[position++] = '-';
-
-                        if (value.Month < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Month);
-                        buffer[position++] = '-';
-
-                        if (value.Day < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Day);
-
-                        buffer[position++] = ' ';
-
-                        if (value.Hour < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Hour);
-                        buffer[position++] = ':';
-
-                        if (value.Minute < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Minute);
-                        buffer[position++] = ':';
-
-                        if (value.Second < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Second);
-                        buffer[position++] = '.';
-
-                        var fraction = (value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000) / 10000;
-                        if (fraction < 10)
-                            buffer[position++] = '0';
-                        if (fraction < 100)
-                            buffer[position++] = '0';
-                        WriteInt64(fraction);
-
-                        break;
-                    }
-                case DateTimeFormat.MsSqlOffset:
                     {
                         //yyyy-MM-dd HH:mm:ss.fff zzz
 
