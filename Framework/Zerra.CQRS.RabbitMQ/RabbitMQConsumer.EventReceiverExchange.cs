@@ -22,7 +22,7 @@ namespace Zerra.CQRS.RabbitMQ
             public Type Type { get; private set; }
             public bool IsOpen { get; private set; }
 
-            public readonly string exchange;
+            public readonly string topic;
             private readonly SymmetricKey encryptionKey;
 
             private IModel channel = null;
@@ -31,7 +31,7 @@ namespace Zerra.CQRS.RabbitMQ
             public EventReceiverExchange(Type type, SymmetricKey encryptionKey)
             {
                 this.Type = type;
-                this.exchange = type.GetNiceName();
+                this.topic = type.GetNiceName();
                 this.encryptionKey = encryptionKey;
             }
 
@@ -55,10 +55,10 @@ namespace Zerra.CQRS.RabbitMQ
                         throw new Exception("Exchange already open");
 
                     this.channel = connection.CreateModel();
-                    this.channel.ExchangeDeclare(this.exchange, "fanout");
+                    this.channel.ExchangeDeclare(this.topic, "fanout");
 
                     var queueName = this.channel.QueueDeclare().QueueName;
-                    this.channel.QueueBind(queueName, this.exchange, String.Empty);
+                    this.channel.QueueBind(queueName, this.topic, String.Empty);
 
                     var consumer = new AsyncEventingBasicConsumer(this.channel);
 

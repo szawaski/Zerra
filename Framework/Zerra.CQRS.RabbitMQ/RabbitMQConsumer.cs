@@ -63,6 +63,9 @@ namespace Zerra.CQRS.RabbitMQ
         }
         private void Open()
         {
+            if (this.connection != null)
+                return;
+
             try
             {
                 var factory = new ConnectionFactory() { HostName = host, DispatchConsumersAsync = true };

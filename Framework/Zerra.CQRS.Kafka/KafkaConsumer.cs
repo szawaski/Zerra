@@ -97,7 +97,7 @@ namespace Zerra.CQRS.Kafka
         }
         private void Close()
         {
-            if (!isOpen)
+            if (isOpen)
             {
                 foreach (var exchange in commandExchanges.Where(x => x.IsOpen))
                     exchange.Dispose();

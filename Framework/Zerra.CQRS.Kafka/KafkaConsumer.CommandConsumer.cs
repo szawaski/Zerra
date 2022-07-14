@@ -52,7 +52,7 @@ namespace Zerra.CQRS.Kafka
 
                 try
                 {
-                    await KafkaCommon.AssureTopic(host, topic);
+                    await KafkaCommon.EnsureTopic(host, topic);
 
                     var consumerConfig = new ConsumerConfig();
                     consumerConfig.BootstrapServers = host;
@@ -83,8 +83,7 @@ namespace Zerra.CQRS.Kafka
 
                                 if (consumerResult.Message.Key == KafkaCommon.MessageKey || awaitResponse)
                                 {
-                                    var stopwatch = new Stopwatch();
-                                    stopwatch.Start();
+                                    var stopwatch = Stopwatch.StartNew();
 
                                     var body = consumerResult.Message.Value;
                                     if (encryptionKey != null)
@@ -103,8 +102,7 @@ namespace Zerra.CQRS.Kafka
                                     else
                                         await handlerAsync(message.Message);
 
-                                    stopwatch.Stop();
-                                    _ = Log.TraceAsync($"Received Await: {topic}  {stopwatch.ElapsedMilliseconds}");
+                                    _ = Log.TraceAsync($"Received Await: {topic} {stopwatch.ElapsedMilliseconds}");
                                 }
                                 else
                                 {

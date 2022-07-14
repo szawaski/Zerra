@@ -12,7 +12,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Logging;
-using Zerra.Threading;
 
 namespace Zerra.CQRS.Kafka
 {
@@ -25,7 +24,7 @@ namespace Zerra.CQRS.Kafka
         private readonly string host;
         private readonly SymmetricKey encryptionKey;
         private readonly string ackTopic;
-        private static IProducer<string, byte[]> producer;
+        private readonly IProducer<string, byte[]> producer;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
         public KafkaProducer(string host, SymmetricKey encryptionKey)
@@ -150,8 +149,6 @@ namespace Zerra.CQRS.Kafka
 
         private async Task AckListeningThread()
         {
-            await KafkaCommon.AssureTopic(host, ackTopic);
-
             var consumerConfig = new ConsumerConfig();
             consumerConfig.BootstrapServers = host;
             consumerConfig.GroupId = ackTopic;
@@ -161,6 +158,8 @@ namespace Zerra.CQRS.Kafka
 
             try
             {
+                await KafkaCommon.EnsureTopic(host, ackTopic);
+
                 using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build())
                 {
                     consumer.Subscribe(ackTopic);

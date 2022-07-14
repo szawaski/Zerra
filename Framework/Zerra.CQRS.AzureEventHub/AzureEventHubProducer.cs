@@ -14,7 +14,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Logging;
-using Zerra.Threading;
 
 namespace Zerra.CQRS.AzureEventHub
 {
@@ -26,7 +25,6 @@ namespace Zerra.CQRS.AzureEventHub
 
         private readonly string host;
         private readonly string eventHubName;
-        private readonly string ackPartition;
         private readonly SymmetricKey encryptionKey;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
@@ -35,9 +33,6 @@ namespace Zerra.CQRS.AzureEventHub
             this.host = host;
             this.eventHubName = eventHubName;
             this.encryptionKey = encryptionKey;
-
-            var clientID = Guid.NewGuid().ToString();
-            this.ackPartition = $"ACK-{clientID}";
 
             this.canceller = new CancellationTokenSource();
             this.ackCallbacks = new ConcurrentDictionary<string, Action<Acknowledgement>>();
@@ -64,13 +59,13 @@ namespace Zerra.CQRS.AzureEventHub
             }
 
             string ackKey = null;
-            var partition = command.GetType().GetNiceName();
+            var type = command.GetType().GetNiceName();
 
             string[][] claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                 claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
-            var message = new AzureEventHubCommandMessage()
+            var message = new AzureEventHubMessage()
             {
                 Message = command,
                 Claims = claims
@@ -82,69 +77,53 @@ namespace Zerra.CQRS.AzureEventHub
 
             await using (var producer = new EventHubProducerClient(host, eventHubName))
             {
-                var firstPartition = (await producer.GetPartitionIdsAsync()).First();
-
-                var batchOptions = new CreateBatchOptions
-                {
-                    PartitionId = partition
-                };
-
                 if (requireAcknowledgement)
                     ackKey = Guid.NewGuid().ToString();
 
-                using (var eventBatch = await producer.CreateBatchAsync(batchOptions))
+                var eventData = new EventData(body);
+                eventData.Properties[AzureEventHubCommon.TypeProperty] = type;
+                if (requireAcknowledgement)
+                    eventData.Properties[AzureEventHubCommon.AckProperty] = ackKey;
+
+                if (requireAcknowledgement)
                 {
-                    var eventsToSend = new List<EventData>();
+                    var waiter = new SemaphoreSlim(0, 1);
 
-                    var eventData = new EventData(body);
-                    if (requireAcknowledgement)
-                        eventData.Properties[AzureEventHubCommon.AckKey] = ackKey;
-                    eventsToSend.Add(eventData);
-
-                    if (requireAcknowledgement)
+                    try
                     {
-                        var waiter = new SemaphoreSlim(0, 1);
-
-                        try
+                        Acknowledgement ack = null;
+                        _ = ackCallbacks.TryAdd(ackKey, (ackFromCallback) =>
                         {
-                            Acknowledgement ack = null;
-                            _ = ackCallbacks.TryAdd(ackKey, (ackFromCallback) =>
-                            {
-                                ack = ackFromCallback;
-                                _ = waiter.Release();
-                            });
+                            ack = ackFromCallback;
+                            _ = waiter.Release();
+                        });
 
-                            await producer.SendAsync(eventsToSend);
+                        await producer.SendAsync(new EventData[] { eventData });
 
-                            await waiter.WaitAsync();
-                            if (!ack.Success)
-                                throw new AcknowledgementException(ack, partition);
-                        }
-                        finally
-                        {
-                            if (waiter != null)
-                                waiter.Dispose();
-                        }
+                        await waiter.WaitAsync();
+                        if (!ack.Success)
+                            throw new AcknowledgementException(ack, type);
                     }
-                    else
+                    finally
                     {
-                        await producer.SendAsync(eventsToSend);
+                        if (waiter != null)
+                            waiter.Dispose();
                     }
                 }
-
-                await producer.CloseAsync();
+                else
+                {
+                    await producer.SendAsync(new EventData[] { eventData });
+                }
             }
         }
 
         private async Task SendAsync(IEvent @event)
         {
-            var partition = @event.GetType().GetNiceName();
-
             string[][] claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                 claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
-            var message = new AzureEventHubEventMessage()
+            var message = new AzureEventHubMessage()
             {
                 Message = @event,
                 Claims = claims
@@ -156,22 +135,10 @@ namespace Zerra.CQRS.AzureEventHub
 
             await using (var producer = new EventHubProducerClient(host, eventHubName))
             {
-                var batchOptions = new CreateBatchOptions
+                using (var eventBatch = await producer.CreateBatchAsync())
                 {
-                    PartitionId = partition,
-                };
-
-                using (var eventBatch = await producer.CreateBatchAsync(batchOptions))
-                {
-                    var eventsToSend = new List<EventData>();
-
-                    for (var index = 0; index < 10; ++index)
-                    {
-                        var eventData = new EventData(body);
-                        eventsToSend.Add(eventData);
-                    }
-
-                    await producer.SendAsync(eventsToSend);
+                    var eventData = new EventData(body);
+                    await producer.SendAsync(new EventData[] { eventData });
                 }
 
                 await producer.CloseAsync();
@@ -184,18 +151,23 @@ namespace Zerra.CQRS.AzureEventHub
 
             try
             {
-                await using (var consumer = new EventHubConsumerClient(ackPartition, host, eventHubName))
+                await using (var consumer = new EventHubConsumerClient(EventHubConsumerClient.DefaultConsumerGroupName, host, eventHubName))
                 {
                     await foreach (var partitionEvent in consumer.ReadEventsAsync(canceller.Token))
                     {
+                        if (!partitionEvent.Data.Properties.TryGetValue(AzureEventHubCommon.AckProperty, out var ackObject))
+                            continue;
+                        if (ackObject is not string ackString)
+                            continue;
+                        if (ackString != Boolean.TrueString)
+                            continue;
+
                         string ackKey = null;
-                        if (partitionEvent.Data.Properties.TryGetValue(AzureEventHubCommon.AckKey, out var ackKeyObject))
-                        {
-                            if (ackKeyObject is string ackKeyString)
-                            {
-                                ackKey = ackKeyString;
-                            }
-                        }
+                        if (!partitionEvent.Data.Properties.TryGetValue(AzureEventHubCommon.AckKeyProperty, out var ackKeyObject))
+                            continue;
+                        if (ackKeyObject is not string ackKeyString)
+                            continue;
+                        ackKey = ackKeyString;
 
                         if (!ackCallbacks.TryRemove(ackKey, out var callback))
                             continue;

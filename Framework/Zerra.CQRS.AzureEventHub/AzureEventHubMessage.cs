@@ -4,9 +4,9 @@
 
 namespace Zerra.CQRS.AzureEventHub
 {
-    public class AzureEventHubEventMessage
+    public class AzureEventHubMessage
     {
-        public IEvent Message { get; set; }
+        public IMessage Message { get; set; }
         public string[][] Claims { get; set; }
     }
 }

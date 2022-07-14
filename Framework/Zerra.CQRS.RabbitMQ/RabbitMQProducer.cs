@@ -83,7 +83,7 @@ namespace Zerra.CQRS.RabbitMQ
                 if (encryptionKey != null)
                     body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
 
-                var exchange = command.GetType().GetNiceName();
+                var topic = command.GetType().GetNiceName();
 
                 var properties = channel.CreateBasicProperties();
 
@@ -108,9 +108,9 @@ namespace Zerra.CQRS.RabbitMQ
                     properties.Headers = messageHeaders;
                 }
 
-                channel.BasicPublish(exchange, String.Empty, properties, body);
+                channel.BasicPublish(topic, String.Empty, properties, body);
 
-                _ = Log.TraceAsync($"Sent{(requireAcknowledgement ? " Await" : null)}: {exchange}");
+                _ = Log.TraceAsync($"Sent{(requireAcknowledgement ? " Await" : null)}: {topic}");
 
                 if (requireAcknowledgement)
                 {
@@ -135,12 +135,12 @@ namespace Zerra.CQRS.RabbitMQ
                             stopwatch.Stop();
 
                             if (!affirmation.Success)
-                                _ = Log.TraceAsync($"Await Failed: {exchange}: {affirmation.ErrorMessage} {stopwatch.ElapsedMilliseconds}");
+                                _ = Log.TraceAsync($"Await Failed: {topic}: {affirmation.ErrorMessage} {stopwatch.ElapsedMilliseconds}");
                             else
-                                _ = Log.TraceAsync($"Await Success: {exchange} {stopwatch.ElapsedMilliseconds}");
+                                _ = Log.TraceAsync($"Await Success: {topic} {stopwatch.ElapsedMilliseconds}");
 
                             if (!affirmation.Success)
-                                exception = new AcknowledgementException(affirmation, exchange);
+                                exception = new AcknowledgementException(affirmation, topic);
                         }
                         catch (Exception ex)
                         {

@@ -32,7 +32,7 @@ namespace Zerra.CQRS.Kafka
             return serializer.Deserialize<T>(bytes);
         }
 
-        public static async Task AssureTopic(string host, string topic)
+        public static async Task EnsureTopic(string host, string topic)
         {
             var adminClientConfig = new AdminClientConfig();
             adminClientConfig.BootstrapServers = host;
@@ -52,30 +52,6 @@ namespace Zerra.CQRS.Kafka
                         };
                         await adminClient.CreateTopicsAsync(new TopicSpecification[] { topicSpecification });
                     }
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception($"{nameof(KafkaCommon)} failed to create topic {topic}", ex);
-                }
-            }
-        }
-
-        public static async Task CreateTopic(string host, string topic)
-        {
-            var adminClientConfig = new AdminClientConfig();
-            adminClientConfig.BootstrapServers = host;
-
-            using (var adminClient = new AdminClientBuilder(adminClientConfig).Build())
-            {
-                try
-                {
-                    var topicSpecification = new TopicSpecification()
-                    {
-                        Name = topic,
-                        ReplicationFactor = 1,
-                        NumPartitions = 1
-                    };
-                    await adminClient.CreateTopicsAsync(new TopicSpecification[] { topicSpecification });
                 }
                 catch (Exception ex)
                 {
