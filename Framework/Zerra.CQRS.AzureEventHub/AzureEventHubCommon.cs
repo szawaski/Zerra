@@ -70,13 +70,13 @@ namespace Zerra.CQRS.AzureEventHub
             var credential = new ClientCredential(applicationID, clientSecret);
             var token = await context.AcquireTokenAsync("https://management.core.windows.net/", credential);
 
-            var serviceClientCredentials = new TokenCredentials(token.AccessToken);
-            var eventHubManagementClient = new EventHubManagementClient(serviceClientCredentials)
+            var clientCredentials = new TokenCredentials(token.AccessToken);
+            var client = new EventHubManagementClient(clientCredentials)
             {
                 SubscriptionId = subscriptionID,
             };
 
-            var consumerGroupResponse = await eventHubManagementClient.ConsumerGroups
+            var consumerGroupResponse = await client.ConsumerGroups
                 .CreateOrUpdateAsync(resourceGroup, hubNamespace, eventHubName, requestedConsumerGroup);
 
             return requestedConsumerGroup;
@@ -120,13 +120,13 @@ namespace Zerra.CQRS.AzureEventHub
             var credential = new ClientCredential(applicationID, clientSecret);
             var token = await context.AcquireTokenAsync("https://management.core.windows.net/", credential);
 
-            var serviceClientCredentials = new TokenCredentials(token.AccessToken);
-            var eventHubManagementClient = new EventHubManagementClient(serviceClientCredentials)
+            var clientCredentials = new TokenCredentials(token.AccessToken);
+            var client = new EventHubManagementClient(clientCredentials)
             {
                 SubscriptionId = subscriptionID,
             };
 
-            await eventHubManagementClient.ConsumerGroups
+            await client.ConsumerGroups
                 .DeleteAsync(resourceGroup, hubNamespace, eventHubName, requestedConsumerGroup);
         }
     }
