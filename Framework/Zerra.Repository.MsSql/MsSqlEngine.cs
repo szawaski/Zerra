@@ -515,7 +515,7 @@ namespace Zerra.Repository.MsSql
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
                         writer.Write('\'');
-                        writer.Write((DateTimeOffset)value, DateTimeFormat.MsSqlOffset);
+                        writer.Write((DateTimeOffset)value, DateTimeFormat.MsSql);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeSpan:

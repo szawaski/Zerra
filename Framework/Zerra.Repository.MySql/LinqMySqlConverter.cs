@@ -566,7 +566,7 @@ namespace Zerra.Repository.MySql
 
                         }
                         sb.Write('\'');
-                        sb.Write((DateTime)value, DateTimeFormat.ISO8601);
+                        sb.Write((DateTime)value, DateTimeFormat.MsSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.DateTimeOffset:
@@ -622,7 +622,7 @@ namespace Zerra.Repository.MySql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((DateTimeOffset)value, DateTimeFormat.ISO8601);
+                        sb.Write((DateTimeOffset)value, DateTimeFormat.MsSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.TimeSpan:
@@ -673,7 +673,7 @@ namespace Zerra.Repository.MySql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((TimeSpan)value, TimeFormat.ISO8601);
+                        sb.Write((TimeSpan)value, TimeFormat.MsSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.Guid:

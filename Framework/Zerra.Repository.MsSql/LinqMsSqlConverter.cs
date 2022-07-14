@@ -621,7 +621,7 @@ namespace Zerra.Repository.MsSql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((DateTimeOffset)value, DateTimeFormat.MsSqlOffset);
+                        sb.Write((DateTimeOffset)value, DateTimeFormat.MsSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.TimeSpan:

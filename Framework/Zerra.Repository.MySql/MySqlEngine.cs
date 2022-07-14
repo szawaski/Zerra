@@ -509,13 +509,13 @@ namespace Zerra.Repository.MySql
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
                         writer.Write('\'');
-                        writer.Write((DateTime)value, DateTimeFormat.ISO8601);
+                        writer.Write((DateTime)value, DateTimeFormat.MsSql);
                         writer.Write('\'');
                         return;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
                         writer.Write('\'');
-                        writer.Write((DateTimeOffset)value, DateTimeFormat.ISO8601);
+                        writer.Write((DateTimeOffset)value, DateTimeFormat.MsSql);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeSpan:
@@ -1718,7 +1718,7 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
                         command.CommandTimeout = 0;
                         command.CommandText = sql;
                         var version = (string)command.ExecuteScalar();
-                        if (version.Length > 0 && char.IsNumber(version[0]))
+                        if (version.Length > 0 && Char.IsNumber(version[0]))
                             return true;
                     }
                 }

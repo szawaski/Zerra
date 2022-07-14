@@ -526,13 +526,13 @@ namespace Zerra.Repository.PostgreSql
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
                         writer.Write('\'');
-                        writer.Write(((DateTime)value).ToUniversalTime(), DateTimeFormat.ISO8601);
+                        writer.Write(((DateTime)value).ToUniversalTime(), DateTimeFormat.MsSql);
                         writer.Write('\'');
                         return;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
                         writer.Write('\'');
-                        writer.Write(((DateTimeOffset)value).ToUniversalTime(), DateTimeFormat.ISO8601);
+                        writer.Write(((DateTimeOffset)value).ToUniversalTime(), DateTimeFormat.MsSql);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeSpan:
