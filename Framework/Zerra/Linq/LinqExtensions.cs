@@ -5,6 +5,7 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text;
 using Zerra.Linq;
 
 namespace System.Linq
@@ -55,21 +56,79 @@ namespace System.Linq
 
         public static string ReadMemberName(this Expression it)
         {
-            var body = it is LambdaExpression lambda ? lambda.Body : it;
+            var exp = it is LambdaExpression lambda ? lambda.Body : it;
 
-            if (body.NodeType == ExpressionType.Convert)
+            if (exp.NodeType == ExpressionType.Convert)
             {
-                var convert = (UnaryExpression)body;
-                body = convert.Operand;
+                var convert = (UnaryExpression)exp;
+                exp = convert.Operand;
             }
 
-            if (body is not MemberExpression member)
+            var stack = new Stack<string>();
+
+            while (exp is MemberExpression member)
+            {
+                exp = member.Expression;
+                stack.Push(member.Member.Name);
+            }
+
+            if (exp is not ParameterExpression)
                 throw new Exception($"{nameof(ReadMemberName)} Invalid member expression");
 
-            if (member.Expression is not ParameterExpression parameter)
-                throw new Exception($"{nameof(ReadMemberName)} Invalid member expression");
+            if (stack.Count == 1)
+                return stack.Pop();
 
-            return member.Member.Name;
+            var sb = new StringBuilder();
+            while (stack.Count > 0)
+            {
+                if (sb.Length > 0)
+                    _ = sb.Append('.');
+                _ = sb.Append(stack.Pop());
+            }
+
+            return sb.ToString();
+        }
+
+        public static bool TryReadMemberName(this Expression it, out string memberName)
+        {
+            var exp = it is LambdaExpression lambda ? lambda.Body : it;
+
+            if (exp.NodeType == ExpressionType.Convert)
+            {
+                var convert = (UnaryExpression)exp;
+                exp = convert.Operand;
+            }
+
+            var stack = new Stack<string>();
+
+            while (exp is MemberExpression member)
+            {
+                exp = member.Expression;
+                stack.Push(member.Member.Name);
+            }
+
+            if (exp is not ParameterExpression)
+            {
+                memberName = null;
+                return false;
+            }
+
+            if (stack.Count == 1)
+            {
+                memberName = stack.Pop();
+                return true;
+            }
+
+            var sb = new StringBuilder();
+            while (stack.Count > 0)
+            {
+                if (sb.Length > 0)
+                    _ = sb.Append('.');
+                _ = sb.Append(stack.Pop());
+            }
+
+            memberName = sb.ToString();
+            return true;
         }
     }
 }

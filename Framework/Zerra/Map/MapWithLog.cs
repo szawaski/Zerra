@@ -84,7 +84,9 @@ namespace Zerra
                 if (sourceType.IsIEnumerable || targetType.IsIEnumerable)
                     throw new MapException("Cannot add specific mappings to enumerable types");
 
-                var name = property.ReadMemberName();
+                if (!property.TryReadMemberName(out var name))
+                    throw new MapException("Cannot map to an expression that is not a member accessor");
+
                 if (memberMaps.ContainsKey(name))
                     _ = memberMaps.Remove(name);
                 memberMaps.Add(name, new Tuple<Expression<Func<TSource, object>>, Expression<Func<TTarget, object>>>(value, property));
@@ -111,7 +113,9 @@ namespace Zerra
                 if (sourceType.IsIEnumerable || targetType.IsIEnumerable)
                     throw new MapException("Cannot add specific mappings to enumerable types");
 
-                var name = property.ReadMemberName();
+                if (!property.TryReadMemberName(out var name))
+                    throw new MapException("Cannot map to an expression that is not a member accessor");
+
                 if (memberMaps.ContainsKey(name))
                     _ = memberMaps.Remove(name);
             }
