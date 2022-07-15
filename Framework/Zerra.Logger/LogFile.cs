@@ -31,7 +31,7 @@ namespace Zerra.Logger
                         await fileStream.WriteAsync(" ");
                         await fileStream.WriteAsync(category);
                     }
-                    if (Thread.CurrentPrincipal != null && Thread.CurrentPrincipal.Identity != null)
+                    if (Thread.CurrentPrincipal != null && Thread.CurrentPrincipal.Identity != null && !String.IsNullOrWhiteSpace(Thread.CurrentPrincipal.Identity.Name))
                     {
                         await fileStream.WriteAsync(" - ");
                         await fileStream.WriteAsync(Thread.CurrentPrincipal.Identity?.Name);
