@@ -102,9 +102,9 @@ namespace Zerra.IO
             {
                 if (!rented.Contains(buffer))
                     throw new Exception($"Memory<{typeof(T).Name}> Returned That Was Not Rented: Size {buffer.Length}");
+                System.Diagnostics.Debug.WriteLine($"Memory<{typeof(T).Name}> Returned - {rented.Count}: Size {buffer.Length}");
                 rented.Remove(buffer);
                 pool.Return(buffer);
-                System.Diagnostics.Debug.WriteLine($"Memory<{typeof(T).Name}> Returned - {rented.Count}: Size {buffer.Length}");
             }
 #else
             pool.Return(buffer);

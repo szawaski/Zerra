@@ -106,6 +106,7 @@ namespace Zerra.IO
         {
             if (!leaveOpen)
                 stream.Close();
+            base.Close(); //important for disposing
         }
 
         protected override void Dispose(bool disposing)

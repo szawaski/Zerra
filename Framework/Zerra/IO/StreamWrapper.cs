@@ -49,7 +49,13 @@ namespace Zerra.IO
         public override void EndWrite(IAsyncResult asyncResult) { stream.EndWrite(asyncResult); }
 
         public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken) { return stream.CopyToAsync(destination, bufferSize, cancellationToken); }
-        public override void Close() { stream.Close(); }
+
+        public override void Close()
+        {
+            if (!leaveOpen)
+                stream.Close();
+            base.Close(); //important for disposing
+        }
 
         protected override void Dispose(bool disposing)
         {
@@ -66,16 +72,12 @@ namespace Zerra.IO
 
         public override void CopyTo(Stream destination, int bufferSize) { stream.CopyTo(destination, bufferSize); }
 
-        public override ValueTask DisposeAsync()
+        public override async ValueTask DisposeAsync()
         {
             if (!leaveOpen)
-                return stream.DisposeAsync();
-#if NET5_0_OR_GREATER
-            return ValueTask.CompletedTask;
-#else
-            return new ValueTask();
-#endif
+                await stream.DisposeAsync();
+            await base.DisposeAsync();
         }
 #endif
-        }
+    }
 }

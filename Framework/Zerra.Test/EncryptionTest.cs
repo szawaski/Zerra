@@ -23,19 +23,25 @@ namespace Zerra.Test
             const int blockSize = 256;
             var test = GetTestBytes();
 
-            var shiftmsin = new MemoryStream(test);
-            var shiftmsout = new MemoryStream();
-            var shiftstream = new CryptoShiftStream(shiftmsin, blockSize, CryptoStreamMode.Read, false, false);
-            shiftstream.CopyTo(shiftmsout);
-            var result = shiftmsout.ToArray();
+            byte[] result;
+            using (var shiftmsin = new MemoryStream(test))
+            using (var shiftmsout = new MemoryStream())
+            using (var shiftstream = new CryptoShiftStream(shiftmsin, blockSize, CryptoStreamMode.Read, false, false))
+            {
+                shiftstream.CopyTo(shiftmsout);
+                result = shiftmsout.ToArray();
+            }
 
             Assert.IsTrue(result.Length - blockSize / 8 == test.Length);
 
-            var unshiftmsin = new MemoryStream(result);
-            var unshiftmsout = new MemoryStream();
-            var unshift = new CryptoShiftStream(unshiftmsin, blockSize, CryptoStreamMode.Read, true, false);
-            unshift.CopyTo(unshiftmsout);
-            var unshiftresult = unshiftmsout.ToArray();
+            byte[] unshiftresult;
+            using (var unshiftmsin = new MemoryStream(result))
+            using (var unshiftmsout = new MemoryStream())
+            using (var unshift = new CryptoShiftStream(unshiftmsin, blockSize, CryptoStreamMode.Read, true, false))
+            {
+                unshift.CopyTo(unshiftmsout);
+                unshiftresult = unshiftmsout.ToArray();
+            }
 
             Assert.AreEqual(test.Length, unshiftresult.Length);
             for (var i = 0; i < test.Length; i++)
@@ -48,19 +54,25 @@ namespace Zerra.Test
             const int blockSize = 256;
             var test = GetTestBytes();
 
-            var shiftmsout = new MemoryStream();
-            var shift = new CryptoShiftStream(shiftmsout, blockSize, CryptoStreamMode.Write, false, false);
-            shift.Write(test, 0, test.Length);
-            shiftmsout.Position = 0;
-            var result = shiftmsout.ToArray();
+            byte[] result;
+            using (var shiftmsout = new MemoryStream())
+            using (var shift = new CryptoShiftStream(shiftmsout, blockSize, CryptoStreamMode.Write, false, false))
+            {
+                shift.Write(test, 0, test.Length);
+                shiftmsout.Position = 0;
+                result = shiftmsout.ToArray();
+            }
 
             Assert.IsTrue(result.Length - blockSize / 8 == test.Length);
 
-            var unshiftmsout = new MemoryStream();
-            var unshift = new CryptoShiftStream(unshiftmsout, blockSize, CryptoStreamMode.Write, true, false);
-            unshift.Write(result, 0, result.Length);
-            unshiftmsout.Position = 0;
-            var unshiftresult = unshiftmsout.ToArray();
+            byte[] unshiftresult;
+            using (var unshiftmsout = new MemoryStream())
+            using (var unshift = new CryptoShiftStream(unshiftmsout, blockSize, CryptoStreamMode.Write, true, false))
+            {
+                unshift.Write(result, 0, result.Length);
+                unshiftmsout.Position = 0;
+                unshiftresult = unshiftmsout.ToArray();
+            }
 
             Assert.AreEqual(test.Length, unshiftresult.Length);
             for (var i = 0; i < test.Length; i++)
@@ -72,19 +84,25 @@ namespace Zerra.Test
         {
             var test = GetTestBytes();
 
-            var shiftmsin = new MemoryStream(test);
-            var shiftmsout = new MemoryStream();
-            var shiftstream = new CryptoShiftStream(shiftmsin, 256, CryptoStreamMode.Read, false, false);
-            shiftstream.CopyToAsync(shiftmsout).GetAwaiter().GetResult();
-            var result = shiftmsout.ToArray();
+            byte[] result;
+            using (var shiftmsin = new MemoryStream(test))
+            using (var shiftmsout = new MemoryStream())
+            using (var shiftstream = new CryptoShiftStream(shiftmsin, 256, CryptoStreamMode.Read, false, false))
+            {
+                shiftstream.CopyToAsync(shiftmsout).GetAwaiter().GetResult();
+                result = shiftmsout.ToArray();
+            }
 
             Assert.IsTrue(result.Length > test.Length);
 
-            var unshiftmsin = new MemoryStream(result);
-            var unshiftmsout = new MemoryStream();
-            var unshift = new CryptoShiftStream(unshiftmsin, 256, CryptoStreamMode.Read, true, false);
-            unshift.CopyToAsync(unshiftmsout).GetAwaiter().GetResult();
-            var unshiftresult = unshiftmsout.ToArray();
+            byte[] unshiftresult;
+            using (var unshiftmsin = new MemoryStream(result))
+            using (var unshiftmsout = new MemoryStream())
+            using (var unshift = new CryptoShiftStream(unshiftmsin, 256, CryptoStreamMode.Read, true, false))
+            {
+                unshift.CopyToAsync(unshiftmsout).GetAwaiter().GetResult();
+                unshiftresult = unshiftmsout.ToArray();
+            }
 
             Assert.AreEqual(test.Length, unshiftresult.Length);
             for (var i = 0; i < test.Length; i++)
@@ -96,19 +114,25 @@ namespace Zerra.Test
         {
             var test = GetTestBytes();
 
-            var shiftmsout = new MemoryStream();
-            var shift = new CryptoShiftStream(shiftmsout, 256, CryptoStreamMode.Write, false, false);
-            shift.WriteAsync(test, 0, test.Length).GetAwaiter().GetResult();
-            shiftmsout.Position = 0;
-            var result = shiftmsout.ToArray();
+            byte[] result;
+            using (var shiftmsout = new MemoryStream())
+            using (var shift = new CryptoShiftStream(shiftmsout, 256, CryptoStreamMode.Write, false, false))
+            {
+                shift.WriteAsync(test, 0, test.Length).GetAwaiter().GetResult();
+                shiftmsout.Position = 0;
+                result = shiftmsout.ToArray();
+            }
 
             Assert.IsTrue(result.Length > test.Length);
 
-            var unshiftmsout = new MemoryStream();
-            var unshift = new CryptoShiftStream(unshiftmsout, 256, CryptoStreamMode.Write, true, false);
-            unshift.WriteAsync(result, 0, result.Length).GetAwaiter().GetResult();
-            unshiftmsout.Position = 0;
-            var unshiftresult = unshiftmsout.ToArray();
+            byte[] unshiftresult;
+            using (var unshiftmsout = new MemoryStream())
+            using (var unshift = new CryptoShiftStream(unshiftmsout, 256, CryptoStreamMode.Write, true, false))
+            {
+                unshift.WriteAsync(result, 0, result.Length).GetAwaiter().GetResult();
+                unshiftmsout.Position = 0;
+                unshiftresult = unshiftmsout.ToArray();
+            }
 
             Assert.AreEqual(test.Length, unshiftresult.Length);
             for (var i = 0; i < test.Length; i++)
@@ -142,12 +166,14 @@ namespace Zerra.Test
 
             var encrypted = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AESwithShift, key, test);
 
-            var ms = new MemoryStream(Convert.FromBase64String(encrypted));
-            var decryptionStream = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESwithShift, key, ms, false, false);
-
-            var msout = new MemoryStream();
-            decryptionStream.CopyTo(msout);
-            var result = Encoding.UTF8.GetString(msout.ToArray());
+            string result;
+            using (var ms = new MemoryStream(Convert.FromBase64String(encrypted)))
+            using (var decryptionStream = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESwithShift, key, ms, false, false))
+            {
+                var msout = new MemoryStream();
+                decryptionStream.CopyTo(msout);
+                result = Encoding.UTF8.GetString(msout.ToArray());
+            }
 
             Assert.AreEqual(test, result);
         }
