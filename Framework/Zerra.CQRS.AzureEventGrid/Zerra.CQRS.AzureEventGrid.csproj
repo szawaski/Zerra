@@ -5,9 +5,9 @@
 		<Authors>Steven Zawaski</Authors>
 		<Product>KaKush LLC</Product>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-		<PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, Azure Event Hub</PackageTags>
+		<PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, Azure Event Grid</PackageTags>
 		<RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-		<Description>Azure Event Hub implementations of producer and consumer for commands and events in the CQRS Zerra Framework.</Description>
+		<Description>Azure Event Grid implementations of producer and consumer for commands and events in the CQRS Zerra Framework.</Description>
 		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<Version>3.0.0</Version>

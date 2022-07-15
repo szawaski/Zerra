@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net5.0;net6.0</TargetFrameworks>
+    <Authors>Steven Zawaski</Authors>
+    <Product>KaKush LLC</Product>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, Azure Service Bus</PackageTags>
+    <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
+    <Description>Azure Service Bus implementations of client and producer and consumer and events in the CQRS Zerra Framework.</Description>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version>3.0.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE.txt">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.9.0" />
+    <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="4.0.0" />
+  </ItemGroup>
+	
+  <ItemGroup>
+    <ProjectReference Include="..\Zerra\Zerra.csproj" />
+  </ItemGroup>
+
+</Project>
