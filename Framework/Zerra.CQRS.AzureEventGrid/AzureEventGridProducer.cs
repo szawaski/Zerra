@@ -140,7 +140,11 @@ namespace Zerra.CQRS.AzureEventGrid
             if (encryptionKey != null)
                 body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
 
-            var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = AzureEventGridCommon.MessageKey, Value = body });
+            await using (var producer = new EventGridPublisherClient(host, eventHubName))
+            {
+
+            }
+                var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = AzureEventGridCommon.MessageKey, Value = body });
             if (producerResult.Status != PersistenceStatus.Persisted)
                 throw new Exception($"{nameof(AzureEventGridProducer)} failed: {producerResult.Status}");
         }
