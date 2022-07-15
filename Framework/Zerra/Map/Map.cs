@@ -49,7 +49,7 @@ namespace Zerra
         private static readonly MethodInfo toStringMethod = TypeAnalyzer.GetTypeDetail(objectType).GetMethod("ToString").MethodInfo;
 
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, object> mapsStore = new ConcurrentFactoryDictionary<TypeKey, object>();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, object> mapsStore = new();
         public static Map<TSource, TTarget> GetMap()
         {
             var key = new TypeKey(tType, uType);

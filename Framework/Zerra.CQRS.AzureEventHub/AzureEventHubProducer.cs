@@ -199,6 +199,7 @@ namespace Zerra.CQRS.AzureEventHub
         public void Dispose()
         {
             canceller.Cancel();
+            GC.SuppressFinalize(this);
         }
     }
 }

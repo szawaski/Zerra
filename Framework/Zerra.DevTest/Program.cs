@@ -95,7 +95,7 @@ namespace Zerra.DevTest
             //Console.WriteLine();
 
             Console.WriteLine("Done");
-            Console.ReadLine();
+            _ = Console.ReadLine();
         }
 
         public static unsafe void PointerTest()

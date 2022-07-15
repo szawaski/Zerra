@@ -49,7 +49,7 @@ namespace Zerra.Logger
                 finally
                 {
                     fileStream.Dispose();
-                    fileLock.Release();
+                    _ = fileLock.Release();
                 }
             }
         }

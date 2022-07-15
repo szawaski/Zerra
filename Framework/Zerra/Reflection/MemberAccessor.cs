@@ -13,7 +13,7 @@ namespace Zerra.Reflection
 {
     public sealed class MemberAccessor
     {
-        private static readonly ConcurrentFactoryDictionary<Type, MemberAccessor> instances = new ConcurrentFactoryDictionary<Type, MemberAccessor>();
+        private static readonly ConcurrentFactoryDictionary<Type, MemberAccessor> instances = new();
         public static MemberAccessor Get(Type type)
         {
             var instance = instances.GetOrAdd(type, (t) =>

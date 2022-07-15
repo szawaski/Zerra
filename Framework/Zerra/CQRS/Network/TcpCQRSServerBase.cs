@@ -136,6 +136,7 @@ namespace Zerra.CQRS.Network
                 commandTypes.Dispose();
                 disposed = true;
             }
+            GC.SuppressFinalize(this);
         }
     }
 }

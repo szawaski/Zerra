@@ -86,7 +86,7 @@ namespace Zerra.Reflection
             return this.membersByNameLower.TryGetValue(name.ToLower(), out member);
         }
 
-        private readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> methodLookups = new ConcurrentFactoryDictionary<TypeKey, MethodDetail>();
+        private readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> methodLookups = new();
         private MethodDetail GetMethodInternal(string name, Type[] parameterTypes = null)
         {
             var key = new TypeKey(name, parameterTypes);
@@ -134,7 +134,7 @@ namespace Zerra.Reflection
             return method != null;
         }
 
-        private readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetails> constructorLookups = new ConcurrentFactoryDictionary<TypeKey, ConstructorDetails>();
+        private readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetails> constructorLookups = new();
         private ConstructorDetails GetConstructorInternal(Type[] parameterTypes)
         {
             var key = new TypeKey(parameterTypes);

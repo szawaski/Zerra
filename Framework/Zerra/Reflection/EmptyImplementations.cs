@@ -15,7 +15,7 @@ namespace Zerra.Reflection
     {
         private static readonly Type taskType = typeof(Task);
         private static readonly Type taskGenericType = typeof(Task<>);
-        private static readonly ConcurrentFactoryDictionary<Type, Type> emptyImplementations = new ConcurrentFactoryDictionary<Type, Type>();
+        private static readonly ConcurrentFactoryDictionary<Type, Type> emptyImplementations = new();
         public static Type GetEmptyImplementationType<TInterface>()
         {
             return GetEmptyImplementationType(typeof(TInterface));

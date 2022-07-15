@@ -99,7 +99,7 @@ namespace Zerra.Identity.Consumers
 
             var requestBinding = Saml2Binding.GetBindingForDocument(requestDocument, BindingType.Query, XmlSignatureAlgorithmType.RsaSha256, null, null);
             requestBinding.Sign(serviceProviderCert, requiredSignature);
-            requestBinding.GetResponse(logoutUrl);
+            _ = requestBinding.GetResponse(logoutUrl);
             var response = requestBinding.GetResponse(logoutUrl);
             return new ValueTask<IdentityHttpResponse>(response);
         }

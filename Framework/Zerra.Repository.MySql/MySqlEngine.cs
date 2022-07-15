@@ -600,7 +600,7 @@ namespace Zerra.Repository.MySql
                         {
                             var columnProperties = ReadColumns<TModel>(reader, modelDetail);
 
-                            reader.Read();
+                            _ = reader.Read();
 
                             var model = ReadRow<TModel>(reader, modelDetail, columnProperties);
                             return model;
@@ -630,7 +630,7 @@ namespace Zerra.Repository.MySql
                         {
                             var columnProperties = ReadColumns<TModel>(reader, modelDetail);
 
-                            reader.Read();
+                            _ = reader.Read();
 
                             var model = ReadRow<TModel>(reader, modelDetail, columnProperties);
 
@@ -662,7 +662,7 @@ namespace Zerra.Repository.MySql
                     {
                         if (reader.HasRows)
                         {
-                            reader.Read();
+                            _ = reader.Read();
                             var count = reader.GetInt32(0);
                             return count;
                         }
@@ -746,7 +746,7 @@ namespace Zerra.Repository.MySql
                         {
                             var columnProperties = ReadColumns<TModel>(reader, modelDetail);
 
-                            await reader.ReadAsync();
+                            _ = await reader.ReadAsync();
 
                             var model = ReadRow<TModel>(reader, modelDetail, columnProperties);
                             return model;
@@ -776,7 +776,7 @@ namespace Zerra.Repository.MySql
                         {
                             var columnProperties = ReadColumns<TModel>(reader, modelDetail);
 
-                            await reader.ReadAsync();
+                            _ = await reader.ReadAsync();
 
                             var model = ReadRow<TModel>(reader, modelDetail, columnProperties);
 
@@ -808,7 +808,7 @@ namespace Zerra.Repository.MySql
                     {
                         if (reader.HasRows)
                         {
-                            await reader.ReadAsync();
+                            _ = await reader.ReadAsync();
                             var count = reader.GetInt32(0);
                             return count;
                         }
@@ -1024,7 +1024,7 @@ namespace Zerra.Repository.MySql
                 {
                     command.CommandTimeout = 0;
                     command.CommandText = sql;
-                    command.ExecuteNonQuery();
+                    _ = command.ExecuteNonQuery();
                 }
             }
         }
@@ -1118,7 +1118,7 @@ namespace Zerra.Repository.MySql
             }
             catch (Exception ex)
             {
-                Log.ErrorAsync($"{nameof(MySqlEngine)} error while reading datastore.", ex);
+                _ = Log.ErrorAsync($"{nameof(MySqlEngine)} error while reading datastore.", ex);
                 throw;
             }
 
@@ -1163,7 +1163,7 @@ namespace Zerra.Repository.MySql
                 {
                     command.CommandTimeout = 0;
                     command.CommandText = sql;
-                    command.ExecuteNonQuery();
+                    _ = command.ExecuteNonQuery();
                 }
             }
         }
@@ -1187,22 +1187,22 @@ namespace Zerra.Repository.MySql
             if (create)
             {
                 var sb = new StringBuilder();
-                sb.Append("CREATE TABLE ").Append(model.DataSourceEntityName).Append("(\r\n");
+                _ = sb.Append("CREATE TABLE ").Append(model.DataSourceEntityName).Append("(\r\n");
 
                 for (var i = 0; i < identityColumns.Length; i++)
                 {
                     var property = identityColumns[i];
                     if (i > 0)
-                        sb.Append(",\r\n");
-                    sb.Append("\t`").Append(property.PropertySourceName).Append("` ");
+                        _ = sb.Append(",\r\n");
+                    _ = sb.Append("\t`").Append(property.PropertySourceName).Append("` ");
                     WriteSqlTypeFromModel(sb, property);
                 }
                 for (var i = 0; i < nonIdentityColumns.Length; i++)
                 {
                     var property = nonIdentityColumns[i];
                     if (i > 0 || identityColumns.Length > 0)
-                        sb.Append(",\r\n");
-                    sb.Append("\t`").Append(property.PropertySourceName).Append("` ");
+                        _ = sb.Append(",\r\n");
+                    _ = sb.Append("\t`").Append(property.PropertySourceName).Append("` ");
                     WriteSqlTypeFromModel(sb, property);
                 }
 
@@ -1210,8 +1210,8 @@ namespace Zerra.Repository.MySql
                 if (identityColumns.Length > 0)
                 {
                     if (identityColumns.Length > 0 || nonIdentityColumns.Length > 0)
-                        sb.Append(',');
-                    sb.Append("\r\n\tCONSTRAINT PK_").Append(model.DataSourceEntityName).Append(" PRIMARY KEY(\r\n");
+                        _ = sb.Append(',');
+                    _ = sb.Append("\r\n\tCONSTRAINT PK_").Append(model.DataSourceEntityName).Append(" PRIMARY KEY(\r\n");
 
                     //MySql must have AutoGenerated first
                     identityColumns = identityColumns.OrderByDescending(x => x.IsIdentityAutoGenerated).ToArray();
@@ -1219,12 +1219,12 @@ namespace Zerra.Repository.MySql
                     {
                         var property = identityColumns[i];
                         if (i > 0)
-                            sb.Append(",\r\n");
-                        sb.Append("\t\t`").Append(property.PropertySourceName).Append('`');
+                            _ = sb.Append(",\r\n");
+                        _ = sb.Append("\t\t`").Append(property.PropertySourceName).Append('`');
                     }
-                    sb.Append("\r\n\t)\r\n");
+                    _ = sb.Append("\r\n\t)\r\n");
                 }
-                sb.Append("\r\n)");
+                _ = sb.Append("\r\n)");
 
                 sql.Add(sb.ToString());
             }
@@ -1244,11 +1244,11 @@ namespace Zerra.Repository.MySql
                 {
                     if (create)
                     {
-                        sb.Append("ALTER TABLE `").Append(model.DataSourceEntityName).Append("` ADD `").Append(column.Name).Append("` ");
+                        _ = sb.Append("ALTER TABLE `").Append(model.DataSourceEntityName).Append("` ADD `").Append(column.Name).Append("` ");
                         WriteSqlTypeFromModel(sb, column);
-                        sb.Append(";");
+                        _ = sb.Append(";");
                         sql.Add(sb.ToString());
-                        sb.Clear();
+                        _ = sb.Clear();
                     }
                 }
                 else
@@ -1266,17 +1266,17 @@ namespace Zerra.Repository.MySql
                             {
                                 foreach (var sqlConstraint in theseSqlConstraints)
                                 {
-                                    sb.Append("ALTER TABLE `").Append(sqlConstraint.FK_Table).Append("` DROP CONSTRAINT `").Append(sqlConstraint.FK_Name).Append("`;");
+                                    _ = sb.Append("ALTER TABLE `").Append(sqlConstraint.FK_Table).Append("` DROP CONSTRAINT `").Append(sqlConstraint.FK_Name).Append("`;");
                                     sql.Add(sb.ToString());
-                                    sb.Clear();
+                                    _ = sb.Clear();
                                 }
                             }
 
-                            sb.Append("ALTER TABLE `").Append(model.DataSourceEntityName).Append("` MODIFY `").Append(column.Name).Append("` ");
+                            _ = sb.Append("ALTER TABLE `").Append(model.DataSourceEntityName).Append("` MODIFY `").Append(column.Name).Append("` ");
                             WriteSqlTypeFromModel(sb, column);
-                            sb.Append(";");
+                            _ = sb.Append(";");
                             sql.Add(sb.ToString());
-                            sb.Clear();
+                            _ = sb.Clear();
                         }
                     }
                 }
@@ -1295,9 +1295,9 @@ namespace Zerra.Repository.MySql
                         {
                             foreach (var sqlConstraint in theseSqlConstraints)
                             {
-                                sb.Append("ALTER TABLE `").Append(sqlConstraint.FK_Table).Append("` DROP CONSTRAINT `").Append(sqlConstraint.FK_Name).Append("`;");
+                                _ = sb.Append("ALTER TABLE `").Append(sqlConstraint.FK_Table).Append("` DROP CONSTRAINT `").Append(sqlConstraint.FK_Name).Append("`;");
                                 sql.Add(sb.ToString());
-                                sb.Clear();
+                                _ = sb.Clear();
                             }
                         }
 
@@ -1306,11 +1306,11 @@ namespace Zerra.Repository.MySql
                             if (sqlColumn.IsPrimaryKey || sqlColumn.IsIdentity)
                                 throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} needs to make {sqlColumn} nullable but cannot automatically change column with a Primary Key or Identity");
 
-                            sb.Append("ALTER TABLE `").Append(model.DataSourceEntityName).Append("` MODIFY `").Append(sqlColumn.Column).Append("` ");
+                            _ = sb.Append("ALTER TABLE `").Append(model.DataSourceEntityName).Append("` MODIFY `").Append(sqlColumn.Column).Append("` ");
                             WriteSqlTypeFromColumnAsNullable(sb, sqlColumn);
-                            sb.Append(";");
+                            _ = sb.Append(";");
                             sql.Add(sb.ToString());
-                            sb.Clear();
+                            _ = sb.Clear();
                         }
                     }
                 }
@@ -1359,9 +1359,9 @@ namespace Zerra.Repository.MySql
                             constraintNameDictionary.Add(baseConstraintName, 0);
                             constraintName = baseConstraintName;
                         }
-                        sb.Append("ALTER TABLE `").Append(fkTable).Append("` ADD CONSTRAINT ").Append(constraintName).Append(" FOREIGN KEY (").Append(fkColumn).Append(") REFERENCES `").Append(pkTable).Append("`(").Append(pkColumn).Append(");");
+                        _ = sb.Append("ALTER TABLE `").Append(fkTable).Append("` ADD CONSTRAINT ").Append(constraintName).Append(" FOREIGN KEY (").Append(fkColumn).Append(") REFERENCES `").Append(pkTable).Append("`(").Append(pkColumn).Append(");");
                         sql.Add(sb.ToString());
-                        sb.Clear();
+                        _ = sb.Clear();
                     }
                 }
                 else
@@ -1377,9 +1377,9 @@ namespace Zerra.Repository.MySql
                 {
                     if (!usedSqlConstraints.Contains(sqlConstraint))
                     {
-                        sb.Append("ALTER TABLE `").Append(sqlConstraint.FK_Table).Append("` DROP CONSTRAINT ").Append(sqlConstraint.FK_Name).Append(";");
+                        _ = sb.Append("ALTER TABLE `").Append(sqlConstraint.FK_Table).Append("` DROP CONSTRAINT ").Append(sqlConstraint.FK_Name).Append(";");
                         sql.Add(sb.ToString());
-                        sb.Clear();
+                        _ = sb.Clear();
                     }
                 }
             }
@@ -1394,69 +1394,69 @@ namespace Zerra.Repository.MySql
                 {
                     case CoreType.Boolean:
                     case CoreType.BooleanNullable:
-                        sb.Append("bit");
+                        _ = sb.Append("bit");
                         break;
                     case CoreType.Byte:
                     case CoreType.ByteNullable:
-                        sb.Append("tinyint");
+                        _ = sb.Append("tinyint");
                         canBeIdentity = true;
                         break;
                     case CoreType.Int16:
                     case CoreType.Int16Nullable:
-                        sb.Append("smallint");
+                        _ = sb.Append("smallint");
                         canBeIdentity = true;
                         break;
                     case CoreType.Int32:
                     case CoreType.Int32Nullable:
-                        sb.Append("int");
+                        _ = sb.Append("int");
                         canBeIdentity = true;
                         break;
                     case CoreType.Int64:
                     case CoreType.Int64Nullable:
-                        sb.Append("bigint");
+                        _ = sb.Append("bigint");
                         canBeIdentity = true;
                         break;
                     case CoreType.Single:
                     case CoreType.SingleNullable:
-                        sb.Append("float");
+                        _ = sb.Append("float");
                         break;
                     case CoreType.Double:
                     case CoreType.DoubleNullable:
-                        sb.Append("real");
+                        _ = sb.Append("real");
                         break;
                     case CoreType.Decimal:
                     case CoreType.DecimalNullable:
-                        sb.Append("decimal(").Append(property.DataSourcePrecisionLength ?? 19).Append(", ").Append(property.DataSourceScale ?? 5).Append(')');
+                        _ = sb.Append("decimal(").Append(property.DataSourcePrecisionLength ?? 19).Append(", ").Append(property.DataSourceScale ?? 5).Append(')');
                         canBeIdentity = property.DataSourceScale == 0;
                         break;
                     case CoreType.Char:
                     case CoreType.CharNullable:
-                        sb.Append("varchar(").Append(property.DataSourcePrecisionLength ?? 1).Append(')');
+                        _ = sb.Append("varchar(").Append(property.DataSourcePrecisionLength ?? 1).Append(')');
                         break;
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
                         if (property.DatePart == StoreDatePart.Date)
-                            sb.Append("date");
+                            _ = sb.Append("date");
                         else
-                            sb.Append("datetime(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
+                            _ = sb.Append("datetime(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
                         break;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
-                        sb.Append("timestamp(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
+                        _ = sb.Append("timestamp(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
                         break;
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:
-                        sb.Append("time(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
+                        _ = sb.Append("time(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
                         break;
                     case CoreType.Guid:
                     case CoreType.GuidNullable:
-                        sb.Append("char(32)");
+                        _ = sb.Append("char(32)");
                         break;
                     case CoreType.String:
                         if (property.DataSourcePrecisionLength.HasValue)
-                            sb.Append("varchar(").Append(property.DataSourcePrecisionLength.Value).Append(')');
+                            _ = sb.Append("varchar(").Append(property.DataSourcePrecisionLength.Value).Append(')');
                         else
-                            sb.Append("text");
+                            _ = sb.Append("text");
                         break;
                     default:
                         throw new Exception($"Cannot match type {property.Type.GetNiceName()} to an {nameof(MySqlEngine)} type.");
@@ -1465,9 +1465,9 @@ namespace Zerra.Repository.MySql
             else if (property.Type == typeof(byte[]))
             {
                 if (property.DataSourcePrecisionLength.HasValue)
-                    sb.Append("varbinary(").Append(property.DataSourcePrecisionLength.Value).Append(')');
+                    _ = sb.Append("varbinary(").Append(property.DataSourcePrecisionLength.Value).Append(')');
                 else
-                    sb.Append("blob");
+                    _ = sb.Append("blob");
             }
             else
             {
@@ -1476,24 +1476,24 @@ namespace Zerra.Repository.MySql
 
             if (property.IsDataSourceNotNull) //model checks for identity not null
             {
-                sb.Append(" NOT NULL");
+                _ = sb.Append(" NOT NULL");
                 if (property.IsIdentity && !property.IsIdentityAutoGenerated)
                 {
-                    sb.Append(" DEFAULT (");
+                    _ = sb.Append(" DEFAULT (");
                     WriteDefaultValue(sb, property);
-                    sb.Append(')');
+                    _ = sb.Append(')');
                 }
             }
             else
             {
-                sb.Append(" NULL");
+                _ = sb.Append(" NULL");
             }
 
             if (property.IsIdentity && property.IsIdentityAutoGenerated)
             {
                 if (!canBeIdentity)
                     throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} {property.Type.GetNiceName()} {property.Name} cannot be an auto generated identity");
-                sb.Append(" AUTO_INCREMENT");
+                _ = sb.Append(" AUTO_INCREMENT");
             }
         }
 
@@ -1519,11 +1519,11 @@ namespace Zerra.Repository.MySql
                     case CoreType.DoubleNullable:
                     case CoreType.Decimal:
                     case CoreType.DecimalNullable:
-                        sb.Append('0');
+                        _ = sb.Append('0');
                         break;
                     case CoreType.Char:
                     case CoreType.CharNullable:
-                        sb.Append("''");
+                        _ = sb.Append("''");
                         break;
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
@@ -1531,14 +1531,14 @@ namespace Zerra.Repository.MySql
                     case CoreType.DateTimeOffsetNullable:
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:
-                        sb.Append("CONVERT(timestamp, 0)");
+                        _ = sb.Append("CONVERT(timestamp, 0)");
                         break;
                     case CoreType.Guid:
                     case CoreType.GuidNullable:
-                        sb.Append("UUID()");
+                        _ = sb.Append("UUID()");
                         break;
                     case CoreType.String:
-                        sb.Append("''");
+                        _ = sb.Append("''");
                         break;
                     default:
                         throw new Exception($"Cannot match type {property.Type.GetNiceName()} to an {nameof(MySqlEngine)} type.");
@@ -1546,7 +1546,7 @@ namespace Zerra.Repository.MySql
             }
             else if (property.Type == typeof(byte[]))
             {
-                sb.Append("0x");
+                _ = sb.Append("0x");
             }
             else
             {
@@ -1568,16 +1568,16 @@ namespace Zerra.Repository.MySql
                 case "double":
 
                 case "text":
-                    sb.Append(sqlColumn.DataType);
+                    _ = sb.Append(sqlColumn.DataType);
                     break;
                 case "numeric":
                 case "decimal":
-                    sb.Append(sqlColumn.DataType).Append('(').Append(sqlColumn.NumericPrecision ?? 0).Append(", ").Append(sqlColumn.NumericScale ?? 0).Append(')');
+                    _ = sb.Append(sqlColumn.DataType).Append('(').Append(sqlColumn.NumericPrecision ?? 0).Append(", ").Append(sqlColumn.NumericScale ?? 0).Append(')');
                     break;
                 case "datetime":
                 case "timestamp":
                 case "time":
-                    sb.Append(sqlColumn.DataType).Append('(').Append(sqlColumn.DatetimePrecision ?? 0).Append(')');
+                    _ = sb.Append(sqlColumn.DataType).Append('(').Append(sqlColumn.DatetimePrecision ?? 0).Append(')');
                     break;
                 case "varchar":
                 case "nvarchar":
@@ -1585,13 +1585,13 @@ namespace Zerra.Repository.MySql
                 case "nchar":
                 case "binary":
                 case "varbinary":
-                    sb.Append(sqlColumn.DataType).Append('(').Append(!sqlColumn.CharacterMaximumLength.HasValue || sqlColumn.CharacterMaximumLength.Value == -1 ? "max" : sqlColumn.CharacterMaximumLength.Value.ToString()).Append(')');
+                    _ = sb.Append(sqlColumn.DataType).Append('(').Append(!sqlColumn.CharacterMaximumLength.HasValue || sqlColumn.CharacterMaximumLength.Value == -1 ? "max" : sqlColumn.CharacterMaximumLength.Value.ToString()).Append(')');
                     break;
                 default:
                     throw new NotImplementedException($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} type {sqlColumn.DataType} not implemented.");
             }
 
-            sb.Append(" NULL");
+            _ = sb.Append(" NULL");
         }
 
         private static bool ModelMatchesSqlType(ModelPropertyDetail property, SqlColumnType sqlColumn)

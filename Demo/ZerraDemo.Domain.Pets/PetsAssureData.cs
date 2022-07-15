@@ -7,7 +7,7 @@ namespace ZerraDemo.Domain.Pets
 {
     public static class PetsAssureData
     {
-        private static readonly object assureDataLock = new object();
+        private static readonly object assureDataLock = new();
         public static void AssureData()
         {
             lock (assureDataLock)

@@ -49,7 +49,7 @@ namespace Zerra.Providers
             return i;
         }
 
-        private static readonly ConcurrentFactoryDictionary<Type, Type> highestProviderInterfaces = new ConcurrentFactoryDictionary<Type, Type>();
+        private static readonly ConcurrentFactoryDictionary<Type, Type> highestProviderInterfaces = new();
         public static Type GetHighestProviderInterface(Type providerType)
         {
             if (providerType == null)

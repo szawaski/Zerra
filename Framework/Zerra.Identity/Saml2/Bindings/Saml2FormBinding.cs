@@ -179,17 +179,17 @@ namespace Zerra.Identity.Saml2.Bindings
         {
             var sb = new StringBuilder();
 
-            sb.Append("<html><head><title>Working...</title></head><body>");
-            sb.Append("<form method=\"POST\" name=\"name=\"hiddenform\" action=\"").Append(url).Append("\">");
+            _ = sb.Append("<html><head><title>Working...</title></head><body>");
+            _ = sb.Append("<form method=\"POST\" name=\"name=\"hiddenform\" action=\"").Append(url).Append("\">");
             if (inputs != null)
             {
                 foreach (var input in inputs)
-                    sb.Append(String.Format("<input type=\"hidden\" name=\"{0}\" value=\"{1}\">", WebUtility.HtmlEncode(input.Key), WebUtility.HtmlEncode(input.Value)));
+                    _ = sb.Append(String.Format("<input type=\"hidden\" name=\"{0}\" value=\"{1}\">", WebUtility.HtmlEncode(input.Key), WebUtility.HtmlEncode(input.Value)));
             }
-            sb.Append("<noscript><p>Script is disabled. Click Submit to continue.</p><input type=\"submit\" value=\"Submit\" /></noscript>");
-            sb.Append("</form>");
-            sb.Append("<script language=\"javascript\">document.forms[0].submit();</script>");
-            sb.Append("</body></html>");
+            _ = sb.Append("<noscript><p>Script is disabled. Click Submit to continue.</p><input type=\"submit\" value=\"Submit\" /></noscript>");
+            _ = sb.Append("</form>");
+            _ = sb.Append("<script language=\"javascript\">document.forms[0].submit();</script>");
+            _ = sb.Append("</body></html>");
 
             return sb.ToString();
         }
@@ -217,8 +217,8 @@ namespace Zerra.Identity.Saml2.Bindings
             foreach (var input in inputs)
             {
                 if (sb.Length > 0)
-                    sb.Append('&');
-                sb.Append(WebUtility.HtmlEncode(input.Key)).Append('=').Append(WebUtility.HtmlEncode(input.Value));
+                    _ = sb.Append('&');
+                _ = sb.Append(WebUtility.HtmlEncode(input.Key)).Append('=').Append(WebUtility.HtmlEncode(input.Value));
             }
 
             return sb.ToString();

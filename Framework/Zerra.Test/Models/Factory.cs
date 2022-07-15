@@ -28,7 +28,7 @@ namespace Zerra.Test
                 var enumerator2 = model2.GetEnumerator();
                 while (enumerator1.MoveNext())
                 {
-                    enumerator2.MoveNext();
+                    _ = enumerator2.MoveNext();
                     var item1 = enumerator1.Current;
                     var item2 = enumerator2.Current;
                     Assert.AreEqual(item1, item2);

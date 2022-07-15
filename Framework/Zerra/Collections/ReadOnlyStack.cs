@@ -26,7 +26,7 @@ namespace Zerra.Collections
 
         bool ICollection.IsSynchronized => false;
 
-        private readonly object syncRoot = new object();
+        private readonly object syncRoot = new();
         object ICollection.SyncRoot => syncRoot;
 
         public bool Contains(T item)

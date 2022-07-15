@@ -99,9 +99,9 @@ namespace Zerra.DevTest
                 var sb = new StringBuilder();
                 for (var j = 0; j < sbLoops; j++)
                 {
-                    sb.Append(sbString);
-                    sb.Append(sbString);
-                    sb.Append(j);
+                    _ = sb.Append(sbString);
+                    _ = sb.Append(sbString);
+                    _ = sb.Append(j);
                 }
                 var result = sb.ToString();
             }

@@ -27,20 +27,20 @@ namespace Zerra.Repository
             var typeName = typeof(TModel).GetNiceName();
 
             var sbStreamName = new StringBuilder();
-            sbStreamName.Append(typeName).Append('_');
+            _ = sbStreamName.Append(typeName).Append('_');
 
             if (id is object[] identityArray)
             {
                 for (var i = 0; i < identityArray.Length; i++)
                 {
                     if (i > 0)
-                        sbStreamName.Append('_');
-                    sbStreamName.Append(identityArray[i].ToString());
+                        _ = sbStreamName.Append('_');
+                    _ = sbStreamName.Append(identityArray[i].ToString());
                 }
             }
             else
             {
-                sbStreamName.Append(id.ToString());
+                _ = sbStreamName.Append(id.ToString());
             }
             return sbStreamName.ToString();
         }
@@ -50,20 +50,20 @@ namespace Zerra.Repository
             var typeName = typeof(TModel).GetNiceName();
 
             var sbStreamName = new StringBuilder();
-            sbStreamName.Append(typeName).Append("_State_");
+            _ = sbStreamName.Append(typeName).Append("_State_");
 
             if (id is object[] identityArray)
             {
                 for (var i = 0; i < identityArray.Length; i++)
                 {
                     if (i > 0)
-                        sbStreamName.Append('_');
-                    sbStreamName.Append(identityArray[i].ToString());
+                        _ = sbStreamName.Append('_');
+                    _ = sbStreamName.Append(identityArray[i].ToString());
                 }
             }
             else
             {
-                sbStreamName.Append(id.ToString());
+                _ = sbStreamName.Append(id.ToString());
             }
             return sbStreamName.ToString();
         }

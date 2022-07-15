@@ -143,7 +143,7 @@ namespace Zerra.Web
                 if (!context.Request.Cookies.Keys.Contains(seriesName))
                     break;
                 var cookie = context.Request.Cookies[seriesName];
-                sb.Append(cookie);
+                _ = sb.Append(cookie);
             }
 
             if (sb.Length == 0)

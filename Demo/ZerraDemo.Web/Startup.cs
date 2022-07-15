@@ -23,28 +23,28 @@ namespace ZerraDemo.Web
 
             if (HostEnvironment.IsDevelopment())
             {
-                mvc.AddRazorRuntimeCompilation();
+                _ = mvc.AddRazorRuntimeCompilation();
             }
         }
 
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
-            loggerFactory.AddZerraLogger();
+            _ = loggerFactory.AddZerraLogger();
 
-            app.UseHttpsRedirection();
-            app.UseStaticFiles();
+            _ = app.UseHttpsRedirection();
+            _ = app.UseStaticFiles();
 
-            app.UseCustomAuthentication();
+            _ = app.UseCustomAuthentication();
 
-            app.UseCQRSGateway();
+            _ = app.UseCQRSGateway();
 
-            app.UseRouting();
+            _ = app.UseRouting();
 
-            app.UseAuthorization();
+            _ = app.UseAuthorization();
 
-            app.UseEndpoints(endpoints =>
+            _ = app.UseEndpoints(endpoints =>
             {
-                endpoints.MapControllerRoute(
+                _ = endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
             });

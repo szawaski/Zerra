@@ -36,11 +36,11 @@ namespace Zerra.Repository.MsSql
                 try
                 {
                     engine.CreateDatabase(createDatabaseName);
-                    Log.InfoAsync($"{nameof(MsSqlEngine)}: Create Database {createDatabaseName}");
+                    _ = Log.InfoAsync($"{nameof(MsSqlEngine)}: Create Database {createDatabaseName}");
                 }
                 catch (Exception ex)
                 {
-                    Log.ErrorAsync($"{nameof(MsSqlEngine)} error while creating database.", ex);
+                    _ = Log.ErrorAsync($"{nameof(MsSqlEngine)} error while creating database.", ex);
                 }
             }
 
@@ -49,11 +49,11 @@ namespace Zerra.Repository.MsSql
                 try
                 {
                     engine.ExecuteSql(line);
-                    Log.InfoAsync($"{nameof(MsSqlEngine)}: {line}");
+                    _ = Log.InfoAsync($"{nameof(MsSqlEngine)}: {line}");
                 }
                 catch (Exception ex)
                 {
-                    Log.ErrorAsync($"{nameof(MsSqlEngine)} error while assuring datastore: {line}.", ex);
+                    _ = Log.ErrorAsync($"{nameof(MsSqlEngine)} error while assuring datastore: {line}.", ex);
                     throw;
                 }
             }

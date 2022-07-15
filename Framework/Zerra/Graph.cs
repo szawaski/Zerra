@@ -551,7 +551,7 @@ namespace Zerra
         private static readonly byte maxSelectRecursive = 2;
         private static readonly MethodInfo selectMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "Select" && m.GetParameters().Length == 2).First();
         private static readonly MethodInfo listMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "ToList").First();
-        private static readonly ConcurrentFactoryDictionary<TypeKey, Expression> selectExpressions = new ConcurrentFactoryDictionary<TypeKey, Expression>();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, Expression> selectExpressions = new();
         public Expression<Func<TSource, TTarget>> GenerateSelect<TSource, TTarget>()
         {
             var key = new TypeKey(this.Signature, typeof(TSource), typeof(TTarget));

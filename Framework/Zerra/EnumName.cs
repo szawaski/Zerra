@@ -15,7 +15,7 @@ public class EnumName : Attribute
     public string Text { get; set; }
     public EnumName(string text) { this.Text = text; }
 
-    private static readonly ConcurrentFactoryDictionary<Type, CoreType> underlyingTypes = new ConcurrentFactoryDictionary<Type, CoreType>();
+    private static readonly ConcurrentFactoryDictionary<Type, CoreType> underlyingTypes = new();
     private static CoreType GetUnderlyingType(Type type)
     {
         return underlyingTypes.GetOrAdd(type, (t) =>
@@ -26,7 +26,7 @@ public class EnumName : Attribute
         });
     }
 
-    private static readonly ConcurrentFactoryDictionary<Type, Dictionary<long, string>> nameCache = new ConcurrentFactoryDictionary<Type, Dictionary<long, string>>();
+    private static readonly ConcurrentFactoryDictionary<Type, Dictionary<long, string>> nameCache = new();
     private static Dictionary<long, string> GetNamesForType(Type type)
     {
         var nameLookup = nameCache.GetOrAdd(type, (t) =>
@@ -144,7 +144,7 @@ public class EnumName : Attribute
         return GetNames(typeof(T));
     }
 
-    private static readonly ConcurrentFactoryDictionary<Type, Dictionary<string, object>> valueLookups = new ConcurrentFactoryDictionary<Type, Dictionary<string, object>>();
+    private static readonly ConcurrentFactoryDictionary<Type, Dictionary<string, object>> valueLookups = new();
     private static Dictionary<string, object> GetValuesForType(Type type)
     {
         var valueLookup = valueLookups.GetOrAdd(type, (t) =>

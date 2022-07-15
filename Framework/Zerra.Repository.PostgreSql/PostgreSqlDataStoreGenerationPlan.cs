@@ -36,11 +36,11 @@ namespace Zerra.Repository.PostgreSql
                 try
                 {
                     engine.CreateDatabase(createDatabaseName);
-                    Log.InfoAsync($"{nameof(PostgreSqlEngine)}: Create Database {createDatabaseName}");
+                    _ = Log.InfoAsync($"{nameof(PostgreSqlEngine)}: Create Database {createDatabaseName}");
                 }
                 catch (Exception ex)
                 {
-                    Log.ErrorAsync($"{nameof(PostgreSqlEngine)} error while creating database.", ex);
+                    _ = Log.ErrorAsync($"{nameof(PostgreSqlEngine)} error while creating database.", ex);
                 }
             }
 
@@ -49,11 +49,11 @@ namespace Zerra.Repository.PostgreSql
                 try
                 {
                     engine.ExecuteSql(line);
-                    Log.InfoAsync($"{nameof(PostgreSqlEngine)}: {line}");
+                    _ = Log.InfoAsync($"{nameof(PostgreSqlEngine)}: {line}");
                 }
                 catch (Exception ex)
                 {
-                    Log.ErrorAsync($"{nameof(PostgreSqlEngine)} error while assuring datastore: {line}.", ex);
+                    _ = Log.ErrorAsync($"{nameof(PostgreSqlEngine)} error while assuring datastore: {line}.", ex);
                     throw;
                 }
             }

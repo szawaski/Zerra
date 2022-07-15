@@ -34,7 +34,7 @@ namespace Zerra.Identity.OpenID.Bindings
         private string GetRedirectUrl(string baseUrl)
         {
             var sb = new StringBuilder();
-            sb.Append(baseUrl);
+            _ = sb.Append(baseUrl);
             GenerateQueryString(sb);
             return sb.ToString();
         }
@@ -53,15 +53,15 @@ namespace Zerra.Identity.OpenID.Bindings
                 if (first)
                 {
                     first = false;
-                    sb.Append('?');
+                    _ = sb.Append('?');
                 }
                 else
                 {
-                    sb.Append('&');
+                    _ = sb.Append('&');
                 }
 
                 var value = jsonObject.Value.ToObject<string>();
-                sb.Append(WebUtility.UrlEncode(jsonObject.Key)).Append('=').Append(WebUtility.UrlEncode(value));
+                _ = sb.Append(WebUtility.UrlEncode(jsonObject.Key)).Append('=').Append(WebUtility.UrlEncode(value));
             }
         }
 

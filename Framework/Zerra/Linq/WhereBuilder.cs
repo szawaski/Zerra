@@ -12,7 +12,7 @@ namespace Zerra.Linq
     public partial class WhereBuilder<TModel>
         where TModel : class, new()
     {
-        private readonly List<ExpressionStackItem> expressionStack = new List<ExpressionStackItem>();
+        private readonly List<ExpressionStackItem> expressionStack = new();
 
         public WhereBuilder(Expression<Func<TModel, bool>> expression)
         {

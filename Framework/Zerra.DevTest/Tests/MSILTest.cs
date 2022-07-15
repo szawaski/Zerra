@@ -15,7 +15,7 @@ namespace Zerra.DevTest
     {
         public static T ReturnDefault<T>()
         {
-            return default(T);
+            return default;
         }
 
         public interface IStuff

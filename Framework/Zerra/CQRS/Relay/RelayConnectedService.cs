@@ -18,9 +18,9 @@ namespace Zerra.CQRS.Relay
         private const int failureWaitMilliseconds = 5000;
         private const int maxFailures = 5;
 
-        private readonly ConcurrentQueue<long> runtimes = new ConcurrentQueue<long>();
+        private readonly ConcurrentQueue<long> runtimes = new();
 
-        private readonly object loadLock = new object();
+        private readonly object loadLock = new();
         private double averageRuntime = 0;
         private int runtimeCount = 0;
         public double Load
@@ -34,7 +34,7 @@ namespace Zerra.CQRS.Relay
             }
         }
 
-        private readonly object requestsLock = new object();
+        private readonly object requestsLock = new();
         private int currentRequests = 0;
         public int CurrentRequests
         {
@@ -47,7 +47,7 @@ namespace Zerra.CQRS.Relay
             }
         }
 
-        private readonly object failureLock = new object();
+        private readonly object failureLock = new();
         private int failures = 0;
         private DateTime lastFailure = DateTime.MinValue;
         public bool Failed

@@ -39,7 +39,7 @@ namespace ZerraDemo.Domain.Ledger2.Aggregates
             if (amount < 0)
                 throw new ArgumentException("Invalid Amount");
 
-            await Rebuild();
+            _ = await Rebuild();
 
             var @event = new Deposit2Event()
             {
@@ -55,7 +55,7 @@ namespace ZerraDemo.Domain.Ledger2.Aggregates
             if (amount < 0)
                 throw new ArgumentException("Invalid Amount");
 
-            await Rebuild();
+            _ = await Rebuild();
 
             if (Balance - amount < 0)
                 throw new Exception("Insuffient Balance");
@@ -74,7 +74,7 @@ namespace ZerraDemo.Domain.Ledger2.Aggregates
             if (amount < 0)
                 throw new ArgumentException("Invalid Amount");
 
-            await Rebuild();
+            _ = await Rebuild();
 
             if (Balance - amount < 0)
                 throw new Exception("Insuffient Balance");

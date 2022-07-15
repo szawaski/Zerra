@@ -82,7 +82,7 @@ namespace Zerra.Repository.EventStoreDB
                 var revision = new StreamRevision(expectedEventNumber.Value);
 
                 var writeResult = await client.AppendToStreamAsync(streamName, revision, new EventData[] { eventData });
-                await client.TombstoneAsync(streamName, revision);
+                _ = await client.TombstoneAsync(streamName, revision);
                 return writeResult.NextExpectedStreamRevision;
 
             }
@@ -98,7 +98,7 @@ namespace Zerra.Repository.EventStoreDB
                 }
 
                 var writeResult = await client.AppendToStreamAsync(streamName, state, new EventData[] { eventData });
-                await client.TombstoneAsync(streamName, state);
+                _ = await client.TombstoneAsync(streamName, state);
                 return writeResult.NextExpectedStreamRevision;
             }
         }
@@ -271,7 +271,7 @@ namespace Zerra.Repository.EventStoreDB
 
             try
             {
-                client.AppendToStreamAsync("ValidateDataSource", StreamState.Any, new EventData[] { eventData })
+                _ = client.AppendToStreamAsync("ValidateDataSource", StreamState.Any, new EventData[] { eventData })
                     .GetAwaiter().GetResult();
 
                 return true;

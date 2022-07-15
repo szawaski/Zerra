@@ -10,8 +10,8 @@ namespace Zerra.CQRS.AzureServiceBus
 {
     public class AzureServiceBusServiceCreator : IServiceCreator
     {
-        private static readonly ConcurrentFactoryDictionary<string, AzureServiceBusConsumer> AzureServiceBusServers = new ConcurrentFactoryDictionary<string, AzureServiceBusConsumer>();
-        private static readonly ConcurrentFactoryDictionary<string, AzureServiceBusProducer> kakfaClients = new ConcurrentFactoryDictionary<string, AzureServiceBusProducer>();
+        private static readonly ConcurrentFactoryDictionary<string, AzureServiceBusConsumer> AzureServiceBusServers = new();
+        private static readonly ConcurrentFactoryDictionary<string, AzureServiceBusProducer> kakfaClients = new();
 
         private readonly string host;
         private readonly IServiceCreator serviceCreatorForQueries;

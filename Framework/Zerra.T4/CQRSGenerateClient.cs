@@ -21,79 +21,79 @@ namespace Zerra.T4
 
             var sb = new StringBuilder();
 
-            sb.Append("import { Bus, ICommand } from \"./Bus\";").Append(Environment.NewLine).Append(Environment.NewLine);
+            _ = sb.Append("import { Bus, ICommand } from \"./Bus\";").Append(Environment.NewLine).Append(Environment.NewLine);
             foreach (var model in modelsFiltered)
             {
-                sb.Append("export class ").Append(model.Name).Append(" {").Append(Environment.NewLine);
+                _ = sb.Append("export class ").Append(model.Name).Append(" {").Append(Environment.NewLine);
                 foreach (var property in model.Properties)
                 {
                     var (isJavaScriptType, type, hasMany, nullable) = GetJavaScriptPropertyType(property.Type.Resolved, models);
-                    sb.Append(spacing).Append(property.Name).Append("!: ").Append(type).Append(nullable ? " | null" : null).Append(";").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append(property.Name).Append("!: ").Append(type).Append(nullable ? " | null" : null).Append(";").Append(Environment.NewLine);
                 }
-                sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
+                _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
 
-                sb.Append("const ").Append(model.Name).Append("Type =").Append(Environment.NewLine);
-                sb.Append("{").Append(Environment.NewLine);
+                _ = sb.Append("const ").Append(model.Name).Append("Type =").Append(Environment.NewLine);
+                _ = sb.Append("{").Append(Environment.NewLine);
                 foreach (var property in model.Properties)
                 {
                     var (isJavaScriptType, type, hasMany, nullable) = GetJavaScriptPropertyType(property.Type.Resolved, models);
-                    sb.Append(spacing).Append(property.Name).Append(": \"").Append(type).Append("\",").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append(property.Name).Append(": \"").Append(type).Append("\",").Append(Environment.NewLine);
                 }
-                sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
+                _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
             }
 
-            sb.Append("export const ").Append("ModelTypeDictionary: any[string] =").Append(Environment.NewLine);
-            sb.Append("{").Append(Environment.NewLine);
+            _ = sb.Append("export const ").Append("ModelTypeDictionary: any[string] =").Append(Environment.NewLine);
+            _ = sb.Append("{").Append(Environment.NewLine);
             foreach (var model in modelsFiltered)
             {
-                sb.Append(spacing).Append(model.Name).Append(": ").Append(model.Name).Append("Type,").Append(Environment.NewLine);
+                _ = sb.Append(spacing).Append(model.Name).Append(": ").Append(model.Name).Append("Type,").Append(Environment.NewLine);
             }
-            sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
+            _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
 
             foreach (var query in queryInterfaces)
             {
-                sb.Append("export class ").Append(query.Name).Append(" {").Append(Environment.NewLine);
+                _ = sb.Append("export class ").Append(query.Name).Append(" {").Append(Environment.NewLine);
                 foreach (var method in query.Methods)
                 {
                     var (isJavaScriptType, type, hasMany, nullable) = GetJavaScriptPropertyType(method.ReturnType.Resolved, models);
-                    sb.Append(spacing).Append("public static ").Append(method.Name).Append("(");
+                    _ = sb.Append(spacing).Append("public static ").Append(method.Name).Append("(");
                     for (var i = 0; i < method.Parameters.Count; i++)
                     {
                         if (i > 0)
-                            sb.Append(", ");
+                            _ = sb.Append(", ");
                         var (parameterIsJavaScriptType, parameterType, parameterHasMany, parameterNullable) = GetJavaScriptPropertyType(method.Parameters[i].Type.Resolved, models);
-                        sb.Append(method.Parameters[i].Name).Append(": ").Append(parameterType).Append(parameterNullable ? " | null" : null);
+                        _ = sb.Append(method.Parameters[i].Name).Append(": ").Append(parameterType).Append(parameterNullable ? " | null" : null);
                     }
-                    sb.Append("): Promise<").Append(type).Append(nullable ? " | null" : null).Append("> {").Append(Environment.NewLine);
-                    sb.Append(spacing).Append(spacing).Append("return Bus.Call(\"").Append(query.Name).Append("\", \"").Append(method.Name).Append("\", [");
+                    _ = sb.Append("): Promise<").Append(type).Append(nullable ? " | null" : null).Append("> {").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append(spacing).Append("return Bus.Call(\"").Append(query.Name).Append("\", \"").Append(method.Name).Append("\", [");
                     for (var i = 0; i < method.Parameters.Count; i++)
                     {
                         if (i > 0)
-                            sb.Append(", ");
-                        sb.Append(method.Parameters[i].Name);
+                            _ = sb.Append(", ");
+                        _ = sb.Append(method.Parameters[i].Name);
                     }
-                    sb.Append("], ").Append(type == null || isJavaScriptType ? "null" : (hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(", ").Append(hasMany ? "true" : "false").Append(");").Append(Environment.NewLine);
-                    sb.Append(spacing).Append("}").Append(Environment.NewLine);
+                    _ = sb.Append("], ").Append(type == null || isJavaScriptType ? "null" : (hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(", ").Append(hasMany ? "true" : "false").Append(");").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append("}").Append(Environment.NewLine);
                 }
-                sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
+                _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
 
             }
 
             foreach (var command in commands)
             {
-                sb.Append("export class ").Append(command.Name).Append(" implements ICommand {").Append(Environment.NewLine);
-                sb.Append(spacing).Append("constructor(properties: ").Append(command.Name).Append(") {").Append(Environment.NewLine);
-                sb.Append(spacing).Append(spacing).Append("const self: any = this;").Append(Environment.NewLine);
-                sb.Append(spacing).Append(spacing).Append("const props: any = properties;").Append(Environment.NewLine);
-                sb.Append(spacing).Append(spacing).Append("Object.keys(props).forEach(key => self[key] = props[key]);").Append(Environment.NewLine);
-                sb.Append(spacing).Append(spacing).Append("self[\"CommandType\"] = \"").Append(command.Name).Append("\";").Append(Environment.NewLine);
-                sb.Append(spacing).Append("}").Append(Environment.NewLine);
+                _ = sb.Append("export class ").Append(command.Name).Append(" implements ICommand {").Append(Environment.NewLine);
+                _ = sb.Append(spacing).Append("constructor(properties: ").Append(command.Name).Append(") {").Append(Environment.NewLine);
+                _ = sb.Append(spacing).Append(spacing).Append("const self: any = this;").Append(Environment.NewLine);
+                _ = sb.Append(spacing).Append(spacing).Append("const props: any = properties;").Append(Environment.NewLine);
+                _ = sb.Append(spacing).Append(spacing).Append("Object.keys(props).forEach(key => self[key] = props[key]);").Append(Environment.NewLine);
+                _ = sb.Append(spacing).Append(spacing).Append("self[\"CommandType\"] = \"").Append(command.Name).Append("\";").Append(Environment.NewLine);
+                _ = sb.Append(spacing).Append("}").Append(Environment.NewLine);
                 foreach (var property in command.Properties)
                 {
                     var (isJavaScriptType, type, hasMany, nullable) = GetJavaScriptPropertyType(property.Type.Resolved, models);
-                    sb.Append(spacing).Append(property.Name).Append("!: ").Append(type).Append(nullable ? " | null" : null).Append(";").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append(property.Name).Append("!: ").Append(type).Append(nullable ? " | null" : null).Append(";").Append(Environment.NewLine);
                 }
-                sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
+                _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
             }
 
             return sb.ToString();
@@ -108,64 +108,64 @@ namespace Zerra.T4
 
             foreach (var model in modelsFiltered)
             {
-                sb.Append("const ").Append(model.Name).Append("Type =").Append(Environment.NewLine);
-                sb.Append("{").Append(Environment.NewLine);
+                _ = sb.Append("const ").Append(model.Name).Append("Type =").Append(Environment.NewLine);
+                _ = sb.Append("{").Append(Environment.NewLine);
                 foreach (var property in model.Properties)
                 {
                     var (isJavaScriptType, type, hasMany, nullable) = GetJavaScriptPropertyType(property.Type.Resolved, models);
-                    sb.Append(spacing).Append(property.Name).Append(": \"").Append(type).Append("\",").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append(property.Name).Append(": \"").Append(type).Append("\",").Append(Environment.NewLine);
                 }
-                sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
+                _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
             }
 
-            sb.Append("const ").Append("ModelTypeDictionary =").Append(Environment.NewLine);
-            sb.Append("{").Append(Environment.NewLine);
+            _ = sb.Append("const ").Append("ModelTypeDictionary =").Append(Environment.NewLine);
+            _ = sb.Append("{").Append(Environment.NewLine);
             foreach (var model in modelsFiltered)
             {
-                sb.Append(spacing).Append(model.Name).Append(": ").Append(model.Name).Append("Type,").Append(Environment.NewLine);
+                _ = sb.Append(spacing).Append(model.Name).Append(": ").Append(model.Name).Append("Type,").Append(Environment.NewLine);
             }
-            sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
+            _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
 
             foreach (var query in queryInterfaces)
             {
-                sb.Append("const ").Append(query.Name).Append(" = {").Append(Environment.NewLine);
+                _ = sb.Append("const ").Append(query.Name).Append(" = {").Append(Environment.NewLine);
                 foreach (var method in query.Methods)
                 {
                     var (isJavaScriptType, type, hasMany, nullable) = GetJavaScriptPropertyType(method.ReturnType.Resolved, models);
-                    sb.Append(spacing).Append(method.Name).Append(": function(");
+                    _ = sb.Append(spacing).Append(method.Name).Append(": function(");
                     int i;
                     for (i = 0; i < method.Parameters.Count; i++)
                     {
                         if (i > 0)
-                            sb.Append(", ");
-                        sb.Append(method.Parameters[i].Name);
+                            _ = sb.Append(", ");
+                        _ = sb.Append(method.Parameters[i].Name);
                     }
                     if (i > 0)
-                        sb.Append(", ");
-                    sb.Append("onComplete, onFail) {").Append(Environment.NewLine);
-                    sb.Append(spacing).Append(spacing).Append("Bus.Call(\"").Append(query.Name).Append("\", \"").Append(method.Name).Append("\", [");
+                        _ = sb.Append(", ");
+                    _ = sb.Append("onComplete, onFail) {").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append(spacing).Append("Bus.Call(\"").Append(query.Name).Append("\", \"").Append(method.Name).Append("\", [");
                     for (i = 0; i < method.Parameters.Count; i++)
                     {
                         if (i > 0)
-                            sb.Append(", ");
-                        sb.Append(method.Parameters[i].Name);
+                            _ = sb.Append(", ");
+                        _ = sb.Append(method.Parameters[i].Name);
                     }
-                    sb.Append("], ").Append(type == null || isJavaScriptType ? "null" : (hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(", ").Append(hasMany ? "true" : "false").Append(", onComplete, onFail);").Append(Environment.NewLine);
-                    sb.Append(spacing).Append("},").Append(Environment.NewLine);
+                    _ = sb.Append("], ").Append(type == null || isJavaScriptType ? "null" : (hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(", ").Append(hasMany ? "true" : "false").Append(", onComplete, onFail);").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append("},").Append(Environment.NewLine);
                 }
-                sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
+                _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
 
             }
 
             foreach (var command in commands)
             {
-                sb.Append("const ").Append(command.Name).Append(" = function(properties) {").Append(Environment.NewLine);
+                _ = sb.Append("const ").Append(command.Name).Append(" = function(properties) {").Append(Environment.NewLine);
                 foreach (var property in command.Properties)
                 {
-                    sb.Append(spacing).Append("this.").Append(property.Name).Append(" = (properties === undefined || properties.").Append(property.Name).Append(" === undefined) ? null : properties.").Append(property.Name).Append(";").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append("this.").Append(property.Name).Append(" = (properties === undefined || properties.").Append(property.Name).Append(" === undefined) ? null : properties.").Append(property.Name).Append(";").Append(Environment.NewLine);
                 }
-                sb.Append(spacing).Append("this.CommandType = \"").Append(command.Name).Append("\";").Append(Environment.NewLine);
-                sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
+                _ = sb.Append(spacing).Append("this.CommandType = \"").Append(command.Name).Append("\";").Append(Environment.NewLine);
+                _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
             }
 
             return sb.ToString();

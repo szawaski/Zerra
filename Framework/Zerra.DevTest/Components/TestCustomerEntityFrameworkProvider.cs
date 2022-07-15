@@ -43,7 +43,7 @@ namespace Zerra.DevTest
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer(@"Server=.;Database=Test;Integrated Security=True");
+            _ = optionsBuilder.UseSqlServer(@"Server=.;Database=Test;Integrated Security=True");
         }
     }
 

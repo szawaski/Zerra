@@ -73,7 +73,7 @@ namespace Zerra.CQRS.RabbitMQ
             }
             catch (Exception ex)
             {
-                Log.ErrorAsync($"{nameof(RabbitMQConsumer)} failed to open", ex);
+                _ = Log.ErrorAsync($"{nameof(RabbitMQConsumer)} failed to open", ex);
                 throw;
             }
 
@@ -127,6 +127,7 @@ namespace Zerra.CQRS.RabbitMQ
         public void Dispose()
         {
             this.Close();
+            GC.SuppressFinalize(this);
         }
 
         void ICommandConsumer.RegisterCommandType(Type type)

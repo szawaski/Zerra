@@ -3,13 +3,14 @@
 // Licensed to you under the MIT license
 
 using Microsoft.Extensions.Logging;
+using System;
 using Zerra.Collections;
 
 namespace Zerra.Web
 {
     public class ZerraLoggerProvider : ILoggerProvider
     {
-        private readonly ConcurrentFactoryDictionary<string, ZerraLogger> loggers = new ConcurrentFactoryDictionary<string, ZerraLogger>();
+        private readonly ConcurrentFactoryDictionary<string, ZerraLogger> loggers = new();
 
         public ILogger CreateLogger(string categoryName)
         {
@@ -24,6 +25,7 @@ namespace Zerra.Web
         public void Dispose()
         {
             loggers.Clear();
+            GC.SuppressFinalize(this);
         }
     }
 }

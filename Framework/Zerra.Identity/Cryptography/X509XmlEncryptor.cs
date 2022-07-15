@@ -58,12 +58,12 @@ namespace Zerra.Identity.Cryptography
 
             if (wrapperElementName != elementName)
             {
-                xmlDoc.DocumentElement.RemoveChild(element);
+                _ = xmlDoc.DocumentElement.RemoveChild(element);
 
                 var newElement = xmlDoc.CreateElement(wrapperElementPrefix, wrapperElementName, element.NamespaceURI);
-                xmlDoc.DocumentElement.AppendChild(newElement);
+                _ = xmlDoc.DocumentElement.AppendChild(newElement);
 
-                newElement.AppendChild(element.ChildNodes[0]);
+                _ = newElement.AppendChild(element.ChildNodes[0]);
             }
 
             return xmlDoc;

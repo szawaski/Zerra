@@ -8,7 +8,7 @@ namespace Zerra.Encryption
 {
     public sealed class Secret<T>
     {
-        private static readonly ByteSerializer byteSerializer = new ByteSerializer();
+        private static readonly ByteSerializer byteSerializer = new();
         private static readonly SymmetricKey key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AES);
         private readonly byte[] secretEncrypted;
         public Secret(T secret)

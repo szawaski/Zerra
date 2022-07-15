@@ -27,7 +27,7 @@ namespace Zerra.Identity.Cryptography
         private static readonly MethodInfo buildDigestedReferencesMethod = typeof(SignedXml).GetMethod("BuildDigestedReferences", BindingFlags.NonPublic | BindingFlags.Instance);
         public void ComputeSignature(string prefix)
         {
-            buildDigestedReferencesMethod.Invoke(this, Array.Empty<object>());
+            _ = buildDigestedReferencesMethod.Invoke(this, Array.Empty<object>());
 
             var signingKey = base.SigningKey;
             if (signingKey == null)
@@ -51,7 +51,7 @@ namespace Zerra.Identity.Cryptography
             if (hash == null)
                 throw new CryptographicException("Cryptography_Xml_CreateHashAlgorithmFailed");
 
-            this.GetC14NDigest(hash, prefix);
+            _ = this.GetC14NDigest(hash, prefix);
             base.m_signature.SignatureValue = signatureDescription.CreateFormatter(signingKey).CreateSignature(hash);
         }
 
@@ -69,7 +69,7 @@ namespace Zerra.Identity.Cryptography
                 PreserveWhitespace = true
             };
             var e = base.SignedInfo.GetXml();
-            document.AppendChild(document.ImportNode(e, true));
+            _ = document.AppendChild(document.ImportNode(e, true));
 
             SetPrefix(prefix, document.DocumentElement);
             base.SignedInfo.CanonicalizationMethodObject.LoadInput(document);

@@ -16,8 +16,8 @@ namespace Zerra.DevTest
 
             for (var i = 0; i < loops; i++)
             {
-                AddMe1(5);
-                AddMe2(5);
+                _ = AddMe1(5);
+                _ = AddMe2(5);
             }
 
             var timer1 = Stopwatch.StartNew();

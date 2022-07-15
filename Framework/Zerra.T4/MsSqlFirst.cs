@@ -68,12 +68,12 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                     }
                 }
 
-                sb.Append("using System;").Append(Environment.NewLine);
-                sb.Append("using System.Collections.Generic;").Append(Environment.NewLine);
-                sb.Append("using Zerra.Repository;").Append(Environment.NewLine);
-                sb.Append(Environment.NewLine);
-                sb.Append("namespace ").Append(namespaceString).Append(Environment.NewLine);
-                sb.Append("{").Append(Environment.NewLine);
+                _ = sb.Append("using System;").Append(Environment.NewLine);
+                _ = sb.Append("using System.Collections.Generic;").Append(Environment.NewLine);
+                _ = sb.Append("using Zerra.Repository;").Append(Environment.NewLine);
+                _ = sb.Append(Environment.NewLine);
+                _ = sb.Append("namespace ").Append(namespaceString).Append(Environment.NewLine);
+                _ = sb.Append("{").Append(Environment.NewLine);
 
                 var usedFirst = false;
                 foreach (var table in tables)
@@ -83,16 +83,16 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                     var usedNames = new Dictionary<string, int>();
 
                     if (usedFirst)
-                        sb.Append(Environment.NewLine);
+                        _ = sb.Append(Environment.NewLine);
                     else
                         usedFirst = true;
 
-                    sb.Append(tab).Append("[Entity(\"").Append(tableName).Append("\")]").Append(Environment.NewLine);
+                    _ = sb.Append(tab).Append("[Entity(\"").Append(tableName).Append("\")]").Append(Environment.NewLine);
 
-                    IsSafeName(tableName, out var safeTableName);
+                    _ = IsSafeName(tableName, out var safeTableName);
 
-                    sb.Append(tab).Append("public class ").Append(safeTableName).Append(modelSuffix).Append(Environment.NewLine);
-                    sb.Append(tab).Append("{").Append(Environment.NewLine);
+                    _ = sb.Append(tab).Append("public class ").Append(safeTableName).Append(modelSuffix).Append(Environment.NewLine);
+                    _ = sb.Append(tab).Append("{").Append(Environment.NewLine);
 
                     using (var command = connection.CreateCommand())
                     {
@@ -127,18 +127,18 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                                     if (isPrimaryKey)
                                     {
                                         if (isIdentity)
-                                            sb.Append(tab).Append(tab).Append("[Identity(true)]").Append(Environment.NewLine);
+                                            _ = sb.Append(tab).Append(tab).Append("[Identity(true)]").Append(Environment.NewLine);
                                         else
-                                            sb.Append(tab).Append(tab).Append("[Identity]").Append(Environment.NewLine);
+                                            _ = sb.Append(tab).Append(tab).Append("[Identity]").Append(Environment.NewLine);
                                     }
 
                                     var dataSourceTypeAttribute = CSharpAttributeFromSqlType(dataType, isNullable, characterMaximumLength, numericPrecision, numericScale, datetimePrecision);
                                     if (dataSourceTypeAttribute != null)
-                                        sb.Append(tab).Append(tab).Append(dataSourceTypeAttribute).Append(Environment.NewLine);
+                                        _ = sb.Append(tab).Append(tab).Append(dataSourceTypeAttribute).Append(Environment.NewLine);
 
                                     if (!IsSafeName(columnName, out var safeColumnName))
-                                        sb.Append(tab).Append(tab).Append("[StoreName(\"").Append(columnName).Append("\")]").Append(Environment.NewLine);
-                                    sb.Append(tab).Append(tab).Append("public ").Append(csharpType).Append(" ").Append(safeColumnName).Append(" { get; set; }").Append(Environment.NewLine);
+                                        _ = sb.Append(tab).Append(tab).Append("[StoreName(\"").Append(columnName).Append("\")]").Append(Environment.NewLine);
+                                    _ = sb.Append(tab).Append(tab).Append("public ").Append(csharpType).Append(" ").Append(safeColumnName).Append(" { get; set; }").Append(Environment.NewLine);
 
                                     usedNames.Add(columnName, 0);
                                 }
@@ -181,20 +181,20 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                                         usedNames.Add(propertyName, 0);
                                     }
 
-                                    sb.Append(tab).Append(tab).Append("[Relation(\"").Append(fkColumn).Append("\")]").Append(Environment.NewLine);
+                                    _ = sb.Append(tab).Append(tab).Append("[Relation(\"").Append(fkColumn).Append("\")]").Append(Environment.NewLine);
 
                                     if (fkTable == tableName)
-                                        sb.Append(tab).Append(tab).Append("public ").Append(pkTable).Append(modelSuffix).Append(" ").Append(propertyName).Append(" { get; set; }").Append(Environment.NewLine);
+                                        _ = sb.Append(tab).Append(tab).Append("public ").Append(pkTable).Append(modelSuffix).Append(" ").Append(propertyName).Append(" { get; set; }").Append(Environment.NewLine);
                                     else
-                                        sb.Append(tab).Append(tab).Append("public ICollection<").Append(fkTable).Append(modelSuffix).Append("> ").Append(propertyName).Append(" { get; set; }").Append(Environment.NewLine);
+                                        _ = sb.Append(tab).Append(tab).Append("public ICollection<").Append(fkTable).Append(modelSuffix).Append("> ").Append(propertyName).Append(" { get; set; }").Append(Environment.NewLine);
                                 }
                             }
                         }
                     }
 
-                    sb.Append(tab).Append("}").Append(Environment.NewLine);
+                    _ = sb.Append(tab).Append("}").Append(Environment.NewLine);
                 }
-                sb.Append("}");
+                _ = sb.Append("}");
             }
 
             return sb.ToString();
@@ -458,10 +458,10 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                 }
 
                 if (!String.IsNullOrWhiteSpace(usingNamespace))
-                    sb.Append("using ").Append(usingNamespace).Append(';').Append(Environment.NewLine);
-                sb.Append(Environment.NewLine);
-                sb.Append("namespace ").Append(namespaceString).Append(Environment.NewLine);
-                sb.Append("{").Append(Environment.NewLine);
+                    _ = sb.Append("using ").Append(usingNamespace).Append(';').Append(Environment.NewLine);
+                _ = sb.Append(Environment.NewLine);
+                _ = sb.Append("namespace ").Append(namespaceString).Append(Environment.NewLine);
+                _ = sb.Append("{").Append(Environment.NewLine);
 
                 var usedFirst = false;
                 foreach (var tableName in tableNames)
@@ -469,13 +469,13 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                     var usedNames = new Dictionary<string, int>();
 
                     if (usedFirst)
-                        sb.Append(Environment.NewLine);
+                        _ = sb.Append(Environment.NewLine);
                     else
                         usedFirst = true;
 
-                    sb.Append(tab).Append("public class ").Append(tableName).Append("Provider : ").Append(baseProvider).Append('<').Append(tableName).Append(modelSuffix).Append("> { }");
+                    _ = sb.Append(tab).Append("public class ").Append(tableName).Append("Provider : ").Append(baseProvider).Append('<').Append(tableName).Append(modelSuffix).Append("> { }");
                 }
-                sb.Append(Environment.NewLine).Append("}");
+                _ = sb.Append(Environment.NewLine).Append("}");
             }
 
             return sb.ToString();
@@ -502,7 +502,7 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                     case '8':
                     case '9':
                         if (sb.Length > 0)
-                            sb.Append(c);
+                            _ = sb.Append(c);
                         else
                             safe = false;
                         break;
@@ -559,7 +559,7 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                     case 'Y':
                     case 'Z':
                     case '_':
-                        sb.Append(c);
+                        _ = sb.Append(c);
                         break;
                     default:
                         safe = false;

@@ -38,7 +38,7 @@ namespace Zerra.CQRS.RabbitMQ
             }
             catch (Exception ex)
             {
-                Log.ErrorAsync(null, ex);
+                _ = Log.ErrorAsync(null, ex);
                 throw;
             }
         }
@@ -148,7 +148,7 @@ namespace Zerra.CQRS.RabbitMQ
                         }
                         finally
                         {
-                            waiter.Release();
+                            _ = waiter.Release();
                         }
                     };
 
@@ -242,6 +242,7 @@ namespace Zerra.CQRS.RabbitMQ
         {
             this.connection.Close();
             this.connection.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

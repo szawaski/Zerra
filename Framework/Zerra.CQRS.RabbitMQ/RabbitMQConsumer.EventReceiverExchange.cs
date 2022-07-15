@@ -40,7 +40,7 @@ namespace Zerra.CQRS.RabbitMQ
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                Task.Run(() => ListeningThread(connection, handlerAsync));
+                _ = Task.Run(() => ListeningThread(connection, handlerAsync));
             }
 
             private async Task ListeningThread(IConnection connection, Func<IEvent, Task> handlerAsync)
@@ -119,7 +119,7 @@ namespace Zerra.CQRS.RabbitMQ
                         }
                     };
 
-                    this.channel.BasicConsume(queueName, false, consumer);
+                    _ = this.channel.BasicConsume(queueName, false, consumer);
                 }
                 catch (Exception ex)
                 {
@@ -162,6 +162,7 @@ namespace Zerra.CQRS.RabbitMQ
                     channel.Dispose();
                     channel = null;
                 }
+                GC.SuppressFinalize(this);
             }
         }
     }

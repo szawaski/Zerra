@@ -97,17 +97,17 @@ namespace Zerra.DevTest
             var timer0 = Stopwatch.StartNew();
             for (var i = 0; i < warmupLength; i++)
             {
-                Newtonsoft.Json.JsonConvert.SerializeObject(obj, newtonsoftConverter);
-                Newtonsoft.Json.JsonConvert.DeserializeObject<TestObject>(json, newtonsoftConverter);
+                _ = Newtonsoft.Json.JsonConvert.SerializeObject(obj, newtonsoftConverter);
+                _ = Newtonsoft.Json.JsonConvert.DeserializeObject<TestObject>(json, newtonsoftConverter);
 
-                Encoding.UTF8.GetString(Utf8Json.JsonSerializer.Serialize(obj));
-                Utf8Json.JsonSerializer.Deserialize<TestObject>(Encoding.UTF8.GetBytes(json));
+                _ = Encoding.UTF8.GetString(Utf8Json.JsonSerializer.Serialize(obj));
+                _ = Utf8Json.JsonSerializer.Deserialize<TestObject>(Encoding.UTF8.GetBytes(json));
 
-                System.Text.Json.JsonSerializer.Serialize(obj, systemTextJsonOptions);
-                System.Text.Json.JsonSerializer.Deserialize<TestObject>(json, systemTextJsonOptions);
+                _ = System.Text.Json.JsonSerializer.Serialize(obj, systemTextJsonOptions);
+                _ = System.Text.Json.JsonSerializer.Deserialize<TestObject>(json, systemTextJsonOptions);
 
-                JsonSerializer.Serialize(obj);
-                JsonSerializer.Deserialize<TestObject>(json);
+                _ = JsonSerializer.Serialize(obj);
+                _ = JsonSerializer.Deserialize<TestObject>(json);
             }
             timer0.Start();
             Console.WriteLine("{0} Warmup", timer0.ElapsedMilliseconds);
@@ -244,31 +244,31 @@ namespace Zerra.DevTest
         [Benchmark]
         public void SerializeZerra()
         {
-            JsonSerializer.Serialize(obj);
+            _ = JsonSerializer.Serialize(obj);
         }
 
         [Benchmark]
         public void SerializeZerraNameless()
         {
-            JsonSerializer.SerializeNameless(obj);
+            _ = JsonSerializer.SerializeNameless(obj);
         }
 
         [Benchmark]
         public void SerializeNewtonsoft()
         {
-            Newtonsoft.Json.JsonConvert.SerializeObject(obj, new Newtonsoft.Json.Converters.StringEnumConverter());
+            _ = Newtonsoft.Json.JsonConvert.SerializeObject(obj, new Newtonsoft.Json.Converters.StringEnumConverter());
         }
 
         [Benchmark]
         public void SerializeSystemTextJson()
         {
-            System.Text.Json.JsonSerializer.Serialize(obj, systemTextJsonOptions);
+            _ = System.Text.Json.JsonSerializer.Serialize(obj, systemTextJsonOptions);
         }
 
         [Benchmark]
         public void SerializeUtf8Json()
         {
-            Encoding.UTF8.GetString(Utf8Json.JsonSerializer.Serialize(obj));
+            _ = Encoding.UTF8.GetString(Utf8Json.JsonSerializer.Serialize(obj));
         }
 
         public class TestObject2

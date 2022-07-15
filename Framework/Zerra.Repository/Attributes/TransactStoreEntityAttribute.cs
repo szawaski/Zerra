@@ -72,19 +72,19 @@ namespace Zerra.Repository
             if (eventLinking.HasValue)
             {
                 var eventLinkingProperty = transactProviderTypeDetails.GetMember("EventLinking");
-                properties.Add(new Tuple<PropertyInfo, bool>((PropertyInfo)eventLinkingProperty.MemberInfo, eventLinking.Value));
+                _ = properties.Add(new Tuple<PropertyInfo, bool>((PropertyInfo)eventLinkingProperty.MemberInfo, eventLinking.Value));
             }
 
             if (queryLinking.HasValue)
             {
                 var queryLinkingProperty = transactProviderTypeDetails.GetMember("QueryLinking");
-                properties.Add(new Tuple<PropertyInfo, bool>((PropertyInfo)queryLinkingProperty.MemberInfo, queryLinking.Value));
+                _ = properties.Add(new Tuple<PropertyInfo, bool>((PropertyInfo)queryLinkingProperty.MemberInfo, queryLinking.Value));
             }
 
             if (persistLinking.HasValue)
             {
                 var eventLinkingProperty = transactProviderTypeDetails.GetMember("PersistLinking");
-                properties.Add(new Tuple<PropertyInfo, bool>((PropertyInfo)eventLinkingProperty.MemberInfo, persistLinking.Value));
+                _ = properties.Add(new Tuple<PropertyInfo, bool>((PropertyInfo)eventLinkingProperty.MemberInfo, persistLinking.Value));
             }
 
             foreach (var prop in properties)

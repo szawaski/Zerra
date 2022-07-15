@@ -10,8 +10,8 @@ namespace Zerra.Reflection
 {
     public static class Instantiator
     {
-        private static readonly ConcurrentFactoryDictionary<Type, object> singleInstancesByType = new ConcurrentFactoryDictionary<Type, object>();
-        private static readonly ConcurrentFactoryDictionary<string, object> singleInstancesByKey = new ConcurrentFactoryDictionary<string, object>();
+        private static readonly ConcurrentFactoryDictionary<Type, object> singleInstancesByType = new();
+        private static readonly ConcurrentFactoryDictionary<string, object> singleInstancesByKey = new();
         public static T GetSingleInstance<T>(Func<T> factory = null)
         {
             var type = typeof(T);
@@ -33,7 +33,7 @@ namespace Zerra.Reflection
             return instance;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object[], object>> creatorsByType = new ConcurrentFactoryDictionary<TypeKey, Func<object[], object>>();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object[], object>> creatorsByType = new();
         public static T CreateInstance<T>() { return (T)CreateInstance(typeof(T), Type.EmptyTypes, null); }
         public static T CreateInstance<T>(Type[] parameterTypes, params object[] args) { return (T)CreateInstance(typeof(T), parameterTypes, args); }
         public static object CreateInstance(Type type) { return CreateInstance(type, Type.EmptyTypes, null); }

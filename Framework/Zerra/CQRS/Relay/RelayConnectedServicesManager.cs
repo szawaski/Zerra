@@ -21,9 +21,9 @@ namespace Zerra.CQRS.Relay
         private const int maxStatistics = 1000;
         private const int runExpireEveryMilliseconds = 15000;
 
-        private static readonly SemaphoreSlim stateLock = new SemaphoreSlim(1, 1);
-        private static readonly ConcurrentDictionary<string, RelayConnectedService> servicesByUrl = new ConcurrentDictionary<string, RelayConnectedService>();
-        private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, RelayConnectedService>> servicesByProviderType = new ConcurrentDictionary<string, ConcurrentDictionary<string, RelayConnectedService>>();
+        private static readonly SemaphoreSlim stateLock = new(1, 1);
+        private static readonly ConcurrentDictionary<string, RelayConnectedService> servicesByUrl = new();
+        private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, RelayConnectedService>> servicesByProviderType = new();
         private static void AddOrUpdate(ServiceInfo info, bool saveState)
         {
             lock (servicesByUrl)

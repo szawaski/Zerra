@@ -192,9 +192,9 @@ namespace Zerra.Identity.OpenID
             var jwtPayloadEncoded = EncodeJwt(jwtPayloadString);
 
             var sb = new StringBuilder();
-            sb.Append(jwtHeaderEncoded);
-            sb.Append(OpenIDJwtFormBinding.tokenDelimiter);
-            sb.Append(jwtPayloadEncoded);
+            _ = sb.Append(jwtHeaderEncoded);
+            _ = sb.Append(OpenIDJwtFormBinding.tokenDelimiter);
+            _ = sb.Append(jwtPayloadEncoded);
             return sb.ToString();
         }
 
@@ -215,13 +215,13 @@ namespace Zerra.Identity.OpenID
             var jwtPayloadEncoded = EncodeJwt(jwtPayloadString);
 
             var sb = new StringBuilder();
-            sb.Append(jwtHeaderEncoded);
-            sb.Append(OpenIDJwtFormBinding.tokenDelimiter);
-            sb.Append(jwtPayloadEncoded);
+            _ = sb.Append(jwtHeaderEncoded);
+            _ = sb.Append(OpenIDJwtFormBinding.tokenDelimiter);
+            _ = sb.Append(jwtPayloadEncoded);
             if (this.Signature != null)
             {
-                sb.Append(OpenIDJwtFormBinding.tokenDelimiter);
-                sb.Append(this.Signature);
+                _ = sb.Append(OpenIDJwtFormBinding.tokenDelimiter);
+                _ = sb.Append(this.Signature);
             }
             return sb.ToString();
         }

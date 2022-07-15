@@ -908,7 +908,7 @@ namespace Zerra.Repository
             };
             var data = EventStoreCommon.Serialize(eventState);
 
-            Engine.Append(Guid.NewGuid(), "StoreState", streamName, null, EventStoreState.Any, data);
+            _ = Engine.Append(Guid.NewGuid(), "StoreState", streamName, null, EventStoreState.Any, data);
         }
         private async Task SaveModelStateAsync(object id, TModel model, ulong eventNumber)
         {
@@ -922,7 +922,7 @@ namespace Zerra.Repository
             };
             var data = EventStoreCommon.Serialize(eventState);
 
-            await Engine.AppendAsync(Guid.NewGuid(), "StoreState", streamName, null, EventStoreState.Any, data);
+            _ = await Engine.AppendAsync(Guid.NewGuid(), "StoreState", streamName, null, EventStoreState.Any, data);
         }
     }
 }

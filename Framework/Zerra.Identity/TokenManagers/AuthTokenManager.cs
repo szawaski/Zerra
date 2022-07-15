@@ -40,7 +40,7 @@ namespace Zerra.Identity.TokenManagers
                 Identity = identity,
                 Time = DateTime.Now
             };
-            auths.TryAdd(token, auth);
+            _ = auths.TryAdd(token, auth);
 
             var accessCode = new AccessCodeInfo
             {
@@ -49,14 +49,14 @@ namespace Zerra.Identity.TokenManagers
                 Token = token,
                 Time = DateTime.Now
             };
-            accessCodes.TryAdd(code, accessCode);
+            _ = accessCodes.TryAdd(code, accessCode);
 
             return code;
         }
 
         public static string GetToken(string serviceProvider, string code)
         {
-            accessCodes.TryRemove(code, out var accessCode);
+            _ = accessCodes.TryRemove(code, out var accessCode);
 
             if (accessCode == null)
                 return null;
@@ -70,7 +70,7 @@ namespace Zerra.Identity.TokenManagers
 
         public static IdentityModel GetIdentity(string serviceProvider, string token)
         {
-            auths.TryGetValue(token, out var auth);
+            _ = auths.TryGetValue(token, out var auth);
 
             if (auth == null)
                 return null;
@@ -90,14 +90,14 @@ namespace Zerra.Identity.TokenManagers
                 var expiredAccessCodes = accessCodes.ToArray().Where(x => x.Value.Time < DateTime.Now.AddSeconds(-accessCodeExpirationSeconds)).ToArray();
                 foreach (var expired in expiredAccessCodes)
                 {
-                    accessCodes.TryRemove(expired.Key, out var removed);
+                    _ = accessCodes.TryRemove(expired.Key, out var removed);
                 }
 
                 //ToArray is special ConcurrentDictionary method to capture state
                 var expiredAuths = auths.ToArray().Where(x => x.Value.Time < DateTime.Now.AddSeconds(-authExpirationSeconds)).ToArray();
                 foreach (var expired in expiredAuths)
                 {
-                    auths.TryRemove(expired.Key, out var removed);
+                    _ = auths.TryRemove(expired.Key, out var removed);
                 }
 
                 Thread.Sleep(60000);

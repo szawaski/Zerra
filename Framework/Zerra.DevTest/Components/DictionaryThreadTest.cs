@@ -46,7 +46,7 @@ namespace Zerra.DevTest
         {
             for (var a = 0; a < 100; a++)
             {
-                Task.Run(() =>
+                _ = Task.Run(() =>
                 {
                     DoStuff();
                 });
@@ -101,7 +101,7 @@ namespace Zerra.DevTest
                 var task = Task.Run(() =>
                 {
                     System.Threading.Thread.Sleep(presleep);
-                    regular.GetOrAdd(i, (key) =>
+                    _ = regular.GetOrAdd(i, (key) =>
                     {
                         lock (regular)
                         {
@@ -130,7 +130,7 @@ namespace Zerra.DevTest
                 var task = Task.Run(() =>
                 {
                     System.Threading.Thread.Sleep(presleep);
-                    atomic1.GetOrAdd(i, (key) =>
+                    _ = atomic1.GetOrAdd(i, (key) =>
                     {
                         lock (atomic1)
                         {
@@ -159,7 +159,7 @@ namespace Zerra.DevTest
                 var task = Task.Run(() =>
                 {
                     System.Threading.Thread.Sleep(presleep);
-                    atomic2.GetOrAdd(i, (key) =>
+                    _ = atomic2.GetOrAdd(i, (key) =>
                     {
                         lock (atomic2)
                         {
@@ -211,7 +211,7 @@ namespace Zerra.DevTest
 
         void IDictionary<TKey, TValue>.Add(TKey key, TValue value)
         {
-            TryAdd(key, value);
+            _ = TryAdd(key, value);
         }
         bool IDictionary<TKey, TValue>.Remove(TKey key)
         {
@@ -219,7 +219,7 @@ namespace Zerra.DevTest
         }
         void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item)
         {
-            TryAdd(item.Key, item.Value);
+            _ = TryAdd(item.Key, item.Value);
         }
         bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
         {
@@ -485,7 +485,7 @@ namespace Zerra.DevTest
             locker.EnterWriteLock();
             if (dictionary.ContainsKey(key))
             {
-                dictionary.Remove(key);
+                _ = dictionary.Remove(key);
             }
             locker.ExitWriteLock();
             locker.ExitUpgradeableReadLock();

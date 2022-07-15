@@ -10,8 +10,8 @@ namespace Zerra.CQRS.AzureEventHub
 {
     public class AzureEventHubServiceCreator : IServiceCreator
     {
-        private static readonly ConcurrentFactoryDictionary<string, AzureEventHubConsumer> azureEventHubServers = new ConcurrentFactoryDictionary<string, AzureEventHubConsumer>();
-        private static readonly ConcurrentFactoryDictionary<string, AzureEventHubProducer> azureEventHubClients = new ConcurrentFactoryDictionary<string, AzureEventHubProducer>();
+        private static readonly ConcurrentFactoryDictionary<string, AzureEventHubConsumer> azureEventHubServers = new();
+        private static readonly ConcurrentFactoryDictionary<string, AzureEventHubProducer> azureEventHubClients = new();
 
         private readonly string host;
         private readonly string eventHubName;

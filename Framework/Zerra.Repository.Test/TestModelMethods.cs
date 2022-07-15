@@ -226,42 +226,42 @@ namespace Zerra.Repository.Test
             where U : BaseTestRelationsModel, new()
         {
             //many
-            provider.Query(new QueryMany<T>(x => x.KeyA == model.KeyA));
+            _ = provider.Query(new QueryMany<T>(x => x.KeyA == model.KeyA));
 
             //first
-            provider.Query(new QueryFirst<T>(x => x.KeyA == model.KeyA));
+            _ = provider.Query(new QueryFirst<T>(x => x.KeyA == model.KeyA));
 
             //single
-            provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA));
+            _ = provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA));
 
             //count
-            provider.Query(new QueryCount<T>(x => x.KeyA == model.KeyA));
+            _ = provider.Query(new QueryCount<T>(x => x.KeyA == model.KeyA));
 
             //any
-            provider.Query(new QueryAny<T>(x => x.KeyA == model.KeyA));
+            _ = provider.Query(new QueryAny<T>(x => x.KeyA == model.KeyA));
 
             var keyArray = new Guid[] { model.KeyA };
 
             //array index
-            provider.Query(new QuerySingle<T>(x => x.KeyA == keyArray[0]));
+            _ = provider.Query(new QuerySingle<T>(x => x.KeyA == keyArray[0]));
 
             //date
-            provider.Query(new QuerySingle<T>(x => x.DateTimeThing > DateTime.Now.AddYears(-1)));
+            _ = provider.Query(new QuerySingle<T>(x => x.DateTimeThing > DateTime.Now.AddYears(-1)));
 
             //date
-            provider.Query(new QuerySingle<T>(x => x.DateTimeThing.Year > DateTime.Now.AddYears(-1).Year));
+            _ = provider.Query(new QuerySingle<T>(x => x.DateTimeThing.Year > DateTime.Now.AddYears(-1).Year));
 
             //time
-            provider.Query(new QuerySingle<T>(x => x.TimeSpanThing > TimeSpan.FromMilliseconds(123)));
+            _ = provider.Query(new QuerySingle<T>(x => x.TimeSpanThing > TimeSpan.FromMilliseconds(123)));
 
             //string like
-            provider.Query(new QuerySingle<T>(x => x.StringThing.Contains("World")));
+            _ = provider.Query(new QuerySingle<T>(x => x.StringThing.Contains("World")));
 
             //LINQ contains
-            provider.Query(new QuerySingle<T>(x => keyArray.Contains(x.KeyA)));
+            _ = provider.Query(new QuerySingle<T>(x => keyArray.Contains(x.KeyA)));
 
             //LINQ any
-            provider.Query(new QuerySingle<T>(x => x.RelationB.Any(y => y.RelationAKey == relationModel.RelationAKey)));
+            _ = provider.Query(new QuerySingle<T>(x => x.RelationB.Any(y => y.RelationAKey == relationModel.RelationAKey)));
         }
     }
 }

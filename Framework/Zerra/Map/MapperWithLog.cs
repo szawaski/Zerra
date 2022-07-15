@@ -13,8 +13,8 @@ namespace Zerra
         public static bool DebugMode { get; set; } = false;
 
         private static readonly Type mapType = typeof(MapWithLog<,>);
-        private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object, IMapLogger, Graph, object>> copyFuncs = new ConcurrentFactoryDictionary<TypeKey, Func<object, IMapLogger, Graph, object>>();
-        private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object, object, IMapLogger, Graph, object>> copyToFuncs = new ConcurrentFactoryDictionary<TypeKey, Func<object, object, IMapLogger, Graph, object>>();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object, IMapLogger, Graph, object>> copyFuncs = new();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object, object, IMapLogger, Graph, object>> copyToFuncs = new();
 
         public static TTarget Map<TSource, TTarget>(this TSource source, IMapLogger logger) { return Map<TSource, TTarget>(source, logger, null); }
         public static TTarget Map<TSource, TTarget>(this TSource source, IMapLogger logger, Graph graph)

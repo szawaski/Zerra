@@ -19,7 +19,7 @@ namespace Zerra.Repository
         {
             var context = new Context(propertyModelType, propertyNames);
 
-            Extract(where, context);
+            _ = Extract(where, context);
 
             return context.Values;
         }
@@ -217,7 +217,7 @@ namespace Zerra.Repository
 
             ret = Extract(lambda.Body, context);
 
-            context.ModelStack.Pop();
+            _ = context.ModelStack.Pop();
 
             return ret;
         }
@@ -270,7 +270,7 @@ namespace Zerra.Repository
             {
                 context.MemberAccessStack.Push(member);
                 ret = Extract(member.Expression, context);
-                context.MemberAccessStack.Pop();
+                _ = context.MemberAccessStack.Pop();
             }
 
             return ret;
@@ -468,7 +468,7 @@ namespace Zerra.Repository
                 var subModelInfo = ModelAnalyzer.GetModel(modelProperty.InnerType);
                 context.ModelStack.Push(subModelInfo);
                 ret = ExtractParameter(context);
-                context.ModelStack.Pop();
+                _ = context.ModelStack.Pop();
             }
             else
             {
@@ -502,11 +502,11 @@ namespace Zerra.Repository
         {
             var conditional = exp as ConditionalExpression;
 
-            Extract(conditional.Test, context);
+            _ = Extract(conditional.Test, context);
 
-            Extract(conditional.IfTrue, context);
+            _ = Extract(conditional.IfTrue, context);
 
-            Extract(conditional.IfFalse, context);
+            _ = Extract(conditional.IfFalse, context);
 
             return null;
         }

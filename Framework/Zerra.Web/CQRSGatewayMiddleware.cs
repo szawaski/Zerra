@@ -33,9 +33,13 @@ namespace Zerra.Web
             var requestContentType = context.Request.ContentType;
             ContentType contentType;
             if (requestContentType.StartsWith("application/octet-stream"))
+            {
                 contentType = ContentType.Bytes;
+            }
             else if (requestContentType.StartsWith("application/jsonnameless"))
+            {
                 contentType = ContentType.JsonNameless;
+            }
             else if (requestContentType.StartsWith("application/json"))
                 contentType = ContentType.Json;
             else
@@ -77,7 +81,7 @@ namespace Zerra.Web
                     case ContentType.JsonNameless: context.Response.ContentType = "application/jsonnameless; charset=utf-8"; break;
                     case ContentType.Json: context.Response.ContentType = "application/json; charset=utf-8"; break;
                     default: throw new NotImplementedException();
-                };
+                }
 
                 if (response.Bytes != null)
                 {

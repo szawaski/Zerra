@@ -29,12 +29,12 @@ namespace Zerra.Web
                 switch (logLevel)
                 {
                     case LogLevel.None: break;
-                    case LogLevel.Debug: provider.DebugAsync(message); break;
-                    case LogLevel.Trace: provider.TraceAsync(message); break;
-                    case LogLevel.Information: provider.InfoAsync(message); break;
-                    case LogLevel.Warning: provider.WarnAsync(message); break;
-                    case LogLevel.Critical: provider.CriticalAsync(message, exception); break;
-                    case LogLevel.Error: provider.ErrorAsync(message, exception); break;
+                    case LogLevel.Debug: _ = provider.DebugAsync(message); break;
+                    case LogLevel.Trace: _ = provider.TraceAsync(message); break;
+                    case LogLevel.Information: _ = provider.InfoAsync(message); break;
+                    case LogLevel.Warning: _ = provider.WarnAsync(message); break;
+                    case LogLevel.Critical: _ = provider.CriticalAsync(message, exception); break;
+                    case LogLevel.Error: _ = provider.ErrorAsync(message, exception); break;
                     default: throw new ArgumentOutOfRangeException(nameof(logLevel));
                 }
             }

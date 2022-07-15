@@ -12,7 +12,7 @@ namespace Zerra.CQRS
 {
     public class TcpApiServiceCreator : IServiceCreator
     {
-        private static readonly ConcurrentFactoryDictionary<string, HttpCQRSServer> servers = new ConcurrentFactoryDictionary<string, HttpCQRSServer>();
+        private static readonly ConcurrentFactoryDictionary<string, HttpCQRSServer> servers = new();
 
         private readonly IHttpApiAuthorizer apiAuthorizer;
         private readonly string[] allowOrigins;

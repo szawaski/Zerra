@@ -13,11 +13,11 @@ namespace Zerra.Threading
     {
         private class ItemLocker
         {
-            public readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1, 1);
+            public readonly SemaphoreSlim Semaphore = new(1, 1);
             public int Checkouts = 0;
         }
 
-        private static readonly ConcurrentFactoryDictionary<string, ConcurrentFactoryDictionary<T, ItemLocker>> lockerPools = new ConcurrentFactoryDictionary<string, ConcurrentFactoryDictionary<T, ItemLocker>>();
+        private static readonly ConcurrentFactoryDictionary<string, ConcurrentFactoryDictionary<T, ItemLocker>> lockerPools = new();
 
         private readonly ConcurrentFactoryDictionary<T, ItemLocker> itemLockers;
         private readonly T key;
@@ -72,6 +72,7 @@ namespace Zerra.Threading
                     }
                 }
             }
+            GC.SuppressFinalize(this);
         }
 
         public static Locker<T> Lock(string purpose, T key)

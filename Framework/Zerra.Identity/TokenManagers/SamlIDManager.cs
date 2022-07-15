@@ -36,14 +36,14 @@ namespace Zerra.Identity.TokenManagers
                 Nonce = samlID,
                 Time = DateTime.Now
             };
-            ids.TryAdd(samlID, samlIDInfo);
+            _ = ids.TryAdd(samlID, samlIDInfo);
 
             return samlID;
         }
 
         public static void Validate(string serviceProvider, string samlID)
         {
-            ids.TryRemove(samlID, out var samlIDInfo);
+            _ = ids.TryRemove(samlID, out var samlIDInfo);
 
             var valid = true;
             if (samlIDInfo == null)
@@ -67,7 +67,7 @@ namespace Zerra.Identity.TokenManagers
                 var expiredIDs = ids.ToArray().Where(x => x.Value.Time < DateTime.Now.AddSeconds(-expirationSeconds)).ToArray();
                 foreach (var samlIDInfo in expiredIDs)
                 {
-                    ids.TryRemove(samlIDInfo.Key, out var removed);
+                    _ = ids.TryRemove(samlIDInfo.Key, out var removed);
                 }
 
                 Thread.Sleep(60000);

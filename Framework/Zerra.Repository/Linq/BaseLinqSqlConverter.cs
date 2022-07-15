@@ -281,7 +281,7 @@ namespace Zerra.Repository
 
             sb.Write(suffixOperation);
 
-            context.MemberContext.OperatorStack.Pop();
+            _ = context.MemberContext.OperatorStack.Pop();
         }
         private void ConvertToSqlBinary(Operator operation, Expression exp, ref CharWriteBuffer sb, BuilderContext context)
         {
@@ -324,7 +324,7 @@ namespace Zerra.Repository
                 sb.Write(" NULL");
             }
 
-            context.MemberContext.OperatorStack.Pop();
+            _ = context.MemberContext.OperatorStack.Pop();
         }
         private void ConvertToSqlArrayIndex(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
         {
@@ -356,7 +356,7 @@ namespace Zerra.Repository
             {
                 context.MemberContext.MemberAccessStack.Push(member);
                 ConvertToSql(member.Expression, ref sb, context);
-                context.MemberContext.MemberAccessStack.Pop();
+                _ = context.MemberContext.MemberAccessStack.Pop();
             }
         }
         private void ConvertToSqlConstant(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
@@ -424,7 +424,7 @@ namespace Zerra.Repository
             var value = constructor.Invoke(parameters.ToArray());
             ConvertToSqlValue(newExp.Type, value, ref sb, context);
 
-            context.MemberContext.OperatorStack.Pop();
+            _ = context.MemberContext.OperatorStack.Pop();
         }
         private void ConvertToSqlParameter(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
         {
@@ -445,7 +445,7 @@ namespace Zerra.Repository
             var value = Evaluate(exp);
             ConvertToSqlValue(exp.Type, value, ref sb, context);
 
-            context.MemberContext.OperatorStack.Pop();
+            _ = context.MemberContext.OperatorStack.Pop();
         }
 
         protected void ConvertToSqlValue(Type type, object value, ref CharWriteBuffer sb, BuilderContext context)

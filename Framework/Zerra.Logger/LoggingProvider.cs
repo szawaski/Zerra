@@ -99,14 +99,14 @@ namespace Zerra.Logger
         public async Task ErrorAsync(string message, Exception exception)
         {
             var sb = new StringBuilder();
-            sb.Append(errorCategory).Append(": ").Append(message).Append(Environment.NewLine);
+            _ = sb.Append(errorCategory).Append(": ").Append(message).Append(Environment.NewLine);
             if (exception != null)
             {
                 var ex = exception;
                 while (ex != null)
                 {
-                    sb.Append(exception.GetType().Name).Append(": ").Append(exception.Message).Append(Environment.NewLine);
-                    sb.Append(exception.StackTrace);
+                    _ = sb.Append(exception.GetType().Name).Append(": ").Append(exception.Message).Append(Environment.NewLine);
+                    _ = sb.Append(exception.StackTrace);
 
                     ex = ex.InnerException;
                 }
@@ -131,14 +131,14 @@ namespace Zerra.Logger
         public async Task CriticalAsync(string message, Exception exception)
         {
             var sb = new StringBuilder();
-            sb.Append(criticalCategory).Append(": ").Append(message).Append(Environment.NewLine);
+            _ = sb.Append(criticalCategory).Append(": ").Append(message).Append(Environment.NewLine);
             if (exception != null)
             {
                 var ex = exception;
                 while (ex != null)
                 {
-                    sb.Append(exception.GetType().Name).Append(": ").Append(exception.Message).Append(Environment.NewLine);
-                    sb.Append(exception.StackTrace);
+                    _ = sb.Append(exception.GetType().Name).Append(": ").Append(exception.Message).Append(Environment.NewLine);
+                    _ = sb.Append(exception.StackTrace);
 
                     ex = ex.InnerException;
                 }

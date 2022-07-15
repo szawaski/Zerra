@@ -75,7 +75,7 @@ namespace Zerra.Identity.OpenID.Bindings
         private string GetRedirectUrl(string baseUrl)
         {
             var sb = new StringBuilder();
-            sb.Append(baseUrl);
+            _ = sb.Append(baseUrl);
             GenerateQueryString(sb);
             return sb.ToString();
         }
@@ -90,12 +90,12 @@ namespace Zerra.Identity.OpenID.Bindings
         {
             var token = BuildToken();
 
-            sb.Append('?');
-            sb.Append(OpenIDJwtBinding.IdTokenFormName).Append('=').Append(WebUtility.UrlEncode(token));
+            _ = sb.Append('?');
+            _ = sb.Append(OpenIDJwtBinding.IdTokenFormName).Append('=').Append(WebUtility.UrlEncode(token));
 
             var otherClaims = GetOtherClaims(this.Document);
             foreach (var otherClaim in otherClaims)
-                sb.Append(WebUtility.UrlEncode(otherClaim.Key)).Append('=').Append(WebUtility.UrlEncode(otherClaim.Value));
+                _ = sb.Append(WebUtility.UrlEncode(otherClaim.Key)).Append('=').Append(WebUtility.UrlEncode(otherClaim.Value));
         }
 
         public override IdentityHttpResponse GetResponse(string url)

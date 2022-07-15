@@ -65,11 +65,11 @@ namespace Zerra.Repository.MsSql
             ConvertToSql(lambda.Body, ref sb, context);
             sb.Write(')');
 
-            context.MemberContext.DependantStack.Pop();
-            context.MemberContext.ModelStack.Pop();
-            context.MemberContext.ModelContexts.Remove(parameter.Name);
+            _ = context.MemberContext.DependantStack.Pop();
+            _ = context.MemberContext.ModelStack.Pop();
+            _ = context.MemberContext.ModelContexts.Remove(parameter.Name);
 
-            context.MemberContext.OperatorStack.Pop();
+            _ = context.MemberContext.OperatorStack.Pop();
         }
         protected override void ConvertToSqlCall(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
         {
@@ -113,8 +113,8 @@ namespace Zerra.Repository.MsSql
                                 Convert(ref sb, QueryOperation.Many, subWhere, null, null, null, new Graph(propertyInfo.ForeignIdentity), subModelInfo, context.MemberContext);
                                 sb.Write(')');
 
-                                context.MemberContext.ModelStack.Pop();
-                                context.MemberContext.MemberLambdaStack.Pop();
+                                _ = context.MemberContext.ModelStack.Pop();
+                                _ = context.MemberContext.MemberLambdaStack.Pop();
                                 break;
                             }
                         case "Any":
@@ -143,8 +143,8 @@ namespace Zerra.Repository.MsSql
                                 Convert(ref sb, QueryOperation.Many, subWhere, null, null, null, new Graph(propertyInfo.ForeignIdentity), subModelInfo, context.MemberContext);
                                 sb.Write(')');
 
-                                context.MemberContext.ModelStack.Pop();
-                                context.MemberContext.MemberLambdaStack.Pop();
+                                _ = context.MemberContext.ModelStack.Pop();
+                                _ = context.MemberContext.MemberLambdaStack.Pop();
                                 break;
                             }
                         case "Count":
@@ -170,8 +170,8 @@ namespace Zerra.Repository.MsSql
                                 Convert(ref sb, QueryOperation.Count, subWhere, null, null, null, new Graph(propertyInfo.ForeignIdentity), subModelInfo, context.MemberContext);
                                 sb.Write(')');
 
-                                context.MemberContext.ModelStack.Pop();
-                                context.MemberContext.MemberLambdaStack.Pop();
+                                _ = context.MemberContext.ModelStack.Pop();
+                                _ = context.MemberContext.MemberLambdaStack.Pop();
                                 break;
                             }
                         case "Contains":
@@ -251,7 +251,7 @@ namespace Zerra.Repository.MsSql
                 }
             }
 
-            context.MemberContext.OperatorStack.Pop();
+            _ = context.MemberContext.OperatorStack.Pop();
         }
         protected override void ConvertToSqlParameterModel(ModelDetail modelDetail, ref CharWriteBuffer sb, BuilderContext context, bool parameterInContext)
         {
@@ -275,9 +275,9 @@ namespace Zerra.Repository.MsSql
                 ConvertToSqlParameterModel(subModelInfo, ref sb, context, parameterInContext);
                 if (parameterInContext)
                 {
-                    context.MemberContext.DependantStack.Pop();
+                    _ = context.MemberContext.DependantStack.Pop();
                 }
-                context.MemberContext.ModelStack.Pop();
+                _ = context.MemberContext.ModelStack.Pop();
             }
             else if (context.MemberContext.InCallNoRender > 0)
             {
@@ -397,7 +397,7 @@ namespace Zerra.Repository.MsSql
 
             sb.Write(")END");
 
-            context.MemberContext.OperatorStack.Pop();
+            _ = context.MemberContext.OperatorStack.Pop();
         }
         protected override bool ConvertToSqlValueRender(MemberExpression memberProperty, Type type, object value, ref CharWriteBuffer sb, BuilderContext context)
         {

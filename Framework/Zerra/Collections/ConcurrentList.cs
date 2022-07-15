@@ -14,8 +14,8 @@ namespace Zerra.Collections
     /// </summary>
     public class ConcurrentList<T> : ICollection<T>, IEnumerable<T>, IEnumerable, IList<T>, IReadOnlyCollection<T>, IReadOnlyList<T>, ICollection, IList, IDisposable
     {
-        private readonly ReaderWriterLockSlim locker = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
-        private readonly List<T> list = new List<T>();
+        private readonly ReaderWriterLockSlim locker = new(LockRecursionPolicy.NoRecursion);
+        private readonly List<T> list = new();
 
         public T this[int index]
         {

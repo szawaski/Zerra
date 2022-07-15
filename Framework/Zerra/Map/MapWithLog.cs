@@ -52,7 +52,7 @@ namespace Zerra
         private static readonly MethodInfo dictionaryTryGetMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethod("TryGetValue").MethodInfo;
         private static readonly ConstructorInfo newRecursionKey = TypeAnalyzer.GetTypeDetail(typeof(MapRecursionKey)).GetConstructor(typeof(object), typeof(Type)).ConstructorInfo;
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, object> mapsStore = new ConcurrentFactoryDictionary<TypeKey, object>();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, object> mapsStore = new();
         public static MapWithLog<TSource, TTarget> GetMap()
         {
             var key = new TypeKey(tType, uType);

@@ -36,14 +36,14 @@ namespace Zerra.Identity.TokenManagers
                 Nonce = nonce,
                 Time = DateTime.Now
             };
-            nonces.TryAdd(nonce, nonceInfo);
+            _ = nonces.TryAdd(nonce, nonceInfo);
 
             return nonce;
         }
 
         public static void Validate(string serviceProvider, string nonce)
         {
-            nonces.TryRemove(nonce, out var nonceInfo);
+            _ = nonces.TryRemove(nonce, out var nonceInfo);
 
             var valid = true;
             if (nonceInfo == null)
@@ -67,7 +67,7 @@ namespace Zerra.Identity.TokenManagers
                 var expiredNonces = nonces.ToArray().Where(x => x.Value.Time < DateTime.Now.AddSeconds(-expirationSeconds)).ToArray();
                 foreach (var nonceInfo in expiredNonces)
                 {
-                    nonces.TryRemove(nonceInfo.Key, out var removed);
+                    _ = nonces.TryRemove(nonceInfo.Key, out var removed);
                 }
 
                 Thread.Sleep(60000);

@@ -20,16 +20,16 @@ namespace Zerra.Mathematics
         private static readonly char[] numbers = "0123456789.".ToArray();
         private static readonly char[] numbersAndLetters = "0123456789.ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".ToArray();
 
-        private static readonly HashSet<MethodOperator> methodOperators = new HashSet<MethodOperator>();
-        private static readonly List<UnaryOperator> unaryOperators = new List<UnaryOperator>();
-        private static readonly List<BinaryOperator> binaryOperators = new List<BinaryOperator>();
+        private static readonly HashSet<MethodOperator> methodOperators = new();
+        private static readonly List<UnaryOperator> unaryOperators = new();
+        private static readonly List<BinaryOperator> binaryOperators = new();
 
         private static int operatorStringsMaxLength = 0;
 
-        private static readonly ConcurrentFactoryDictionary<string, CompiledExpression> cache = new ConcurrentFactoryDictionary<string, CompiledExpression>();
+        private static readonly ConcurrentFactoryDictionary<string, CompiledExpression> cache = new();
 
         private static bool initialized = false;
-        private static readonly object initializeLock = new object();
+        private static readonly object initializeLock = new();
         public static void Initialize()
         {
             lock (initializeLock)

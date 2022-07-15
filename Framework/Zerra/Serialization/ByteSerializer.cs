@@ -80,7 +80,7 @@ namespace Zerra.Serialization
                 this.encoding = defaultEncoding;
         }
 
-        private static readonly ConcurrentFactoryDictionary<int, ConcurrentFactoryDictionary<Type, SerializerTypeDetails>> typeInfoCache = new ConcurrentFactoryDictionary<int, ConcurrentFactoryDictionary<Type, SerializerTypeDetails>>();
+        private static readonly ConcurrentFactoryDictionary<int, ConcurrentFactoryDictionary<Type, SerializerTypeDetails>> typeInfoCache = new();
         private static SerializerTypeDetails GetTypeInformation(Type type, ByteSerializerIndexSize indexSize, bool ignoreIndexAttribute)
         {
             var dictionarySetIndex = ((int)indexSize + 1) * (ignoreIndexAttribute ? 1 : 2);

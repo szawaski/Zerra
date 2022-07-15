@@ -10,8 +10,8 @@ namespace Zerra.CQRS.Kafka
 {
     public class KafkaServiceCreator : IServiceCreator
     {
-        private static readonly ConcurrentFactoryDictionary<string, KafkaConsumer> kafkaServers = new ConcurrentFactoryDictionary<string, KafkaConsumer>();
-        private static readonly ConcurrentFactoryDictionary<string, KafkaProducer> kakfaClients = new ConcurrentFactoryDictionary<string, KafkaProducer>();
+        private static readonly ConcurrentFactoryDictionary<string, KafkaConsumer> kafkaServers = new();
+        private static readonly ConcurrentFactoryDictionary<string, KafkaProducer> kakfaClients = new();
 
         private readonly string host;
         private readonly IServiceCreator serviceCreatorForQueries;

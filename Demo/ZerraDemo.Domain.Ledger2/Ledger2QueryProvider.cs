@@ -14,7 +14,7 @@ namespace ZerraDemo.Domain.Ledger2
             Access.CheckRole("Admin");
 
             var aggregate = new Transaction2Aggregate(accountID);
-            await aggregate.RebuildOneEvent();
+            _ = await aggregate.RebuildOneEvent();
             return aggregate.LastEventNumber.HasValue;
         }
 
@@ -23,7 +23,7 @@ namespace ZerraDemo.Domain.Ledger2
             Access.CheckRole("Admin");
 
             var aggregate = new Transaction2Aggregate(accountID);
-            await aggregate.Rebuild();
+            _ = await aggregate.Rebuild();
             var model = new Balance2Model()
             {
                 AccountID = aggregate.ID,

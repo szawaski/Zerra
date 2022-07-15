@@ -21,7 +21,7 @@ namespace Zerra.CQRS
 
         private static readonly Type baseProviderType = typeof(IBaseProvider);
         private static MethodInfo callInternalMethodNonGeneric = typeof(Bus).GetMethod(nameof(Bus._CallInternal), BindingFlags.Static | BindingFlags.Public);
-        private static readonly ConcurrentFactoryDictionary<Type, Type> callerClasses = new ConcurrentFactoryDictionary<Type, Type>();
+        private static readonly ConcurrentFactoryDictionary<Type, Type> callerClasses = new();
         public static object GetProviderToCallInternalInstance(Type interfaceType)
         {
             var callerClassType = callerClasses.GetOrAdd(interfaceType, (t) =>
@@ -159,7 +159,7 @@ namespace Zerra.CQRS
 
         private static readonly Type commandHandlerType = typeof(ICommandHandler<>);
         private static readonly MethodInfo dispatchCommandInternalAsyncMethod = typeof(Bus).GetMethod(nameof(Bus._DispatchCommandInternalAsync), BindingFlags.Static | BindingFlags.Public);
-        private static readonly ConcurrentFactoryDictionary<Type, Type> commandDispatcherClasses = new ConcurrentFactoryDictionary<Type, Type>();
+        private static readonly ConcurrentFactoryDictionary<Type, Type> commandDispatcherClasses = new();
         public static object GetCommandHandlerToDispatchInternalInstance(Type interfaceType)
         {
             var dispatcherClassType = commandDispatcherClasses.GetOrAdd(interfaceType, (t) =>
@@ -262,7 +262,7 @@ namespace Zerra.CQRS
 
         private static readonly Type eventHandlerType = typeof(IEventHandler<>);
         private static readonly MethodInfo dispatchEventInternalAsyncMethod = typeof(Bus).GetMethod(nameof(Bus._DispatchEventInternalAsync), BindingFlags.Static | BindingFlags.Public);
-        private static readonly ConcurrentFactoryDictionary<Type, Type> eventDispatcherClasses = new ConcurrentFactoryDictionary<Type, Type>();
+        private static readonly ConcurrentFactoryDictionary<Type, Type> eventDispatcherClasses = new();
         public static object GetEventHandlerToDispatchInternalInstance(Type interfaceType)
         {
             var dispatcherClassType = eventDispatcherClasses.GetOrAdd(interfaceType, (t) =>

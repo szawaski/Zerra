@@ -6,7 +6,7 @@ namespace Zerra.Threading
 {
     public class Concurrent<T>
     {
-        private readonly object locker = new object();
+        private readonly object locker = new();
 
         private T value;
         public T Value

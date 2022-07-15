@@ -81,7 +81,7 @@ namespace Zerra.Repository
                             var typeDetails = TypeAnalyzer.GetTypeDetail(provider.GetType());
                             if (typeDetails.InnerTypes.Contains(thisType))
                             {
-                                modelTypesWithThisDataContext.Add(modelType);
+                                _ = modelTypesWithThisDataContext.Add(modelType);
                                 continue;
                             }
                             foreach (var baseType in typeDetails.BaseTypes)
@@ -89,7 +89,7 @@ namespace Zerra.Repository
                                 var baseTypeDetails = TypeAnalyzer.GetTypeDetail(baseType);
                                 if (baseTypeDetails.InnerTypes.Contains(thisType))
                                 {
-                                    modelTypesWithThisDataContext.Add(modelType);
+                                    _ = modelTypesWithThisDataContext.Add(modelType);
                                     continue;
                                 }
                             }
@@ -106,10 +106,10 @@ namespace Zerra.Repository
                         {
                             var sb = new StringBuilder();
                             var steps = plan.Plan;
-                            sb.AppendLine($"CodeFirst Plan Preview: {steps.Count} Steps");
+                            _ = sb.AppendLine($"CodeFirst Plan Preview: {steps.Count} Steps");
                             foreach (var step in steps)
-                                sb.AppendLine(step);
-                            Log.InfoAsync(sb.ToString());
+                                _ = sb.AppendLine(step);
+                            _ = Log.InfoAsync(sb.ToString());
                         }
                         else
                         {

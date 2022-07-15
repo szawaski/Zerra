@@ -20,7 +20,7 @@ namespace Zerra.Identity.Cryptography
         {
             var signedXml = GenerateSignedXml(xmlDoc, cert, signatureAlgorithm, digestAlgorithm);
 
-            xmlDoc.DocumentElement.AppendChild(signedXml);
+            _ = xmlDoc.DocumentElement.AppendChild(signedXml);
 
             return xmlDoc;
         }

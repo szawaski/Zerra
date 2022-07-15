@@ -15,8 +15,8 @@ namespace Zerra.Collections
     /// </summary>
     public class ConcurrentHashSet<T> : ICollection<T>, IEnumerable<T>, IEnumerable, IReadOnlyCollection<T>, ISet<T>, IDisposable
     {
-        private readonly ReaderWriterLockSlim locker = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
-        private readonly HashSet<T> hashSet = new HashSet<T>();
+        private readonly ReaderWriterLockSlim locker = new(LockRecursionPolicy.NoRecursion);
+        private readonly HashSet<T> hashSet = new();
 
         public int Count => hashSet.Count;
 

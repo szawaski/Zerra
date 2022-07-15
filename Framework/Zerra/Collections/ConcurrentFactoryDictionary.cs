@@ -14,7 +14,7 @@ namespace Zerra.Collections
     /// </summary>
     public class ConcurrentFactoryDictionary<TKey, TValue> : ICollection<KeyValuePair<TKey, TValue>>, IEnumerable<KeyValuePair<TKey, TValue>>, IEnumerable, IDictionary<TKey, TValue>, IReadOnlyCollection<KeyValuePair<TKey, TValue>>, IReadOnlyDictionary<TKey, TValue>, ICollection, IDictionary
     {
-        private readonly ConcurrentDictionary<TKey, object> factoryLocks = new ConcurrentDictionary<TKey, object>();
+        private readonly ConcurrentDictionary<TKey, object> factoryLocks = new();
         private readonly ConcurrentDictionary<TKey, TValue> dictionary;
 
         private object GetFactoryLock(TKey key)

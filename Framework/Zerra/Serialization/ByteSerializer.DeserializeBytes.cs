@@ -17,7 +17,7 @@ namespace Zerra.Serialization
         public T Deserialize<T>(ReadOnlySpan<byte> bytes)
         {
             if (bytes == null || bytes.Length == 0)
-                return default(T);
+                return default;
 
             return (T)Deserialize(typeof(T), bytes);
         }
@@ -620,7 +620,6 @@ namespace Zerra.Serialization
                             }
                             return list;
                         }
-
                     }
                 default:
                     throw new NotImplementedException();

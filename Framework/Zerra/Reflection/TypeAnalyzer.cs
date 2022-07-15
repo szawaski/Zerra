@@ -125,7 +125,7 @@ namespace Zerra.Reflection
             return DateTimeOffset.Parse(obj.ToString(), System.Globalization.CultureInfo.CurrentCulture);
         }
 
-        private static readonly ConcurrentFactoryDictionary<Type, TypeDetail> typeDetailsByType = new ConcurrentFactoryDictionary<Type, TypeDetail>();
+        private static readonly ConcurrentFactoryDictionary<Type, TypeDetail> typeDetailsByType = new();
         public static TypeDetail GetTypeDetail(Type type)
         {
             var typeInfo = typeDetailsByType.GetOrAdd(type, (key) =>
@@ -135,7 +135,7 @@ namespace Zerra.Reflection
             return typeInfo;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> methodDetailsByType = new ConcurrentFactoryDictionary<TypeKey, MethodDetail>();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> methodDetailsByType = new();
         public static MethodDetail GetMethodDetail(Type type, string name, Type[] parameterTypes = null)
         {
             var key = new TypeKey(name, type, parameterTypes);
@@ -167,7 +167,7 @@ namespace Zerra.Reflection
             return method;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetails> constructorDetailsByType = new ConcurrentFactoryDictionary<TypeKey, ConstructorDetails>();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetails> constructorDetailsByType = new();
         public static ConstructorDetails GetConstructorDetail(Type type, Type[] parameterTypes = null)
         {
             var key = new TypeKey(type, parameterTypes);
@@ -199,7 +199,7 @@ namespace Zerra.Reflection
             return constructor;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethodDetailsByMethod = new ConcurrentFactoryDictionary<TypeKey, MethodDetail>();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethodDetailsByMethod = new();
         public static MethodDetail GetGenericMethodDetail(MethodInfo method, params Type[] types)
         {
             var key = new TypeKey(method.ToString(), types);
@@ -211,7 +211,7 @@ namespace Zerra.Reflection
             return genericMethod;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethodDetails = new ConcurrentFactoryDictionary<TypeKey, MethodDetail>();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethodDetails = new();
         public static MethodDetail GetGenericMethodDetail(MethodDetail methodDetail, params Type[] types)
         {
             var key = new TypeKey(methodDetail.MethodInfo.ToString(), types);
@@ -222,7 +222,7 @@ namespace Zerra.Reflection
             return genericMethod;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, TypeDetail> genericTypeDetails = new ConcurrentFactoryDictionary<TypeKey, TypeDetail>();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, TypeDetail> genericTypeDetails = new();
         public static TypeDetail GetGenericTypeDetail(TypeDetail typeDetail, params Type[] types)
         {
             var key = new TypeKey(typeDetail.Type, types);
@@ -234,7 +234,7 @@ namespace Zerra.Reflection
             return genericType;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, Type> genericTypesByType = new ConcurrentFactoryDictionary<TypeKey, Type>();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, Type> genericTypesByType = new();
         public static Type GetGenericType(Type type, params Type[] types)
         {
             var key = new TypeKey(type, types);
@@ -245,7 +245,7 @@ namespace Zerra.Reflection
             return genericType;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, TypeDetail> genericTypeDetailsByType = new ConcurrentFactoryDictionary<TypeKey, TypeDetail>();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, TypeDetail> genericTypeDetailsByType = new();
         public static TypeDetail GetGenericTypeDetail(Type type, params Type[] types)
         {
             var key = new TypeKey(type, types);

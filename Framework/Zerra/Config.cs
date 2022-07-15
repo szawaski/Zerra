@@ -18,7 +18,7 @@ namespace Zerra
         private const string genericSettingsFileName = "appsettings.{0}.json";
         private const string environmentalVariable = "ASPNETCORE_ENVIRONMENT";
 
-        private static readonly object discoveryLock = new object();
+        private static readonly object discoveryLock = new();
         private static bool discoveryStarted;
         internal static bool DiscoveryStarted
         {
@@ -247,7 +247,7 @@ namespace Zerra
 
         public static Assembly EntryAssembly { get { return entryAssembly; } }
 
-        private static readonly Lazy<bool> isDebugEntryAssembly = new Lazy<bool>(() => entryAssembly.GetCustomAttributes(false).OfType<DebuggableAttribute>().Any(x => x.IsJITTrackingEnabled));
+        private static readonly Lazy<bool> isDebugEntryAssembly = new(() => entryAssembly.GetCustomAttributes(false).OfType<DebuggableAttribute>().Any(x => x.IsJITTrackingEnabled));
         public static bool IsDebugBuild { get { return isDebugEntryAssembly.Value; } }
     }
 }

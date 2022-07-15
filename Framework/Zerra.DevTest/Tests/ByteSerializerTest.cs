@@ -263,7 +263,7 @@ namespace Zerra.DevTest
             binaryFormatter.Serialize(memoryStream, obj);
 #pragma warning restore SYSLIB0011 // Type or member is obsolete
             memoryStream.Flush();
-            memoryStream.Seek(0, SeekOrigin.Begin);
+            _ = memoryStream.Seek(0, SeekOrigin.Begin);
             var bytes = memoryStream.GetBuffer();
             memoryStream.Close();
             memoryStream.Dispose();
@@ -276,7 +276,7 @@ namespace Zerra.DevTest
                 return null;
             var memoryStream = new MemoryStream();
             memoryStream.Write(bytes, 0, bytes.Length);
-            memoryStream.Seek(0, SeekOrigin.Begin);
+            _ = memoryStream.Seek(0, SeekOrigin.Begin);
             var binaryFormatter = new BinaryFormatter();
 #pragma warning disable SYSLIB0011 // Type or member is obsolete
             var obj = binaryFormatter.Deserialize(memoryStream);

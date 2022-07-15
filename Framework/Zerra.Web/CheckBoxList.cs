@@ -48,11 +48,11 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
                 cb.TagRenderMode = TagRenderMode.SelfClosing;
                 var cbWriter = new System.IO.StringWriter();
                 cb.WriteTo(cbWriter, HtmlEncoder.Default);
-                label.InnerHtml.SetHtmlContent(cbWriter.ToString() + item.Text);
+                _ = label.InnerHtml.SetHtmlContent(cbWriter.ToString() + item.Text);
 
                 var labelWriter = new System.IO.StringWriter();
                 label.WriteTo(labelWriter, HtmlEncoder.Default);
-                container.InnerHtml.AppendHtml(labelWriter.ToString());
+                _ = container.InnerHtml.AppendHtml(labelWriter.ToString());
             }
 
             var writer = new System.IO.StringWriter();

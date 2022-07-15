@@ -12,7 +12,7 @@ namespace Zerra.Collections
 {
     public class ConcurrentSortedDictionary<TKey, TValue> : ICollection<KeyValuePair<TKey, TValue>>, IEnumerable<KeyValuePair<TKey, TValue>>, IEnumerable, IDictionary<TKey, TValue>, IReadOnlyCollection<KeyValuePair<TKey, TValue>>, IReadOnlyDictionary<TKey, TValue>, ICollection, IDictionary, IDisposable
     {
-        private readonly ReaderWriterLockSlim locker = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+        private readonly ReaderWriterLockSlim locker = new(LockRecursionPolicy.NoRecursion);
         private readonly SortedDictionary<TKey, TValue> dictionary;
 
         public ConcurrentSortedDictionary()
@@ -415,7 +415,7 @@ namespace Zerra.Collections
             public object Current { get; private set; }
             public object Key { get; private set; }
             public object Value { get; private set; }
-            public DictionaryEntry Entry => new DictionaryEntry(Key, Value);
+            public DictionaryEntry Entry => new(Key, Value);
 
             public bool MoveNext()
             {

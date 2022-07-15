@@ -12,7 +12,7 @@ namespace Zerra.CQRS
 {
     public class TcpInternalServiceCreator : IServiceCreator
     {
-        private static readonly ConcurrentFactoryDictionary<string, TcpRawCQRSServer> servers = new ConcurrentFactoryDictionary<string, TcpRawCQRSServer>();
+        private static readonly ConcurrentFactoryDictionary<string, TcpRawCQRSServer> servers = new();
 
         public ICommandProducer CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
         {

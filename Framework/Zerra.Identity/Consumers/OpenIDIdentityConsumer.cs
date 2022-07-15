@@ -63,13 +63,13 @@ namespace Zerra.Identity.Consumers
             if (String.IsNullOrWhiteSpace(scope))
             {
                 var sb = new StringBuilder();
-                sb.Append("openid");
+                _ = sb.Append("openid");
                 if (document.ScopesSupported.Contains("profile"))
-                    sb.Append("+profile");
+                    _ = sb.Append("+profile");
                 if (document.ScopesSupported.Contains("email"))
-                    sb.Append("+email");
+                    _ = sb.Append("+email");
                 if (document.ScopesSupported.Contains("offline_access"))
-                    sb.Append("+offline_access");
+                    _ = sb.Append("+offline_access");
 
                 scope = sb.ToString();
             }

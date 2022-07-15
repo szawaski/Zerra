@@ -441,7 +441,7 @@ namespace Zerra.DevTest
                 var timer = Stopwatch.StartNew();
                 for (var i = 0; i < loops; i++)
                 {
-                    sb.Append((int)value);
+                    _ = sb.Append((int)value);
                     var s = sb.ToString();
                 }
                 timer.Stop();
@@ -453,7 +453,7 @@ namespace Zerra.DevTest
                 var timer = Stopwatch.StartNew();
                 for (var i = 0; i < loops; i++)
                 {
-                    sb.Append(value.ToString());
+                    _ = sb.Append(value.ToString());
                     var s = sb.ToString();
                 }
                 timer.Stop();
@@ -465,7 +465,7 @@ namespace Zerra.DevTest
                 var timer = Stopwatch.StartNew();
                 for (var i = 0; i < loops; i++)
                 {
-                    sb.Append((int)value);
+                    _ = sb.Append((int)value);
                     var s = sb.ToString();
                 }
                 timer.Stop();
@@ -477,7 +477,7 @@ namespace Zerra.DevTest
                 var timer = Stopwatch.StartNew();
                 for (var i = 0; i < loops; i++)
                 {
-                    sb.Append(value.ToString());
+                    _ = sb.Append(value.ToString());
                     var s = sb.ToString();
                 }
                 timer.Stop();

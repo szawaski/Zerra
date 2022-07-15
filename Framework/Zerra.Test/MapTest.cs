@@ -11,7 +11,7 @@ namespace Zerra.Test
 {
     public class MapperLog : IMapLogger
     {
-        private readonly List<string> log = new List<string>();
+        private readonly List<string> log = new();
 
         public void LogPropertyChange(string source, string sourceValue, string target, string targetValue)
         {

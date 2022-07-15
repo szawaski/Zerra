@@ -106,24 +106,24 @@ namespace Zerra.Identity.Saml2.Bindings
             switch (this.BindingDirection)
             {
                 case BindingDirection.Request:
-                    sb.Append(Saml2Names.RequestParameterName);
+                    _ = sb.Append(Saml2Names.RequestParameterName);
                     break;
                 case BindingDirection.Response:
-                    sb.Append(Saml2Names.ResponseParameterName);
+                    _ = sb.Append(Saml2Names.ResponseParameterName);
                     break;
                 default:
                     throw new NotImplementedException();
             }
 
-            sb.Append('=').Append(WebUtility.UrlEncode(samlEncoded));
+            _ = sb.Append('=').Append(WebUtility.UrlEncode(samlEncoded));
             if (!String.IsNullOrWhiteSpace(this.RelayState))
             {
-                sb.Append('&').Append(Saml2Names.RelayStateParameterName).Append('=').Append(this.RelayState);
+                _ = sb.Append('&').Append(Saml2Names.RelayStateParameterName).Append('=').Append(this.RelayState);
             }
             if (this.SignatureAlgorithm.HasValue)
             {
                 var signatureAlgorithmUrl = Algorithms.GetSignatureAlgorithmUrl(this.SignatureAlgorithm.Value);
-                sb.Append('&').Append(Saml2Names.SignatureAlgorithmParameterName).Append('=').Append(WebUtility.UrlEncode(signatureAlgorithmUrl));
+                _ = sb.Append('&').Append(Saml2Names.SignatureAlgorithmParameterName).Append('=').Append(WebUtility.UrlEncode(signatureAlgorithmUrl));
             }
             return sb.ToString();
         }
@@ -160,7 +160,7 @@ namespace Zerra.Identity.Saml2.Bindings
         private string GetRedirectUrl(string baseUrl)
         {
             var sb = new StringBuilder();
-            sb.Append(baseUrl);
+            _ = sb.Append(baseUrl);
             GenerateQueryString(sb);
             return sb.ToString();
         }
@@ -173,15 +173,15 @@ namespace Zerra.Identity.Saml2.Bindings
         }
         private void GenerateQueryString(StringBuilder sb)
         {
-            sb.Append('?');
+            _ = sb.Append('?');
 
             var samlEncoded = EncodeSaml(this.Document.InnerXml);
             var queryString = BuildSignatureQueryString(samlEncoded);
-            sb.Append(queryString);
+            _ = sb.Append(queryString);
 
             if (this.Signature != null)
             {
-                sb.Append('&').Append(Saml2Names.SignatureParameterName).Append('=').Append(WebUtility.UrlEncode(this.Signature));
+                _ = sb.Append('&').Append(Saml2Names.SignatureParameterName).Append('=').Append(WebUtility.UrlEncode(this.Signature));
             }
         }
 

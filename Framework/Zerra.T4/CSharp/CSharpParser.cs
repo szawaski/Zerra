@@ -145,7 +145,7 @@ namespace Zerra.T4.CSharp
             context.Namespaces.Push(csNamespace);
             ExpectToken(context, chars, ref index, '{');
             ParseNamespaceBody(solution, context, chars, ref index);
-            context.Namespaces.Pop();
+            _ = context.Namespaces.Pop();
         }
 
         private static CSharpObject ParseObject(CSharpSolution solution, CSharpFileContext context, char[] chars, ref int index, CSharpObjectType objectType, IList<string> modifiers)

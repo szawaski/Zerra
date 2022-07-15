@@ -15,7 +15,7 @@ namespace Zerra.Threading
     {
         private const int defaultMaxThreadCount = 25;
 
-        private static readonly object currentLock = new object();
+        private static readonly object currentLock = new();
         private static ZerraThreadPool current = null;
         public static ZerraThreadPool Current
         {
@@ -51,9 +51,9 @@ namespace Zerra.Threading
                 maxThreadCount = value;
             }
         }
-        private readonly Queue<WorkItem> workItems = new Queue<WorkItem>();
-        private readonly List<WorkerThread> workerThreads = new List<WorkerThread>();
-        private readonly AutoResetEvent checkQueuedWorkItems = new AutoResetEvent(false);
+        private readonly Queue<WorkItem> workItems = new();
+        private readonly List<WorkerThread> workerThreads = new();
+        private readonly AutoResetEvent checkQueuedWorkItems = new(false);
         private volatile bool disposed;
 
         public ZerraThreadPool()
@@ -190,7 +190,7 @@ namespace Zerra.Threading
         {
             private readonly Thread thread = null;
             private IPrincipal principal = null;
-            private readonly AutoResetEvent startNewWorkItem = new AutoResetEvent(false);
+            private readonly AutoResetEvent startNewWorkItem = new(false);
             private readonly AutoResetEvent workItemComplete;
             private volatile bool isAvailable = true;
             private MulticastDelegate task = null;
@@ -287,7 +287,7 @@ namespace Zerra.Threading
             private readonly ManualResetEvent waitHandle;
             private readonly AsyncCallback asyncCallback;
             private Exception ex = null;
-            private readonly object syncObject = new object();
+            private readonly object syncObject = new();
 
             public ZerraAsyncResult(AsyncCallback asyncCallback)
             {
@@ -353,6 +353,5 @@ namespace Zerra.Threading
                 }
             }
         }
-
     }
 }

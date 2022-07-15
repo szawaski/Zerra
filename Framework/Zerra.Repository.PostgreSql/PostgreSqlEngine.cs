@@ -618,7 +618,7 @@ namespace Zerra.Repository.PostgreSql
                         {
                             var columnProperties = ReadColumns<TModel>(reader, modelDetail);
 
-                            reader.Read();
+                            _ = reader.Read();
 
                             var model = ReadRow<TModel>(reader, modelDetail, columnProperties);
                             return model;
@@ -648,7 +648,7 @@ namespace Zerra.Repository.PostgreSql
                         {
                             var columnProperties = ReadColumns<TModel>(reader, modelDetail);
 
-                            reader.Read();
+                            _ = reader.Read();
 
                             var model = ReadRow<TModel>(reader, modelDetail, columnProperties);
 
@@ -680,7 +680,7 @@ namespace Zerra.Repository.PostgreSql
                     {
                         if (reader.HasRows)
                         {
-                            reader.Read();
+                            _ = reader.Read();
                             var count = reader.GetInt32(0);
                             return count;
                         }
@@ -764,7 +764,7 @@ namespace Zerra.Repository.PostgreSql
                         {
                             var columnProperties = ReadColumns<TModel>(reader, modelDetail);
 
-                            await reader.ReadAsync();
+                            _ = await reader.ReadAsync();
 
                             var model = ReadRow<TModel>(reader, modelDetail, columnProperties);
                             return model;
@@ -794,7 +794,7 @@ namespace Zerra.Repository.PostgreSql
                         {
                             var columnProperties = ReadColumns<TModel>(reader, modelDetail);
 
-                            await reader.ReadAsync();
+                            _ = await reader.ReadAsync();
 
                             var model = ReadRow<TModel>(reader, modelDetail, columnProperties);
 
@@ -826,7 +826,7 @@ namespace Zerra.Repository.PostgreSql
                     {
                         if (reader.HasRows)
                         {
-                            await reader.ReadAsync();
+                            _ = await reader.ReadAsync();
                             var count = reader.GetInt32(0);
                             return count;
                         }
@@ -1042,7 +1042,7 @@ namespace Zerra.Repository.PostgreSql
                 {
                     command.CommandTimeout = 0;
                     command.CommandText = sql;
-                    command.ExecuteNonQuery();
+                    _ = command.ExecuteNonQuery();
                 }
             }
         }
@@ -1138,7 +1138,7 @@ namespace Zerra.Repository.PostgreSql
             }
             catch (Exception ex)
             {
-                Log.ErrorAsync($"{nameof(PostgreSqlEngine)} error while reading datastore.", ex);
+                _ = Log.ErrorAsync($"{nameof(PostgreSqlEngine)} error while reading datastore.", ex);
                 throw;
             }
 
@@ -1185,7 +1185,7 @@ namespace Zerra.Repository.PostgreSql
                 {
                     command.CommandTimeout = 0;
                     command.CommandText = sql;
-                    command.ExecuteNonQuery();
+                    _ = command.ExecuteNonQuery();
                 }
             }
         }
@@ -1222,14 +1222,14 @@ namespace Zerra.Repository.PostgreSql
             if (create)
             {
                 var sb = new StringBuilder();
-                sb.Append("CREATE TABLE ").Append(model.DataSourceEntityName).Append("(\r\n");
+                _ = sb.Append("CREATE TABLE ").Append(model.DataSourceEntityName).Append("(\r\n");
 
                 for (var i = 0; i < identityColumns.Length; i++)
                 {
                     var property = identityColumns[i];
                     if (i > 0)
-                        sb.Append(",\r\n");
-                    sb.Append("\t").Append(property.PropertySourceName).Append(" ");
+                        _ = sb.Append(",\r\n");
+                    _ = sb.Append("\t").Append(property.PropertySourceName).Append(" ");
                     WriteSqlTypeFromModel(sb, property);
                     WriteTypeEndingFromModel(sb, property);
                 }
@@ -1237,27 +1237,27 @@ namespace Zerra.Repository.PostgreSql
                 {
                     var property = nonIdentityColumns[i];
                     if (i > 0 || identityColumns.Length > 0)
-                        sb.Append(",\r\n");
-                    sb.Append("\t").Append(property.PropertySourceName).Append(" ");
+                        _ = sb.Append(",\r\n");
+                    _ = sb.Append("\t").Append(property.PropertySourceName).Append(" ");
                     WriteSqlTypeFromModel(sb, property);
                     WriteTypeEndingFromModel(sb, property);
                 }
                 if (identityColumns.Length > 0)
                 {
                     if (identityColumns.Length > 0 || nonIdentityColumns.Length > 0)
-                        sb.Append(',');
-                    sb.Append("\r\n\tCONSTRAINT PK_").Append(model.DataSourceEntityName).Append(" PRIMARY KEY(\r\n");
+                        _ = sb.Append(',');
+                    _ = sb.Append("\r\n\tCONSTRAINT PK_").Append(model.DataSourceEntityName).Append(" PRIMARY KEY(\r\n");
 
                     for (var i = 0; i < identityColumns.Length; i++)
                     {
                         var property = identityColumns[i];
                         if (i > 0)
-                            sb.Append(",\r\n");
-                        sb.Append("\t\t").Append(property.PropertySourceName);
+                            _ = sb.Append(",\r\n");
+                        _ = sb.Append("\t\t").Append(property.PropertySourceName);
                     }
-                    sb.Append("\r\n\t)\r\n");
+                    _ = sb.Append("\r\n\t)\r\n");
                 }
-                sb.Append("\r\n)");
+                _ = sb.Append("\r\n)");
 
                 sql.Add(sb.ToString());
             }
@@ -1277,12 +1277,12 @@ namespace Zerra.Repository.PostgreSql
                 {
                     if (create)
                     {
-                        sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ADD ").Append(column.Name).Append(" ");
+                        _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ADD ").Append(column.Name).Append(" ");
                         WriteSqlTypeFromModel(sb, column);
                         WriteTypeEndingFromModel(sb, column);
-                        sb.Append(";");
+                        _ = sb.Append(";");
                         sql.Add(sb.ToString());
-                        sb.Clear();
+                        _ = sb.Clear();
                     }
                 }
                 else
@@ -1300,35 +1300,35 @@ namespace Zerra.Repository.PostgreSql
                             {
                                 foreach (var sqlConstraint in theseSqlConstraints)
                                 {
-                                    sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(";");
+                                    _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(";");
                                     sql.Add(sb.ToString());
-                                    sb.Clear();
+                                    _ = sb.Clear();
                                 }
                             }
 
-                            sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.Name.ToLower()).Append(" TYPE ");
+                            _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.Name.ToLower()).Append(" TYPE ");
                             WriteSqlTypeFromModel(sb, column);
-                            sb.Append(";");
+                            _ = sb.Append(";");
                             sql.Add(sb.ToString());
-                            sb.Clear();
+                            _ = sb.Clear();
 
-                            sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.Name.ToLower());
+                            _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.Name.ToLower());
                             if (column.IsDataSourceNotNull) //model checks for identity not null
                             {
-                                sb.Append(" SET NOT NULL");
+                                _ = sb.Append(" SET NOT NULL");
                                 if (column.IsIdentity && !column.IsIdentityAutoGenerated)
                                 {
-                                    sb.Append(" DEFAULT ");
+                                    _ = sb.Append(" DEFAULT ");
                                     WriteDefaultValue(sb, column);
                                 }
                             }
                             else
                             {
-                                sb.Append(" DROP NOT NULL");
+                                _ = sb.Append(" DROP NOT NULL");
                             }
-                            sb.Append(";");
+                            _ = sb.Append(";");
                             sql.Add(sb.ToString());
-                            sb.Clear();
+                            _ = sb.Clear();
                         }
                     }
                 }
@@ -1347,9 +1347,9 @@ namespace Zerra.Repository.PostgreSql
                         {
                             foreach (var sqlConstraint in theseSqlConstraints)
                             {
-                                sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(";");
+                                _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(";");
                                 sql.Add(sb.ToString());
-                                sb.Clear();
+                                _ = sb.Clear();
                             }
                         }
 
@@ -1358,9 +1358,9 @@ namespace Zerra.Repository.PostgreSql
                             if (sqlColumn.IsPrimaryKey || sqlColumn.IsIdentity)
                                 throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(PostgreSqlEngine)} needs to make {sqlColumn} nullable but cannot automatically change column with a Primary Key or Identity");
 
-                            sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(sqlColumn.Column.ToLower()).Append(" DROP NOT NULL;");
+                            _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(sqlColumn.Column.ToLower()).Append(" DROP NOT NULL;");
                             sql.Add(sb.ToString());
-                            sb.Clear();
+                            _ = sb.Clear();
                         }
                     }
                 }
@@ -1409,9 +1409,9 @@ namespace Zerra.Repository.PostgreSql
                             constraintNameDictionary.Add(baseConstraintName, 0);
                             constraintName = baseConstraintName;
                         }
-                        sb.Append("ALTER TABLE ").Append(fkTable.ToLower()).Append(" ADD CONSTRAINT ").Append(constraintName).Append(" FOREIGN KEY (").Append(fkColumn.ToLower()).Append(") REFERENCES ").Append(pkTable.ToLower()).Append("(").Append(pkColumn.ToLower()).Append(");");
+                        _ = sb.Append("ALTER TABLE ").Append(fkTable.ToLower()).Append(" ADD CONSTRAINT ").Append(constraintName).Append(" FOREIGN KEY (").Append(fkColumn.ToLower()).Append(") REFERENCES ").Append(pkTable.ToLower()).Append("(").Append(pkColumn.ToLower()).Append(");");
                         sql.Add(sb.ToString());
-                        sb.Clear();
+                        _ = sb.Clear();
                     }
                 }
                 else
@@ -1427,9 +1427,9 @@ namespace Zerra.Repository.PostgreSql
                 {
                     if (!usedSqlConstraints.Contains(sqlConstraint))
                     {
-                        sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(";");
+                        _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(";");
                         sql.Add(sb.ToString());
-                        sb.Clear();
+                        _ = sb.Clear();
                     }
                 }
             }
@@ -1444,66 +1444,66 @@ namespace Zerra.Repository.PostgreSql
                 {
                     case CoreType.Boolean:
                     case CoreType.BooleanNullable:
-                        sb.Append("boolean");
+                        _ = sb.Append("boolean");
                         break;
                     case CoreType.Byte:
                     case CoreType.ByteNullable:
-                        sb.Append("smallint");
+                        _ = sb.Append("smallint");
                         canBeIdentity = true;
                         break;
                     case CoreType.Int16:
                     case CoreType.Int16Nullable:
-                        sb.Append("smallint");
+                        _ = sb.Append("smallint");
                         canBeIdentity = true;
                         break;
                     case CoreType.Int32:
                     case CoreType.Int32Nullable:
-                        sb.Append("int");
+                        _ = sb.Append("int");
                         canBeIdentity = true;
                         break;
                     case CoreType.Int64:
                     case CoreType.Int64Nullable:
-                        sb.Append("bigint");
+                        _ = sb.Append("bigint");
                         canBeIdentity = true;
                         break;
                     case CoreType.Single:
                     case CoreType.SingleNullable:
-                        sb.Append("real");
+                        _ = sb.Append("real");
                         break;
                     case CoreType.Double:
                     case CoreType.DoubleNullable:
-                        sb.Append("double precision");
+                        _ = sb.Append("double precision");
                         break;
                     case CoreType.Decimal:
                     case CoreType.DecimalNullable:
-                        sb.Append("decimal(").Append(property.DataSourcePrecisionLength ?? 19).Append(", ").Append(property.DataSourceScale ?? 5).Append(')');
+                        _ = sb.Append("decimal(").Append(property.DataSourcePrecisionLength ?? 19).Append(", ").Append(property.DataSourceScale ?? 5).Append(')');
                         canBeIdentity = property.DataSourceScale == 0;
                         break;
                     case CoreType.Char:
                     case CoreType.CharNullable:
-                        sb.Append("varchar(").Append(property.DataSourcePrecisionLength ?? 1).Append(')');
+                        _ = sb.Append("varchar(").Append(property.DataSourcePrecisionLength ?? 1).Append(')');
                         break;
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
-                        sb.Append("timestamp(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
+                        _ = sb.Append("timestamp(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
                         break;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
-                        sb.Append("timestamp(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
+                        _ = sb.Append("timestamp(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
                         break;
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:
-                        sb.Append("time(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
+                        _ = sb.Append("time(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
                         break;
                     case CoreType.Guid:
                     case CoreType.GuidNullable:
-                        sb.Append("uuid");
+                        _ = sb.Append("uuid");
                         break;
                     case CoreType.String:
                         if (property.DataSourcePrecisionLength.HasValue)
-                            sb.Append("varchar(").Append(property.DataSourcePrecisionLength.Value).Append(')');
+                            _ = sb.Append("varchar(").Append(property.DataSourcePrecisionLength.Value).Append(')');
                         else
-                            sb.Append("text");
+                            _ = sb.Append("text");
                         break;
                     default:
                         throw new Exception($"Cannot match type {property.Type.GetNiceName()} to an {nameof(PostgreSqlEngine)} type.");
@@ -1512,9 +1512,9 @@ namespace Zerra.Repository.PostgreSql
             else if (property.Type == typeof(byte[]))
             {
                 if (property.DataSourcePrecisionLength.HasValue)
-                    sb.Append("bit(").Append(property.DataSourcePrecisionLength.Value).Append(')');
+                    _ = sb.Append("bit(").Append(property.DataSourcePrecisionLength.Value).Append(')');
                 else
-                    sb.Append("bytea");
+                    _ = sb.Append("bytea");
             }
             else
             {
@@ -1543,23 +1543,23 @@ namespace Zerra.Repository.PostgreSql
 
             if (property.IsDataSourceNotNull) //model checks for identity not null
             {
-                sb.Append(" NOT NULL");
+                _ = sb.Append(" NOT NULL");
                 if (property.IsIdentity && !property.IsIdentityAutoGenerated)
                 {
-                    sb.Append(" DEFAULT ");
+                    _ = sb.Append(" DEFAULT ");
                     WriteDefaultValue(sb, property);
                 }
             }
             else
             {
-                sb.Append(" NULL");
+                _ = sb.Append(" NULL");
             }
 
             if (property.IsIdentity && property.IsIdentityAutoGenerated)
             {
                 if (!canBeIdentity)
                     throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(PostgreSqlEngine)} {property.Type.GetNiceName()} {property.Name} cannot be an auto generated identity");
-                sb.Append(" GENERATED ALWAYS AS IDENTITY");
+                _ = sb.Append(" GENERATED ALWAYS AS IDENTITY");
             }
         }
 
@@ -1585,11 +1585,11 @@ namespace Zerra.Repository.PostgreSql
                     case CoreType.DoubleNullable:
                     case CoreType.Decimal:
                     case CoreType.DecimalNullable:
-                        sb.Append('0');
+                        _ = sb.Append('0');
                         break;
                     case CoreType.Char:
                     case CoreType.CharNullable:
-                        sb.Append("''");
+                        _ = sb.Append("''");
                         break;
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
@@ -1597,14 +1597,14 @@ namespace Zerra.Repository.PostgreSql
                     case CoreType.DateTimeOffsetNullable:
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:
-                        sb.Append("CAST(0 AS timestamp)");
+                        _ = sb.Append("CAST(0 AS timestamp)");
                         break;
                     case CoreType.Guid:
                     case CoreType.GuidNullable:
-                        sb.Append("uuid_nil()");
+                        _ = sb.Append("uuid_nil()");
                         break;
                     case CoreType.String:
-                        sb.Append("''");
+                        _ = sb.Append("''");
                         break;
                     default:
                         throw new Exception($"Cannot match type {property.Type.GetNiceName()} to an {nameof(PostgreSqlEngine)} type.");
@@ -1612,7 +1612,7 @@ namespace Zerra.Repository.PostgreSql
             }
             else if (property.Type == typeof(byte[]))
             {
-                sb.Append("E'\\x0'");
+                _ = sb.Append("E'\\x0'");
             }
             else
             {

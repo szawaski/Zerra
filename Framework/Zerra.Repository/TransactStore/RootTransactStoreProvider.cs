@@ -317,7 +317,7 @@ namespace Zerra.Repository
                             {
                                 var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelPropertyInfo.ForeignIdentity, model);
                                 if (foreignIdentity != null)
-                                    foreignIdentities.Add(foreignIdentity);
+                                    _ = foreignIdentities.Add(foreignIdentity);
                             }
 
                             var containsMethodGeneric = TypeAnalyzer.GetGenericMethodDetail(containsMethod, foreignIdentityPropertyInfo.InnerType).MethodInfo;
@@ -375,7 +375,7 @@ namespace Zerra.Repository
                             foreach (var model in returnModels)
                             {
                                 var identity = ModelAnalyzer.GetIdentity(model);
-                                foreignIdentities.Add(identity);
+                                _ = foreignIdentities.Add(identity);
                             }
 
                             var containsMethodGeneric = TypeAnalyzer.GetGenericMethodDetail(containsMethod, relatedForeignIdentityPropertyInfo.Type).MethodInfo;
@@ -409,7 +409,7 @@ namespace Zerra.Repository
                                 {
                                     if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
                                     {
-                                        relatedForModel.Add(relatedModel.Key);
+                                        _ = relatedForModel.Add(relatedModel.Key);
                                     }
                                 }
 
@@ -466,7 +466,7 @@ namespace Zerra.Repository
                             {
                                 var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelPropertyInfo.ForeignIdentity, model);
                                 if (foreignIdentity != null)
-                                    foreignIdentities.Add(foreignIdentity);
+                                    _ = foreignIdentities.Add(foreignIdentity);
                             }
 
                             var containsMethodGeneric = TypeAnalyzer.GetGenericMethodDetail(containsMethod, foreignIdentityPropertyInfo.InnerType).MethodInfo;
@@ -524,7 +524,7 @@ namespace Zerra.Repository
                             foreach (var model in returnModels)
                             {
                                 var identity = ModelAnalyzer.GetIdentity(model);
-                                foreignIdentities.Add(identity);
+                                _ = foreignIdentities.Add(identity);
                             }
 
                             var containsMethodGeneric = TypeAnalyzer.GetGenericMethodDetail(containsMethod, relatedForeignIdentityPropertyInfo.Type).MethodInfo;
@@ -558,7 +558,7 @@ namespace Zerra.Repository
                                 {
                                     if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
                                     {
-                                        relatedForModel.Add(relatedModel.Key);
+                                        _ = relatedForModel.Add(relatedModel.Key);
                                     }
                                 }
 
@@ -614,7 +614,7 @@ namespace Zerra.Repository
                                     var related = property.Getter(model);
                                     if (related != null)
                                     {
-                                        relatedModels.Add(related);
+                                        _ = relatedModels.Add(related);
                                         if (!relatedModelsDictionary.TryGetValue(model, out var relatedModelList))
                                         {
                                             relatedModelList = new List<TModel>();
@@ -629,7 +629,7 @@ namespace Zerra.Repository
                                     var returnModels = relatedProviderGeneric.OnGetIncludingBase(relatedModels, relatedGraph);
                                     foreach (var returnModel in returnModels)
                                     {
-                                        relatedModelsDictionary.Remove(returnModel);
+                                        _ = relatedModelsDictionary.Remove(returnModel);
                                     }
 
                                     foreach (var relatedModelSet in relatedModelsDictionary)
@@ -686,7 +686,7 @@ namespace Zerra.Repository
                                     var related = property.Getter(model);
                                     if (related != null)
                                     {
-                                        relatedModels.Add(related);
+                                        _ = relatedModels.Add(related);
                                         if (!relatedModelsDictionary.TryGetValue(model, out var relatedModelList))
                                         {
                                             relatedModelList = new List<TModel>();
@@ -701,7 +701,7 @@ namespace Zerra.Repository
                                     var returnModels = await relatedProviderGeneric.OnGetIncludingBaseAsync(relatedModels, relatedGraph);
                                     foreach (var returnModel in returnModels)
                                     {
-                                        relatedModelsDictionary.Remove(returnModel);
+                                        _ = relatedModelsDictionary.Remove(returnModel);
                                     }
 
                                     foreach (var relatedModelSet in relatedModelsDictionary)
@@ -1218,7 +1218,7 @@ namespace Zerra.Repository
                             var persistParameterTypes = GetPersistParameterTypes(relatedType);
                             var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModel, relatedGraph });
                             var repoCreate = TypeAnalyzer.GetGenericMethodDetail(repoPersistGeneric, relatedType);
-                            repoCreate.Caller(repoCreate, new object[] { persist });
+                            _ = repoCreate.Caller(repoCreate, new object[] { persist });
                         }
                         else
                         {
@@ -1226,7 +1226,7 @@ namespace Zerra.Repository
                             var persistParameterTypes = GetPersistParameterTypes(relatedType);
                             var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModel, relatedGraph });
                             var repoUpdate = TypeAnalyzer.GetGenericMethodDetail(repoPersistGeneric, relatedType);
-                            repoUpdate.Caller(repoUpdate, new object[] { persist });
+                            _ = repoUpdate.Caller(repoUpdate, new object[] { persist });
                         }
 
                         var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
@@ -1293,7 +1293,7 @@ namespace Zerra.Repository
                         var relatedExistings = (ICollection)repoQueryMany.Caller(repoQueryMany, new object[] { query });
 
                         foreach (var relatedExisting in relatedExistings)
-                            relatedModelsExisting.Add(relatedExisting);
+                            _ = relatedModelsExisting.Add(relatedExisting);
                     }
 
                     var relatedModelIdentities = new Dictionary<object, object>();
@@ -1329,7 +1329,7 @@ namespace Zerra.Repository
                             var relatedExistingIdentity = relatedExisting.Value;
                             if (ModelAnalyzer.CompareIdentities(relatedExistingIdentity, relatedModel.Value))
                             {
-                                relatedModelsUpdate.Add(relatedModel.Key);
+                                _ = relatedModelsUpdate.Add(relatedModel.Key);
                                 relatedModelsUpdateIdentities.Add(relatedModel.Key, relatedModel.Value);
                                 foundExisting = true;
                                 break;
@@ -1337,7 +1337,7 @@ namespace Zerra.Repository
                         }
                         if (!foundExisting)
                         {
-                            relatedModelsCreate.Add(relatedModel.Key);
+                            _ = relatedModelsCreate.Add(relatedModel.Key);
                         }
                     }
 
@@ -1355,7 +1355,7 @@ namespace Zerra.Repository
                         }
                         if (!foundUpdating)
                         {
-                            relatedModelsDelete.Add(relatedExisting.Key);
+                            _ = relatedModelsDelete.Add(relatedExisting.Key);
                         }
                     }
 
@@ -1365,7 +1365,7 @@ namespace Zerra.Repository
                         var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
                         var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsDelete, relatedGraph });
                         var repoDelete = TypeAnalyzer.GetGenericMethodDetail(repoPersistGeneric, relatedType);
-                        repoDelete.Caller(repoDelete, new object[] { persist });
+                        _ = repoDelete.Caller(repoDelete, new object[] { persist });
                     }
                     if (relatedModelsUpdate.Count > 0)
                     {
@@ -1373,7 +1373,7 @@ namespace Zerra.Repository
                         var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
                         var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsUpdate, relatedGraph });
                         var repoUpdate = TypeAnalyzer.GetGenericMethodDetail(repoPersistGeneric, relatedType);
-                        repoUpdate.Caller(repoUpdate, new object[] { persist });
+                        _ = repoUpdate.Caller(repoUpdate, new object[] { persist });
                     }
                     if (relatedModelsCreate.Count > 0)
                     {
@@ -1381,7 +1381,7 @@ namespace Zerra.Repository
                         var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
                         var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsCreate, relatedGraph });
                         var repoCreate = TypeAnalyzer.GetGenericMethodDetail(repoPersistGeneric, relatedType);
-                        repoCreate.Caller(repoCreate, new object[] { persist });
+                        _ = repoCreate.Caller(repoCreate, new object[] { persist });
                     }
                     //});
                     //tasks.Add(task);
@@ -1430,7 +1430,7 @@ namespace Zerra.Repository
                     var relatedExistings = (ICollection)repoQueryMany.Caller(repoQueryMany, new object[] { query });
 
                     foreach (var relatedExisting in relatedExistings)
-                        relatedModelsExisting.Add(relatedExisting);
+                        _ = relatedModelsExisting.Add(relatedExisting);
 
                     if (relatedModelsExisting.Count > 0)
                     {
@@ -1438,7 +1438,7 @@ namespace Zerra.Repository
                         var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
                         var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsExisting, relatedGraph });
                         var repoDelete = TypeAnalyzer.GetGenericMethodDetail(repoPersistGeneric, relatedType);
-                        repoDelete.Caller(repoDelete, new object[] { persist });
+                        _ = repoDelete.Caller(repoDelete, new object[] { persist });
                     }
                     //});
                     //tasks.Add(task);
@@ -1477,7 +1477,7 @@ namespace Zerra.Repository
                             var persistParameterTypes = GetPersistParameterTypes(relatedType);
                             var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModel, relatedGraph });
                             var repoCreate = TypeAnalyzer.GetGenericMethodDetail(repoPersistAsyncGeneric, relatedType);
-                            await repoCreate.CallerAsync(repoCreate, new object[] { persist });
+                            _ = await repoCreate.CallerAsync(repoCreate, new object[] { persist });
                         }
                         else
                         {
@@ -1485,7 +1485,7 @@ namespace Zerra.Repository
                             var persistParameterTypes = GetPersistParameterTypes(relatedType);
                             var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModel, relatedGraph });
                             var repoUpdate = TypeAnalyzer.GetGenericMethodDetail(repoPersistAsyncGeneric, relatedType);
-                            await repoUpdate.CallerAsync(repoUpdate, new object[] { persist });
+                            _ = await repoUpdate.CallerAsync(repoUpdate, new object[] { persist });
                         }
 
                         var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
@@ -1552,7 +1552,7 @@ namespace Zerra.Repository
                         var relatedExistings = (ICollection)await repoQueryMany.CallerAsync(repoQueryMany, new object[] { query });
 
                         foreach (var relatedExisting in relatedExistings)
-                            relatedModelsExisting.Add(relatedExisting);
+                            _ = relatedModelsExisting.Add(relatedExisting);
                     }
 
                     var relatedModelIdentities = new Dictionary<object, object>();
@@ -1588,7 +1588,7 @@ namespace Zerra.Repository
                             var relatedExistingIdentity = relatedExisting.Value;
                             if (ModelAnalyzer.CompareIdentities(relatedExistingIdentity, relatedModel.Value))
                             {
-                                relatedModelsUpdate.Add(relatedModel.Key);
+                                _ = relatedModelsUpdate.Add(relatedModel.Key);
                                 relatedModelsUpdateIdentities.Add(relatedModel.Key, relatedModel.Value);
                                 foundExisting = true;
                                 break;
@@ -1596,7 +1596,7 @@ namespace Zerra.Repository
                         }
                         if (!foundExisting)
                         {
-                            relatedModelsCreate.Add(relatedModel.Key);
+                            _ = relatedModelsCreate.Add(relatedModel.Key);
                         }
                     }
 
@@ -1614,7 +1614,7 @@ namespace Zerra.Repository
                         }
                         if (!foundUpdating)
                         {
-                            relatedModelsDelete.Add(relatedExisting.Key);
+                            _ = relatedModelsDelete.Add(relatedExisting.Key);
                         }
                     }
 
@@ -1624,7 +1624,7 @@ namespace Zerra.Repository
                         var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
                         var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsDelete, relatedGraph });
                         var repoDelete = TypeAnalyzer.GetGenericMethodDetail(repoPersistAsyncGeneric, relatedType);
-                        await repoDelete.CallerAsync(repoDelete, new object[] { persist });
+                        _ = await repoDelete.CallerAsync(repoDelete, new object[] { persist });
                     }
                     if (relatedModelsUpdate.Count > 0)
                     {
@@ -1632,7 +1632,7 @@ namespace Zerra.Repository
                         var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
                         var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsUpdate, relatedGraph });
                         var repoUpdate = TypeAnalyzer.GetGenericMethodDetail(repoPersistAsyncGeneric, relatedType);
-                        await repoUpdate.CallerAsync(repoUpdate, new object[] { persist });
+                        _ = await repoUpdate.CallerAsync(repoUpdate, new object[] { persist });
                     }
                     if (relatedModelsCreate.Count > 0)
                     {
@@ -1640,7 +1640,7 @@ namespace Zerra.Repository
                         var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
                         var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsCreate, relatedGraph });
                         var repoCreate = TypeAnalyzer.GetGenericMethodDetail(repoPersistAsyncGeneric, relatedType);
-                        await repoCreate.CallerAsync(repoCreate, new object[] { persist });
+                        _ = await repoCreate.CallerAsync(repoCreate, new object[] { persist });
                     }
                     //});
                     //tasks.Add(task);
@@ -1689,7 +1689,7 @@ namespace Zerra.Repository
                     var relatedExistings = (ICollection)await repoQueryMany.CallerAsync(repoQueryMany, new object[] { query });
 
                     foreach (var relatedExisting in relatedExistings)
-                        relatedModelsExisting.Add(relatedExisting);
+                        _ = relatedModelsExisting.Add(relatedExisting);
 
                     if (relatedModelsExisting.Count > 0)
                     {
@@ -1697,7 +1697,7 @@ namespace Zerra.Repository
                         var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
                         var persist = persistGeneric.GetConstructor(persistParameterTypes).Creator(new object[] { @event, relatedModelsExisting, relatedGraph });
                         var repoDelete = TypeAnalyzer.GetGenericMethodDetail(repoPersistAsyncGeneric, relatedType);
-                        await repoDelete.CallerAsync(repoDelete, new object[] { persist });
+                        _ = await repoDelete.CallerAsync(repoDelete, new object[] { persist });
                     }
                     //});
                     //tasks.Add(task);

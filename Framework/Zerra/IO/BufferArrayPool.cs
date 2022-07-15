@@ -79,7 +79,7 @@ namespace Zerra.IO
         }
 
 #if DEBUG
-        private static readonly HashSet<T[]> rented = new HashSet<T[]>();
+        private static readonly HashSet<T[]> rented = new();
 #endif
         public static T[] Rent(int minimunLength)
         {

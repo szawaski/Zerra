@@ -27,7 +27,7 @@ namespace ZerraDemo.Domain.Weather
 
             var sb = new StringBuilder();
             for (var i = 0; i < 100000; i++)
-                sb.Append("0123456789");
+                _ = sb.Append("0123456789");
             var stream = new MemoryStream(Encoding.UTF8.GetBytes(sb.ToString()));
             return Task.FromResult<Stream>(stream);
         }

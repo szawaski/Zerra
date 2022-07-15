@@ -352,10 +352,10 @@ namespace Zerra.CQRS
             return messageTypes;
         }
 
-        private static readonly object serviceLock = new object();
-        private static readonly SemaphoreSlim asyncServiceLock = new SemaphoreSlim(1, 1);
+        private static readonly object serviceLock = new();
+        private static readonly SemaphoreSlim asyncServiceLock = new(1, 1);
 
-        private static readonly ConcurrentDictionary<Type, ICommandProducer> commandProducers = new ConcurrentDictionary<Type, ICommandProducer>();
+        private static readonly ConcurrentDictionary<Type, ICommandProducer> commandProducers = new();
         public static void AddCommandClient<TInterface>(ICommandProducer commandProducer) where TInterface : IBaseProvider
         {
             lock (serviceLock)
@@ -374,8 +374,8 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly ConcurrentHashSet<ICommandConsumer> commandConsumers = new ConcurrentHashSet<ICommandConsumer>();
-        private static readonly HashSet<Type> commandConsumerTypes = new HashSet<Type>();
+        private static readonly ConcurrentHashSet<ICommandConsumer> commandConsumers = new();
+        private static readonly HashSet<Type> commandConsumerTypes = new();
         public static void AddCommandServer(ICommandConsumer commandConsumer)
         {
             lock (serviceLock)
@@ -407,7 +407,7 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly ConcurrentDictionary<Type, IEventProducer> eventProducers = new ConcurrentDictionary<Type, IEventProducer>();
+        private static readonly ConcurrentDictionary<Type, IEventProducer> eventProducers = new();
         public static void AddEventClient<TInterface>(IEventProducer eventProducer) where TInterface : IBaseProvider
         {
             lock (serviceLock)
@@ -426,8 +426,8 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly ConcurrentHashSet<IEventConsumer> eventConsumers = new ConcurrentHashSet<IEventConsumer>();
-        private static readonly HashSet<Type> eventConsumerTypes = new HashSet<Type>();
+        private static readonly ConcurrentHashSet<IEventConsumer> eventConsumers = new();
+        private static readonly HashSet<Type> eventConsumerTypes = new();
         public static void AddEventServer(IEventConsumer eventConsumer)
         {
             lock (serviceLock)
@@ -459,7 +459,7 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly ConcurrentDictionary<Type, IQueryClient> queryClients = new ConcurrentDictionary<Type, IQueryClient>();
+        private static readonly ConcurrentDictionary<Type, IQueryClient> queryClients = new();
         public static void AddQueryClient<TInterface>(IQueryClient queryClient) where TInterface : IBaseProvider
         {
             lock (serviceLock)
@@ -474,8 +474,8 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly ConcurrentHashSet<IQueryServer> queryServers = new ConcurrentHashSet<IQueryServer>();
-        private static readonly HashSet<Type> queryServerTypes = new HashSet<Type>();
+        private static readonly ConcurrentHashSet<IQueryServer> queryServers = new();
+        private static readonly HashSet<Type> queryServerTypes = new();
         public static void AddQueryServer(IQueryServer queryServer)
         {
             lock (serviceLock)
@@ -504,7 +504,7 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly ConcurrentHashSet<IMessageLogger> messageLoggers = new ConcurrentHashSet<IMessageLogger>();
+        private static readonly ConcurrentHashSet<IMessageLogger> messageLoggers = new();
         public static void AddMessageLogger(IMessageLogger messageLogger)
         {
             lock (serviceLock)
@@ -513,7 +513,7 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly HashSet<object> instanciations = new HashSet<object>();
+        private static readonly HashSet<object> instanciations = new();
 
         public static async Task DisposeServices()
         {

@@ -43,7 +43,7 @@ namespace ZerraDemo.Domain.Pets
                 x => x.AmountEaten
             )));
 
-            item.AmountEaten = item.AmountEaten ?? 0;
+            item.AmountEaten ??= 0;
 
             var hoursSinceEaten = (int)(DateTime.UtcNow - (item.LastEaten ?? DateTime.MinValue)).TotalHours;
             item.AmountEaten -= hoursSinceEaten;

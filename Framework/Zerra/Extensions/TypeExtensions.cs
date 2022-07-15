@@ -9,7 +9,7 @@ using Zerra.Reflection;
 
 public static class TypeExtensions
 {
-    private static readonly ConcurrentFactoryDictionary<Type, string> niceNames = new ConcurrentFactoryDictionary<Type, string>();
+    private static readonly ConcurrentFactoryDictionary<Type, string> niceNames = new();
     public static string GetNiceName(this Type it)
     {
         var niceName = niceNames.GetOrAdd(it, (t) =>
@@ -19,7 +19,7 @@ public static class TypeExtensions
         return niceName;
     }
 
-    private static readonly ConcurrentFactoryDictionary<Type, string> niceFullNames = new ConcurrentFactoryDictionary<Type, string>();
+    private static readonly ConcurrentFactoryDictionary<Type, string> niceFullNames = new();
     public static string GetNiceFullName(this Type it)
     {
         var niceFullName = niceFullNames.GetOrAdd(it, (t) =>

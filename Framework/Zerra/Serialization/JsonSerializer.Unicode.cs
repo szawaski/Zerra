@@ -27,7 +27,7 @@ namespace Zerra.Serialization
             "\\u00E0","\\u00E1","\\u00E2","\\u00E3","\\u00E4","\\u00E5","\\u00E6","\\u00E7","\\u00E8","\\u00E9","\\u00EA","\\u00EB","\\u00EC","\\u00ED","\\u00EE","\\u00EF",
             "\\u00F0","\\u00F1","\\u00F2","\\u00F3","\\u00F4","\\u00F5","\\u00F6","\\u00F7","\\u00F8","\\u00F9","\\u00FA","\\u00FB","\\u00FC","\\u00FD","\\u00FE","\\u00FF"
         };
-        private static readonly Dictionary<string, char> lowUnicodeHexToChar = new Dictionary<string, char>()
+        private static readonly Dictionary<string, char> lowUnicodeHexToChar = new()
         {
             //upper case hex
             {"0000",(char)0},{"0001",(char)1},{"0002",(char)2},{"0003",(char)3},{"0004",(char)4},{"0005",(char)5},{"0006",(char)6},{"0007",(char)7},{"0008",(char)8},{"0009",(char)9},{"000A",(char)10},{"000B",(char)11},{"000C",(char)12},{"000D",(char)13},{"000E",(char)14},{"000F",(char)15},

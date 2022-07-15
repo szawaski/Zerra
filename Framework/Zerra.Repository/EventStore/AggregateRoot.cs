@@ -77,7 +77,7 @@ namespace Zerra.Repository
             await ApplyEvent(@event, eventType);
 
             var eventBytes = EventStoreCommon.Serialize(@event);
-            await this.eventStore.AppendAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.NotExisting : EventStoreState.Existing) : EventStoreState.Any, eventBytes);
+            _ = await this.eventStore.AppendAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.NotExisting : EventStoreState.Existing) : EventStoreState.Any, eventBytes);
 
             await Bus.DispatchAsync(@event);
         }
@@ -89,7 +89,7 @@ namespace Zerra.Repository
 
             await ApplyEvent(@event, eventType);
 
-            await this.eventStore.TerminateAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.NotExisting : EventStoreState.Existing) : EventStoreState.Any);
+            _ = await this.eventStore.TerminateAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.NotExisting : EventStoreState.Existing) : EventStoreState.Any);
 
             await Bus.DispatchAsync(@event);
         }
