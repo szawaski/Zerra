@@ -7,7 +7,7 @@ using System;
 public static class EnumNameExtensions
 {
     public static string EnumName<T>(this T value)
-        where T : struct, Enum 
+        where T : Enum 
     {
         return global::EnumName.GetName<T>(value);
     }
