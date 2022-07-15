@@ -783,7 +783,9 @@ namespace Zerra.Reflection
             {
                 var type = Type.GetType(name);
                 if (type == null)
-                    throw new Exception($"Could not find type {name}");
+                {
+                    throw new Exception($"Could not find type {name}.  Remember discovery finds assemblies with the same first namespace segment.  Additional assemblies must be added with Config class.");
+                }
 
                 matches = typeByName.GetOrAdd(name, (key) => { return new ConcurrentList<Type>(); });
                 lock (matches)
