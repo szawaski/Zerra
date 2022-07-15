@@ -325,58 +325,13 @@ namespace Zerra
                     }
                     else if (sourceType.CoreType == CoreType.String)
                     {
-                        //special case parse string
-
-                        Expression convert;
-                        switch (targetType.CoreType)
+                        Expression convert = targetType.CoreType switch
                         {
-                            case CoreType.Boolean:
-                            case CoreType.Byte:
-                            case CoreType.SByte:
-                            case CoreType.Int16:
-                            case CoreType.UInt16:
-                            case CoreType.Int32:
-                            case CoreType.UInt32:
-                            case CoreType.Int64:
-                            case CoreType.UInt64:
-                            case CoreType.Single:
-                            case CoreType.Double:
-                            case CoreType.Decimal:
-                            case CoreType.Char:
-                            case CoreType.DateTime:
-                            case CoreType.DateTimeOffset:
-                            case CoreType.TimeSpan:
-                            case CoreType.Guid:
-                                convert = Expression.Call(TypeAnalyzer.GetMethodDetail(targetType.Type, "Parse").MethodInfo, source);
-                                break;
-
-                            case CoreType.BooleanNullable:
-                            case CoreType.ByteNullable:
-                            case CoreType.SByteNullable:
-                            case CoreType.Int16Nullable:
-                            case CoreType.UInt16Nullable:
-                            case CoreType.Int32Nullable:
-                            case CoreType.UInt32Nullable:
-                            case CoreType.Int64Nullable:
-                            case CoreType.UInt64Nullable:
-                            case CoreType.SingleNullable:
-                            case CoreType.DoubleNullable:
-                            case CoreType.DecimalNullable:
-                            case CoreType.CharNullable:
-                            case CoreType.DateTimeNullable:
-                            case CoreType.DateTimeOffsetNullable:
-                            case CoreType.TimeSpanNullable:
-                            case CoreType.GuidNullable:
-                                convert = Expression.Condition(Expression.Equal(source, Expression.Constant(null)), Expression.Constant(null, targetType.Type), Expression.Convert(Expression.Call(TypeAnalyzer.GetMethodDetail(targetType.InnerTypes[0], "Parse").MethodInfo, source), targetType.Type));
-                                break;
-
-                            case CoreType.String:
-                                throw new Exception("Should not happen");
-
-                            default:
-                                throw new NotImplementedException();
-                        }
-
+                            CoreType.Boolean or CoreType.Byte or CoreType.SByte or CoreType.Int16 or CoreType.UInt16 or CoreType.Int32 or CoreType.UInt32 or CoreType.Int64 or CoreType.UInt64 or CoreType.Single or CoreType.Double or CoreType.Decimal or CoreType.Char or CoreType.DateTime or CoreType.DateTimeOffset or CoreType.TimeSpan or CoreType.Guid => Expression.Call(TypeAnalyzer.GetMethodDetail(targetType.Type, "Parse").MethodInfo, source),
+                            CoreType.BooleanNullable or CoreType.ByteNullable or CoreType.SByteNullable or CoreType.Int16Nullable or CoreType.UInt16Nullable or CoreType.Int32Nullable or CoreType.UInt32Nullable or CoreType.Int64Nullable or CoreType.UInt64Nullable or CoreType.SingleNullable or CoreType.DoubleNullable or CoreType.DecimalNullable or CoreType.CharNullable or CoreType.DateTimeNullable or CoreType.DateTimeOffsetNullable or CoreType.TimeSpanNullable or CoreType.GuidNullable => Expression.Condition(Expression.Equal(source, Expression.Constant(null)), Expression.Constant(null, targetType.Type), Expression.Convert(Expression.Call(TypeAnalyzer.GetMethodDetail(targetType.InnerTypes[0], "Parse").MethodInfo, source), targetType.Type)),
+                            CoreType.String => throw new Exception("Should not happen"),
+                            _ => throw new NotImplementedException(),
+                        };
                         assigner = Expression.Assign(target, convert);
                     }
                     else

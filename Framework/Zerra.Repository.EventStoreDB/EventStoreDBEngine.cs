@@ -60,15 +60,13 @@ namespace Zerra.Repository.EventStoreDB
             }
             else
             {
-                StreamState state;
-                switch (expectedState)
+                var state = expectedState switch
                 {
-                    case EventStoreState.Any: state = StreamState.Any; break;
-                    case EventStoreState.NotExisting: state = StreamState.NoStream; break;
-                    case EventStoreState.Existing: state = StreamState.StreamExists; break;
-                    default: throw new NotImplementedException();
-                }
-
+                    EventStoreState.Any => StreamState.Any,
+                    EventStoreState.NotExisting => StreamState.NoStream,
+                    EventStoreState.Existing => StreamState.StreamExists,
+                    _ => throw new NotImplementedException(),
+                };
                 var writeResult = await client.AppendToStreamAsync(streamName, state, new EventData[] { eventData });
                 return writeResult.NextExpectedStreamRevision;
             }
@@ -88,15 +86,13 @@ namespace Zerra.Repository.EventStoreDB
             }
             else
             {
-                StreamState state;
-                switch (expectedState)
+                var state = expectedState switch
                 {
-                    case EventStoreState.Any: state = StreamState.Any; break;
-                    case EventStoreState.NotExisting: state = StreamState.NoStream; break;
-                    case EventStoreState.Existing: state = StreamState.StreamExists; break;
-                    default: throw new NotImplementedException();
-                }
-
+                    EventStoreState.Any => StreamState.Any,
+                    EventStoreState.NotExisting => StreamState.NoStream,
+                    EventStoreState.Existing => StreamState.StreamExists,
+                    _ => throw new NotImplementedException(),
+                };
                 var writeResult = await client.AppendToStreamAsync(streamName, state, new EventData[] { eventData });
                 _ = await client.TombstoneAsync(streamName, state);
                 return writeResult.NextExpectedStreamRevision;

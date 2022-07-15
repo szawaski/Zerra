@@ -2497,124 +2497,64 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object ConvertTrueToType(CoreType coreType)
         {
-            switch (coreType)
+            return coreType switch
             {
-                case CoreType.String:
-                    return "true";
-
-                case CoreType.Boolean:
-                case CoreType.BooleanNullable:
-                    return true;
-
-                case CoreType.Byte:
-                case CoreType.ByteNullable:
-                    return (byte)1;
-                case CoreType.SByte:
-                case CoreType.SByteNullable:
-                    return (sbyte)1;
-                case CoreType.Int16:
-                case CoreType.Int16Nullable:
-                    return (short)1;
-                case CoreType.UInt16:
-                case CoreType.UInt16Nullable:
-                    return (ushort)1;
-                case CoreType.Int32:
-                case CoreType.Int32Nullable:
-                    return (int)1;
-                case CoreType.UInt32:
-                case CoreType.UInt32Nullable:
-                    return (uint)1;
-                case CoreType.Int64:
-                case CoreType.Int64Nullable:
-                    return (long)1;
-                case CoreType.UInt64:
-                case CoreType.UInt64Nullable:
-                    return (ulong)1;
-                case CoreType.Single:
-                case CoreType.SingleNullable:
-                    return (float)1;
-                case CoreType.Double:
-                case CoreType.DoubleNullable:
-                    return (double)1;
-                case CoreType.Decimal:
-                case CoreType.DecimalNullable:
-                    return (decimal)1;
-
-                case CoreType.Char: return default(char);
-                case CoreType.DateTime: return default(DateTime);
-                case CoreType.DateTimeOffset: return default(DateTimeOffset);
-                case CoreType.TimeSpan: return default(TimeSpan);
-                case CoreType.Guid: return default(Guid);
-
-                case CoreType.CharNullable: return null;
-                case CoreType.DateTimeNullable: return null;
-                case CoreType.DateTimeOffsetNullable: return null;
-                case CoreType.TimeSpanNullable: return null;
-                case CoreType.GuidNullable: return null;
-                default:
-                    throw new NotImplementedException();
-            }
+                CoreType.String => "true",
+                CoreType.Boolean or CoreType.BooleanNullable => true,
+                CoreType.Byte or CoreType.ByteNullable => (byte)1,
+                CoreType.SByte or CoreType.SByteNullable => (sbyte)1,
+                CoreType.Int16 or CoreType.Int16Nullable => (short)1,
+                CoreType.UInt16 or CoreType.UInt16Nullable => (ushort)1,
+                CoreType.Int32 or CoreType.Int32Nullable => (int)1,
+                CoreType.UInt32 or CoreType.UInt32Nullable => (uint)1,
+                CoreType.Int64 or CoreType.Int64Nullable => (long)1,
+                CoreType.UInt64 or CoreType.UInt64Nullable => (ulong)1,
+                CoreType.Single or CoreType.SingleNullable => (float)1,
+                CoreType.Double or CoreType.DoubleNullable => (double)1,
+                CoreType.Decimal or CoreType.DecimalNullable => (decimal)1,
+                CoreType.Char => default(char),
+                CoreType.DateTime => default(DateTime),
+                CoreType.DateTimeOffset => default(DateTimeOffset),
+                CoreType.TimeSpan => default(TimeSpan),
+                CoreType.Guid => default(Guid),
+                CoreType.CharNullable => null,
+                CoreType.DateTimeNullable => null,
+                CoreType.DateTimeOffsetNullable => null,
+                CoreType.TimeSpanNullable => null,
+                CoreType.GuidNullable => null,
+                _ => throw new NotImplementedException(),
+            };
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object ConvertFalseToType(CoreType coreType)
         {
-            switch (coreType)
+            return coreType switch
             {
-                case CoreType.String:
-                    return "false";
-
-                case CoreType.Boolean:
-                case CoreType.BooleanNullable:
-                    return false;
-
-                case CoreType.Byte:
-                case CoreType.ByteNullable:
-                    return (byte)0;
-                case CoreType.SByte:
-                case CoreType.SByteNullable:
-                    return (sbyte)0;
-                case CoreType.Int16:
-                case CoreType.Int16Nullable:
-                    return (short)0;
-                case CoreType.UInt16:
-                case CoreType.UInt16Nullable:
-                    return (ushort)0;
-                case CoreType.Int32:
-                case CoreType.Int32Nullable:
-                    return (int)0;
-                case CoreType.UInt32:
-                case CoreType.UInt32Nullable:
-                    return (uint)0;
-                case CoreType.Int64:
-                case CoreType.Int64Nullable:
-                    return (long)0;
-                case CoreType.UInt64:
-                case CoreType.UInt64Nullable:
-                    return (ulong)0;
-                case CoreType.Single:
-                case CoreType.SingleNullable:
-                    return (float)0;
-                case CoreType.Double:
-                case CoreType.DoubleNullable:
-                    return (double)0;
-                case CoreType.Decimal:
-                case CoreType.DecimalNullable:
-                    return (decimal)0;
-
-                case CoreType.Char: return default(char);
-                case CoreType.DateTime: return default(DateTime);
-                case CoreType.DateTimeOffset: return default(DateTimeOffset);
-                case CoreType.TimeSpan: return default(TimeSpan);
-                case CoreType.Guid: return default(Guid);
-
-                case CoreType.CharNullable: return null;
-                case CoreType.DateTimeNullable: return null;
-                case CoreType.DateTimeOffsetNullable: return null;
-                case CoreType.TimeSpanNullable: return null;
-                case CoreType.GuidNullable: return null;
-                default:
-                    throw new NotImplementedException();
-            }
+                CoreType.String => "false",
+                CoreType.Boolean or CoreType.BooleanNullable => false,
+                CoreType.Byte or CoreType.ByteNullable => (byte)0,
+                CoreType.SByte or CoreType.SByteNullable => (sbyte)0,
+                CoreType.Int16 or CoreType.Int16Nullable => (short)0,
+                CoreType.UInt16 or CoreType.UInt16Nullable => (ushort)0,
+                CoreType.Int32 or CoreType.Int32Nullable => (int)0,
+                CoreType.UInt32 or CoreType.UInt32Nullable => (uint)0,
+                CoreType.Int64 or CoreType.Int64Nullable => (long)0,
+                CoreType.UInt64 or CoreType.UInt64Nullable => (ulong)0,
+                CoreType.Single or CoreType.SingleNullable => (float)0,
+                CoreType.Double or CoreType.DoubleNullable => (double)0,
+                CoreType.Decimal or CoreType.DecimalNullable => (decimal)0,
+                CoreType.Char => default(char),
+                CoreType.DateTime => default(DateTime),
+                CoreType.DateTimeOffset => default(DateTimeOffset),
+                CoreType.TimeSpan => default(TimeSpan),
+                CoreType.Guid => default(Guid),
+                CoreType.CharNullable => null,
+                CoreType.DateTimeNullable => null,
+                CoreType.DateTimeOffsetNullable => null,
+                CoreType.TimeSpanNullable => null,
+                CoreType.GuidNullable => null,
+                _ => throw new NotImplementedException(),
+            };
         }
     }
 }

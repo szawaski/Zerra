@@ -103,18 +103,12 @@ namespace Zerra.Identity.Saml2.Bindings
         {
             var sb = new StringBuilder();
 
-            switch (this.BindingDirection)
+            _ = this.BindingDirection switch
             {
-                case BindingDirection.Request:
-                    _ = sb.Append(Saml2Names.RequestParameterName);
-                    break;
-                case BindingDirection.Response:
-                    _ = sb.Append(Saml2Names.ResponseParameterName);
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
-
+                BindingDirection.Request => sb.Append(Saml2Names.RequestParameterName),
+                BindingDirection.Response => sb.Append(Saml2Names.ResponseParameterName),
+                _ => throw new NotImplementedException(),
+            };
             _ = sb.Append('=').Append(WebUtility.UrlEncode(samlEncoded));
             if (!String.IsNullOrWhiteSpace(this.RelayState))
             {
