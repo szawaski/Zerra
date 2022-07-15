@@ -214,6 +214,8 @@ namespace Zerra.Reflection
                 throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
             if (secondaryInterfaces == null)
                 throw new ArgumentNullException(nameof(secondaryInterfaces));
+            if (secondaryInterfaceStartIndex < 0 || secondaryInterfaceStartIndex > secondaryInterfaces.Length - 1)
+                throw new ArgumentOutOfRangeException(nameof(secondaryInterfaceStartIndex));
 
             if (!classByInterface.TryGetValue(interfaceType, out var classList))
                 return false;
@@ -224,26 +226,25 @@ namespace Zerra.Reflection
                 levels[j] = -2;
 
             var firstLevelFound = -1;
-            for (var i = 0; i < secondaryInterfaces.Length; i++)
+
+            for (var j = 0; j < classList.Count; j++)
             {
-                for (var j = 0; j < classList.Count; j++)
+                var classType = classList[j];
+
+                if (!interfaceByType.TryGetValue(classType, out var interfaceList))
                 {
-                    if (levels[j] > -2)
-                        continue;
+                    levels[j] = -1;
+                    continue;
+                }
 
-                    var classType = classList[j];
-
-                    if (!interfaceByType.TryGetValue(classType, out var interfaceList))
-                    {
-                        levels[j] = -1;
-                        continue;
-                    }
-
+                for (var i = 0; i < secondaryInterfaces.Length; i++)
+                {
                     if (interfaceList.Contains(secondaryInterfaces[i]))
                     {
-                        levels[j] = (short)j;
-                        if (i >= secondaryInterfaceStartIndex && firstLevelFound == -1)
-                            firstLevelFound = j;
+                        levels[j] = (short)i;
+                        if (i >= secondaryInterfaceStartIndex && (i <= firstLevelFound || firstLevelFound == -1))
+                            firstLevelFound = i;
+                        break;
                     }
                 }
             }
@@ -254,7 +255,10 @@ namespace Zerra.Reflection
                 if (levels[j] == firstLevelFound)
                 {
                     if (index == -1)
+                    {
                         index = j;
+                        break;
+                    }
                 }
             }
 
@@ -375,26 +379,25 @@ namespace Zerra.Reflection
                 levels[j] = -2;
 
             var firstLevelFound = -1;
-            for (var i = 0; i < secondaryInterfaces.Length; i++)
+
+            for (var j = 0; j < classList.Count; j++)
             {
-                for (var j = 0; j < classList.Count; j++)
+                var classType = classList[j];
+
+                if (!interfaceByType.TryGetValue(classType, out var interfaceList))
                 {
-                    if (levels[j] > -2)
-                        continue;
+                    levels[j] = -1;
+                    continue;
+                }
 
-                    var classType = classList[j];
-
-                    if (!interfaceByType.TryGetValue(classType, out var interfaceList))
-                    {
-                        levels[j] = -1;
-                        continue;
-                    }
-
+                for (var i = 0; i < secondaryInterfaces.Length; i++)
+                {
                     if (interfaceList.Contains(secondaryInterfaces[i]))
                     {
-                        levels[j] = (short)j;
-                        if (i >= secondaryInterfaceStartIndex && firstLevelFound == -1)
-                            firstLevelFound = j;
+                        levels[j] = (short)i;
+                        if (i >= secondaryInterfaceStartIndex && (i <= firstLevelFound || firstLevelFound == -1))
+                            firstLevelFound = i;
+                        break;
                     }
                 }
             }
@@ -421,13 +424,15 @@ namespace Zerra.Reflection
                 else
                     return null;
             }
-            if (index != -1)
-                return classList[index];
+            if (index == -1)
+            {
+                if (throwException)
+                    throw new Exception($"No classes found for {interfaceType.GetNiceName()} with secondary interfaces types {String.Join(", ", secondaryInterfaces.Select(x => x.GetNiceName()))}");
+                else
+                    return null;
+            }
 
-            if (throwException)
-                throw new Exception($"No classes found for {interfaceType.GetNiceName()} with secondary interfaces types {String.Join(", ", secondaryInterfaces.Select(x => x.GetNiceName()))}");
-            else
-                return null;
+            return classList[index];
         }
 
         public static ICollection<Type> GetImplementationTypes(Type interfaceType)
@@ -493,7 +498,7 @@ namespace Zerra.Reflection
                 throw new ArgumentOutOfRangeException(nameof(secondaryInterfaceStartIndex));
 
             if (!classByInterface.TryGetValue(interfaceType, out var classList))
-                return Type.EmptyTypes;
+                return Array.Empty<Type>();
 
             var levels = flagPool.Rent(classList.Count);
 
@@ -501,26 +506,25 @@ namespace Zerra.Reflection
                 levels[j] = -2;
 
             var firstLevelFound = -1;
-            for (var i = 0; i < secondaryInterfaces.Length; i++)
+
+            for (var j = 0; j < classList.Count; j++)
             {
-                for (var j = 0; j < classList.Count; j++)
+                var classType = classList[j];
+
+                if (!interfaceByType.TryGetValue(classType, out var interfaceList))
                 {
-                    if (levels[j] > -2)
-                        continue;
+                    levels[j] = -1;
+                    continue;
+                }
 
-                    var classType = classList[j];
-
-                    if (!interfaceByType.TryGetValue(classType, out var interfaceList))
-                    {
-                        levels[j] = -1;
-                        continue;
-                    }
-
+                for (var i = 0; i < secondaryInterfaces.Length; i++)
+                {
                     if (interfaceList.Contains(secondaryInterfaces[i]))
                     {
-                        levels[j] = (short)j;
-                        if (i >= secondaryInterfaceStartIndex && firstLevelFound == -1)
-                            firstLevelFound = j;
+                        levels[j] = (short)i;
+                        if (i >= secondaryInterfaceStartIndex && (i <= firstLevelFound || firstLevelFound == -1))
+                            firstLevelFound = i;
+                        break;
                     }
                 }
             }
