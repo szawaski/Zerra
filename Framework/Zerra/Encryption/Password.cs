@@ -49,7 +49,7 @@ namespace Zerra.Encryption
 
             rng.GetBytes(intBuffer);
             var rand = BitConverter.ToUInt32(intBuffer, 0);
-            return (int)Math.Round(((rand / (double)uint.MaxValue) * diff) + minValue);
+            return (int)Math.Round(((rand / (double)UInt32.MaxValue) * diff) + minValue);
         }
     }
 }

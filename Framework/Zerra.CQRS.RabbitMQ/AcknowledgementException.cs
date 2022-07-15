@@ -13,7 +13,7 @@ namespace Zerra.CQRS.RabbitMQ
         public AcknowledgementException(Acknowledgement acknowledgement, string exchange) : base(acknowledgement.ErrorMessage)
         {
             this.Acknowledgement = acknowledgement ?? throw new ArgumentNullException(nameof(acknowledgement));
-            if (string.IsNullOrWhiteSpace(exchange))
+            if (String.IsNullOrWhiteSpace(exchange))
                 throw new ArgumentNullException(nameof(exchange));
             
             this.Exchange = exchange;

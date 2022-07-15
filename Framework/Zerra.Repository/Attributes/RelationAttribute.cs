@@ -13,7 +13,7 @@ namespace Zerra.Repository
         public string ForeignIdentity { get; private set; }
         public RelationAttribute(string foreignIdentity)
         {
-            if (!foreignIdentity.All(x => char.IsLetterOrDigit(x) || x == '_' || x == '`'))
+            if (!foreignIdentity.All(x => Char.IsLetterOrDigit(x) || x == '_' || x == '`'))
                 throw new ArgumentException(String.Format("{0}.{1}={2}", nameof(RelationAttribute), nameof(ForeignIdentity), foreignIdentity));
             this.ForeignIdentity = foreignIdentity;
         }

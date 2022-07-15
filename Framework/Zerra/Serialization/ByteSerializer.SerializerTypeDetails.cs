@@ -75,11 +75,11 @@ namespace Zerra.Serialization
                                 switch (indexSize)
                                 {
                                     case ByteSerializerIndexSize.Byte:
-                                        if (member.Item2.Index > byte.MaxValue - IndexOffset)
+                                        if (member.Item2.Index > Byte.MaxValue - IndexOffset)
                                             throw new Exception("Index attribute too large for the index size");
                                         break;
                                     case ByteSerializerIndexSize.UInt16:
-                                        if (member.Item2.Index > ushort.MaxValue - IndexOffset)
+                                        if (member.Item2.Index > UInt16.MaxValue - IndexOffset)
                                             throw new Exception("Index attribute too large for the index size");
                                         break;
                                     default:
@@ -100,11 +100,11 @@ namespace Zerra.Serialization
                             switch (indexSize)
                             {
                                 case ByteSerializerIndexSize.Byte:
-                                    if (orderIndex > byte.MaxValue - IndexOffset)
+                                    if (orderIndex > Byte.MaxValue - IndexOffset)
                                         throw new Exception("Index attribute too large for the index size");
                                     break;
                                 case ByteSerializerIndexSize.UInt16:
-                                    if (orderIndex > ushort.MaxValue - IndexOffset)
+                                    if (orderIndex > UInt16.MaxValue - IndexOffset)
                                         throw new Exception("Index attribute too large for the index size");
                                     break;
                                 default:

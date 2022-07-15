@@ -34,14 +34,14 @@ namespace Zerra.CQRS.Kafka
 
         public static async Task EnsureTopic(string host, string topic)
         {
-            var adminClientConfig = new AdminClientConfig();
-            adminClientConfig.BootstrapServers = host;
+            var clientConfig = new AdminClientConfig();
+            clientConfig.BootstrapServers = host;
 
-            using (var adminClient = new AdminClientBuilder(adminClientConfig).Build())
+            using (var client = new AdminClientBuilder(clientConfig).Build())
             {
                 try
                 {
-                    var metadata = adminClient.GetMetadata(topic, TimeSpan.FromSeconds(10));
+                    var metadata = client.GetMetadata(topic, TimeSpan.FromSeconds(10));
                     if (!metadata.Topics.Any(x => x.Topic == topic))
                     {
                         var topicSpecification = new TopicSpecification()
@@ -50,7 +50,7 @@ namespace Zerra.CQRS.Kafka
                             ReplicationFactor = 1,
                             NumPartitions = 1
                         };
-                        await adminClient.CreateTopicsAsync(new TopicSpecification[] { topicSpecification });
+                        await client.CreateTopicsAsync(new TopicSpecification[] { topicSpecification });
                     }
                 }
                 catch (Exception ex)
@@ -62,22 +62,54 @@ namespace Zerra.CQRS.Kafka
 
         public static async Task DeleteTopic(string host, string topic)
         {
-            var adminClientConfig = new AdminClientConfig();
-            adminClientConfig.BootstrapServers = host;
+            var clientConfig = new AdminClientConfig();
+            clientConfig.BootstrapServers = host;
 
-            using (var adminClient = new AdminClientBuilder(adminClientConfig).Build())
+            using (var client = new AdminClientBuilder(clientConfig).Build())
             {
                 try
                 {
-                    var metadata = adminClient.GetMetadata(topic, TimeSpan.FromSeconds(10));
+                    var metadata = client.GetMetadata(topic, TimeSpan.FromSeconds(10));
                     if (metadata.Topics.Any(x => x.Topic == topic))
                     {
-                        await adminClient.DeleteTopicsAsync(new string[] { topic });
+                        await client.DeleteTopicsAsync(new string[] { topic });
                     }
                 }
                 catch (Exception ex)
                 {
                     throw new Exception($"{nameof(KafkaCommon)} failed to delete topic {topic}", ex);
+                }
+            }
+        }
+
+        public static async Task DeleteAllAckTopics(string host, string topic)
+        {
+            var clientConfig = new AdminClientConfig();
+            clientConfig.BootstrapServers = host;
+
+            using (var client = new AdminClientBuilder(clientConfig).Build())
+            {
+                try
+                {
+                    var metadata = client.GetMetadata(TimeSpan.FromSeconds(10));
+                    foreach (var item in metadata.Topics)
+                    {
+                        if (item.Topic.StartsWith("ACK-"))
+                        {
+                            try
+                            {
+                                await client.DeleteTopicsAsync(new string[] { topic });
+                            }
+                            catch (Exception ex)
+                            {
+                                throw new Exception($"{nameof(KafkaCommon)} failed to delete topic {topic}", ex);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"{nameof(KafkaCommon)} failed to delete topics {topic}", ex);
                 }
             }
         }

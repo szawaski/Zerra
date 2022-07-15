@@ -25,7 +25,7 @@ namespace Zerra.Identity
 #if !NET48
         public IActionResult ToIActionResult()
         {
-            if (!string.IsNullOrWhiteSpace(RedirectUrl))
+            if (!System.String.IsNullOrWhiteSpace(RedirectUrl))
             {
                 return new RedirectResult(RedirectUrl);
             }

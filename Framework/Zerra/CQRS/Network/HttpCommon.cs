@@ -213,7 +213,7 @@ namespace Zerra.CQRS.Network
                         throw new Exception("Invalid Header");
 
                 if (headers.TryGetValue(ContentLengthHeader, out var contentLengthHeaderValue))
-                    if (int.TryParse(contentLengthHeaderValue[0], out var contentLengthHeaderValueParsed))
+                    if (Int32.TryParse(contentLengthHeaderValue[0], out var contentLengthHeaderValueParsed))
                         headerInfo.ContentLength = contentLengthHeaderValueParsed;
 
                 if (headers.TryGetValue(TransferEncodingHeader, out var transferEncodingHeaderValue))

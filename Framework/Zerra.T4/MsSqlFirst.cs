@@ -96,7 +96,7 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
 
                     using (var command = connection.CreateCommand())
                     {
-                        command.CommandText = string.Format(columnQuery, schemaName, tableName);
+                        command.CommandText = String.Format(columnQuery, schemaName, tableName);
                         using (var reader = command.ExecuteReader())
                         {
                             if (reader.HasRows)
@@ -148,7 +148,7 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
 
                     using (var command = connection.CreateCommand())
                     {
-                        command.CommandText = string.Format(relationQuery, schemaName, tableName);
+                        command.CommandText = String.Format(relationQuery, schemaName, tableName);
                         using (var reader = command.ExecuteReader())
                         {
                             if (reader.HasRows)

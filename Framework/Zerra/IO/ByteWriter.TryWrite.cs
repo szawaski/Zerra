@@ -1482,7 +1482,7 @@ namespace Zerra.IO
             if (length - position < sizeNeeded)
                 return false;
 
-            var bits = decimal.GetBits(value);
+            var bits = Decimal.GetBits(value);
             var lo = bits[0];
             var mid = bits[1];
             var hi = bits[2];
@@ -1523,7 +1523,7 @@ namespace Zerra.IO
                     if (length - position < sizeNeeded)
                         return false;
                 }
-                var bits = decimal.GetBits(value.Value);
+                var bits = Decimal.GetBits(value.Value);
                 var lo = bits[0];
                 var mid = bits[1];
                 var hi = bits[2];
@@ -1566,7 +1566,7 @@ namespace Zerra.IO
                 return false;
             foreach (var value in values)
             {
-                var bits = decimal.GetBits(value);
+                var bits = Decimal.GetBits(value);
                 var lo = bits[0];
                 var mid = bits[1];
                 var hi = bits[2];
@@ -1601,7 +1601,7 @@ namespace Zerra.IO
                 if (value.HasValue)
                 {
                     buffer[position++] = notNullByte;
-                    var bits = decimal.GetBits(value.Value);
+                    var bits = Decimal.GetBits(value.Value);
                     var lo = bits[0];
                     var mid = bits[1];
                     var hi = bits[2];
@@ -1639,7 +1639,7 @@ namespace Zerra.IO
             foreach (var value in values)
             {
                 var cast = (decimal)value;
-                var bits = decimal.GetBits(cast);
+                var bits = Decimal.GetBits(cast);
                 var lo = bits[0];
                 var mid = bits[1];
                 var hi = bits[2];
@@ -1675,7 +1675,7 @@ namespace Zerra.IO
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
-                    var bits = decimal.GetBits(cast.Value);
+                    var bits = Decimal.GetBits(cast.Value);
                     var lo = bits[0];
                     var mid = bits[1];
                     var hi = bits[2];

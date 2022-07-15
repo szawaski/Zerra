@@ -70,7 +70,7 @@ namespace Zerra.Repository.Reflection
                 this.DataSourceEntityName = sourceEntityAttribute.StoreName;
                 if (String.IsNullOrWhiteSpace(this.DataSourceEntityName))
                     this.DataSourceEntityName = this.Type.Name;
-                if (!this.DataSourceEntityName.All(x => char.IsLetterOrDigit(x) || x == '_' || x == '`'))
+                if (!this.DataSourceEntityName.All(x => Char.IsLetterOrDigit(x) || x == '_' || x == '`'))
                     throw new ArgumentException(String.Format("{0}.{1}={2}", nameof(EntityAttribute), nameof(EntityAttribute.StoreName), this.DataSourceEntityName));
             }
 

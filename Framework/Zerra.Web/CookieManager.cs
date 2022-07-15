@@ -96,7 +96,7 @@ namespace Zerra.Web
         private void PersistCookie(string name, string value, TimeSpan? maxAge, SameSiteMode sameSite, bool httpOnly, bool secure)
         {
             if (value == null)
-                value = string.Empty;
+                value = String.Empty;
             var cookieSeriesCount = value.Length * 2 / maxCookieSizeBytes + 1;
 
             if (cookieSeriesCount > maxCookiesPerDomain)
@@ -125,7 +125,7 @@ namespace Zerra.Web
                 if (context.Request.Cookies.Keys.Contains(seriesName))
                 {
                     context.Response.Cookies.Delete(seriesName);
-                    context.Response.Cookies.Append(seriesName, string.Empty, new CookieOptions()
+                    context.Response.Cookies.Append(seriesName, String.Empty, new CookieOptions()
                     {
                         Path = "/",
                         MaxAge = new TimeSpan(0),
@@ -159,7 +159,7 @@ namespace Zerra.Web
                 if (context.Request.Cookies.Keys.Contains(seriesName))
                 {
                     context.Response.Cookies.Delete(seriesName);
-                    context.Response.Cookies.Append(seriesName, string.Empty, new CookieOptions()
+                    context.Response.Cookies.Append(seriesName, String.Empty, new CookieOptions()
                     {
                         Path = "/",
                         MaxAge = new TimeSpan(0),

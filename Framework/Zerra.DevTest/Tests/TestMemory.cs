@@ -17,7 +17,7 @@ namespace Zerra.DevTest
         public static void Test()
         {
             const int loops = 100000000;
-            const long value = long.MaxValue;
+            const long value = Int64.MaxValue;
 
             var bufferW = new byte[sizeof(long) * loops];
             var timerW = Stopwatch.StartNew();

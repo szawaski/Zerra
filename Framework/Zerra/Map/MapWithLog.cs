@@ -46,7 +46,7 @@ namespace Zerra
         private static readonly MethodInfo mapLoggerChangeMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethod(nameof(IMapLogger.LogPropertyChange)).MethodInfo;
         private static readonly MethodInfo mapLoggerNoChangeMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethod(nameof(IMapLogger.LogPropertyNoChange)).MethodInfo;
         private static readonly MethodInfo mapLoggerNewObjectMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethod(nameof(IMapLogger.LogNewObject)).MethodInfo;
-        private static readonly MethodInfo objectToStringMethod = TypeAnalyzer.GetTypeDetail(typeof(object)).GetMethod(nameof(object.ToString)).MethodInfo;
+        private static readonly MethodInfo objectToStringMethod = TypeAnalyzer.GetTypeDetail(typeof(object)).GetMethod(nameof(Object.ToString)).MethodInfo;
         private static readonly MethodInfo dictionaryAddMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethod("Add").MethodInfo;
         private static readonly MethodInfo dictionaryRemoveMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethod("Remove").MethodInfo;
         private static readonly MethodInfo dictionaryTryGetMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethod("TryGetValue").MethodInfo;
