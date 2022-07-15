@@ -129,7 +129,10 @@ public class EnumName : Attribute
     public static string GetName<T>(T value)
         where T : Enum
     {
-        return GetName(typeof(T), value);
+        var type = typeof(T);
+        if (type.Name == nameof(Enum))
+            type = value.GetType();
+        return GetName(type, value);
     }
     public static string[] GetNames(Type type)
     {
