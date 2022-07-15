@@ -22,7 +22,7 @@ namespace Zerra.CQRS.AzureEventHub
 {
     public partial class AzureEventHubConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
-        private static readonly string requestedConsumerGroup = Config.EntryAssembly.GetName().Name;
+        private static readonly string requestedConsumerGroup = Config.EntryAssemblyName;
 
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 

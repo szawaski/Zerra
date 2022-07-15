@@ -23,7 +23,6 @@ namespace Zerra.CQRS.AzureServiceBus
             public bool IsOpen { get; private set; }
 
             private readonly string topic;
-            private readonly string clientID;
             private readonly SymmetricKey encryptionKey;
 
             private CancellationTokenSource canceller = null;
@@ -32,7 +31,6 @@ namespace Zerra.CQRS.AzureServiceBus
             {
                 this.Type = type;
                 this.topic = type.GetNiceName();
-                this.clientID = Guid.NewGuid().ToString();
                 this.encryptionKey = encryptionKey;
             }
 
@@ -52,9 +50,11 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 try
                 {
+                    var subscription = $"{topic.Truncate(24)}-{applicationName.Truncate(24)}";
                     await AzureServiceBusCommon.EnsureTopic(host, topic);
+                    await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription);
 
-                    await using (var receiver = client.CreateReceiver(topic, topic))
+                    await using (var receiver = client.CreateReceiver(topic, subscription))
                     {
                         for (; ; )
                         {
@@ -65,12 +65,13 @@ namespace Zerra.CQRS.AzureServiceBus
                             try
                             {
                                 var serviceBusMessage = await receiver.ReceiveMessageAsync();
+                                if (serviceBusMessage == null)
+                                    continue;
                                 await receiver.CompleteMessageAsync(serviceBusMessage);
-                                if (awaitResponse)
-                                {
-                                    ackTopic = serviceBusMessage.ReplyTo;
-                                    ackKey = serviceBusMessage.ReplyToSessionId;
-                                }
+
+                                awaitResponse = !String.IsNullOrWhiteSpace(serviceBusMessage.ReplyTo);
+                                ackTopic = serviceBusMessage.ReplyTo;
+                                ackKey = serviceBusMessage.ReplyToSessionId;
 
                                 var stopwatch = Stopwatch.StartNew();
 

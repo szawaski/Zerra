@@ -29,16 +29,47 @@ namespace Zerra.CQRS.AzureServiceBus
 
         public static async Task EnsureTopic(string host, string topic)
         {
-            var adminClient = new ServiceBusAdministrationClient(host);
-            if (!await adminClient.TopicExistsAsync(topic))
-                _ = await adminClient.CreateTopicAsync(topic);
+            var client = new ServiceBusAdministrationClient(host);
+            if (!await client.TopicExistsAsync(topic))
+                _ = await client.CreateTopicAsync(topic);
         }
 
         public static async Task DeleteTopic(string host, string topic)
         {
-            var adminClient = new ServiceBusAdministrationClient(host);
-            if (await adminClient.TopicExistsAsync(topic))
-                _ = await adminClient.DeleteTopicAsync(topic);
+            var client = new ServiceBusAdministrationClient(host);
+            if (await client.TopicExistsAsync(topic))
+                _ = await client.DeleteTopicAsync(topic);
+        }
+
+        public static async Task EnsureSubscription(string host, string topic, string subscription)
+        {
+            var client = new ServiceBusAdministrationClient(host);
+            if (!await client.SubscriptionExistsAsync(topic, subscription))
+                _ = await client.CreateSubscriptionAsync(topic, subscription);
+        }
+
+        public static async Task DeleteSubscription(string host, string topic, string subscription)
+        {
+            var client = new ServiceBusAdministrationClient(host);
+            if (await client.SubscriptionExistsAsync(topic, subscription))
+                _ = await client.DeleteSubscriptionAsync(topic, subscription);
+        }
+
+        public static async Task DeleteAllAckTopics(string host)
+        {
+            var client = new ServiceBusAdministrationClient(host);
+            var topicPager = client.GetTopicsAsync();
+            await foreach (var topic in topicPager)
+            {
+                var subcriptionPager = client.GetSubscriptionsAsync(topic.Name);
+                await foreach (var subscription in subcriptionPager)
+                {
+                    if (subscription.SubscriptionName.StartsWith("ACK-"))
+                        _ = await client.DeleteSubscriptionAsync(subscription.TopicName, subscription.SubscriptionName);
+                }
+                if (topic.Name.StartsWith("ACK-"))
+                    _ = await client.DeleteTopicAsync(topic.Name);
+            }
         }
     }
 }

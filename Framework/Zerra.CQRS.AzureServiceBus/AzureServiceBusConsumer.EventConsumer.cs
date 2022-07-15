@@ -48,7 +48,9 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 try
                 {
+                    var subscription = $"{topic.Truncate(24)}-{applicationName.Truncate(24)}";
                     await AzureServiceBusCommon.EnsureTopic(host, topic);
+                    await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription);
 
                     await using (var receiver = client.CreateReceiver(topic, topic))
                     {
@@ -57,6 +59,8 @@ namespace Zerra.CQRS.AzureServiceBus
                             try
                             {
                                 var serviceBusMessage = await receiver.ReceiveMessageAsync();
+                                if (serviceBusMessage == null)
+                                    continue;
                                 await receiver.CompleteMessageAsync(serviceBusMessage);
 
                                 var stopwatch = Stopwatch.StartNew();

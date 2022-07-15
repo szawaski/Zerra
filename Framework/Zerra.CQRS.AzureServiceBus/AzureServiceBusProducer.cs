@@ -16,6 +16,8 @@ namespace Zerra.CQRS.AzureServiceBus
 {
     public class AzureServiceBusProducer : ICommandProducer, IEventProducer, IAsyncDisposable
     {
+        private static readonly string applicationName = Config.EntryAssemblyName;
+
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 
         private bool listenerStarted = false;
@@ -31,8 +33,7 @@ namespace Zerra.CQRS.AzureServiceBus
             this.host = host;
             this.encryptionKey = encryptionKey;
 
-            var clientID = Guid.NewGuid().ToString();
-            this.ackTopic = $"ACK-{clientID}";
+            this.ackTopic = $"ACK-{Guid.NewGuid()}";
 
             client = new ServiceBusClient(host);
 
@@ -152,15 +153,19 @@ namespace Zerra.CQRS.AzureServiceBus
 
             try
             {
+                var subscription = $"{ackTopic.Truncate(24)}-{applicationName.Truncate(24)}";
                 await AzureServiceBusCommon.EnsureTopic(host, ackTopic);
+                await AzureServiceBusCommon.EnsureSubscription(host, ackTopic, subscription);
 
-                await using (var receiver = client.CreateReceiver(ackTopic, ackTopic))
+                await using (var receiver = client.CreateReceiver(ackTopic, subscription))
                 {
                     for (; ; )
                     {
                         try
                         {
                             var serviceBusMessage = await receiver.ReceiveMessageAsync();
+                            if (serviceBusMessage == null)
+                                continue;
                             await receiver.CompleteMessageAsync(serviceBusMessage);
 
                             if (!ackCallbacks.TryRemove(serviceBusMessage.SessionId, out var callback))
@@ -181,6 +186,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     }
                 }
                 await AzureServiceBusCommon.DeleteTopic(host, ackTopic);
+                await AzureServiceBusCommon.DeleteSubscription(host, ackTopic, subscription);
             }
             catch (Exception ex)
             {

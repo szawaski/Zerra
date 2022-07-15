@@ -7,11 +7,18 @@ using System.Security;
 
 public static class StringExtensions
 {
+    public static string Truncate(this string it, int maxLength)
+    {
+        if (it == null || it.Length < maxLength)
+            return it;
+        return it.Substring(0, maxLength);
+    }
+
     public static bool ToBoolean(this string obj)
     {
         if (obj == null)
             return false;
-        if (obj == string.Empty)
+        if (obj == String.Empty)
             return false;
         if (obj == "1")
             return true;
@@ -28,7 +35,7 @@ public static class StringExtensions
     {
         if (it == null)
             return null;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return null;
         if (Boolean.TryParse(it, out var tryvalue))
             return tryvalue;
@@ -40,9 +47,9 @@ public static class StringExtensions
     {
         if (it == null)
             return default;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return default;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return (byte)tryvalue;
         else
             return default;
@@ -51,9 +58,9 @@ public static class StringExtensions
     {
         if (it == null)
             return null;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return null;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return (byte)tryvalue;
         else
             return null;
@@ -63,9 +70,9 @@ public static class StringExtensions
     {
         if (it == null)
             return default;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return default;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return (short)tryvalue;
         else
             return default;
@@ -74,9 +81,9 @@ public static class StringExtensions
     {
         if (it == null)
             return null;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return null;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return (short)tryvalue;
         else
             return null;
@@ -86,9 +93,9 @@ public static class StringExtensions
     {
         if (it == null)
             return default;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return default;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return (ushort)tryvalue;
         else
             return default;
@@ -97,9 +104,9 @@ public static class StringExtensions
     {
         if (it == null)
             return null;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return null;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return (ushort)tryvalue;
         else
             return null;
@@ -109,9 +116,9 @@ public static class StringExtensions
     {
         if (it == null)
             return default;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return default;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return (int)tryvalue;
         else
             return default;
@@ -120,9 +127,9 @@ public static class StringExtensions
     {
         if (it == null)
             return null;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return null;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return (int)tryvalue;
         else
             return null;
@@ -132,9 +139,9 @@ public static class StringExtensions
     {
         if (it == null)
             return default;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return default;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return (uint)tryvalue;
         else
             return default;
@@ -143,9 +150,9 @@ public static class StringExtensions
     {
         if (it == null)
             return null;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return null;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return (uint)tryvalue;
         else
             return null;
@@ -155,9 +162,9 @@ public static class StringExtensions
     {
         if (it == null)
             return default;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return default;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return (long)tryvalue;
         else
             return default;
@@ -166,9 +173,9 @@ public static class StringExtensions
     {
         if (it == null)
             return null;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return null;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return (long)tryvalue;
         else
             return null;
@@ -178,9 +185,9 @@ public static class StringExtensions
     {
         if (it == null)
             return default;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return default;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return (ulong)tryvalue;
         else
             return default;
@@ -189,9 +196,9 @@ public static class StringExtensions
     {
         if (it == null)
             return null;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return null;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return (ulong)tryvalue;
         else
             return null;
@@ -201,7 +208,7 @@ public static class StringExtensions
     {
         if (it == null)
             return default;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return default;
         if (Decimal.TryParse(it, out var tryvalue))
             return tryvalue;
@@ -212,9 +219,9 @@ public static class StringExtensions
     {
         if (it == null)
             return null;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return null;
-        if (decimal.TryParse(it, out var tryvalue))
+        if (Decimal.TryParse(it, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -224,9 +231,9 @@ public static class StringExtensions
     {
         if (it == null)
             return default;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return default;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return (float)tryvalue;
         else
             return default;
@@ -235,9 +242,9 @@ public static class StringExtensions
     {
         if (it == null)
             return null;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return null;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return (float)tryvalue;
         else
             return null;
@@ -247,7 +254,7 @@ public static class StringExtensions
     {
         if (it == null)
             return default;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return default;
         if (Double.TryParse(it, out var tryvalue))
             return tryvalue;
@@ -258,9 +265,9 @@ public static class StringExtensions
     {
         if (it == null)
             return null;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return null;
-        if (double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -270,7 +277,7 @@ public static class StringExtensions
     {
         if (it == null)
             return null;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return null;
         return it;
     }
@@ -282,7 +289,7 @@ public static class StringExtensions
     {
         if (it == null)
             return default;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return default;
         if (DateTime.TryParse(it, out var tryDateTime))
             return tryDateTime;
@@ -294,7 +301,7 @@ public static class StringExtensions
     {
         if (it == null)
             return null;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return null;
         if (DateTime.TryParse(it, out var tryvalue))
             return tryvalue;
@@ -306,7 +313,7 @@ public static class StringExtensions
     {
         if (it == null)
             return default;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return default;
         if (DateTimeOffset.TryParse(it, out var tryDateTime))
             return tryDateTime;
@@ -318,7 +325,7 @@ public static class StringExtensions
     {
         if (it == null)
             return null;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return null;
         if (DateTimeOffset.TryParse(it, out var tryvalue))
             return tryvalue;
@@ -365,7 +372,7 @@ public static class StringExtensions
     {
         if (it == null)
             return default;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return default;
         if (TimeSpan.TryParse(it, out var tryDateTime))
             return tryDateTime;
@@ -376,7 +383,7 @@ public static class StringExtensions
     {
         if (it == null)
             return null;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return null;
         if (TimeSpan.TryParse(it, out var tryvalue))
             return tryvalue;
@@ -388,7 +395,7 @@ public static class StringExtensions
     {
         if (it == null)
             return Guid.Empty;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return Guid.Empty;
         if (Guid.TryParse(it, out var tryvalue))
             return tryvalue;
@@ -399,7 +406,7 @@ public static class StringExtensions
     {
         if (it == null)
             return null;
-        if (it == string.Empty)
+        if (it == String.Empty)
             return null;
         if (Guid.TryParse(it, out var tryvalue))
             return tryvalue;

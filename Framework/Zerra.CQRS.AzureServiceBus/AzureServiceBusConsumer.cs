@@ -14,6 +14,8 @@ namespace Zerra.CQRS.AzureServiceBus
 {
     public partial class AzureServiceBusConsumer : ICommandConsumer, IEventConsumer, IAsyncDisposable
     {
+        private static readonly string applicationName = Config.EntryAssemblyName;
+
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 
         private readonly string host;

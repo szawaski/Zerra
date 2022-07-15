@@ -13,7 +13,7 @@ namespace Zerra.CQRS.AzureServiceBus
         public AcknowledgementException(Acknowledgement acknowledgement, string topic) : base(acknowledgement.ErrorMessage)
         {
             this.Acknowledgement = acknowledgement ?? throw new ArgumentNullException(nameof(acknowledgement));
-            if (string.IsNullOrWhiteSpace(topic))
+            if (String.IsNullOrWhiteSpace(topic))
                 throw new ArgumentNullException(nameof(topic));
             
             this.Topic = topic;
