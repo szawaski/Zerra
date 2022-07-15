@@ -42,6 +42,7 @@ namespace Zerra
 
         private static readonly Assembly entryAssembly;
         private static readonly Assembly executingAssembly;
+        private static readonly string entryAssemblyName;
         private static readonly string entryNameSpace;
         private static readonly string frameworkNameSpace;
         static Config()
@@ -49,7 +50,9 @@ namespace Zerra
             entryAssembly = Assembly.GetEntryAssembly();
             executingAssembly = Assembly.GetExecutingAssembly();
 
-            entryNameSpace = entryAssembly?.GetName().Name.Split('.')[0] + '.';
+            entryAssemblyName = entryAssembly?.GetName().Name;
+
+            entryNameSpace = entryAssemblyName?.Split('.')[0] + '.';
             frameworkNameSpace = executingAssembly.GetName().Name.Split('.')[0] + '.';
 
             DiscoveryNamespaces = entryNameSpace != null ? (new string[] { entryNameSpace, frameworkNameSpace }) : (new string[] { frameworkNameSpace });
@@ -245,6 +248,7 @@ namespace Zerra
             }
         }
 
+        public static string EntryAssemblyName { get { return entryAssemblyName; } }
         public static Assembly EntryAssembly { get { return entryAssembly; } }
 
         private static readonly Lazy<bool> isDebugEntryAssembly = new(() => entryAssembly.GetCustomAttributes(false).OfType<DebuggableAttribute>().Any(x => x.IsJITTrackingEnabled));
