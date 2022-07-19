@@ -16,13 +16,11 @@ namespace ZerraDemo.Common
             if (settingsName == null)
                 throw new Exception($"Entry Assembly is null, {nameof(ServiceManager)} cannot identify which service is running");
 
-            var serviceSettings = CQRSSettings.Get();
-
             Bus.AddMessageLogger(new MessageLoggingProvider());
 
+            var serviceSettings = CQRSSettings.Get();
+
             var serviceCreatorInternal = new TcpInternalServiceCreator();
-
-
 
             //Enable one of the following service options
             //----------------------------------------------------------

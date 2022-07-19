@@ -700,7 +700,7 @@ namespace Zerra.CQRS
             {
                 var serverSetting = serviceSettings.Services.FirstOrDefault(x => x.Name == serviceName);
                 if (serverSetting == null)
-                    throw new Exception($"Service {serviceName} not found in {CQRSSettings.SettingsFileName}");
+                    throw new Exception($"Service {serviceName} not found in CQRS settings file");
 
                 var serverUrl = Config.GetSetting("urls");
                 if (String.IsNullOrWhiteSpace(serverUrl))

@@ -60,22 +60,29 @@ namespace Zerra
         }
 
         private static IConfiguration configuration;
-        public static void LoadConfiguration() { LoadConfiguration(null, null, null); }
-        public static void LoadConfiguration(string[] args) { LoadConfiguration(args, null, null); }
-        public static void LoadConfiguration(string[] args, Action<ConfigurationBuilder> build) { LoadConfiguration(args, null, build); }
-        public static void LoadConfiguration(string[] args, string[] settingsFiles) { LoadConfiguration(args, settingsFiles, null); }
-        public static void LoadConfiguration(string[] args, string[] settingsFiles, Action<ConfigurationBuilder> build)
+        public static void LoadConfiguration() { LoadConfiguration(null, null, null, null); }
+        public static void LoadConfiguration(string environmentName) { LoadConfiguration(null, environmentName, null, null); }
+        public static void LoadConfiguration(string[] args) { LoadConfiguration(args, null, null, null); }
+        public static void LoadConfiguration(string[] args, string environmentName) { LoadConfiguration(args, environmentName, null, null); }
+        public static void LoadConfiguration(string[] args, Action<ConfigurationBuilder> build) { LoadConfiguration(args, null, null, build); }
+        public static void LoadConfiguration(Action<ConfigurationBuilder> build) { LoadConfiguration(null, null, null, build); }
+        public static void LoadConfiguration(string[] args, string environmentName, Action<ConfigurationBuilder> build) { LoadConfiguration(args, environmentName, null, build); }
+        public static void LoadConfiguration(string[] args, string[] settingsFiles) { LoadConfiguration(args, null, settingsFiles, null); }
+        public static void LoadConfiguration(string[] args, string environmentName, string[] settingsFiles) { LoadConfiguration(args, environmentName, settingsFiles, null); }
+        public static void LoadConfiguration(string[] args, string environmentName, string[] settingsFiles, Action<ConfigurationBuilder> build)
         {
             var builder = new ConfigurationBuilder();
 
-            var settingsFileNames = GetEnvironmentFiles(settingsFileName);
+            var settingsFileNames = GetEnvironmentFilesBySuffix(settingsFileName);
             foreach (var settingsFileName in settingsFileNames)
                 AddSettingsFile(builder, settingsFileName);
 
-            var environmentName = Environment.GetEnvironmentVariable(environmentalVariable);
+            if (String.IsNullOrWhiteSpace(environmentName))
+                environmentName = GetAspNetCoreEnvironment();
+
             if (!String.IsNullOrWhiteSpace(environmentName))
             {
-                var environmentSettingsFileNames = GetEnvironmentFiles(String.Format(genericSettingsFileName, environmentName));
+                var environmentSettingsFileNames = GetEnvironmentFilesBySuffix(String.Format(genericSettingsFileName, environmentName));
                 foreach (var environmentSettingsFileName in environmentSettingsFileNames)
                     AddSettingsFile(builder, environmentSettingsFileName);
             }
@@ -133,11 +140,14 @@ namespace Zerra
             return value;
         }
 
-        public static IConfiguration GetConfiguration()
+        public static IConfiguration Configuration
         {
-            if (configuration == null)
-                LoadConfiguration();
-            return configuration;
+            get
+            {
+                if (configuration == null)
+                    LoadConfiguration();
+                return configuration;
+            }
         }
         public static T Bind<T>(params string[] sections)
         {
@@ -167,7 +177,7 @@ namespace Zerra
             filePath = $"{Environment.CurrentDirectory}/{fileName}";
             return File.Exists(filePath) ? filePath : null;
         }
-        private static IEnumerable<string> GetEnvironmentFiles(string fileSuffix)
+        public static IReadOnlyCollection<string> GetEnvironmentFilesBySuffix(string fileSuffix)
         {
             var files = new List<string>();
 
@@ -184,6 +194,10 @@ namespace Zerra
             }
 
             return files;
+        }
+        public static string GetAspNetCoreEnvironment()
+        {
+            return Environment.GetEnvironmentVariable(environmentalVariable);
         }
 
         public static void AddDiscoveryNamespaces(params string[] namespaces)

@@ -12,15 +12,25 @@ namespace Zerra.CQRS.Settings
 {
     public static class CQRSSettings
     {
-        public const string SettingsFileName = "cqrssettings.json";
+        private const string settingsFileName = "cqrssettings.json";
+        private const string genericSettingsFileName = "cqrssettings.{0}.json";
 
-        public static ServiceSettings Get()
+        public static ServiceSettings Get(string environmentName = null)
         {
-            var filePath = Config.GetEnvironmentFilePath(SettingsFileName);
+            string filePath = null;
+
+            if (String.IsNullOrWhiteSpace(environmentName))
+                environmentName = Config.GetAspNetCoreEnvironment();
+
+            if (!String.IsNullOrWhiteSpace(environmentName))
+                filePath = Config.GetEnvironmentFilePath(String.Format(genericSettingsFileName, environmentName));
+            if (filePath == null)
+                filePath = Config.GetEnvironmentFilePath(settingsFileName);
+
             if (filePath == null)
             {
-                Log.InfoAsync($"{filePath} not found").GetAwaiter().GetResult();
-                throw new Exception($"{filePath} not found");
+                Log.InfoAsync($"{settingsFileName} not found").GetAwaiter().GetResult();
+                throw new Exception($"{settingsFileName} not found");
             }
 
             ServiceSettings settings;
