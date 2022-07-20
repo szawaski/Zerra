@@ -693,6 +693,18 @@ namespace Zerra.CQRS
             await DisposeServices();
         }
 
+        private static string GetServiceUrl(ServiceSetting serverSetting)
+        {
+            var serverUrl = Config.GetSetting("urls");
+            if (String.IsNullOrWhiteSpace(serverUrl))
+                serverUrl = Config.GetSetting("ASPNETCORE_URLS");
+            if (String.IsNullOrWhiteSpace(serverUrl))
+                serverUrl = Config.GetSetting("DOTNET_URLS");
+            if (String.IsNullOrWhiteSpace(serverUrl))
+                serverUrl = serverSetting.ExternalUrl;
+            return serverUrl;
+        }
+
         public static void StartServices(string serviceName, ServiceSettings serviceSettings, IServiceCreator serviceCreator, IRelayRegister relayRegister = null)
         {
             _ = Log.InfoAsync($"Starting {serviceName}");
@@ -702,13 +714,7 @@ namespace Zerra.CQRS
                 if (serverSetting == null)
                     throw new Exception($"Service {serviceName} not found in CQRS settings file");
 
-                var serverUrl = Config.GetSetting("urls");
-                if (String.IsNullOrWhiteSpace(serverUrl))
-                    serverUrl = Config.GetSetting("ASPNETCORE_URLS");
-                if (String.IsNullOrWhiteSpace(serverUrl))
-                    serverUrl = Config.GetSetting("DOTNET_URLS");
-                if (String.IsNullOrWhiteSpace(serverUrl))
-                    serverUrl = serverSetting.ExternalUrl;
+                var serviceUrl = GetServiceUrl(serverSetting);
 
                 ICommandConsumer commandConsumer = null;
                 IEventConsumer eventConsumer = null;
@@ -769,7 +775,7 @@ namespace Zerra.CQRS
                                 if (commandConsumer == null)
                                 {
                                     var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    commandConsumer = serviceCreator.CreateCommandServer(serverUrl, encryptionKey);
+                                    commandConsumer = serviceCreator.CreateCommandServer(serviceUrl, encryptionKey);
                                     commandConsumer.SetHandler(HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync);
                                     if (!commandConsumers.Contains(commandConsumer))
                                         _ = commandConsumers.Add(commandConsumer);
@@ -819,7 +825,7 @@ namespace Zerra.CQRS
                                 if (eventConsumer == null)
                                 {
                                     var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    eventConsumer = serviceCreator.CreateEventServer(serverUrl, encryptionKey);
+                                    eventConsumer = serviceCreator.CreateEventServer(serviceUrl, encryptionKey);
                                     eventConsumer.SetHandler(HandleRemoteEventDispatchAsync);
                                     if (!eventConsumers.Contains(eventConsumer))
                                         _ = eventConsumers.Add(eventConsumer);
@@ -869,7 +875,7 @@ namespace Zerra.CQRS
                                 if (queryServer == null)
                                 {
                                     var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    queryServer = serviceCreator.CreateQueryServer(serverUrl, encryptionKey);
+                                    queryServer = serviceCreator.CreateQueryServer(serviceUrl, encryptionKey);
                                     queryServer.SetHandler(HandleRemoteQueryCallAsync);
                                     if (!queryServers.Contains(queryServer))
                                         _ = queryServers.Add(queryServer);

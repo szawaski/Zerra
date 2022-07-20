@@ -14,7 +14,13 @@ namespace Zerra.CQRS.AzureEventHub
 {
     internal static class AzureEventHubCommon
     {
-        public const int RetryDelay = 10000;
+        public const int RetryDelay = 5000;
+
+        private const string resourceGroupConfig = "AzureEventHubResourceGroup";
+        private const string tenantIDConfig = "AzureEventHubTenantId";
+        private const string applicationIDConfig = "AzureEventHubApplicationId";
+        private const string clientSecretConfig = "AzureEventHubClientSecret";
+        private const string subscriptionIDConfig = "AzureEventHubSubscriptionId";
 
         public const string AckProperty = "Ack";
         public const string AckKeyProperty = "AckID";
@@ -34,11 +40,11 @@ namespace Zerra.CQRS.AzureEventHub
 
         public static async Task<string> GetEnsuredConsumerGroup(string requestedConsumerGroup, string connectionString, string eventHubName)
         {
-            var resourceGroup = Config.GetSetting("AzureEventHubResourceGroup");
-            var tenantID = Config.GetSetting("AzureEventHubTenantId");
-            var applicationID = Config.GetSetting("AzureEventHubApplicationId");
-            var clientSecret = Config.GetSetting("AzureEventHubClientSecret");
-            var subscriptionID = Config.GetSetting("AzureEventHubSubscriptionId");
+            var resourceGroup = Config.GetSetting(resourceGroupConfig);
+            var tenantID = Config.GetSetting(tenantIDConfig);
+            var applicationID = Config.GetSetting(applicationIDConfig);
+            var clientSecret = Config.GetSetting(clientSecretConfig);
+            var subscriptionID = Config.GetSetting(subscriptionIDConfig);
 
             if (String.IsNullOrWhiteSpace(resourceGroup) ||
                 String.IsNullOrWhiteSpace(tenantID) ||
@@ -84,11 +90,11 @@ namespace Zerra.CQRS.AzureEventHub
 
         public static async Task DeleteConsumerGroup(string requestedConsumerGroup, string connectionString, string eventHubName)
         {
-            var resourceGroup = Config.GetSetting("AzureEventHubResourceGroup");
-            var tenantID = Config.GetSetting("AzureEventHubTenantId");
-            var applicationID = Config.GetSetting("AzureEventHubApplicationId");
-            var clientSecret = Config.GetSetting("AzureEventClientSecret");
-            var subscriptionID = Config.GetSetting("AzureEventHubSubscriptionId");
+            var resourceGroup = Config.GetSetting(resourceGroupConfig);
+            var tenantID = Config.GetSetting(tenantIDConfig);
+            var applicationID = Config.GetSetting(applicationIDConfig);
+            var clientSecret = Config.GetSetting(clientSecretConfig);
+            var subscriptionID = Config.GetSetting(subscriptionIDConfig);
 
             if (String.IsNullOrWhiteSpace(resourceGroup) ||
                 String.IsNullOrWhiteSpace(tenantID) ||

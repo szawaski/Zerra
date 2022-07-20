@@ -9,6 +9,6 @@ namespace Zerra.CQRS.Settings
         public string MessageHost { get; set; }
         public string RelayUrl { get; set; }
         public string RelayKey { get; set; }
-        public ServiceSettingItem[] Services { get; set; }
+        public ServiceSetting[] Services { get; set; }
     }
 }

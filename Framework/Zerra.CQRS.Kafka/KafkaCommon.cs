@@ -13,7 +13,7 @@ namespace Zerra.CQRS.Kafka
 {
     internal static class KafkaCommon
     {
-        public const int RetryDelay = 10000;
+        public const int RetryDelay = 5000;
 
         public const string MessageKey = "Body";
         public const string MessageWithAckKey = "BodyAck";

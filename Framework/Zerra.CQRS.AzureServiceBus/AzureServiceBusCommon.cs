@@ -13,7 +13,7 @@ namespace Zerra.CQRS.AzureServiceBus
 {
     internal static class AzureServiceBusCommon
     {
-        public const int RetryDelay = 10000;
+        public const int RetryDelay = 5000;
 
         public static byte[] Serialize(object obj)
         {

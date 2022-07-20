@@ -4,7 +4,7 @@
 
 namespace Zerra.CQRS.Settings
 {
-    public class ServiceSettingItem
+    public class ServiceSetting
     {
         public string Name { get; set; }
         public string ExternalUrl { get; set; }
