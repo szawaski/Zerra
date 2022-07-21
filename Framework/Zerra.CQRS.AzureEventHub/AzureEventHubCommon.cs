@@ -25,6 +25,7 @@ namespace Zerra.CQRS.AzureEventHub
         public const string AckProperty = "Ack";
         public const string AckKeyProperty = "AckID";
         public const string TypeProperty= "Type";
+        public const string EnvironmentProperty = "Env";
 
         public static byte[] Serialize(object obj)
         {

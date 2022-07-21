@@ -13,6 +13,8 @@ namespace Zerra.CQRS.Kafka
 {
     internal static class KafkaCommon
     {
+        public const int TopicMaxLength = 249;
+
         public const int RetryDelay = 5000;
 
         public const string MessageKey = "Body";

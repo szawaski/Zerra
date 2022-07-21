@@ -20,7 +20,7 @@ namespace Zerra.CQRS.Settings
             string filePath = null;
 
             if (String.IsNullOrWhiteSpace(environmentName))
-                environmentName = Config.GetAspNetCoreEnvironment();
+                environmentName = Config.EnvironmentName;
 
             if (!String.IsNullOrWhiteSpace(environmentName))
                 filePath = Config.GetEnvironmentFilePath(String.Format(genericSettingsFileName, environmentName));

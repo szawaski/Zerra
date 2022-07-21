@@ -15,30 +15,32 @@ namespace Zerra.CQRS.RabbitMQ
 
         private readonly string rabbitHost;
         private readonly IServiceCreator serviceCreatorForQueries;
-        public RabbitMQServiceCreator(string rabbitHost, IServiceCreator serviceCreatorForQueries)
+        private readonly string environment;
+        public RabbitMQServiceCreator(string rabbitHost, IServiceCreator serviceCreatorForQueries, string environment)
         {
             this.rabbitHost = rabbitHost;
             this.serviceCreatorForQueries = serviceCreatorForQueries;
+            this.environment = environment;
         }
 
         public ICommandProducer CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQProducer(host, encryptionKey));
+            return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQProducer(host, encryptionKey, environment));
         }
 
         public ICommandConsumer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return rabbitServers.GetOrAdd(rabbitHost, (host) => new RabbitMQConsumer(host, encryptionKey));
+            return rabbitServers.GetOrAdd(rabbitHost, (host) => new RabbitMQConsumer(host, encryptionKey, environment));
         }
 
         public IEventProducer CreateEventClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQProducer(host, encryptionKey));
+            return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQProducer(host, encryptionKey, environment));
         }
 
         public IEventConsumer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return rabbitServers.GetOrAdd(rabbitHost, (host) => new RabbitMQConsumer(host, encryptionKey));
+            return rabbitServers.GetOrAdd(rabbitHost, (host) => new RabbitMQConsumer(host, encryptionKey, environment));
         }
 
         public IQueryClient CreateQueryClient(string serviceUrl, SymmetricKey encryptionKey)

@@ -17,6 +17,7 @@ namespace Zerra.CQRS.Kafka
 
         private readonly string host;
         private readonly SymmetricKey encryptionKey;
+        private readonly string environment;
 
         private readonly List<CommandConsumer> commandExchanges;
         private readonly List<EventConsumer> eventExchanges;
@@ -28,10 +29,11 @@ namespace Zerra.CQRS.Kafka
 
         public string ConnectionString => host;
 
-        public KafkaConsumer(string host, SymmetricKey encryptionKey)
+        public KafkaConsumer(string host, SymmetricKey encryptionKey, string environment)
         {
             this.host = host;
             this.encryptionKey = encryptionKey;
+            this.environment = environment;
             this.commandExchanges = new List<CommandConsumer>();
             this.eventExchanges = new List<EventConsumer>();
         }
@@ -118,7 +120,7 @@ namespace Zerra.CQRS.Kafka
         {
             lock (commandExchanges)
             {
-                commandExchanges.Add(new CommandConsumer(type, encryptionKey));
+                commandExchanges.Add(new CommandConsumer(type, encryptionKey, environment));
                 OpenExchanges();
             }
         }
@@ -131,7 +133,7 @@ namespace Zerra.CQRS.Kafka
         {
             lock (eventExchanges)
             {
-                eventExchanges.Add(new EventConsumer(type, encryptionKey));
+                eventExchanges.Add(new EventConsumer(type, encryptionKey, environment));
                 OpenExchanges();
             }
         }

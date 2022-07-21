@@ -25,10 +25,14 @@ namespace Zerra.CQRS.Kafka
             private readonly SymmetricKey encryptionKey;
             private CancellationTokenSource canceller;
 
-            public EventConsumer(Type type, SymmetricKey encryptionKey)
+            public EventConsumer(Type type, SymmetricKey encryptionKey, string environment)
             {
                 this.Type = type;
-                this.topic = type.GetNiceName();
+                this.Type = type;
+                if (!String.IsNullOrWhiteSpace(environment))
+                    this.topic = $"{environment}_{type.GetNiceName()}".Truncate(KafkaCommon.TopicMaxLength);
+                else
+                    this.topic = type.GetNiceName().Truncate(KafkaCommon.TopicMaxLength);
                 this.encryptionKey = encryptionKey;
             }
 

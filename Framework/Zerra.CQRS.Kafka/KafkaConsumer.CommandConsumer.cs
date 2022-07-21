@@ -28,10 +28,13 @@ namespace Zerra.CQRS.Kafka
 
             private CancellationTokenSource canceller = null;
 
-            public CommandConsumer(Type type, SymmetricKey encryptionKey)
+            public CommandConsumer(Type type, SymmetricKey encryptionKey, string environment)
             {
                 this.Type = type;
-                this.topic = type.GetNiceName();
+                if (!String.IsNullOrWhiteSpace(environment))
+                    this.topic = $"{environment}_{type.GetNiceName()}".Truncate(KafkaCommon.TopicMaxLength);
+                else
+                    this.topic = type.GetNiceName().Truncate(KafkaCommon.TopicMaxLength);
                 this.clientID = Guid.NewGuid().ToString();
                 this.encryptionKey = encryptionKey;
             }

@@ -29,6 +29,7 @@ namespace Zerra.CQRS.AzureEventHub
         private readonly string host;
         private readonly string eventHubName;
         private readonly SymmetricKey encryptionKey;
+        private readonly string environment;
 
         private readonly ConcurrentList<Type> commandTypes;
         private readonly ConcurrentList<Type> eventTypes;
@@ -44,11 +45,12 @@ namespace Zerra.CQRS.AzureEventHub
 
         public string ConnectionString => host;
 
-        public AzureEventHubConsumer(string host, string eventHubName, SymmetricKey encryptionKey)
+        public AzureEventHubConsumer(string host, string eventHubName, SymmetricKey encryptionKey, string environment)
         {
             this.host = host;
             this.eventHubName = eventHubName;
             this.encryptionKey = encryptionKey;
+            this.environment = environment;
 
             this.throttler = new TaskThrottler();
 
@@ -133,6 +135,15 @@ namespace Zerra.CQRS.AzureEventHub
             var awaitResponse = false;
             try
             {
+                if (!String.IsNullOrWhiteSpace(environment))
+                {
+                    if (!partitionEvent.Data.Properties.TryGetValue(AzureEventHubCommon.EnvironmentProperty, out var environmentNameObject))
+                        return;
+                    if (environmentNameObject is not string environmentName)
+                        return;
+                    if (environmentName != environment)
+                        return;
+                }
                 if (!partitionEvent.Data.Properties.TryGetValue(AzureEventHubCommon.TypeProperty, out var typeNameObject))
                     return;
                 if (typeNameObject is not string typeName)

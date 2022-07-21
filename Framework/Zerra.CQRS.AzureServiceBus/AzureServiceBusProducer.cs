@@ -24,14 +24,16 @@ namespace Zerra.CQRS.AzureServiceBus
 
         private readonly string host;
         private readonly SymmetricKey encryptionKey;
+        private readonly string environment;
         private readonly string ackTopic;
         private readonly ServiceBusClient client;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
-        public AzureServiceBusProducer(string host, SymmetricKey encryptionKey)
+        public AzureServiceBusProducer(string host, SymmetricKey encryptionKey, string environment)
         {
             this.host = host;
             this.encryptionKey = encryptionKey;
+            this.environment = environment;
 
             this.ackTopic = $"ACK-{Guid.NewGuid()}";
 
@@ -61,7 +63,11 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
             }
 
-            var topic = command.GetType().GetNiceName();
+            string topic;
+            if (!String.IsNullOrWhiteSpace(environment))
+                topic = $"{environment}_{command.GetType().GetNiceName()}".Truncate(AzureServiceBusCommon.TopicMaxLength);
+            else
+                topic = command.GetType().GetNiceName().Truncate(AzureServiceBusCommon.TopicMaxLength);
 
             string[][] claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -123,7 +129,11 @@ namespace Zerra.CQRS.AzureServiceBus
 
         private async Task SendAsync(IEvent @event)
         {
-            var topic = @event.GetType().GetNiceName();
+            string topic;
+            if (!String.IsNullOrWhiteSpace(environment))
+                topic = $"{environment}_{@event.GetType().GetNiceName()}".Truncate(AzureServiceBusCommon.TopicMaxLength);
+            else
+                topic = @event.GetType().GetNiceName().Truncate(AzureServiceBusCommon.TopicMaxLength);
 
             string[][] claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -153,7 +163,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
             try
             {
-                var subscription = $"{ackTopic.Truncate(24)}-{applicationName.Truncate(24)}";
+                var subscription = $"{ackTopic.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}-{applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}";
                 await AzureServiceBusCommon.EnsureTopic(host, ackTopic);
                 await AzureServiceBusCommon.EnsureSubscription(host, ackTopic, subscription);
 

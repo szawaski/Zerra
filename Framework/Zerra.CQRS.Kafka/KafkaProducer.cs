@@ -23,14 +23,16 @@ namespace Zerra.CQRS.Kafka
 
         private readonly string host;
         private readonly SymmetricKey encryptionKey;
+        private readonly string environment;
         private readonly string ackTopic;
         private readonly IProducer<string, byte[]> producer;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
-        public KafkaProducer(string host, SymmetricKey encryptionKey)
+        public KafkaProducer(string host, SymmetricKey encryptionKey, string environment)
         {
             this.host = host;
             this.encryptionKey = encryptionKey;
+            this.environment = environment;
 
             var clientID = Guid.NewGuid().ToString();
             this.ackTopic = $"ACK-{clientID}";
@@ -64,7 +66,11 @@ namespace Zerra.CQRS.Kafka
                 }
             }
 
-            var partition = command.GetType().GetNiceName();
+            string topic;
+            if (!String.IsNullOrWhiteSpace(environment))
+                topic = $"{environment}_{command.GetType().GetNiceName()}".Truncate(KafkaCommon.TopicMaxLength);
+            else
+                topic = command.GetType().GetNiceName().Truncate(KafkaCommon.TopicMaxLength);
 
             string[][] claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -100,13 +106,13 @@ namespace Zerra.CQRS.Kafka
                         _ = waiter.Release();
                     });
 
-                    var producerResult = await producer.ProduceAsync(partition, new Message<string, byte[]> { Headers = headers, Key = key, Value = body });
+                    var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Headers = headers, Key = key, Value = body });
                     if (producerResult.Status != PersistenceStatus.Persisted)
                         throw new Exception($"{nameof(KafkaProducer)} failed: {producerResult.Status}");
 
                     await waiter.WaitAsync();
                     if (!ack.Success)
-                        throw new AcknowledgementException(ack, partition);
+                        throw new AcknowledgementException(ack, topic);
                 }
                 finally
                 {
@@ -118,7 +124,7 @@ namespace Zerra.CQRS.Kafka
             {
                 var key = KafkaCommon.MessageKey;
 
-                var producerResult = await producer.ProduceAsync(partition, new Message<string, byte[]> { Key = key, Value = body });
+                var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = key, Value = body });
                 if (producerResult.Status != PersistenceStatus.Persisted)
                     throw new Exception($"{nameof(KafkaProducer)} failed: {producerResult.Status}");
             }
@@ -126,7 +132,11 @@ namespace Zerra.CQRS.Kafka
 
         private async Task SendAsync(IEvent @event)
         {
-            var topic = @event.GetType().GetNiceName();
+            string topic;
+            if (!String.IsNullOrWhiteSpace(environment))
+                topic = $"{environment}_{@event.GetType().GetNiceName()}".Truncate(KafkaCommon.TopicMaxLength);
+            else
+                topic = @event.GetType().GetNiceName().Truncate(KafkaCommon.TopicMaxLength);
 
             string[][] claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)

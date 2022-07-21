@@ -17,33 +17,37 @@ namespace Zerra.CQRS.RabbitMQ
 {
     public partial class RabbitMQConsumer
     {
-        private class EventReceiverExchange : IDisposable
+        private class CommandComsumer : IDisposable
         {
             public Type Type { get; private set; }
             public bool IsOpen { get; private set; }
 
-            public readonly string topic;
+            private readonly string topic;
             private readonly SymmetricKey encryptionKey;
 
             private IModel channel = null;
             private CancellationTokenSource canceller;
 
-            public EventReceiverExchange(Type type, SymmetricKey encryptionKey)
+            public CommandComsumer(Type type, SymmetricKey encryptionKey, string environment)
             {
                 this.Type = type;
-                this.topic = type.GetNiceName();
+                this.Type = type;
+                if (!String.IsNullOrWhiteSpace(environment))
+                    this.topic = $"{environment}_{type.GetNiceName()}".Truncate(RabbitMQCommon.TopicMaxLength);
+                else
+                    this.topic = type.GetNiceName().Truncate(RabbitMQCommon.TopicMaxLength);
                 this.encryptionKey = encryptionKey;
             }
 
-            public void Open(IConnection connection, Func<IEvent, Task> handlerAsync)
+            public void Open(IConnection connection, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
             {
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                _ = Task.Run(() => ListeningThread(connection, handlerAsync));
+                _ = Task.Run(() => ListeningThread(connection, handlerAsync, handlerAwaitAsync));
             }
 
-            private async Task ListeningThread(IConnection connection, Func<IEvent, Task> handlerAsync)
+            private async Task ListeningThread(IConnection connection, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
             {
                 canceller = new CancellationTokenSource();
 
@@ -72,6 +76,8 @@ namespace Zerra.CQRS.RabbitMQ
                         var properties = e.BasicProperties;
                         var acknowledgment = new Acknowledgement();
 
+                        var awaitResponse = !String.IsNullOrWhiteSpace(properties.ReplyTo);
+
                         if (!isEncrypted && encryptionKey != null)
                         {
                             acknowledgment.Success = false;
@@ -83,23 +89,27 @@ namespace Zerra.CQRS.RabbitMQ
                             {
                                 var body = e.Body;
                                 if (isEncrypted)
-                                {
                                     body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, e.Body);
-                                }
 
-                                var rabbitMessage = RabbitMQCommon.Deserialize<RabbitMQEventMessage>(body);
+                                var rabbitMessage = RabbitMQCommon.Deserialize<RabbitMQCommandMessage>(body);
 
                                 if (rabbitMessage.Claims != null)
                                 {
                                     var claimsIdentity = new ClaimsIdentity(rabbitMessage.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
-                                    System.Threading.Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
+                                    Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
                                 }
 
-                                await handlerAsync(rabbitMessage.Message);
+                                if (awaitResponse)
+                                    await handlerAwaitAsync(rabbitMessage.Message);
+                                else
+                                    await handlerAsync(rabbitMessage.Message);
 
                                 stopwatch.Stop();
 
-                                _ = Log.TraceAsync($"Received: {e.Exchange} {stopwatch.ElapsedMilliseconds}");
+                                if (awaitResponse)
+                                    _ = Log.TraceAsync($"Received Await: {e.Exchange} {stopwatch.ElapsedMilliseconds}");
+                                else
+                                    _ = Log.TraceAsync($"Received: {e.Exchange} {stopwatch.ElapsedMilliseconds}");
 
                                 acknowledgment.Success = true;
                             }
@@ -112,9 +122,34 @@ namespace Zerra.CQRS.RabbitMQ
                                 acknowledgment.Success = false;
                                 acknowledgment.ErrorMessage = ex.Message;
 
-                                _ = Log.TraceAsync($"Error: Received: {e.Exchange} {acknowledgment.ErrorMessage} {stopwatch.ElapsedMilliseconds}");
+                                if (awaitResponse)
+                                    _ = Log.TraceAsync($"Error: Received Await: {e.Exchange} {acknowledgment.ErrorMessage} {stopwatch.ElapsedMilliseconds}");
+                                else
+                                    _ = Log.TraceAsync($"Error: Received: {e.Exchange} {acknowledgment.ErrorMessage} {stopwatch.ElapsedMilliseconds}");
 
-                                _ = Log.ErrorAsync(null, ex);
+                                _ = Log.ErrorAsync(ex);
+                            }
+                        }
+
+                        if (awaitResponse)
+                        {
+                            try
+                            {
+
+                                var replyProperties = this.channel.CreateBasicProperties();
+                                replyProperties.CorrelationId = properties.CorrelationId;
+
+                                var acknowledgmentBody = RabbitMQCommon.Serialize(acknowledgment);
+                                if (isEncrypted)
+                                {
+                                    acknowledgmentBody = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, acknowledgmentBody);
+                                }
+
+                                this.channel.BasicPublish(String.Empty, properties.ReplyTo, replyProperties, acknowledgmentBody);
+                            }
+                            catch (Exception ex)
+                            {
+                                _ = Log.ErrorAsync(ex);
                             }
                         }
                     };
@@ -137,18 +172,6 @@ namespace Zerra.CQRS.RabbitMQ
                         goto retry;
                     }
                 }
-
-                canceller.Dispose();
-                canceller = null;
-
-                if (channel != null)
-                {
-                    channel.Close();
-                    channel.Dispose();
-                    channel = null;
-                }
-
-                IsOpen = false;
             }
 
             public void Dispose()
@@ -162,6 +185,8 @@ namespace Zerra.CQRS.RabbitMQ
                     channel.Dispose();
                     channel = null;
                 }
+
+                IsOpen = false;
                 GC.SuppressFinalize(this);
             }
         }

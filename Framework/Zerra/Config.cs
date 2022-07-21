@@ -16,7 +16,7 @@ namespace Zerra
     {
         private const string settingsFileName = "appsettings.json";
         private const string genericSettingsFileName = "appsettings.{0}.json";
-        private const string environmentalVariable = "ASPNETCORE_ENVIRONMENT";
+        private const string environmentNameVariable = "ASPNETCORE_ENVIRONMENT";
 
         private static readonly object discoveryLock = new();
         private static bool discoveryStarted;
@@ -59,7 +59,8 @@ namespace Zerra
             discoveryStarted = false;
         }
 
-        private static IConfiguration configuration;
+        private static IConfiguration configuration = null;
+        private static string environmentName = null;
         public static void LoadConfiguration() { LoadConfiguration(null, null, null, null); }
         public static void LoadConfiguration(string environmentName) { LoadConfiguration(null, environmentName, null, null); }
         public static void LoadConfiguration(string[] args) { LoadConfiguration(args, null, null, null); }
@@ -78,7 +79,7 @@ namespace Zerra
                 AddSettingsFile(builder, settingsFileName);
 
             if (String.IsNullOrWhiteSpace(environmentName))
-                environmentName = GetAspNetCoreEnvironment();
+                environmentName = Environment.GetEnvironmentVariable(environmentNameVariable);
 
             if (!String.IsNullOrWhiteSpace(environmentName))
             {
@@ -86,6 +87,8 @@ namespace Zerra
                 foreach (var environmentSettingsFileName in environmentSettingsFileNames)
                     AddSettingsFile(builder, environmentSettingsFileName);
             }
+
+            Config.environmentName = environmentName;
 
             if (settingsFiles != null && settingsFiles.Length > 0)
             {
@@ -149,6 +152,14 @@ namespace Zerra
                 return configuration;
             }
         }
+        public static string EnvironmentName
+        {
+            get
+            {
+                return environmentName;
+            }
+        }
+
         public static T Bind<T>(params string[] sections)
         {
             if (configuration == null)
@@ -194,10 +205,6 @@ namespace Zerra
             }
 
             return files;
-        }
-        public static string GetAspNetCoreEnvironment()
-        {
-            return Environment.GetEnvironmentVariable(environmentalVariable);
         }
 
         public static void AddDiscoveryNamespaces(params string[] namespaces)

@@ -19,8 +19,9 @@ namespace Zerra.CQRS.RabbitMQ
 
         private readonly string host;
         private readonly SymmetricKey encryptionKey;
-        private readonly List<CommandReceiverExchange> commandExchanges;
-        private readonly List<EventReceiverExchange> eventExchanges;
+        private readonly string environment;
+        private readonly List<CommandComsumer> commandExchanges;
+        private readonly List<EventComsumer> eventExchanges;
 
         private IConnection connection = null;
         private Func<ICommand, Task> commandHandlerAsync = null;
@@ -29,12 +30,13 @@ namespace Zerra.CQRS.RabbitMQ
 
         public string ConnectionString => host;
 
-        public RabbitMQConsumer(string host, SymmetricKey encryptionKey)
+        public RabbitMQConsumer(string host, SymmetricKey encryptionKey, string environment)
         {
             this.host = host;
             this.encryptionKey = encryptionKey;
-            this.commandExchanges = new List<CommandReceiverExchange>();
-            this.eventExchanges = new List<EventReceiverExchange>();
+            this.environment = environment;
+            this.commandExchanges = new List<CommandComsumer>();
+            this.eventExchanges = new List<EventComsumer>();
         }
 
         void ICommandConsumer.SetHandler(Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
@@ -134,7 +136,7 @@ namespace Zerra.CQRS.RabbitMQ
         {
             lock (commandExchanges)
             {
-                commandExchanges.Add(new CommandReceiverExchange(type, encryptionKey));
+                commandExchanges.Add(new CommandComsumer(type, encryptionKey, environment));
                 OpenExchanges();
             }
         }
@@ -147,7 +149,7 @@ namespace Zerra.CQRS.RabbitMQ
         {
             lock (eventExchanges)
             {
-                eventExchanges.Add(new EventReceiverExchange(type, encryptionKey));
+                eventExchanges.Add(new EventComsumer(type, encryptionKey, environment));
                 OpenExchanges();
             }
         }

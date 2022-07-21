@@ -25,10 +25,13 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly SymmetricKey encryptionKey;
             private CancellationTokenSource canceller;
 
-            public EventConsumer(Type type, SymmetricKey encryptionKey)
+            public EventConsumer(Type type, SymmetricKey encryptionKey, string environment)
             {
                 this.Type = type;
-                this.topic = type.GetNiceName();
+                if (!String.IsNullOrWhiteSpace(environment))
+                    this.topic = $"{environment}_{type.GetNiceName()}".Truncate(AzureServiceBusCommon.TopicMaxLength);
+                else
+                    this.topic = type.GetNiceName().Truncate(AzureServiceBusCommon.TopicMaxLength);
                 this.encryptionKey = encryptionKey;
             }
 
@@ -48,7 +51,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 try
                 {
-                    var subscription = $"{topic.Truncate(24)}-{applicationName.Truncate(24)}";
+                    var subscription = $"{topic.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}-{applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}";
                     await AzureServiceBusCommon.EnsureTopic(host, topic);
                     await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription);
 

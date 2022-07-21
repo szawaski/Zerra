@@ -13,6 +13,9 @@ namespace Zerra.CQRS.AzureServiceBus
 {
     internal static class AzureServiceBusCommon
     {
+        public const int TopicMaxLength = 50;
+        public const int SubscriptionMaxLength = 50;
+
         public const int RetryDelay = 5000;
 
         public static byte[] Serialize(object obj)

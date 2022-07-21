@@ -8,6 +8,8 @@ namespace Zerra.CQRS.RabbitMQ
 {
     internal static class RabbitMQCommon
     {
+        public const int TopicMaxLength = 255;
+
         public static byte[] Serialize(object obj)
         {
             var serializer = new ByteSerializer(true, true, true);

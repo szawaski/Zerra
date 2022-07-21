@@ -28,14 +28,17 @@ namespace Zerra.CQRS.AzureEventHub
         private readonly SymmetricKey encryptionKey;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
-        public AzureEventHubProducer(string host, string eventHubName, SymmetricKey encryptionKey)
+        private readonly string environment;
+        public AzureEventHubProducer(string host, string eventHubName, SymmetricKey encryptionKey, string environment)
         {
             this.host = host;
             this.eventHubName = eventHubName;
             this.encryptionKey = encryptionKey;
+            this.environment = environment;
 
             this.canceller = new CancellationTokenSource();
             this.ackCallbacks = new ConcurrentDictionary<string, Action<Acknowledgement>>();
+            this.environment = environment;
         }
 
         public string ConnectionString => host;
@@ -82,6 +85,8 @@ namespace Zerra.CQRS.AzureEventHub
 
                 var eventData = new EventData(body);
                 eventData.Properties[AzureEventHubCommon.TypeProperty] = type;
+                if (!String.IsNullOrWhiteSpace(environment))
+                    eventData.Properties[AzureEventHubCommon.EnvironmentProperty] = environment;
                 if (requireAcknowledgement)
                     eventData.Properties[AzureEventHubCommon.AckProperty] = ackKey;
 
@@ -138,6 +143,9 @@ namespace Zerra.CQRS.AzureEventHub
                 using (var eventBatch = await producer.CreateBatchAsync())
                 {
                     var eventData = new EventData(body);
+                    if (!String.IsNullOrWhiteSpace(environment))
+                        eventData.Properties[AzureEventHubCommon.EnvironmentProperty] = environment;
+
                     await producer.SendAsync(new EventData[] { eventData });
                 }
 

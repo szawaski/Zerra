@@ -22,14 +22,16 @@ namespace Zerra.CQRS.RabbitMQ
 
         private readonly string host;
         private readonly SymmetricKey encryptionKey;
+        private readonly string environment;
         private IConnection connection = null;
 
         public string ConnectionString => host;
 
-        public RabbitMQProducer(string host, SymmetricKey encryptionKey)
+        public RabbitMQProducer(string host, SymmetricKey encryptionKey, string environment)
         {
             this.host = host;
             this.encryptionKey = encryptionKey;
+            this.environment = environment;
             try
             {
                 var factory = new ConnectionFactory() { HostName = host };
@@ -83,7 +85,11 @@ namespace Zerra.CQRS.RabbitMQ
                 if (encryptionKey != null)
                     body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
 
-                var topic = command.GetType().GetNiceName();
+                string topic;
+                if (!String.IsNullOrWhiteSpace(environment))
+                    topic = $"{environment}_{command.GetType().GetNiceName()}".Truncate(RabbitMQCommon.TopicMaxLength);
+                else
+                    topic = command.GetType().GetNiceName().Truncate(RabbitMQCommon.TopicMaxLength);
 
                 var properties = channel.CreateBasicProperties();
 
@@ -209,9 +215,13 @@ namespace Zerra.CQRS.RabbitMQ
                     body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
                 }
 
-                var exchange = @event.GetType().GetNiceName();
+                string topic;
+                if (!String.IsNullOrWhiteSpace(environment))
+                    topic = $"{environment}_{@event.GetType().GetNiceName()}".Truncate(RabbitMQCommon.TopicMaxLength);
+                else
+                    topic = @event.GetType().GetNiceName().Truncate(RabbitMQCommon.TopicMaxLength);
 
-                channel.ExchangeDeclare(exchange, "fanout");
+                channel.ExchangeDeclare(topic, "fanout");
 
                 var properties = channel.CreateBasicProperties();
 
@@ -222,9 +232,9 @@ namespace Zerra.CQRS.RabbitMQ
                     properties.Headers = messageHeaders;
                 }
 
-                channel.BasicPublish(exchange, String.Empty, properties, body);
+                channel.BasicPublish(topic, String.Empty, properties, body);
 
-                _ = Log.TraceAsync($"Sent: {exchange}");
+                _ = Log.TraceAsync($"Sent: {topic}");
 
                 channel.Close();
                 channel.Dispose();
