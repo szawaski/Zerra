@@ -1,7 +1,7 @@
 {
   "MessageHost": "localhost:9092",
-  "RelayUrl": "localhost:9999",
-  "RelayKey": "NL7tS9qddItOUHgjDneK3J9yoAkpvMhAcdeXQz7Xb6StvxcCAtJpm",
+  "RelayUrl": "",
+  "RelayKey": "",
   "Services": [
     {
       "Name": "ZerraDemo.Web"
