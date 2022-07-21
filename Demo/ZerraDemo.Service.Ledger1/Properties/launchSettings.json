@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "ZerraDemo.Service.Pets": {
+    "ZerraDemo.Service.Ledger1": {
       "commandName": "Project",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Dev"

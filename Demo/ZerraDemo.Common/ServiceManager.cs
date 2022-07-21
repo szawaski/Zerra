@@ -41,7 +41,7 @@ namespace ZerraDemo.Common
             //Option1E: Enable this using Azure Event Hub for event streaming commands/events
             //var serviceCreator = new AzureEventHubServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal);
 
-            //Option1F: Enable this using Azure Event Hub for event streaming commands/events
+            //Option1F: Enable this using Azure Service Bus for event streaming commands/events
             var serviceCreator = new AzureServiceBusServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal, Config.EnvironmentName);
 
             //Enable one of the following routing options
