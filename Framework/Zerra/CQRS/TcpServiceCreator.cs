@@ -10,7 +10,7 @@ using Zerra.Encryption;
 
 namespace Zerra.CQRS
 {
-    public class TcpInternalServiceCreator : IServiceCreator
+    public class TcpServiceCreator : IServiceCreator
     {
         private static readonly ConcurrentFactoryDictionary<string, TcpRawCQRSServer> servers = new();
 
@@ -26,12 +26,12 @@ namespace Zerra.CQRS
 
         public IEventProducer CreateEventClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            throw new NotSupportedException($"{nameof(TcpInternalServiceCreator)} does not support {nameof(CreateEventClient)}");
+            throw new NotSupportedException($"{nameof(TcpServiceCreator)} does not support {nameof(CreateEventClient)}");
         }
 
         public IEventConsumer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            throw new NotSupportedException($"{nameof(TcpInternalServiceCreator)} does not support {nameof(CreateEventServer)}");
+            throw new NotSupportedException($"{nameof(TcpServiceCreator)} does not support {nameof(CreateEventServer)}");
         }
 
         public IQueryClient CreateQueryClient(string serviceUrl, SymmetricKey encryptionKey)

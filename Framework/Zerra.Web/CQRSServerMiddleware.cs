@@ -24,7 +24,7 @@ namespace Zerra.Web
         private readonly string route;
         private readonly NetworkType networkType;
         private readonly ContentType? contentType;
-        private readonly IHttpApiAuthorizer apiAuthorizer;
+        private readonly IHttpAuthorizer apiAuthorizer;
         private readonly string[] allowOrigins;
         private readonly string allowOriginsString;
 
@@ -32,7 +32,7 @@ namespace Zerra.Web
         private readonly Func<ICommand, Task> handlerAsync = null;
         private readonly Func<ICommand, Task> handlerAwaitAsync = null;
 
-        public CQRSServerMiddleware(RequestDelegate requestDelegate, string route, NetworkType networkType, ContentType? contentType, IHttpApiAuthorizer apiAuthorizer, string[] allowOrigins)
+        public CQRSServerMiddleware(RequestDelegate requestDelegate, string route, NetworkType networkType, ContentType? contentType, IHttpAuthorizer apiAuthorizer, string[] allowOrigins)
         {
             this.requestDelegate = requestDelegate;
             this.route = route;

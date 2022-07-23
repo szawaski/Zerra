@@ -94,7 +94,7 @@ namespace Zerra.CQRS.Network
                         }
 
                         if (bytesRead == 0)
-                            throw new EndOfStreamException();
+                            throw new CQRSRequestAbortedException();
                     }
 #if NETSTANDARD2_0
                     segmentLength = BitConverter.ToInt32(segmentLengthBufferSource, 0);
@@ -166,7 +166,7 @@ namespace Zerra.CQRS.Network
                         }
 
                         if (bytesRead == 0)
-                            throw new EndOfStreamException();
+                            throw new CQRSRequestAbortedException();
                     }
 #if NETSTANDARD2_0
                     segmentLength = BitConverter.ToInt32(segmentLengthBufferSource, 0);

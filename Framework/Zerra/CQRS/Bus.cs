@@ -693,18 +693,6 @@ namespace Zerra.CQRS
             await DisposeServices();
         }
 
-        private static string GetServiceUrl(ServiceSetting serverSetting)
-        {
-            var serverUrl = Config.GetSetting("urls");
-            if (String.IsNullOrWhiteSpace(serverUrl))
-                serverUrl = Config.GetSetting("ASPNETCORE_URLS");
-            if (String.IsNullOrWhiteSpace(serverUrl))
-                serverUrl = Config.GetSetting("DOTNET_URLS");
-            if (String.IsNullOrWhiteSpace(serverUrl))
-                serverUrl = serverSetting.ExternalUrl;
-            return serverUrl;
-        }
-
         public static void StartServices(string serviceName, ServiceSettings serviceSettings, IServiceCreator serviceCreator, IRelayRegister relayRegister = null)
         {
             _ = Log.InfoAsync($"Starting {serviceName}");
@@ -714,7 +702,7 @@ namespace Zerra.CQRS
                 if (serverSetting == null)
                     throw new Exception($"Service {serviceName} not found in CQRS settings file");
 
-                var serviceUrl = GetServiceUrl(serverSetting);
+                var serviceUrl = serverSetting.InternalUrl;
 
                 ICommandConsumer commandConsumer = null;
                 IEventConsumer eventConsumer = null;

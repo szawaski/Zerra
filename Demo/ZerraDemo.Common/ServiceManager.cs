@@ -20,17 +20,15 @@ namespace ZerraDemo.Common
 
             var serviceSettings = CQRSSettings.Get();
 
-            var serviceCreatorInternal = new TcpInternalServiceCreator();
-
             //Enable one of the following service options
             //----------------------------------------------------------
 
             //Option1A: Enable this for Tcp for backend only services
-            //var serviceCreator = serviceCreatorInternal;
+            var serviceCreator = new TcpServiceCreator();
 
             //Option1B: Enable this for Http which can be access directly from a front end
             //var authorizor = new DemoCookieApiAuthorizer();
-            //var serviceCreator = new TcpApiServiceCreator(authorizor, null);
+            //var serviceCreator = new HttpServiceCreator(authorizor, null);
 
             //Option1C: Enable this using RabbitMQ for event streaming commands/events
             //var serviceCreator = new RabbitMQServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal);
@@ -42,7 +40,7 @@ namespace ZerraDemo.Common
             //var serviceCreator = new AzureEventHubServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal);
 
             //Option1F: Enable this using Azure Service Bus for event streaming commands/events
-            var serviceCreator = new AzureServiceBusServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal, Config.EnvironmentName);
+            //var serviceCreator = new AzureServiceBusServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal, Config.EnvironmentName);
 
             //Enable one of the following routing options
             //----------------------------------------------------------

@@ -8,6 +8,7 @@
     },
     {
       "Name": "ZerraDemo.Service.Pets",
+      "InternalUrl": "localhost:9001",
       "ExternalUrl": "localhost:9001",
       "EncryptionKey": "SecretTransportKey",
       "Types": [
@@ -18,6 +19,7 @@
     },
     {
       "Name": "ZerraDemo.Service.Weather",
+      "InternalUrl": "localhost:9002",
       "ExternalUrl": "localhost:9002",
       "EncryptionKey": "SecretTransportKey",
       "Types": [
@@ -28,6 +30,7 @@
     },
     {
       "Name": "ZerraDemo.Service.Ledger1",
+      "InternalUrl": "localhost:9003",
       "ExternalUrl": "localhost:9003",
       "EncryptionKey": "SecretTransportKey",
       "Types": [
@@ -38,6 +41,7 @@
     },
     {
       "Name": "ZerraDemo.Service.Ledger2",
+      "InternalUrl": "localhost:9004",
       "ExternalUrl": "localhost:9004",
       "EncryptionKey": "SecretTransportKey",
       "Types": [

@@ -10,7 +10,7 @@ namespace Zerra.Web
 {
     public static class CQRSServerMiddlewareExtensions
     {
-        public static IApplicationBuilder UseCQRSServer(this IApplicationBuilder builder, string route = "/CQRS", NetworkType networkType = NetworkType.Api, ContentType? contentType = null, IHttpApiAuthorizer apiAuthorizer = null, string[] allowOrigins = null)
+        public static IApplicationBuilder UseCQRSServer(this IApplicationBuilder builder, string route = "/CQRS", NetworkType networkType = NetworkType.Api, ContentType? contentType = null, IHttpAuthorizer apiAuthorizer = null, string[] allowOrigins = null)
         {
             return builder.UseMiddleware<CQRSServerMiddleware>(route, networkType, contentType, apiAuthorizer, allowOrigins);
         }

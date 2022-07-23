@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace Zerra.CQRS.Network
 {
-    public interface IHttpApiAuthorizer
+    public interface IHttpAuthorizer
     {
         void Authorize(IDictionary<string, IList<string>> headers);
         IDictionary<string, IList<string>> BuildAuthHeaders();

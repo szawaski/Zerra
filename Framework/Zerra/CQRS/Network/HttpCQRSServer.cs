@@ -18,15 +18,15 @@ namespace Zerra.CQRS.Network
     {
         private readonly NetworkType networkType;
         private readonly ContentType? contentType;
-        private readonly IHttpApiAuthorizer apiAuthorizer;
+        private readonly IHttpAuthorizer httpAuthorizer;
         private readonly string[] allowOrigins;
 
-        public HttpCQRSServer(NetworkType networkType, ContentType? contentType, string serverUrl, IHttpApiAuthorizer apiAuthorizer, string[] allowOrigins)
+        public HttpCQRSServer(NetworkType networkType, ContentType? contentType, string serverUrl, IHttpAuthorizer httpAuthorizer, string[] allowOrigins)
             : base(serverUrl)
         {
             this.networkType = networkType;
             this.contentType = contentType;
-            this.apiAuthorizer = apiAuthorizer;
+            this.httpAuthorizer = httpAuthorizer;
             if (allowOrigins != null && !allowOrigins.Contains("*"))
                 this.allowOrigins = allowOrigins.Select(x => x.ToLower()).ToArray();
             else
@@ -65,7 +65,7 @@ namespace Zerra.CQRS.Network
 #endif
 
                     if (bytesRead == 0)
-                        throw new EndOfStreamException();
+                        throw new CQRSRequestAbortedException();
                     headerLength += bytesRead;
 
                     headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
@@ -140,9 +140,9 @@ namespace Zerra.CQRS.Network
                         }
                         break;
                     case NetworkType.Api:
-                        if (this.apiAuthorizer != null)
+                        if (this.httpAuthorizer != null)
                         {
-                            this.apiAuthorizer.Authorize(requestHeader.Headers);
+                            this.httpAuthorizer.Authorize(requestHeader.Headers);
                         }
                         break;
                     default:
@@ -344,9 +344,9 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        public static HttpCQRSServer CreateDefault(string serverUrl, IHttpApiAuthorizer apiAuthorizer, string[] allowOrigins)
+        public static HttpCQRSServer CreateDefault(string serverUrl, IHttpAuthorizer httpAuthorizer, string[] allowOrigins)
         {
-            return new HttpCQRSServer(NetworkType.Api, ContentType.Json, serverUrl, apiAuthorizer, allowOrigins);
+            return new HttpCQRSServer(NetworkType.Api, ContentType.Json, serverUrl, httpAuthorizer, allowOrigins);
         }
     }
 }

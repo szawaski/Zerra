@@ -18,6 +18,11 @@ namespace Zerra
         private const string genericSettingsFileName = "appsettings.{0}.json";
         private const string environmentNameVariable = "ASPNETCORE_ENVIRONMENT";
 
+        private const string internalUrl1 = "urls";
+        private const string internalUrl2 = "ASPNETCORE_URLS";
+        private const string internalUrl3 = "DOTNET_URLS";
+        private const string internalUrlDefault = "http://localhost:5000;https://localhost:5001";
+
         private static readonly object discoveryLock = new();
         private static bool discoveryStarted;
         internal static bool DiscoveryStarted
@@ -89,6 +94,7 @@ namespace Zerra
             }
 
             Config.environmentName = environmentName;
+            Console.WriteLine($"Environment: {environmentName}");
 
             if (settingsFiles != null && settingsFiles.Length > 0)
             {
@@ -141,6 +147,29 @@ namespace Zerra
             }
             var value = config[name];
             return value;
+        }
+
+        public static string GetInternalUrl(string defaultUrl)
+        {
+            var url = GetSetting(internalUrl1);
+            if (String.IsNullOrWhiteSpace(url))
+                url = GetSetting(internalUrl2);
+            if (String.IsNullOrWhiteSpace(url))
+                url = GetSetting(internalUrl3);
+            if (String.IsNullOrWhiteSpace(url))
+                url = defaultUrl;
+            if (String.IsNullOrWhiteSpace(url))
+                url = internalUrlDefault;
+            return url;
+        }
+        public static string GetExternalUrl(string settingName, string defaultUrl)
+        {
+            var url = GetSetting(settingName);
+            if (String.IsNullOrWhiteSpace(url))
+                url = defaultUrl;
+            if (String.IsNullOrWhiteSpace(url))
+                url = null;
+            return url;
         }
 
         public static IConfiguration Configuration

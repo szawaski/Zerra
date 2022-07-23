@@ -108,7 +108,7 @@ namespace Zerra.CQRS.Network
 #endif
 
                     if (bytesRead == 0)
-                        throw new EndOfStreamException();
+                        throw new CQRSRequestAbortedException();
                     headerLength += bytesRead;
 
                     requestHeaderEnd = TcpRawCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
@@ -256,7 +256,7 @@ namespace Zerra.CQRS.Network
 #endif
 
                     if (bytesRead == 0)
-                        throw new EndOfStreamException();
+                        throw new CQRSRequestAbortedException();
                     headerLength += bytesRead;
 
                     requestHeaderEnd = TcpRawCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
@@ -444,7 +444,7 @@ namespace Zerra.CQRS.Network
 #endif
 
                     if (bytesRead == 0)
-                        throw new EndOfStreamException();
+                        throw new CQRSRequestAbortedException();
                     headerLength += bytesRead;
 
                     requestHeaderEnd = TcpRawCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);

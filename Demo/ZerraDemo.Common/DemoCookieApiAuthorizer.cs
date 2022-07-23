@@ -8,7 +8,7 @@ using Zerra.Encryption;
 
 namespace ZerraDemo.Common
 {
-    public class DemoCookieApiAuthorizer : IHttpApiAuthorizer
+    public class DemoCookieApiAuthorizer : IHttpAuthorizer
     {
         private const string cookieName = "ZerraDemoCookie";
         private const string cookieHeader = "Cookie";

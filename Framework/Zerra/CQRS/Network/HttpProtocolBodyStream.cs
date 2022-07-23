@@ -111,7 +111,7 @@ namespace Zerra.CQRS.Network
 #endif
                     }
                     if (bytesRead == 0)
-                        throw new EndOfStreamException();
+                        throw new CQRSRequestAbortedException();
 
                     position += bytesRead;
                 }
@@ -124,16 +124,25 @@ namespace Zerra.CQRS.Network
                 while (totalBytesRead < buffer.Length)
                 {
                     int bytesRead;
-                    var segmentLengthStringStart = 0;
                     if (segmentLength < 0)
                     {
-                        segmentLengthBufferLength = 0;
-                        segmentLengthBufferPosition = 0;
-                        segmentLengthStringStart = 0;
+                        if (segmentLengthBufferPosition < segmentLengthBufferLength)
+                        {
+                            segmentLengthBuffer.Slice(segmentLengthBufferPosition, segmentLengthBufferLength - segmentLengthBufferPosition).CopyTo(segmentLengthBuffer);
+                            segmentLengthBufferLength = segmentLengthBufferLength - segmentLengthBufferPosition;
+                            segmentLengthBufferPosition = 0;
+                        }
+                        else
+                        {
+                            segmentLengthBufferLength = 0;
+                            segmentLengthBufferPosition = 0;
+                        }
+
+                        var segmentLengthStringStart = 0;
                         while (segmentLengthBufferLength < segmentLengthBufferMaxLength)
                         {
                             if (segmentLengthBufferLength == segmentLengthBufferMaxLength)
-                                throw new EndOfStreamException();
+                                throw new CQRSRequestAbortedException();
 
                             if (readStartBufferPosition < readStartBuffer.Length)
                             {
@@ -141,8 +150,6 @@ namespace Zerra.CQRS.Network
                                 readStartBuffer.Slice(readStartBufferPosition, bytesToRead).CopyTo(segmentLengthBuffer.Slice(segmentLengthBufferLength, bytesToRead));
                                 readStartBufferPosition += bytesToRead;
                                 bytesRead = bytesToRead;
-                                if (bytesRead == 0)
-                                    throw new EndOfStreamException();
                             }
                             else
                             {
@@ -151,8 +158,6 @@ namespace Zerra.CQRS.Network
 #else
                                 bytesRead = stream.Read(segmentLengthBuffer.Span[segmentLengthBufferLength..segmentLengthBufferMaxLength]);
 #endif
-                                if (bytesRead == 0)
-                                    throw new EndOfStreamException();
                             }
 
                             segmentLengthBufferLength += bytesRead;
@@ -255,7 +260,7 @@ namespace Zerra.CQRS.Network
 #endif
                     }
                     if (bytesRead == 0)
-                        throw new EndOfStreamException();
+                        throw new CQRSRequestAbortedException();
 
                     position += bytesRead;
                 }
@@ -268,12 +273,22 @@ namespace Zerra.CQRS.Network
                 while (totalBytesRead < buffer.Length)
                 {
                     int bytesRead;
-                    var segmentLengthStringStart = 0;
+           
                     if (segmentLength < 0)
                     {
-                        segmentLengthBufferLength = 0;
-                        segmentLengthBufferPosition = 0;
-                        segmentLengthStringStart = 0;
+                        if (segmentLengthBufferPosition < segmentLengthBufferLength)
+                        {
+                            segmentLengthBuffer.Slice(segmentLengthBufferPosition, segmentLengthBufferLength - segmentLengthBufferPosition).CopyTo(segmentLengthBuffer);
+                            segmentLengthBufferLength = segmentLengthBufferLength - segmentLengthBufferPosition;
+                            segmentLengthBufferPosition = 0;
+                        }
+                        else
+                        {
+                            segmentLengthBufferLength = 0;
+                            segmentLengthBufferPosition = 0;
+                        }
+
+                        var segmentLengthStringStart = 0;
                         while (segmentLengthBufferLength < segmentLengthBufferMaxLength)
                         {
                             if (segmentLengthBufferLength == segmentLengthBufferMaxLength)
@@ -285,8 +300,6 @@ namespace Zerra.CQRS.Network
                                 readStartBuffer.Slice(readStartBufferPosition, bytesToRead).CopyTo(segmentLengthBuffer.Slice(segmentLengthBufferLength, bytesToRead));
                                 readStartBufferPosition += bytesToRead;
                                 bytesRead = bytesToRead;
-                                if (bytesRead == 0)
-                                    throw new EndOfStreamException();
                             }
                             else
                             {
@@ -295,8 +308,6 @@ namespace Zerra.CQRS.Network
 #else
                                 bytesRead = await stream.ReadAsync(segmentLengthBuffer[segmentLengthBufferLength..segmentLengthBufferMaxLength], cancellationToken);
 #endif
-                                if (bytesRead == 0)
-                                    throw new EndOfStreamException();
                             }
 
                             segmentLengthBufferLength += bytesRead;

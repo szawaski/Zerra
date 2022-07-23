@@ -17,14 +17,14 @@ namespace Zerra.CQRS.Network
     {
         private readonly NetworkType networkType;
         private readonly ContentType contentType;
-        private readonly IHttpApiAuthorizer apiAuthorizer;
+        private readonly IHttpAuthorizer httpAuthorizer;
 
-        public HttpCQRSClient(NetworkType networkType, ContentType contentType, string serviceUrl, IHttpApiAuthorizer apiAuthorizer)
+        public HttpCQRSClient(NetworkType networkType, ContentType contentType, string serviceUrl, IHttpAuthorizer apiAuthorizer)
             : base(serviceUrl)
         {
             this.networkType = networkType;
             this.contentType = contentType;
-            this.apiAuthorizer = apiAuthorizer;
+            this.httpAuthorizer = apiAuthorizer;
 
             _ = Log.TraceAsync($"{nameof(HttpCQRSClient)} Started For {this.networkType} {this.contentType} {this.endpoint}");
         }
@@ -45,8 +45,8 @@ namespace Zerra.CQRS.Network
                     data.AddClaims();
                     break;
                 case NetworkType.Api:
-                    if (apiAuthorizer != null)
-                        authHeaders = apiAuthorizer.BuildAuthHeaders();
+                    if (httpAuthorizer != null)
+                        authHeaders = httpAuthorizer.BuildAuthHeaders();
                     break;
                 default:
                     throw new NotImplementedException();
@@ -100,7 +100,7 @@ namespace Zerra.CQRS.Network
 #endif
 
                     if (bytesRead == 0)
-                        throw new EndOfStreamException();
+                        throw new CQRSRequestAbortedException();
                     headerLength += bytesRead;
 
                     headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
@@ -164,8 +164,8 @@ namespace Zerra.CQRS.Network
                     data.AddClaims();
                     break;
                 case NetworkType.Api:
-                    if (apiAuthorizer != null)
-                        authHeaders = apiAuthorizer.BuildAuthHeaders();
+                    if (httpAuthorizer != null)
+                        authHeaders = httpAuthorizer.BuildAuthHeaders();
                     break;
                 default:
                     throw new NotImplementedException();
@@ -223,7 +223,7 @@ namespace Zerra.CQRS.Network
 #endif
 
                     if (bytesRead == 0)
-                        throw new EndOfStreamException();
+                        throw new CQRSRequestAbortedException();
                     headerLength += bytesRead;
 
                     headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
@@ -314,8 +314,8 @@ namespace Zerra.CQRS.Network
                     data.AddClaims();
                     break;
                 case NetworkType.Api:
-                    if (apiAuthorizer != null)
-                        authHeaders = apiAuthorizer.BuildAuthHeaders();
+                    if (httpAuthorizer != null)
+                        authHeaders = httpAuthorizer.BuildAuthHeaders();
                     break;
                 default:
                     throw new NotImplementedException();
@@ -373,7 +373,7 @@ namespace Zerra.CQRS.Network
 #endif
 
                     if (bytesRead == 0)
-                        throw new EndOfStreamException();
+                        throw new CQRSRequestAbortedException();
                     headerLength += bytesRead;
 
                     headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
@@ -434,9 +434,9 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        public static HttpCQRSClient CreateDefault(string endpoint, IHttpApiAuthorizer apiAuthorizer)
+        public static HttpCQRSClient CreateDefault(string endpoint, IHttpAuthorizer httpAuthorizer)
         {
-            return new HttpCQRSClient(NetworkType.Api, ContentType.Json, endpoint, apiAuthorizer);
+            return new HttpCQRSClient(NetworkType.Api, ContentType.Json, endpoint, httpAuthorizer);
         }
     }
 }

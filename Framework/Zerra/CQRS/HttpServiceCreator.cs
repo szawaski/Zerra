@@ -10,46 +10,46 @@ using Zerra.Encryption;
 
 namespace Zerra.CQRS
 {
-    public class TcpApiServiceCreator : IServiceCreator
+    public class HttpServiceCreator : IServiceCreator
     {
         private static readonly ConcurrentFactoryDictionary<string, HttpCQRSServer> servers = new();
 
-        private readonly IHttpApiAuthorizer apiAuthorizer;
+        private readonly IHttpAuthorizer httpAuthorizer;
         private readonly string[] allowOrigins;
-        public TcpApiServiceCreator(IHttpApiAuthorizer apiAuthorizer, string[] allowOrigins)
+        public HttpServiceCreator(IHttpAuthorizer httpAuthorizer = null, string[] allowOrigins = null)
         {
-            this.apiAuthorizer = apiAuthorizer;
+            this.httpAuthorizer = httpAuthorizer;
             this.allowOrigins = allowOrigins;
         }
 
         public ICommandProducer CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return HttpCQRSClient.CreateDefault(serviceUrl, apiAuthorizer);
+            return HttpCQRSClient.CreateDefault(serviceUrl, httpAuthorizer);
         }
 
         public ICommandConsumer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return servers.GetOrAdd(serviceUrl, (url) => HttpCQRSServer.CreateDefault(url, apiAuthorizer, allowOrigins));
+            return servers.GetOrAdd(serviceUrl, (url) => HttpCQRSServer.CreateDefault(url, httpAuthorizer, allowOrigins));
         }
 
         public IEventProducer CreateEventClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            throw new NotSupportedException($"{nameof(TcpApiServiceCreator)} does not support {nameof(CreateEventClient)}");
+            throw new NotSupportedException($"{nameof(HttpServiceCreator)} does not support {nameof(CreateEventClient)}");
         }
 
         public IEventConsumer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            throw new NotSupportedException($"{nameof(TcpApiServiceCreator)} does not support {nameof(CreateEventServer)}");
+            throw new NotSupportedException($"{nameof(HttpServiceCreator)} does not support {nameof(CreateEventServer)}");
         }
 
         public IQueryClient CreateQueryClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return HttpCQRSClient.CreateDefault(serviceUrl, apiAuthorizer);
+            return HttpCQRSClient.CreateDefault(serviceUrl, httpAuthorizer);
         }
 
         public IQueryServer CreateQueryServer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return servers.GetOrAdd(serviceUrl, (url) => HttpCQRSServer.CreateDefault(url, apiAuthorizer, allowOrigins));
+            return servers.GetOrAdd(serviceUrl, (url) => HttpCQRSServer.CreateDefault(url, httpAuthorizer, allowOrigins));
         }
     }
 }
