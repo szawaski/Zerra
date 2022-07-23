@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 
 namespace Zerra
@@ -16,12 +17,20 @@ namespace Zerra
     {
         private const string settingsFileName = "appsettings.json";
         private const string genericSettingsFileName = "appsettings.{0}.json";
-        private const string environmentNameVariable = "ASPNETCORE_ENVIRONMENT";
+
+        private const string environmentNameVariable1 = "ASPNETCORE_ENVIRONMENT";
+        private const string environmentNameVariable2 = "Hosting:Environment";
+        private const string environmentNameVariable3 = "ASPNET_ENV";
+        
 
         private const string internalUrl1 = "urls";
         private const string internalUrl2 = "ASPNETCORE_URLS";
-        private const string internalUrl3 = "DOTNET_URLS";
+        private const string internalUrl3 = "ASPNETCORE_SERVER.URLS";
+        private const string internalUrl4 = "DOTNET_URLS"; //docker
         private const string internalUrlDefault = "http://localhost:5000;https://localhost:5001";
+
+        private const string azureSiteName = "WEBSITE_SITE_NAME";
+        private const string azureSiteUrls = "http://{0}:80;https://{0}:443";
 
         private static readonly object discoveryLock = new();
         private static bool discoveryStarted;
@@ -84,7 +93,11 @@ namespace Zerra
                 AddSettingsFile(builder, settingsFileName);
 
             if (String.IsNullOrWhiteSpace(environmentName))
-                environmentName = Environment.GetEnvironmentVariable(environmentNameVariable);
+                environmentName = Environment.GetEnvironmentVariable(environmentNameVariable1);
+            if (String.IsNullOrWhiteSpace(environmentName))
+                environmentName = Environment.GetEnvironmentVariable(environmentNameVariable2);
+            if (String.IsNullOrWhiteSpace(environmentName))
+                environmentName = Environment.GetEnvironmentVariable(environmentNameVariable3);
 
             if (!String.IsNullOrWhiteSpace(environmentName))
             {
@@ -157,7 +170,15 @@ namespace Zerra
             if (String.IsNullOrWhiteSpace(url))
                 url = GetSetting(internalUrl3);
             if (String.IsNullOrWhiteSpace(url))
+                url = GetSetting(internalUrl4);
+            if (String.IsNullOrWhiteSpace(url))
                 url = defaultUrl;
+            if (String.IsNullOrWhiteSpace(url))
+            {
+                var siteName = GetSetting(azureSiteName);
+                if (!String.IsNullOrWhiteSpace(siteName))
+                    url = String.Format(azureSiteUrls, siteName);
+            }
             if (String.IsNullOrWhiteSpace(url))
                 url = internalUrlDefault;
             return url;
