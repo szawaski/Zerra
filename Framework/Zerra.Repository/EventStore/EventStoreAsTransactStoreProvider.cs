@@ -572,7 +572,9 @@ namespace Zerra.Repository
                                 return eventModels.Take(query.TemporalTake.Value).Reverse().ToArray();
                             }
                             else
+                            {
                                 return eventModels;
+                            }
                         }
                     case TemporalOrder.Oldest:
                         {

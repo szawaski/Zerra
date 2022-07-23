@@ -577,11 +577,17 @@ namespace Zerra.Repository
         {
             var block = exp as BlockExpression;
             foreach (var variable in block.Variables)
+            {
                 if (!IsEvaluatable(variable))
                     return false;
+            }
+
             foreach (var expression in block.Expressions)
+            {
                 if (!IsEvaluatable(expression))
                     return false;
+            }
+
             return true;
         }
         private bool IsEvaluatableCall(Expression exp)
@@ -589,8 +595,10 @@ namespace Zerra.Repository
             var call = exp as MethodCallExpression;
 
             foreach (var arg in call.Arguments)
+            {
                 if (!IsEvaluatable(arg))
                     return false;
+            }
 
             if (call.Object != null)
                 return IsEvaluatable(call.Object);

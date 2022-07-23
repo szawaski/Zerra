@@ -12,37 +12,37 @@ public static class NumericExtensions
             return null;
         return it;
     }
-    public static Int16? NullIfDefault(this Int16 it)
+    public static short? NullIfDefault(this short it)
     {
         if (it == default)
             return null;
         return it;
     }
-    public static Int32? NullIfDefault(this Int32 it)
+    public static int? NullIfDefault(this int it)
     {
         if (it == default)
             return null;
         return it;
     }
-    public static Int64? NullIfDefault(this Int64 it)
+    public static long? NullIfDefault(this long it)
     {
         if (it == default)
             return null;
         return it;
     }
-    public static UInt16? NullIfDefault(this UInt16 it)
+    public static ushort? NullIfDefault(this ushort it)
     {
         if (it == default)
             return null;
         return it;
     }
-    public static UInt32? NullIfDefault(this UInt32 it)
+    public static uint? NullIfDefault(this uint it)
     {
         if (it == default)
             return null;
         return it;
     }
-    public static UInt64? NullIfDefault(this UInt64 it)
+    public static ulong? NullIfDefault(this ulong it)
     {
         if (it == default)
             return null;
@@ -73,37 +73,37 @@ public static class NumericExtensions
             return null;
         return it;
     }
-    public static Int16? NullIfDefault(this Int16? it)
+    public static short? NullIfDefault(this short? it)
     {
-        if (it == default(Int16))
+        if (it == default(short))
             return null;
         return it;
     }
-    public static Int32? NullIfDefault(this Int32? it)
-    {
-        if (it == default)
-            return null;
-        return it;
-    }
-    public static Int64? NullIfDefault(this Int64? it)
+    public static int? NullIfDefault(this int? it)
     {
         if (it == default)
             return null;
         return it;
     }
-    public static UInt16? NullIfDefault(this UInt16? it)
+    public static long? NullIfDefault(this long? it)
     {
         if (it == default)
             return null;
         return it;
     }
-    public static UInt32? NullIfDefault(this UInt32? it)
+    public static ushort? NullIfDefault(this ushort? it)
     {
         if (it == default)
             return null;
         return it;
     }
-    public static UInt64? NullIfDefault(this UInt64? it)
+    public static uint? NullIfDefault(this uint? it)
+    {
+        if (it == default)
+            return null;
+        return it;
+    }
+    public static ulong? NullIfDefault(this ulong? it)
     {
         if (it == default)
             return null;
@@ -134,37 +134,37 @@ public static class NumericExtensions
             return it.Value;
         return 0;
     }
-    public static Int16 ZeroIfNull(this Int16? it)
+    public static short ZeroIfNull(this short? it)
     {
         if (it.HasValue)
             return it.Value;
         return 0;
     }
-    public static Int32 ZeroIfNull(this Int32? it)
+    public static int ZeroIfNull(this int? it)
     {
         if (it.HasValue)
             return it.Value;
         return 0;
     }
-    public static Int64 ZeroIfNull(this Int64? it)
+    public static long ZeroIfNull(this long? it)
     {
         if (it.HasValue)
             return it.Value;
         return 0;
     }
-    public static UInt16 ZeroIfNull(this UInt16? it)
+    public static ushort ZeroIfNull(this ushort? it)
     {
         if (it.HasValue)
             return it.Value;
         return 0;
     }
-    public static UInt32 ZeroIfNull(this UInt32? it)
+    public static uint ZeroIfNull(this uint? it)
     {
         if (it.HasValue)
             return it.Value;
         return 0;
     }
-    public static UInt64 ZeroIfNull(this UInt64? it)
+    public static ulong ZeroIfNull(this ulong? it)
     {
         if (it.HasValue)
             return it.Value;
@@ -195,37 +195,37 @@ public static class NumericExtensions
             return it.Value.ToString(format);
         return String.Empty;
     }
-    public static string ToString(this Int16? it, string format)
+    public static string ToString(this short? it, string format)
     {
         if (it.HasValue)
             return it.Value.ToString(format);
         return String.Empty;
     }
-    public static string ToString(this Int32? it, string format)
+    public static string ToString(this int? it, string format)
     {
         if (it.HasValue)
             return it.Value.ToString(format);
         return String.Empty;
     }
-    public static string ToString(this Int64? it, string format)
+    public static string ToString(this long? it, string format)
     {
         if (it.HasValue)
             return it.Value.ToString(format);
         return String.Empty;
     }
-    public static string ToString(this UInt16? it, string format)
+    public static string ToString(this ushort? it, string format)
     {
         if (it.HasValue)
             return it.Value.ToString(format);
         return String.Empty;
     }
-    public static string ToString(this UInt32? it, string format)
+    public static string ToString(this uint? it, string format)
     {
         if (it.HasValue)
             return it.Value.ToString(format);
         return String.Empty;
     }
-    public static string ToString(this UInt64? it, string format)
+    public static string ToString(this ulong? it, string format)
     {
         if (it.HasValue)
             return it.Value.ToString(format);
@@ -256,37 +256,37 @@ public static class NumericExtensions
             return it.Value.ToString(formatProvider);
         return String.Empty;
     }
-    public static string ToString(this Int16? it, IFormatProvider formatProvider)
+    public static string ToString(this short? it, IFormatProvider formatProvider)
     {
         if (it.HasValue)
             return it.Value.ToString(formatProvider);
         return String.Empty;
     }
-    public static string ToString(this Int32? it, IFormatProvider formatProvider)
+    public static string ToString(this int? it, IFormatProvider formatProvider)
     {
         if (it.HasValue)
             return it.Value.ToString(formatProvider);
         return String.Empty;
     }
-    public static string ToString(this Int64? it, IFormatProvider formatProvider)
+    public static string ToString(this long? it, IFormatProvider formatProvider)
     {
         if (it.HasValue)
             return it.Value.ToString(formatProvider);
         return String.Empty;
     }
-    public static string ToString(this UInt16? it, IFormatProvider formatProvider)
+    public static string ToString(this ushort? it, IFormatProvider formatProvider)
     {
         if (it.HasValue)
             return it.Value.ToString(formatProvider);
         return String.Empty;
     }
-    public static string ToString(this UInt32? it, IFormatProvider formatProvider)
+    public static string ToString(this uint? it, IFormatProvider formatProvider)
     {
         if (it.HasValue)
             return it.Value.ToString(formatProvider);
         return String.Empty;
     }
-    public static string ToString(this UInt64? it, IFormatProvider formatProvider)
+    public static string ToString(this ulong? it, IFormatProvider formatProvider)
     {
         if (it.HasValue)
             return it.Value.ToString(formatProvider);
@@ -317,37 +317,37 @@ public static class NumericExtensions
             return it.Value.ToString(format, formatProvider);
         return String.Empty;
     }
-    public static string ToString(this Int16? it, string format, IFormatProvider formatProvider)
+    public static string ToString(this short? it, string format, IFormatProvider formatProvider)
     {
         if (it.HasValue)
             return it.Value.ToString(format, formatProvider);
         return String.Empty;
     }
-    public static string ToString(this Int32? it, string format, IFormatProvider formatProvider)
+    public static string ToString(this int? it, string format, IFormatProvider formatProvider)
     {
         if (it.HasValue)
             return it.Value.ToString(format, formatProvider);
         return String.Empty;
     }
-    public static string ToString(this Int64? it, string format, IFormatProvider formatProvider)
+    public static string ToString(this long? it, string format, IFormatProvider formatProvider)
     {
         if (it.HasValue)
             return it.Value.ToString(format, formatProvider);
         return String.Empty;
     }
-    public static string ToString(this UInt16? it, string format, IFormatProvider formatProvider)
+    public static string ToString(this ushort? it, string format, IFormatProvider formatProvider)
     {
         if (it.HasValue)
             return it.Value.ToString(format, formatProvider);
         return String.Empty;
     }
-    public static string ToString(this UInt32? it, string format, IFormatProvider formatProvider)
+    public static string ToString(this uint? it, string format, IFormatProvider formatProvider)
     {
         if (it.HasValue)
             return it.Value.ToString(format, formatProvider);
         return String.Empty;
     }
-    public static string ToString(this UInt64? it, string format, IFormatProvider formatProvider)
+    public static string ToString(this ulong? it, string format, IFormatProvider formatProvider)
     {
         if (it.HasValue)
             return it.Value.ToString(format, formatProvider);

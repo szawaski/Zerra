@@ -100,7 +100,7 @@ namespace Zerra.Identity.OpenID.Documents
                 if (json[nameof(JwtOpenIDPayload.Roles)].Type == JTokenType.Array)
                     this.Roles = json[nameof(JwtOpenIDPayload.Roles)]?.ToObject<string[]>();
                 else
-                    this.Roles = json[nameof(JwtOpenIDPayload.Roles)]?.ToObject<string>().Split(new String[] { "," }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToArray();
+                    this.Roles = json[nameof(JwtOpenIDPayload.Roles)]?.ToObject<string>().Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToArray();
             }
             this.Emails = json[nameof(JwtOpenIDPayload.AAD_Emails)]?.ToObject<string[]>();
 

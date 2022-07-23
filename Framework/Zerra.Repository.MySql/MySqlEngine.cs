@@ -1640,10 +1640,12 @@ namespace Zerra.Repository.MySql
             }
 
             if (property.Type == typeof(byte[]))
+            {
                 if (sqlColumn.NumericPrecision.HasValue)
                     return sqlColumn.DataType == "varbinary" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
                 else
                     return sqlColumn.DataType == "blob" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+            }
 
             throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} cannot match type {property.Type.GetNiceName()} to an {nameof(MySqlEngine)} type.");
         }

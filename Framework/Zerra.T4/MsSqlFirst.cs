@@ -250,19 +250,25 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                     return null;
                 case "varchar":
                     if (characterMaximumLength != -1)
+                    {
                         if (!isNullable)
                             return $"[StoreProperties(true, {characterMaximumLength})]";
                         else
                             return $"[StoreProperties(false, {characterMaximumLength})]";
+                    }
+
                     if (!isNullable)
                         return $"[StoreProperties(true)]";
                     return null;
                 case "nvarchar":
                     if (characterMaximumLength != -1)
+                    {
                         if (!isNullable)
                             return $"[StoreProperties(true, {characterMaximumLength})]";
                         else
                             return $"[StoreProperties(false, {characterMaximumLength})]";
+                    }
+
                     if (!isNullable)
                         return $"[StoreProperties(true)]";
                     return null;
@@ -272,10 +278,13 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                     return "string";
                 case "char":
                     if (characterMaximumLength != -1)
+                    {
                         if (!isNullable)
                             return $"[StoreProperties(true, {characterMaximumLength})]";
                         else
                             return $"[StoreProperties(false, {characterMaximumLength})]";
+                    }
+
                     if (!isNullable)
                         return $"[StoreProperties(true)]";
                     return null;

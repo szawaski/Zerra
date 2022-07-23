@@ -58,9 +58,9 @@ namespace Zerra.Serialization
                                 if (name != null)
                                     throw new Exception($"Invalid query string at position {i}");
 #if NETSTANDARD2_0
-                                name = new String(bufferOwner, 0, bufferLength);
+                                name = new string(bufferOwner, 0, bufferLength);
 #else
-                                name = new String(buffer.Slice(0, bufferLength));
+                                name = new string(buffer.Slice(0, bufferLength));
 #endif
                                 bufferLength = 0;
                                 break;
@@ -68,9 +68,9 @@ namespace Zerra.Serialization
                                 if (name == null)
                                     throw new Exception($"Invalid query string at position {i}");
 #if NETSTANDARD2_0
-                                var value = new String(bufferOwner, 0, bufferLength);
+                                var value = new string(bufferOwner, 0, bufferLength);
 #else
-                                var value = new String(buffer.Slice(0, bufferLength));
+                                var value = new string(buffer.Slice(0, bufferLength));
 #endif
                                 SetValue(typeDetail, model, WebUtility.UrlDecode(name), WebUtility.UrlDecode(value));
                                 name = null;
@@ -91,9 +91,9 @@ namespace Zerra.Serialization
                     if (name != null)
                     {
 #if NETSTANDARD2_0
-                        var value = new String(bufferOwner, 0, bufferLength);
+                        var value = new string(bufferOwner, 0, bufferLength);
 #else
-                        var value = new String(buffer.Slice(0, bufferLength));
+                        var value = new string(buffer.Slice(0, bufferLength));
 #endif
                         SetValue(typeDetail, model, WebUtility.UrlDecode(name), WebUtility.UrlDecode(value));
                         bufferLength = 0;

@@ -21,20 +21,24 @@ namespace Zerra.Test
             await using (var throttler = new TaskThrottler())
             {
                 for (var i = 0; i < 100; i++)
+                {
                     throttler.Run(async () =>
                     {
                         await Task.Delay(1000);
                         list.Add(DateTime.Now.ToString("ss:fff"));
                     });
+                }
 
                 await throttler.WaitAsync();
 
                 for (var i = 0; i < 10; i++)
+                {
                     throttler.Run(async () =>
                     {
                         await Task.Delay(1000);
                         list.Add(DateTime.Now.ToString("ss:fff"));
                     });
+                }
 
                 await throttler.WaitAsync();
             }

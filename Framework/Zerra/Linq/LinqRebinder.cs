@@ -966,8 +966,11 @@ namespace Zerra.Linq
                         var cast = exp as ListInitExpression;
                         ExtractParametersExpressionInternal(cast.NewExpression, parameters);
                         foreach (var item in cast.Initializers)
+                        {
                             foreach (var item2 in item.Arguments)
                                 ExtractParametersExpressionInternal(item2, parameters);
+                        }
+
                         return;
                     }
                 case ExpressionType.Loop:

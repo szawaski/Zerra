@@ -34,7 +34,7 @@ namespace Zerra.Encryption
                     var random = GetRandomNumber(rng, 0, passwordChars.Count);
                     chars[x] = passwordChars[random];
                 }
-                return new String(chars);
+                return new string(chars);
             }
         }
 

@@ -78,7 +78,7 @@ namespace Zerra.CQRS.Network
                         case ' ':
                             {
 #if NETSTANDARD2_0
-                                var value = new String(chars.Slice(start, length).ToArray());
+                                var value = new string(chars.Slice(start, length).ToArray());
 #else
                                 var value = chars.Slice(start, length).ToString();
 #endif
@@ -91,7 +91,7 @@ namespace Zerra.CQRS.Network
                         case '\n':
                             {
 #if NETSTANDARD2_0
-                                var value = new String(chars.Slice(start, length).ToArray());
+                                var value = new string(chars.Slice(start, length).ToArray());
 #else
                                 var value = chars.Slice(start, length).ToString();
 #endif
@@ -120,7 +120,7 @@ namespace Zerra.CQRS.Network
                             if (!keyPartDone)
                             {
 #if NETSTANDARD2_0
-                                key = new String(chars.Slice(start, length).ToArray());
+                                key = new string(chars.Slice(start, length).ToArray());
 #else
                                 key = chars.Slice(start, length).ToString();
 #endif
@@ -148,7 +148,7 @@ namespace Zerra.CQRS.Network
                             if (keyPartDone)
                             {
 #if NETSTANDARD2_0
-                                var value = new String(chars.Slice(start, length).ToArray());
+                                var value = new string(chars.Slice(start, length).ToArray());
 #else
                                 var value = chars.Slice(start, length).ToString();
 #endif
@@ -203,6 +203,7 @@ namespace Zerra.CQRS.Network
                 headerInfo.IsError = declarations[0].StartsWith(serverErrorResponse);
 
                 if (headers.TryGetValue(ContentTypeHeader, out var contentTypeHeaderValue))
+                {
                     if (String.Equals(contentTypeHeaderValue[0], ContentTypeBytes, StringComparison.InvariantCultureIgnoreCase))
                         headerInfo.ContentType = ContentType.Bytes;
                     else if (String.Equals(contentTypeHeaderValue[0], ContentTypeJson, StringComparison.InvariantCultureIgnoreCase))
@@ -211,14 +212,19 @@ namespace Zerra.CQRS.Network
                         headerInfo.ContentType = ContentType.JsonNameless;
                     else
                         throw new Exception("Invalid Header");
+                }
 
                 if (headers.TryGetValue(ContentLengthHeader, out var contentLengthHeaderValue))
+                {
                     if (Int32.TryParse(contentLengthHeaderValue[0], out var contentLengthHeaderValueParsed))
                         headerInfo.ContentLength = contentLengthHeaderValueParsed;
+                }
 
                 if (headers.TryGetValue(TransferEncodingHeader, out var transferEncodingHeaderValue))
+                {
                     if (transferEncodingHeaderValue[0] == transferEncodingChunked)
                         headerInfo.Chuncked = true;
+                }
 
                 if (headers.TryGetValue(ProviderTypeHeader, out var providerTypeHeaderValue))
                     headerInfo.ProviderType = providerTypeHeaderValue[0];
@@ -230,10 +236,12 @@ namespace Zerra.CQRS.Network
                     headerInfo.Preflight = true;
 
                 if (headers.TryGetValue(RelayServiceHeader, out var relayServiceHeaderValue))
+                {
                     if (relayServiceHeaderValue[0] == RelayServiceAdd)
                         headerInfo.RelayServiceAddRemove = true;
                     else if (relayServiceHeaderValue[0] == RelayServiceRemove)
                         headerInfo.RelayServiceAddRemove = false;
+                }
 
                 if (headers.TryGetValue(RelayKeyHeader, out var relayKeyHeaderValue))
                     headerInfo.RelayKey = relayKeyHeaderValue[0];

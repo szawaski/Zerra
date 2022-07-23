@@ -41,7 +41,9 @@ namespace Zerra.Web
                 contentType = ContentType.JsonNameless;
             }
             else if (requestContentType.StartsWith("application/json"))
+            {
                 contentType = ContentType.Json;
+            }
             else
             {
                 context.Response.StatusCode = 400;

@@ -67,8 +67,10 @@ namespace Zerra.Identity.Consumers
             SamlIDManager.Validate(serviceProvider, callbackDocument.InResponseTo);
 
             if (callbackDocument.Audience != serviceProvider)
+            {
                 throw new IdentityProviderException("Saml Audience is not valid",
                     String.Format("Received: {0}, Expected: {1}", serviceProvider, callbackDocument.Audience));
+            }
 
             if (String.IsNullOrWhiteSpace(callbackDocument.UserID))
                 return new ValueTask<IdentityModel>((IdentityModel)null);

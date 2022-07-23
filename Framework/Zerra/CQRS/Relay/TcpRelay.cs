@@ -301,8 +301,10 @@ namespace Zerra.CQRS.Relay
                 if (ex is IOException ioException)
                 {
                     if (ioException.InnerException != null && ioException.InnerException is SocketException socketException)
+                    {
                         if (socketException.SocketErrorCode == SocketError.ConnectionAborted)
                             return;
+                    }
                 }
 
                 _ = Log.ErrorAsync(null, ex);

@@ -74,21 +74,21 @@ namespace Zerra.CQRS.Network
                                 {
                                     case 0:
                                         {
-                                            prefix = new String(pChars, startIndex, indexLength);
+                                            prefix = new string(pChars, startIndex, indexLength);
                                             startIndex = index + 1;
                                             indexLength = 0;
                                         }
                                         break;
                                     case 1:
                                         {
-                                            providerType = new String(pChars, startIndex, indexLength);
+                                            providerType = new string(pChars, startIndex, indexLength);
                                             startIndex = index + 1;
                                             indexLength = 0;
                                         }
                                         break;
                                     case 2:
                                         {
-                                            var contentTypeString = new String(pChars, startIndex, indexLength);
+                                            var contentTypeString = new string(pChars, startIndex, indexLength);
                                             if (Int32.TryParse(contentTypeString, out var contentTypeValue))
                                                 contentType = (ContentType)contentTypeValue;
 

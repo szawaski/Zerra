@@ -59,35 +59,47 @@ namespace Zerra.Identity.Saml2
         {
             var conditionNotBefore = ConditionNotBefore(this.Document.DocumentElement);
             if (conditionNotBefore.HasValue && (conditionNotBefore.Value.AddSeconds(-5) <= DateTimeOffset.UtcNow))
+            {
                 throw new IdentityProviderException("Saml2 Document Invalid: NotBefore",
                     String.Format("Received: {0}, Expected: {1}", conditionNotBefore, DateTimeOffset.UtcNow));
+            }
 
             var conditionNotOnOrAfter = ConditionNotOnOrAfter(this.Document.DocumentElement);
             if (conditionNotOnOrAfter.HasValue && (conditionNotOnOrAfter > DateTimeOffset.UtcNow))
+            {
                 throw new IdentityProviderException("Saml2 Document Invalid: NotOnOrAfter",
                     String.Format("Received: {0}, Expected: {1}", conditionNotOnOrAfter, DateTimeOffset.UtcNow));
+            }
 
             var entityDescriptorValidUntil = EntityDescriptorValidUntil(this.Document.DocumentElement);
             if (entityDescriptorValidUntil.HasValue && (entityDescriptorValidUntil <= DateTimeOffset.UtcNow))
+            {
                 throw new IdentityProviderException("Saml2 Document Invalid: ValidUntil",
                     String.Format("Received: {0}, Expected: {1}", entityDescriptorValidUntil, DateTimeOffset.UtcNow));
+            }
 
             var subjectNotOnOrAfter = SubjectNotOnOrAfter(this.Document.DocumentElement);
             if (subjectNotOnOrAfter.HasValue && (subjectNotOnOrAfter <= DateTimeOffset.UtcNow))
+            {
                 throw new IdentityProviderException("Saml2 Document Invalid: NotOnOrAfter",
                     String.Format("Received: {0}, Expected: {1}", subjectNotOnOrAfter, DateTimeOffset.UtcNow));
+            }
 
             if (expectedUrls != null)
             {
                 var subjectRecipient = SubjectRecipient(this.Document.DocumentElement);
                 if (!String.IsNullOrWhiteSpace(subjectRecipient) && !expectedUrls.Contains(subjectRecipient))
+                {
                     throw new IdentityProviderException("Saml2 Document Invalid: Recipient",
                         String.Format("Received: {0}, Expected: {1}", subjectRecipient, String.Join(", ", expectedUrls)));
+                }
 
                 var authnRequestAssertionConsumerServiceURL = AuthnRequestAssertionConsumerServiceURL(this.Document.DocumentElement);
                 if (!String.IsNullOrWhiteSpace(authnRequestAssertionConsumerServiceURL) && !expectedUrls.Contains(authnRequestAssertionConsumerServiceURL))
+                {
                     throw new IdentityProviderException("Saml2 Document Invalid: AssertionConsumerServiceURL",
                         String.Format("Received: {0}, Expected: {1}", authnRequestAssertionConsumerServiceURL, String.Join(", ", expectedUrls)));
+                }
             }
         }
         private static DateTimeOffset? ConditionNotBefore(XmlElement element)

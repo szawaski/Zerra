@@ -65,7 +65,7 @@ namespace Zerra.T4.CSharp
                                 }
                                 else
                                 {
-                                    genericName = new String(buffer.ToArray());
+                                    genericName = new string(buffer.ToArray());
                                     buffer.Clear();
                                 }
                                 break;
@@ -74,7 +74,7 @@ namespace Zerra.T4.CSharp
                             {
                                 if (generic == 1)
                                 {
-                                    var genericArgumentString = new String(buffer.ToArray());
+                                    var genericArgumentString = new string(buffer.ToArray());
                                     var genericArgument = Resolve(genericArgumentString);
                                     genericArguments.Add(genericArgument);
                                     buffer.Clear();
@@ -96,7 +96,7 @@ namespace Zerra.T4.CSharp
                                 }
                                 else
                                 {
-                                    var genericArgumentString = new String(buffer.ToArray());
+                                    var genericArgumentString = new string(buffer.ToArray());
                                     var genericArgument = Resolve(genericArgumentString);
                                     genericArguments.Add(genericArgument);
                                     buffer.Clear();

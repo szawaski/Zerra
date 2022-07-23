@@ -100,7 +100,7 @@ namespace Zerra.Repository
                 var props = compressableProperties.GetOrAdd(key, (factoryKey) =>
                 {
                     var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-                    var propertyDetails = typeDetails.MemberDetails.Where(x => x.Type == typeof(String) || x.Type == typeof(byte[])).ToArray();
+                    var propertyDetails = typeDetails.MemberDetails.Where(x => x.Type == typeof(string) || x.Type == typeof(byte[])).ToArray();
                     if (graph != null)
                     {
                         propertyDetails = propertyDetails.Where(x => graph.HasLocalProperty(x.Name)).ToArray();

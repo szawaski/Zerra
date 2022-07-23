@@ -88,8 +88,10 @@ namespace Zerra
             if (this.TypeArray != null)
             {
                 for (var i = 0; i < this.TypeArray.Length; i++)
+                {
                     if (this.TypeArray[i] != objCasted.TypeArray[i])
                         return false;
+                }
             }
 
             return true;

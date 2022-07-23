@@ -681,7 +681,7 @@ namespace Zerra.T4.CSharp
                         c = chars[index];
                         if (c == ',')
                         {
-                            arguments.Add(new String(buffer.ToArray()));
+                            arguments.Add(new string(buffer.ToArray()));
                             buffer.Clear();
                         }
                         else if (c == '(')
@@ -693,7 +693,7 @@ namespace Zerra.T4.CSharp
                             parenthesis--;
                             if (parenthesis == 0)
                             {
-                                arguments.Add(new String(buffer.ToArray()));
+                                arguments.Add(new string(buffer.ToArray()));
                                 index++;
                                 break;
                             }
@@ -789,7 +789,7 @@ namespace Zerra.T4.CSharp
                 {
                     buffer.Add(c);
                 }
-                else if (c == ':' && buffer.Count == 6 || buffer.Count == 7 && new String(buffer.Take(6).ToArray()) == "global")
+                else if (c == ':' && buffer.Count == 6 || buffer.Count == 7 && new string(buffer.Take(6).ToArray()) == "global")
                 {
                     buffer.Add(c);
                 }
@@ -807,7 +807,7 @@ namespace Zerra.T4.CSharp
                     else
                     {
                         index++;
-                        return new String(new char[] { c });
+                        return new string(new char[] { c });
                     }
                 }
                 else if (c == '<' && attribute == 0)
@@ -860,7 +860,7 @@ namespace Zerra.T4.CSharp
                     buffer.Add(c);
                 }
             }
-            return new String(buffer.ToArray());
+            return new string(buffer.ToArray());
         }
 
         private static string ReadNamespace(CSharpFileContext context, char[] chars, ref int index)
@@ -875,7 +875,7 @@ namespace Zerra.T4.CSharp
                 {
                     buffer.Add(c);
                 }
-                else if (c == ':' && buffer.Count == 6 || buffer.Count == 7 && new String(buffer.Take(6).ToArray()) == "global")
+                else if (c == ':' && buffer.Count == 6 || buffer.Count == 7 && new string(buffer.Take(6).ToArray()) == "global")
                 {
                     buffer.Add(c);
                 }
@@ -884,7 +884,7 @@ namespace Zerra.T4.CSharp
                     break;
                 }
             }
-            return new String(buffer.ToArray());
+            return new string(buffer.ToArray());
         }
 
         private static void ExpectToken(CSharpFileContext context, char[] chars, ref int index, char token)
@@ -900,7 +900,7 @@ namespace Zerra.T4.CSharp
             SkipWhiteSpace(context, chars, ref index);
             var c = chars[index];
             if (c != token)
-                throw new Exception($"Expected {token} at {index} in {new String(chars)}");
+                throw new Exception($"Expected {token} at {index} in {new string(chars)}");
             index++;
         }
 

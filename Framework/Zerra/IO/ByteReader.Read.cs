@@ -843,7 +843,7 @@ namespace Zerra.IO
             var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-            return new Decimal(new int[] { lo, mid, hi, flags });
+            return new decimal(new int[] { lo, mid, hi, flags });
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public decimal? ReadDecimalNullable(bool nullFlags)
@@ -857,7 +857,7 @@ namespace Zerra.IO
             var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-            return new Decimal(new int[] { lo, mid, hi, flags });
+            return new decimal(new int[] { lo, mid, hi, flags });
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public decimal[] ReadDecimalArray(int length)
@@ -869,7 +869,7 @@ namespace Zerra.IO
                 var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                var item = new Decimal(new int[] { lo, mid, hi, flags });
+                var item = new decimal(new int[] { lo, mid, hi, flags });
                 array[i] = item;
             }
             return array;
@@ -884,7 +884,7 @@ namespace Zerra.IO
                 var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                var item = new Decimal(new int[] { lo, mid, hi, flags });
+                var item = new decimal(new int[] { lo, mid, hi, flags });
                 list.Add(item);
             }
             return list;
@@ -901,7 +901,7 @@ namespace Zerra.IO
                     var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                    var item = new Decimal(new int[] { lo, mid, hi, flags });
+                    var item = new decimal(new int[] { lo, mid, hi, flags });
                     array[i] = item;
                 }
             }
@@ -919,7 +919,7 @@ namespace Zerra.IO
                     var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                    var item = new Decimal(new int[] { lo, mid, hi, flags });
+                    var item = new decimal(new int[] { lo, mid, hi, flags });
                     list.Add(item);
                 }
                 else

@@ -269,8 +269,8 @@ namespace Zerra.Test
                 TimeSpanArrayNullable = new TimeSpan?[] { DateTime.Now.AddHours(1).TimeOfDay, null, DateTime.Now.AddHours(3).TimeOfDay },
                 GuidArrayNullable = new Guid?[] { Guid.NewGuid(), null, Guid.NewGuid() },
 
-                StringArray = new String[] { "Hello", "World", "People" },
-                StringEmptyArray = new String[0],
+                StringArray = new string[] { "Hello", "World", "People" },
+                StringEmptyArray = new string[0],
 
                 EnumArray = new EnumModel[] { EnumModel.Item1, EnumModel.Item2, EnumModel.Item3 },
                 EnumArrayNullable = new EnumModel?[] { EnumModel.Item1, null, EnumModel.Item3 },
@@ -311,7 +311,7 @@ namespace Zerra.Test
                 TimeSpanListNullable = new List<TimeSpan?> { DateTime.Now.AddHours(1).TimeOfDay, null, DateTime.Now.AddHours(3).TimeOfDay },
                 GuidListNullable = new List<Guid?> { Guid.NewGuid(), null, Guid.NewGuid() },
 
-                StringList = new List<String> { "Hello", "World", "People" },
+                StringList = new List<string> { "Hello", "World", "People" },
 
                 EnumList = new List<EnumModel> { EnumModel.Item1, EnumModel.Item2, EnumModel.Item3 },
                 EnumListNullable = new List<EnumModel?> { EnumModel.Item1, null, EnumModel.Item3 },

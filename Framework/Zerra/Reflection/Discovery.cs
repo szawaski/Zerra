@@ -642,7 +642,7 @@ namespace Zerra.Reflection
 
                                 if (current.Count == 0)
                                     throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
-                                currentName = new String(current.ToArray());
+                                currentName = new string(current.ToArray());
                                 current.Clear();
                             }
                             else if (openGeneric)
@@ -657,7 +657,7 @@ namespace Zerra.Reflection
                                 {
                                     if (current.Count == 0)
                                         throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
-                                    currentName = new String(current.ToArray());
+                                    currentName = new string(current.ToArray());
                                     current.Clear();
                                 }
                             }
@@ -710,7 +710,7 @@ namespace Zerra.Reflection
                             else if (openGenericType)
                             {
                                 openGenericType = false;
-                                var genericArgumentName = new String(current.ToArray());
+                                var genericArgumentName = new string(current.ToArray());
                                 current.Clear();
                                 var genericArgumentType = GetTypeFromName(genericArgumentName);
                                 genericArguments.Add(genericArgumentType);
@@ -761,7 +761,7 @@ namespace Zerra.Reflection
 
             if (currentName == null)
             {
-                currentName = new String(current.ToArray());
+                currentName = new string(current.ToArray());
                 current.Clear();
             }
 

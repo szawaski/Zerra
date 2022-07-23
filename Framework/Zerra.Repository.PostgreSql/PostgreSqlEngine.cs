@@ -1666,10 +1666,12 @@ namespace Zerra.Repository.PostgreSql
             }
 
             if (property.Type == typeof(byte[]))
+            {
                 if (sqlColumn.NumericPrecision.HasValue)
                     return sqlColumn.DataType == "bit" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
                 else
                     return sqlColumn.DataType == "bytea" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+            }
 
             throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} cannot match type {property.Type.GetNiceName()} to an {nameof(PostgreSqlEngine)} type.");
         }
