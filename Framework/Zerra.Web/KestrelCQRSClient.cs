@@ -339,11 +339,6 @@ namespace Zerra.Web
             }
         }
 
-        public static KestrelCQRSClient CreateDefault(string endpoint, IHttpAuthorizer httpAuthorizer)
-        {
-            return new KestrelCQRSClient(NetworkType.Api, ContentType.Json, endpoint, httpAuthorizer);
-        }
-
         public void Dispose()
         {
             client.Dispose();

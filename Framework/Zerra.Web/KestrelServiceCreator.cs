@@ -20,7 +20,7 @@ namespace Zerra.Web
         private readonly IHttpAuthorizer httpAuthorizer;
         private readonly CQRSServerMiddlewareSettings settings;
         private bool middlewareAdded;
-        public KestrelServiceCreator(IApplicationBuilder applicationBuilder = null, string route = null, ContentType contentType = ContentType.Json, IHttpAuthorizer httpAuthorizer = null)
+        public KestrelServiceCreator(IApplicationBuilder applicationBuilder = null, string route = null, NetworkType networkType = NetworkType.Internal, ContentType contentType = ContentType.Json, IHttpAuthorizer httpAuthorizer = null)
         {
             this.applicationBuilder = applicationBuilder;
             this.httpAuthorizer = httpAuthorizer;
@@ -28,7 +28,7 @@ namespace Zerra.Web
             {
                 Route = route,
                 HttpAuthorizer = httpAuthorizer,
-                NetworkType = NetworkType.Api,
+                NetworkType = networkType,
                 ContentType = contentType
             };
             this.middlewareAdded = false;
@@ -36,7 +36,7 @@ namespace Zerra.Web
 
         public ICommandProducer CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return KestrelCQRSClient.CreateDefault(serviceUrl, httpAuthorizer);
+            return new KestrelCQRSClient(settings.NetworkType, settings.ContentType, serviceUrl, httpAuthorizer);
         }
 
         public ICommandConsumer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
@@ -64,7 +64,7 @@ namespace Zerra.Web
 
         public IQueryClient CreateQueryClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return KestrelCQRSClient.CreateDefault(serviceUrl, httpAuthorizer);
+            return new KestrelCQRSClient(settings.NetworkType, settings.ContentType, serviceUrl, httpAuthorizer);
         }
 
         public IQueryServer CreateQueryServer(string serviceUrl, SymmetricKey encryptionKey)

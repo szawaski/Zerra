@@ -22,7 +22,7 @@ namespace Zerra.Web
 
         public string Route { get; set; }
         public NetworkType NetworkType { get; set; }
-        public ContentType? ContentType { get; set; }
+        public ContentType ContentType { get; set; }
         public IHttpAuthorizer HttpAuthorizer { get; set; }
 
         private string[] allowOrigins;

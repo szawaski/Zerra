@@ -14,9 +14,11 @@ namespace Zerra.CQRS
     {
         private static readonly ConcurrentFactoryDictionary<string, HttpCQRSServer> servers = new();
 
+        private readonly NetworkType networkType;
+        private readonly ContentType contentType;
         private readonly IHttpAuthorizer httpAuthorizer;
         private readonly string[] allowOrigins;
-        public HttpServiceCreator(IHttpAuthorizer httpAuthorizer = null, string[] allowOrigins = null)
+        public HttpServiceCreator(NetworkType networkType = NetworkType.Internal, ContentType contentType = ContentType.Json, IHttpAuthorizer httpAuthorizer = null, string[] allowOrigins = null)
         {
             this.httpAuthorizer = httpAuthorizer;
             this.allowOrigins = allowOrigins;
@@ -24,7 +26,7 @@ namespace Zerra.CQRS
 
         public ICommandProducer CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return HttpCQRSClient.CreateDefault(serviceUrl, httpAuthorizer);
+            return new HttpCQRSClient(networkType, contentType, serviceUrl, httpAuthorizer);
         }
 
         public ICommandConsumer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
@@ -44,7 +46,7 @@ namespace Zerra.CQRS
 
         public IQueryClient CreateQueryClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return HttpCQRSClient.CreateDefault(serviceUrl, httpAuthorizer);
+            return new HttpCQRSClient(networkType, contentType, serviceUrl, httpAuthorizer);
         }
 
         public IQueryServer CreateQueryServer(string serviceUrl, SymmetricKey encryptionKey)

@@ -441,10 +441,5 @@ namespace Zerra.CQRS.Network
                 BufferArrayPool<byte>.Return(bufferOwner);
             }
         }
-
-        public static HttpCQRSClient CreateDefault(string endpoint, IHttpAuthorizer httpAuthorizer)
-        {
-            return new HttpCQRSClient(NetworkType.Api, ContentType.Json, endpoint, httpAuthorizer);
-        }
     }
 }
