@@ -21,63 +21,51 @@ namespace Zerra.Web
     public class CQRSServerMiddleware
     {
         private readonly RequestDelegate requestDelegate;
-        private readonly string route;
-        private readonly NetworkType networkType;
-        private readonly ContentType? contentType;
-        private readonly IHttpAuthorizer apiAuthorizer;
-        private readonly string[] allowOrigins;
-        private readonly string allowOriginsString;
+        private readonly CQRSServerMiddlewareSettings settings;
 
-        private readonly Func<Type, string, string[], Task<RemoteQueryCallResponse>> providerHandlerAsync;
-        private readonly Func<ICommand, Task> handlerAsync = null;
-        private readonly Func<ICommand, Task> handlerAwaitAsync = null;
-
-        public CQRSServerMiddleware(RequestDelegate requestDelegate, string route, NetworkType networkType, ContentType? contentType, IHttpAuthorizer apiAuthorizer, string[] allowOrigins)
+        public CQRSServerMiddleware(RequestDelegate requestDelegate, CQRSServerMiddlewareSettings settings)
         {
             this.requestDelegate = requestDelegate;
-            this.route = route;
-            this.networkType = networkType;
-            this.contentType = contentType;
-
-            this.apiAuthorizer = apiAuthorizer;
-            if (allowOrigins != null && !allowOrigins.Contains("*"))
-            {
-                this.allowOrigins = allowOrigins.Select(x => x.ToLower()).ToArray();
-                this.allowOriginsString = this.allowOrigins != null ? String.Join(", ", this.allowOrigins) : "*";
-            }
-            else
-            {
-                allowOrigins = null;
-            }
-
-            this.providerHandlerAsync = Bus.HandleRemoteQueryCallAsync;
-            this.handlerAsync = Bus.HandleRemoteCommandDispatchAsync;
-            this.handlerAwaitAsync = Bus.HandleRemoteCommandDispatchAwaitAsync;
+            this.settings = settings;
         }
 
         public async Task Invoke(HttpContext context)
         {
-            if (context.Request.Path != route || context.Request.Method != "POST" || context.Request.Method != "OPTIONS")
+            if ((!String.IsNullOrWhiteSpace(settings.Route) && context.Request.Path != settings.Route) || (context.Request.Method != "POST" && context.Request.Method != "OPTIONS"))
             {
                 await requestDelegate(context);
                 return;
             }
 
-            if (context.Request.Method != "OPTIONS")
+            if (context.Request.Method == "OPTIONS")
             {
-                context.Response.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, allowOriginsString);
+                context.Response.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, settings.AllowOriginsString);
                 context.Response.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
                 context.Response.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
                 return;
             }
 
-            string originRequestHeader;
-            if (!context.Request.Headers.TryGetValue(HttpCommon.OriginHeader, out var originRequestHeaderValue))
+            ContentType? contentType;
+            if (context.Request.ContentType.StartsWith("application/octet-stream"))
+                contentType = ContentType.Bytes;
+            else if (context.Request.ContentType.StartsWith("application/jsonnameless"))
+                contentType = ContentType.JsonNameless;
+            else if (context.Request.ContentType.StartsWith("application/json"))
+                contentType = ContentType.Json;
+            else
+                contentType = null;
+
+            if (!contentType.HasValue)
             {
                 context.Response.StatusCode = 400;
                 return;
             }
-            originRequestHeader = originRequestHeaderValue;
+
+            if (contentType != settings.ContentType)
+            {
+                context.Response.StatusCode = 400;
+                return;
+            }
 
             string providerTypeRequestHeader;
             if (!context.Request.Headers.TryGetValue(HttpCommon.ProviderTypeHeader, out var providerTypeRequestHeaderValue))
@@ -87,41 +75,36 @@ namespace Zerra.Web
             }
             providerTypeRequestHeader = providerTypeRequestHeaderValue;
 
-            try
+            string originRequestHeader = null;
+            if (settings.AllowOrigins != null)
             {
-
-                _ = Log.TraceAsync($"{nameof(CQRSServerMiddleware)} Received {providerTypeRequestHeaderValue}");
-                if (allowOrigins != null && allowOrigins.Length > 0)
+                if (!context.Request.Headers.TryGetValue(HttpCommon.OriginHeader, out var originRequestHeaderValue))
                 {
-                    if (allowOrigins.Contains(originRequestHeader))
+                    context.Response.StatusCode = 401;
+                    return;
+                }
+                originRequestHeader = originRequestHeaderValue;
+
+                if (settings.AllowOrigins != null && settings.AllowOrigins.Length > 0)
+                {
+                    if (settings.AllowOrigins.Contains(originRequestHeader))
                     {
-                        throw new Exception($"Origin Not Allowed {originRequestHeader}");
+                        _ = Log.TraceAsync($"{nameof(CQRSServerMiddleware)} Origin Not Allowed {originRequestHeader}");
+                        context.Response.StatusCode = 401;
+                        return;
                     }
                 }
+            }
 
-                if (!Enum.TryParse(context.Request.ContentType, out ContentType contentTypeRequestHeader))
-                {
-                    context.Response.StatusCode = 400;
-                    return;
-                }
+            _ = Log.TraceAsync($"{nameof(CQRSServerMiddleware)} Received {providerTypeRequestHeaderValue}");
 
-                if (contentType.HasValue && !context.Request.ContentLength.HasValue || context.Request.ContentLength.Value == 0)
-                {
-                    context.Response.StatusCode = 400;
-                    return;
-                }
-
-                if (contentTypeRequestHeader != contentType)
-                {
-                    context.Response.StatusCode = 400;
-                    return;
-                }
-
-                var data = await ContentTypeSerializer.DeserializeAsync<CQRSRequestData>(contentTypeRequestHeader, context.Request.Body);
+            try
+            {
+                var data = await ContentTypeSerializer.DeserializeAsync<CQRSRequestData>(contentType.Value, context.Request.Body);
 
                 //Authorize
                 //------------------------------------------------------------------------------------------------------------
-                switch (networkType)
+                switch (settings.NetworkType)
                 {
                     case NetworkType.Internal:
                         if (data.Claims != null)
@@ -135,10 +118,10 @@ namespace Zerra.Web
                         }
                         break;
                     case NetworkType.Api:
-                        if (this.apiAuthorizer != null)
+                        if (settings.HttpAuthorizer != null)
                         {
                             var headers = context.Request.Headers.ToDictionary<KeyValuePair<string, StringValues>, string, IList<string>>(x => x.Key, x => x.Value.ToArray());
-                            this.apiAuthorizer.Authorize(headers);
+                            settings.HttpAuthorizer.Authorize(headers);
                         }
                         break;
                     default:
@@ -152,24 +135,24 @@ namespace Zerra.Web
                     var providerType = Discovery.GetTypeFromName(data.ProviderType);
                     var typeDetail = TypeAnalyzer.GetTypeDetail(providerType);
 
-                    //if (!this.interfaceTypes.Contains(providerType))
-                    //    throw new Exception($"Unhandled Provider Type {providerType.FullName}");
+                    if (!settings.InterfaceTypes.Contains(providerType))
+                        throw new Exception($"Unhandled Provider Type {providerType.FullName}");
 
-                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType))
-                        && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType));
+                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == settings.NetworkType))
+                        && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == settings.NetworkType));
                     if (!exposed)
-                        throw new Exception($"Provider {data.MessageType} is not exposed to {networkType}");
+                        throw new Exception($"Provider {data.MessageType} is not exposed to {settings.NetworkType}");
 
                     _ = Log.TraceAsync($"Received Call: {providerType.GetNiceName()}.{data.ProviderMethod}");
 
-                    var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments);
+                    var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments);
 
                     //Response Header
                     context.Response.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
                     context.Response.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
                     context.Response.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
                     context.Response.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-                    switch (contentTypeRequestHeader)
+                    switch (contentType.Value)
                     {
                         case ContentType.Bytes:
                             context.Response.Headers.Add(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeBytes);
@@ -209,7 +192,7 @@ namespace Zerra.Web
                     }
                     else
                     {
-                        await ContentTypeSerializer.SerializeAsync(contentTypeRequestHeader, context.Response.Body, result.Model);
+                        await ContentTypeSerializer.SerializeAsync(contentType.Value, context.Response.Body, result.Model);
                         await context.Response.Body.FlushAsync();
                         return;
                     }
@@ -222,24 +205,27 @@ namespace Zerra.Web
                     if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
                         throw new Exception($"Type {data.MessageType} is not a command");
 
-                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType))
-                        && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType));
+                    if (!settings.CommandTypes.Contains(commandType))
+                        throw new Exception($"Unhandled Command Type {commandType.FullName}");
+
+                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == settings.NetworkType))
+                        && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == settings.NetworkType));
                     if (!exposed)
-                        throw new Exception($"Command {data.MessageType} is not exposed to {networkType}");
+                        throw new Exception($"Command {data.MessageType} is not exposed to {settings.NetworkType}");
 
                     var command = (ICommand)System.Text.Json.JsonSerializer.Deserialize(data.MessageData, commandType);
 
                     if (data.MessageAwait)
-                        await handlerAwaitAsync(command);
+                        await settings.HandlerAwaitAsync(command);
                     else
-                        await handlerAsync(command);
+                        await settings.HandlerAsync(command);
 
                     //Response Header
                     context.Response.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
                     context.Response.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
                     context.Response.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
                     context.Response.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-                    switch (contentTypeRequestHeader)
+                    switch (contentType.Value)
                     {
                         case ContentType.Bytes:
                             context.Response.Headers.Add(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeBytes);

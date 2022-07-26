@@ -10,6 +10,9 @@ namespace Zerra.CQRS.Network
     {
         public const int BufferLength = 1024 * 8; //Limits max header size
 
+        private const string postRequest = "POST ";
+        private const string requestEnding = " HTTP/1.1";
+
         private const string okResponse = "HTTP/1.1 200 OK";
         private const string notFoundResponse = "HTTP/1.1 404 Not Found";
         private const string serverErrorResponse = "HTTP/1.1 500 Server Error";
@@ -20,6 +23,7 @@ namespace Zerra.CQRS.Network
         public const string ProviderTypeHeader = "Provider-Type";
         public const string TransferEncodingHeader = "Transfer-Encoding";
         public const string OriginHeader = "Origin";
+        public const string HostHeader = "Host";
 
         public const string RelayServiceRemove = "remove";
 
@@ -33,13 +37,15 @@ namespace Zerra.CQRS.Network
         public const string ContentTypeBytes = "application/octet-stream";
         public const string ContentTypeJson = "application/json; charset=utf-8";
         public const string ContentTypeJsonNameless = "application/jsonnameless; charset=utf-8";
-        private const string transferEncodingChunked = "chunked";
+        public const string TransferEncodingChunked = "chunked";
 
         private const string headerSplit = ": ";
         private const string newLine = "\r\n";
 
         private static readonly Encoding encoding = Encoding.UTF8;
 
+        private static readonly byte[] postRequestBytes = encoding.GetBytes(postRequest);
+        private static readonly byte[] requestEndingBytes = encoding.GetBytes(requestEnding);
         private static readonly byte[] okHeaderBytes = encoding.GetBytes(okResponse);
         private static readonly byte[] notFoundHeaderBytes = encoding.GetBytes(notFoundResponse);
         private static readonly byte[] serverErrorHeaderBytes = encoding.GetBytes(serverErrorResponse);
@@ -57,6 +63,8 @@ namespace Zerra.CQRS.Network
         private static readonly byte[] corsAllowOriginHeadersBytes = encoding.GetBytes($"{AccessControlAllowOriginHeader}: ");
         private static readonly byte[] corsAllOriginsHeadersBytes = encoding.GetBytes($"{AccessControlAllowOriginHeader}: *");
         private static readonly byte[] corsAllowHeadersBytes = encoding.GetBytes($"{AccessControlAllowMethodsHeader}: *\r\n{AccessControlAllowHeadersHeader}: *");
+
+        private static readonly byte[] hostHeadersBytes = encoding.GetBytes($"{HostHeader}: ");
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static unsafe (IList<string>, IDictionary<string, IList<string>>) ParseHeaders(ReadOnlySpan<char> chars)
@@ -222,7 +230,7 @@ namespace Zerra.CQRS.Network
 
                 if (headers.TryGetValue(TransferEncodingHeader, out var transferEncodingHeaderValue))
                 {
-                    if (transferEncodingHeaderValue[0] == transferEncodingChunked)
+                    if (transferEncodingHeaderValue[0] == TransferEncodingChunked)
                         headerInfo.Chuncked = true;
                 }
 
@@ -311,7 +319,7 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferPreflight(Memory<byte> buffer, string origin)
+        public static int BufferPreflightResponse(Memory<byte> buffer, string origin)
         {
             var headerBuffer = new ByteWriter(buffer.Span, encoding);
 
@@ -337,7 +345,133 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferHeader(Memory<byte> buffer, string providerType, ContentType? contentType, string origin, IDictionary<string, IList<string>> authHeaders)
+        public static int BufferPostRequestHeader(Memory<byte> buffer, Uri serviceUrl, string origion, string providerType, ContentType? contentType, IDictionary<string, IList<string>> authHeaders)
+        {
+            var headerBuffer = new ByteWriter(buffer.Span, encoding);
+
+            var destinationUrlBytes = encoding.GetBytes(serviceUrl.ToString());
+            headerBuffer.Write(postRequestBytes);
+            headerBuffer.Write(destinationUrlBytes);
+            headerBuffer.Write(requestEndingBytes);
+            headerBuffer.Write(newLineBytes);
+
+            if (!String.IsNullOrWhiteSpace(providerType))
+            {
+                var providerTypeBytes = encoding.GetBytes(providerType);
+                headerBuffer.Write(providerTypeHeaderBytes);
+                headerBuffer.Write(providerTypeBytes);
+                headerBuffer.Write(newLineBytes);
+            }
+
+            if (contentType.HasValue)
+            {
+                switch (contentType.Value)
+                {
+                    case ContentType.Bytes:
+                        headerBuffer.Write(contentTypeBytesHeaderBytes);
+                        break;
+                    case ContentType.Json:
+                        headerBuffer.Write(contentTypeJsonHeaderBytes);
+                        break;
+                    case ContentType.JsonNameless:
+                        headerBuffer.Write(contentTypeJsonNamelessHeaderBytes);
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
+                headerBuffer.Write(newLineBytes);
+            }
+
+            if (authHeaders != null)
+            {
+                foreach (var authHeader in authHeaders)
+                {
+                    foreach (var authHeaderValue in authHeader.Value)
+                    {
+                        headerBuffer.Write(encoding.GetBytes(authHeader.Key));
+                        headerBuffer.Write(headerSplitBytes);
+                        headerBuffer.Write(encoding.GetBytes(authHeaderValue));
+                        headerBuffer.Write(newLineBytes);
+                    }
+                }
+            }
+
+            if (String.IsNullOrWhiteSpace(origion))
+            {
+                headerBuffer.Write(corsAllOriginsHeadersBytes);
+                headerBuffer.Write(newLineBytes);
+            }
+            else
+            {
+                var allowOriginBytes = encoding.GetBytes(origion);
+                headerBuffer.Write(corsAllowOriginHeadersBytes);
+                headerBuffer.Write(allowOriginBytes);
+                headerBuffer.Write(newLineBytes);
+            }
+
+            headerBuffer.Write(corsAllowHeadersBytes);
+            headerBuffer.Write(newLineBytes);
+
+            headerBuffer.Write(transferEncodingChunckedBytes);
+            headerBuffer.Write(newLineBytes);
+
+            var hostBytes = encoding.GetBytes(serviceUrl.Authority);
+            headerBuffer.Write(hostHeadersBytes);
+            headerBuffer.Write(hostBytes);
+            headerBuffer.Write(newLineBytes);
+
+            var originBytes = encoding.GetBytes(serviceUrl.Host);
+            headerBuffer.Write(corsOriginHeadersBytes);
+            headerBuffer.Write(originBytes);
+            headerBuffer.Write(newLineBytes);
+
+            headerBuffer.Write(newLineBytes);
+            return headerBuffer.Position;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int BufferErrorResponseHeader(Memory<byte> buffer, string origin)
+        {
+            var headerBuffer = new ByteWriter(buffer.Span, encoding);
+
+            headerBuffer.Write(serverErrorHeaderBytes);
+            headerBuffer.Write(newLineBytes);
+
+            if (!String.IsNullOrWhiteSpace(origin))
+            {
+                var allowOriginBytes = encoding.GetBytes(origin);
+                headerBuffer.Write(corsAllowOriginHeadersBytes);
+                headerBuffer.Write(allowOriginBytes);
+                headerBuffer.Write(newLineBytes);
+            }
+            else
+            {
+                headerBuffer.Write(corsAllOriginsHeadersBytes);
+                headerBuffer.Write(newLineBytes);
+            }
+            headerBuffer.Write(corsAllowHeadersBytes);
+            headerBuffer.Write(newLineBytes);
+
+            headerBuffer.Write(transferEncodingChunckedBytes);
+            headerBuffer.Write(newLineBytes);
+            headerBuffer.Write(newLineBytes);
+
+            return headerBuffer.Position;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int BufferOkResponseHeader(Memory<byte> buffer)
+        {
+            var headerBuffer = new ByteWriter(buffer.Span, encoding);
+
+            headerBuffer.Write(okHeaderBytes);
+            headerBuffer.Write(newLineBytes);
+            headerBuffer.Write(newLineBytes);
+
+            return headerBuffer.Position;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int BufferOkResponseHeader(Memory<byte> buffer, string origion, string providerType, ContentType? contentType, IDictionary<string, IList<string>> authHeaders)
         {
             var headerBuffer = new ByteWriter(buffer.Span, encoding);
 
@@ -385,18 +519,19 @@ namespace Zerra.CQRS.Network
                 }
             }
 
-            if (!String.IsNullOrWhiteSpace(origin))
-            {
-                var allowOriginBytes = encoding.GetBytes(origin);
-                headerBuffer.Write(corsAllowOriginHeadersBytes);
-                headerBuffer.Write(allowOriginBytes);
-                headerBuffer.Write(newLineBytes);
-            }
-            else
+            if (String.IsNullOrWhiteSpace(origion))
             {
                 headerBuffer.Write(corsAllOriginsHeadersBytes);
                 headerBuffer.Write(newLineBytes);
             }
+            else
+            {
+                var allowOriginBytes = encoding.GetBytes(origion);
+                headerBuffer.Write(corsAllowOriginHeadersBytes);
+                headerBuffer.Write(allowOriginBytes);
+                headerBuffer.Write(newLineBytes);
+            }
+
             headerBuffer.Write(corsAllowHeadersBytes);
             headerBuffer.Write(newLineBytes);
 
@@ -408,49 +543,7 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferErrorHeader(Memory<byte> buffer, string origin)
-        {
-            var headerBuffer = new ByteWriter(buffer.Span, encoding);
-
-            headerBuffer.Write(serverErrorHeaderBytes);
-            headerBuffer.Write(newLineBytes);
-
-            if (!String.IsNullOrWhiteSpace(origin))
-            {
-                var allowOriginBytes = encoding.GetBytes(origin);
-                headerBuffer.Write(corsAllowOriginHeadersBytes);
-                headerBuffer.Write(allowOriginBytes);
-                headerBuffer.Write(newLineBytes);
-            }
-            else
-            {
-                headerBuffer.Write(corsAllOriginsHeadersBytes);
-                headerBuffer.Write(newLineBytes);
-            }
-            headerBuffer.Write(corsAllowHeadersBytes);
-            headerBuffer.Write(newLineBytes);
-
-            headerBuffer.Write(transferEncodingChunckedBytes);
-            headerBuffer.Write(newLineBytes);
-            headerBuffer.Write(newLineBytes);
-
-            return headerBuffer.Position;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferOkHeader(Memory<byte> buffer)
-        {
-            var headerBuffer = new ByteWriter(buffer.Span, encoding);
-
-            headerBuffer.Write(okHeaderBytes);
-            headerBuffer.Write(newLineBytes);
-            headerBuffer.Write(newLineBytes);
-
-            return headerBuffer.Position;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferNotFoundHeader(Memory<byte> buffer)
+        public static int BufferNotFoundResponseHeader(Memory<byte> buffer)
         {
             var headerBuffer = new ByteWriter(buffer.Span, encoding);
 

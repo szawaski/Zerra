@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -15,7 +16,7 @@ namespace Zerra.CQRS.Network
     {
         private static readonly Encoding encoding = Encoding.UTF8;
         private static readonly byte[] newLineBytes = encoding.GetBytes("\r\n");
-        private static readonly byte[] endingBytes = encoding.GetBytes("0\r\n");
+        private static readonly byte[] endingBytes = encoding.GetBytes("0\r\n\r\n");
 
         private readonly int? contentLength;
         private readonly ReadOnlyMemory<byte> readStartBuffer;
@@ -184,7 +185,7 @@ namespace Zerra.CQRS.Network
 #else
                         var segmentLengthString = encoding.GetString(segmentLengthBuffer.Span.Slice(segmentLengthStringStart, segmentLengthBufferPosition - segmentLengthStringStart - 2));
 #endif
-                        segmentLength = Int32.Parse(segmentLengthString);
+                        segmentLength = Int32.Parse(segmentLengthString, NumberStyles.HexNumber);
                         if (segmentLength < 0)
                             throw new Exception("Bad Data");
                     }
@@ -334,7 +335,7 @@ namespace Zerra.CQRS.Network
 #else
                         var segmentLengthString = encoding.GetString(segmentLengthBuffer.Span.Slice(segmentLengthStringStart, segmentLengthBufferPosition - segmentLengthStringStart - 2));
 #endif
-                        segmentLength = Int32.Parse(segmentLengthString);
+                        segmentLength = Int32.Parse(segmentLengthString, NumberStyles.HexNumber);
                         if (segmentLength < 0)
                             throw new Exception("Bad Data");
                     }
@@ -396,7 +397,7 @@ namespace Zerra.CQRS.Network
             }
             else
             {
-                var lengthBytes = encoding.GetBytes(buffer.Length.ToString());
+                var lengthBytes = encoding.GetBytes(buffer.Length.ToString("X"));
 #if NETSTANDARD2_0
                 stream.Write(lengthBytes, 0, lengthBytes.Length);
                 stream.Write(newLineBytes, 0, newLineBytes.Length);
@@ -422,7 +423,7 @@ namespace Zerra.CQRS.Network
             }
             else
             {
-                var lengthBytes = encoding.GetBytes(buffer.Length.ToString());
+                var lengthBytes = encoding.GetBytes(buffer.Length.ToString("X"));
 #if NETSTANDARD2_0
                 await stream.WriteAsync(lengthBytes, 0, lengthBytes.Length);
                 await stream.WriteAsync(newLineBytes, 0, newLineBytes.Length);

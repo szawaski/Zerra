@@ -137,7 +137,7 @@ namespace Zerra.CQRS.Relay
                                 else
                                     RelayConnectedServicesManager.Remove(serviceInfo.Url);
 
-                                var requestHeaderLength = HttpCommon.BufferOkHeader(buffer);
+                                var requestHeaderLength = HttpCommon.BufferOkResponseHeader(buffer);
                                 await incommingStream.WriteAsync(buffer.Slice(0, requestHeaderLength), cancellationToken);
                                 await incommingStream.FlushAsync();
                                 await incommingStream.DisposeAsync();
@@ -160,7 +160,7 @@ namespace Zerra.CQRS.Relay
                     {
                         _ = Log.TraceAsync($"Relaying {providerType} to {service.Url}");
 
-                        var outgoingEndpoint = IPResolver.GetIPEndPoints(service.Url, 80).First();
+                        var outgoingEndpoint = IPResolver.GetIPEndPoints(service.Url).First();
                         if (outgoingEndpoint != null)
                         {
                             outgoingClient = new TcpClient(outgoingEndpoint.AddressFamily);
@@ -186,7 +186,7 @@ namespace Zerra.CQRS.Relay
                     {
                         case CQRSProtocolType.TcpRaw:
                             {
-                                var requestHeaderLength = HttpCommon.BufferNotFoundHeader(buffer);
+                                var requestHeaderLength = HttpCommon.BufferNotFoundResponseHeader(buffer);
                                 await incommingStream.WriteAsync(buffer.Slice(0, requestHeaderLength));
                                 return;
                             }
@@ -317,7 +317,7 @@ namespace Zerra.CQRS.Relay
                         {
                             case CQRSProtocolType.TcpRaw:
                                 {
-                                    var requestHeaderLength = HttpCommon.BufferErrorHeader(buffer, null);
+                                    var requestHeaderLength = HttpCommon.BufferErrorResponseHeader(buffer, null);
                                     await incommingStream.WriteAsync(buffer.Slice(0, requestHeaderLength), cancellationToken);
                                     break;
                                 }

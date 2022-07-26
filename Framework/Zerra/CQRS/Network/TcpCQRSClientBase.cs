@@ -15,16 +15,19 @@ namespace Zerra.CQRS.Network
 {
     public abstract class TcpCQRSClientBase : IQueryClient, ICommandProducer
     {
-        protected readonly string serviceUrl;
+        protected readonly Uri serviceUrl;
         protected readonly IPEndPoint endpoint;
 
-        string IQueryClient.ConnectionString => serviceUrl;
-        string ICommandProducer.ConnectionString => serviceUrl;
+        string IQueryClient.ConnectionString => serviceUrl.OriginalString;
+        string ICommandProducer.ConnectionString => serviceUrl.OriginalString;
 
         public TcpCQRSClientBase(string serviceUrl)
         {
-            this.serviceUrl = serviceUrl;
-            this.endpoint = IPResolver.GetIPEndPoints(serviceUrl, 80).First();
+            this.serviceUrl = new Uri(serviceUrl);
+            var endpoints = IPResolver.GetIPEndPoints(serviceUrl);
+            if (endpoints.Count > 1)
+                throw new Exception($"Client cannot have more than one {nameof(serviceUrl)} {serviceUrl}");
+            this.endpoint = endpoints[0];
         }
 
         private static readonly MethodInfo callRequestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(TcpCQRSClientBase)).MethodDetails.First(x => x.MethodInfo.Name == nameof(TcpCQRSClientBase.CallInternalAsync)).MethodInfo;

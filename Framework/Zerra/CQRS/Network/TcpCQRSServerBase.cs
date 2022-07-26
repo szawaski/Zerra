@@ -32,7 +32,7 @@ namespace Zerra.CQRS.Network
         {
             this.serviceUrl = serverUrl;
 
-            var endpoints = IPResolver.GetIPEndPoints(serverUrl, 80);
+            var endpoints = IPResolver.GetIPEndPoints(serverUrl);
 
             this.listeners = new SocketListener[endpoints.Count];
             for (var i = 0; i < endpoints.Count; i++)

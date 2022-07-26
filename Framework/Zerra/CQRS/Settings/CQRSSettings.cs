@@ -15,7 +15,7 @@ namespace Zerra.CQRS.Settings
         private const string settingsFileName = "cqrssettings.json";
         private const string genericSettingsFileName = "cqrssettings.{0}.json";
 
-        public static ServiceSettings Get(string environmentName = null)
+        public static ServiceSettings Get(string serviceName, string environmentName = null)
         {
             string filePath = null;
 
@@ -64,11 +64,14 @@ namespace Zerra.CQRS.Settings
 
             foreach (var service in settings.Services)
             {
-                service.InternalUrl = Config.GetInternalUrl(service.InternalUrl);
+                if (service.Name == serviceName)
+                    service.InternalUrl = Config.GetInternalUrl(service.InternalUrl);
                 service.ExternalUrl = Config.GetExternalUrl(service.Name, service.ExternalUrl);
 
-                //docker notation externalport:internalport
-                _ = Log.InfoAsync($"Set {service.Name} at External {(String.IsNullOrWhiteSpace(service.ExternalUrl) ? "?" : service.ExternalUrl)} to Internal {service.InternalUrl} ");
+                if (service.Name == serviceName)
+                    _ = Log.InfoAsync($"Set {service.Name} at External {(String.IsNullOrWhiteSpace(service.ExternalUrl) ? "?" : service.ExternalUrl)} to Internal {service.InternalUrl}");
+                else
+                    _ = Log.InfoAsync($"Set {service.Name} at External {(String.IsNullOrWhiteSpace(service.ExternalUrl) ? "?" : service.ExternalUrl)}");
             }
 
             return settings;

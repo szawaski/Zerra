@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Zerra.Logging;
 using Zerra.IO;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Zerra.CQRS.Network
 {
@@ -69,7 +70,8 @@ namespace Zerra.CQRS.Network
                 stream = client.GetStream();
 
                 //Request Header
-                var requestHeaderLength = HttpCommon.BufferHeader(buffer, data.ProviderType, contentType, serviceUrl, authHeaders);
+                
+                var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUrl, null, data.ProviderType, contentType, authHeaders);
 #if NETSTANDARD2_0
                 stream.Write(bufferOwner, 0, requestHeaderLength);
 #else
@@ -188,12 +190,18 @@ namespace Zerra.CQRS.Network
                 stream = client.GetStream();
 
                 //Request Header
-                var requestHeaderLength = HttpCommon.BufferHeader(buffer, data.ProviderType, contentType, serviceUrl, authHeaders);
+                var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUrl, null, data.ProviderType, contentType, authHeaders);
+
+                var test = Encoding.UTF8.GetString(buffer.Span.Slice(0, requestHeaderLength).ToArray());
+
+
 #if NETSTANDARD2_0
                 await stream.WriteAsync(bufferOwner, 0, requestHeaderLength);
 #else
                 await stream.WriteAsync(buffer.Slice(0, requestHeaderLength));
 #endif
+
+                
 
                 requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
 
@@ -338,7 +346,7 @@ namespace Zerra.CQRS.Network
                 stream = client.GetStream();
 
                 //Request Header
-                var requestHeaderLength = HttpCommon.BufferHeader(buffer, data.ProviderType, contentType, serviceUrl, authHeaders);
+                var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUrl, null, data.ProviderType, contentType, authHeaders);
 #if NETSTANDARD2_0
                 await stream.WriteAsync(bufferOwner, 0, requestHeaderLength);
 #else

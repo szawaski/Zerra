@@ -1,8 +1,6 @@
 ﻿using System;
 using Zerra;
 using Zerra.CQRS;
-using Zerra.CQRS.AzureEventHub;
-using Zerra.CQRS.AzureServiceBus;
 using Zerra.CQRS.Settings;
 using Zerra.Logger;
 
@@ -18,7 +16,7 @@ namespace ZerraDemo.Common
 
             Bus.AddMessageLogger(new MessageLoggingProvider());
 
-            var serviceSettings = CQRSSettings.Get();
+            var serviceSettings = CQRSSettings.Get(settingsName);
 
             //Enable one of the following service options
             //----------------------------------------------------------

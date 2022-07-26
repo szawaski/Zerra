@@ -10,11 +10,12 @@ namespace Zerra.CQRS.Network
 {
     public static class IPResolver
     {
-        public static IList<IPEndPoint> GetIPEndPoints(string urls, int defaultPort)
+        public static IList<IPEndPoint> GetIPEndPoints(string urls)
         {
             var endpoints = new List<IPEndPoint>();
 
             urls = urls.Replace("+", "anyhost");
+            urls = urls.Replace("*", "anyhost");
             var split = urls.Split(";", StringSplitOptions.RemoveEmptyEntries);
 
             foreach (var url in split)
@@ -25,7 +26,7 @@ namespace Zerra.CQRS.Network
                 else
                     uri = new Uri(url);
 
-                var port = uri.Port >= 0 ? uri.Port : defaultPort;
+                var port = uri.Port >= 0 ? uri.Port : (uri.Scheme == "https" ? 443 : 80);
 
                 if (uri.DnsSafeHost == "anyhost")
                 {

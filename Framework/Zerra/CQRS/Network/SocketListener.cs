@@ -39,21 +39,18 @@ namespace Zerra.CQRS.Network
 
                 this.canceller = new CancellationTokenSource();
 
-                _ = Task.Run(() =>
-                {
-                    AcceptConnections();
-                });
+                _ = AcceptConnections();
 
                 started = true;
             }
         }
 
-        private void AcceptConnections()
+        private async Task AcceptConnections()
         {
             while (!canceller.Token.IsCancellationRequested)
             {
                 _ = socket.BeginAccept(BeginAcceptCallback, null);
-                waiter.Wait();
+                await waiter.WaitAsync();
             }
 
             socket.Close();

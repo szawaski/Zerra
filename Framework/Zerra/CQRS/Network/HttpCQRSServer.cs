@@ -82,7 +82,7 @@ namespace Zerra.CQRS.Network
                 {
                     _ = Log.TraceAsync($"{nameof(HttpCQRSServer)} Received Preflight {client.Client.RemoteEndPoint}");
 
-                    var preflightLength = HttpCommon.BufferPreflight(buffer, requestHeader.Origin);
+                    var preflightLength = HttpCommon.BufferPreflightResponse(buffer, requestHeader.Origin);
 #if NETSTANDARD2_0
                     await stream.WriteAsync(bufferOwner, 0, preflightLength, cancellationToken);
 #else
@@ -170,7 +170,7 @@ namespace Zerra.CQRS.Network
 
 
                     //Response Header
-                    var responseHeaderLength = HttpCommon.BufferHeader(buffer, requestHeader.ProviderType, requestHeader.ContentType.Value, requestHeader.Origin, null);
+                    var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ProviderType, requestHeader.ContentType.Value, null);
 #if NETSTANDARD2_0
                     await stream.WriteAsync(bufferOwner, 0, responseHeaderLength);
 #else
@@ -220,6 +220,9 @@ namespace Zerra.CQRS.Network
                     if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
                         throw new Exception($"Type {data.MessageType} is not a command");
 
+                    if (!this.commandTypes.Contains(commandType))
+                        throw new Exception($"Unhandled Command Type {commandType.FullName}");
+
                     var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType))
                         && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType));
                     if (!exposed)
@@ -233,7 +236,7 @@ namespace Zerra.CQRS.Network
                         await handlerAsync(command);
 
                     //Response Header
-                    var responseHeaderLength = HttpCommon.BufferHeader(buffer, requestHeader.ProviderType, contentType, requestHeader.Origin, null);
+                    var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ProviderType, contentType, null);
 #if NETSTANDARD2_0
                     await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
 #else
@@ -273,7 +276,7 @@ namespace Zerra.CQRS.Network
                     {
 
                         //Response Header
-                        var responseHeaderLength = HttpCommon.BufferErrorHeader(buffer, requestHeader.Origin);
+                        var responseHeaderLength = HttpCommon.BufferErrorResponseHeader(buffer, requestHeader.Origin);
 #if NETSTANDARD2_0
                         await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
 #else

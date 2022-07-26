@@ -251,6 +251,9 @@ namespace Zerra.CQRS.Network
                     if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
                         throw new Exception($"Type {data.MessageType} is not a command");
 
+                    if (!this.commandTypes.Contains(commandType))
+                        throw new Exception($"Unhandled Command Type {commandType.FullName}");
+
                     var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType))
                         && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType));
                     if (!exposed)

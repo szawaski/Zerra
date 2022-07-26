@@ -241,7 +241,7 @@ namespace Zerra.Serialization
             if (typeDetail.Type.IsEnum)
             {
                 writer.Write('\"');
-                writer.Write(EnumName.GetName(typeDetail.InnerTypes[0], value));
+                writer.Write(EnumName.GetName(typeDetail.Type, value));
                 writer.Write('\"');
                 return;
             }
