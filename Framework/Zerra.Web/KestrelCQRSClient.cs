@@ -162,11 +162,6 @@ namespace Zerra.Web
             Stream responseBodyStream = null;
             try
             {
-                var ms = new MemoryStream();
-                await ContentTypeSerializer.SerializeAsync(contentType, ms, data);
-                ms.Position = 0;
-                request.Content = new StreamContent(ms);
-
                 request.Content = new WriteStreamContent((stream) =>
                 {
                     return ContentTypeSerializer.SerializeAsync(contentType, stream, data);
