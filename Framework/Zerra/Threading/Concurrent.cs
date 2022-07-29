@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System;
+
 namespace Zerra.Threading
 {
     public class Concurrent<T>
@@ -31,6 +33,17 @@ namespace Zerra.Threading
         public Concurrent(T value)
         {
             this.value = value;
+        }
+
+        public T GetAndUpdate(Func<T, T> updater)
+        {
+            T newValue;
+            lock (locker)
+            {
+                newValue = updater(value);
+                value = newValue;
+            }
+            return newValue;
         }
 
         public static bool operator ==(Concurrent<T> a, Concurrent<T> b)
