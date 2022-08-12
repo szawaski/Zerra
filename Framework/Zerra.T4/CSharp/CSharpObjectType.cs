@@ -10,6 +10,7 @@ namespace Zerra.T4.CSharp
         Struct,
         Interface,
         Enum,
-        Delegate
+        Delegate,
+        Record
     }
 }

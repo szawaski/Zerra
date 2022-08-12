@@ -22,7 +22,14 @@ namespace Zerra.T4.CSharp
                 using (var sr = File.OpenText(file))
                 {
                     var context = new CSharpFileContext(file.Substring(rootDirectory.Length));
-                    ParseText(solution, context, sr.ReadToEnd());
+                    try
+                    {
+                        ParseText(solution, context, sr.ReadToEnd());
+                    }
+                    catch (Exception ex)
+                    {
+
+                    }
                 }
             }
             return solution;
@@ -53,7 +60,8 @@ namespace Zerra.T4.CSharp
             "explicit",
             "operator",
             "async",
-            "volatile"
+            "volatile",
+            "record"
         };
 
         private static void ParseText(CSharpSolution solution, CSharpFileContext context, string text)
@@ -73,7 +81,6 @@ namespace Zerra.T4.CSharp
                 var keyword = ReadKeywordOrToken(context, chars, ref index);
                 if (keyword == "}" || keyword == String.Empty)
                 {
-                    index++;
                     break;
                 }
                 if (keyword.Length <= 1)
@@ -115,6 +122,11 @@ namespace Zerra.T4.CSharp
                     case "delegate":
                         var csDelegate = ParseDelegate(solution, context, chars, ref index, currentKeywords);
                         solution.Delegates.Add(csDelegate);
+                        currentKeywords.Clear();
+                        break;
+                    case "record":
+                        var csRecord = ParseObject(solution, context, chars, ref index, CSharpObjectType.Record, currentKeywords);
+                        solution.Structs.Add(csRecord);
                         currentKeywords.Clear();
                         break;
                     default:
@@ -191,8 +203,6 @@ namespace Zerra.T4.CSharp
                 SkipToToken(context, chars, ref index, '{');
             }
 
-            ExpectToken(context, chars, ref index, '{');
-
             var classes = new List<CSharpObject>();
             var structs = new List<CSharpObject>();
             var enums = new List<CSharpEnum>();
@@ -202,114 +212,116 @@ namespace Zerra.T4.CSharp
             var properties = new List<CSharpProperty>();
             var methods = new List<CSharpMethod>();
 
-            var currentKeywords = new List<string>();
-            var statementType = (string)null;
-            var statementName = (string)null;
-            while (index < chars.Length)
+            if (HasToken(context, chars, ref index, '{'))
             {
-                var keyword = ReadKeywordOrToken(context, chars, ref index);
-                if (keyword == "}")
+                var currentKeywords = new List<string>();
+                var statementType = (string)null;
+                var statementName = (string)null;
+                while (index < chars.Length)
                 {
-                    index++;
-                    break;
-                }
-                switch (keyword)
-                {
-                    case "class":
-                        var csClass = ParseObject(solution, context, chars, ref index, CSharpObjectType.Class, currentKeywords);
-                        classes.Add(csClass);
-                        currentKeywords.Clear();
-                        statementType = null;
-                        statementName = null;
+                    var keyword = ReadKeywordOrToken(context, chars, ref index);
+                    if (keyword == "}")
+                    {
                         break;
-                    case "struct":
-                        var csStruct = ParseObject(solution, context, chars, ref index, CSharpObjectType.Struct, currentKeywords);
-                        structs.Add(csStruct);
-                        currentKeywords.Clear();
-                        statementType = null;
-                        statementName = null;
-                        break;
-                    case "enum":
-                        var csEnum = ParseEnum(solution, context, chars, ref index, currentKeywords);
-                        enums.Add(csEnum);
-                        currentKeywords.Clear();
-                        statementType = null;
-                        statementName = null;
-                        break;
-                    case "interface":
-                        var csInterface = ParseObject(solution, context, chars, ref index, CSharpObjectType.Interface, currentKeywords);
-                        interfaces.Add(csInterface);
-                        currentKeywords.Clear();
-                        statementType = null;
-                        statementName = null;
-                        break;
-                    case "delegate":
-                        var csDelegate = ParseDelegate(solution, context, chars, ref index, currentKeywords);
-                        delegates.Add(csDelegate);
-                        currentKeywords.Clear();
-                        statementType = null;
-                        statementName = null;
-                        break;
-                    case ";":
-                    case "=":
-                        var csField = ParseField(solution, context, chars, ref index, statementType, statementName, currentKeywords);
-                        fields.Add(csField);
-                        currentKeywords.Clear();
-                        statementType = null;
-                        statementName = null;
-                        break;
-                    case "{":
-                        //property;
-                        var csProperty = ParseProperty(solution, context, chars, ref index, statementType, statementName, currentKeywords);
-                        properties.Add(csProperty);
-                        currentKeywords.Clear();
-                        statementType = null;
-                        statementName = null;
-                        break;
-                    case "(":
-                        //method;
-                        if (statementType == null)
-                        {
-                            SkipToToken(context, chars, ref index, ')');
-                            index++;
-                            statementType = "object";
-                        }
-                        else
-                        {
-                            if (statementName == null)
-                            {
-                                statementName = statementType;
-                                statementType = "void";
-                            }
-                            var csMethod = ParseMethod(solution, context, chars, ref index, statementType, statementName, currentKeywords);
-                            methods.Add(csMethod);
+                    }
+                    switch (keyword)
+                    {
+                        case "class":
+                            var csClass = ParseObject(solution, context, chars, ref index, CSharpObjectType.Class, currentKeywords);
+                            classes.Add(csClass);
                             currentKeywords.Clear();
                             statementType = null;
                             statementName = null;
-                        }
-                        break;
-                    default:
-                        if (modifierKeywords.Contains(keyword) || keyword.StartsWith("["))
-                        {
-                            currentKeywords.Add(keyword);
                             break;
-                        }
-                        if (statementType == null)
-                            statementType = keyword;
-                        else if (statementName == null)
-                            statementName = keyword;
-                        else
-                            throw new Exception($"Invalid token {keyword} at {index} in {context.FileName}");
-                        if (statementName != null && (statementName == "this" || statementName.EndsWith(".this")))
-                        {
-                            //property;
-                            var csIndexProperty = ParseIndexProperty(solution, context, chars, ref index, statementType, currentKeywords);
-                            properties.Add(csIndexProperty);
+                        case "struct":
+                            var csStruct = ParseObject(solution, context, chars, ref index, CSharpObjectType.Struct, currentKeywords);
+                            structs.Add(csStruct);
                             currentKeywords.Clear();
                             statementType = null;
                             statementName = null;
-                        }
-                        break;
+                            break;
+                        case "enum":
+                            var csEnum = ParseEnum(solution, context, chars, ref index, currentKeywords);
+                            enums.Add(csEnum);
+                            currentKeywords.Clear();
+                            statementType = null;
+                            statementName = null;
+                            break;
+                        case "interface":
+                            var csInterface = ParseObject(solution, context, chars, ref index, CSharpObjectType.Interface, currentKeywords);
+                            interfaces.Add(csInterface);
+                            currentKeywords.Clear();
+                            statementType = null;
+                            statementName = null;
+                            break;
+                        case "delegate":
+                            var csDelegate = ParseDelegate(solution, context, chars, ref index, currentKeywords);
+                            delegates.Add(csDelegate);
+                            currentKeywords.Clear();
+                            statementType = null;
+                            statementName = null;
+                            break;
+                        case ";":
+                        case "=":
+                            var csField = ParseField(solution, context, chars, ref index, statementType, statementName, currentKeywords);
+                            fields.Add(csField);
+                            currentKeywords.Clear();
+                            statementType = null;
+                            statementName = null;
+                            break;
+                        case "{":
+                            //property;
+                            var csProperty = ParseProperty(solution, context, chars, ref index, statementType, statementName, currentKeywords);
+                            properties.Add(csProperty);
+                            currentKeywords.Clear();
+                            statementType = null;
+                            statementName = null;
+                            break;
+                        case "(":
+                            //method;
+                            if (statementType == null)
+                            {
+                                SkipToToken(context, chars, ref index, ')');
+                                index++;
+                                statementType = "object";
+                            }
+                            else
+                            {
+                                if (statementName == null)
+                                {
+                                    statementName = statementType;
+                                    statementType = "void";
+                                }
+                                var csMethod = ParseMethod(solution, context, chars, ref index, statementType, statementName, currentKeywords);
+                                methods.Add(csMethod);
+                                currentKeywords.Clear();
+                                statementType = null;
+                                statementName = null;
+                            }
+                            break;
+                        default:
+                            if (modifierKeywords.Contains(keyword) || keyword.StartsWith("["))
+                            {
+                                currentKeywords.Add(keyword);
+                                break;
+                            }
+                            if (statementType == null)
+                                statementType = keyword;
+                            else if (statementName == null)
+                                statementName = keyword;
+                            else
+                                throw new Exception($"Invalid token {keyword} at {index} in {context.FileName}");
+                            if (statementName != null && (statementName == "this" || statementName.EndsWith(".this")))
+                            {
+                                //property;
+                                var csIndexProperty = ParseIndexProperty(solution, context, chars, ref index, statementType, currentKeywords);
+                                properties.Add(csIndexProperty);
+                                currentKeywords.Clear();
+                                statementType = null;
+                                statementName = null;
+                            }
+                            break;
+                    }
                 }
             }
 
@@ -466,7 +478,6 @@ namespace Zerra.T4.CSharp
                 var keyword = ReadKeywordOrToken(context, chars, ref index);
                 if (keyword == "}")
                 {
-                    index++;
                     break;
                 }
                 switch (keyword)
@@ -785,7 +796,7 @@ namespace Zerra.T4.CSharp
             for (; index < chars.Length; index++)
             {
                 var c = chars[index];
-                if (Char.IsLetterOrDigit(c) || c == '.' || c == '_')
+                if (Char.IsLetterOrDigit(c) || c == '.' || c == '_' || c == '?')
                 {
                     buffer.Add(c);
                 }
@@ -846,8 +857,9 @@ namespace Zerra.T4.CSharp
                             buffer.Add(c);
                             buffer.Add(']');
                             index += 2;
+                            c = chars[index];
                         }
-                        else if (c == '?')
+                        if (c == '?')
                         {
                             buffer.Add(c);
                             index += 1;
@@ -902,6 +914,13 @@ namespace Zerra.T4.CSharp
             if (c != token)
                 throw new Exception($"Expected {token} at {index} in {new string(chars)}");
             index++;
+        }
+
+        private static bool HasToken(CSharpFileContext context, char[] chars, ref int index, char token)
+        {
+            SkipWhiteSpace(context, chars, ref index);
+            var c = chars[index++];
+            return c == token;
         }
 
         private static void SkipToToken(CSharpFileContext context, char[] chars, ref int index, params char[] tokens)

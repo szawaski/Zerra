@@ -11,7 +11,7 @@ namespace Zerra.T4.DevTest
             while (Directory.GetFiles(directory, "*.sln").Length == 0)
                 directory = new DirectoryInfo(directory).Parent.FullName;
 
-            directory = @"C:\Users\Steven Zawaski\Documents\GitHub\LegoLeague";
+            directory = @"C:\Users\Steven Zawaski\Documents\GitHub\Arcoro.Integrations-V2";
 
             var ts = CQRSClientDomain.GenerateTypeScript(directory);
             var js = CQRSClientDomain.GenerateJavaScript(directory);
