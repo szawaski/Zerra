@@ -693,14 +693,14 @@ namespace Zerra.CQRS
             await DisposeServices();
         }
 
-        public static void StartServices(string serviceName, ServiceSettings serviceSettings, IServiceCreator serviceCreator, IRelayRegister relayRegister = null)
+        public static void StartServices(ServiceSettings serviceSettings, IServiceCreator serviceCreator, IRelayRegister relayRegister = null)
         {
-            _ = Log.InfoAsync($"Starting {serviceName}");
+            _ = Log.InfoAsync($"Starting {serviceSettings.ThisServiceName}");
             lock (serviceLock)
             {
-                var serverSetting = serviceSettings.Services.FirstOrDefault(x => x.Name == serviceName);
+                var serverSetting = serviceSettings.Services.FirstOrDefault(x => x.Name == serviceSettings.ThisServiceName);
                 if (serverSetting == null)
-                    throw new Exception($"Service {serviceName} not found in CQRS settings file");
+                    throw new Exception($"Service {serviceSettings.ThisServiceName} not found in CQRS settings file");
 
                 var serviceUrl = serverSetting.InternalUrl;
 
@@ -763,7 +763,7 @@ namespace Zerra.CQRS
                                 if (commandConsumer == null)
                                 {
                                     var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    commandConsumer = serviceCreator.CreateCommandServer(serviceUrl, encryptionKey);
+                                    commandConsumer = serviceCreator.CreateCommandConsumer(serviceUrl, encryptionKey);
                                     commandConsumer.SetHandler(HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync);
                                     if (!commandConsumers.Contains(commandConsumer))
                                         _ = commandConsumers.Add(commandConsumer);
@@ -783,7 +783,7 @@ namespace Zerra.CQRS
                                 if (commandProducer == null)
                                 {
                                     var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    commandProducer = serviceCreator.CreateCommandClient(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, encryptionKey);
+                                    commandProducer = serviceCreator.CreateCommandProducer(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, encryptionKey);
                                 }
                                 var clientCommandTypes = commandTypes.Where(x => !serverTypes.Contains(x)).ToArray();
                                 if (clientCommandTypes.Length > 0)
@@ -813,7 +813,7 @@ namespace Zerra.CQRS
                                 if (eventConsumer == null)
                                 {
                                     var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    eventConsumer = serviceCreator.CreateEventServer(serviceUrl, encryptionKey);
+                                    eventConsumer = serviceCreator.CreateEventConsumer(serviceUrl, encryptionKey);
                                     eventConsumer.SetHandler(HandleRemoteEventDispatchAsync);
                                     if (!eventConsumers.Contains(eventConsumer))
                                         _ = eventConsumers.Add(eventConsumer);
@@ -833,7 +833,7 @@ namespace Zerra.CQRS
                                 if (eventProducer == null)
                                 {
                                     var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    eventProducer = serviceCreator.CreateEventClient(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, encryptionKey);
+                                    eventProducer = serviceCreator.CreateEventProducer(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, encryptionKey);
                                 }
                                 var clientEventTypes = eventTypes.Where(x => !serverTypes.Contains(x)).ToArray();
                                 if (clientEventTypes.Length > 0)

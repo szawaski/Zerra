@@ -24,8 +24,7 @@ namespace Zerra.CQRS.Settings
 
             if (!String.IsNullOrWhiteSpace(environmentName))
                 filePath = Config.GetEnvironmentFilePath(String.Format(genericSettingsFileName, environmentName));
-            if (filePath == null)
-                filePath = Config.GetEnvironmentFilePath(settingsFileName);
+            filePath ??= Config.GetEnvironmentFilePath(settingsFileName);
 
             if (filePath == null)
             {
@@ -73,6 +72,8 @@ namespace Zerra.CQRS.Settings
                 else
                     _ = Log.InfoAsync($"Set {service.Name} at External {(String.IsNullOrWhiteSpace(service.ExternalUrl) ? "?" : service.ExternalUrl)}");
             }
+
+            settings.ThisServiceName = serviceName;
 
             return settings;
         }

@@ -270,7 +270,7 @@ namespace Zerra.CQRS.Network
 
                 foreach (CookieCollection collection in list.Values)
                 {
-                    foreach (Cookie cookie in collection)
+                    foreach (var cookie in collection.Cast<Cookie>())
                     {
                         cookieCollection.Add(cookie);
                     }

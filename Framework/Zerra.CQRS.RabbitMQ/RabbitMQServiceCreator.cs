@@ -23,22 +23,22 @@ namespace Zerra.CQRS.RabbitMQ
             this.environment = environment;
         }
 
-        public ICommandProducer CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQProducer(host, encryptionKey, environment));
         }
 
-        public ICommandConsumer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return rabbitServers.GetOrAdd(rabbitHost, (host) => new RabbitMQConsumer(host, encryptionKey, environment));
         }
 
-        public IEventProducer CreateEventClient(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQProducer(host, encryptionKey, environment));
         }
 
-        public IEventConsumer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return rabbitServers.GetOrAdd(rabbitHost, (host) => new RabbitMQConsumer(host, encryptionKey, environment));
         }

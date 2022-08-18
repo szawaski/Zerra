@@ -23,22 +23,22 @@ namespace Zerra.CQRS.Kafka
             this.environment = environment;
         }
 
-        public ICommandProducer CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return kakfaClients.GetOrAdd(host, (host) => new KafkaProducer(host, encryptionKey, environment));
         }
 
-        public ICommandConsumer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return kafkaServers.GetOrAdd(host, (host) => new KafkaConsumer(host, encryptionKey, environment));
         }
 
-        public IEventProducer CreateEventClient(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return kakfaClients.GetOrAdd(host, (host) => new KafkaProducer(host, encryptionKey, environment));
         }
 
-        public IEventConsumer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return kafkaServers.GetOrAdd(host, (host) => new KafkaConsumer(host, encryptionKey, environment));
         }

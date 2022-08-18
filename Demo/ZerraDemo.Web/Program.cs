@@ -10,7 +10,6 @@ namespace ZerraDemo.Web
         public static void Main(string[] args)
         {
             Config.LoadConfiguration(args);
-            ServiceManager.StartServices();
 
             CreateHostBuilder(args).Build().Run();
         }

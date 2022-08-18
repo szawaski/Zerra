@@ -24,7 +24,7 @@ namespace Zerra.Web
         private readonly CQRSServerMiddlewareSettings settings;
 
         public CQRSServerMiddleware(RequestDelegate requestDelegate, CQRSServerMiddlewareSettings settings)
-        {
+        {            
             this.requestDelegate = requestDelegate;
             this.settings = settings;
         }

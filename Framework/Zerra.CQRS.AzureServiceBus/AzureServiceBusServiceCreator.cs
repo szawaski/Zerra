@@ -10,8 +10,8 @@ namespace Zerra.CQRS.AzureServiceBus
 {
     public class AzureServiceBusServiceCreator : IServiceCreator
     {
-        private static readonly ConcurrentFactoryDictionary<string, AzureServiceBusConsumer> AzureServiceBusServers = new();
-        private static readonly ConcurrentFactoryDictionary<string, AzureServiceBusProducer> kakfaClients = new();
+        private static readonly ConcurrentFactoryDictionary<string, AzureServiceBusConsumer> azureServiceBusServers = new();
+        private static readonly ConcurrentFactoryDictionary<string, AzureServiceBusProducer> azureServiceBusProducers = new();
 
         private readonly string host;
         private readonly IServiceCreator serviceCreatorForQueries;
@@ -23,24 +23,24 @@ namespace Zerra.CQRS.AzureServiceBus
             this.environment = environment;
         }
 
-        public ICommandProducer CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return kakfaClients.GetOrAdd(host, (host) => new AzureServiceBusProducer(host, encryptionKey, environment));
+            return azureServiceBusProducers.GetOrAdd(host, (host) => new AzureServiceBusProducer(host, encryptionKey, environment));
         }
 
-        public ICommandConsumer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return AzureServiceBusServers.GetOrAdd(host, (host) => new AzureServiceBusConsumer(host, encryptionKey, environment));
+            return azureServiceBusServers.GetOrAdd(host, (host) => new AzureServiceBusConsumer(host, encryptionKey, environment));
         }
 
-        public IEventProducer CreateEventClient(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return kakfaClients.GetOrAdd(host, (host) => new AzureServiceBusProducer(host, encryptionKey, environment));
+            return azureServiceBusProducers.GetOrAdd(host, (host) => new AzureServiceBusProducer(host, encryptionKey, environment));
         }
 
-        public IEventConsumer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return AzureServiceBusServers.GetOrAdd(host, (host) => new AzureServiceBusConsumer(host, encryptionKey, environment));
+            return azureServiceBusServers.GetOrAdd(host, (host) => new AzureServiceBusConsumer(host, encryptionKey, environment));
         }
 
         public IQueryClient CreateQueryClient(string serviceUrl, SymmetricKey encryptionKey)

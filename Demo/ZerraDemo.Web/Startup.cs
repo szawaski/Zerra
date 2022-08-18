@@ -3,7 +3,12 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System;
+using Zerra;
+using Zerra.CQRS;
+using Zerra.CQRS.Settings;
 using Zerra.Web;
+using ZerraDemo.Common;
 using ZerraDemo.Web.Components;
 
 namespace ZerraDemo.Web
@@ -36,7 +41,10 @@ namespace ZerraDemo.Web
 
             _ = app.UseCustomAuthentication();
 
-            _ = app.UseCQRSGateway();
+            var serviceSettings = CQRSSettings.Get(Config.EntryAssemblyName);
+            var clientServiceCreator = new TcpServiceCreator();
+            var gatewayServiceCreator = new GatewayServiceCreator(app, clientServiceCreator);
+            Bus.StartServices(serviceSettings, gatewayServiceCreator);
 
             _ = app.UseRouting();
 

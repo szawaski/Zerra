@@ -4,6 +4,7 @@
 
 using Microsoft.AspNetCore.Http;
 using System;
+using System.Runtime;
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,9 +25,18 @@ namespace Zerra.Web
 
         public async Task Invoke(HttpContext context)
         {
-            if (context.Request.Path != route || context.Request.Method != "POST")
+            if ((!String.IsNullOrWhiteSpace(route) && context.Request.Path != route) || (context.Request.Method != "POST" && context.Request.Method != "OPTIONS"))
             {
                 await requestDelegate(context);
+                return;
+            }
+
+            context.Response.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
+            context.Response.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
+            context.Response.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+
+            if (context.Request.Method == "OPTIONS")
+            {
                 return;
             }
 

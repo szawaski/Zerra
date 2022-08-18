@@ -25,22 +25,22 @@ namespace Zerra.CQRS.AzureEventHub
             this.environment = environment;
         }
 
-        public ICommandProducer CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return azureEventHubClients.GetOrAdd(host, (host) => new AzureEventHubProducer(host, eventHubName, encryptionKey, environment));
         }
 
-        public ICommandConsumer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return azureEventHubServers.GetOrAdd(host, (host) => new AzureEventHubConsumer(host, eventHubName, encryptionKey, environment));
         }
 
-        public IEventProducer CreateEventClient(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return azureEventHubClients.GetOrAdd(host, (host) => new AzureEventHubProducer(host, eventHubName, encryptionKey, environment));
         }
 
-        public IEventConsumer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return azureEventHubServers.GetOrAdd(host, (host) => new AzureEventHubConsumer(host, eventHubName, encryptionKey, environment));
         }

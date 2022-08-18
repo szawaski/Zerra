@@ -26,9 +26,10 @@ namespace Zerra.T4.CSharp
                     {
                         ParseText(solution, context, sr.ReadToEnd());
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-
+                        if (System.Diagnostics.Debugger.IsAttached)
+                            System.Diagnostics.Debugger.Break();
                     }
                 }
             }

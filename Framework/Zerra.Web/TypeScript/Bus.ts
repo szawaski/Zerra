@@ -118,7 +118,7 @@ export class Bus {
         if (typeof route !== "string" || route === null || route === "")
             throw "Provider " + provider + " or 'gateway' not defined in busRoutes";
         return route;
-    };
+    }
 
     private static _isCors(url: string): boolean {
         return url.toLowerCase().indexOf("http") === 0;

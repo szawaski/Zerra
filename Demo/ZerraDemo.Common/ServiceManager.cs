@@ -44,7 +44,7 @@ namespace ZerraDemo.Common
             //----------------------------------------------------------
 
             //Option2A: Enable this for direct service communication, no custom relay/loadbalancer (can still use container balancers)
-            Bus.StartServices(settingsName, serviceSettings, serviceCreator);
+            Bus.StartServices(serviceSettings, serviceCreator);
 
             //Option2B: Enable this to use the relay/loadbalancer
             //var relayRegister = new RelayRegister(serviceSettings.RelayUrl, serviceSettings.RelayKey);

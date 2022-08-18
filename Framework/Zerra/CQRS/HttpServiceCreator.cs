@@ -20,28 +20,30 @@ namespace Zerra.CQRS
         private readonly string[] allowOrigins;
         public HttpServiceCreator(NetworkType networkType = NetworkType.Internal, ContentType contentType = ContentType.Json, IHttpAuthorizer httpAuthorizer = null, string[] allowOrigins = null)
         {
+            this.networkType = networkType;
+            this.contentType = contentType;
             this.httpAuthorizer = httpAuthorizer;
             this.allowOrigins = allowOrigins;
         }
 
-        public ICommandProducer CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return new HttpCQRSClient(networkType, contentType, serviceUrl, httpAuthorizer);
         }
 
-        public ICommandConsumer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return servers.GetOrAdd(serviceUrl, (url) => HttpCQRSServer.CreateDefault(url, httpAuthorizer, allowOrigins));
         }
 
-        public IEventProducer CreateEventClient(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            throw new NotSupportedException($"{nameof(HttpServiceCreator)} does not support {nameof(CreateEventClient)}");
+            throw new NotSupportedException($"{nameof(HttpServiceCreator)} does not support {nameof(CreateEventProducer)}");
         }
 
-        public IEventConsumer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            throw new NotSupportedException($"{nameof(HttpServiceCreator)} does not support {nameof(CreateEventServer)}");
+            throw new NotSupportedException($"{nameof(HttpServiceCreator)} does not support {nameof(CreateEventConsumer)}");
         }
 
         public IQueryClient CreateQueryClient(string serviceUrl, SymmetricKey encryptionKey)

@@ -17,13 +17,11 @@ namespace Zerra.Web
         private static readonly ConcurrentFactoryDictionary<string, HttpCQRSServer> servers = new();
 
         private readonly IApplicationBuilder applicationBuilder;
-        private readonly IHttpAuthorizer httpAuthorizer;
         private readonly CQRSServerMiddlewareSettings settings;
         private bool middlewareAdded;
         public KestrelServiceCreator(IApplicationBuilder applicationBuilder = null, string route = null, NetworkType networkType = NetworkType.Internal, ContentType contentType = ContentType.Json, IHttpAuthorizer httpAuthorizer = null)
         {
             this.applicationBuilder = applicationBuilder;
-            this.httpAuthorizer = httpAuthorizer;
             this.settings = new CQRSServerMiddlewareSettings()
             {
                 Route = route,
@@ -34,15 +32,15 @@ namespace Zerra.Web
             this.middlewareAdded = false;
         }
 
-        public ICommandProducer CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return new KestrelCQRSClient(settings.NetworkType, settings.ContentType, serviceUrl, httpAuthorizer);
+            return new KestrelCQRSClient(settings.NetworkType, settings.ContentType, serviceUrl, settings.HttpAuthorizer);
         }
 
-        public ICommandConsumer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricKey encryptionKey)
         {
             if (applicationBuilder == null)
-                throw new NotSupportedException($"{nameof(KestrelServiceCreator)} needs {nameof(IApplicationBuilder)} for {nameof(CreateEventClient)}");
+                throw new NotSupportedException($"{nameof(KestrelServiceCreator)} needs {nameof(IApplicationBuilder)} for {nameof(CreateEventProducer)}");
 
             if (!middlewareAdded)
             {
@@ -52,19 +50,19 @@ namespace Zerra.Web
             return new CQRSServerMiddlewareCommandConsumer(settings);
         }
 
-        public IEventProducer CreateEventClient(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            throw new NotSupportedException($"{nameof(KestrelServiceCreator)} does not support {nameof(CreateEventClient)}");
+            throw new NotSupportedException($"{nameof(KestrelServiceCreator)} does not support {nameof(CreateEventProducer)}");
         }
 
-        public IEventConsumer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricKey encryptionKey)
         {
-            throw new NotSupportedException($"{nameof(KestrelServiceCreator)} does not support {nameof(CreateEventServer)}");
+            throw new NotSupportedException($"{nameof(KestrelServiceCreator)} does not support {nameof(CreateEventConsumer)}");
         }
 
         public IQueryClient CreateQueryClient(string serviceUrl, SymmetricKey encryptionKey)
         {
-            return new KestrelCQRSClient(settings.NetworkType, settings.ContentType, serviceUrl, httpAuthorizer);
+            return new KestrelCQRSClient(settings.NetworkType, settings.ContentType, serviceUrl, settings.HttpAuthorizer);
         }
 
         public IQueryServer CreateQueryServer(string serviceUrl, SymmetricKey encryptionKey)

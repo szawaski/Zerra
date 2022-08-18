@@ -35,7 +35,7 @@ namespace Zerra.Threading
             this.value = value;
         }
 
-        public T GetAndUpdate(Func<T, T> updater)
+        public T GetAndSet(Func<T, T> updater)
         {
             T newValue;
             lock (locker)
@@ -44,6 +44,15 @@ namespace Zerra.Threading
                 value = newValue;
             }
             return newValue;
+        }
+        public void Set(Func<T, T> updater)
+        {
+            T newValue;
+            lock (locker)
+            {
+                newValue = updater(value);
+                value = newValue;
+            }
         }
 
         public static bool operator ==(Concurrent<T> a, Concurrent<T> b)
@@ -185,7 +194,7 @@ namespace Zerra.Threading
         public override int GetHashCode()
         {
             var thisValue = Value;
-            return thisValue == null ? default : thisValue.GetHashCode();
+            return thisValue == null ? base.GetHashCode() : thisValue.GetHashCode();
         }
     }
 }
