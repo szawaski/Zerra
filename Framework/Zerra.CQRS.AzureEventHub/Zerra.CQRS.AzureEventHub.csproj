@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFrameworks>net5.0;net6.0</TargetFrameworks>
@@ -10,7 +10,7 @@
 		<Description>Azure Event Hub implementations of producer and consumer for commands and events in the CQRS Zerra Framework.</Description>
 		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<Version>3.4.0</Version>
+		<Version>3.4.1</Version>
 	</PropertyGroup>
 
 	<ItemGroup>
