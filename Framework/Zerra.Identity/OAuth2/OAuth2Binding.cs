@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.IO;
 
 namespace Zerra.Identity.OAuth2
 {
@@ -31,9 +32,9 @@ namespace Zerra.Identity.OAuth2
                 return new OAuth2QueryBinding(request, flowDirection);
         }
 
-        public static OAuth2Binding GetBindingForResponse(WebResponse request, BindingDirection flowDirection)
+        public static OAuth2Binding GetBindingForResponse(Stream stream, BindingDirection flowDirection)
         {
-            return new OAuth2StreamBinding(request, flowDirection);
+            return new OAuth2StreamBinding(stream, flowDirection);
         }
 
         public static OAuth2Binding GetBindingForDocument(OAuth2Document document, BindingType bindingType)

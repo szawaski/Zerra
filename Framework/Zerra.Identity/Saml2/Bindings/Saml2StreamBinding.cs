@@ -7,6 +7,7 @@ using System;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml;
+using System.IO;
 
 namespace Zerra.Identity.Saml2.Bindings
 {
@@ -27,19 +28,19 @@ namespace Zerra.Identity.Saml2.Bindings
             this.HasSignature = X509XmlSigner.HasSignature(this.Document.DocumentElement);
         }
 
-        internal Saml2StreamBinding(WebResponse response, BindingDirection bindingDirection)
+        internal Saml2StreamBinding(Stream stream, BindingDirection bindingDirection)
         {
             this.BindingDirection = bindingDirection;
 
-            var stream = response.GetResponseStream();
-            var sr = new System.IO.StreamReader(stream);
-            var body = sr.ReadToEnd();
-            response.Close();
+            using (var sr = new StreamReader(stream))
+            {
+                var body = sr.ReadToEnd();
 
-            this.Document = new XmlDocument();
-            this.Document.LoadXml(body);
+                this.Document = new XmlDocument();
+                this.Document.LoadXml(body);
 
-            this.HasSignature = X509XmlSigner.HasSignature(this.Document.DocumentElement);
+                this.HasSignature = X509XmlSigner.HasSignature(this.Document.DocumentElement);
+            }
         }
 
         public override string GetContent()

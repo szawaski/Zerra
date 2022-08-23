@@ -4,6 +4,7 @@
 
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 
 namespace Zerra.Identity.OpenID.Documents
 {
@@ -17,10 +18,11 @@ namespace Zerra.Identity.OpenID.Documents
         public string Scope { get; protected set; }
         public string State { get; protected set; }
         public string Nonce { get; protected set; }
+        public string AcrValues { get; protected set; }
 
         public override BindingDirection BindingDirection => BindingDirection.Request;
 
-        public OpenIDLoginRequest(string serviceProvider, string redirectUrl, OpenIDResponseType? responseType, OpenIDResponseMode? responseMode, BindingType bindingType, string scope, string state, string nonce)
+        public OpenIDLoginRequest(string serviceProvider, string redirectUrl, OpenIDResponseType? responseType, OpenIDResponseMode? responseMode, BindingType bindingType, string scope, string state, string nonce, string acrValues)
         {
             this.ServiceProvider = serviceProvider;
             this.RedirectUrl = redirectUrl;
@@ -30,6 +32,7 @@ namespace Zerra.Identity.OpenID.Documents
             this.Scope = scope;
             this.State = state;
             this.Nonce = nonce;
+            this.AcrValues = acrValues;
         }
 
         public OpenIDLoginRequest(Binding<JObject> binding)
@@ -42,23 +45,36 @@ namespace Zerra.Identity.OpenID.Documents
             if (json == null)
                 return;
 
-            this.ServiceProvider = json[OpenIDBinding.ClientFormName]?.ToObject<string>();
-            this.RedirectUrl = json["redirect_uri"]?.ToObject<string>();
-
-            if (!String.IsNullOrWhiteSpace(json["response_type"]?.ToObject<string>()))
-                this.ResponseType = EnumName.Parse<OpenIDResponseType>(json["response_type"]?.ToObject<string>());
-            else
-                this.ResponseType = OpenIDResponseType.IdToken;
-
-            if (!String.IsNullOrWhiteSpace(json["response_mode"]?.ToObject<string>()))
-                this.ResponseMode = EnumName.Parse<OpenIDResponseMode>(json["response_mode"]?.ToObject<string>());
-            else
-                this.ResponseMode = OpenIDResponseMode.form_post;
-
-            this.Scope = json["scope"]?.ToObject<string>();
-            this.State = json["state"]?.ToObject<string>();
-            this.Nonce = json["nonce"]?.ToObject<string>();
-
+            foreach (var jsonObject in json)
+            {
+                switch (jsonObject.Key)
+                {
+                    case OpenIDBinding.ClientFormName:
+                        this.ServiceProvider = jsonObject.Value.ToObject<string>();
+                        break;
+                    case "redirect_uri":
+                        this.RedirectUrl = jsonObject.Value.ToObject<string>();
+                        break;
+                    case "response_type":
+                        this.ResponseType = EnumName.Parse<OpenIDResponseType>(jsonObject.Value.ToObject<string>());
+                        break;
+                    case "response_mode":
+                        this.ResponseMode = EnumName.Parse<OpenIDResponseMode>(jsonObject.Value.ToObject<string>());
+                        break;
+                    case "scope":
+                        this.Scope = jsonObject.Value.ToObject<string>();
+                        break;
+                    case "state":
+                        this.State = jsonObject.Value.ToObject<string>();
+                        break;
+                    case "nonce":
+                        this.Nonce = jsonObject.Value.ToObject<string>();
+                        break;
+                    case "acr_values":
+                        this.AcrValues = jsonObject.Value.ToObject<string>();
+                        break;
+                }
+            }
             switch (this.ResponseMode)
             {
                 case OpenIDResponseMode.form_post: this.BindingType = BindingType.Form; break;
@@ -73,7 +89,7 @@ namespace Zerra.Identity.OpenID.Documents
 
             switch (this.BindingType)
             {
-                case BindingType.Form: this.ResponseMode  = OpenIDResponseMode.form_post; break;
+                case BindingType.Form: this.ResponseMode = OpenIDResponseMode.form_post; break;
                 case BindingType.Query: this.ResponseMode = OpenIDResponseMode.query; break;
                 case BindingType.Stream: throw new IdentityProviderException("Binding Type content is not supported");
             }
@@ -92,6 +108,8 @@ namespace Zerra.Identity.OpenID.Documents
                 json.Add("state", JToken.FromObject(this.State));
             if (this.Nonce != null)
                 json.Add("nonce", JToken.FromObject(this.Nonce));
+            if (this.AcrValues != null)
+                json.Add("acr_values", JToken.FromObject(this.AcrValues));
 
             return json;
         }

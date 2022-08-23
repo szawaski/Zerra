@@ -15,6 +15,8 @@ using System.Security.Cryptography;
 using System.Net;
 using System.Reflection;
 using Zerra.Encryption;
+using System.Net.Http;
+using System.IO;
 
 namespace Zerra.Identity.OpenID
 {
@@ -41,7 +43,7 @@ namespace Zerra.Identity.OpenID
                 return new OpenIDJwtQueryBinding(request, bindingDirection);
         }
 
-        public static OpenIDJwtBinding GetBindingForResponse(WebResponse request, BindingDirection flowDirection)
+        public static OpenIDJwtBinding GetBindingForResponse(Stream request, BindingDirection flowDirection)
         {
             return new OpenIDJwtStreamBinding(request, flowDirection);
         }

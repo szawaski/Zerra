@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Newtonsoft.Json.Linq;
+using System.IO;
 using System.Net;
 
 namespace Zerra.Identity.OAuth2.Bindings
@@ -18,16 +19,15 @@ namespace Zerra.Identity.OAuth2.Bindings
             this.Document = document.GetJson();
         }
 
-        internal OAuth2StreamBinding(WebResponse response, BindingDirection flowDirection)
+        internal OAuth2StreamBinding(Stream stream, BindingDirection flowDirection)
         {
             this.BindingDirection = flowDirection;
 
-            var stream = response.GetResponseStream();
-            var sr = new System.IO.StreamReader(stream);
-            var body = sr.ReadToEnd();
-            response.Close();
-
-            this.Document = JObject.Parse(body);
+            using (var sr = new System.IO.StreamReader(stream))
+            {
+                var body = sr.ReadToEnd();
+                this.Document = JObject.Parse(body);
+            }
         }
 
         public override string GetContent()

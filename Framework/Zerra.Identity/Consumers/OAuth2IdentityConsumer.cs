@@ -7,6 +7,7 @@ using Zerra.Identity.OAuth2.Documents;
 using System;
 using System.Net;
 using System.Threading.Tasks;
+using System.Net.Http;
 
 namespace Zerra.Identity.Consumers
 {
@@ -59,21 +60,49 @@ namespace Zerra.Identity.Consumers
             var requestTokenBinding = OAuth2Binding.GetBindingForDocument(requestTokenDocument, BindingType.Query);
 
             var requestTokenAction = requestTokenBinding.GetResponse(tokenUrl);
-            var requestToken = WebRequest.Create(requestTokenAction.RedirectUrl);
-            var responseToken = await requestToken.GetResponseAsync();
 
-            var responseTokenBinding = OAuth2Binding.GetBindingForResponse(responseToken, BindingDirection.Response);
+            OAuth2Binding responseTokenBinding;
+#if NET48
+            var requestToken = WebRequest.Create(requestTokenAction.RedirectUrl);
+            using (var response = await requestToken.GetResponseAsync())
+            {
+                var stream = response.GetResponseStream();
+                responseTokenBinding = OAuth2Binding.GetBindingForResponse(stream, BindingDirection.Response);
+            }
+#else
+            using (var client = new HttpClient())
+            using (var response = await client.GetAsync(requestTokenAction.RedirectUrl))
+            using (var stream = await response.Content.ReadAsStreamAsync())
+            {
+                responseTokenBinding = OAuth2Binding.GetBindingForResponse(stream, BindingDirection.Response);
+            }
+#endif
             var responseTokenDocument = new OAuth2TokenResponse(responseTokenBinding);
 
             //Get Identity---------------
             var requestIdentityDocument = new OAuth2IdentityRequest(serviceProvider, responseTokenDocument.Token);
             var requestIdentityBinding = OAuth2Binding.GetBindingForDocument(requestIdentityDocument, BindingType.Query);
 
-            var requestIdentityAction = requestIdentityBinding.GetResponse(identityUrl);
-            var requestIdentity = WebRequest.Create(requestIdentityAction.RedirectUrl);
-            var responseIdentity = await requestIdentity.GetResponseAsync();
 
-            var responseIdentityBinding = OAuth2Binding.GetBindingForResponse(responseIdentity, BindingDirection.Response);
+
+            var requestIdentityAction = requestIdentityBinding.GetResponse(identityUrl);
+
+            OAuth2Binding responseIdentityBinding;
+#if NET48
+            var requestIdentity = WebRequest.Create(requestIdentityAction.RedirectUrl);
+            using (var response = await requestIdentity.GetResponseAsync())
+            {
+                var stream = response.GetResponseStream();
+                responseIdentityBinding = OAuth2Binding.GetBindingForResponse(stream, BindingDirection.Response);
+            }
+#else
+            using (var client = new HttpClient())
+            using (var response = await client.GetAsync(requestIdentityAction.RedirectUrl))
+            using (var stream = await response.Content.ReadAsStreamAsync())
+            {
+                responseIdentityBinding = OAuth2Binding.GetBindingForResponse(stream, BindingDirection.Response);
+            }
+#endif
             var responseIdentityDocument = new OAuth2IdentityResponse(responseIdentityBinding);
 
             if (responseIdentityDocument.ServiceProvider != serviceProvider)

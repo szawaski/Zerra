@@ -7,6 +7,8 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.IO;
 
 namespace Zerra.Identity.OpenID
 {
@@ -30,9 +32,9 @@ namespace Zerra.Identity.OpenID
                 return new OpenIDQueryBinding(request, flowDirection);
         }
 
-        public static OpenIDBinding GetBindingForResponse(WebResponse request, BindingDirection flowDirection)
+        public static OpenIDBinding GetBindingForResponse(Stream stream, BindingDirection flowDirection)
         {
-            return new OpenIDStreamBinding(request, flowDirection);
+            return new OpenIDStreamBinding(stream, flowDirection);
         }
 
         public static OpenIDBinding GetBindingForDocument(OpenIDDocument document, BindingType bindingType)

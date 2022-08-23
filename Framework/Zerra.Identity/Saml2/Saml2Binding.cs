@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml;
+using System.IO;
 
 namespace Zerra.Identity.Saml2
 {
@@ -30,9 +31,9 @@ namespace Zerra.Identity.Saml2
                 return new Saml2QueryBinding(request, bindingDirection);
         }
 
-        public static Saml2Binding GetBindingForResponse(WebResponse request, BindingDirection flowDirection)
+        public static Saml2Binding GetBindingForResponse(Stream stream, BindingDirection flowDirection)
         {
-            return new Saml2StreamBinding(request, flowDirection);
+            return new Saml2StreamBinding(stream, flowDirection);
         }
 
         public static Saml2Binding GetBindingForDocument(Saml2Document document, BindingType bindingType, XmlSignatureAlgorithmType? signatureAlgorithm, XmlDigestAlgorithmType? digestAlgorithm, XmlEncryptionAlgorithmType? encryptionAlgorithm)

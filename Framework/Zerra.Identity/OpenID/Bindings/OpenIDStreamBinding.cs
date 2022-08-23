@@ -3,7 +3,9 @@
 // Licensed to you under the MIT license
 
 using Newtonsoft.Json.Linq;
+using System.IO;
 using System.Net;
+using System.Net.Http;
 
 namespace Zerra.Identity.OpenID.Bindings
 {
@@ -18,16 +20,15 @@ namespace Zerra.Identity.OpenID.Bindings
             this.Document = document.GetJson();
         }
 
-        internal OpenIDStreamBinding(WebResponse response, BindingDirection bindingDirection)
+        internal OpenIDStreamBinding(Stream stream, BindingDirection bindingDirection)
         {
             this.BindingDirection = bindingDirection;
 
-            var stream = response.GetResponseStream();
-            var sr = new System.IO.StreamReader(stream);
-            var body = sr.ReadToEnd();
-            response.Close();
-
-            this.Document = JObject.Parse(body);
+            using (var sr = new StreamReader(stream))
+            {
+                var body = sr.ReadToEnd();
+                this.Document = JObject.Parse(body);
+            }
         }
 
         public override string GetContent()
