@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Zerra;
-using ZerraDemo.Common;
 
 namespace ZerraDemo.Web
 {

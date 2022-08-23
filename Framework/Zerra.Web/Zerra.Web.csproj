@@ -17,27 +17,9 @@ Zerra.Web.ZerraLogger
 Zerra.Web.CheckBoxList</Description>
     <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
     <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, ASPNET, Web</PackageTags>
-    <Version>3.4.1</Version>
+    <Version>3.4.2</Version>
 	<LangVersion>10.0</LangVersion>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Remove="JavaScript\JavaScriptModels.tt" />
-    <None Remove="TypeScript\TypeScriptModels.tt" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="JavaScript\JavaScriptModels.tt">
-      <CustomToolNamespace>TextTemplatingFileGenerator</CustomToolNamespace>
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>JavaScriptModels.js</LastGenOutput>
-    </Content>
-    <Content Include="TypeScript\TypeScriptModels.tt">
-      <CustomToolNamespace>TextTemplatingFileGenerator</CustomToolNamespace>
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>TypeScriptModels.ts</LastGenOutput>
-    </Content>
-  </ItemGroup>
 
   <ItemGroup>
     <None Include="..\..\LICENSE.txt">
@@ -57,19 +39,6 @@ Zerra.Web.CheckBoxList</Description>
 
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="JavaScript\JavaScriptModels.js">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>JavaScriptModels.tt</DependentUpon>
-    </None>
-    <None Update="TypeScript\TypeScriptModels.ts">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>TypeScriptModels.tt</DependentUpon>
-    </None>
   </ItemGroup>
 
 </Project>

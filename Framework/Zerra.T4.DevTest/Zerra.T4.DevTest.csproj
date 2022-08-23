@@ -24,4 +24,29 @@
     <ProjectReference Include="..\Zerra.T4\Zerra.T4.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="JavaScript\JavaScriptModels.js">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>JavaScriptModels.tt</DependentUpon>
+    </None>
+    <None Update="JavaScript\JavaScriptModels.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>JavaScriptModels.js</LastGenOutput>
+    </None>
+    <None Update="TypeScript\TypeScriptModels.ts">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>TypeScriptModels.tt</DependentUpon>
+    </None>
+    <None Update="TypeScript\TypeScriptModels.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>TypeScriptModels.ts</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
 </Project>

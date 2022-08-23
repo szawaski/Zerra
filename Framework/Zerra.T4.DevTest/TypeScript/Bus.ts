@@ -217,7 +217,6 @@ export class Bus {
 
             const callerRetry: any = caller;
             caller(callerRetry, 0);
-
         });
     }
 
@@ -270,7 +269,6 @@ export class Bus {
 
             const callerRetry: any = caller;
             caller(callerRetry, 0);
-
         });
     }
 
@@ -320,7 +318,6 @@ export class Bus {
 
             const callerRetry: any = caller;
             caller(callerRetry, 0);
-
         });
     }
 }
