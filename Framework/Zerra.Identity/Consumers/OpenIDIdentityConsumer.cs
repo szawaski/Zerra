@@ -36,9 +36,9 @@ namespace Zerra.Identity.Consumers
         private readonly string scope;
         private readonly bool requiredSignature;
         private readonly OpenIDResponseType responseType;
-        private readonly string arcValues;
+        private readonly string acrValues;
 
-        public OpenIDIdentityConsumer(string serviceProvider, string secret, string loginUrl, string redirectUrl, string logoutUrl, string tokenUrl, string userInfoUrl, string redirectUrlPostLogout, string identityProviderCertUrl, string scope, bool requiredSignature, OpenIDResponseType responseType, string arcValues)
+        public OpenIDIdentityConsumer(string serviceProvider, string secret, string loginUrl, string redirectUrl, string logoutUrl, string tokenUrl, string userInfoUrl, string redirectUrlPostLogout, string identityProviderCertUrl, string scope, bool requiredSignature, OpenIDResponseType responseType, string acrValues)
         {
             this.serviceProvider = serviceProvider;
             this.secret = secret;
@@ -52,10 +52,10 @@ namespace Zerra.Identity.Consumers
             this.scope = scope;
             this.requiredSignature = requiredSignature;
             this.responseType = responseType;
-            this.arcValues = arcValues;
+            this.acrValues = acrValues;
         }
 
-        public static async Task<OpenIDIdentityConsumer> FromMetadata(string serviceProvider, string secret, string metadataUrl, string redirectUrl, string redirectUrlPostLogout, string scope, OpenIDResponseType responseType, string arcValues)
+        public static async Task<OpenIDIdentityConsumer> FromMetadata(string serviceProvider, string secret, string metadataUrl, string redirectUrl, string redirectUrlPostLogout, string scope, OpenIDResponseType responseType, string acrValues)
         {
             OpenIDMetadataResponse document;
 #if NET48
@@ -106,7 +106,7 @@ namespace Zerra.Identity.Consumers
                 scope: scope,
                 requiredSignature: true,
                 responseType: responseType,
-                arcValues: arcValues
+                acrValues: acrValues
             );
         }
 
@@ -123,7 +123,7 @@ namespace Zerra.Identity.Consumers
                 scope: this.scope,
                 state: state,
                 nonce: nonce,
-                acrValues: this.arcValues
+                acrValues: this.acrValues
             );
 
             var requestBinding = OpenIDBinding.GetBindingForDocument(requestDocument, BindingType.Form);
