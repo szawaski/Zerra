@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -130,6 +131,15 @@ namespace Zerra.T4.CSharp
                     if (nativeType != null)
                         break;
                 }
+            }
+
+            if (nativeType == null)
+            {
+                nativeType = Type.GetType($"System.Collections.{genericName}");
+            }
+            if (nativeType == null)
+            {
+                nativeType = Type.GetType($"System.Collections.Generic.{genericName}");
             }
 
             CSharpObject solutionType = null;
