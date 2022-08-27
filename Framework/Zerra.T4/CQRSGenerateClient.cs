@@ -285,7 +285,11 @@ namespace Zerra.T4
                     AddModels(type.SolutionType, models);
                 }
             }
-            foreach (var generic in type.GenericArguments)
+            AddGenerics(type.GenericArguments, models);
+        }
+        private static void AddGenerics(IReadOnlyList<CSharpType> genericArguments, List<CSharpObject> models)
+        {
+            foreach (var generic in genericArguments)
             {
                 if (generic.SolutionType != null)
                 {
@@ -295,6 +299,7 @@ namespace Zerra.T4
                         AddModels(generic.SolutionType, models);
                     }
                 }
+                AddGenerics(generic.GenericArguments, models);
             }
         }
 
