@@ -307,7 +307,8 @@ namespace Zerra.T4
         {
             bool isJavaScriptType;
             var hasMany = false;
-            var nullable = false;
+            bool nullable = false;
+            var genericLevel = 0;
             while (csharpType.GenericArguments.Count == 1)
             {
                 if (csharpType.Name == "Array`1" || csharpType.NativeType != null && (csharpType.NativeType.Name == "IEnumerable`1" || csharpType.NativeType.GetInterface(typeof(IEnumerable<>).Name) != null))
@@ -315,6 +316,7 @@ namespace Zerra.T4
                 if (csharpType.Name == "Nullable`1")
                     nullable = true;
                 csharpType = csharpType.GenericArguments[0];
+                genericLevel++;
             }
 
             string type;
@@ -323,7 +325,7 @@ namespace Zerra.T4
             {
                 type = ConvertCoreTypeToJavaScriptType(csharpType.NativeType);
                 isJavaScriptType = true;
-                if (csharpType.NativeType.IsClass)
+                if (genericLevel == 0 && csharpType.NativeType.IsClass)
                     nullable = true;
             }
             else
@@ -341,7 +343,7 @@ namespace Zerra.T4
                         type = modelReference.Name;
                         isJavaScriptType = false;
                     }
-                    if (modelReference.ObjectType == CSharpObjectType.Class || modelReference.ObjectType == CSharpObjectType.Interface)
+                    if (genericLevel == 0 && modelReference.ObjectType == CSharpObjectType.Class || modelReference.ObjectType == CSharpObjectType.Interface)
                         nullable = true;
                 }
                 else
