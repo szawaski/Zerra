@@ -20,6 +20,7 @@ namespace Zerra.CQRS.Kafka
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 
         private bool listenerStarted = false;
+        private SemaphoreSlim listenerStartedLock = new(1, 1);
 
         private readonly string host;
         private readonly SymmetricKey encryptionKey;
@@ -56,13 +57,19 @@ namespace Zerra.CQRS.Kafka
         {
             if (requireAcknowledgement)
             {
-                lock (this)
+                await listenerStartedLock.WaitAsync();
+                try
                 {
                     if (!listenerStarted)
                     {
+                        await KafkaCommon.EnsureTopic(host, ackTopic);
                         _ = Task.Run(AckListeningThread);
                         listenerStarted = true;
                     }
+                }
+                finally
+                {
+                    _=listenerStartedLock.Release();
                 }
             }
 
@@ -168,8 +175,6 @@ namespace Zerra.CQRS.Kafka
 
             try
             {
-                await KafkaCommon.EnsureTopic(host, ackTopic);
-
                 using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build())
                 {
                     consumer.Subscribe(ackTopic);
@@ -220,6 +225,7 @@ namespace Zerra.CQRS.Kafka
         {
             canceller.Cancel();
             producer.Dispose();
+            listenerStartedLock.Dispose();
         }
     }
 }

@@ -21,11 +21,13 @@ namespace Zerra.CQRS.AzureServiceBus
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 
         private bool listenerStarted = false;
+        private SemaphoreSlim listenerStartedLock = new(1, 1);
 
         private readonly string host;
         private readonly SymmetricKey encryptionKey;
         private readonly string environment;
         private readonly string ackTopic;
+        private readonly string ackSubscription;
         private readonly ServiceBusClient client;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
@@ -36,6 +38,7 @@ namespace Zerra.CQRS.AzureServiceBus
             this.environment = environment;
 
             this.ackTopic = $"ACK-{Guid.NewGuid()}";
+            this.ackSubscription = $"{ackTopic.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}-{applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}";
 
             client = new ServiceBusClient(host);
 
@@ -53,13 +56,21 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             if (requireAcknowledgement)
             {
-                lock (this)
+                await listenerStartedLock.WaitAsync();
+                try
                 {
                     if (!listenerStarted)
                     {
+                        await AzureServiceBusCommon.EnsureTopic(host, ackTopic);
+                        await AzureServiceBusCommon.EnsureSubscription(host, ackTopic, ackSubscription);
+
                         _ = Task.Run(AckListeningThread);
                         listenerStarted = true;
                     }
+                }
+                finally
+                {
+                    _ = listenerStartedLock.Release();
                 }
             }
 
@@ -158,16 +169,11 @@ namespace Zerra.CQRS.AzureServiceBus
 
         private async Task AckListeningThread()
         {
-
         retry:
 
             try
             {
-                var subscription = $"{ackTopic.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}-{applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}";
-                await AzureServiceBusCommon.EnsureTopic(host, ackTopic);
-                await AzureServiceBusCommon.EnsureSubscription(host, ackTopic, subscription);
-
-                await using (var receiver = client.CreateReceiver(ackTopic, subscription))
+                await using (var receiver = client.CreateReceiver(ackTopic, ackSubscription))
                 {
                     for (; ; )
                     {
@@ -196,7 +202,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     }
                 }
                 await AzureServiceBusCommon.DeleteTopic(host, ackTopic);
-                await AzureServiceBusCommon.DeleteSubscription(host, ackTopic, subscription);
+                await AzureServiceBusCommon.DeleteSubscription(host, ackTopic, ackSubscription);
             }
             catch (Exception ex)
             {
@@ -217,6 +223,7 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             canceller.Cancel();
             await client.DisposeAsync();
+            listenerStartedLock.Dispose();
         }
     }
 }
