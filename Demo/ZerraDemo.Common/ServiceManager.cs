@@ -18,6 +18,8 @@ namespace ZerraDemo.Common
 
             var serviceSettings = CQRSSettings.Get(settingsName);
 
+            serviceSettings.SetMessageHost(Config.GetSetting("MessageHost"));
+
             //Enable one of the following service options
             //----------------------------------------------------------
 

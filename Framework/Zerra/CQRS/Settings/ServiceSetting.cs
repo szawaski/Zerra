@@ -6,11 +6,11 @@ namespace Zerra.CQRS.Settings
 {
     public class ServiceSetting
     {
-        public string Name { get; set; }
-        public string InternalUrl { get; set; }
-        public string ExternalUrl { get; set; }
-        public string EncryptionKey { get; set; }
-        public string[] Types { get; set; }
-        public string[] InstantiateTypes { get; set; }
+        public string Name { get; internal set; }
+        public string InternalUrl { get; internal set; }
+        public string ExternalUrl { get; internal set; }
+        public string EncryptionKey { get; internal set; }
+        public string[] Types { get; internal set; }
+        public string[] InstantiateTypes { get; internal set; }
     }
 }

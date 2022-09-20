@@ -45,22 +45,6 @@ namespace Zerra.CQRS.Settings
             }
             _ = Log.InfoAsync($"Loaded {filePath}");
 
-            var messageHost = Config.GetSetting(nameof(settings.MessageHost));
-            if (!String.IsNullOrWhiteSpace(messageHost))
-                settings.MessageHost = messageHost;
-            if (!String.IsNullOrWhiteSpace(settings.MessageHost))
-                _ = Log.InfoAsync($"Set {nameof(settings.MessageHost)} at {settings.MessageHost}");
-
-            var relayUrl = Config.GetSetting(nameof(settings.RelayUrl));
-            if (!String.IsNullOrWhiteSpace(relayUrl))
-                settings.RelayUrl = relayUrl;
-            if (!String.IsNullOrWhiteSpace(settings.RelayUrl))
-                _ = Log.InfoAsync($"Set {nameof(settings.RelayUrl)} at {settings.RelayUrl}");
-
-            var relayKey = Config.GetSetting(nameof(settings.RelayKey));
-            if (!String.IsNullOrWhiteSpace(relayUrl))
-                settings.RelayKey = relayKey;
-
             foreach (var service in settings.Services)
             {
                 if (service.Name == serviceName)
