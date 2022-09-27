@@ -10,8 +10,8 @@ namespace Zerra.CQRS.AzureEventGrid
 {
     public class AzureEventGridServiceCreator : IServiceCreator
     {
-        private static readonly ConcurrentFactoryDictionary<string, AzureEventGridConsumer> AzureEventGridServers = new ConcurrentFactoryDictionary<string, AzureEventGridConsumer>();
-        private static readonly ConcurrentFactoryDictionary<string, AzureEventGridProducer> kakfaClients = new ConcurrentFactoryDictionary<string, AzureEventGridProducer>();
+        private static readonly ConcurrentFactoryDictionary<string, AzureEventGridConsumer> AzureEventGridServers = new();
+        private static readonly ConcurrentFactoryDictionary<string, AzureEventGridProducer> kakfaClients = new();
 
         private readonly string host;
         private readonly IServiceCreator serviceCreatorForQueries;
@@ -21,22 +21,22 @@ namespace Zerra.CQRS.AzureEventGrid
             this.serviceCreatorForQueries = serviceCreatorForQueries;
         }
 
-        public ICommandProducer CreateCommandClient(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return kakfaClients.GetOrAdd(host, (host) => new AzureEventGridProducer(host, encryptionKey));
         }
 
-        public ICommandConsumer CreateCommandServer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return AzureEventGridServers.GetOrAdd(host, (host) => new AzureEventGridConsumer(host, encryptionKey));
         }
 
-        public IEventProducer CreateEventClient(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return kakfaClients.GetOrAdd(host, (host) => new AzureEventGridProducer(host, encryptionKey));
         }
 
-        public IEventConsumer CreateEventServer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricKey encryptionKey)
         {
             return AzureEventGridServers.GetOrAdd(host, (host) => new AzureEventGridConsumer(host, encryptionKey));
         }
