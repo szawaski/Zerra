@@ -20,7 +20,7 @@ namespace Zerra
         private const string environmentNameVariable1 = "ASPNETCORE_ENVIRONMENT";
         private const string environmentNameVariable2 = "Hosting:Environment";
         private const string environmentNameVariable3 = "ASPNET_ENV";
-        
+
         private const string internalUrl1 = "urls";
         private const string internalUrl2 = "ASPNETCORE_URLS";
         private const string internalUrl3 = "ASPNETCORE_SERVER.URLS";
@@ -139,7 +139,7 @@ namespace Zerra
         {
             var file = File.OpenRead(fileName);
             _ = builder.AddJsonStream(file);
-            Console.WriteLine($"{nameof(Config)} Loaded {fileName}");
+            Console.WriteLine($"{nameof(Config)} Loaded {Path.GetFileName(fileName)}");
         }
 
         public static string GetSetting(string name, params string[] sections)
