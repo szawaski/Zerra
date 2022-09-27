@@ -21,7 +21,6 @@ namespace Zerra
         private const string environmentNameVariable2 = "Hosting:Environment";
         private const string environmentNameVariable3 = "ASPNET_ENV";
         
-
         private const string internalUrl1 = "urls";
         private const string internalUrl2 = "ASPNETCORE_URLS";
         private const string internalUrl3 = "ASPNETCORE_SERVER.URLS";
@@ -146,7 +145,8 @@ namespace Zerra
         public static string GetSetting(string name, params string[] sections)
         {
             if (configuration == null)
-                LoadConfiguration();
+                throw new Exception("Config not loaded");
+
             var config = configuration;
             if (sections != null && sections.Length > 0)
             {
@@ -197,7 +197,7 @@ namespace Zerra
             get
             {
                 if (configuration == null)
-                    LoadConfiguration();
+                    throw new Exception("Config not loaded");
                 return configuration;
             }
         }
@@ -212,7 +212,8 @@ namespace Zerra
         public static T Bind<T>(params string[] sections)
         {
             if (configuration == null)
-                LoadConfiguration();
+                throw new Exception("Config not loaded");
+
             var config = configuration;
             if (sections != null && sections.Length > 0)
             {
