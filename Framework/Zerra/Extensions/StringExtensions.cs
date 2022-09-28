@@ -414,6 +414,7 @@ public static class StringExtensions
             return null;
     }
 
+#if !NET5_0_OR_GREATER
     public static string[] Split(this string it, string seperator)
     {
         return it.Split(new string[] { seperator }, StringSplitOptions.None);
@@ -422,6 +423,7 @@ public static class StringExtensions
     {
         return it.Split(new string[] { seperator }, options);
     }
+#endif
 
     public static SecureString ToSecure(this string it)
     {
@@ -444,6 +446,80 @@ public static class StringExtensions
         finally
         {
             System.Runtime.InteropServices.Marshal.ZeroFreeGlobalAllocUnicode(valuePtr);
+        }
+    }
+
+    public static unsafe bool MatchWildcard(this string it, string pattern, char wildcard = '*')
+    {
+        if (String.IsNullOrEmpty(pattern))
+            throw new ArgumentException(nameof(pattern));
+
+        fixed (char* pPattern = pattern)
+        {
+            if (it == null || it.Length == 0)
+            {
+                if (pattern.Length == 1 && pPattern[0] == wildcard)
+                    return true;
+                else
+                    return false;
+            }
+
+            fixed (char* pText = it)
+            {
+                var i = 0;
+                var iPattern = 0;
+                int? iWildcard = null;
+
+                var charPattern = pPattern[iPattern];
+                for (; i < it.Length; i++)
+                {
+                    var charText = it[i];
+
+                    if (charPattern == wildcard)
+                    {
+                        iWildcard = iPattern;
+                        if (iPattern == pattern.Length - 1)
+                            return true;
+                        iPattern++;
+                        charPattern = pPattern[iPattern];
+                    }
+
+                    if (iWildcard.HasValue)
+                    {
+                        if (charPattern != charText)
+                        {
+                            if (iPattern != iWildcard.Value + 1)
+                            {
+                                iPattern = iWildcard.Value + 1;
+                                charPattern = pPattern[iPattern];
+                            }
+                        }
+                        else
+                        {
+                            if (iPattern == pattern.Length - 1)
+                                break;
+                            iPattern++;
+                            charPattern = pPattern[iPattern];
+                        }
+                    }
+                    else
+                    {
+                        if (charPattern != charText)
+                            return false;
+                        if (iPattern == pattern.Length - 1)
+                            break;
+                        iPattern++;
+                        charPattern = pPattern[iPattern];
+                    }
+                }
+
+                if (iPattern != pattern.Length - 1)
+                    return false;
+                if (i != it.Length - 1)
+                    return false;
+                return true;
+            }
+
         }
     }
 }

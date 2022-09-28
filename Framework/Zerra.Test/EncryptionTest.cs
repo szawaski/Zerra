@@ -15,7 +15,7 @@ using Zerra.Serialization;
 namespace Zerra.Test
 {
     [TestClass]
-    public partial class EncryptionTest
+    public class EncryptionTest
     {
         [TestMethod]
         public void CryptoShiftStreamRead()
