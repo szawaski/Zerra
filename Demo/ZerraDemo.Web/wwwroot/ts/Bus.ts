@@ -1,5 +1,4 @@
-﻿import { ajax } from "jquery";
-import { BusRoutes, BusFail } from "./BusConfig";
+﻿import { BusRoutes, BusFail } from "./BusConfig"
 import { ModelTypeDictionary } from "./TypeScriptModels";
 
 export interface ICommand { }
@@ -116,16 +115,12 @@ export class Bus {
         if (typeof route !== "string" || route === null || route === "")
             throw "Provider " + provider + " or 'gateway' not defined in busRoutes";
         return route;
-    };
-
-    private static _isCors(url: string): boolean {
-        return url.toLowerCase().startsWith("http");
     }
 
-    private static _onReject(retry: () => void, retryCount: number, jqXHR: any, url: string, reject: (reason?: any) => void): void {
+    private static _onReject(retry: () => void, retryCount: number, responseText: string, url: string, reject: (reason?: any) => void): void {
         let errorText;
-        if (jqXHR.responseText) {
-            errorText = jqXHR.responseText;
+        if (responseText) {
+            errorText = responseText;
             console.log("Error: " + errorText);
         }
         else {
@@ -146,7 +141,6 @@ export class Bus {
     public static Call(provider: string, method: string, args: any[], modelType: any, hasMany: boolean): Promise<any> {
         return new Promise<any>(function (resolve, reject) {
             const route = Bus._getRoute(provider);
-            const isCors = Bus._isCors(route);
 
             console.log("Call: " + provider + "." + method);
 
@@ -165,8 +159,10 @@ export class Bus {
             const hasJsonNameless = modelType !== null;
             const accept = hasJsonNameless ? "application/jsonnameless; charset=utf-8" : "application/json; charset=utf-8";
 
-            const headers: JQuery.PlainObject<string> = {};
+            const headers: HeadersInit = {};
             headers["Provider-Type"] = provider;
+            headers["Content-Type"] = "application/json; charset=utf-8";
+            headers["Accept"] = "application/json; charset=utf-8";
             for (const property in Bus._customHeaders) {
                 const value = Bus._customHeaders[property];
                 if (value !== null) {
@@ -178,44 +174,43 @@ export class Bus {
             }
 
             const caller: any = function (retry: any, retryCount: number) {
-                ajax(route, {
-                    type: "POST",
-                    data: JSON.stringify(postData),
-                    contentType: "application/json; charset=utf-8",
-                    dataType: "json",
-                    accepts: { json: accept },
-                    headers: headers,
-                    crossDomain: isCors
-                })
-                    .done(function (data: any, textStatus: any, jqXHR: any) {
-                        const responseContentType = jqXHR.getResponseHeader("content-type");
-                        const responseJsonNameless = responseContentType.includes("application/jsonnameless");
 
-                        let deserialized = data;
-                        if (responseJsonNameless) {
-                            deserialized = Bus._deserializeJsonNameless(deserialized, modelType, hasMany);
-                        }
-                        else {
-                            Bus._deserializeJson(deserialized, modelType, hasMany);
-                        }
+                fetch(route, {
+                    method: "POST",
+                    body: JSON.stringify(postData),
+                    headers: headers
+                }).then(res => {
 
-                        resolve(deserialized);
-                    })
-                    .fail(function (jqXHR: any) {
-                        if (jqXHR.status === 200) {
-                            resolve(null);
-                            return;
+                    const responseContentType = res.headers.get("content-type");
+                    const responseJsonNameless = responseContentType?.includes("application/jsonnameless");
+
+                    res.text().then((data) => {
+                        if (res.status == 200) {
+
+                            let deserialized = JSON.parse(data);
+
+                            if (responseJsonNameless)
+                                deserialized = Bus._deserializeJsonNameless(deserialized, modelType, hasMany);
+                            else
+                                Bus._deserializeJson(deserialized, modelType, hasMany);
+
+                            resolve(deserialized);
                         }
                         else {
                             const retrier = function () { retry(retry, retryCount + 1); }
-                            Bus._onReject(retrier, retryCount, jqXHR, route, reject);
+                            Bus._onReject(retrier, retryCount, data, route, reject);
                         }
                     });
+
+                }).catch(err => {
+                    const retrier = function () { retry(retry, retryCount + 1); }
+                    Bus._onReject(retrier, retryCount, err, route, reject);
+                });
+
             };
 
             const callerRetry: any = caller;
             caller(callerRetry, 0);
-
         });
     }
 
@@ -224,7 +219,6 @@ export class Bus {
             const commmandAny: any = command;
             const type: string = commmandAny["CommandType"];
             const route = Bus._getRoute(type);
-            const isCors = Bus._isCors(route);
 
             console.log("Dispatch: " + type);
 
@@ -237,7 +231,7 @@ export class Bus {
                 MessageAwait: false
             };
 
-            const headers: JQuery.PlainObject<string> = {};
+            const headers: HeadersInit = {};
             headers["Provider-Type"] = type;
             for (const property in Bus._customHeaders) {
                 const value = Bus._customHeaders[property];
@@ -250,25 +244,32 @@ export class Bus {
             }
 
             const caller: any = function (retry: any, retryCount: number) {
-                ajax(route, {
-                    type: "POST",
-                    data: JSON.stringify(postData),
-                    contentType: "application/json; charset=utf-8",
-                    headers: headers,
-                    crossDomain: isCors
-                })
-                    .done(function () {
-                        resolve();
-                    })
-                    .fail(function (jqXHR: any) {
-                        const retrier = function () { retry(retry, retryCount + 1); }
-                        Bus._onReject(retrier, retryCount, jqXHR, route, reject);
+
+                fetch(route, {
+                    method: "POST",
+                    body: JSON.stringify(postData),
+                    headers: headers
+                }).then(res => {
+
+                    res.text().then((data) => {
+                        if (res.status == 200) {
+                            resolve();
+                        }
+                        else {
+                            const retrier = function () { retry(retry, retryCount + 1); }
+                            Bus._onReject(retrier, retryCount, data, route, reject);
+                        }
                     });
+
+                }).catch(err => {
+                    const retrier = function () { retry(retry, retryCount + 1); }
+                    Bus._onReject(retrier, retryCount, err, route, reject);
+                });
+
             };
 
             const callerRetry: any = caller;
             caller(callerRetry, 0);
-
         });
     }
 
@@ -277,7 +278,6 @@ export class Bus {
             const commmandAny: any = command;
             const type: string = commmandAny["CommandType"];
             const route = Bus._getRoute(type);
-            const isCors = Bus._isCors(route);
 
             console.log("DispatchAwait: " + type);
 
@@ -287,7 +287,7 @@ export class Bus {
                 MessageAwait: true
             };
 
-            const headers: JQuery.PlainObject<string> = {};
+            const headers: HeadersInit = {};
             headers["Provider-Type"] = type;
             for (const property in Bus._customHeaders) {
                 const value = Bus._customHeaders[property];
@@ -300,25 +300,32 @@ export class Bus {
             }
 
             const caller: any = function (retry: any, retryCount: number) {
-                ajax(route, {
-                    type: "POST",
-                    data: JSON.stringify(postData),
-                    contentType: "application/json; charset=utf-8",
-                    headers: headers,
-                    crossDomain: isCors
-                })
-                    .done(function () {
-                        resolve();
-                    })
-                    .fail(function (jqXHR: any) {
-                        const retrier = function () { retry(retry, retryCount + 1); }
-                        Bus._onReject(retrier, retryCount, jqXHR, route, reject);
+
+                fetch(route, {
+                    method: "POST",
+                    body: JSON.stringify(postData),
+                    headers: headers
+                }).then(res => {
+
+                    res.text().then((data) => {
+                        if (res.status == 200) {
+                            resolve();
+                        }
+                        else {
+                            const retrier = function () { retry(retry, retryCount + 1); }
+                            Bus._onReject(retrier, retryCount, data, route, reject);
+                        }
                     });
+
+                }).catch(err => {
+                    const retrier = function () { retry(retry, retryCount + 1); }
+                    Bus._onReject(retrier, retryCount, err, route, reject);
+                });
+
             };
 
             const callerRetry: any = caller;
             caller(callerRetry, 0);
-
         });
     }
 }
