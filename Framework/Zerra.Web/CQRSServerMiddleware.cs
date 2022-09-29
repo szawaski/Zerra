@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
@@ -148,7 +149,7 @@ namespace Zerra.Web
                     var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments);
 
                     //Response Header
-                    context.Response.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
+                    //context.Response.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
                     context.Response.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
                     context.Response.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
                     context.Response.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
@@ -251,7 +252,30 @@ namespace Zerra.Web
             catch (Exception ex)
             {
                 _ = Log.ErrorAsync(null, ex);
-                throw;
+
+                context.Response.StatusCode = 500;
+
+                //Response Header
+                context.Response.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
+                context.Response.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
+                context.Response.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+                switch (contentType.Value)
+                {
+                    case ContentType.Bytes:
+                        context.Response.Headers.Add(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeBytes);
+                        break;
+                    case ContentType.Json:
+                        context.Response.Headers.Add(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeJson);
+                        break;
+                    case ContentType.JsonNameless:
+                        context.Response.Headers.Add(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeJsonNameless);
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
+
+                await ContentTypeSerializer.SerializeAsync(contentType.Value, context.Response.Body, ex);
+                await context.Response.Body.FlushAsync();
             }
         }
     }
