@@ -168,7 +168,7 @@ namespace Zerra.Test
 
             string result;
             using (var ms = new MemoryStream(Convert.FromBase64String(encrypted)))
-            using (var decryptionStream = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESwithShift, key, ms, false, false))
+            using (var decryptionStream = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESwithShift, key, ms, false))
             {
                 var msout = new MemoryStream();
                 decryptionStream.CopyTo(msout);
@@ -186,8 +186,8 @@ namespace Zerra.Test
             var serializer = new ByteSerializer();
             var model1 = Factory.GetAllTypesModel();
             using (var ms = new MemoryStream())
-            using (var cryptoStreamWriter = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AES, key, ms, true, false))
-            using (var cryptoStreamReader = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AES, key, ms, false, false))
+            using (var cryptoStreamWriter = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AES, key, ms, true))
+            using (var cryptoStreamReader = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AES, key, ms, false))
             {
                 var expected = serializer.Serialize(model1);
                 serializer.SerializeAsync(cryptoStreamWriter, model1).GetAwaiter().GetResult();
@@ -207,8 +207,8 @@ namespace Zerra.Test
             var serializer = new ByteSerializer();
             var model1 = Factory.GetAllTypesModel();
             using (var ms = new MemoryStream())
-            using (var cryptoStreamWriter = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AESwithShift, key, ms, true, false))
-            using (var cryptoStreamReader = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESwithShift, key, ms, false, false))
+            using (var cryptoStreamWriter = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AESwithShift, key, ms, true))
+            using (var cryptoStreamReader = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESwithShift, key, ms, false))
             {
                 var expected = serializer.Serialize(model1);
                 serializer.SerializeAsync(cryptoStreamWriter, model1).GetAwaiter().GetResult();
