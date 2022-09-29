@@ -274,7 +274,7 @@ namespace Zerra.Web
                         throw new NotImplementedException();
                 }
 
-                await ContentTypeSerializer.SerializeAsync(contentType.Value, context.Response.Body, ex);
+                await ContentTypeSerializer.SerializeExceptionAsync(contentType.Value, context.Response.Body, ex);
                 await context.Response.Body.FlushAsync();
             }
         }
