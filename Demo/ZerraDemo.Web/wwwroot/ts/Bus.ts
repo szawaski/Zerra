@@ -109,9 +109,12 @@ export class Bus {
     private static _getRoute(provider: string): string {
         if (typeof BusRoutes === "undefined")
             throw "BusRoutes not defined";
-        let route = BusRoutes[provider];
+
+        const routes = BusRoutes();
+
+        let route = routes[provider];
         if (typeof route !== "string" || route === null || route === "")
-            route = BusRoutes["Gateway"];
+            route = routes["Gateway"];
         if (typeof route !== "string" || route === null || route === "")
             throw "Provider " + provider + " or 'gateway' not defined in busRoutes";
         return route;
