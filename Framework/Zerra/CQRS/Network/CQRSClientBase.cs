@@ -24,7 +24,7 @@ namespace Zerra.CQRS.Network
             this.serviceUrl = new Uri(serviceUrl);
         }
 
-        private static readonly MethodInfo callRequestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(TcpCQRSClientBase)).MethodDetails.First(x => x.MethodInfo.Name == nameof(TcpCQRSClientBase.CallInternalAsync)).MethodInfo;
+        private static readonly MethodInfo callRequestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(CQRSClientBase)).MethodDetails.First(x => x.MethodInfo.Name == nameof(CQRSClientBase.CallInternalAsync)).MethodInfo;
         private static readonly Type streamType = typeof(Stream);
 
         TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments)
