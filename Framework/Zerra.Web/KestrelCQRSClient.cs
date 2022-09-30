@@ -15,7 +15,7 @@ using System.Net.Http.Headers;
 
 namespace Zerra.Web
 {
-    public class KestrelCQRSClient : TcpCQRSClientBase, IDisposable
+    public class KestrelCQRSClient : CQRSClientBase, IDisposable
     {
         private readonly NetworkType networkType;
         private readonly ContentType contentType;
@@ -30,7 +30,7 @@ namespace Zerra.Web
             this.httpAuthorizer = apiAuthorizer;
             this.client = new HttpClient();
 
-            _ = Log.TraceAsync($"{nameof(CQRS.Network.HttpCQRSClient)} Started For {this.networkType} {this.contentType} {this.endpoint}");
+            _ = Log.TraceAsync($"{nameof(CQRS.Network.HttpCQRSClient)} Started For {this.networkType} {this.contentType} {this.serviceUrl}");
         }
 
         protected override TReturn CallInternal<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments)
