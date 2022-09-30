@@ -7,7 +7,7 @@
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, Azure Service Bus</PackageTags>
     <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-    <Description>Azure Service Bus implementations of client and producer and consumer and events in the CQRS Zerra Framework.</Description>
+    <Description>Azure Service Bus implementations of producer and consumer for commands and events in the CQRS Zerra Framework.</Description>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Version>3.4.2</Version>
