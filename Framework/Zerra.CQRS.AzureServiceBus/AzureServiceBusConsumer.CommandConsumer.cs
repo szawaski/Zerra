@@ -53,8 +53,8 @@ namespace Zerra.CQRS.AzureServiceBus
                 try
                 {
                     var subscription = $"{topic.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}-{applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}";
-                    await AzureServiceBusCommon.EnsureTopic(host, topic);
-                    await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription);
+                    await AzureServiceBusCommon.EnsureTopic(host, topic, false);
+                    await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription, false);
 
                     await using (var receiver = client.CreateReceiver(topic, subscription))
                     {

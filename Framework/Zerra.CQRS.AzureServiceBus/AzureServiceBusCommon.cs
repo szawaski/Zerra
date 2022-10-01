@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Azure.Messaging.ServiceBus.Administration;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using Zerra.Serialization;
@@ -11,6 +12,8 @@ namespace Zerra.CQRS.AzureServiceBus
 {
     internal static class AzureServiceBusCommon
     {
+        public static readonly TimeSpan deleteWhenIdleTimeout = new(24, 0, 0);
+
         public const int TopicMaxLength = 50;
         public const int SubscriptionMaxLength = 50;
 
@@ -28,11 +31,18 @@ namespace Zerra.CQRS.AzureServiceBus
             return serializer.DeserializeAsync<T>(stream);
         }
 
-        public static async Task EnsureTopic(string host, string topic)
+        public static async Task EnsureTopic(string host, string topic, bool deleteWhenIdle)
         {
             var client = new ServiceBusAdministrationClient(host);
+
             if (!await client.TopicExistsAsync(topic))
-                _ = await client.CreateTopicAsync(topic);
+            {
+                var options = new CreateTopicOptions(topic)
+                {
+                    AutoDeleteOnIdle = deleteWhenIdle ? deleteWhenIdleTimeout : TimeSpan.MaxValue
+                };
+                _ = await client.CreateTopicAsync(options);
+            }
         }
 
         public static async Task DeleteTopic(string host, string topic)
@@ -42,11 +52,17 @@ namespace Zerra.CQRS.AzureServiceBus
                 _ = await client.DeleteTopicAsync(topic);
         }
 
-        public static async Task EnsureSubscription(string host, string topic, string subscription)
+        public static async Task EnsureSubscription(string host, string topic, string subscription, bool deleteWhenIdle)
         {
             var client = new ServiceBusAdministrationClient(host);
             if (!await client.SubscriptionExistsAsync(topic, subscription))
-                _ = await client.CreateSubscriptionAsync(topic, subscription);
+            {
+                var options = new CreateSubscriptionOptions(topic, subscription)
+                {
+                    AutoDeleteOnIdle = deleteWhenIdle ? deleteWhenIdleTimeout : TimeSpan.MaxValue
+                };
+                _ = await client.CreateSubscriptionAsync(options);
+            }
         }
 
         public static async Task DeleteSubscription(string host, string topic, string subscription)

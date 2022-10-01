@@ -61,8 +61,8 @@ namespace Zerra.CQRS.AzureServiceBus
                 {
                     if (!listenerStarted)
                     {
-                        await AzureServiceBusCommon.EnsureTopic(host, ackTopic);
-                        await AzureServiceBusCommon.EnsureSubscription(host, ackTopic, ackSubscription);
+                        await AzureServiceBusCommon.EnsureTopic(host, ackTopic, true);
+                        await AzureServiceBusCommon.EnsureSubscription(host, ackTopic, ackSubscription, true);
 
                         _ = Task.Run(AckListeningThread);
                         listenerStarted = true;
