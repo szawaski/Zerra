@@ -122,10 +122,7 @@ namespace Zerra
 
             if (args != null && args.Length > 0)
                 _ = builder.AddCommandLine(args);
-
-            if (entryAssembly != null)
-                _ = builder.AddUserSecrets(entryAssembly, true);
-
+            
             build?.Invoke(builder);
 
             configuration = builder.Build();
