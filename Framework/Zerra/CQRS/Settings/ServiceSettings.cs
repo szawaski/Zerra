@@ -28,6 +28,7 @@ namespace Zerra.CQRS.Settings
         public void SetServiceEncryptionKey(string serviceName, string encryptionKey)
         {
             var service = this.Services.FirstOrDefault(x => x.Name == serviceName);
+            service.EncryptionKey = encryptionKey;
         }
     }
 }
