@@ -121,7 +121,7 @@ export class Bus {
     }
 
     private static _onReject(retry: () => void, retryCount: number, responseText: string, url: string, reject: (reason?: any) => void): void {
-        let errorText;
+        let errorText: string;
         if (responseText) {
             errorText = responseText;
             console.log("Error: " + errorText);
@@ -236,6 +236,8 @@ export class Bus {
 
             const headers: HeadersInit = {};
             headers["Provider-Type"] = type;
+            headers["Content-Type"] = "application/json; charset=utf-8";
+            headers["Accept"] = "application/json; charset=utf-8";
             for (const property in Bus._customHeaders) {
                 const value = Bus._customHeaders[property];
                 if (value !== null) {
@@ -292,6 +294,8 @@ export class Bus {
 
             const headers: HeadersInit = {};
             headers["Provider-Type"] = type;
+            headers["Content-Type"] = "application/json; charset=utf-8";
+            headers["Accept"] = "application/json; charset=utf-8";
             for (const property in Bus._customHeaders) {
                 const value = Bus._customHeaders[property];
                 if (value !== null) {
