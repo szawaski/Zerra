@@ -52,15 +52,13 @@ namespace Zerra.CQRS.Network
                 throw new ArgumentException($"Provider {data.ProviderType} is not an interface type");
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(providerType);
-            var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute) && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute);
+            var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute);
 
             MethodBase method = null;
             foreach (var methodInfo in typeDetail.MethodDetails)
             {
                 if (methodInfo.MethodInfo.Name == data.ProviderMethod && methodInfo.ParametersInfo.Count == (data.ProviderArguments != null ? data.ProviderArguments.Length : 0))
                 {
-                    if (!exposed && (!methodInfo.Attributes.Any(x => x is ServiceExposedAttribute) || methodInfo.Attributes.Any(x => x is ServiceBlockedAttribute)))
-                        throw new Exception($"Method {data.ProviderType}.{data.ProviderMethod} is not exposed");
                     method = methodInfo.MethodInfo;
                     break;
                 }
@@ -79,8 +77,7 @@ namespace Zerra.CQRS.Network
             if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
                 throw new Exception($"Type {data.MessageType} is not a command");
 
-            var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute)
-                && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute);
+            var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute);
             if (!exposed)
                 throw new Exception($"Command {data.MessageType} is not exposed");
 

@@ -27,8 +27,8 @@ namespace ZerraDemo.Common
             var serviceCreator = new TcpServiceCreator();
 
             //Option1B: Enable this for Http which can be access directly from a front end
-            //var authorizor = new DemoCookieApiAuthorizer();
-            //var serviceCreator = new HttpServiceCreator(authorizor, null);
+            //var authorizer = new DemoCookieApiAuthorizer();
+            //var serviceCreator = new HttpServiceCreator(authorizer, null);
 
             //Option1C: Enable this using RabbitMQ for event streaming commands/events
             //var serviceCreator = new RabbitMQServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal);

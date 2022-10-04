@@ -23,12 +23,12 @@ namespace Zerra.Web
         private readonly ICQRSAuthorizer authorizer;
         private readonly HttpClient client;
 
-        public KestrelCQRSClient(ContentType contentType, string serviceUrl, SymmetricConfig symmetricConfig, ICQRSAuthorizer apiAuthorizer)
+        public KestrelCQRSClient(ContentType contentType, string serviceUrl, SymmetricConfig symmetricConfig, ICQRSAuthorizer authorizer)
             : base(serviceUrl)
         {
             this.contentType = contentType;
             this.symmetricConfig = symmetricConfig;
-            this.authorizer = apiAuthorizer;
+            this.authorizer = authorizer;
             this.client = new HttpClient();
 
             _ = Log.TraceAsync($"{nameof(CQRS.Network.HttpCQRSClient)} Started For {this.contentType} {this.serviceUrl}");
@@ -65,7 +65,7 @@ namespace Zerra.Web
                         FinalBlockStream requestBodyCryptoStream = null;
                         try
                         {
-                            requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
+                            requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true, true);
                             ContentTypeSerializer.Serialize(contentType, requestBodyCryptoStream, data);
                             requestBodyCryptoStream.FlushFinalBlock();
                         }
@@ -78,7 +78,6 @@ namespace Zerra.Web
                     {
                         ContentTypeSerializer.Serialize(contentType, requestBodyStream, data);
                         requestBodyStream.Flush();
-                        requestBodyStream.Dispose();
                     }
                 });
 
@@ -118,7 +117,7 @@ namespace Zerra.Web
                 }
 
                 stopwatch.Stop();
-                _ = Log.TraceAsync($"{nameof(CQRS.Network.HttpCQRSClient)} Query: {interfaceType.GetNiceName()}.{data.ProviderMethod} {stopwatch.ElapsedMilliseconds}");
+                _ = Log.TraceAsync($"{nameof(KestrelCQRSClient)} Query: {interfaceType.GetNiceName()}.{data.ProviderMethod} {stopwatch.ElapsedMilliseconds}");
 
                 if (isStream)
                 {
@@ -173,7 +172,7 @@ namespace Zerra.Web
                         FinalBlockStream requestBodyCryptoStream = null;
                         try
                         {
-                            requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
+                            requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true, true);
                             await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
 #if NET5_0_OR_GREATER
                             await requestBodyCryptoStream.FlushFinalBlockAsync();
@@ -197,11 +196,6 @@ namespace Zerra.Web
                     {
                         await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data);
                         await requestBodyStream.FlushAsync();
-#if NETSTANDARD2_0
-                        requestBodyStream.Dispose();
-#else
-                        await requestBodyStream.DisposeAsync();
-#endif
                     }
                 });
 
@@ -242,7 +236,7 @@ namespace Zerra.Web
                 }
 
                 stopwatch.Stop();
-                _ = Log.TraceAsync($"{nameof(CQRS.Network.HttpCQRSClient)} Query: {interfaceType.GetNiceName()}.{data.ProviderMethod} {stopwatch.ElapsedMilliseconds}");
+                _ = Log.TraceAsync($"{nameof(KestrelCQRSClient)} Query: {interfaceType.GetNiceName()}.{data.ProviderMethod} {stopwatch.ElapsedMilliseconds}");
 
                 if (isStream)
                 {
@@ -305,9 +299,38 @@ namespace Zerra.Web
             Stream responseBodyStream = null;
             try
             {
-                request.Content = new WriteStreamContent(async (stream) =>
+                request.Content = new WriteStreamContent(async (requestBodyStream) =>
                 {
-                    await ContentTypeSerializer.SerializeAsync(contentType, stream, data);
+                    if (symmetricConfig != null)
+                    {
+                        FinalBlockStream requestBodyCryptoStream = null;
+                        try
+                        {
+                            requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true, true);
+                            await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
+#if NET5_0_OR_GREATER
+                            await requestBodyCryptoStream.FlushFinalBlockAsync();
+#else
+                            requestBodyCryptoStream.FlushFinalBlock();
+#endif
+                        }
+                        finally
+                        {
+                            if (requestBodyCryptoStream != null)
+                            {
+#if NETSTANDARD2_0
+                                requestBodyCryptoStream.Dispose();
+#else
+                                await requestBodyCryptoStream.DisposeAsync();
+#endif
+                            }
+                        }
+                    }
+                    else
+                    {
+                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data);
+                        requestBodyStream.Flush();
+                    }
                 });
 
                 request.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
@@ -349,7 +372,7 @@ namespace Zerra.Web
                 await responseBodyStream.DisposeAsync();
 #endif
                 stopwatch.Stop();
-                _ = Log.TraceAsync($"{nameof(CQRS.Network.HttpCQRSClient)} Sent: {messageTypeName} {stopwatch.ElapsedMilliseconds}");
+                _ = Log.TraceAsync($"{nameof(KestrelCQRSClient)} Sent: {messageTypeName} {stopwatch.ElapsedMilliseconds}");
             }
             catch
             {

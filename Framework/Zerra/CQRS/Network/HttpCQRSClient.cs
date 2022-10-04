@@ -19,11 +19,11 @@ namespace Zerra.CQRS.Network
         private readonly ContentType contentType;
         private readonly ICQRSAuthorizer authorizer;
 
-        public HttpCQRSClient(ContentType contentType, string serviceUrl, ICQRSAuthorizer apiAuthorizer)
+        public HttpCQRSClient(ContentType contentType, string serviceUrl, ICQRSAuthorizer authorizer)
             : base(serviceUrl)
         {
             this.contentType = contentType;
-            this.authorizer = apiAuthorizer;
+            this.authorizer = authorizer;
 
             _ = Log.TraceAsync($"{nameof(HttpCQRSClient)} Started For {this.contentType} {this.endpoint}");
         }

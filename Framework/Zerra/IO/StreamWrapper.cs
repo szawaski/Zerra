@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Zerra.IO
 {
-    public abstract class StreamWrapper : Stream
+    public class StreamWrapper : Stream
     {
         protected readonly Stream stream;
         protected readonly bool leaveOpen;

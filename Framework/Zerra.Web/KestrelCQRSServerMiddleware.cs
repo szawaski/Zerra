@@ -20,13 +20,13 @@ using Zerra.Reflection;
 
 namespace Zerra.Web
 {
-    public class CQRSServerMiddleware
+    public class KestrelCQRSServerMiddleware
     {
         private readonly RequestDelegate requestDelegate;
         private readonly SymmetricConfig symmetricConfig;
-        private readonly CQRSServerMiddlewareSettings settings;
+        private readonly KestrelCQRSServerLinkedSettings settings;
 
-        public CQRSServerMiddleware(RequestDelegate requestDelegate, SymmetricConfig symmetricConfig, CQRSServerMiddlewareSettings settings)
+        public KestrelCQRSServerMiddleware(RequestDelegate requestDelegate, SymmetricConfig symmetricConfig, KestrelCQRSServerLinkedSettings settings)
         {
             this.requestDelegate = requestDelegate;
             this.symmetricConfig = symmetricConfig;
@@ -93,14 +93,14 @@ namespace Zerra.Web
                 {
                     if (settings.AllowOrigins.Contains(originRequestHeader))
                     {
-                        _ = Log.TraceAsync($"{nameof(CQRSServerMiddleware)} Origin Not Allowed {originRequestHeader}");
+                        _ = Log.TraceAsync($"{nameof(KestrelCQRSServerMiddleware)} Origin Not Allowed {originRequestHeader}");
                         context.Response.StatusCode = 401;
                         return;
                     }
                 }
             }
 
-            _ = Log.TraceAsync($"{nameof(CQRSServerMiddleware)} Received {providerTypeRequestHeaderValue}");
+            _ = Log.TraceAsync($"{nameof(KestrelCQRSServerMiddleware)} Received {providerTypeRequestHeaderValue}");
 
             try
             {
@@ -108,7 +108,7 @@ namespace Zerra.Web
                 if (symmetricConfig != null)
                     body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
 
-                var data = await ContentTypeSerializer.DeserializeAsync<CQRSRequestData>(contentType.Value, context.Request.Body);
+                var data = await ContentTypeSerializer.DeserializeAsync<CQRSRequestData>(contentType.Value, body);
 
                 //Authorize
                 //------------------------------------------------------------------------------------------------------------
@@ -140,7 +140,7 @@ namespace Zerra.Web
                     if (!settings.InterfaceTypes.Contains(providerType))
                         throw new Exception($"Unhandled Provider Type {providerType.FullName}");
 
-                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute) && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute);
+                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute);
                     if (!exposed)
                         throw new Exception($"Provider {data.MessageType} is not exposed");
 
@@ -290,7 +290,7 @@ namespace Zerra.Web
                     if (!settings.CommandTypes.Contains(commandType))
                         throw new Exception($"Unhandled Command Type {commandType.FullName}");
 
-                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute) && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute);
+                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute);
                     if (!exposed)
                         throw new Exception($"Command {data.MessageType} is not exposed");
 

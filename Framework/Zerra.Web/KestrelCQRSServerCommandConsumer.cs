@@ -9,10 +9,10 @@ using Zerra.CQRS;
 
 namespace Zerra.Web
 {
-    public class CQRSServerMiddlewareCommandConsumer : ICommandConsumer
+    public class KestrelCQRSServerCommandConsumer : ICommandConsumer
     {
-        private readonly CQRSServerMiddlewareSettings settings;
-        public CQRSServerMiddlewareCommandConsumer(CQRSServerMiddlewareSettings settings)
+        private readonly KestrelCQRSServerLinkedSettings settings;
+        public KestrelCQRSServerCommandConsumer(KestrelCQRSServerLinkedSettings settings)
         {
             this.settings = settings;
         }

@@ -4,7 +4,6 @@
 
 using Microsoft.AspNetCore.Builder;
 using System;
-using Zerra.Collections;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.CQRS.Settings;
@@ -14,15 +13,13 @@ namespace Zerra.Web
 {
     public class KestrelServiceCreator : IServiceCreator
     {
-        private static readonly ConcurrentFactoryDictionary<string, HttpCQRSServer> servers = new();
-
         private readonly IApplicationBuilder applicationBuilder;
-        private readonly CQRSServerMiddlewareSettings settings;
+        private readonly KestrelCQRSServerLinkedSettings settings;
         private bool middlewareAdded;
         public KestrelServiceCreator(IApplicationBuilder applicationBuilder = null, string route = null, ContentType contentType = ContentType.Json, ICQRSAuthorizer authorizer = null)
         {
             this.applicationBuilder = applicationBuilder;
-            this.settings = new CQRSServerMiddlewareSettings()
+            this.settings = new KestrelCQRSServerLinkedSettings()
             {
                 Route = route,
                 Authorizer = authorizer,
@@ -39,14 +36,14 @@ namespace Zerra.Web
         public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
             if (applicationBuilder == null)
-                throw new NotSupportedException($"{nameof(KestrelServiceCreator)} needs {nameof(IApplicationBuilder)} for {nameof(CreateEventProducer)}");
+                throw new NotSupportedException($"{nameof(KestrelServiceCreator)} needs {nameof(IApplicationBuilder)} for {nameof(CreateCommandConsumer)}");
 
             if (!middlewareAdded)
             {
                 middlewareAdded = true;
-                _ = applicationBuilder.UseMiddleware<CQRSServerMiddleware>(symmetricConfig, settings);
+                _ = applicationBuilder.UseMiddleware<KestrelCQRSServerMiddleware>(symmetricConfig, settings);
             }
-            return new CQRSServerMiddlewareCommandConsumer(settings);
+            return new KestrelCQRSServerCommandConsumer(settings);
         }
 
         public IEventProducer CreateEventProducer(string serviceUrl, SymmetricConfig symmetricConfig)
@@ -72,9 +69,9 @@ namespace Zerra.Web
             if (!middlewareAdded)
             {
                 middlewareAdded = true;
-                _ = applicationBuilder.UseMiddleware<CQRSServerMiddleware>(symmetricConfig, settings);
+                _ = applicationBuilder.UseMiddleware<KestrelCQRSServerMiddleware>(symmetricConfig, settings);
             }
-            return new CQRSServerMiddlewareQueryServer(settings);
+            return new KestrelCQRSServerQueryServer(settings);
         }
     }
 }

@@ -115,7 +115,7 @@ namespace Zerra.CQRS.Network
                     if (!this.interfaceTypes.Contains(providerType))
                         throw new Exception($"Unhandled Provider Type {providerType.FullName}");
 
-                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute) && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute);
+                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute);
                     if (!exposed)
                         throw new Exception($"Provider {data.MessageType} is not exposed");
 
@@ -224,7 +224,7 @@ namespace Zerra.CQRS.Network
                     if (!this.commandTypes.Contains(commandType))
                         throw new Exception($"Unhandled Command Type {commandType.FullName}");
 
-                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute) && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute);
+                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute);
                     if (!exposed)
                         throw new Exception($"Command {data.MessageType} is not exposed");
 

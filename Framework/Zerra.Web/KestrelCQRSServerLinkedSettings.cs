@@ -11,7 +11,7 @@ using Zerra.CQRS.Network;
 
 namespace Zerra.Web
 {
-    public class CQRSServerMiddlewareSettings
+    public class KestrelCQRSServerLinkedSettings
     {
         public List<Type> InterfaceTypes { get; private set; }
         public List<Type> CommandTypes { get; private set; }
@@ -55,7 +55,7 @@ namespace Zerra.Web
             }
         }
 
-        public CQRSServerMiddlewareSettings()
+        public KestrelCQRSServerLinkedSettings()
         {
             InterfaceTypes = new List<Type>();
             CommandTypes = new List<Type>();
