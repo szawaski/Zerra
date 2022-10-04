@@ -16,8 +16,6 @@ using Zerra.Identity.TokenManagers;
 using System.Text;
 using System.Security.Cryptography;
 using Zerra.Encryption;
-using System.Collections;
-using System.Collections.Generic;
 using System.Net.Http;
 
 namespace Zerra.Identity.Consumers

@@ -4,7 +4,6 @@
 
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 
 namespace Zerra.Identity.OpenID.Documents
 {

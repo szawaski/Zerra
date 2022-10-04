@@ -3,8 +3,6 @@
 // Licensed to you under the MIT license
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Headers;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
@@ -114,10 +112,10 @@ namespace Zerra.Web
 
                 //Authorize
                 //------------------------------------------------------------------------------------------------------------
-                if (settings.HttpAuthorizer != null)
+                if (settings.Authorizer != null)
                 {
                     var headers = context.Request.Headers.ToDictionary<KeyValuePair<string, StringValues>, string, IList<string>>(x => x.Key, x => x.Value.ToArray());
-                    settings.HttpAuthorizer.Authorize(headers);
+                    settings.Authorizer.Authorize(headers);
                 }
                 else
                 {
@@ -151,7 +149,6 @@ namespace Zerra.Web
                     var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments);
 
                     //Response Header
-                    //context.Response.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
                     context.Response.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
                     context.Response.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
                     context.Response.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");

@@ -6,7 +6,6 @@ using Zerra.Identity.Cryptography;
 using Zerra.Identity.Saml2.Bindings;
 using System;
 using System.Linq;
-using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml;
 using System.IO;

@@ -4,8 +4,6 @@
 
 using Newtonsoft.Json.Linq;
 using System.IO;
-using System.Net;
-using System.Net.Http;
 
 namespace Zerra.Identity.OpenID.Bindings
 {

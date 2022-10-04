@@ -6,8 +6,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.IO;
-using System.Net;
-using System.Net.Http;
 using Zerra.Identity.Cryptography;
 using Zerra.Identity.Jwt;
 

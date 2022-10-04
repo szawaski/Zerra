@@ -20,15 +20,15 @@ namespace Zerra.Web
     {
         private readonly ContentType contentType;
         private readonly SymmetricConfig symmetricConfig;
-        private readonly IHttpAuthorizer httpAuthorizer;
+        private readonly ICQRSAuthorizer authorizer;
         private readonly HttpClient client;
 
-        public KestrelCQRSClient(ContentType contentType, string serviceUrl, SymmetricConfig symmetricConfig, IHttpAuthorizer apiAuthorizer)
+        public KestrelCQRSClient(ContentType contentType, string serviceUrl, SymmetricConfig symmetricConfig, ICQRSAuthorizer apiAuthorizer)
             : base(serviceUrl)
         {
             this.contentType = contentType;
             this.symmetricConfig = symmetricConfig;
-            this.httpAuthorizer = apiAuthorizer;
+            this.authorizer = apiAuthorizer;
             this.client = new HttpClient();
 
             _ = Log.TraceAsync($"{nameof(CQRS.Network.HttpCQRSClient)} Started For {this.contentType} {this.serviceUrl}");
@@ -44,8 +44,8 @@ namespace Zerra.Web
             data.AddProviderArguments(arguments);
 
             IDictionary<string, IList<string>> authHeaders = null;
-            if (httpAuthorizer != null)
-                authHeaders = httpAuthorizer.BuildAuthHeaders();
+            if (authorizer != null)
+                authHeaders = authorizer.BuildAuthHeaders();
             else
                 data.AddClaims();
 
@@ -152,8 +152,8 @@ namespace Zerra.Web
             data.AddProviderArguments(arguments);
 
             IDictionary<string, IList<string>> authHeaders = null;
-            if (httpAuthorizer != null)
-                authHeaders = httpAuthorizer.BuildAuthHeaders();
+            if (authorizer != null)
+                authHeaders = authorizer.BuildAuthHeaders();
             else
                 data.AddClaims();
 
@@ -291,8 +291,8 @@ namespace Zerra.Web
             };
 
             IDictionary<string, IList<string>> authHeaders = null;
-            if (httpAuthorizer != null)
-                authHeaders = httpAuthorizer.BuildAuthHeaders();
+            if (authorizer != null)
+                authHeaders = authorizer.BuildAuthHeaders();
             else
                 data.AddClaims();
 

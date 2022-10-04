@@ -4,7 +4,6 @@
 
 using Newtonsoft.Json.Linq;
 using System.IO;
-using System.Net;
 
 namespace Zerra.Identity.OAuth2.Bindings
 {

@@ -6,8 +6,6 @@ using Zerra.Identity.OpenID.Bindings;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
 using System.IO;
 
 namespace Zerra.Identity.OpenID

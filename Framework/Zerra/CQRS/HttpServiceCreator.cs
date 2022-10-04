@@ -15,23 +15,23 @@ namespace Zerra.CQRS
         private static readonly ConcurrentFactoryDictionary<string, HttpCQRSServer> servers = new();
 
         private readonly ContentType contentType;
-        private readonly IHttpAuthorizer httpAuthorizer;
+        private readonly ICQRSAuthorizer authorizer;
         private readonly string[] allowOrigins;
-        public HttpServiceCreator(ContentType contentType = ContentType.Json, IHttpAuthorizer httpAuthorizer = null, string[] allowOrigins = null)
+        public HttpServiceCreator(ContentType contentType = ContentType.Json, ICQRSAuthorizer authorizer = null, string[] allowOrigins = null)
         {
             this.contentType = contentType;
-            this.httpAuthorizer = httpAuthorizer;
+            this.authorizer = authorizer;
             this.allowOrigins = allowOrigins;
         }
 
         public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return new HttpCQRSClient(contentType, serviceUrl, httpAuthorizer);
+            return new HttpCQRSClient(contentType, serviceUrl, authorizer);
         }
 
         public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return servers.GetOrAdd(serviceUrl, (url) => HttpCQRSServer.CreateDefault(url, httpAuthorizer, allowOrigins));
+            return servers.GetOrAdd(serviceUrl, (url) => HttpCQRSServer.CreateDefault(url, authorizer, allowOrigins));
         }
 
         public IEventProducer CreateEventProducer(string serviceUrl, SymmetricConfig symmetricConfig)
@@ -46,12 +46,12 @@ namespace Zerra.CQRS
 
         public IQueryClient CreateQueryClient(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return new HttpCQRSClient(contentType, serviceUrl, httpAuthorizer);
+            return new HttpCQRSClient(contentType, serviceUrl, authorizer);
         }
 
         public IQueryServer CreateQueryServer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return servers.GetOrAdd(serviceUrl, (url) => HttpCQRSServer.CreateDefault(url, httpAuthorizer, allowOrigins));
+            return servers.GetOrAdd(serviceUrl, (url) => HttpCQRSServer.CreateDefault(url, authorizer, allowOrigins));
         }
     }
 }

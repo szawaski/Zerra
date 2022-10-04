@@ -17,13 +17,13 @@ namespace Zerra.CQRS.Network
     public class HttpCQRSClient : TcpCQRSClientBase
     {
         private readonly ContentType contentType;
-        private readonly IHttpAuthorizer httpAuthorizer;
+        private readonly ICQRSAuthorizer authorizer;
 
-        public HttpCQRSClient(ContentType contentType, string serviceUrl, IHttpAuthorizer apiAuthorizer)
+        public HttpCQRSClient(ContentType contentType, string serviceUrl, ICQRSAuthorizer apiAuthorizer)
             : base(serviceUrl)
         {
             this.contentType = contentType;
-            this.httpAuthorizer = apiAuthorizer;
+            this.authorizer = apiAuthorizer;
 
             _ = Log.TraceAsync($"{nameof(HttpCQRSClient)} Started For {this.contentType} {this.endpoint}");
         }
@@ -38,8 +38,8 @@ namespace Zerra.CQRS.Network
             data.AddProviderArguments(arguments);
 
             IDictionary<string, IList<string>> authHeaders = null;
-            if (httpAuthorizer != null)
-                authHeaders = httpAuthorizer.BuildAuthHeaders();
+            if (authorizer != null)
+                authHeaders = authorizer.BuildAuthHeaders();
             else
                 data.AddClaims();
 
@@ -150,8 +150,8 @@ namespace Zerra.CQRS.Network
             data.AddProviderArguments(arguments);
 
             IDictionary<string, IList<string>> authHeaders = null;
-            if (httpAuthorizer != null)
-                authHeaders = httpAuthorizer.BuildAuthHeaders();
+            if (authorizer != null)
+                authHeaders = authorizer.BuildAuthHeaders();
             else
                 data.AddClaims();
 
@@ -298,8 +298,8 @@ namespace Zerra.CQRS.Network
             };
 
             IDictionary<string, IList<string>> authHeaders = null;
-            if (httpAuthorizer != null)
-                authHeaders = httpAuthorizer.BuildAuthHeaders();
+            if (authorizer != null)
+                authHeaders = authorizer.BuildAuthHeaders();
             else
                 data.AddClaims();
 
