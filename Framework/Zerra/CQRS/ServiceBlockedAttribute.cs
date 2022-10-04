@@ -9,13 +9,8 @@ namespace Zerra.CQRS
     [AttributeUsage(AttributeTargets.Method)]
     public class ServiceBlockedAttribute : Attribute
     {
-        public NetworkType? NetworkType { get; private set; }
         public ServiceBlockedAttribute()
         {
-        }
-        public ServiceBlockedAttribute(NetworkType networkType)
-        {
-            this.NetworkType = networkType;
         }
     }
 }

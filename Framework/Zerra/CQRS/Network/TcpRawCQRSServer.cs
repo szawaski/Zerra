@@ -17,16 +17,14 @@ namespace Zerra.CQRS.Network
 {
     public sealed class TcpRawCQRSServer : TcpCQRSServerBase
     {
-        private readonly NetworkType networkType;
         private readonly ContentType? contentType;
-        private readonly SymmetricConfig encryptionConfig;
+        private readonly SymmetricConfig symmetricConfig;
 
-        public TcpRawCQRSServer(NetworkType networkType, ContentType? contentType, string serverUrl, SymmetricConfig encryptionConfig)
+        public TcpRawCQRSServer(ContentType? contentType, string serverUrl, SymmetricConfig symmetricConfig)
             : base(serverUrl)
         {
-            this.networkType = networkType;
             this.contentType = contentType;
-            this.encryptionConfig = encryptionConfig;
+            this.symmetricConfig = symmetricConfig;
         }
 
         protected override async void Handle(TcpClient client, CancellationToken cancellationToken)
@@ -81,15 +79,8 @@ namespace Zerra.CQRS.Network
 
                 requestBodyStream = new TcpRawProtocolBodyStream(stream, requestHeader.BodyStartBuffer, true);
 
-                if (encryptionConfig != null)
-                {
-                    requestBodyStream = networkType switch
-                    {
-                        NetworkType.Internal => SymmetricEncryptor.Decrypt(encryptionConfig, requestBodyStream, false),
-                        NetworkType.Api => throw new NotSupportedException($"Encryption Not Supported for Network Type {EnumName.GetName(networkType)}"),
-                        _ => throw new NotImplementedException(),
-                    };
-                }
+                if (symmetricConfig != null)
+                    requestBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, requestBodyStream, false);
 
                 var data = await ContentTypeSerializer.DeserializeAsync<CQRSRequestData>(requestHeader.ContentType.Value, requestBodyStream);
                 if (data == null)
@@ -104,23 +95,14 @@ namespace Zerra.CQRS.Network
 
                 //Authroize
                 //------------------------------------------------------------------------------------------------------------
-                switch (networkType)
+                if (data.Claims != null)
                 {
-                    case NetworkType.Internal:
-                        if (data.Claims != null)
-                        {
-                            var claimsIdentity = new ClaimsIdentity(data.Claims.Select(x => new Claim(x.Type, x.Value)), "CQRS");
-                            Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
-                        }
-                        else
-                        {
-                            Thread.CurrentPrincipal = null;
-                        }
-                        break;
-                    case NetworkType.Api:
-                        break;
-                    default:
-                        throw new NotImplementedException();
+                    var claimsIdentity = new ClaimsIdentity(data.Claims.Select(x => new Claim(x.Type, x.Value)), "CQRS");
+                    Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
+                }
+                else
+                {
+                    Thread.CurrentPrincipal = null;
                 }
 
                 //Process and Respond
@@ -133,10 +115,9 @@ namespace Zerra.CQRS.Network
                     if (!this.interfaceTypes.Contains(providerType))
                         throw new Exception($"Unhandled Provider Type {providerType.FullName}");
 
-                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType))
-                        && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType));
+                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute) && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute);
                     if (!exposed)
-                        throw new Exception($"Provider {data.MessageType} is not exposed to {networkType}");
+                        throw new Exception($"Provider {data.MessageType} is not exposed");
 
                     _ = Log.TraceAsync($"Received Call: {providerType.GetNiceName()}.{data.ProviderMethod}");
 
@@ -156,14 +137,9 @@ namespace Zerra.CQRS.Network
                     int bytesRead;
                     if (result.Stream != null)
                     {
-                        if (encryptionConfig != null)
+                        if (symmetricConfig != null)
                         {
-                            responseBodyCryptoStream = networkType switch
-                            {
-                                NetworkType.Internal => SymmetricEncryptor.Encrypt(encryptionConfig, responseBodyStream, true),
-                                NetworkType.Api => throw new NotSupportedException($"Encryption Not Supported for Network Type {EnumName.GetName(networkType)}"),
-                                _ => throw new NotImplementedException(),
-                            };
+                            responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
 
 #if NETSTANDARD2_0
                             while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length, cancellationToken)) > 0)
@@ -206,14 +182,9 @@ namespace Zerra.CQRS.Network
                     }
                     else
                     {
-                        if (encryptionConfig != null)
+                        if (symmetricConfig != null)
                         {
-                            responseBodyCryptoStream = networkType switch
-                            {
-                                NetworkType.Internal => SymmetricEncryptor.Encrypt(encryptionConfig, responseBodyStream, true),
-                                NetworkType.Api => throw new NotSupportedException($"Encryption Not Supported for Network Type {EnumName.GetName(networkType)}"),
-                                _ => throw new NotImplementedException(),
-                            };
+                            responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
 
                             await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, result.Model);
 #if NET5_0_OR_GREATER
@@ -253,10 +224,9 @@ namespace Zerra.CQRS.Network
                     if (!this.commandTypes.Contains(commandType))
                         throw new Exception($"Unhandled Command Type {commandType.FullName}");
 
-                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType))
-                        && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType));
+                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute) && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute);
                     if (!exposed)
-                        throw new Exception($"Command {data.MessageType} is not exposed to {networkType}");
+                        throw new Exception($"Command {data.MessageType} is not exposed");
 
                     var command = (ICommand)System.Text.Json.JsonSerializer.Deserialize(data.MessageData, commandType);
 
@@ -340,14 +310,10 @@ namespace Zerra.CQRS.Network
 
                         //Response Body
                         responseBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
-                        if (encryptionConfig != null)
+                        if (symmetricConfig != null)
                         {
-                            responseBodyCryptoStream = networkType switch
-                            {
-                                NetworkType.Internal => SymmetricEncryptor.Encrypt(encryptionConfig, responseBodyStream, true),
-                                NetworkType.Api => throw new NotSupportedException($"Encryption Not Supported for Network Type {EnumName.GetName(networkType)}"),
-                                _ => throw new NotImplementedException(),
-                            };
+                            responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
+                            
                             await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, ex);
 #if NET5_0_OR_GREATER
                             await responseBodyCryptoStream.FlushFinalBlockAsync();
@@ -427,9 +393,9 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        public static TcpRawCQRSServer CreateDefault(string serverUrl, SymmetricConfig encryptionConfig)
+        public static TcpRawCQRSServer CreateDefault(string serverUrl, SymmetricConfig symmetricConfig)
         {
-            return new TcpRawCQRSServer(NetworkType.Internal, ContentType.Bytes, serverUrl, encryptionConfig);
+            return new TcpRawCQRSServer(ContentType.Bytes, serverUrl, symmetricConfig);
         }
     }
 }

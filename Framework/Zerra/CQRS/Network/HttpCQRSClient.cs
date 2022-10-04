@@ -16,18 +16,16 @@ namespace Zerra.CQRS.Network
 {
     public class HttpCQRSClient : TcpCQRSClientBase
     {
-        private readonly NetworkType networkType;
         private readonly ContentType contentType;
         private readonly IHttpAuthorizer httpAuthorizer;
 
-        public HttpCQRSClient(NetworkType networkType, ContentType contentType, string serviceUrl, IHttpAuthorizer apiAuthorizer)
+        public HttpCQRSClient(ContentType contentType, string serviceUrl, IHttpAuthorizer apiAuthorizer)
             : base(serviceUrl)
         {
-            this.networkType = networkType;
             this.contentType = contentType;
             this.httpAuthorizer = apiAuthorizer;
 
-            _ = Log.TraceAsync($"{nameof(HttpCQRSClient)} Started For {this.networkType} {this.contentType} {this.endpoint}");
+            _ = Log.TraceAsync($"{nameof(HttpCQRSClient)} Started For {this.contentType} {this.endpoint}");
         }
 
         protected override TReturn CallInternal<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments)
@@ -40,18 +38,10 @@ namespace Zerra.CQRS.Network
             data.AddProviderArguments(arguments);
 
             IDictionary<string, IList<string>> authHeaders = null;
-            switch (networkType)
-            {
-                case NetworkType.Internal:
-                    data.AddClaims();
-                    break;
-                case NetworkType.Api:
-                    if (httpAuthorizer != null)
-                        authHeaders = httpAuthorizer.BuildAuthHeaders();
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
+            if (httpAuthorizer != null)
+                authHeaders = httpAuthorizer.BuildAuthHeaders();
+            else
+                data.AddClaims();
 
             var stopwatch = Stopwatch.StartNew();
 
@@ -70,7 +60,7 @@ namespace Zerra.CQRS.Network
                 stream = client.GetStream();
 
                 //Request Header
-                
+
                 var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUrl, null, data.ProviderType, contentType, authHeaders);
 #if NETSTANDARD2_0
                 stream.Write(bufferOwner, 0, requestHeaderLength);
@@ -160,18 +150,10 @@ namespace Zerra.CQRS.Network
             data.AddProviderArguments(arguments);
 
             IDictionary<string, IList<string>> authHeaders = null;
-            switch (networkType)
-            {
-                case NetworkType.Internal:
-                    data.AddClaims();
-                    break;
-                case NetworkType.Api:
-                    if (httpAuthorizer != null)
-                        authHeaders = httpAuthorizer.BuildAuthHeaders();
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
+            if (httpAuthorizer != null)
+                authHeaders = httpAuthorizer.BuildAuthHeaders();
+            else
+                data.AddClaims();
 
             var stopwatch = Stopwatch.StartNew();
 
@@ -201,7 +183,7 @@ namespace Zerra.CQRS.Network
                 await stream.WriteAsync(buffer.Slice(0, requestHeaderLength));
 #endif
 
-                
+
 
                 requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
 
@@ -316,18 +298,10 @@ namespace Zerra.CQRS.Network
             };
 
             IDictionary<string, IList<string>> authHeaders = null;
-            switch (networkType)
-            {
-                case NetworkType.Internal:
-                    data.AddClaims();
-                    break;
-                case NetworkType.Api:
-                    if (httpAuthorizer != null)
-                        authHeaders = httpAuthorizer.BuildAuthHeaders();
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
+            if (httpAuthorizer != null)
+                authHeaders = httpAuthorizer.BuildAuthHeaders();
+            else
+                data.AddClaims();
 
             var stopwatch = Stopwatch.StartNew();
 

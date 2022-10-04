@@ -21,7 +21,6 @@ namespace Zerra.Web
         public Func<ICommand, Task> HandlerAwaitAsync { get; set; }
 
         public string Route { get; set; }
-        public NetworkType NetworkType { get; set; }
         public ContentType ContentType { get; set; }
         public IHttpAuthorizer HttpAuthorizer { get; set; }
 

@@ -13,7 +13,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, RabbitMQ</PackageTags>
     <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-	<Version>3.4.1</Version>
+	<Version>3.6.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

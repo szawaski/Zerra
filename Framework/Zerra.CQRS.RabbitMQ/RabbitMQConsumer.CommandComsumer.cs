@@ -68,8 +68,6 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.Received += async (sender, e) =>
                     {
-                        var isEncrypted = e.BasicProperties.Headers != null && e.BasicProperties.Headers.Keys.Contains("Encryption") == true;
-
                         var stopwatch = new Stopwatch();
                         stopwatch.Start();
 
@@ -78,57 +76,49 @@ namespace Zerra.CQRS.RabbitMQ
 
                         var awaitResponse = !String.IsNullOrWhiteSpace(properties.ReplyTo);
 
-                        if (!isEncrypted && symmetricConfig != null)
+                        try
                         {
-                            acknowledgment.Success = false;
-                            acknowledgment.ErrorMessage = "Encryption Required";
+                            var body = e.Body;
+                            if (symmetricConfig != null)
+                                body = SymmetricEncryptor.Decrypt(symmetricConfig, e.Body);
+
+                            var rabbitMessage = RabbitMQCommon.Deserialize<RabbitMQCommandMessage>(body);
+
+                            if (rabbitMessage.Claims != null)
+                            {
+                                var claimsIdentity = new ClaimsIdentity(rabbitMessage.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
+                                Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
+                            }
+
+                            if (awaitResponse)
+                                await handlerAwaitAsync(rabbitMessage.Message);
+                            else
+                                await handlerAsync(rabbitMessage.Message);
+
+                            stopwatch.Stop();
+
+                            if (awaitResponse)
+                                _ = Log.TraceAsync($"Received Await: {e.Exchange} {stopwatch.ElapsedMilliseconds}");
+                            else
+                                _ = Log.TraceAsync($"Received: {e.Exchange} {stopwatch.ElapsedMilliseconds}");
+
+                            acknowledgment.Success = true;
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            try
-                            {
-                                var body = e.Body;
-                                if (isEncrypted)
-                                    body = SymmetricEncryptor.Decrypt(symmetricConfig, e.Body);
+                            stopwatch.Stop();
 
-                                var rabbitMessage = RabbitMQCommon.Deserialize<RabbitMQCommandMessage>(body);
+                            ex = ex.GetBaseException();
 
-                                if (rabbitMessage.Claims != null)
-                                {
-                                    var claimsIdentity = new ClaimsIdentity(rabbitMessage.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
-                                    Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
-                                }
+                            acknowledgment.Success = false;
+                            acknowledgment.ErrorMessage = ex.Message;
 
-                                if (awaitResponse)
-                                    await handlerAwaitAsync(rabbitMessage.Message);
-                                else
-                                    await handlerAsync(rabbitMessage.Message);
+                            if (awaitResponse)
+                                _ = Log.TraceAsync($"Error: Received Await: {e.Exchange} {acknowledgment.ErrorMessage} {stopwatch.ElapsedMilliseconds}");
+                            else
+                                _ = Log.TraceAsync($"Error: Received: {e.Exchange} {acknowledgment.ErrorMessage} {stopwatch.ElapsedMilliseconds}");
 
-                                stopwatch.Stop();
-
-                                if (awaitResponse)
-                                    _ = Log.TraceAsync($"Received Await: {e.Exchange} {stopwatch.ElapsedMilliseconds}");
-                                else
-                                    _ = Log.TraceAsync($"Received: {e.Exchange} {stopwatch.ElapsedMilliseconds}");
-
-                                acknowledgment.Success = true;
-                            }
-                            catch (Exception ex)
-                            {
-                                stopwatch.Stop();
-
-                                ex = ex.GetBaseException();
-
-                                acknowledgment.Success = false;
-                                acknowledgment.ErrorMessage = ex.Message;
-
-                                if (awaitResponse)
-                                    _ = Log.TraceAsync($"Error: Received Await: {e.Exchange} {acknowledgment.ErrorMessage} {stopwatch.ElapsedMilliseconds}");
-                                else
-                                    _ = Log.TraceAsync($"Error: Received: {e.Exchange} {acknowledgment.ErrorMessage} {stopwatch.ElapsedMilliseconds}");
-
-                                _ = Log.ErrorAsync(ex);
-                            }
+                            _ = Log.ErrorAsync(ex);
                         }
 
                         if (awaitResponse)
@@ -140,10 +130,8 @@ namespace Zerra.CQRS.RabbitMQ
                                 replyProperties.CorrelationId = properties.CorrelationId;
 
                                 var acknowledgmentBody = RabbitMQCommon.Serialize(acknowledgment);
-                                if (isEncrypted)
-                                {
+                                if (symmetricConfig != null)
                                     acknowledgmentBody = SymmetricEncryptor.Encrypt(symmetricConfig, acknowledgmentBody);
-                                }
 
                                 this.channel.BasicPublish(String.Empty, properties.ReplyTo, replyProperties, acknowledgmentBody);
                             }

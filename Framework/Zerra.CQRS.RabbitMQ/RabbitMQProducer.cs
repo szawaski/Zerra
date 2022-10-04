@@ -105,13 +105,6 @@ namespace Zerra.CQRS.RabbitMQ
                     properties.CorrelationId = correlationId;
                 }
 
-                if (symmetricConfig != null)
-                {
-                    var messageHeaders = new Dictionary<string, object>();
-                    messageHeaders.Add("Encryption", true);
-                    properties.Headers = messageHeaders;
-                }
-
                 channel.BasicPublish(topic, String.Empty, properties, body);
 
                 _ = Log.TraceAsync($"Sent{(requireAcknowledgement ? " Await" : null)}: {topic}");
@@ -209,9 +202,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                 var body = RabbitMQCommon.Serialize(rabbitMessage);
                 if (symmetricConfig != null)
-                {
                     body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
-                }
 
                 string topic;
                 if (!String.IsNullOrWhiteSpace(environment))
@@ -222,13 +213,6 @@ namespace Zerra.CQRS.RabbitMQ
                 channel.ExchangeDeclare(topic, "fanout");
 
                 var properties = channel.CreateBasicProperties();
-
-                if (symmetricConfig != null)
-                {
-                    var messageHeaders = new Dictionary<string, object>();
-                    messageHeaders.Add("Encryption", true);
-                    properties.Headers = messageHeaders;
-                }
 
                 channel.BasicPublish(topic, String.Empty, properties, body);
 

@@ -19,25 +19,24 @@ namespace Zerra.Web
         private readonly IApplicationBuilder applicationBuilder;
         private readonly CQRSServerMiddlewareSettings settings;
         private bool middlewareAdded;
-        public KestrelServiceCreator(IApplicationBuilder applicationBuilder = null, string route = null, NetworkType networkType = NetworkType.Internal, ContentType contentType = ContentType.Json, IHttpAuthorizer httpAuthorizer = null)
+        public KestrelServiceCreator(IApplicationBuilder applicationBuilder = null, string route = null, ContentType contentType = ContentType.Json, IHttpAuthorizer httpAuthorizer = null)
         {
             this.applicationBuilder = applicationBuilder;
             this.settings = new CQRSServerMiddlewareSettings()
             {
                 Route = route,
                 HttpAuthorizer = httpAuthorizer,
-                NetworkType = networkType,
                 ContentType = contentType
             };
             this.middlewareAdded = false;
         }
 
-        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricConfig encryptionConfig)
+        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return new KestrelCQRSClient(settings.NetworkType, settings.ContentType, serviceUrl, settings.HttpAuthorizer);
+            return new KestrelCQRSClient(settings.ContentType, serviceUrl, symmetricConfig, settings.HttpAuthorizer);
         }
 
-        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricConfig encryptionConfig)
+        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
             if (applicationBuilder == null)
                 throw new NotSupportedException($"{nameof(KestrelServiceCreator)} needs {nameof(IApplicationBuilder)} for {nameof(CreateEventProducer)}");
@@ -45,27 +44,27 @@ namespace Zerra.Web
             if (!middlewareAdded)
             {
                 middlewareAdded = true;
-                _ = applicationBuilder.UseMiddleware<CQRSServerMiddleware>(settings);
+                _ = applicationBuilder.UseMiddleware<CQRSServerMiddleware>(symmetricConfig, settings);
             }
             return new CQRSServerMiddlewareCommandConsumer(settings);
         }
 
-        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricConfig encryptionConfig)
+        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
             throw new NotSupportedException($"{nameof(KestrelServiceCreator)} does not support {nameof(CreateEventProducer)}");
         }
 
-        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricConfig encryptionConfig)
+        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
             throw new NotSupportedException($"{nameof(KestrelServiceCreator)} does not support {nameof(CreateEventConsumer)}");
         }
 
-        public IQueryClient CreateQueryClient(string serviceUrl, SymmetricConfig encryptionConfig)
+        public IQueryClient CreateQueryClient(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return new KestrelCQRSClient(settings.NetworkType, settings.ContentType, serviceUrl, settings.HttpAuthorizer);
+            return new KestrelCQRSClient(settings.ContentType, serviceUrl, symmetricConfig, settings.HttpAuthorizer);
         }
 
-        public IQueryServer CreateQueryServer(string serviceUrl, SymmetricConfig encryptionConfig)
+        public IQueryServer CreateQueryServer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
             if (applicationBuilder == null)
                 throw new NotSupportedException($"{nameof(KestrelServiceCreator)} needs {nameof(IApplicationBuilder)} for {nameof(CreateQueryServer)}");
@@ -73,7 +72,7 @@ namespace Zerra.Web
             if (!middlewareAdded)
             {
                 middlewareAdded = true;
-                _ = applicationBuilder.UseMiddleware<CQRSServerMiddleware>(settings);
+                _ = applicationBuilder.UseMiddleware<CQRSServerMiddleware>(symmetricConfig, settings);
             }
             return new CQRSServerMiddlewareQueryServer(settings);
         }

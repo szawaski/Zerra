@@ -12,25 +12,26 @@ using System.Net.Http;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using System.Net.Http.Headers;
+using Zerra.Encryption;
 
 namespace Zerra.Web
 {
     public class KestrelCQRSClient : CQRSClientBase, IDisposable
     {
-        private readonly NetworkType networkType;
         private readonly ContentType contentType;
+        private readonly SymmetricConfig symmetricConfig;
         private readonly IHttpAuthorizer httpAuthorizer;
         private readonly HttpClient client;
 
-        public KestrelCQRSClient(NetworkType networkType, ContentType contentType, string serviceUrl, IHttpAuthorizer apiAuthorizer)
+        public KestrelCQRSClient(ContentType contentType, string serviceUrl, SymmetricConfig symmetricConfig, IHttpAuthorizer apiAuthorizer)
             : base(serviceUrl)
         {
-            this.networkType = networkType;
             this.contentType = contentType;
+            this.symmetricConfig = symmetricConfig;
             this.httpAuthorizer = apiAuthorizer;
             this.client = new HttpClient();
 
-            _ = Log.TraceAsync($"{nameof(CQRS.Network.HttpCQRSClient)} Started For {this.networkType} {this.contentType} {this.serviceUrl}");
+            _ = Log.TraceAsync($"{nameof(CQRS.Network.HttpCQRSClient)} Started For {this.contentType} {this.serviceUrl}");
         }
 
         protected override TReturn CallInternal<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments)
@@ -43,18 +44,10 @@ namespace Zerra.Web
             data.AddProviderArguments(arguments);
 
             IDictionary<string, IList<string>> authHeaders = null;
-            switch (networkType)
-            {
-                case NetworkType.Internal:
-                    data.AddClaims();
-                    break;
-                case NetworkType.Api:
-                    if (httpAuthorizer != null)
-                        authHeaders = httpAuthorizer.BuildAuthHeaders();
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
+            if (httpAuthorizer != null)
+                authHeaders = httpAuthorizer.BuildAuthHeaders();
+            else
+                data.AddClaims();
 
             var stopwatch = Stopwatch.StartNew();
 
@@ -65,9 +58,28 @@ namespace Zerra.Web
             Stream responseBodyStream = null;
             try
             {
-                request.Content = new WriteStreamContent((stream) =>
+                request.Content = new WriteStreamContent((requestBodyStream) =>
                 {
-                    ContentTypeSerializer.Serialize(contentType, stream, data);
+                    if (symmetricConfig != null)
+                    {
+                        FinalBlockStream requestBodyCryptoStream = null;
+                        try
+                        {
+                            requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
+                            ContentTypeSerializer.Serialize(contentType, requestBodyCryptoStream, data);
+                            requestBodyCryptoStream.FlushFinalBlock();
+                        }
+                        finally
+                        {
+                            requestBodyCryptoStream?.Dispose();
+                        }
+                    }
+                    else
+                    {
+                        ContentTypeSerializer.Serialize(contentType, requestBodyStream, data);
+                        requestBodyStream.Flush();
+                        requestBodyStream.Dispose();
+                    }
                 });
 
                 request.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
@@ -140,18 +152,10 @@ namespace Zerra.Web
             data.AddProviderArguments(arguments);
 
             IDictionary<string, IList<string>> authHeaders = null;
-            switch (networkType)
-            {
-                case NetworkType.Internal:
-                    data.AddClaims();
-                    break;
-                case NetworkType.Api:
-                    if (httpAuthorizer != null)
-                        authHeaders = httpAuthorizer.BuildAuthHeaders();
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
+            if (httpAuthorizer != null)
+                authHeaders = httpAuthorizer.BuildAuthHeaders();
+            else
+                data.AddClaims();
 
             var stopwatch = Stopwatch.StartNew();
 
@@ -162,9 +166,43 @@ namespace Zerra.Web
             Stream responseBodyStream = null;
             try
             {
-                request.Content = new WriteStreamContent((stream) =>
+                request.Content = new WriteStreamContent(async (requestBodyStream) =>
                 {
-                    return ContentTypeSerializer.SerializeAsync(contentType, stream, data);
+                    if (symmetricConfig != null)
+                    {
+                        FinalBlockStream requestBodyCryptoStream = null;
+                        try
+                        {
+                            requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
+                            await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
+#if NET5_0_OR_GREATER
+                            await requestBodyCryptoStream.FlushFinalBlockAsync();
+#else
+                            requestBodyCryptoStream.FlushFinalBlock();
+#endif
+                        }
+                        finally
+                        {
+                            if (requestBodyCryptoStream != null)
+                            {
+#if NETSTANDARD2_0
+                                requestBodyCryptoStream.Dispose();
+#else
+                                await requestBodyCryptoStream.DisposeAsync();
+#endif
+                            }
+                        }
+                    }
+                    else
+                    {
+                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data);
+                        await requestBodyStream.FlushAsync();
+#if NETSTANDARD2_0
+                        requestBodyStream.Dispose();
+#else
+                        await requestBodyStream.DisposeAsync();
+#endif
+                    }
                 });
 
                 request.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
@@ -193,6 +231,9 @@ namespace Zerra.Web
 
                 response = await client.SendAsync(request);
                 responseBodyStream = await response.Content.ReadAsStreamAsync();
+
+                if (symmetricConfig != null)
+                    responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -250,18 +291,10 @@ namespace Zerra.Web
             };
 
             IDictionary<string, IList<string>> authHeaders = null;
-            switch (networkType)
-            {
-                case NetworkType.Internal:
-                    data.AddClaims();
-                    break;
-                case NetworkType.Api:
-                    if (httpAuthorizer != null)
-                        authHeaders = httpAuthorizer.BuildAuthHeaders();
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
+            if (httpAuthorizer != null)
+                authHeaders = httpAuthorizer.BuildAuthHeaders();
+            else
+                data.AddClaims();
 
             var stopwatch = Stopwatch.StartNew();
 

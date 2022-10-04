@@ -67,58 +67,46 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.Received += async (sender, e) =>
                     {
-                        var isEncrypted = e.BasicProperties.Headers != null && e.BasicProperties.Headers.Keys.Contains("Encryption") == true;
-
                         var stopwatch = new Stopwatch();
                         stopwatch.Start();
 
                         var properties = e.BasicProperties;
                         var acknowledgment = new Acknowledgement();
 
-                        if (!isEncrypted && symmetricConfig != null)
+                        try
                         {
-                            acknowledgment.Success = false;
-                            acknowledgment.ErrorMessage = "Encryption Required";
+                            var body = e.Body;
+                            if (symmetricConfig != null)
+                                body = SymmetricEncryptor.Decrypt(symmetricConfig, e.Body);
+
+                            var rabbitMessage = RabbitMQCommon.Deserialize<RabbitMQEventMessage>(body);
+
+                            if (rabbitMessage.Claims != null)
+                            {
+                                var claimsIdentity = new ClaimsIdentity(rabbitMessage.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
+                                System.Threading.Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
+                            }
+
+                            await handlerAsync(rabbitMessage.Message);
+
+                            stopwatch.Stop();
+
+                            _ = Log.TraceAsync($"Received: {e.Exchange} {stopwatch.ElapsedMilliseconds}");
+
+                            acknowledgment.Success = true;
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            try
-                            {
-                                var body = e.Body;
-                                if (isEncrypted)
-                                {
-                                    body = SymmetricEncryptor.Decrypt(symmetricConfig, e.Body);
-                                }
+                            stopwatch.Stop();
 
-                                var rabbitMessage = RabbitMQCommon.Deserialize<RabbitMQEventMessage>(body);
+                            ex = ex.GetBaseException();
 
-                                if (rabbitMessage.Claims != null)
-                                {
-                                    var claimsIdentity = new ClaimsIdentity(rabbitMessage.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
-                                    System.Threading.Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
-                                }
+                            acknowledgment.Success = false;
+                            acknowledgment.ErrorMessage = ex.Message;
 
-                                await handlerAsync(rabbitMessage.Message);
+                            _ = Log.TraceAsync($"Error: Received: {e.Exchange} {acknowledgment.ErrorMessage} {stopwatch.ElapsedMilliseconds}");
 
-                                stopwatch.Stop();
-
-                                _ = Log.TraceAsync($"Received: {e.Exchange} {stopwatch.ElapsedMilliseconds}");
-
-                                acknowledgment.Success = true;
-                            }
-                            catch (Exception ex)
-                            {
-                                stopwatch.Stop();
-
-                                ex = ex.GetBaseException();
-
-                                acknowledgment.Success = false;
-                                acknowledgment.ErrorMessage = ex.Message;
-
-                                _ = Log.TraceAsync($"Error: Received: {e.Exchange} {acknowledgment.ErrorMessage} {stopwatch.ElapsedMilliseconds}");
-
-                                _ = Log.ErrorAsync(null, ex);
-                            }
+                            _ = Log.ErrorAsync(null, ex);
                         }
                     };
 

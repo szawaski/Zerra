@@ -16,15 +16,13 @@ namespace Zerra.CQRS.Network
 {
     public sealed class HttpCQRSServer : TcpCQRSServerBase
     {
-        private readonly NetworkType networkType;
         private readonly ContentType? contentType;
         private readonly IHttpAuthorizer httpAuthorizer;
         private readonly string[] allowOrigins;
 
-        public HttpCQRSServer(NetworkType networkType, ContentType? contentType, string serverUrl, IHttpAuthorizer httpAuthorizer, string[] allowOrigins)
+        public HttpCQRSServer(ContentType? contentType, string serverUrl, IHttpAuthorizer httpAuthorizer, string[] allowOrigins)
             : base(serverUrl)
         {
-            this.networkType = networkType;
             this.contentType = contentType;
             this.httpAuthorizer = httpAuthorizer;
             if (allowOrigins != null && !allowOrigins.Contains("*"))
@@ -126,27 +124,21 @@ namespace Zerra.CQRS.Network
 
                 //Authorize
                 //------------------------------------------------------------------------------------------------------------
-                switch (networkType)
+                if (this.httpAuthorizer != null)
                 {
-                    case NetworkType.Internal:
-                        if (data.Claims != null)
-                        {
-                            var claimsIdentity = new ClaimsIdentity(data.Claims.Select(x => new Claim(x.Type, x.Value)), "CQRS");
-                            Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
-                        }
-                        else
-                        {
-                            Thread.CurrentPrincipal = null;
-                        }
-                        break;
-                    case NetworkType.Api:
-                        if (this.httpAuthorizer != null)
-                        {
-                            this.httpAuthorizer.Authorize(requestHeader.Headers);
-                        }
-                        break;
-                    default:
-                        throw new NotImplementedException();
+                    if (data.Claims != null)
+                    {
+                        var claimsIdentity = new ClaimsIdentity(data.Claims.Select(x => new Claim(x.Type, x.Value)), "CQRS");
+                        Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
+                    }
+                    else
+                    {
+                        Thread.CurrentPrincipal = null;
+                    }
+                }
+                else
+                {
+                    this.httpAuthorizer.Authorize(requestHeader.Headers);
                 }
 
                 //Process and Respond
@@ -159,10 +151,9 @@ namespace Zerra.CQRS.Network
                     if (!this.interfaceTypes.Contains(providerType))
                         throw new Exception($"Unhandled Provider Type {providerType.FullName}");
 
-                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType))
-                        && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType));
+                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute) && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute);
                     if (!exposed)
-                        throw new Exception($"Provider {data.MessageType} is not exposed to {networkType}");
+                        throw new Exception($"Provider {data.MessageType} is not exposed");
 
                     _ = Log.TraceAsync($"Received Call: {providerType.GetNiceName()}.{data.ProviderMethod}");
 
@@ -223,10 +214,9 @@ namespace Zerra.CQRS.Network
                     if (!this.commandTypes.Contains(commandType))
                         throw new Exception($"Unhandled Command Type {commandType.FullName}");
 
-                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType))
-                        && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute attribute && (!attribute.NetworkType.HasValue || attribute.NetworkType == networkType));
+                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute) && !typeDetail.Attributes.Any(x => x is ServiceBlockedAttribute);
                     if (!exposed)
-                        throw new Exception($"Command {data.MessageType} is not exposed to {networkType}");
+                        throw new Exception($"Command {data.MessageType} is not exposed");
 
                     var command = (ICommand)System.Text.Json.JsonSerializer.Deserialize(data.MessageData, commandType);
 
@@ -351,7 +341,7 @@ namespace Zerra.CQRS.Network
 
         public static HttpCQRSServer CreateDefault(string serverUrl, IHttpAuthorizer httpAuthorizer, string[] allowOrigins)
         {
-            return new HttpCQRSServer(NetworkType.Api, ContentType.Json, serverUrl, httpAuthorizer, allowOrigins);
+            return new HttpCQRSServer(ContentType.Json, serverUrl, httpAuthorizer, allowOrigins);
         }
     }
 }
