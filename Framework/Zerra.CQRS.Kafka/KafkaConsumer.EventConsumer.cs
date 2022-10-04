@@ -22,10 +22,10 @@ namespace Zerra.CQRS.Kafka
             public bool IsOpen { get; private set; }
 
             private readonly string topic;
-            private readonly SymmetricKey encryptionKey;
+            private readonly SymmetricConfig symmetricConfig;
             private CancellationTokenSource canceller;
 
-            public EventConsumer(Type type, SymmetricKey encryptionKey, string environment)
+            public EventConsumer(Type type, SymmetricConfig symmetricConfig, string environment)
             {
                 this.Type = type;
                 this.Type = type;
@@ -33,7 +33,7 @@ namespace Zerra.CQRS.Kafka
                     this.topic = $"{environment}_{type.GetNiceName()}".Truncate(KafkaCommon.TopicMaxLength);
                 else
                     this.topic = type.GetNiceName().Truncate(KafkaCommon.TopicMaxLength);
-                this.encryptionKey = encryptionKey;
+                this.symmetricConfig = symmetricConfig;
             }
 
             public void Open(string host, Func<IEvent, Task> handlerAsync)
@@ -75,8 +75,8 @@ namespace Zerra.CQRS.Kafka
                                     var stopwatch = Stopwatch.StartNew();
 
                                     var body = consumerResult.Message.Value;
-                                    if (encryptionKey != null)
-                                        body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, body);
+                                    if (symmetricConfig != null)
+                                        body = SymmetricEncryptor.Decrypt(symmetricConfig, body);
 
                                     var message = KafkaCommon.Deserialize<KafkaEventMessage>(body);
 

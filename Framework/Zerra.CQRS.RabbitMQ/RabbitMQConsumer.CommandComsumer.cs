@@ -23,12 +23,12 @@ namespace Zerra.CQRS.RabbitMQ
             public bool IsOpen { get; private set; }
 
             private readonly string topic;
-            private readonly SymmetricKey encryptionKey;
+            private readonly SymmetricConfig symmetricConfig;
 
             private IModel channel = null;
             private CancellationTokenSource canceller;
 
-            public CommandComsumer(Type type, SymmetricKey encryptionKey, string environment)
+            public CommandComsumer(Type type, SymmetricConfig symmetricConfig, string environment)
             {
                 this.Type = type;
                 this.Type = type;
@@ -36,7 +36,7 @@ namespace Zerra.CQRS.RabbitMQ
                     this.topic = $"{environment}_{type.GetNiceName()}".Truncate(RabbitMQCommon.TopicMaxLength);
                 else
                     this.topic = type.GetNiceName().Truncate(RabbitMQCommon.TopicMaxLength);
-                this.encryptionKey = encryptionKey;
+                this.symmetricConfig = symmetricConfig;
             }
 
             public void Open(IConnection connection, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
@@ -78,7 +78,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                         var awaitResponse = !String.IsNullOrWhiteSpace(properties.ReplyTo);
 
-                        if (!isEncrypted && encryptionKey != null)
+                        if (!isEncrypted && symmetricConfig != null)
                         {
                             acknowledgment.Success = false;
                             acknowledgment.ErrorMessage = "Encryption Required";
@@ -89,7 +89,7 @@ namespace Zerra.CQRS.RabbitMQ
                             {
                                 var body = e.Body;
                                 if (isEncrypted)
-                                    body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, e.Body);
+                                    body = SymmetricEncryptor.Decrypt(symmetricConfig, e.Body);
 
                                 var rabbitMessage = RabbitMQCommon.Deserialize<RabbitMQCommandMessage>(body);
 
@@ -142,7 +142,7 @@ namespace Zerra.CQRS.RabbitMQ
                                 var acknowledgmentBody = RabbitMQCommon.Serialize(acknowledgment);
                                 if (isEncrypted)
                                 {
-                                    acknowledgmentBody = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, acknowledgmentBody);
+                                    acknowledgmentBody = SymmetricEncryptor.Encrypt(symmetricConfig, acknowledgmentBody);
                                 }
 
                                 this.channel.BasicPublish(String.Empty, properties.ReplyTo, replyProperties, acknowledgmentBody);

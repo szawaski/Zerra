@@ -18,21 +18,19 @@ namespace Zerra.CQRS.AzureEventHub
 {
     public class AzureEventHubProducer : ICommandProducer, IEventProducer, IDisposable
     {
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
-
         private bool listenerStarted = false;
 
         private readonly string host;
         private readonly string eventHubName;
-        private readonly SymmetricKey encryptionKey;
+        private readonly SymmetricConfig symmetricConfig;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
         private readonly string environment;
-        public AzureEventHubProducer(string host, string eventHubName, SymmetricKey encryptionKey, string environment)
+        public AzureEventHubProducer(string host, string eventHubName, SymmetricConfig symmetricConfig, string environment)
         {
             this.host = host;
             this.eventHubName = eventHubName;
-            this.encryptionKey = encryptionKey;
+            this.symmetricConfig = symmetricConfig;
             this.environment = environment;
 
             this.canceller = new CancellationTokenSource();
@@ -74,8 +72,8 @@ namespace Zerra.CQRS.AzureEventHub
             };
 
             var body = AzureEventHubCommon.Serialize(message);
-            if (encryptionKey != null)
-                body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
+            if (symmetricConfig != null)
+                body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
             await using (var producer = new EventHubProducerClient(host, eventHubName))
             {
@@ -134,8 +132,8 @@ namespace Zerra.CQRS.AzureEventHub
             };
 
             var body = AzureEventHubCommon.Serialize(message);
-            if (encryptionKey != null)
-                body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
+            if (symmetricConfig != null)
+                body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
             await using (var producer = new EventHubProducerClient(host, eventHubName))
             {
@@ -180,8 +178,8 @@ namespace Zerra.CQRS.AzureEventHub
                             continue;
 
                         var response = partitionEvent.Data.EventBody.ToArray();
-                        if (encryptionKey != null)
-                            response = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, response);
+                        if (symmetricConfig != null)
+                            response = SymmetricEncryptor.Decrypt(symmetricConfig, response);
                         var ack = AzureEventHubCommon.Deserialize<Acknowledgement>(response);
 
                         callback(ack);

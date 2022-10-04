@@ -32,12 +32,12 @@ namespace Zerra.Web
             this.middlewareAdded = false;
         }
 
-        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricConfig encryptionConfig)
         {
             return new KestrelCQRSClient(settings.NetworkType, settings.ContentType, serviceUrl, settings.HttpAuthorizer);
         }
 
-        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricConfig encryptionConfig)
         {
             if (applicationBuilder == null)
                 throw new NotSupportedException($"{nameof(KestrelServiceCreator)} needs {nameof(IApplicationBuilder)} for {nameof(CreateEventProducer)}");
@@ -50,22 +50,22 @@ namespace Zerra.Web
             return new CQRSServerMiddlewareCommandConsumer(settings);
         }
 
-        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricConfig encryptionConfig)
         {
             throw new NotSupportedException($"{nameof(KestrelServiceCreator)} does not support {nameof(CreateEventProducer)}");
         }
 
-        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricConfig encryptionConfig)
         {
             throw new NotSupportedException($"{nameof(KestrelServiceCreator)} does not support {nameof(CreateEventConsumer)}");
         }
 
-        public IQueryClient CreateQueryClient(string serviceUrl, SymmetricKey encryptionKey)
+        public IQueryClient CreateQueryClient(string serviceUrl, SymmetricConfig encryptionConfig)
         {
             return new KestrelCQRSClient(settings.NetworkType, settings.ContentType, serviceUrl, settings.HttpAuthorizer);
         }
 
-        public IQueryServer CreateQueryServer(string serviceUrl, SymmetricKey encryptionKey)
+        public IQueryServer CreateQueryServer(string serviceUrl, SymmetricConfig encryptionConfig)
         {
             if (applicationBuilder == null)
                 throw new NotSupportedException($"{nameof(KestrelServiceCreator)} needs {nameof(IApplicationBuilder)} for {nameof(CreateQueryServer)}");

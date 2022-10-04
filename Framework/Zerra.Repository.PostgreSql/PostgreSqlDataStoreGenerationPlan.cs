@@ -40,7 +40,7 @@ namespace Zerra.Repository.PostgreSql
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync($"{nameof(PostgreSqlEngine)} error while creating database.", ex);
+                    _ = Log.ErrorAsync($"{nameof(PostgreSqlEngine)} error while creating datastore.", ex);
                 }
             }
 

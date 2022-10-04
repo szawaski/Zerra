@@ -16,10 +16,8 @@ namespace Zerra.CQRS.AzureServiceBus
     {
         private static readonly string applicationName = Config.EntryAssemblyName;
 
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
-
         private readonly string host;
-        private readonly SymmetricKey encryptionKey;
+        private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
 
         private readonly List<CommandConsumer> commandExchanges;
@@ -33,10 +31,10 @@ namespace Zerra.CQRS.AzureServiceBus
 
         public string ConnectionString => host;
 
-        public AzureServiceBusConsumer(string host, SymmetricKey encryptionKey, string environment)
+        public AzureServiceBusConsumer(string host, SymmetricConfig symmetricConfig, string environment)
         {
             this.host = host;
-            this.encryptionKey = encryptionKey;
+            this.symmetricConfig = symmetricConfig;
             this.environment = environment;
             this.commandExchanges = new List<CommandConsumer>();
             this.eventExchanges = new List<EventConsumer>();
@@ -127,7 +125,7 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             lock (commandExchanges)
             {
-                commandExchanges.Add(new CommandConsumer(type, encryptionKey, environment));
+                commandExchanges.Add(new CommandConsumer(type, symmetricConfig, environment));
                 OpenExchanges();
             }
         }
@@ -140,7 +138,7 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             lock (eventExchanges)
             {
-                eventExchanges.Add(new EventConsumer(type, encryptionKey, environment));
+                eventExchanges.Add(new EventConsumer(type, symmetricConfig, environment));
                 OpenExchanges();
             }
         }

@@ -22,17 +22,17 @@ namespace Zerra.CQRS.AzureServiceBus
             public bool IsOpen { get; private set; }
 
             private readonly string topic;
-            private readonly SymmetricKey encryptionKey;
+            private readonly SymmetricConfig symmetricConfig;
             private CancellationTokenSource canceller;
 
-            public EventConsumer(Type type, SymmetricKey encryptionKey, string environment)
+            public EventConsumer(Type type, SymmetricConfig symmetricConfig, string environment)
             {
                 this.Type = type;
                 if (!String.IsNullOrWhiteSpace(environment))
                     this.topic = $"{environment}_{type.GetNiceName()}".Truncate(AzureServiceBusCommon.TopicMaxLength);
                 else
                     this.topic = type.GetNiceName().Truncate(AzureServiceBusCommon.TopicMaxLength);
-                this.encryptionKey = encryptionKey;
+                this.symmetricConfig = symmetricConfig;
             }
 
             public void Open(string host, ServiceBusClient client, Func<IEvent, Task> handlerAsync)
@@ -69,8 +69,8 @@ namespace Zerra.CQRS.AzureServiceBus
                                 var stopwatch = Stopwatch.StartNew();
 
                                 var body = serviceBusMessage.Body.ToStream();
-                                if (encryptionKey != null)
-                                    body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, body, false);
+                                if (symmetricConfig != null)
+                                    body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
 
                                 var message = await AzureServiceBusCommon.DeserializeAsync<AzureServiceBusEventMessage>(body);
 

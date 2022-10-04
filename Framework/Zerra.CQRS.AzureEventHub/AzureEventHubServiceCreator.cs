@@ -25,34 +25,34 @@ namespace Zerra.CQRS.AzureEventHub
             this.environment = environment;
         }
 
-        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return azureEventHubClients.GetOrAdd(host, (host) => new AzureEventHubProducer(host, eventHubName, encryptionKey, environment));
+            return azureEventHubClients.GetOrAdd(host, (host) => new AzureEventHubProducer(host, eventHubName, symmetricConfig, environment));
         }
 
-        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return azureEventHubServers.GetOrAdd(host, (host) => new AzureEventHubConsumer(host, eventHubName, encryptionKey, environment));
+            return azureEventHubServers.GetOrAdd(host, (host) => new AzureEventHubConsumer(host, eventHubName, symmetricConfig, environment));
         }
 
-        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return azureEventHubClients.GetOrAdd(host, (host) => new AzureEventHubProducer(host, eventHubName, encryptionKey, environment));
+            return azureEventHubClients.GetOrAdd(host, (host) => new AzureEventHubProducer(host, eventHubName, symmetricConfig, environment));
         }
 
-        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return azureEventHubServers.GetOrAdd(host, (host) => new AzureEventHubConsumer(host, eventHubName, encryptionKey, environment));
+            return azureEventHubServers.GetOrAdd(host, (host) => new AzureEventHubConsumer(host, eventHubName, symmetricConfig, environment));
         }
 
-        public IQueryClient CreateQueryClient(string serviceUrl, SymmetricKey encryptionKey)
+        public IQueryClient CreateQueryClient(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return serviceCreatorForQueries.CreateQueryClient(serviceUrl, encryptionKey);
+            return serviceCreatorForQueries.CreateQueryClient(serviceUrl, symmetricConfig);
         }
 
-        public IQueryServer CreateQueryServer(string serviceUrl, SymmetricKey encryptionKey)
+        public IQueryServer CreateQueryServer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return serviceCreatorForQueries.CreateQueryServer(serviceUrl, encryptionKey);
+            return serviceCreatorForQueries.CreateQueryServer(serviceUrl, symmetricConfig);
         }
     }
 }

@@ -19,15 +19,14 @@ namespace Zerra.CQRS.Network
     {
         private readonly NetworkType networkType;
         private readonly ContentType? contentType;
-        private readonly SymmetricKey encryptionKey;
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
+        private readonly SymmetricConfig encryptionConfig;
 
-        public TcpRawCQRSServer(NetworkType networkType, ContentType? contentType, string serverUrl, SymmetricKey encryptionKey)
+        public TcpRawCQRSServer(NetworkType networkType, ContentType? contentType, string serverUrl, SymmetricConfig encryptionConfig)
             : base(serverUrl)
         {
             this.networkType = networkType;
             this.contentType = contentType;
-            this.encryptionKey = encryptionKey;
+            this.encryptionConfig = encryptionConfig;
         }
 
         protected override async void Handle(TcpClient client, CancellationToken cancellationToken)
@@ -82,11 +81,11 @@ namespace Zerra.CQRS.Network
 
                 requestBodyStream = new TcpRawProtocolBodyStream(stream, requestHeader.BodyStartBuffer, true);
 
-                if (encryptionKey != null)
+                if (encryptionConfig != null)
                 {
                     requestBodyStream = networkType switch
                     {
-                        NetworkType.Internal => SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, requestBodyStream, false),
+                        NetworkType.Internal => SymmetricEncryptor.Decrypt(encryptionConfig, requestBodyStream, false),
                         NetworkType.Api => throw new NotSupportedException($"Encryption Not Supported for Network Type {EnumName.GetName(networkType)}"),
                         _ => throw new NotImplementedException(),
                     };
@@ -157,11 +156,11 @@ namespace Zerra.CQRS.Network
                     int bytesRead;
                     if (result.Stream != null)
                     {
-                        if (encryptionKey != null)
+                        if (encryptionConfig != null)
                         {
                             responseBodyCryptoStream = networkType switch
                             {
-                                NetworkType.Internal => SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, responseBodyStream, true),
+                                NetworkType.Internal => SymmetricEncryptor.Encrypt(encryptionConfig, responseBodyStream, true),
                                 NetworkType.Api => throw new NotSupportedException($"Encryption Not Supported for Network Type {EnumName.GetName(networkType)}"),
                                 _ => throw new NotImplementedException(),
                             };
@@ -207,11 +206,11 @@ namespace Zerra.CQRS.Network
                     }
                     else
                     {
-                        if (encryptionKey != null)
+                        if (encryptionConfig != null)
                         {
                             responseBodyCryptoStream = networkType switch
                             {
-                                NetworkType.Internal => SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, responseBodyStream, true),
+                                NetworkType.Internal => SymmetricEncryptor.Encrypt(encryptionConfig, responseBodyStream, true),
                                 NetworkType.Api => throw new NotSupportedException($"Encryption Not Supported for Network Type {EnumName.GetName(networkType)}"),
                                 _ => throw new NotImplementedException(),
                             };
@@ -341,11 +340,11 @@ namespace Zerra.CQRS.Network
 
                         //Response Body
                         responseBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
-                        if (encryptionKey != null)
+                        if (encryptionConfig != null)
                         {
                             responseBodyCryptoStream = networkType switch
                             {
-                                NetworkType.Internal => SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, responseBodyStream, true),
+                                NetworkType.Internal => SymmetricEncryptor.Encrypt(encryptionConfig, responseBodyStream, true),
                                 NetworkType.Api => throw new NotSupportedException($"Encryption Not Supported for Network Type {EnumName.GetName(networkType)}"),
                                 _ => throw new NotImplementedException(),
                             };
@@ -428,9 +427,9 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        public static TcpRawCQRSServer CreateDefault(string serverUrl, SymmetricKey encryptionKey)
+        public static TcpRawCQRSServer CreateDefault(string serverUrl, SymmetricConfig encryptionConfig)
         {
-            return new TcpRawCQRSServer(NetworkType.Internal, ContentType.Bytes, serverUrl, encryptionKey);
+            return new TcpRawCQRSServer(NetworkType.Internal, ContentType.Bytes, serverUrl, encryptionConfig);
         }
     }
 }

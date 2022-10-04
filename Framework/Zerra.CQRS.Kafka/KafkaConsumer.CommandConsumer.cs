@@ -24,11 +24,11 @@ namespace Zerra.CQRS.Kafka
 
             private readonly string topic;
             private readonly string clientID;
-            private readonly SymmetricKey encryptionKey;
+            private readonly SymmetricConfig symmetricConfig;
 
             private CancellationTokenSource canceller = null;
 
-            public CommandConsumer(Type type, SymmetricKey encryptionKey, string environment)
+            public CommandConsumer(Type type, SymmetricConfig symmetricConfig, string environment)
             {
                 this.Type = type;
                 if (!String.IsNullOrWhiteSpace(environment))
@@ -36,7 +36,7 @@ namespace Zerra.CQRS.Kafka
                 else
                     this.topic = type.GetNiceName().Truncate(KafkaCommon.TopicMaxLength);
                 this.clientID = Guid.NewGuid().ToString();
-                this.encryptionKey = encryptionKey;
+                this.symmetricConfig = symmetricConfig;
             }
 
             public void Open(string host, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
@@ -89,8 +89,8 @@ namespace Zerra.CQRS.Kafka
                                     var stopwatch = Stopwatch.StartNew();
 
                                     var body = consumerResult.Message.Value;
-                                    if (encryptionKey != null)
-                                        body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, body);
+                                    if (symmetricConfig != null)
+                                        body = SymmetricEncryptor.Decrypt(symmetricConfig, body);
 
                                     var message = KafkaCommon.Deserialize<KafkaCommandMessage>(body);
 
@@ -132,8 +132,8 @@ namespace Zerra.CQRS.Kafka
                                         ErrorMessage = error?.Message
                                     };
                                     var body = KafkaCommon.Serialize(ack);
-                                    if (encryptionKey != null)
-                                        body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
+                                    if (symmetricConfig != null)
+                                        body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
                                     var producerConfig = new ProducerConfig();
                                     producerConfig.BootstrapServers = host;

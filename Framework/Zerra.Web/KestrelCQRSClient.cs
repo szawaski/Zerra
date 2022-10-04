@@ -316,7 +316,7 @@ namespace Zerra.Web
                 await responseBodyStream.DisposeAsync();
 #endif
                 stopwatch.Stop();
-                _ = Log.TraceAsync($"{nameof(CQRS.Network.HttpCQRSClient)}Sent: {messageTypeName} {stopwatch.ElapsedMilliseconds}");
+                _ = Log.TraceAsync($"{nameof(CQRS.Network.HttpCQRSClient)} Sent: {messageTypeName} {stopwatch.ElapsedMilliseconds}");
             }
             catch
             {

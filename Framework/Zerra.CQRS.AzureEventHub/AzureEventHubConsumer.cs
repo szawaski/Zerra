@@ -24,11 +24,9 @@ namespace Zerra.CQRS.AzureEventHub
     {
         private static readonly string requestedConsumerGroup = Config.EntryAssemblyName;
 
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
-
         private readonly string host;
         private readonly string eventHubName;
-        private readonly SymmetricKey encryptionKey;
+        private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
 
         private readonly ConcurrentList<Type> commandTypes;
@@ -45,11 +43,11 @@ namespace Zerra.CQRS.AzureEventHub
 
         public string ConnectionString => host;
 
-        public AzureEventHubConsumer(string host, string eventHubName, SymmetricKey encryptionKey, string environment)
+        public AzureEventHubConsumer(string host, string eventHubName, SymmetricConfig symmetricConfig, string environment)
         {
             this.host = host;
             this.eventHubName = eventHubName;
-            this.encryptionKey = encryptionKey;
+            this.symmetricConfig = symmetricConfig;
             this.environment = environment;
 
             this.throttler = new TaskThrottler();
@@ -167,8 +165,8 @@ namespace Zerra.CQRS.AzureEventHub
                 }
 
                 var body = partitionEvent.Data.EventBody.ToArray();
-                if (encryptionKey != null)
-                    body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, body);
+                if (symmetricConfig != null)
+                    body = SymmetricEncryptor.Decrypt(symmetricConfig, body);
 
                 var message = AzureEventHubCommon.Deserialize<AzureEventHubMessage>(body);
 
@@ -209,8 +207,8 @@ namespace Zerra.CQRS.AzureEventHub
                         ErrorMessage = error?.Message
                     };
                     var ackBody = AzureEventHubCommon.Serialize(ack);
-                    if (encryptionKey != null)
-                        ackBody = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, ackBody);
+                    if (symmetricConfig != null)
+                        ackBody = SymmetricEncryptor.Encrypt(symmetricConfig, ackBody);
 
                     await using (var producer = new EventHubProducerClient(host, eventHubName))
                     {

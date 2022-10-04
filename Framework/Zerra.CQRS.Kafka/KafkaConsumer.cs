@@ -13,10 +13,8 @@ namespace Zerra.CQRS.Kafka
 {
     public partial class KafkaConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
-
         private readonly string host;
-        private readonly SymmetricKey encryptionKey;
+        private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
 
         private readonly List<CommandConsumer> commandExchanges;
@@ -29,10 +27,10 @@ namespace Zerra.CQRS.Kafka
 
         public string ConnectionString => host;
 
-        public KafkaConsumer(string host, SymmetricKey encryptionKey, string environment)
+        public KafkaConsumer(string host, SymmetricConfig symmetricConfig, string environment)
         {
             this.host = host;
-            this.encryptionKey = encryptionKey;
+            this.symmetricConfig = symmetricConfig;
             this.environment = environment;
             this.commandExchanges = new List<CommandConsumer>();
             this.eventExchanges = new List<EventConsumer>();
@@ -120,7 +118,7 @@ namespace Zerra.CQRS.Kafka
         {
             lock (commandExchanges)
             {
-                commandExchanges.Add(new CommandConsumer(type, encryptionKey, environment));
+                commandExchanges.Add(new CommandConsumer(type, symmetricConfig, environment));
                 OpenExchanges();
             }
         }
@@ -133,7 +131,7 @@ namespace Zerra.CQRS.Kafka
         {
             lock (eventExchanges)
             {
-                eventExchanges.Add(new EventConsumer(type, encryptionKey, environment));
+                eventExchanges.Add(new EventConsumer(type, symmetricConfig, environment));
                 OpenExchanges();
             }
         }

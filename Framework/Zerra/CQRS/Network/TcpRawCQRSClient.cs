@@ -17,15 +17,14 @@ namespace Zerra.CQRS.Network
     {
         private readonly NetworkType networkType;
         private readonly ContentType contentType;
-        private readonly SymmetricKey encryptionKey;
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
+        private readonly SymmetricConfig encryptionConfig;
 
-        public TcpRawCQRSClient(NetworkType networkType, ContentType contentType, string serviceUrl, SymmetricKey encryptionKey)
+        public TcpRawCQRSClient(NetworkType networkType, ContentType contentType, string serviceUrl, SymmetricConfig encryptionConfig)
             : base(serviceUrl)
         {
             this.networkType = networkType;
             this.contentType = contentType;
-            this.encryptionKey = encryptionKey;
+            this.encryptionConfig = encryptionConfig;
 
             _ = Log.TraceAsync($"{nameof(TcpRawCQRSClient)} Started For {this.networkType} {this.contentType} {this.endpoint}");
         }
@@ -75,9 +74,9 @@ namespace Zerra.CQRS.Network
 
                 requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
 
-                if (encryptionKey != null)
+                if (encryptionConfig != null)
                 {
-                    requestBodyCryptoStream = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, requestBodyStream, true);
+                    requestBodyCryptoStream = SymmetricEncryptor.Encrypt(encryptionConfig, requestBodyStream, true);
                     ContentTypeSerializer.Serialize(contentType, requestBodyCryptoStream, data);
                     requestBodyCryptoStream.FlushFinalBlock();
                     requestBodyCryptoStream.Dispose();
@@ -117,8 +116,8 @@ namespace Zerra.CQRS.Network
 
                 responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false);
 
-                if (encryptionKey != null)
-                    responseBodyStream = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, responseBodyStream, false);
+                if (encryptionConfig != null)
+                    responseBodyStream = SymmetricEncryptor.Decrypt(encryptionConfig, responseBodyStream, false);
 
                 if (responseHeader.IsError)
                 {
@@ -211,9 +210,9 @@ namespace Zerra.CQRS.Network
 
                 requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
 
-                if (encryptionKey != null)
+                if (encryptionConfig != null)
                 {
-                    requestBodyCryptoStream = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, requestBodyStream, true);
+                    requestBodyCryptoStream = SymmetricEncryptor.Encrypt(encryptionConfig, requestBodyStream, true);
                     await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
 #if NET5_0_OR_GREATER
                     await requestBodyCryptoStream.FlushFinalBlockAsync();
@@ -266,8 +265,8 @@ namespace Zerra.CQRS.Network
                 //Response Body
                 responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false);
 
-                if (encryptionKey != null)
-                    responseBodyStream = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, responseBodyStream, false);
+                if (encryptionConfig != null)
+                    responseBodyStream = SymmetricEncryptor.Decrypt(encryptionConfig, responseBodyStream, false);
 
                 if (responseHeader.IsError)
                 {
@@ -399,9 +398,9 @@ namespace Zerra.CQRS.Network
 
                 requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
 
-                if (encryptionKey != null)
+                if (encryptionConfig != null)
                 {
-                    requestBodyCryptoStream = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, requestBodyStream, true);
+                    requestBodyCryptoStream = SymmetricEncryptor.Encrypt(encryptionConfig, requestBodyStream, true);
                     await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
 #if NET5_0_OR_GREATER
                     await requestBodyCryptoStream.FlushFinalBlockAsync();
@@ -457,8 +456,8 @@ namespace Zerra.CQRS.Network
 
                 if (responseHeader.IsError)
                 {
-                    if (encryptionKey != null)
-                        responseBodyStream = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, responseBodyStream, false);
+                    if (encryptionConfig != null)
+                        responseBodyStream = SymmetricEncryptor.Decrypt(encryptionConfig, responseBodyStream, false);
 
                     var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream);
                     throw responseException;
@@ -512,9 +511,9 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        public static TcpRawCQRSClient CreateDefault(string endpoint, SymmetricKey encryptionKey)
+        public static TcpRawCQRSClient CreateDefault(string endpoint, SymmetricConfig encryptionConfig)
         {
-            return new TcpRawCQRSClient(NetworkType.Internal, ContentType.Bytes, endpoint, encryptionKey);
+            return new TcpRawCQRSClient(NetworkType.Internal, ContentType.Bytes, endpoint, encryptionConfig);
         }
     }
 }

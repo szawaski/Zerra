@@ -23,19 +23,19 @@ namespace Zerra.CQRS.RabbitMQ
             public bool IsOpen { get; private set; }
 
             public readonly string topic;
-            private readonly SymmetricKey encryptionKey;
+            private readonly SymmetricConfig symmetricConfig;
 
             private IModel channel = null;
             private CancellationTokenSource canceller;
 
-            public EventComsumer(Type type, SymmetricKey encryptionKey, string environment)
+            public EventComsumer(Type type, SymmetricConfig symmetricConfig, string environment)
             {
                 this.Type = type;
                 if (!String.IsNullOrWhiteSpace(environment))
                     this.topic = $"{environment}_{type.GetNiceName()}".Truncate(RabbitMQCommon.TopicMaxLength);
                 else
                     this.topic = type.GetNiceName().Truncate(RabbitMQCommon.TopicMaxLength);
-                this.encryptionKey = encryptionKey;
+                this.symmetricConfig = symmetricConfig;
             }
 
             public void Open(IConnection connection, Func<IEvent, Task> handlerAsync)
@@ -75,7 +75,7 @@ namespace Zerra.CQRS.RabbitMQ
                         var properties = e.BasicProperties;
                         var acknowledgment = new Acknowledgement();
 
-                        if (!isEncrypted && encryptionKey != null)
+                        if (!isEncrypted && symmetricConfig != null)
                         {
                             acknowledgment.Success = false;
                             acknowledgment.ErrorMessage = "Encryption Required";
@@ -87,7 +87,7 @@ namespace Zerra.CQRS.RabbitMQ
                                 var body = e.Body;
                                 if (isEncrypted)
                                 {
-                                    body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, e.Body);
+                                    body = SymmetricEncryptor.Decrypt(symmetricConfig, e.Body);
                                 }
 
                                 var rabbitMessage = RabbitMQCommon.Deserialize<RabbitMQEventMessage>(body);

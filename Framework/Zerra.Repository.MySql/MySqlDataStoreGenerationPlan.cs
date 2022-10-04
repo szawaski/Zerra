@@ -40,7 +40,7 @@ namespace Zerra.Repository.MySql
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync($"{nameof(MySqlEngine)} error while creating database.", ex);
+                    _ = Log.ErrorAsync($"{nameof(MySqlEngine)} error while creating datastore.", ex);
                 }
             }
 

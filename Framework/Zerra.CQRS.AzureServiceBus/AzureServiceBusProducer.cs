@@ -18,23 +18,21 @@ namespace Zerra.CQRS.AzureServiceBus
     {
         private static readonly string applicationName = Config.EntryAssemblyName;
 
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
-
         private bool listenerStarted = false;
         private SemaphoreSlim listenerStartedLock = new(1, 1);
 
         private readonly string host;
-        private readonly SymmetricKey encryptionKey;
+        private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
         private readonly string ackTopic;
         private readonly string ackSubscription;
         private readonly ServiceBusClient client;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
-        public AzureServiceBusProducer(string host, SymmetricKey encryptionKey, string environment)
+        public AzureServiceBusProducer(string host, SymmetricConfig symmetricConfig, string environment)
         {
             this.host = host;
-            this.encryptionKey = encryptionKey;
+            this.symmetricConfig = symmetricConfig;
             this.environment = environment;
 
             this.ackTopic = $"ACK-{Guid.NewGuid()}";
@@ -91,8 +89,8 @@ namespace Zerra.CQRS.AzureServiceBus
             };
 
             var body = AzureServiceBusCommon.Serialize(message);
-            if (encryptionKey != null)
-                body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
+            if (symmetricConfig != null)
+                body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
             if (requireAcknowledgement)
             {
@@ -157,8 +155,8 @@ namespace Zerra.CQRS.AzureServiceBus
             };
 
             var body = AzureServiceBusCommon.Serialize(message);
-            if (encryptionKey != null)
-                body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
+            if (symmetricConfig != null)
+                body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
             var serviceBusMessage = new ServiceBusMessage(body);
             await using (var sender = client.CreateSender(topic))
@@ -188,8 +186,8 @@ namespace Zerra.CQRS.AzureServiceBus
                                 continue;
 
                             var response = serviceBusMessage.Body.ToStream();
-                            if (encryptionKey != null)
-                                response = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, response, false);
+                            if (symmetricConfig != null)
+                                response = SymmetricEncryptor.Decrypt(symmetricConfig, response, false);
                             var ack = await AzureServiceBusCommon.DeserializeAsync<Acknowledgement>(response);
 
                             callback(ack);

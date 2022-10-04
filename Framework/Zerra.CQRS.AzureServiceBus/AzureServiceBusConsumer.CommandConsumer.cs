@@ -22,18 +22,18 @@ namespace Zerra.CQRS.AzureServiceBus
             public bool IsOpen { get; private set; }
 
             private readonly string topic;
-            private readonly SymmetricKey encryptionKey;
+            private readonly SymmetricConfig symmetricConfig;
 
             private CancellationTokenSource canceller = null;
 
-            public CommandConsumer(Type type, SymmetricKey encryptionKey, string environment)
+            public CommandConsumer(Type type, SymmetricConfig symmetricConfig, string environment)
             {
                 this.Type = type;
                 if (!String.IsNullOrWhiteSpace(environment))
                     this.topic = $"{environment}_{type.GetNiceName()}".Truncate(AzureServiceBusCommon.TopicMaxLength);
                 else
                     this.topic = type.GetNiceName().Truncate(AzureServiceBusCommon.TopicMaxLength);
-                this.encryptionKey = encryptionKey;
+                this.symmetricConfig = symmetricConfig;
             }
 
             public void Open(string host, ServiceBusClient client, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
@@ -78,8 +78,8 @@ namespace Zerra.CQRS.AzureServiceBus
                                 var stopwatch = Stopwatch.StartNew();
 
                                 var body = serviceBusMessage.Body.ToStream();
-                                if (encryptionKey != null)
-                                    body = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, body, false);
+                                if (symmetricConfig != null)
+                                    body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
 
                                 var message = await AzureServiceBusCommon.DeserializeAsync<AzureServiceBusCommandMessage>(body);
 
@@ -116,8 +116,8 @@ namespace Zerra.CQRS.AzureServiceBus
                                         ErrorMessage = error?.Message
                                     };
                                     var body = AzureServiceBusCommon.Serialize(ack);
-                                    if (encryptionKey != null)
-                                        body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
+                                    if (symmetricConfig != null)
+                                        body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
                                     var serviceBusMessage = new ServiceBusMessage(body);
                                     serviceBusMessage.SessionId = ackKey;

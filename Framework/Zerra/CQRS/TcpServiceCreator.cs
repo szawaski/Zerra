@@ -14,34 +14,34 @@ namespace Zerra.CQRS
     {
         private static readonly ConcurrentFactoryDictionary<string, TcpRawCQRSServer> servers = new();
 
-        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return TcpRawCQRSClient.CreateDefault(serviceUrl, encryptionKey);
+            return TcpRawCQRSClient.CreateDefault(serviceUrl, symmetricConfig);
         }
 
-        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return servers.GetOrAdd(serviceUrl, (url) => TcpRawCQRSServer.CreateDefault(url, encryptionKey));
+            return servers.GetOrAdd(serviceUrl, (url) => TcpRawCQRSServer.CreateDefault(url, symmetricConfig));
         }
 
-        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
             throw new NotSupportedException($"{nameof(TcpServiceCreator)} does not support {nameof(CreateEventProducer)}");
         }
 
-        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
             throw new NotSupportedException($"{nameof(TcpServiceCreator)} does not support {nameof(CreateEventConsumer)}");
         }
 
-        public IQueryClient CreateQueryClient(string serviceUrl, SymmetricKey encryptionKey)
+        public IQueryClient CreateQueryClient(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return TcpRawCQRSClient.CreateDefault(serviceUrl, encryptionKey);
+            return TcpRawCQRSClient.CreateDefault(serviceUrl, symmetricConfig);
         }
 
-        public IQueryServer CreateQueryServer(string serviceUrl, SymmetricKey encryptionKey)
+        public IQueryServer CreateQueryServer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return servers.GetOrAdd(serviceUrl, (url) => TcpRawCQRSServer.CreateDefault(url, encryptionKey));
+            return servers.GetOrAdd(serviceUrl, (url) => TcpRawCQRSServer.CreateDefault(url, symmetricConfig));
         }
     }
 }

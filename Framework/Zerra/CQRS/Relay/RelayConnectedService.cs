@@ -147,8 +147,7 @@ namespace Zerra.CQRS.Relay
                 if (failures >= maxFailures)
                 {
                     RelayConnectedServicesManager.Remove(this.Url);
-                    if (Resolver.TryGet(out ILoggingProvider logger))
-                        _ = logger.InfoAsync($"Service {this.Url} Failed {maxFailures} times, removing...");
+                    _ = Log.InfoAsync($"Service {this.Url} Failed {maxFailures} times, removing...");
                 }
             }
         }

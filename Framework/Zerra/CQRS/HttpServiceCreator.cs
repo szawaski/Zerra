@@ -26,32 +26,32 @@ namespace Zerra.CQRS
             this.allowOrigins = allowOrigins;
         }
 
-        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
             return new HttpCQRSClient(networkType, contentType, serviceUrl, httpAuthorizer);
         }
 
-        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
             return servers.GetOrAdd(serviceUrl, (url) => HttpCQRSServer.CreateDefault(url, httpAuthorizer, allowOrigins));
         }
 
-        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
             throw new NotSupportedException($"{nameof(HttpServiceCreator)} does not support {nameof(CreateEventProducer)}");
         }
 
-        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
             throw new NotSupportedException($"{nameof(HttpServiceCreator)} does not support {nameof(CreateEventConsumer)}");
         }
 
-        public IQueryClient CreateQueryClient(string serviceUrl, SymmetricKey encryptionKey)
+        public IQueryClient CreateQueryClient(string serviceUrl, SymmetricConfig symmetricConfig)
         {
             return new HttpCQRSClient(networkType, contentType, serviceUrl, httpAuthorizer);
         }
 
-        public IQueryServer CreateQueryServer(string serviceUrl, SymmetricKey encryptionKey)
+        public IQueryServer CreateQueryServer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
             return servers.GetOrAdd(serviceUrl, (url) => HttpCQRSServer.CreateDefault(url, httpAuthorizer, allowOrigins));
         }

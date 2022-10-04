@@ -15,10 +15,9 @@ namespace Zerra.CQRS.RabbitMQ
     public partial class RabbitMQConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
         private const int retryDelay = 10000;
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 
         private readonly string host;
-        private readonly SymmetricKey encryptionKey;
+        private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
         private readonly List<CommandComsumer> commandExchanges;
         private readonly List<EventComsumer> eventExchanges;
@@ -30,10 +29,10 @@ namespace Zerra.CQRS.RabbitMQ
 
         public string ConnectionString => host;
 
-        public RabbitMQConsumer(string host, SymmetricKey encryptionKey, string environment)
+        public RabbitMQConsumer(string host, SymmetricConfig symmetricConfig, string environment)
         {
             this.host = host;
-            this.encryptionKey = encryptionKey;
+            this.symmetricConfig = symmetricConfig;
             this.environment = environment;
             this.commandExchanges = new List<CommandComsumer>();
             this.eventExchanges = new List<EventComsumer>();
@@ -136,7 +135,7 @@ namespace Zerra.CQRS.RabbitMQ
         {
             lock (commandExchanges)
             {
-                commandExchanges.Add(new CommandComsumer(type, encryptionKey, environment));
+                commandExchanges.Add(new CommandComsumer(type, symmetricConfig, environment));
                 OpenExchanges();
             }
         }
@@ -149,7 +148,7 @@ namespace Zerra.CQRS.RabbitMQ
         {
             lock (eventExchanges)
             {
-                eventExchanges.Add(new EventComsumer(type, encryptionKey, environment));
+                eventExchanges.Add(new EventComsumer(type, symmetricConfig, environment));
                 OpenExchanges();
             }
         }

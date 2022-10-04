@@ -23,34 +23,34 @@ namespace Zerra.CQRS.RabbitMQ
             this.environment = environment;
         }
 
-        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQProducer(host, encryptionKey, environment));
+            return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQProducer(host, symmetricConfig, environment));
         }
 
-        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricKey encryptionKey)
+        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return rabbitServers.GetOrAdd(rabbitHost, (host) => new RabbitMQConsumer(host, encryptionKey, environment));
+            return rabbitServers.GetOrAdd(rabbitHost, (host) => new RabbitMQConsumer(host, symmetricConfig, environment));
         }
 
-        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQProducer(host, encryptionKey, environment));
+            return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQProducer(host, symmetricConfig, environment));
         }
 
-        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricKey encryptionKey)
+        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return rabbitServers.GetOrAdd(rabbitHost, (host) => new RabbitMQConsumer(host, encryptionKey, environment));
+            return rabbitServers.GetOrAdd(rabbitHost, (host) => new RabbitMQConsumer(host, symmetricConfig, environment));
         }
 
-        public IQueryClient CreateQueryClient(string serviceUrl, SymmetricKey encryptionKey)
+        public IQueryClient CreateQueryClient(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return serviceCreatorForQueries.CreateQueryClient(serviceUrl, encryptionKey);
+            return serviceCreatorForQueries.CreateQueryClient(serviceUrl, symmetricConfig);
         }
 
-        public IQueryServer CreateQueryServer(string serviceUrl, SymmetricKey encryptionKey)
+        public IQueryServer CreateQueryServer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return serviceCreatorForQueries.CreateQueryServer(serviceUrl, encryptionKey);
+            return serviceCreatorForQueries.CreateQueryServer(serviceUrl, symmetricConfig);
         }
     }
 }

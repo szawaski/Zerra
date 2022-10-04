@@ -17,22 +17,20 @@ namespace Zerra.CQRS.Kafka
 {
     public class KafkaProducer : ICommandProducer, IEventProducer, IDisposable
     {
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
-
         private bool listenerStarted = false;
         private SemaphoreSlim listenerStartedLock = new(1, 1);
 
         private readonly string host;
-        private readonly SymmetricKey encryptionKey;
+        private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
         private readonly string ackTopic;
         private readonly IProducer<string, byte[]> producer;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
-        public KafkaProducer(string host, SymmetricKey encryptionKey, string environment)
+        public KafkaProducer(string host, SymmetricConfig symmetricConfig, string environment)
         {
             this.host = host;
-            this.encryptionKey = encryptionKey;
+            this.symmetricConfig = symmetricConfig;
             this.environment = environment;
 
             var clientID = Guid.NewGuid().ToString();
@@ -90,8 +88,8 @@ namespace Zerra.CQRS.Kafka
             };
 
             var body = KafkaCommon.Serialize(message);
-            if (encryptionKey != null)
-                body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
+            if (symmetricConfig != null)
+                body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
             if (requireAcknowledgement)
             {
@@ -156,8 +154,8 @@ namespace Zerra.CQRS.Kafka
             };
 
             var body = KafkaCommon.Serialize(message);
-            if (encryptionKey != null)
-                body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
+            if (symmetricConfig != null)
+                body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
             var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = KafkaCommon.MessageKey, Value = body });
             if (producerResult.Status != PersistenceStatus.Persisted)
@@ -189,8 +187,8 @@ namespace Zerra.CQRS.Kafka
                                 continue;
 
                             var response = consumerResult.Message.Value;
-                            if (encryptionKey != null)
-                                response = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, response);
+                            if (symmetricConfig != null)
+                                response = SymmetricEncryptor.Decrypt(symmetricConfig, response);
                             var ack = KafkaCommon.Deserialize<Acknowledgement>(response);
 
                             callback(ack);

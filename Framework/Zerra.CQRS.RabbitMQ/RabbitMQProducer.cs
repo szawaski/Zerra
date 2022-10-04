@@ -18,19 +18,17 @@ namespace Zerra.CQRS.RabbitMQ
 {
     public class RabbitMQProducer : ICommandProducer, IEventProducer, IDisposable
     {
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
-
         private readonly string host;
-        private readonly SymmetricKey encryptionKey;
+        private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
         private IConnection connection = null;
 
         public string ConnectionString => host;
 
-        public RabbitMQProducer(string host, SymmetricKey encryptionKey, string environment)
+        public RabbitMQProducer(string host, SymmetricConfig symmetricConfig, string environment)
         {
             this.host = host;
-            this.encryptionKey = encryptionKey;
+            this.symmetricConfig = symmetricConfig;
             this.environment = environment;
             try
             {
@@ -82,8 +80,8 @@ namespace Zerra.CQRS.RabbitMQ
                 };
 
                 var body = RabbitMQCommon.Serialize(rabbitMessage);
-                if (encryptionKey != null)
-                    body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
+                if (symmetricConfig != null)
+                    body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
                 string topic;
                 if (!String.IsNullOrWhiteSpace(environment))
@@ -107,7 +105,7 @@ namespace Zerra.CQRS.RabbitMQ
                     properties.CorrelationId = correlationId;
                 }
 
-                if (encryptionKey != null)
+                if (symmetricConfig != null)
                 {
                     var messageHeaders = new Dictionary<string, object>();
                     messageHeaders.Add("Encryption", true);
@@ -133,8 +131,8 @@ namespace Zerra.CQRS.RabbitMQ
                             channel.BasicCancel(consumerTag);
 
                             var acknowledgementBody = e.Body;
-                            if (encryptionKey != null)
-                                acknowledgementBody = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, acknowledgementBody);
+                            if (symmetricConfig != null)
+                                acknowledgementBody = SymmetricEncryptor.Decrypt(symmetricConfig, acknowledgementBody);
                             
                             var affirmation = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
 
@@ -210,9 +208,9 @@ namespace Zerra.CQRS.RabbitMQ
                 };
 
                 var body = RabbitMQCommon.Serialize(rabbitMessage);
-                if (encryptionKey != null)
+                if (symmetricConfig != null)
                 {
-                    body = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, body);
+                    body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
                 }
 
                 string topic;
@@ -225,7 +223,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                 var properties = channel.CreateBasicProperties();
 
-                if (encryptionKey != null)
+                if (symmetricConfig != null)
                 {
                     var messageHeaders = new Dictionary<string, object>();
                     messageHeaders.Add("Encryption", true);
