@@ -178,9 +178,9 @@ namespace Zerra.CQRS.Kafka
                 using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build())
                 {
                     consumer.Subscribe(ackTopic);
-                    for (; ; )
+                    try
                     {
-                        try
+                        for (; ; )
                         {
                             var consumerResult = consumer.Consume(canceller.Token);
                             consumer.Commit(consumerResult);
@@ -188,24 +188,35 @@ namespace Zerra.CQRS.Kafka
                             if (!ackCallbacks.TryRemove(consumerResult.Message.Key, out var callback))
                                 continue;
 
-                            var response = consumerResult.Message.Value;
-                            if (symmetricConfig != null)
-                                response = SymmetricEncryptor.Decrypt(symmetricConfig, response);
-                            var ack = KafkaCommon.Deserialize<Acknowledgement>(response);
+                            Acknowledgement ack = null;
+                            try
+                            {
+                                var response = consumerResult.Message.Value;
+                                if (symmetricConfig != null)
+                                    response = SymmetricEncryptor.Decrypt(symmetricConfig, response);
+                                ack = KafkaCommon.Deserialize<Acknowledgement>(response);
+                            }
+                            catch (Exception ex)
+                            {
+                                _ = Log.ErrorAsync(ex);
+                                ack = new Acknowledgement()
+                                {
+                                    Success = false,
+                                    ErrorMessage = ex.Message
+                                };
+                            }
 
                             callback(ack);
 
                             if (canceller.IsCancellationRequested)
                                 break;
                         }
-                        catch (TaskCanceledException)
-                        {
-                            break;
-                        }
-                        catch { }
-                    }
 
-                    consumer.Unsubscribe();
+                    }
+                    finally
+                    {
+                        consumer.Unsubscribe();
+                    }
                 }
                 await KafkaCommon.DeleteTopic(host, ackTopic);
             }

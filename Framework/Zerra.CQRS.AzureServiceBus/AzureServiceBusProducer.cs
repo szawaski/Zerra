@@ -176,35 +176,36 @@ namespace Zerra.CQRS.AzureServiceBus
                 {
                     for (; ; )
                     {
+                        var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
+                        if (serviceBusMessage == null)
+                            continue;
+                        await receiver.CompleteMessageAsync(serviceBusMessage);
+
+                        if (!ackCallbacks.TryRemove(serviceBusMessage.SessionId, out var callback))
+                            continue;
+
+                        Acknowledgement ack = null;
                         try
                         {
-                            var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
-                            if (serviceBusMessage == null)
-                                continue;
-                            await receiver.CompleteMessageAsync(serviceBusMessage);
-
-                            if (!ackCallbacks.TryRemove(serviceBusMessage.SessionId, out var callback))
-                                continue;
-
                             var response = serviceBusMessage.Body.ToStream();
                             if (symmetricConfig != null)
                                 response = SymmetricEncryptor.Decrypt(symmetricConfig, response, false);
-                            var ack = await AzureServiceBusCommon.DeserializeAsync<Acknowledgement>(response);
-
-                            callback(ack);
-
-                            if (canceller.IsCancellationRequested)
-                                break;
-                        }
-                        catch (TaskCanceledException ex)
-                        {
-                            _ = Log.ErrorAsync(ex);
-                            break;
+                            ack = await AzureServiceBusCommon.DeserializeAsync<Acknowledgement>(response);
                         }
                         catch (Exception ex)
                         {
                             _ = Log.ErrorAsync(ex);
+                            ack = new Acknowledgement()
+                            {
+                                Success = false,
+                                ErrorMessage = ex.Message
+                            };
                         }
+
+                        callback(ack);
+
+                        if (canceller.IsCancellationRequested)
+                            break;
                     }
                 }
                 await AzureServiceBusCommon.DeleteTopic(host, ackTopic);

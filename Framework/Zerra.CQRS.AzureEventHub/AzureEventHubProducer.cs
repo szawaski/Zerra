@@ -176,10 +176,23 @@ namespace Zerra.CQRS.AzureEventHub
                         if (!ackCallbacks.TryRemove(ackKey, out var callback))
                             continue;
 
-                        var response = partitionEvent.Data.EventBody.ToArray();
-                        if (symmetricConfig != null)
-                            response = SymmetricEncryptor.Decrypt(symmetricConfig, response);
-                        var ack = AzureEventHubCommon.Deserialize<Acknowledgement>(response);
+                        Acknowledgement ack = null;
+                        try
+                        {
+                            var response = partitionEvent.Data.EventBody.ToArray();
+                            if (symmetricConfig != null)
+                                response = SymmetricEncryptor.Decrypt(symmetricConfig, response);
+                            ack = AzureEventHubCommon.Deserialize<Acknowledgement>(response);
+                        }
+                        catch (Exception ex)
+                        {
+                            _ = Log.ErrorAsync(ex);
+                            ack = new Acknowledgement()
+                            {
+                                Success = false,
+                                ErrorMessage = ex.Message
+                            };
+                        }
 
                         callback(ack);
 
