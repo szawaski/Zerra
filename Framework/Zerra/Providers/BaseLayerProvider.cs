@@ -25,7 +25,7 @@ namespace Zerra.Providers
                         {
                             var highestStackInterface = ProviderLayers.GetHighestProviderInterface(this.GetType());
                             var nextInterfaceType = ProviderLayers.GetProviderInterfaceLayerAfter(highestStackInterface);
-                            if (!Resolver.TryGet(nextInterfaceType, out nextProvider))
+                            if (!ProviderResolver.TryGet(nextInterfaceType, out nextProvider))
                             {
                                 this.nextProvider = EmptyImplementations.GetEmptyImplementation<TNextProviderInterface>();
                             }

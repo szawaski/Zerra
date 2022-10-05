@@ -8,7 +8,7 @@ using Zerra.Providers;
 
 namespace Zerra.Logging
 {
-    public interface ILoggingProvider : IBaseProvider
+    public interface ILoggingProvider
     {
         Task TraceAsync(string message);
         Task DebugAsync(string message);

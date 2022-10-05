@@ -54,8 +54,8 @@ namespace Zerra.Repository.Test
 
             _ = context.InitializeEngine<ITransactStoreEngine>(true);
 
-            var provider = Resolver.Get<ITransactStoreProvider<PostgreSqlTestTypesModel>>();
-            var relationProvider = Resolver.Get<ITransactStoreProvider<PostgreSqlTestRelationsModel>>();
+            var provider = ProviderResolver.Get<ITransactStoreProvider<PostgreSqlTestTypesModel>>();
+            var relationProvider = ProviderResolver.Get<ITransactStoreProvider<PostgreSqlTestRelationsModel>>();
 
             TestModelMethods.TestSequence(provider, relationProvider);
 

@@ -10,7 +10,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Providers
 {
-    public static class Resolver
+    public static class ProviderResolver
     {
         public static bool TryGet<TInterface>(out TInterface provider) where TInterface : IBaseProvider
         {
@@ -40,12 +40,12 @@ namespace Zerra.Providers
         public static object Get(Type type) { return GetGeneric(type, null, true); }
         public static object Get(Type type, Type providerInterfaceType) { return GetGeneric(type, providerInterfaceType, true); }
 
-        private static readonly MethodInfo methodProviderManagerGet = typeof(Resolver).GetMethod(nameof(Resolver.Get), BindingFlags.Static | BindingFlags.NonPublic);
+        private static readonly MethodInfo methodProviderManagerGet = typeof(ProviderResolver).GetMethod(nameof(ProviderResolver.Get), BindingFlags.Static | BindingFlags.NonPublic);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object GetGeneric(Type type, Type providerInterfaceType, bool throwException)
         {
             var genericMethodProviderManagerTryGet = TypeAnalyzer.GetGenericMethodDetail(methodProviderManagerGet, type);
-            var provider = genericMethodProviderManagerTryGet.Caller(providerInterfaceType, new object[] { providerInterfaceType, throwException });
+            var provider = genericMethodProviderManagerTryGet.Caller(null, new object[] { providerInterfaceType, throwException });
             return provider;
         }
 

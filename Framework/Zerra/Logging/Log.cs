@@ -4,7 +4,7 @@
 
 using System;
 using System.Threading.Tasks;
-using Zerra.Providers;
+using Zerra.Reflection;
 
 namespace Zerra.Logging
 {
