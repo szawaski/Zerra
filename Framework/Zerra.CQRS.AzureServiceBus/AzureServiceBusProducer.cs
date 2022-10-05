@@ -178,7 +178,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     {
                         try
                         {
-                            var serviceBusMessage = await receiver.ReceiveMessageAsync();
+                            var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
                             if (serviceBusMessage == null)
                                 continue;
                             await receiver.CompleteMessageAsync(serviceBusMessage);
@@ -192,6 +192,9 @@ namespace Zerra.CQRS.AzureServiceBus
                             var ack = await AzureServiceBusCommon.DeserializeAsync<Acknowledgement>(response);
 
                             callback(ack);
+
+                            if (canceller.IsCancellationRequested)
+                                break;
                         }
                         catch (TaskCanceledException ex)
                         {

@@ -194,6 +194,9 @@ namespace Zerra.CQRS.Kafka
                             var ack = KafkaCommon.Deserialize<Acknowledgement>(response);
 
                             callback(ack);
+
+                            if (canceller.IsCancellationRequested)
+                                break;
                         }
                         catch (TaskCanceledException)
                         {

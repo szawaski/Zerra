@@ -182,6 +182,9 @@ namespace Zerra.CQRS.AzureEventHub
                         var ack = AzureEventHubCommon.Deserialize<Acknowledgement>(response);
 
                         callback(ack);
+
+                        if (canceller.IsCancellationRequested)
+                            break;
                     }
                 }
             }

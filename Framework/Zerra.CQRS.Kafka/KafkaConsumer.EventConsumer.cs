@@ -73,6 +73,9 @@ namespace Zerra.CQRS.Kafka
                                 _ = Log.TraceAsync($"Received: {topic}");
 
                                 _ = HandleMessage(host, consumerResult, handlerAsync);
+
+                                if (canceller.IsCancellationRequested)
+                                    break;
                             }
                         }
                         finally
