@@ -56,8 +56,6 @@ namespace Zerra.CQRS.AzureServiceBus
                     await AzureServiceBusCommon.EnsureTopic(host, topic, false);
                     await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription, false);
 
-                    _ = Log.TraceAsync($"Received: {topic}");
-
                     await using (var receiver = client.CreateReceiver(topic, subscription))
                     {
                         for (; ; )
@@ -72,6 +70,8 @@ namespace Zerra.CQRS.AzureServiceBus
                                 if (serviceBusMessage == null)
                                     continue;
                                 await receiver.CompleteMessageAsync(serviceBusMessage);
+
+                                _ = Log.TraceAsync($"Received: {topic}");
 
                                 awaitResponse = !String.IsNullOrWhiteSpace(serviceBusMessage.ReplyTo);
                                 ackTopic = serviceBusMessage.ReplyTo;
