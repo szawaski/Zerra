@@ -33,7 +33,7 @@ namespace Zerra.CQRS.Kafka
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
 
-            var clientID = Guid.NewGuid().ToString();
+            var clientID = Guid.NewGuid().ToString("N");
             this.ackTopic = $"ACK-{clientID}";
 
             var producerConfig = new ProducerConfig();
@@ -67,7 +67,7 @@ namespace Zerra.CQRS.Kafka
                 }
                 finally
                 {
-                    _=listenerStartedLock.Release();
+                    _ = listenerStartedLock.Release();
                 }
             }
 
@@ -93,7 +93,7 @@ namespace Zerra.CQRS.Kafka
 
             if (requireAcknowledgement)
             {
-                var ackKey = Guid.NewGuid().ToString();
+                var ackKey = Guid.NewGuid().ToString("N");
 
                 var headers = new Headers();
                 headers.Add(new Header(KafkaCommon.AckTopicHeader, Encoding.UTF8.GetBytes(ackTopic)));
@@ -116,11 +116,13 @@ namespace Zerra.CQRS.Kafka
                         throw new Exception($"{nameof(KafkaProducer)} failed: {producerResult.Status}");
 
                     await waiter.WaitAsync();
+
                     if (!ack.Success)
                         throw new AcknowledgementException(ack, topic);
                 }
                 finally
                 {
+                    _ = ackCallbacks.TryRemove(ackKey, out _);
                     if (waiter != null)
                         waiter.Dispose();
                 }

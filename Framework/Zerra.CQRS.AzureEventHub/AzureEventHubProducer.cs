@@ -78,7 +78,7 @@ namespace Zerra.CQRS.AzureEventHub
             await using (var producer = new EventHubProducerClient(host, eventHubName))
             {
                 if (requireAcknowledgement)
-                    ackKey = Guid.NewGuid().ToString();
+                    ackKey = Guid.NewGuid().ToString("N");
 
                 var eventData = new EventData(body);
                 eventData.Properties[AzureEventHubCommon.TypeProperty] = type;
@@ -108,8 +108,7 @@ namespace Zerra.CQRS.AzureEventHub
                     }
                     finally
                     {
-                        if (waiter != null)
-                            waiter.Dispose();
+                        waiter.Dispose();
                     }
                 }
                 else

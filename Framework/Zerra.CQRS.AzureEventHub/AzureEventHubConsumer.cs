@@ -93,7 +93,7 @@ namespace Zerra.CQRS.AzureEventHub
         private async Task ListeningThread()
         {
             canceller = new CancellationTokenSource();
-           
+
         retry:
 
             try
@@ -104,7 +104,23 @@ namespace Zerra.CQRS.AzureEventHub
                 {
                     await foreach (var partitionEvent in consumer.ReadEventsAsync(canceller.Token))
                     {
-                        _ = Task.Run(() => HandleEvent(partitionEvent));
+                        if (!String.IsNullOrWhiteSpace(environment))
+                        {
+                            if (!partitionEvent.Data.Properties.TryGetValue(AzureEventHubCommon.EnvironmentProperty, out var environmentNameObject))
+                                continue;
+                            if (environmentNameObject is not string environmentName)
+                                continue;
+                            if (environmentName != environment)
+                                continue;
+                        }
+                        if (!partitionEvent.Data.Properties.TryGetValue(AzureEventHubCommon.TypeProperty, out var typeNameObject))
+                            continue;
+                        if (typeNameObject is not string typeName)
+                            continue;
+
+                        _ = Log.TraceAsync($"Received Await: {typeName}");
+
+                        _ = HandleEvent(typeName, partitionEvent);
                     }
                 }
             }
@@ -123,7 +139,7 @@ namespace Zerra.CQRS.AzureEventHub
             isOpen = false;
         }
 
-        private async Task HandleEvent(PartitionEvent partitionEvent)
+        private async Task HandleEvent(string typeName, PartitionEvent partitionEvent)
         {
             Exception error = null;
             Type type = null;
@@ -131,26 +147,10 @@ namespace Zerra.CQRS.AzureEventHub
             var awaitResponse = false;
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                {
-                    if (!partitionEvent.Data.Properties.TryGetValue(AzureEventHubCommon.EnvironmentProperty, out var environmentNameObject))
-                        return;
-                    if (environmentNameObject is not string environmentName)
-                        return;
-                    if (environmentName != environment)
-                        return;
-                }
-                if (!partitionEvent.Data.Properties.TryGetValue(AzureEventHubCommon.TypeProperty, out var typeNameObject))
-                    return;
-                if (typeNameObject is not string typeName)
-                    return;
-
                 type = Discovery.GetTypeFromName(typeName);
                 var typeDetail = TypeAnalyzer.GetTypeDetail(type);
                 var isCommand = commandTypes.Contains(type) && typeDetail.Interfaces.Contains(typeof(ICommand));
                 var isEvent = eventTypes.Contains(type) && typeDetail.Interfaces.Contains(typeof(IEvent));
-
-                _ = Log.TraceAsync($"Received Await: {type.Name}");
 
                 if (!isCommand && !isEvent)
                     return;

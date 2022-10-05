@@ -10,7 +10,7 @@
     <Description>Azure Service Bus implementations of producer and consumer for commands and events in the CQRS Zerra Framework.</Description>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>3.7.1</Version>
+    <Version>3.7.2</Version>
   </PropertyGroup>
 
   <ItemGroup>

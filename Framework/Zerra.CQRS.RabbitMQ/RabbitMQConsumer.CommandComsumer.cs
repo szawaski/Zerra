@@ -108,7 +108,6 @@ namespace Zerra.CQRS.RabbitMQ
                         {
                             try
                             {
-
                                 var replyProperties = this.channel.CreateBasicProperties();
                                 replyProperties.CorrelationId = properties.CorrelationId;
 

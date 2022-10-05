@@ -99,7 +99,7 @@ namespace Zerra.CQRS.RabbitMQ
                     consumer = new EventingBasicConsumer(channel);
                     consumerTag = channel.BasicConsume(replyQueueName, false, consumer);
 
-                    correlationId = Guid.NewGuid().ToString();
+                    correlationId = Guid.NewGuid().ToString("N");
                     properties.ReplyTo = replyQueueName;
                     properties.CorrelationId = correlationId;
                 }

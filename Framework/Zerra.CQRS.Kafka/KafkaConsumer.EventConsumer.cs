@@ -56,55 +56,29 @@ namespace Zerra.CQRS.Kafka
 
                     var consumerConfig = new ConsumerConfig();
                     consumerConfig.BootstrapServers = host;
-                    consumerConfig.GroupId = Guid.NewGuid().ToString();
+                    consumerConfig.GroupId = Guid.NewGuid().ToString("N");
                     consumerConfig.EnableAutoCommit = false;
 
                     using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build())
                     {
                         consumer.Subscribe(topic);
 
-                        for (; ; )
+                        try
                         {
-                            try
+                            for (; ; )
                             {
                                 var consumerResult = consumer.Consume(canceller.Token);
                                 consumer.Commit(consumerResult);
 
                                 _ = Log.TraceAsync($"Received: {topic}");
 
-                                if (consumerResult.Message.Key == KafkaCommon.MessageKey)
-                                {
-                                    var body = consumerResult.Message.Value;
-                                    if (symmetricConfig != null)
-                                        body = SymmetricEncryptor.Decrypt(symmetricConfig, body);
-
-                                    var message = KafkaCommon.Deserialize<KafkaEventMessage>(body);
-
-                                    if (message.Claims != null)
-                                    {
-                                        var claimsIdentity = new ClaimsIdentity(message.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
-                                        Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
-                                    }
-
-                                    await handlerAsync(message.Message);
-                                }
-                                else
-                                {
-                                    _ = Log.ErrorAsync($"{nameof(KafkaConsumer)} unrecognized message key {consumerResult.Message.Key}");
-                                }
-                            }
-                            catch (TaskCanceledException ex)
-                            {
-                                _ = Log.ErrorAsync($"Error: {topic}", ex);
-                                break;
-                            }
-                            catch (Exception ex)
-                            {
-                                _ = Log.ErrorAsync($"Error: {topic}", ex);
+                                _ = HandleMessage(host, consumerResult, handlerAsync);
                             }
                         }
-
-                        consumer.Unsubscribe();
+                        finally
+                        {
+                            consumer.Unsubscribe();
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -118,6 +92,37 @@ namespace Zerra.CQRS.Kafka
                 }
                 canceller.Dispose();
                 IsOpen = false;
+            }
+
+            private async Task HandleMessage(string host, ConsumeResult<string, byte[]> consumerResult, Func<IEvent, Task> handlerAsync)
+            {
+                try
+                {
+                    if (consumerResult.Message.Key == KafkaCommon.MessageKey)
+                    {
+                        var body = consumerResult.Message.Value;
+                        if (symmetricConfig != null)
+                            body = SymmetricEncryptor.Decrypt(symmetricConfig, body);
+
+                        var message = KafkaCommon.Deserialize<KafkaEventMessage>(body);
+
+                        if (message.Claims != null)
+                        {
+                            var claimsIdentity = new ClaimsIdentity(message.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
+                            Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
+                        }
+
+                        await handlerAsync(message.Message);
+                    }
+                    else
+                    {
+                        _ = Log.ErrorAsync($"{nameof(KafkaConsumer)} unrecognized message key {consumerResult.Message.Key}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _ = Log.ErrorAsync($"Error: {topic}", ex);
+                }
             }
 
             public void Dispose()

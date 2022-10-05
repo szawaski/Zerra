@@ -59,38 +59,15 @@ namespace Zerra.CQRS.AzureServiceBus
                     {
                         for (; ; )
                         {
-                            try
-                            {
-                                var serviceBusMessage = await receiver.ReceiveMessageAsync();
-                                if (serviceBusMessage == null)
-                                    continue;
-                                await receiver.CompleteMessageAsync(serviceBusMessage);
 
-                                _ = Log.TraceAsync($"Received: {topic}");
+                            var serviceBusMessage = await receiver.ReceiveMessageAsync();
+                            if (serviceBusMessage == null)
+                                continue;
+                            await receiver.CompleteMessageAsync(serviceBusMessage);
 
-                                var body = serviceBusMessage.Body.ToStream();
-                                if (symmetricConfig != null)
-                                    body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
+                            _ = Log.TraceAsync($"Received: {topic}");
 
-                                var message = await AzureServiceBusCommon.DeserializeAsync<AzureServiceBusEventMessage>(body);
-
-                                if (message.Claims != null)
-                                {
-                                    var claimsIdentity = new ClaimsIdentity(message.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
-                                    Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
-                                }
-
-                                await handlerAsync(message.Message);
-                            }
-                            catch (TaskCanceledException ex)
-                            {
-                                _ = Log.ErrorAsync($"Error: {topic}", ex);
-                                break;
-                            }
-                            catch (Exception ex)
-                            {
-                                _ = Log.ErrorAsync($"Error: {topic}", ex);
-                            }
+                            _ = HandleMessage(client, serviceBusMessage, handlerAsync);
                         }
                     }
                 }
@@ -105,6 +82,30 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
                 canceller.Dispose();
                 IsOpen = false;
+            }
+
+            private async Task HandleMessage(ServiceBusClient client, ServiceBusReceivedMessage serviceBusMessage, Func<IEvent, Task> handlerAsync)
+            {
+                try
+                {
+                    var body = serviceBusMessage.Body.ToStream();
+                    if (symmetricConfig != null)
+                        body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
+
+                    var message = await AzureServiceBusCommon.DeserializeAsync<AzureServiceBusEventMessage>(body);
+
+                    if (message.Claims != null)
+                    {
+                        var claimsIdentity = new ClaimsIdentity(message.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
+                        Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
+                    }
+
+                    await handlerAsync(message.Message);
+                }
+                catch (Exception ex)
+                {
+                    _ = Log.ErrorAsync($"Error: {topic}", ex);
+                }
             }
 
             public void Dispose()

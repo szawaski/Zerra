@@ -35,7 +35,7 @@ namespace Zerra.CQRS.AzureServiceBus
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
 
-            this.ackTopic = $"ACK-{Guid.NewGuid()}";
+            this.ackTopic = $"ACK-{Guid.NewGuid().ToString("N")}";
             this.ackSubscription = $"{ackTopic.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}-{applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}";
 
             client = new ServiceBusClient(host);
@@ -94,7 +94,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
             if (requireAcknowledgement)
             {
-                var ackKey = Guid.NewGuid().ToString();
+                var ackKey = Guid.NewGuid().ToString("N");
 
                 var waiter = new SemaphoreSlim(0, 1);
 
@@ -117,13 +117,14 @@ namespace Zerra.CQRS.AzureServiceBus
                     }
 
                     await waiter.WaitAsync();
+
                     if (!ack.Success)
                         throw new AcknowledgementException(ack, topic);
                 }
                 finally
                 {
-                    if (waiter != null)
-                        waiter.Dispose();
+                    _ = ackCallbacks.TryRemove(ackKey, out _);
+                    waiter.Dispose();
                 }
             }
             else
