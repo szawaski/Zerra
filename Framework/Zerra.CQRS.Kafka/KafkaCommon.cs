@@ -6,6 +6,7 @@ using Confluent.Kafka;
 using Confluent.Kafka.Admin;
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Serialization;
 
@@ -13,6 +14,8 @@ namespace Zerra.CQRS.Kafka
 {
     internal static class KafkaCommon
     {
+        private static readonly SemaphoreSlim locker = new(1, 1);
+
         public const int TopicMaxLength = 249;
 
         public const int RetryDelay = 5000;
@@ -39,26 +42,34 @@ namespace Zerra.CQRS.Kafka
             var clientConfig = new AdminClientConfig();
             clientConfig.BootstrapServers = host;
 
-            using (var client = new AdminClientBuilder(clientConfig).Build())
+            await locker.WaitAsync();
+            try
             {
-                try
+                using (var client = new AdminClientBuilder(clientConfig).Build())
                 {
-                    var metadata = client.GetMetadata(topic, TimeSpan.FromSeconds(10));
-                    if (!metadata.Topics.Any(x => x.Topic == topic))
+                    try
                     {
-                        var topicSpecification = new TopicSpecification()
+                        var metadata = client.GetMetadata(topic, TimeSpan.FromSeconds(10));
+                        if (!metadata.Topics.Any(x => x.Topic == topic))
                         {
-                            Name = topic,
-                            ReplicationFactor = 1,
-                            NumPartitions = 1
-                        };
-                        await client.CreateTopicsAsync(new TopicSpecification[] { topicSpecification });
+                            var topicSpecification = new TopicSpecification()
+                            {
+                                Name = topic,
+                                ReplicationFactor = 1,
+                                NumPartitions = 1
+                            };
+                            await client.CreateTopicsAsync(new TopicSpecification[] { topicSpecification });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception($"{nameof(KafkaCommon)} failed to create topic {topic}", ex);
                     }
                 }
-                catch (Exception ex)
-                {
-                    throw new Exception($"{nameof(KafkaCommon)} failed to create topic {topic}", ex);
-                }
+            }
+            finally
+            {
+                _ = locker.Release();
             }
         }
 
@@ -67,53 +78,62 @@ namespace Zerra.CQRS.Kafka
             var clientConfig = new AdminClientConfig();
             clientConfig.BootstrapServers = host;
 
-            using (var client = new AdminClientBuilder(clientConfig).Build())
-            {
-                try
-                {
-                    var metadata = client.GetMetadata(topic, TimeSpan.FromSeconds(10));
-                    if (metadata.Topics.Any(x => x.Topic == topic))
-                    {
-                        await client.DeleteTopicsAsync(new string[] { topic });
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception($"{nameof(KafkaCommon)} failed to delete topic {topic}", ex);
-                }
-            }
-        }
 
-        public static async Task DeleteAllAckTopics(string host, string topic)
-        {
-            var clientConfig = new AdminClientConfig();
-            clientConfig.BootstrapServers = host;
-
-            using (var client = new AdminClientBuilder(clientConfig).Build())
+            await locker.WaitAsync();
+            try
             {
-                try
+                using (var client = new AdminClientBuilder(clientConfig).Build())
                 {
-                    var metadata = client.GetMetadata(TimeSpan.FromSeconds(10));
-                    foreach (var item in metadata.Topics)
+                    try
                     {
-                        if (item.Topic.StartsWith("ACK-"))
+                        var metadata = client.GetMetadata(topic, TimeSpan.FromSeconds(10));
+                        if (metadata.Topics.Any(x => x.Topic == topic))
                         {
-                            try
-                            {
-                                await client.DeleteTopicsAsync(new string[] { topic });
-                            }
-                            catch (Exception ex)
-                            {
-                                throw new Exception($"{nameof(KafkaCommon)} failed to delete topic {topic}", ex);
-                            }
+                            await client.DeleteTopicsAsync(new string[] { topic });
                         }
                     }
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception($"{nameof(KafkaCommon)} failed to delete topics {topic}", ex);
+                    catch (Exception ex)
+                    {
+                        throw new Exception($"{nameof(KafkaCommon)} failed to delete topic {topic}", ex);
+                    }
                 }
             }
+            finally
+            {
+                _ = locker.Release();
+            }
         }
+
+        //public static async Task DeleteAllAckTopics(string host, string topic)
+        //{
+        //    var clientConfig = new AdminClientConfig();
+        //    clientConfig.BootstrapServers = host;
+
+        //    using (var client = new AdminClientBuilder(clientConfig).Build())
+        //    {
+        //        try
+        //        {
+        //            var metadata = client.GetMetadata(TimeSpan.FromSeconds(10));
+        //            foreach (var item in metadata.Topics)
+        //            {
+        //                if (item.Topic.StartsWith("ACK-"))
+        //                {
+        //                    try
+        //                    {
+        //                        await client.DeleteTopicsAsync(new string[] { topic });
+        //                    }
+        //                    catch (Exception ex)
+        //                    {
+        //                        throw new Exception($"{nameof(KafkaCommon)} failed to delete topic {topic}", ex);
+        //                    }
+        //                }
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            throw new Exception($"{nameof(KafkaCommon)} failed to delete topics {topic}", ex);
+        //        }
+        //    }
+        //}
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.Azure.Management.EventHub;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Rest;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Serialization;
 
@@ -14,6 +15,8 @@ namespace Zerra.CQRS.AzureEventHub
 {
     internal static class AzureEventHubCommon
     {
+        private static readonly SemaphoreSlim locker = new(1, 1);
+
         public const int RetryDelay = 5000;
 
         private const string resourceGroupConfig = "AzureEventHubResourceGroup";
@@ -24,7 +27,7 @@ namespace Zerra.CQRS.AzureEventHub
 
         public const string AckProperty = "Ack";
         public const string AckKeyProperty = "AckID";
-        public const string TypeProperty= "Type";
+        public const string TypeProperty = "Type";
         public const string EnvironmentProperty = "Env";
 
         public static byte[] Serialize(object obj)
@@ -56,37 +59,45 @@ namespace Zerra.CQRS.AzureEventHub
                 return EventHubConsumerClient.DefaultConsumerGroupName;
             }
 
-            string hubNamespace = null;
-            var split = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
-            foreach (var item in split)
+            await locker.WaitAsync();
+            try
             {
-                var itemSplit = item.Split('=');
-                if (itemSplit.Length != 2)
-                    continue;
-                if (itemSplit[0] == "Endpoint")
+                string hubNamespace = null;
+                var split = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var item in split)
                 {
-                    var uri = new Uri(itemSplit[1]);
-                    hubNamespace = uri.Host.Split('.')[0];
+                    var itemSplit = item.Split('=');
+                    if (itemSplit.Length != 2)
+                        continue;
+                    if (itemSplit[0] == "Endpoint")
+                    {
+                        var uri = new Uri(itemSplit[1]);
+                        hubNamespace = uri.Host.Split('.')[0];
+                    }
                 }
+
+                if (hubNamespace == null)
+                    throw new Exception($"{nameof(GetEnsuredConsumerGroup)} could not parse host");
+
+                var context = new AuthenticationContext($"https://login.windows.net/{tenantID}");
+                var credential = new ClientCredential(applicationID, clientSecret);
+                var token = await context.AcquireTokenAsync("https://management.core.windows.net/", credential);
+
+                var clientCredentials = new TokenCredentials(token.AccessToken);
+                var client = new EventHubManagementClient(clientCredentials)
+                {
+                    SubscriptionId = subscriptionID,
+                };
+
+                var consumerGroupResponse = await client.ConsumerGroups
+                    .CreateOrUpdateAsync(resourceGroup, hubNamespace, eventHubName, requestedConsumerGroup);
+
+                return requestedConsumerGroup;
             }
-
-            if (hubNamespace == null)
-                throw new Exception($"{nameof(GetEnsuredConsumerGroup)} could not parse host");
-
-            var context = new AuthenticationContext($"https://login.windows.net/{tenantID}");
-            var credential = new ClientCredential(applicationID, clientSecret);
-            var token = await context.AcquireTokenAsync("https://management.core.windows.net/", credential);
-
-            var clientCredentials = new TokenCredentials(token.AccessToken);
-            var client = new EventHubManagementClient(clientCredentials)
+            finally
             {
-                SubscriptionId = subscriptionID,
-            };
-
-            var consumerGroupResponse = await client.ConsumerGroups
-                .CreateOrUpdateAsync(resourceGroup, hubNamespace, eventHubName, requestedConsumerGroup);
-
-            return requestedConsumerGroup;
+                _ = locker.Release();
+            }
         }
 
         public static async Task DeleteConsumerGroup(string requestedConsumerGroup, string connectionString, string eventHubName)
@@ -106,35 +117,43 @@ namespace Zerra.CQRS.AzureEventHub
                 return;
             }
 
-            string hubNamespace = null;
-            var split = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
-            foreach (var item in split)
+            await locker.WaitAsync();
+            try
             {
-                var itemSplit = item.Split('=');
-                if (itemSplit.Length != 2)
-                    continue;
-                if (itemSplit[0] == "Endpoint")
+                string hubNamespace = null;
+                var split = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var item in split)
                 {
-                    var uri = new Uri(itemSplit[1]);
-                    hubNamespace = uri.Host.Split('.')[0];
+                    var itemSplit = item.Split('=');
+                    if (itemSplit.Length != 2)
+                        continue;
+                    if (itemSplit[0] == "Endpoint")
+                    {
+                        var uri = new Uri(itemSplit[1]);
+                        hubNamespace = uri.Host.Split('.')[0];
+                    }
                 }
+
+                if (hubNamespace == null)
+                    throw new Exception($"{nameof(GetEnsuredConsumerGroup)} could not parse host");
+
+                var context = new AuthenticationContext($"https://login.windows.net/{tenantID}");
+                var credential = new ClientCredential(applicationID, clientSecret);
+                var token = await context.AcquireTokenAsync("https://management.core.windows.net/", credential);
+
+                var clientCredentials = new TokenCredentials(token.AccessToken);
+                var client = new EventHubManagementClient(clientCredentials)
+                {
+                    SubscriptionId = subscriptionID,
+                };
+
+                await client.ConsumerGroups
+                    .DeleteAsync(resourceGroup, hubNamespace, eventHubName, requestedConsumerGroup);
             }
-
-            if (hubNamespace == null)
-                throw new Exception($"{nameof(GetEnsuredConsumerGroup)} could not parse host");
-
-            var context = new AuthenticationContext($"https://login.windows.net/{tenantID}");
-            var credential = new ClientCredential(applicationID, clientSecret);
-            var token = await context.AcquireTokenAsync("https://management.core.windows.net/", credential);
-
-            var clientCredentials = new TokenCredentials(token.AccessToken);
-            var client = new EventHubManagementClient(clientCredentials)
+            finally
             {
-                SubscriptionId = subscriptionID,
-            };
-
-            await client.ConsumerGroups
-                .DeleteAsync(resourceGroup, hubNamespace, eventHubName, requestedConsumerGroup);
+                _ = locker.Release();
+            }
         }
     }
 }
