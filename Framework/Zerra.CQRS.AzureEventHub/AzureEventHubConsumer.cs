@@ -125,8 +125,6 @@ namespace Zerra.CQRS.AzureEventHub
 
         private async Task HandleEvent(PartitionEvent partitionEvent)
         {
-            var stopwatch = Stopwatch.StartNew();
-
             Exception error = null;
             Type type = null;
             string ackKey = null;
@@ -151,6 +149,8 @@ namespace Zerra.CQRS.AzureEventHub
                 var typeDetail = TypeAnalyzer.GetTypeDetail(type);
                 var isCommand = commandTypes.Contains(type) && typeDetail.Interfaces.Contains(typeof(ICommand));
                 var isEvent = eventTypes.Contains(type) && typeDetail.Interfaces.Contains(typeof(IEvent));
+
+                _ = Log.TraceAsync($"Received Await: {type.Name}");
 
                 if (!isCommand && !isEvent)
                     return;
@@ -187,13 +187,10 @@ namespace Zerra.CQRS.AzureEventHub
                 {
                     await eventHandlerAsync((IEvent)message.Message);
                 }
-
-                _ = Log.TraceAsync($"Received Await: {type.Name} {stopwatch.ElapsedMilliseconds}");
             }
             catch (Exception ex)
             {
-                _ = Log.TraceAsync($"Error: Received Await: {type?.Name} {stopwatch.ElapsedMilliseconds}");
-                _ = Log.ErrorAsync(ex);
+                _ = Log.ErrorAsync($"Error: {type?.Name}", ex);
                 error = ex;
             }
 
@@ -222,7 +219,7 @@ namespace Zerra.CQRS.AzureEventHub
 
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(ex);
+                    _ = Log.ErrorAsync($"Error: {type?.Name}", ex);
                 }
             }
         }

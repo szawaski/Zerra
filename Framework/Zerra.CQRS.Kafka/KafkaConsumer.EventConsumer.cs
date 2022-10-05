@@ -70,10 +70,10 @@ namespace Zerra.CQRS.Kafka
                                 var consumerResult = consumer.Consume(canceller.Token);
                                 consumer.Commit(consumerResult);
 
+                                _ = Log.TraceAsync($"Received: {topic}");
+
                                 if (consumerResult.Message.Key == KafkaCommon.MessageKey)
                                 {
-                                    var stopwatch = Stopwatch.StartNew();
-
                                     var body = consumerResult.Message.Value;
                                     if (symmetricConfig != null)
                                         body = SymmetricEncryptor.Decrypt(symmetricConfig, body);
@@ -87,22 +87,20 @@ namespace Zerra.CQRS.Kafka
                                     }
 
                                     await handlerAsync(message.Message);
-
-                                    _ = Log.TraceAsync($"Received Await: {topic}  {stopwatch.ElapsedMilliseconds}");
                                 }
                                 else
                                 {
                                     _ = Log.ErrorAsync($"{nameof(KafkaConsumer)} unrecognized message key {consumerResult.Message.Key}");
                                 }
                             }
-                            catch (TaskCanceledException)
+                            catch (TaskCanceledException ex)
                             {
+                                _ = Log.ErrorAsync($"Error: {topic}", ex);
                                 break;
                             }
                             catch (Exception ex)
                             {
-                                _ = Log.TraceAsync($"Error: Received Await: {topic}");
-                                _ = Log.ErrorAsync(ex);
+                                _ = Log.ErrorAsync($"Error: {topic}", ex);
                             }
                         }
 
@@ -111,9 +109,9 @@ namespace Zerra.CQRS.Kafka
                 }
                 catch (Exception ex)
                 {
+                    _ = Log.ErrorAsync($"Error: {topic}", ex);
                     if (!canceller.IsCancellationRequested)
                     {
-                        _ = Log.ErrorAsync(ex);
                         await Task.Delay(KafkaCommon.RetryDelay);
                         goto retry;
                     }

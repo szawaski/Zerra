@@ -55,6 +55,8 @@ namespace Zerra.CQRS.AzureServiceBus
                     await AzureServiceBusCommon.EnsureTopic(host, topic, false);
                     await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription, false);
 
+                    _ = Log.TraceAsync($"Received: {topic}");
+
                     await using (var receiver = client.CreateReceiver(topic, topic))
                     {
                         for (; ; )
@@ -81,26 +83,24 @@ namespace Zerra.CQRS.AzureServiceBus
                                 }
 
                                 await handlerAsync(message.Message);
-
-                                _ = Log.TraceAsync($"Received Await: {topic}  {stopwatch.ElapsedMilliseconds}");
                             }
-                            catch (TaskCanceledException)
+                            catch (TaskCanceledException ex)
                             {
+                                _ = Log.ErrorAsync($"Error: {topic}", ex);
                                 break;
                             }
                             catch (Exception ex)
                             {
-                                _ = Log.TraceAsync($"Error: Received Await: {topic}");
-                                _ = Log.ErrorAsync(ex);
+                                _ = Log.ErrorAsync($"Error: {topic}", ex);
                             }
                         }
                     }
                 }
                 catch (Exception ex)
                 {
+                    _ = Log.ErrorAsync($"Error: {topic}", ex);
                     if (!canceller.IsCancellationRequested)
                     {
-                        _ = Log.ErrorAsync(ex);
                         await Task.Delay(AzureServiceBusCommon.RetryDelay);
                         goto retry;
                     }

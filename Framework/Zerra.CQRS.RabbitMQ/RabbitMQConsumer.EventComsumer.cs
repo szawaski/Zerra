@@ -67,8 +67,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.Received += async (sender, e) =>
                     {
-                        var stopwatch = new Stopwatch();
-                        stopwatch.Start();
+                        _ = Log.TraceAsync($"Received: {topic}");
 
                         var properties = e.BasicProperties;
                         var acknowledgment = new Acknowledgement();
@@ -89,24 +88,14 @@ namespace Zerra.CQRS.RabbitMQ
 
                             await handlerAsync(rabbitMessage.Message);
 
-                            stopwatch.Stop();
-
-                            _ = Log.TraceAsync($"Received: {e.Exchange} {stopwatch.ElapsedMilliseconds}");
-
                             acknowledgment.Success = true;
                         }
                         catch (Exception ex)
                         {
-                            stopwatch.Stop();
-
-                            ex = ex.GetBaseException();
+                            _ = Log.ErrorAsync($"Error: {topic}", ex);
 
                             acknowledgment.Success = false;
                             acknowledgment.ErrorMessage = ex.Message;
-
-                            _ = Log.TraceAsync($"Error: Received: {e.Exchange} {acknowledgment.ErrorMessage} {stopwatch.ElapsedMilliseconds}");
-
-                            _ = Log.ErrorAsync(null, ex);
                         }
                     };
 
@@ -114,7 +103,7 @@ namespace Zerra.CQRS.RabbitMQ
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(ex);
+                    _ = Log.ErrorAsync($"Error: {topic}", ex);
 
                     if (!canceller.IsCancellationRequested)
                     {

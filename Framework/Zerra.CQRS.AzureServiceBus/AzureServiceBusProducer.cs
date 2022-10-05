@@ -192,11 +192,15 @@ namespace Zerra.CQRS.AzureServiceBus
 
                             callback(ack);
                         }
-                        catch (TaskCanceledException)
+                        catch (TaskCanceledException ex)
                         {
+                            _ = Log.ErrorAsync(ex);
                             break;
                         }
-                        catch { }
+                        catch (Exception ex)
+                        {
+                            _ = Log.ErrorAsync(ex);
+                        }
                     }
                 }
                 await AzureServiceBusCommon.DeleteTopic(host, ackTopic);
@@ -204,9 +208,9 @@ namespace Zerra.CQRS.AzureServiceBus
             }
             catch (Exception ex)
             {
+                _ = Log.ErrorAsync(ex);
                 if (!canceller.IsCancellationRequested)
                 {
-                    _ = Log.ErrorAsync(ex);
                     await Task.Delay(AzureServiceBusCommon.RetryDelay);
                     goto retry;
                 }

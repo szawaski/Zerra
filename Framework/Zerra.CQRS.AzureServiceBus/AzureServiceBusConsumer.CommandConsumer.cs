@@ -56,6 +56,8 @@ namespace Zerra.CQRS.AzureServiceBus
                     await AzureServiceBusCommon.EnsureTopic(host, topic, false);
                     await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription, false);
 
+                    _ = Log.TraceAsync($"Received: {topic}");
+
                     await using (var receiver = client.CreateReceiver(topic, subscription))
                     {
                         for (; ; )
@@ -75,8 +77,6 @@ namespace Zerra.CQRS.AzureServiceBus
                                 ackTopic = serviceBusMessage.ReplyTo;
                                 ackKey = serviceBusMessage.ReplyToSessionId;
 
-                                var stopwatch = Stopwatch.StartNew();
-
                                 var body = serviceBusMessage.Body.ToStream();
                                 if (symmetricConfig != null)
                                     body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
@@ -93,17 +93,15 @@ namespace Zerra.CQRS.AzureServiceBus
                                     await handlerAwaitAsync(message.Message);
                                 else
                                     await handlerAsync(message.Message);
-
-                                _ = Log.TraceAsync($"Received Await: {topic} {stopwatch.ElapsedMilliseconds}");
                             }
-                            catch (TaskCanceledException)
+                            catch (TaskCanceledException ex)
                             {
+                                _ = Log.ErrorAsync($"Error: {topic}", ex);
                                 break;
                             }
                             catch (Exception ex)
                             {
-                                _ = Log.TraceAsync($"Error: Received Await: {topic}");
-                                _ = Log.ErrorAsync(ex);
+                                _ = Log.ErrorAsync($"Error: {topic}", ex);
                                 error = ex;
                             }
                             if (awaitResponse)
@@ -126,7 +124,6 @@ namespace Zerra.CQRS.AzureServiceBus
                                         await sender.SendMessageAsync(serviceBusMessage);
                                     }
                                 }
-
                                 catch (Exception ex)
                                 {
                                     _ = Log.ErrorAsync(ex);
@@ -137,9 +134,9 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
                 catch (Exception ex)
                 {
+                    _ = Log.ErrorAsync($"Error: {topic}", ex);
                     if (!canceller.IsCancellationRequested)
                     {
-                        _ = Log.ErrorAsync(ex);
                         await Task.Delay(AzureServiceBusCommon.RetryDelay);
                         goto retry;
                     }
