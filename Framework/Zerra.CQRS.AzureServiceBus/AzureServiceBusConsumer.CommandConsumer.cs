@@ -23,6 +23,7 @@ namespace Zerra.CQRS.AzureServiceBus
             public bool IsOpen { get; private set; }
 
             private readonly string topic;
+            private readonly string subscription;
             private readonly SymmetricConfig symmetricConfig;
 
             private CancellationTokenSource canceller = null;
@@ -34,6 +35,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     this.topic = $"{environment}_{type.GetNiceName()}".Truncate(AzureServiceBusCommon.TopicMaxLength);
                 else
                     this.topic = type.GetNiceName().Truncate(AzureServiceBusCommon.TopicMaxLength);
+                this.subscription = $"{topic.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}-{applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}";
                 this.symmetricConfig = symmetricConfig;
             }
 
@@ -53,7 +55,6 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 try
                 {
-                    var subscription = $"{topic.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}-{applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}";
                     await AzureServiceBusCommon.EnsureTopic(host, topic, false);
                     await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription, false);
 

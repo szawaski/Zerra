@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Azure.Messaging.ServiceBus;
+using Microsoft.Azure.Management.ServiceBus.Models;
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -22,6 +23,7 @@ namespace Zerra.CQRS.AzureServiceBus
             public bool IsOpen { get; private set; }
 
             private readonly string topic;
+            private readonly string subscription;
             private readonly SymmetricConfig symmetricConfig;
             private CancellationTokenSource canceller;
 
@@ -32,6 +34,9 @@ namespace Zerra.CQRS.AzureServiceBus
                     this.topic = $"{environment}_{type.GetNiceName()}".Truncate(AzureServiceBusCommon.TopicMaxLength);
                 else
                     this.topic = type.GetNiceName().Truncate(AzureServiceBusCommon.TopicMaxLength);
+
+                this.subscription = $"EVENT-{Guid.NewGuid().ToString("N")}";
+
                 this.symmetricConfig = symmetricConfig;
             }
 
@@ -51,11 +56,10 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 try
                 {
-                    var subscription = $"{topic.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}-{applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}";
                     await AzureServiceBusCommon.EnsureTopic(host, topic, false);
-                    await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription, false);
+                    await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription, true);
 
-                    await using (var receiver = client.CreateReceiver(topic, topic))
+                    await using (var receiver = client.CreateReceiver(topic, subscription))
                     {
                         for (; ; )
                         {
@@ -83,8 +87,19 @@ namespace Zerra.CQRS.AzureServiceBus
                         goto retry;
                     }
                 }
-                canceller.Dispose();
-                IsOpen = false;
+                finally
+                {
+                    try
+                    {
+                        await AzureServiceBusCommon.DeleteSubscription(host, topic, subscription);
+                    }
+                    catch (Exception ex)
+                    {
+                        _ = Log.ErrorAsync(ex);
+                    }
+                    canceller.Dispose();
+                    IsOpen = false;
+                }
             }
 
             private async Task HandleMessage(ServiceBusClient client, ServiceBusReceivedMessage serviceBusMessage, Func<IEvent, Task> handlerAsync)

@@ -218,7 +218,6 @@ namespace Zerra.CQRS.Kafka
                         consumer.Unsubscribe();
                     }
                 }
-                await KafkaCommon.DeleteTopic(host, ackTopic);
             }
             catch (Exception ex)
             {
@@ -231,6 +230,14 @@ namespace Zerra.CQRS.Kafka
             }
             finally
             {
+                try
+                {
+                    await KafkaCommon.DeleteTopic(host, ackTopic);
+                }
+                catch(Exception ex)
+                {
+                    _ = Log.ErrorAsync(ex);
+                }
                 canceller.Dispose();
             }
         }

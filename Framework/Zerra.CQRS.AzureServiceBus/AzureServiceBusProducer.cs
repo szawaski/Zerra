@@ -208,8 +208,6 @@ namespace Zerra.CQRS.AzureServiceBus
                             break;
                     }
                 }
-                await AzureServiceBusCommon.DeleteTopic(host, ackTopic);
-                await AzureServiceBusCommon.DeleteSubscription(host, ackTopic, ackSubscription);
             }
             catch (Exception ex)
             {
@@ -222,6 +220,15 @@ namespace Zerra.CQRS.AzureServiceBus
             }
             finally
             {
+                try
+                {
+                    await AzureServiceBusCommon.DeleteTopic(host, ackTopic);
+                    await AzureServiceBusCommon.DeleteSubscription(host, ackTopic, ackSubscription);
+                }
+                catch (Exception ex)
+                {
+                    _ = Log.ErrorAsync(ex);
+                }
                 canceller.Dispose();
             }
         }
