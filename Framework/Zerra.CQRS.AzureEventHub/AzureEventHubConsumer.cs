@@ -29,8 +29,8 @@ namespace Zerra.CQRS.AzureEventHub
         private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
 
-        private readonly ConcurrentList<Type> commandTypes;
-        private readonly ConcurrentList<Type> eventTypes;
+        private readonly ConcurrentReadWriteList<Type> commandTypes;
+        private readonly ConcurrentReadWriteList<Type> eventTypes;
 
         private readonly TaskThrottler throttler;
 
@@ -52,8 +52,8 @@ namespace Zerra.CQRS.AzureEventHub
 
             this.throttler = new TaskThrottler();
 
-            this.commandTypes = new ConcurrentList<Type>();
-            this.eventTypes = new ConcurrentList<Type>();
+            this.commandTypes = new ConcurrentReadWriteList<Type>();
+            this.eventTypes = new ConcurrentReadWriteList<Type>();
         }
 
         void ICommandConsumer.SetHandler(Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)

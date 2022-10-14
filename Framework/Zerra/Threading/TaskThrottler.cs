@@ -17,7 +17,7 @@ namespace Zerra.Threading
 
         private readonly CancellationTokenSource canceller;
         private readonly AsyncConcurrentQueue<Func<Task>> queue;
-        private readonly ConcurrentList<Task> running;
+        private readonly ConcurrentReadWriteList<Task> running;
         private readonly SemaphoreSlim taskLimiter;
         private readonly Queue<TaskCompletionSource<object>> waiters;
         private readonly Task mainTask;
@@ -30,7 +30,7 @@ namespace Zerra.Threading
 
             this.canceller = new CancellationTokenSource();
             this.queue = new AsyncConcurrentQueue<Func<Task>>();
-            this.running = new ConcurrentList<Task>();
+            this.running = new ConcurrentReadWriteList<Task>();
             this.taskLimiter = new SemaphoreSlim(maxRunningTasks, maxRunningTasks);
             this.waiters = new Queue<TaskCompletionSource<object>>();
 

@@ -17,7 +17,7 @@ namespace Zerra.Test
         public void TaskThrottlerTest() { TaskThrottlerTestAsync().GetAwaiter().GetResult(); }
         public async Task TaskThrottlerTestAsync()
         {
-            var list = new ConcurrentList<string>();
+            var list = new ConcurrentReadWriteList<string>();
             await using (var throttler = new TaskThrottler())
             {
                 for (var i = 0; i < 100; i++)
@@ -48,7 +48,7 @@ namespace Zerra.Test
         public void TaskThrottlerForEachTest() { TaskThrottlerForEachTestAsync().GetAwaiter().GetResult(); }
         public async Task TaskThrottlerForEachTestAsync()
         {
-            var list = new ConcurrentList<string>();
+            var list = new ConcurrentReadWriteList<string>();
 
             var items = new int[100];
             

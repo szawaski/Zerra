@@ -374,7 +374,7 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly ConcurrentHashSet<ICommandConsumer> commandConsumers = new();
+        private static readonly ConcurrentReadWriteHashSet<ICommandConsumer> commandConsumers = new();
         private static readonly HashSet<Type> commandConsumerTypes = new();
         public static void AddCommandServer(ICommandConsumer commandConsumer)
         {
@@ -426,7 +426,7 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly ConcurrentHashSet<IEventConsumer> eventConsumers = new();
+        private static readonly ConcurrentReadWriteHashSet<IEventConsumer> eventConsumers = new();
         private static readonly HashSet<Type> eventConsumerTypes = new();
         public static void AddEventServer(IEventConsumer eventConsumer)
         {
@@ -474,7 +474,7 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly ConcurrentHashSet<IQueryServer> queryServers = new();
+        private static readonly ConcurrentReadWriteHashSet<IQueryServer> queryServers = new();
         private static readonly HashSet<Type> queryServerTypes = new();
         public static void AddQueryServer(IQueryServer queryServer)
         {
@@ -504,7 +504,7 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly ConcurrentHashSet<IMessageLogger> messageLoggers = new();
+        private static readonly ConcurrentReadWriteHashSet<IMessageLogger> messageLoggers = new();
         public static void AddMessageLogger(IMessageLogger messageLogger)
         {
             lock (serviceLock)

@@ -14,8 +14,8 @@ namespace Zerra.CQRS.Network
 {
     public abstract class TcpCQRSServerBase : IDisposable, IQueryServer, ICommandConsumer
     {
-        protected readonly ConcurrentList<Type> interfaceTypes;
-        protected readonly ConcurrentList<Type> commandTypes;
+        protected readonly ConcurrentReadWriteList<Type> interfaceTypes;
+        protected readonly ConcurrentReadWriteList<Type> commandTypes;
 
         private readonly SocketListener[] listeners;
         protected Func<Type, string, string[], Task<RemoteQueryCallResponse>> providerHandlerAsync = null;
@@ -44,8 +44,8 @@ namespace Zerra.CQRS.Network
                 this.listeners[i] = listener;
             }
 
-            this.interfaceTypes = new ConcurrentList<Type>();
-            this.commandTypes = new ConcurrentList<Type>();
+            this.interfaceTypes = new ConcurrentReadWriteList<Type>();
+            this.commandTypes = new ConcurrentReadWriteList<Type>();
         }
 
         void IQueryServer.SetHandler(Func<Type, string, string[], Task<RemoteQueryCallResponse>> handlerAsync)

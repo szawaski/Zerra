@@ -18,7 +18,7 @@ namespace Zerra.Reflection
         private static readonly ConcurrentDictionary<Type, List<Type>> classByInterface;
         private static readonly ConcurrentDictionary<Type, List<Type>> interfaceByType;
         private static readonly ConcurrentDictionary<Type, List<Type>> typeByAttribute;
-        private static readonly ConcurrentDictionary<string, ConcurrentList<Type>> typeByName;
+        private static readonly ConcurrentDictionary<string, ConcurrentReadWriteList<Type>> typeByName;
         private static readonly List<string> discoveredAssemblies;
 
         static Discovery()
@@ -28,7 +28,7 @@ namespace Zerra.Reflection
             classByInterface = new ConcurrentDictionary<Type, List<Type>>();
             interfaceByType = new ConcurrentDictionary<Type, List<Type>>();
             typeByAttribute = new ConcurrentDictionary<Type, List<Type>>();
-            typeByName = new ConcurrentDictionary<string, ConcurrentList<Type>>();
+            typeByName = new ConcurrentDictionary<string, ConcurrentReadWriteList<Type>>();
             discoveredAssemblies = new List<string>();
 
             LoadAssemblies();
@@ -133,11 +133,11 @@ namespace Zerra.Reflection
         }
         private static void DiscoverType(Type typeInAssembly)
         {
-            var typeList1 = typeByName.GetOrAdd(typeInAssembly.Name, (key) => { return new ConcurrentList<Type>(); });
+            var typeList1 = typeByName.GetOrAdd(typeInAssembly.Name, (key) => { return new ConcurrentReadWriteList<Type>(); });
             typeList1.Add(typeInAssembly);
             if (typeInAssembly.Name != typeInAssembly.FullName)
             {
-                var typeList2 = typeByName.GetOrAdd(typeInAssembly.FullName, (key) => { return new ConcurrentList<Type>(); });
+                var typeList2 = typeByName.GetOrAdd(typeInAssembly.FullName, (key) => { return new ConcurrentReadWriteList<Type>(); });
                 typeList2.Add(typeInAssembly);
             }
 
@@ -559,7 +559,7 @@ namespace Zerra.Reflection
             if (!typeByName.TryGetValue(name, out var matches))
             {
                 var type = ParseType(name);
-                matches = typeByName.GetOrAdd(name, (key) => { return new ConcurrentList<Type>(); });
+                matches = typeByName.GetOrAdd(name, (key) => { return new ConcurrentReadWriteList<Type>(); });
                 lock (matches)
                 {
                     if (!matches.Contains(type))
@@ -791,7 +791,7 @@ namespace Zerra.Reflection
                     throw new Exception($"Could not find type {name}.  Remember discovery finds assemblies with the same first namespace segment.  Additional assemblies must be added with Config class.");
                 }
 
-                matches = typeByName.GetOrAdd(name, (key) => { return new ConcurrentList<Type>(); });
+                matches = typeByName.GetOrAdd(name, (key) => { return new ConcurrentReadWriteList<Type>(); });
                 lock (matches)
                 {
                     if (!matches.Contains(type))
