@@ -207,7 +207,7 @@ export class Bus {
 
                 }).catch(err => {
                     const retrier = function () { retry(retry, retryCount + 1); }
-                    Bus._onReject(retrier, retryCount, err, route, reject);
+                    Bus._onReject(retrier, retryCount, err.toString(), route, reject);
                 });
 
             };
@@ -268,7 +268,7 @@ export class Bus {
 
                 }).catch(err => {
                     const retrier = function () { retry(retry, retryCount + 1); }
-                    Bus._onReject(retrier, retryCount, err, route, reject);
+                    Bus._onReject(retrier, retryCount, err.toString(), route, reject);
                 });
 
             };
@@ -326,7 +326,7 @@ export class Bus {
 
                 }).catch(err => {
                     const retrier = function () { retry(retry, retryCount + 1); }
-                    Bus._onReject(retrier, retryCount, err, route, reject);
+                    Bus._onReject(retrier, retryCount, err.toString(), route, reject);
                 });
 
             };
