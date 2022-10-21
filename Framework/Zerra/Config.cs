@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Xml.Linq;
 
 namespace Zerra
 {
@@ -50,7 +51,7 @@ namespace Zerra
             }
         }
 
-        internal static string[] DiscoveryNamespaces;
+        internal static string[] DiscoveryAssemblyNames;
 
         private static readonly Assembly entryAssembly;
         private static readonly Assembly executingAssembly;
@@ -67,7 +68,7 @@ namespace Zerra
             entryNameSpace = entryAssemblyName?.Split('.')[0] + '.';
             frameworkNameSpace = executingAssembly.GetName().Name.Split('.')[0] + '.';
 
-            DiscoveryNamespaces = entryNameSpace != null ? (new string[] { entryNameSpace, frameworkNameSpace }) : (new string[] { frameworkNameSpace });
+            DiscoveryAssemblyNames = entryNameSpace != null ? (new string[] { entryNameSpace, frameworkNameSpace }) : (new string[] { frameworkNameSpace });
             discoveryStarted = false;
         }
 
@@ -254,23 +255,29 @@ namespace Zerra
             return files;
         }
 
-        public static void AddDiscoveryNamespaces(params string[] namespaces)
+        public static void AddDiscoveryAssemblyNames(params string[] assemblyNames)
         {
+            if (assemblyNames == null)
+                throw new ArgumentNullException(nameof(assemblyNames));
+
             lock (discoveryLock)
             {
                 if (discoveryStarted)
                     throw new InvalidOperationException("Discovery has already started");
 
-                var newNamespaces = namespaces.Select(x => x + '.').ToArray();
+                var newNamespaces = assemblyNames.Select(x => x + '.').ToArray();
 
-                var newNamespacesToLoad = new string[DiscoveryNamespaces.Length + newNamespaces.Length];
-                DiscoveryNamespaces.CopyTo(newNamespacesToLoad, 0);
-                newNamespaces.CopyTo(newNamespacesToLoad, DiscoveryNamespaces.Length);
-                DiscoveryNamespaces = newNamespacesToLoad;
+                var newNamespacesToLoad = new string[DiscoveryAssemblyNames.Length + newNamespaces.Length];
+                DiscoveryAssemblyNames.CopyTo(newNamespacesToLoad, 0);
+                newNamespaces.CopyTo(newNamespacesToLoad, DiscoveryAssemblyNames.Length);
+                DiscoveryAssemblyNames = newNamespacesToLoad;
             }
         }
         public static void AddDiscoveryAssemblies(params Assembly[] assemblies)
         {
+            if (assemblies == null)
+                throw new ArgumentNullException(nameof(assemblies));
+
             lock (discoveryLock)
             {
                 if (discoveryStarted)
@@ -278,30 +285,36 @@ namespace Zerra
 
                 var newNamespaces = assemblies.Select(x => x.GetName().Name).ToArray();
 
-                var newNamespacesToLoad = new string[DiscoveryNamespaces.Length + newNamespaces.Length];
-                DiscoveryNamespaces.CopyTo(newNamespacesToLoad, 0);
-                newNamespaces.CopyTo(newNamespacesToLoad, DiscoveryNamespaces.Length);
-                DiscoveryNamespaces = newNamespacesToLoad;
+                var newNamespacesToLoad = new string[DiscoveryAssemblyNames.Length + newNamespaces.Length];
+                DiscoveryAssemblyNames.CopyTo(newNamespacesToLoad, 0);
+                newNamespaces.CopyTo(newNamespacesToLoad, DiscoveryAssemblyNames.Length);
+                DiscoveryAssemblyNames = newNamespacesToLoad;
             }
         }
 
-        public static void SetDiscoveryNamespaces(params string[] namespaces)
+        public static void SetDiscoveryAssemblyNames(params string[] assemblyNames)
         {
+            if (assemblyNames == null)
+                throw new ArgumentNullException(nameof(assemblyNames));
+
             lock (discoveryLock)
             {
                 if (discoveryStarted)
                     throw new InvalidOperationException("Discovery has already started");
 
-                var newNamespaces = namespaces.Select(x => x + '.').ToArray();
+                var newNamespaces = assemblyNames.Select(x => x + '.').ToArray();
 
                 var newNamespacesToLoad = new string[newNamespaces.Length + 1];
                 newNamespacesToLoad[0] = frameworkNameSpace;
                 newNamespaces.CopyTo(newNamespacesToLoad, 1);
-                DiscoveryNamespaces = newNamespacesToLoad;
+                DiscoveryAssemblyNames = newNamespacesToLoad;
             }
         }
         public static void SetDiscoveryAssemblies(params Assembly[] assemblies)
         {
+            if (assemblies == null)
+                throw new ArgumentNullException(nameof(assemblies));
+
             lock (discoveryLock)
             {
                 if (discoveryStarted)
@@ -312,8 +325,13 @@ namespace Zerra
                 var newNamespacesToLoad = new string[newNamespaces.Length + 1];
                 newNamespacesToLoad[0] = frameworkNameSpace;
                 newNamespaces.CopyTo(newNamespacesToLoad, 1);
-                DiscoveryNamespaces = newNamespacesToLoad;
+                DiscoveryAssemblyNames = newNamespacesToLoad;
             }
+        }
+
+        public static void SetDiscoveryAllAssemblies()
+        {
+            DiscoveryAssemblyNames = Array.Empty<string>();
         }
 
         public static string EntryAssemblyName { get { return entryAssemblyName; } }

@@ -52,7 +52,7 @@ namespace Zerra.Reflection
                 {
                     var assemblyName = AssemblyName.GetAssemblyName(assemblyFileName);
 
-                    if (Config.DiscoveryNamespaces.Length > 0 && !Config.DiscoveryNamespaces.Any(x => assemblyName.Name.StartsWith(x)))
+                    if (Config.DiscoveryAssemblyNames.Length > 0 && !Config.DiscoveryAssemblyNames.Any(x => assemblyName.Name.StartsWith(x)))
                         continue;
 
                     if (loadedAssemblies.Contains(assemblyName.FullName))
@@ -106,8 +106,8 @@ namespace Zerra.Reflection
         private static void Discover()
         {
             Assembly[] assemblies;
-            if (Config.DiscoveryNamespaces.Length > 0)
-                assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic && Config.DiscoveryNamespaces.Any(y => x.FullName.StartsWith(y))).ToArray();
+            if (Config.DiscoveryAssemblyNames.Length > 0)
+                assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic && Config.DiscoveryAssemblyNames.Any(y => x.FullName.StartsWith(y))).ToArray();
             else
                 assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic).ToArray();
 
