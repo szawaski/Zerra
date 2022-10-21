@@ -207,7 +207,10 @@ export class Bus {
 
                 }).catch(err => {
                     const retrier = function () { retry(retry, retryCount + 1); }
-                    Bus._onReject(retrier, retryCount, err.toString(), route, reject);
+                    let message = err.toString();
+                    if (message == "TypeError: Failed to fetch")
+                        message = "Connection failed";
+                    Bus._onReject(retrier, retryCount, message, route, reject);
                 });
 
             };
@@ -268,7 +271,10 @@ export class Bus {
 
                 }).catch(err => {
                     const retrier = function () { retry(retry, retryCount + 1); }
-                    Bus._onReject(retrier, retryCount, err.toString(), route, reject);
+                    let message = err.toString();
+                    if (message == "TypeError: Failed to fetch")
+                        message = "Connection failed";
+                    Bus._onReject(retrier, retryCount, message, route, reject);
                 });
 
             };
@@ -326,7 +332,10 @@ export class Bus {
 
                 }).catch(err => {
                     const retrier = function () { retry(retry, retryCount + 1); }
-                    Bus._onReject(retrier, retryCount, err.toString(), route, reject);
+                    let message = err.toString();
+                    if (message == "TypeError: Failed to fetch")
+                        message = "Connection failed";
+                    Bus._onReject(retrier, retryCount, message, route, reject);
                 });
 
             };
