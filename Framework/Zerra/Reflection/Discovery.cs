@@ -23,7 +23,7 @@ namespace Zerra.Reflection
 
         static Discovery()
         {
-            Config.DiscoveryStarted = true;
+            Config.SetDiscoveryStarted();
 
             classByInterface = new ConcurrentDictionary<Type, List<Type>>();
             interfaceByType = new ConcurrentDictionary<Type, List<Type>>();
@@ -52,7 +52,7 @@ namespace Zerra.Reflection
                 {
                     var assemblyName = AssemblyName.GetAssemblyName(assemblyFileName);
 
-                    if (Config.DiscoveryAssemblyNames.Length > 0 && !Config.DiscoveryAssemblyNames.Any(x => assemblyName.Name.StartsWith(x)))
+                    if (Config.DiscoveryAssemblyNameStartsWiths.Length > 0 && !Config.DiscoveryAssemblyNameStartsWiths.Any(x => assemblyName.Name.StartsWith(x)))
                         continue;
 
                     if (loadedAssemblies.Contains(assemblyName.FullName))
@@ -106,8 +106,8 @@ namespace Zerra.Reflection
         private static void Discover()
         {
             Assembly[] assemblies;
-            if (Config.DiscoveryAssemblyNames.Length > 0)
-                assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic && Config.DiscoveryAssemblyNames.Any(y => x.FullName.StartsWith(y))).ToArray();
+            if (Config.DiscoveryAssemblyNameStartsWiths.Length > 0)
+                assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic && Config.DiscoveryAssemblyNameStartsWiths.Any(y => x.FullName.StartsWith(y))).ToArray();
             else
                 assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic).ToArray();
 

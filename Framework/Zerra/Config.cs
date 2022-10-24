@@ -33,25 +33,15 @@ namespace Zerra
 
         private static readonly object discoveryLock = new();
         private static bool discoveryStarted;
-        internal static bool DiscoveryStarted
+        internal static void SetDiscoveryStarted()
         {
-            get
+            lock (discoveryLock)
             {
-                lock (discoveryLock)
-                {
-                    return discoveryStarted;
-                }
-            }
-            set
-            {
-                lock (discoveryLock)
-                {
-                    discoveryStarted = value;
-                }
+                discoveryStarted = true;
             }
         }
 
-        internal static string[] DiscoveryAssemblyNames;
+        internal static string[] DiscoveryAssemblyNameStartsWiths;
 
         private static readonly Assembly entryAssembly;
         private static readonly Assembly executingAssembly;
@@ -68,7 +58,7 @@ namespace Zerra
             entryNameSpace = entryAssemblyName?.Split('.')[0] + '.';
             frameworkNameSpace = executingAssembly.GetName().Name.Split('.')[0] + '.';
 
-            DiscoveryAssemblyNames = entryNameSpace != null ? (new string[] { entryNameSpace, frameworkNameSpace }) : (new string[] { frameworkNameSpace });
+            DiscoveryAssemblyNameStartsWiths = entryNameSpace != null ? (new string[] { entryNameSpace, frameworkNameSpace }) : (new string[] { frameworkNameSpace });
             discoveryStarted = false;
         }
 
@@ -255,22 +245,22 @@ namespace Zerra
             return files;
         }
 
-        public static void AddDiscoveryAssemblyNames(params string[] assemblyNames)
+        public static void AddDiscoveryAssemblyNameStartsWiths(params string[] assemblyNameStartsWiths)
         {
-            if (assemblyNames == null)
-                throw new ArgumentNullException(nameof(assemblyNames));
+            if (assemblyNameStartsWiths == null)
+                throw new ArgumentNullException(nameof(assemblyNameStartsWiths));
 
             lock (discoveryLock)
             {
                 if (discoveryStarted)
                     throw new InvalidOperationException("Discovery has already started");
 
-                var newNamespaces = assemblyNames.Select(x => x + '.').ToArray();
+                var newNamespaces = assemblyNameStartsWiths.Select(x => x + '.').ToArray();
 
-                var newNamespacesToLoad = new string[DiscoveryAssemblyNames.Length + newNamespaces.Length];
-                DiscoveryAssemblyNames.CopyTo(newNamespacesToLoad, 0);
-                newNamespaces.CopyTo(newNamespacesToLoad, DiscoveryAssemblyNames.Length);
-                DiscoveryAssemblyNames = newNamespacesToLoad;
+                var newNamespacesToLoad = new string[DiscoveryAssemblyNameStartsWiths.Length + newNamespaces.Length];
+                DiscoveryAssemblyNameStartsWiths.CopyTo(newNamespacesToLoad, 0);
+                newNamespaces.CopyTo(newNamespacesToLoad, DiscoveryAssemblyNameStartsWiths.Length);
+                DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
             }
         }
         public static void AddDiscoveryAssemblies(params Assembly[] assemblies)
@@ -285,29 +275,29 @@ namespace Zerra
 
                 var newNamespaces = assemblies.Select(x => x.GetName().Name).ToArray();
 
-                var newNamespacesToLoad = new string[DiscoveryAssemblyNames.Length + newNamespaces.Length];
-                DiscoveryAssemblyNames.CopyTo(newNamespacesToLoad, 0);
-                newNamespaces.CopyTo(newNamespacesToLoad, DiscoveryAssemblyNames.Length);
-                DiscoveryAssemblyNames = newNamespacesToLoad;
+                var newNamespacesToLoad = new string[DiscoveryAssemblyNameStartsWiths.Length + newNamespaces.Length];
+                DiscoveryAssemblyNameStartsWiths.CopyTo(newNamespacesToLoad, 0);
+                newNamespaces.CopyTo(newNamespacesToLoad, DiscoveryAssemblyNameStartsWiths.Length);
+                DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
             }
         }
 
-        public static void SetDiscoveryAssemblyNames(params string[] assemblyNames)
+        public static void SetDiscoveryAssemblyNameStartsWiths(params string[] assemblyNameStartsWiths)
         {
-            if (assemblyNames == null)
-                throw new ArgumentNullException(nameof(assemblyNames));
+            if (assemblyNameStartsWiths == null)
+                throw new ArgumentNullException(nameof(assemblyNameStartsWiths));
 
             lock (discoveryLock)
             {
                 if (discoveryStarted)
                     throw new InvalidOperationException("Discovery has already started");
 
-                var newNamespaces = assemblyNames.Select(x => x + '.').ToArray();
+                var newNamespaces = assemblyNameStartsWiths.Select(x => x + '.').ToArray();
 
                 var newNamespacesToLoad = new string[newNamespaces.Length + 1];
                 newNamespacesToLoad[0] = frameworkNameSpace;
                 newNamespaces.CopyTo(newNamespacesToLoad, 1);
-                DiscoveryAssemblyNames = newNamespacesToLoad;
+                DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
             }
         }
         public static void SetDiscoveryAssemblies(params Assembly[] assemblies)
@@ -325,13 +315,19 @@ namespace Zerra
                 var newNamespacesToLoad = new string[newNamespaces.Length + 1];
                 newNamespacesToLoad[0] = frameworkNameSpace;
                 newNamespaces.CopyTo(newNamespacesToLoad, 1);
-                DiscoveryAssemblyNames = newNamespacesToLoad;
+                DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
             }
         }
 
         public static void SetDiscoveryAllAssemblies()
         {
-            DiscoveryAssemblyNames = Array.Empty<string>();
+            lock (discoveryLock)
+            {
+                if (discoveryStarted)
+                    throw new InvalidOperationException("Discovery has already started");
+
+                DiscoveryAssemblyNameStartsWiths = Array.Empty<string>();
+            }
         }
 
         public static string EntryAssemblyName { get { return entryAssemblyName; } }
