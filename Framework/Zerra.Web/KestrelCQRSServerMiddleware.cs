@@ -354,8 +354,27 @@ namespace Zerra.Web
                         throw new NotImplementedException();
                 }
 
-                await ContentTypeSerializer.SerializeExceptionAsync(contentType.Value, context.Response.Body, ex);
-                await context.Response.Body.FlushAsync();
+                var responseBodyStream = context.Response.Body;
+                if (symmetricConfig != null)
+                {
+                    var responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
+                    await ContentTypeSerializer.SerializeExceptionAsync(contentType.Value, responseBodyCryptoStream, ex);
+#if NET5_0_OR_GREATER
+                    await responseBodyCryptoStream.FlushFinalBlockAsync();
+#else
+                    responseBodyCryptoStream.FlushFinalBlock();
+#endif
+#if NETSTANDARD2_0
+                    responseBodyCryptoStream.Dispose();
+#else
+                    await responseBodyCryptoStream.DisposeAsync();
+#endif
+                }
+                else
+                {
+                    await ContentTypeSerializer.SerializeExceptionAsync(contentType.Value, responseBodyStream, ex);
+                    await responseBodyStream.FlushAsync();
+                }
             }
         }
     }
