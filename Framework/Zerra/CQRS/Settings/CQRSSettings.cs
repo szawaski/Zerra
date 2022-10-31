@@ -5,8 +5,8 @@
 using System;
 using System.IO;
 using System.Text;
-using System.Text.Json;
 using Zerra.Logging;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.Settings
 {

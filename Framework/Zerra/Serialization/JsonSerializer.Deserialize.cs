@@ -38,7 +38,10 @@ namespace Zerra.Serialization
 
                 var value = FromJson(c, ref reader, ref decodeBuffer, typeDetails, graph, false);
                 if (reader.HasMoreChars())
-                    throw reader.CreateException("Unexpected character");
+                {
+                    if (reader.ReadSkipWhiteSpace(out _))
+                        throw reader.CreateException("Unexpected character and end of json");
+                }
                 return (T)value;
             }
             finally
@@ -63,7 +66,10 @@ namespace Zerra.Serialization
 
                 var value = FromJson(c, ref reader, ref decodeBuffer, typeDetails, graph, false);
                 if (reader.HasMoreChars())
-                    throw reader.CreateException("Unexpected character");
+                {
+                    if (reader.ReadSkipWhiteSpace(out _))
+                        throw reader.CreateException("Unexpected character and end of json");
+                }
                 return value;
             }
             finally
@@ -108,7 +114,10 @@ namespace Zerra.Serialization
 
                 var value = FromJson(c, ref reader, ref decodeBuffer, typeDetails, graph, false);
                 if (reader.HasMoreChars())
-                    throw reader.CreateException("Unexpected character");
+                {
+                    if (reader.ReadSkipWhiteSpace(out _))
+                        throw reader.CreateException("Unexpected character and end of json");
+                }
                 return value;
             }
             finally
@@ -138,7 +147,10 @@ namespace Zerra.Serialization
 
                 var value = FromJson(c, ref reader, ref decodeBuffer, typeDetails, graph, false);
                 if (reader.HasMoreChars())
-                    throw reader.CreateException("Unexpected character");
+                {
+                    if (reader.ReadSkipWhiteSpace(out _))
+                        throw reader.CreateException("Unexpected character and end of json");
+                }
                 return value;
             }
             finally
@@ -174,7 +186,10 @@ namespace Zerra.Serialization
 
                 var value = FromJson(c, ref reader, ref decodeBuffer, typeDetails, graph, true);
                 if (reader.HasMoreChars())
-                    throw reader.CreateException("Unexpected character");
+                {
+                    if (reader.ReadSkipWhiteSpace(out _))
+                        throw reader.CreateException("Unexpected character and end of json");
+                }
                 return value;
             }
             finally
@@ -221,7 +236,10 @@ namespace Zerra.Serialization
 
                 var value = FromJson(c, ref reader, ref decodeBuffer, typeDetails, graph, true);
                 if (reader.HasMoreChars())
-                    throw reader.CreateException("Unexpected character");
+                {
+                    if (reader.ReadSkipWhiteSpace(out _))
+                        throw reader.CreateException("Unexpected character and end of json");
+                }
                 return value;
             }
             finally
@@ -251,7 +269,10 @@ namespace Zerra.Serialization
 
                 var value = FromJson(c, ref reader, ref decodeBuffer, typeDetails, graph, true);
                 if (reader.HasMoreChars())
-                    throw reader.CreateException("Unexpected character");
+                {
+                    if (reader.ReadSkipWhiteSpace(out _))
+                        throw reader.CreateException("Unexpected character and end of json");
+                }
                 return value;
             }
             finally
@@ -275,7 +296,10 @@ namespace Zerra.Serialization
 
                 var value = FromJsonToJsonObject(c, ref reader, ref decodeBuffer, graph);
                 if (reader.HasMoreChars())
-                    throw reader.CreateException("Unexpected character");
+                {
+                    if (reader.ReadSkipWhiteSpace(out _))
+                        throw reader.CreateException("Unexpected character and end of json");
+                }
                 return value;
             }
             finally
