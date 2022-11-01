@@ -190,6 +190,11 @@ export class Bus {
                     res.text().then((data) => {
                         if (res.status == 200) {
 
+                            if (data == null || data == "") {
+                                resolve(null);
+                                return;
+                            }
+
                             let deserialized = JSON.parse(data);
 
                             if (responseJsonNameless)
@@ -260,6 +265,7 @@ export class Bus {
                 }).then(res => {
 
                     res.text().then((data) => {
+
                         if (res.status == 200) {
                             resolve();
                         }
