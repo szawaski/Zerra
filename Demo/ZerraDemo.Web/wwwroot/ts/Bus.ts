@@ -195,14 +195,21 @@ export class Bus {
                                 return;
                             }
 
-                            let deserialized = JSON.parse(data);
+                            const contentType = res.headers.get("content-type");
+                            if (contentType?.startsWith("application/json")) {
 
-                            if (responseJsonNameless)
-                                deserialized = Bus._deserializeJsonNameless(deserialized, modelType, hasMany);
-                            else
-                                Bus._deserializeJson(deserialized, modelType, hasMany);
+                                let deserialized = JSON.parse(data);
 
-                            resolve(deserialized);
+                                if (responseJsonNameless)
+                                    deserialized = Bus._deserializeJsonNameless(deserialized, modelType, hasMany);
+                                else
+                                    Bus._deserializeJson(deserialized, modelType, hasMany);
+
+                                resolve(deserialized);
+                            }
+                            else {
+                                resolve(data);
+                            }
                         }
                         else {
                             const retrier = function () { retry(retry, retryCount + 1); }

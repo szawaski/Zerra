@@ -167,6 +167,7 @@ namespace Zerra.Web
                             throw new NotImplementedException();
                     }
 
+                    //Response Body
                     var responseBodyStream = context.Response.Body;
                     int bytesRead;
                     if (result.Stream != null)

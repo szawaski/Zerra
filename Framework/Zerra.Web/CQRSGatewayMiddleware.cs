@@ -86,15 +86,16 @@ namespace Zerra.Web
                     return;
                 }
 
-                context.Response.ContentType = acceptContentType switch
-                {
-                    ContentType.Bytes => "application/octet-stream",
-                    ContentType.JsonNameless => "application/jsonnameless; charset=utf-8",
-                    ContentType.Json => "application/json; charset=utf-8",
-                    _ => throw new NotImplementedException(),
-                };
                 if (response.Bytes != null)
                 {
+                    context.Response.ContentType = acceptContentType switch
+                    {
+                        ContentType.Bytes => "application/octet-stream",
+                        ContentType.JsonNameless => "application/jsonnameless; charset=utf-8",
+                        ContentType.Json => "application/json; charset=utf-8",
+                        _ => throw new NotImplementedException(),
+                    };
+
                     context.Response.ContentLength = response.Bytes.Length;
 #if NETSTANDARD2_0
                     await context.Response.Body.WriteAsync(response.Bytes, 0, response.Bytes.Length);
@@ -104,6 +105,7 @@ namespace Zerra.Web
                 }
                 else if (response.Stream != null)
                 {
+                    context.Response.ContentType = "application/octet-stream";
                     await response.Stream.CopyToAsync(context.Response.Body);
                 }
                 else
