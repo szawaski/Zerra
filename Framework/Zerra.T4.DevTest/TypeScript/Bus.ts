@@ -185,18 +185,17 @@ export class Bus {
                 }).then(res => {
 
                     const responseContentType = res.headers.get("content-type");
+                    const responseJson = responseContentType?.includes("application/json");
                     const responseJsonNameless = responseContentType?.includes("application/jsonnameless");
 
-                    res.text().then((data) => {
-                        if (res.status == 200) {
+                    if (responseJson || res.status != 200) {
+                        res.text().then((data) => {
+                            if (res.status == 200) {
 
-                            if (data == null || data == "") {
-                                resolve(null);
-                                return;
-                            }
-
-                            const contentType = res.headers.get("content-type");
-                            if (contentType?.startsWith("application/json")) {
+                                if (data == null || data == "") {
+                                    resolve(null);
+                                    return;
+                                }
 
                                 let deserialized = JSON.parse(data);
 
@@ -208,14 +207,16 @@ export class Bus {
                                 resolve(deserialized);
                             }
                             else {
-                                resolve(data);
+                                const retrier = function () { retry(retry, retryCount + 1); }
+                                Bus._onReject(retrier, retryCount, data, route, reject);
                             }
-                        }
-                        else {
-                            const retrier = function () { retry(retry, retryCount + 1); }
-                            Bus._onReject(retrier, retryCount, data, route, reject);
-                        }
-                    });
+                        });
+                    }
+                    else {
+                        res.blob().then((data) => {
+                            resolve(data);
+                        })
+                    }
 
                 }).catch(err => {
                     const retrier = function () { retry(retry, retryCount + 1); }

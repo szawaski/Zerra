@@ -11,7 +11,7 @@
     </ItemGroup>
 
     <!--Section to Build T4 into the UI project for Visual Studio.-->
-    <Import Condition="'$(BuildingInsideVisualStudio)'=='true'" Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TextTemplating\Microsoft.TextTemplating.targets" />
+    <Import Condition="'$(MSBuildRuntimeType)'=='Full'" Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TextTemplating\Microsoft.TextTemplating.targets" />
     <PropertyGroup>
         <TransformOnBuild>true</TransformOnBuild>
         <OverwriteReadOnlyOutputFiles>true</OverwriteReadOnlyOutputFiles>
