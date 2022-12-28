@@ -79,7 +79,7 @@ namespace Zerra.Web
             }
             providerTypeRequestHeader = providerTypeRequestHeaderValue;
 
-            string originRequestHeader = null;
+            string originRequestHeader;
             if (settings.AllowOrigins != null)
             {
                 if (!context.Request.Headers.TryGetValue(HttpCommon.OriginHeader, out var originRequestHeaderValue))
@@ -89,15 +89,16 @@ namespace Zerra.Web
                 }
                 originRequestHeader = originRequestHeaderValue;
 
-                if (settings.AllowOrigins != null && settings.AllowOrigins.Length > 0)
+                if (settings.AllowOrigins.Contains(originRequestHeader))
                 {
-                    if (settings.AllowOrigins.Contains(originRequestHeader))
-                    {
-                        _ = Log.TraceAsync($"{nameof(KestrelCQRSServerMiddleware)} Origin Not Allowed {originRequestHeader}");
-                        context.Response.StatusCode = 401;
-                        return;
-                    }
+                    _ = Log.TraceAsync($"{nameof(KestrelCQRSServerMiddleware)} Origin Not Allowed {originRequestHeader}");
+                    context.Response.StatusCode = 401;
+                    return;
                 }
+            }
+            else
+            {
+                originRequestHeader = "*";
             }
 
             _ = Log.TraceAsync($"{nameof(KestrelCQRSServerMiddleware)} Received {providerTypeRequestHeaderValue}");
@@ -282,20 +283,20 @@ namespace Zerra.Web
                 }
                 else if (!String.IsNullOrWhiteSpace(data.MessageType))
                 {
-                    var commandType = Discovery.GetTypeFromName(data.MessageType);
-                    var typeDetail = TypeAnalyzer.GetTypeDetail(commandType);
+                    var messageType = Discovery.GetTypeFromName(data.MessageType);
+                    var typeDetail = TypeAnalyzer.GetTypeDetail(messageType);
 
-                    if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
-                        throw new Exception($"Type {data.MessageType} is not a command");
+                    if (!typeDetail.Interfaces.Contains(typeof(ICommand)) && !typeDetail.Interfaces.Contains(typeof(IEvent)))
+                        throw new Exception($"Type {data.MessageType} is not a command or event");
 
-                    if (!settings.CommandTypes.Contains(commandType))
-                        throw new Exception($"Unhandled Command Type {commandType.FullName}");
+                    if (!settings.CommandTypes.Contains(messageType))
+                        throw new Exception($"Unhandled Command Type {messageType.FullName}");
 
                     var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute);
                     if (!exposed)
-                        throw new Exception($"Command {data.MessageType} is not exposed");
+                        throw new Exception($"Message {data.MessageType} is not exposed");
 
-                    var command = (ICommand)System.Text.Json.JsonSerializer.Deserialize(data.MessageData, commandType);
+                    var command = (ICommand)System.Text.Json.JsonSerializer.Deserialize(data.MessageData, messageType);
 
                     if (data.MessageAwait)
                         await settings.HandlerAwaitAsync(command);

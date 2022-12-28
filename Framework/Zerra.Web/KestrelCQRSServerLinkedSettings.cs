@@ -33,16 +33,8 @@ namespace Zerra.Web
             }
             set
             {
-                if (value != null && !value.Contains("*"))
-                {
-                    allowOrigins = value;
-                    allowOriginsString = value != null ? String.Join(", ", value) : "*";
-                }
-                else
-                {
-                    allowOrigins = null;
-                    allowOriginsString = null;
-                }
+                allowOrigins = value == null || value.Length == 0 ? null : value;
+                allowOriginsString = value == null || value.Length == 0 ? "*" : String.Join(", ", value);
             }
         }
 
@@ -57,8 +49,9 @@ namespace Zerra.Web
 
         public KestrelCQRSServerLinkedSettings()
         {
-            InterfaceTypes = new List<Type>();
-            CommandTypes = new List<Type>();
+            InterfaceTypes = new();
+            CommandTypes = new();
+            this.allowOriginsString = "*";
         }
     }
 }
