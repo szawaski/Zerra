@@ -171,6 +171,20 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void EnumConversion()
+        {
+            //var model1 = new EnumConversionModel1() { Thing = EnumModel.Item2 };
+            //var test1 = JsonSerializer.Serialize(model1);
+            //var result1 = JsonSerializer.Deserialize<EnumConversionModel2>(test1);
+            //Assert.AreEqual((int)model1.Thing, result1.Thing);
+
+            var model2 = new EnumConversionModel2() { Thing = 3 };
+            var test2 = JsonSerializer.Serialize(model2);
+            var result2 = JsonSerializer.Deserialize<EnumConversionModel1>(test2);
+            Assert.AreEqual(model2.Thing, (int)result2.Thing);
+        }
+
+        [TestMethod]
         public void Pretty()
         {
             var baseModel = Factory.GetAllTypesModel();

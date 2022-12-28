@@ -656,18 +656,24 @@ namespace Zerra.Serialization
                     }
                 default:
                     {
-                        if (typeDetail != null && typeDetail.CoreType == CoreType.String)
+                        if (typeDetail != null)
                         {
-                            var value = ReadLiteralNumberAsString(c, ref reader);
-                            return value;
-                        }
-                        else
-                        {
-                            if (typeDetail != null && typeDetail.CoreType.HasValue)
+                            if (typeDetail.CoreType == CoreType.String)
+                            {
+                                var value = ReadLiteralNumberAsString(c, ref reader);
+                                return value;
+                            }
+                            else if (typeDetail.CoreType.HasValue)
+                            {
                                 return ReadLiteralNumberAsType(c, typeDetail.CoreType.Value, ref reader);
-                            ReadLiteralNumberAsEmpty(c, ref reader);
-                            return null;
+                            }
+                            else if (typeDetail.EnumUnderlyingType.HasValue)
+                            {
+                                return ReadLiteralNumberAsType(c, typeDetail.EnumUnderlyingType.Value, ref reader);
+                            }
                         }
+                        ReadLiteralNumberAsEmpty(c, ref reader);
+                        return null;
                     }
             }
             throw reader.CreateException("Json ended prematurely");
@@ -843,16 +849,14 @@ namespace Zerra.Serialization
 
             if (typeDetail.Type.IsEnum)
             {
-                var valueString = s.ToString();
-                if (EnumName.TryParse(valueString, typeDetail.Type, out var value))
+                if (EnumName.TryParse(s, typeDetail.Type, out var value))
                     return value;
                 return null;
             }
 
             if (typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].Type.IsEnum)
             {
-                var valueString = s.ToString();
-                if (EnumName.TryParse(valueString, typeDetail.InnerTypeDetails[0].Type, out var value))
+                if (EnumName.TryParse(s, typeDetail.InnerTypeDetails[0].Type, out var value))
                     return value;
                 return null;
             }
