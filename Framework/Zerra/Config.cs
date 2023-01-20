@@ -224,7 +224,9 @@ namespace Zerra
                 return filePath;
 
             filePath = $"{Environment.CurrentDirectory}/{fileName}";
-            return File.Exists(filePath) ? filePath : null;
+            if (Directory.Exists(filePath))
+                return filePath;
+            return null;
         }
         public static IReadOnlyCollection<string> GetEnvironmentFilesBySuffix(string fileSuffix)
         {
@@ -243,6 +245,19 @@ namespace Zerra
             }
 
             return files;
+        }
+
+        public static string GetEnvironmentDirectory(string directoryName)
+        {
+            var executingAssemblyPath = Path.GetDirectoryName(executingAssembly.Location);
+            var directoryPath = $"{executingAssemblyPath}/{directoryName}";
+            if (Directory.Exists(directoryPath))
+                return directoryPath;
+
+            directoryPath = $"{Environment.CurrentDirectory}/{directoryPath}";
+            if (Directory.Exists(directoryPath))
+                return directoryPath;
+            return null;
         }
 
         public static void AddDiscoveryAssemblyNameStartsWiths(params string[] assemblyNameStartsWiths)
