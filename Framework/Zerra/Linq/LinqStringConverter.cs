@@ -388,33 +388,22 @@ namespace Zerra.Linq
             if (call.Object == null)
             {
                 _ = context.Builder.Append(call.Method.DeclaringType.Name);
-                _ = context.Builder.Append('.');
-                _ = context.Builder.Append(call.Method.Name);
-                _ = context.Builder.Append('(');
-                for (var i = 1; i < call.Arguments.Count; i++)
-                {
-                    if (i > 1)
-                        _ = context.Builder.Append(',');
-                    var arg = call.Arguments[i];
-                    ConvertToString(arg, context);
-                }
-                _ = context.Builder.Append(')');
             }
             else
             {
                 ConvertToString(call.Object, context);
-                _ = context.Builder.Append('.');
-                _ = context.Builder.Append(call.Method.Name);
-                _ = context.Builder.Append('(');
-                for (var i = 0; i < call.Arguments.Count; i++)
-                {
-                    if (i > 1)
-                        _ = context.Builder.Append(',');
-                    var arg = call.Arguments[i];
-                    ConvertToString(arg, context);
-                }
-                _ = context.Builder.Append(')');
             }
+            _ = context.Builder.Append('.');
+            _ = context.Builder.Append(call.Method.Name);
+            _ = context.Builder.Append('(');
+            for (var i = 0; i < call.Arguments.Count; i++)
+            {
+                if (i > 0)
+                    _ = context.Builder.Append(',');
+                var arg = call.Arguments[i];
+                ConvertToString(arg, context);
+            }
+            _ = context.Builder.Append(')');
         }
         private static void ConvertToStringNew(Expression exp, ConvertContext context)
         {

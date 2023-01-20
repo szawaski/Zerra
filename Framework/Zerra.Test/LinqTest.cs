@@ -46,5 +46,17 @@ namespace Zerra.Test
             Expression<Func<AllTypesModel, decimal>> exp = x => (decimal)x.Int16Thing + external;
             var str = exp.ToLinqString();
         }
+
+        [TestMethod]
+        public void TestToStringMethods()
+        {
+            Expression<Func<AllTypesModel, string>> exp1 = x => x.Int32Thing.ToString();
+            var str1 = exp1.ToLinqString();
+
+            Expression<Func<AllTypesModel, string>> exp2 = x => Convert(x.Int32Thing);
+            var str2 = exp2.ToLinqString();
+        }
+
+        public static string Convert(int val) => val.ToString();
     }
 }
