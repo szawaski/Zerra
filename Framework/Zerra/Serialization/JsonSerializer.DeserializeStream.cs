@@ -7,7 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text;
+using System.Threading.Tasks;
 using Zerra.IO;
 using Zerra.Reflection;
 
@@ -15,330 +15,384 @@ namespace Zerra.Serialization
 {
     public static partial class JsonSerializer
     {
-        private static readonly Type genericListType = typeof(List<>);
-        private static readonly Type genericHashSetType = typeof(HashSet<>);
-
-        public static T Deserialize<T>(string json, Graph graph = null) { return Deserialize<T>(json.AsSpan(), graph); }
-        public static object Deserialize(string json, Type type, Graph graph = null) { return Deserialize(json.AsSpan(), type, graph); }
-
-        public static T Deserialize<T>(ReadOnlySpan<char> json, Graph graph = null)
+        public static T DeserializeStackBased<T>(byte[] bytes)
         {
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            return (T)DeserializeStackBased(typeof(T), bytes);
+        }
+        public static object DeserializeStackBased(Type type, byte[] bytes)
+        {
+            if (type == null) throw new ArgumentNullException(nameof(type));
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+
+            var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
+            var decodeBufferPosition = 0;
+
+            try
+            {
+                var state = new ReadState();
+                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
+
+
+                Read(bytes, true, ref state, ref decodeBuffer, ref decodeBufferPosition);
+
+                if (!state.Ended || state.BytesNeeded > 0)
+                    throw new EndOfStreamException();
+
+                return state.LastFrameResultObject;
+            }
+            finally
+            {
+                BufferArrayPool<char>.Return(decodeBuffer);
+            }
+        }
+
+        public static T Deserialize<T>(Stream stream)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            return (T)Deserialize(typeof(T), stream);
+        }
+        public static object Deserialize(Type type, Stream stream)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+
+            var isFinalBlock = false;
+            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
+            var decodeBufferPosition = 0;
+
+            try
+            {
+
+#if NETSTANDARD2_0
+                var read = stream.Read(buffer, 0, buffer.Length);
+#else
+                var read = stream.Read(buffer.AsSpan());
+#endif
+
+                if (read == 0)
+                {
+                    isFinalBlock = true;
+                    return null;
+                }
+
+                var length = read;
+
+                var state = new ReadState();
+                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
+
+                for (; ; )
+                {
+                    Read(buffer.AsSpan().Slice(0, length), isFinalBlock, ref state, ref decodeBuffer, ref decodeBufferPosition);
+
+                    if (state.Ended)
+                        break;
+
+                    if (state.BytesNeeded > 0)
+                    {
+                        if (isFinalBlock)
+                            throw new EndOfStreamException();
+                        var position = state.BufferPostion;
+
+                        Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
+                        position = length - position;
+
+                        if (state.BytesNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+
+                        while (position < buffer.Length)
+                        {
+#if NETSTANDARD2_0
+                            read = stream.Read(buffer, position, buffer.Length - position);
+#else
+                            read = stream.Read(buffer.AsSpan(position));
+#endif
+
+                            if (read == 0)
+                            {
+                                isFinalBlock = true;
+                                break;
+                            }
+                            position += read;
+                            length = position;
+                        }
+
+                        if (position < state.BytesNeeded)
+                            throw new EndOfStreamException();
+
+                        state.BytesNeeded = 0;
+                    }
+                }
+
+                return state.LastFrameResultObject;
+            }
+            finally
+            {
+                Array.Clear(buffer, 0, buffer.Length);
+                BufferArrayPool<byte>.Return(buffer);
+                BufferArrayPool<char>.Return(decodeBuffer);
+            }
+        }
+
+        public static async Task<T> DeserializeAsync<T>(Stream stream)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+
             var type = typeof(T);
-            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
-            if (json == null || json.Length == 0)
-                return (T)ConvertStringToType(String.Empty, typeDetails);
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
-            var reader = new CharReader(json);
-            var decodeBuffer = new CharWriteBuffer();
+            var isFinalBlock = false;
+            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
+            var decodeBufferPosition = 0;
+
             try
             {
-                if (!reader.ReadSkipWhiteSpace(out var c))
-                    throw reader.CreateException("Json ended prematurely");
-
-                var value = FromJson(c, ref reader, ref decodeBuffer, typeDetails, graph, false);
-                if (reader.HasMoreChars())
-                {
-                    if (reader.ReadSkipWhiteSpace(out _))
-                        throw reader.CreateException("Unexpected character and end of json");
-                }
-                return (T)value;
-            }
-            finally
-            {
-                reader.Dispose();
-                decodeBuffer.Dispose();
-            }
-        }
-        public static object Deserialize(ReadOnlySpan<char> json, Type type, Graph graph = null)
-        {
-            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-
-            if (json == null || json.Length == 0)
-                return ConvertStringToType(String.Empty, typeDetails);
-
-            var reader = new CharReader(json);
-            var decodeBuffer = new CharWriteBuffer();
-            try
-            {
-                if (!reader.ReadSkipWhiteSpace(out var c))
-                    throw reader.CreateException("Json ended prematurely");
-
-                var value = FromJson(c, ref reader, ref decodeBuffer, typeDetails, graph, false);
-                if (reader.HasMoreChars())
-                {
-                    if (reader.ReadSkipWhiteSpace(out _))
-                        throw reader.CreateException("Unexpected character and end of json");
-                }
-                return value;
-            }
-            finally
-            {
-                reader.Dispose();
-                decodeBuffer.Dispose();
-            }
-        }
-
-        public static T Deserialize<T>(byte[] bytes, Graph graph = null) { return Deserialize<T>(bytes.AsSpan(), graph); }
-        public static object Deserialize(byte[] bytes, Type type, Graph graph = null) { return Deserialize(bytes.AsSpan(), type, graph); }
-
-        public static T Deserialize<T>(ReadOnlySpan<byte> bytes, Graph graph = null)
-        {
-            var obj = Deserialize(bytes, typeof(T), graph);
-            if (obj == null)
-                return default;
-            return (T)obj;
-        }
-        public static object Deserialize(ReadOnlySpan<byte> bytes, Type type, Graph graph = null)
-        {
-            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-
-            if (bytes == null || bytes.Length == 0)
-                return ConvertStringToType(String.Empty, typeDetails);
-
 
 #if NETSTANDARD2_0
-            var chars = Encoding.UTF8.GetChars(bytes.ToArray(), 0, bytes.Length).AsSpan();
+                var read = await stream.ReadAsync(buffer, 0, buffer.Length);
 #else
-            Span<char> chars = new char[Encoding.UTF8.GetMaxCharCount(bytes.Length)];
-            var count = Encoding.UTF8.GetChars(bytes, chars);
-            chars = chars.Slice(0, count);
+                var read = await stream.ReadAsync(buffer.AsMemory());
 #endif
 
-            var reader = new CharReader(chars);
-            var decodeBuffer = new CharWriteBuffer();
-            try
-            {
-                if (!reader.ReadSkipWhiteSpace(out var c))
-                    throw reader.CreateException("Json ended prematurely");
-
-                var value = FromJson(c, ref reader, ref decodeBuffer, typeDetails, graph, false);
-                if (reader.HasMoreChars())
+                if (read == 0)
                 {
-                    if (reader.ReadSkipWhiteSpace(out _))
-                        throw reader.CreateException("Unexpected character and end of json");
+                    isFinalBlock = true;
+                    return default;
                 }
-                return value;
-            }
-            finally
-            {
-                reader.Dispose();
-                decodeBuffer.Dispose();
-            }
-        }
 
-        public static T Deserialize<T>(Stream stream, Graph graph = null)
-        {
-            var obj = Deserialize(stream, typeof(T), graph);
-            if (obj == null)
-                return default;
-            return (T)obj;
-        }
-        public static object Deserialize(Stream stream, Type type, Graph graph = null)
-        {
-            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
+                var length = read;
 
-            var reader = new CharReader(stream, new UTF8Encoding(false));
-            var decodeBuffer = new CharWriteBuffer();
-            try
-            {
-                if (!reader.ReadSkipWhiteSpace(out var c))
-                    throw reader.CreateException("Json ended prematurely");
+                var state = new ReadState();
+                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
 
-                var value = FromJson(c, ref reader, ref decodeBuffer, typeDetails, graph, false);
-                if (reader.HasMoreChars())
+                for (; ; )
                 {
-                    if (reader.ReadSkipWhiteSpace(out _))
-                        throw reader.CreateException("Unexpected character and end of json");
-                }
-                return value;
-            }
-            finally
-            {
-                reader.Dispose();
-                decodeBuffer.Dispose();
-            }
-        }
+                    Read(buffer.AsSpan().Slice(0, length), isFinalBlock, ref state, ref decodeBuffer, ref decodeBufferPosition);
 
-        public static T DeserializeNameless<T>(string json, Graph graph = null) { return DeserializeNameless<T>(json.AsSpan(), graph); }
-        public static object DeserializeNameless(string json, Type type, Graph graph) { return DeserializeNameless(json.AsSpan(), type, graph); }
+                    if (state.Ended)
+                        break;
 
-        public static T DeserializeNameless<T>(ReadOnlySpan<char> json, Graph graph = null)
-        {
-            var obj = DeserializeNameless(json, typeof(T), graph);
-            if (obj == null)
-                return default;
-            return (T)obj;
-        }
-        public static object DeserializeNameless(ReadOnlySpan<char> json, Type type, Graph graph)
-        {
-            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
+                    if (state.BytesNeeded > 0)
+                    {
+                        if (isFinalBlock)
+                            throw new EndOfStreamException();
+                        var position = state.BufferPostion;
 
-            if (json == null || json.Length == 0)
-                return ConvertStringToType(String.Empty, typeDetails);
+                        Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
+                        position = length - position;
 
-            var reader = new CharReader(json);
-            var decodeBuffer = new CharWriteBuffer();
-            try
-            {
-                if (!reader.ReadSkipWhiteSpace(out var c))
-                    throw reader.CreateException("Json ended prematurely");
+                        if (state.BytesNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
 
-                var value = FromJson(c, ref reader, ref decodeBuffer, typeDetails, graph, true);
-                if (reader.HasMoreChars())
-                {
-                    if (reader.ReadSkipWhiteSpace(out _))
-                        throw reader.CreateException("Unexpected character and end of json");
-                }
-                return value;
-            }
-            finally
-            {
-                reader.Dispose();
-                decodeBuffer.Dispose();
-            }
-        }
-
-        public static T DeserializeNameless<T>(byte[] bytes, Graph graph = null) { return DeserializeNameless<T>(bytes.AsSpan(), graph); }
-        public static object DeserializeNameless(byte[] bytes, Type type, Graph graph) { return DeserializeNameless(bytes.AsSpan(), type, graph); }
-
-        public static T DeserializeNameless<T>(ReadOnlySpan<byte> bytes, Graph graph = null)
-        {
-            var obj = DeserializeNameless(bytes, typeof(T), graph);
-            if (obj == null)
-                return default;
-            return (T)obj;
-        }
-        public static object DeserializeNameless(ReadOnlySpan<byte> bytes, Type type, Graph graph)
-        {
-            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-
-            if (bytes.Length == 0)
-                return ConvertStringToType(String.Empty, typeDetails);
-
-            if (bytes == null || bytes.Length == 0)
-                return ConvertStringToType(String.Empty, typeDetails);
-
+                        while (position < buffer.Length)
+                        {
 #if NETSTANDARD2_0
-            var chars = Encoding.UTF8.GetChars(bytes.ToArray(), 0, bytes.Length).AsSpan();
+                            read = await stream.ReadAsync(buffer, position, buffer.Length - position);
 #else
-            Span<char> chars = new char[Encoding.UTF8.GetMaxCharCount(bytes.Length)];
-            var count = Encoding.UTF8.GetChars(bytes, chars);
-            chars = chars.Slice(0, count);
+                            read = await stream.ReadAsync(buffer.AsMemory(position));
 #endif
 
-            var reader = new CharReader(chars);
-            var decodeBuffer = new CharWriteBuffer();
-            try
-            {
-                if (!reader.ReadSkipWhiteSpace(out var c))
-                    throw reader.CreateException("Json ended prematurely");
+                            if (read == 0)
+                            {
+                                isFinalBlock = true;
+                                break;
+                            }
+                            position += read;
+                            length = position;
+                        }
 
-                var value = FromJson(c, ref reader, ref decodeBuffer, typeDetails, graph, true);
-                if (reader.HasMoreChars())
-                {
-                    if (reader.ReadSkipWhiteSpace(out _))
-                        throw reader.CreateException("Unexpected character and end of json");
+                        if (position < state.BytesNeeded)
+                            throw new EndOfStreamException();
+
+                        state.BytesNeeded = 0;
+                    }
                 }
-                return value;
+
+                return (T)state.LastFrameResultObject;
             }
             finally
             {
-                reader.Dispose();
-                decodeBuffer.Dispose();
+                Array.Clear(buffer, 0, buffer.Length);
+                BufferArrayPool<byte>.Return(buffer);
+                BufferArrayPool<char>.Return(decodeBuffer);
             }
         }
-
-        public static T DeserializeNameless<T>(Stream stream, Graph graph = null)
+        public static async Task<object> DeserializeAsync(Type type, Stream stream)
         {
-            var obj = DeserializeNameless(stream, typeof(T), graph);
-            if (obj == null)
-                return default;
-            return (T)obj;
-        }
-        public static object DeserializeNameless(Stream stream, Type type, Graph graph = null)
-        {
-            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
 
-            var reader = new CharReader(stream, new UTF8Encoding(false));
-            var decodeBuffer = new CharWriteBuffer();
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+
+            var isFinalBlock = false;
+            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
+            var decodeBufferPosition = 0;
+
             try
             {
-                if (!reader.ReadSkipWhiteSpace(out var c))
-                    throw reader.CreateException("Json ended prematurely");
-
-                var value = FromJson(c, ref reader, ref decodeBuffer, typeDetails, graph, true);
-                if (reader.HasMoreChars())
+#if NETSTANDARD2_0
+                var read = await stream.ReadAsync(buffer, 0, buffer.Length);
+#else
+                var read = await stream.ReadAsync(buffer.AsMemory());
+#endif
+                if (read == 0)
                 {
-                    if (reader.ReadSkipWhiteSpace(out _))
-                        throw reader.CreateException("Unexpected character and end of json");
+                    isFinalBlock = true;
+                    return default;
                 }
-                return value;
+
+                var length = read;
+
+                var state = new ReadState();
+                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
+
+                for (; ; )
+                {
+                    Read(buffer.AsSpan().Slice(0, read), isFinalBlock, ref state, ref decodeBuffer, ref decodeBufferPosition);
+
+                    if (state.Ended)
+                        break;
+
+                    if (state.BytesNeeded > 0)
+                    {
+                        if (isFinalBlock)
+                            throw new EndOfStreamException();
+                        var position = state.BufferPostion;
+
+                        Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
+                        position = length - position;
+
+                        if (state.BytesNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+
+                        while (position < buffer.Length)
+                        {
+#if NETSTANDARD2_0
+                            read = await stream.ReadAsync(buffer, position, buffer.Length - position);
+#else
+                            read = await stream.ReadAsync(buffer.AsMemory(position));
+#endif
+
+                            if (read == 0)
+                            {
+                                isFinalBlock = true;
+                                break;
+                            }
+                            position += read;
+                            length = position;
+                        }
+
+                        if (position < state.BytesNeeded)
+                            throw new EndOfStreamException();
+
+                        state.BytesNeeded = 0;
+                    }
+                }
+
+                return state.LastFrameResultObject;
             }
             finally
             {
-                reader.Dispose();
-                decodeBuffer.Dispose();
+                Array.Clear(buffer, 0, buffer.Length);
+                BufferArrayPool<byte>.Return(buffer);
+                BufferArrayPool<char>.Return(decodeBuffer);
             }
         }
 
-        public static JsonObject DeserializeJsonObject(string json, Graph graph = null)
+        private static void Read(ReadOnlySpan<byte> buffer, bool isFinalBlock, ref ReadState state, ref char[] decodeBuffer, ref int decodeBufferPosition)
         {
-            if (json.Length == 0)
-                return new JsonObject(null, true);
+            Span<char> chars = new char[buffer.Length];
+            _ = encoding.GetChars(buffer, chars);
 
-            var reader = new CharReader(json);
-            var decodeBuffer = new CharWriteBuffer();
-            try
+            var decodeBufferWriter = new CharWriter(decodeBuffer, true, decodeBufferPosition);
+
+            var reader = new CharReader(chars); //isFinalBlock);
+
+            for (; ; )
             {
-                if (!reader.ReadSkipWhiteSpace(out var c))
-                    throw reader.CreateException("Json ended prematurely");
-
-                var value = FromJsonToJsonObject(c, ref reader, ref decodeBuffer, graph);
-                if (reader.HasMoreChars())
+                switch (state.CurrentFrame.FrameType)
                 {
-                    if (reader.ReadSkipWhiteSpace(out _))
-                        throw reader.CreateException("Unexpected character and end of json");
+                    case ReadFrameType.Value: ReadValue(ref reader, ref state, ref decodeBufferWriter); break;
+
+                    case ReadFrameType.String: ReadString(ref reader, ref state, ref decodeBufferWriter); break;
+                    case ReadFrameType.StringToType: ReadStringToType(ref reader, ref state); break;
+
+                    case ReadFrameType.Object: ReadObject(ref reader, ref state); break;
                 }
-                return value;
-            }
-            finally
-            {
-                reader.Dispose();
-                decodeBuffer.Dispose();
+                if (state.Ended)
+                {
+                    return;
+                }
+                if (state.BytesNeeded > 0)
+                {
+                    state.BufferPostion = reader.Position;
+                    decodeBufferPosition = decodeBufferWriter.Position;
+                    return;
+                }
             }
         }
 
-        private static object FromJson(char c, ref CharReader reader, ref CharWriteBuffer decodeBuffer, TypeDetail typeDetail, Graph graph, bool nameless)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReadValue(ref CharReader reader, ref ReadState state, ref CharWriter decodeBuffer)
         {
-            if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable)
+            var typeDetail = state.CurrentFrame.TypeDetail;
+            if (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 typeDetail = TypeAnalyzer.GetTypeDetail(emptyImplementationType);
             }
 
+            if (!reader.TryReadSkipWhiteSpace(out var c))
+            {
+                state.BytesNeeded = 1;
+                return;
+            }
+
             switch (c)
             {
                 case '"':
-                    var value = ReadString(ref reader, ref decodeBuffer);
-                    return ConvertStringToType(value, typeDetail);
+                    state.PushFrame();
+                    state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.StringToType };
+                    state.PushFrame();
+                    state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.String };
+                    return;
                 case '{':
-                    return FromJsonObject(ref reader, ref decodeBuffer, typeDetail, graph, nameless);
+                    state.PushFrame();
+                    state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Object };
+                    return;
                 case '[':
-                    if (!nameless || (typeDetail != null && typeDetail.IsIEnumerableGeneric))
-                        return FromJsonArray(ref reader, ref decodeBuffer, typeDetail, graph, nameless);
+                    state.PushFrame();
+                    if (!state.Nameless || (typeDetail != null && typeDetail.IsIEnumerableGeneric))
+                        state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Array };
                     else
-                        return FromJsonArrayNameless(ref reader, ref decodeBuffer, typeDetail, graph);
+                        state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Array };
+                    return;
                 default:
-                    return FromLiteral(c, ref reader, typeDetail);
+                    state.PushFrame();
+                    state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Literal };
+                    return;
             }
         }
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromJsonObject(ref CharReader reader, ref CharWriteBuffer decodeBuffer, TypeDetail typeDetail, Graph graph, bool nameless)
+        private static object ReadObject(ref CharReader reader, ref ReadState state)
         {
             var obj = typeDetail?.Creator();
             var canExpectComma = false;
-            while (reader.ReadSkipWhiteSpace(out var c))
+            while (reader.TryReadSkipWhiteSpace(out var c))
             {
                 switch (c)
                 {
@@ -349,7 +403,7 @@ namespace Zerra.Serialization
 
                         ReadPropertySperator(ref reader);
 
-                        if (!reader.ReadSkipWhiteSpace(out c))
+                        if (!reader.TryReadSkipWhiteSpace(out c))
                             throw reader.CreateException("Json ended prematurely");
 
                         if (obj != null)
@@ -419,7 +473,7 @@ namespace Zerra.Serialization
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromJsonArray(ref CharReader reader, ref CharWriteBuffer decodeBuffer, TypeDetail typeDetail, Graph graph, bool nameless)
+        private static object ReadArray(ref CharReader reader, ref ReadState readState)
         {
             object collection = null;
             MethodDetail addMethod = null;
@@ -471,7 +525,7 @@ namespace Zerra.Serialization
             }
 
             var canExpectComma = false;
-            while (reader.ReadSkipWhiteSpace(out var c))
+            while (reader.TryReadSkipWhiteSpace(out var c))
             {
                 switch (c)
                 {
@@ -509,12 +563,12 @@ namespace Zerra.Serialization
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromJsonArrayNameless(ref CharReader reader, ref CharWriteBuffer decodeBuffer, TypeDetail typeDetail, Graph graph)
+        private static object ReadArrayNameless(ref CharReader reader, ref ReadState readState)
         {
             var obj = typeDetail?.Creator();
             var canExpectComma = false;
             var propertyIndexForNameless = 0;
-            while (reader.ReadSkipWhiteSpace(out var c))
+            while (reader.TryReadSkipWhiteSpace(out var c))
             {
                 switch (c)
                 {
@@ -592,21 +646,21 @@ namespace Zerra.Serialization
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromLiteral(char c, ref CharReader reader, TypeDetail typeDetail)
+        private static object ReadLiteral(char c, ref CharReader reader, TypeDetail typeDetail)
         {
             switch (c)
             {
                 case 'n':
                     {
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'u')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'l')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'l')
                             throw reader.CreateException("Expected number/true/false/null");
@@ -616,15 +670,15 @@ namespace Zerra.Serialization
                     }
                 case 't':
                     {
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'r')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'u')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'e')
                             throw reader.CreateException("Expected number/true/false/null");
@@ -634,19 +688,19 @@ namespace Zerra.Serialization
                     }
                 case 'f':
                     {
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'a')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'l')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 's')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'e')
                             throw reader.CreateException("Expected number/true/false/null");
@@ -678,199 +732,8 @@ namespace Zerra.Serialization
             }
             throw reader.CreateException("Json ended prematurely");
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object ConvertStringToType(string s, TypeDetail typeDetail)
-        {
-            if (typeDetail == null)
-                return null;
 
-            if (typeDetail.CoreType.HasValue)
-            {
-                switch (typeDetail.CoreType.Value)
-                {
-                    case CoreType.String:
-                        {
-                            return s;
-                        }
-                    case CoreType.Boolean:
-                    case CoreType.BooleanNullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            if (Boolean.TryParse(s, out var value))
-                                return value;
-                            return null;
-                        }
-                    case CoreType.Byte:
-                    case CoreType.ByteNullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            if (Byte.TryParse(s, out var value))
-                                return value;
-                            return null;
-                        }
-                    case CoreType.SByte:
-                    case CoreType.SByteNullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            if (SByte.TryParse(s, out var value))
-                                return value;
-                            return null;
-                        }
-                    case CoreType.Int16:
-                    case CoreType.Int16Nullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            if (Int16.TryParse(s, out var value))
-                                return value;
-                            return null;
-                        }
-                    case CoreType.UInt16:
-                    case CoreType.UInt16Nullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            if (UInt16.TryParse(s, out var value))
-                                return value;
-                            return null;
-                        }
-                    case CoreType.Int32:
-                    case CoreType.Int32Nullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            if (Int32.TryParse(s, out var value))
-                                return value;
-                            return null;
-                        }
-                    case CoreType.UInt32:
-                    case CoreType.UInt32Nullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            if (UInt32.TryParse(s, out var value))
-                                return value;
-                            return null;
-                        }
-                    case CoreType.Int64:
-                    case CoreType.Int64Nullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            if (Int64.TryParse(s, out var value))
-                                return value;
-                            return null;
-                        }
-                    case CoreType.UInt64:
-                    case CoreType.UInt64Nullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            if (UInt64.TryParse(s, out var value))
-                                return value;
-                            return null;
-                        }
-                    case CoreType.Single:
-                    case CoreType.SingleNullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            if (Single.TryParse(s, out var value))
-                                return value;
-                            return null;
-                        }
-                    case CoreType.Double:
-                    case CoreType.DoubleNullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            if (Double.TryParse(s, out var value))
-                                return value;
-                            return null;
-                        }
-                    case CoreType.Decimal:
-                    case CoreType.DecimalNullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            if (Decimal.TryParse(s, out var value))
-                                return value;
-                            return null;
-                        }
-
-                    case CoreType.Char:
-                    case CoreType.CharNullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            return s[0];
-                        }
-                    case CoreType.DateTime:
-                    case CoreType.DateTimeNullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            if (DateTime.TryParse(s, out var value))
-                                return value;
-                            return null;
-                        }
-                    case CoreType.DateTimeOffset:
-                    case CoreType.DateTimeOffsetNullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            if (DateTimeOffset.TryParse(s, out var value))
-                                return value;
-                            return null;
-                        }
-                    case CoreType.TimeSpan:
-                    case CoreType.TimeSpanNullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            if (TimeSpan.TryParse(s, out var value))
-                                return value;
-                            return null;
-                        }
-                    case CoreType.Guid:
-                    case CoreType.GuidNullable:
-                        {
-                            if (s.Length == 0)
-                                return null;
-                            if (Guid.TryParse(s, out var value))
-                                return value;
-                            return null;
-                        }
-                }
-            }
-
-            if (typeDetail.Type.IsEnum)
-            {
-                if (EnumName.TryParse(s, typeDetail.Type, out var value))
-                    return value;
-                return null;
-            }
-
-            if (typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].Type.IsEnum)
-            {
-                if (EnumName.TryParse(s, typeDetail.InnerTypeDetails[0].Type, out var value))
-                    return value;
-                return null;
-            }
-
-            if (typeDetail.Type.IsArray && typeDetail.InnerTypeDetails[0].CoreType == CoreType.Byte)
-            {
-                //special case
-                return Convert.FromBase64String(s);
-            }
-
-            return null;
-        }
-
-        private static JsonObject FromJsonToJsonObject(char c, ref CharReader reader, ref CharWriteBuffer decodeBuffer, Graph graph)
+        private static JsonObject ReadToJsonObject(char c, ref CharReader reader, Graph graph)
         {
             switch (c)
             {
@@ -886,11 +749,11 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static JsonObject FromJsonObjectToJsonObject(ref CharReader reader, ref CharWriteBuffer decodeBuffer, Graph graph)
+        private static JsonObject ReadObjectToJsonObject(ref CharReader reader, Graph graph)
         {
             var properties = new Dictionary<string, JsonObject>();
             var canExpectComma = false;
-            while (reader.ReadSkipWhiteSpace(out var c))
+            while (reader.TryReadSkipWhiteSpace(out var c))
             {
                 switch (c)
                 {
@@ -901,7 +764,7 @@ namespace Zerra.Serialization
 
                         ReadPropertySperator(ref reader);
 
-                        if (!reader.ReadSkipWhiteSpace(out c))
+                        if (!reader.TryReadSkipWhiteSpace(out c))
                             throw reader.CreateException("Json ended prematurely");
 
                         var propertyGraph = graph?.GetChildGraph(propertyName);
@@ -951,12 +814,12 @@ namespace Zerra.Serialization
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static JsonObject FromJsonArrayToJsonObject(ref CharReader reader, ref CharWriteBuffer decodeBuffer, Graph graph)
+        private static JsonObject ReadArrayToJsonObject(ref CharReader reader, Graph graph)
         {
             var arrayList = new List<JsonObject>();
 
             var canExpectComma = false;
-            while (reader.ReadSkipWhiteSpace(out var c))
+            while (reader.TryReadSkipWhiteSpace(out var c))
             {
                 switch (c)
                 {
@@ -981,21 +844,21 @@ namespace Zerra.Serialization
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static JsonObject FromLiteralToJsonObject(char c, ref CharReader reader)
+        private static JsonObject ReadLiteralToJsonObject(char c, ref CharReader reader)
         {
             switch (c)
             {
                 case 'n':
                     {
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'u')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'l')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'l')
                             throw reader.CreateException("Expected number/true/false/null");
@@ -1003,15 +866,15 @@ namespace Zerra.Serialization
                     }
                 case 't':
                     {
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'r')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'u')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'e')
                             throw reader.CreateException("Expected number/true/false/null");
@@ -1019,19 +882,19 @@ namespace Zerra.Serialization
                     }
                 case 'f':
                     {
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'a')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'l')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 's')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.Read(out c))
+                        if (!reader.TryRead(out c))
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'e')
                             throw reader.CreateException("Expected number/true/false/null");
@@ -1049,7 +912,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadPropertySperator(ref CharReader reader)
         {
-            if (!reader.ReadSkipWhiteSpace(out var c))
+            if (!reader.TryReadSkipWhiteSpace(out var c))
                 throw reader.CreateException("Json ended prematurely");
             if (c == ':')
                 return;
@@ -1057,68 +920,107 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static string ReadString(ref CharReader reader, ref CharWriteBuffer decodeBuffer)
+        private static void ReadString(ref CharReader reader, ref ReadState state, ref CharWriter decodeBuffer)
         {
-            //return reader.ReadJsonString(decodeBuffer);
-
-            //Quote already started
-            reader.BeginSegment(false);
-            while (reader.ReadUntil(out var c, '\"', '\\'))
+            char c;
+            for (; ; )
             {
-                switch (c)
+                switch (state.CurrentFrame.State)
                 {
-                    case '\"':
+                    case 0: //start
+                        reader.BeginSegment(false);
+                        state.CurrentFrame.State = 1;
+                        break;
+                    case 1: //reading segment
+                        if (!reader.TryReadUntil(out c, '\"', '\\'))
                         {
                             reader.EndSegmentCopyTo(false, ref decodeBuffer);
-                            var s = decodeBuffer.ToString();
-                            decodeBuffer.Clear();
-                            return s;
+                            state.CurrentFrame.State = 0;
+                            state.BytesNeeded = 1;
+                            return;
                         }
-                    case '\\':
+
+                        switch (c)
                         {
-                            reader.EndSegmentCopyTo(false, ref decodeBuffer);
-
-                            if (!reader.Read(out c))
-                                throw reader.CreateException("Json ended prematurely");
-
-                            switch (c)
-                            {
-                                case 'b':
-                                    decodeBuffer.Write('\b');
-                                    break;
-                                case 't':
-                                    decodeBuffer.Write('\t');
-                                    break;
-                                case 'n':
-                                    decodeBuffer.Write('\n');
-                                    break;
-                                case 'f':
-                                    decodeBuffer.Write('\f');
-                                    break;
-                                case 'r':
-                                    decodeBuffer.Write('\r');
-                                    break;
-                                case 'u':
-                                    reader.BeginSegment(false);
-                                    if (!reader.Foward(4))
-                                        throw reader.CreateException("Json ended prematurely");
-                                    var unicodeString = reader.EndSegmentToString(true);
-                                    if (!lowUnicodeHexToChar.TryGetValue(unicodeString, out var unicodeChar))
-                                        throw reader.CreateException("Incomplete escape sequence");
-                                    decodeBuffer.Write(unicodeChar);
-                                    break;
-                                default:
-                                    decodeBuffer.Write(c);
-                                    break;
-                            }
-
-                            reader.BeginSegment(false);
+                            case '\"':
+                                reader.EndSegmentCopyTo(false, ref decodeBuffer);
+                                state.CurrentFrame.ResultString = decodeBuffer.ToString();
+                                decodeBuffer.Clear();
+                                state.EndFrame();
+                                return;
+                            case '\\':
+                                reader.EndSegmentCopyTo(false, ref decodeBuffer);
+                                state.CurrentFrame.State = 2;
+                                break;
                         }
+                        break;
+                    case 2: //reading escape
+
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+
+                        switch (c)
+                        {
+                            case 'b':
+                                decodeBuffer.Write('\b');
+                                reader.BeginSegment(false);
+                                state.CurrentFrame.State = 1;
+                                break;
+                            case 't':
+                                decodeBuffer.Write('\t');
+                                reader.BeginSegment(false);
+                                state.CurrentFrame.State = 1;
+                                break;
+                            case 'n':
+                                decodeBuffer.Write('\n');
+                                reader.BeginSegment(false);
+                                state.CurrentFrame.State = 1;
+                                break;
+                            case 'f':
+                                decodeBuffer.Write('\f');
+                                reader.BeginSegment(false);
+                                state.CurrentFrame.State = 1;
+                                break;
+                            case 'r':
+                                decodeBuffer.Write('\r');
+                                reader.BeginSegment(false);
+                                state.CurrentFrame.State = 1;
+                                break;
+                            case 'u':
+                                state.CurrentFrame.State = 3;
+                                break;
+                            default:
+                                decodeBuffer.Write(c);
+                                reader.BeginSegment(false);
+                                state.CurrentFrame.State = 1;
+                                break;
+                        }
+
+                        break;
+                    case 3: //reading escape unicode
+                        if (!reader.TryReadString(out var unicodeString, 4))
+                        {
+                            state.BytesNeeded = 4;
+                            return;
+                        }
+                        if (!lowUnicodeHexToChar.TryGetValue(unicodeString, out var unicodeChar))
+                            throw reader.CreateException("Incomplete escape sequence");
+                        decodeBuffer.Write(unicodeChar);
+                        reader.BeginSegment(false);
+                        state.CurrentFrame.State = 1;
                         break;
                 }
             }
-
-            throw reader.CreateException("Json ended prematurely");
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReadStringToType(ref CharReader reader, ref ReadState state)
+        {
+            var typeDetail = state.CurrentFrame.TypeDetail;
+            state.CurrentFrame.ResultObject = ConvertStringToType(state.LastFrameResultString, typeDetail);
+            state.EndFrame();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1188,7 +1090,7 @@ namespace Zerra.Serialization
                 default: throw reader.CreateException("Unexpected character");
             }
 
-            while (reader.Read(out c))
+            while (reader.TryRead(out c))
             {
                 switch (c)
                 {
@@ -1206,7 +1108,7 @@ namespace Zerra.Serialization
                         break;
                     case '.':
                         {
-                            while (reader.Read(out c))
+                            while (reader.TryRead(out c))
                             {
                                 switch (c)
                                 {
@@ -1225,7 +1127,7 @@ namespace Zerra.Serialization
                                     case 'e':
                                     case 'E':
                                         {
-                                            if (!reader.Read(out c))
+                                            if (!reader.TryRead(out c))
                                                 throw reader.CreateException("Json ended prematurely");
 
                                             switch (c)
@@ -1246,7 +1148,7 @@ namespace Zerra.Serialization
                                                     break;
                                                 default: throw reader.CreateException("Unexpected character");
                                             }
-                                            while (reader.Read(out c))
+                                            while (reader.TryRead(out c))
                                             {
                                                 switch (c)
                                                 {
@@ -1298,7 +1200,7 @@ namespace Zerra.Serialization
                     case 'e':
                     case 'E':
                         {
-                            if (!reader.Read(out c))
+                            if (!reader.TryRead(out c))
                                 throw reader.CreateException("Json ended prematurely");
 
                             switch (c)
@@ -1319,7 +1221,7 @@ namespace Zerra.Serialization
                                     break;
                                 default: throw reader.CreateException("Unexpected character");
                             }
-                            while (reader.Read(out c))
+                            while (reader.TryRead(out c))
                             {
                                 switch (c)
                                 {
@@ -1388,7 +1290,7 @@ namespace Zerra.Serialization
                 default: throw reader.CreateException("Unexpected character");
             }
 
-            while (reader.Read(out c))
+            while (reader.TryRead(out c))
             {
                 switch (c)
                 {
@@ -1404,7 +1306,7 @@ namespace Zerra.Serialization
                     case '9': number = number * 10 + 9; break;
                     case '.':
                         {
-                            while (reader.Read(out c))
+                            while (reader.TryRead(out c))
                             {
                                 switch (c)
                                 {
@@ -1422,7 +1324,7 @@ namespace Zerra.Serialization
                                     case 'e':
                                     case 'E':
                                         {
-                                            if (!reader.Read(out c))
+                                            if (!reader.TryRead(out c))
                                                 throw reader.CreateException("Json ended prematurely");
 
                                             var negativeExponent = false;
@@ -1444,7 +1346,7 @@ namespace Zerra.Serialization
                                                 case '-': exponent = 0; negativeExponent = true; break;
                                                 default: throw reader.CreateException("Unexpected character");
                                             }
-                                            while (reader.Read(out c))
+                                            while (reader.TryRead(out c))
                                             {
                                                 switch (c)
                                                 {
@@ -1512,7 +1414,7 @@ namespace Zerra.Serialization
                     case 'e':
                     case 'E':
                         {
-                            if (!reader.Read(out c))
+                            if (!reader.TryRead(out c))
                                 throw reader.CreateException("Json ended prematurely");
 
                             var negativeExponent = false;
@@ -1534,7 +1436,7 @@ namespace Zerra.Serialization
                                 case '-': exponent = 0; negativeExponent = true; break;
                                 default: throw reader.CreateException("Unexpected character");
                             }
-                            while (reader.Read(out c))
+                            while (reader.TryRead(out c))
                             {
                                 switch (c)
                                 {
@@ -1620,7 +1522,7 @@ namespace Zerra.Serialization
                 '-' => 0UL,
                 _ => throw reader.CreateException("Unexpected character"),
             };
-            while (reader.Read(out c))
+            while (reader.TryRead(out c))
             {
                 switch (c)
                 {
@@ -1636,7 +1538,7 @@ namespace Zerra.Serialization
                     case '9': number = number * 10 + 9; break;
                     case '.':
                         {
-                            while (reader.Read(out c))
+                            while (reader.TryRead(out c))
                             {
                                 switch (c)
                                 {
@@ -1654,7 +1556,7 @@ namespace Zerra.Serialization
                                     case 'e':
                                     case 'E':
                                         {
-                                            if (!reader.Read(out c))
+                                            if (!reader.TryRead(out c))
                                                 throw reader.CreateException("Json ended prematurely");
 
                                             var negativeExponent = false;
@@ -1676,7 +1578,7 @@ namespace Zerra.Serialization
                                                 case '-': exponent = 0; negativeExponent = true; break;
                                                 default: throw reader.CreateException("Unexpected character");
                                             }
-                                            while (reader.Read(out c))
+                                            while (reader.TryRead(out c))
                                             {
                                                 switch (c)
                                                 {
@@ -1734,7 +1636,7 @@ namespace Zerra.Serialization
                     case 'e':
                     case 'E':
                         {
-                            if (!reader.Read(out c))
+                            if (!reader.TryRead(out c))
                                 throw reader.CreateException("Json ended prematurely");
 
                             var negativeExponent = false;
@@ -1756,7 +1658,7 @@ namespace Zerra.Serialization
                                 case '-': exponent = 0; negativeExponent = true; break;
                                 default: throw reader.CreateException("Unexpected character");
                             }
-                            while (reader.Read(out c))
+                            while (reader.TryRead(out c))
                             {
                                 switch (c)
                                 {
@@ -1834,7 +1736,7 @@ namespace Zerra.Serialization
                 default: throw reader.CreateException("Unexpected character");
             }
 
-            while (reader.Read(out c))
+            while (reader.TryRead(out c))
             {
                 switch (c)
                 {
@@ -1851,7 +1753,7 @@ namespace Zerra.Serialization
                     case '.':
                         {
                             double fraction = 10;
-                            while (reader.Read(out c))
+                            while (reader.TryRead(out c))
                             {
                                 switch (c)
                                 {
@@ -1868,7 +1770,7 @@ namespace Zerra.Serialization
                                     case 'e':
                                     case 'E':
                                         {
-                                            if (!reader.Read(out c))
+                                            if (!reader.TryRead(out c))
                                                 throw reader.CreateException("Json ended prematurely");
 
                                             var negativeExponent = false;
@@ -1890,7 +1792,7 @@ namespace Zerra.Serialization
                                                 case '-': exponent = 0; negativeExponent = true; break;
                                                 default: throw reader.CreateException("Unexpected character");
                                             }
-                                            while (reader.Read(out c))
+                                            while (reader.TryRead(out c))
                                             {
                                                 switch (c)
                                                 {
@@ -1959,7 +1861,7 @@ namespace Zerra.Serialization
                     case 'e':
                     case 'E':
                         {
-                            if (!reader.Read(out c))
+                            if (!reader.TryRead(out c))
                                 throw reader.CreateException("Json ended prematurely");
 
                             var negativeExponent = false;
@@ -1981,7 +1883,7 @@ namespace Zerra.Serialization
                                 case '-': exponent = 0; negativeExponent = true; break;
                                 default: throw reader.CreateException("Unexpected character");
                             }
-                            while (reader.Read(out c))
+                            while (reader.TryRead(out c))
                             {
                                 switch (c)
                                 {
@@ -2071,7 +1973,7 @@ namespace Zerra.Serialization
                 default: throw reader.CreateException("Unexpected character");
             }
 
-            while (reader.Read(out c))
+            while (reader.TryRead(out c))
             {
                 switch (c)
                 {
@@ -2088,7 +1990,7 @@ namespace Zerra.Serialization
                     case '.':
                         {
                             decimal fraction = 10;
-                            while (reader.Read(out c))
+                            while (reader.TryRead(out c))
                             {
                                 switch (c)
                                 {
@@ -2105,7 +2007,7 @@ namespace Zerra.Serialization
                                     case 'e':
                                     case 'E':
                                         {
-                                            if (!reader.Read(out c))
+                                            if (!reader.TryRead(out c))
                                                 throw reader.CreateException("Json ended prematurely");
 
                                             var negativeExponent = false;
@@ -2127,7 +2029,7 @@ namespace Zerra.Serialization
                                                 case '-': exponent = 0; negativeExponent = true; break;
                                                 default: throw reader.CreateException("Unexpected character");
                                             }
-                                            while (reader.Read(out c))
+                                            while (reader.TryRead(out c))
                                             {
                                                 switch (c)
                                                 {
@@ -2196,7 +2098,7 @@ namespace Zerra.Serialization
                     case 'e':
                     case 'E':
                         {
-                            if (!reader.Read(out c))
+                            if (!reader.TryRead(out c))
                                 throw reader.CreateException("Json ended prematurely");
 
                             var negativeExponent = false;
@@ -2218,7 +2120,7 @@ namespace Zerra.Serialization
                                 case '-': exponent = 0; negativeExponent = true; break;
                                 default: throw reader.CreateException("Unexpected character");
                             }
-                            while (reader.Read(out c))
+                            while (reader.TryRead(out c))
                             {
                                 switch (c)
                                 {
@@ -2306,7 +2208,7 @@ namespace Zerra.Serialization
                 default: throw reader.CreateException("Unexpected character");
             }
 
-            while (reader.Read(out c))
+            while (reader.TryRead(out c))
             {
                 switch (c)
                 {
@@ -2323,7 +2225,7 @@ namespace Zerra.Serialization
                         break;
                     case '.':
                         {
-                            while (reader.Read(out c))
+                            while (reader.TryRead(out c))
                             {
                                 switch (c)
                                 {
@@ -2341,7 +2243,7 @@ namespace Zerra.Serialization
                                     case 'e':
                                     case 'E':
                                         {
-                                            if (!reader.Read(out c))
+                                            if (!reader.TryRead(out c))
                                                 throw reader.CreateException("Json ended prematurely");
 
                                             switch (c)
@@ -2361,7 +2263,7 @@ namespace Zerra.Serialization
                                                     break;
                                                 default: throw reader.CreateException("Unexpected character");
                                             }
-                                            while (reader.Read(out c))
+                                            while (reader.TryRead(out c))
                                             {
                                                 switch (c)
                                                 {
@@ -2411,7 +2313,7 @@ namespace Zerra.Serialization
                     case 'e':
                     case 'E':
                         {
-                            if (!reader.Read(out c))
+                            if (!reader.TryRead(out c))
                                 throw reader.CreateException("Json ended prematurely");
 
                             switch (c)
@@ -2431,7 +2333,7 @@ namespace Zerra.Serialization
                                     break;
                                 default: throw reader.CreateException("Unexpected character");
                             }
-                            while (reader.Read(out c))
+                            while (reader.TryRead(out c))
                             {
                                 switch (c)
                                 {
@@ -2477,112 +2379,6 @@ namespace Zerra.Serialization
                 }
             }
             return;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object ConvertNullToType(CoreType coreType)
-        {
-            return coreType switch
-            {
-                CoreType.String => null,
-                CoreType.Boolean => default(bool),
-                CoreType.Byte => default(byte),
-                CoreType.SByte => default(sbyte),
-                CoreType.Int16 => default(short),
-                CoreType.UInt16 => default(ushort),
-                CoreType.Int32 => default(int),
-                CoreType.UInt32 => default(uint),
-                CoreType.Int64 => default(long),
-                CoreType.UInt64 => default(ulong),
-                CoreType.Single => default(float),
-                CoreType.Double => default(double),
-                CoreType.Decimal => default(decimal),
-                CoreType.Char => default(char),
-                CoreType.DateTime => default(DateTime),
-                CoreType.DateTimeOffset => default(DateTimeOffset),
-                CoreType.TimeSpan => default(TimeSpan),
-                CoreType.Guid => default(Guid),
-                CoreType.BooleanNullable => null,
-                CoreType.ByteNullable => null,
-                CoreType.SByteNullable => null,
-                CoreType.Int16Nullable => null,
-                CoreType.UInt16Nullable => null,
-                CoreType.Int32Nullable => null,
-                CoreType.UInt32Nullable => null,
-                CoreType.Int64Nullable => null,
-                CoreType.UInt64Nullable => null,
-                CoreType.SingleNullable => null,
-                CoreType.DoubleNullable => null,
-                CoreType.DecimalNullable => null,
-                CoreType.CharNullable => null,
-                CoreType.DateTimeNullable => null,
-                CoreType.DateTimeOffsetNullable => null,
-                CoreType.TimeSpanNullable => null,
-                CoreType.GuidNullable => null,
-                _ => throw new NotImplementedException(),
-            };
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object ConvertTrueToType(CoreType coreType)
-        {
-            return coreType switch
-            {
-                CoreType.String => "true",
-                CoreType.Boolean or CoreType.BooleanNullable => true,
-                CoreType.Byte or CoreType.ByteNullable => (byte)1,
-                CoreType.SByte or CoreType.SByteNullable => (sbyte)1,
-                CoreType.Int16 or CoreType.Int16Nullable => (short)1,
-                CoreType.UInt16 or CoreType.UInt16Nullable => (ushort)1,
-                CoreType.Int32 or CoreType.Int32Nullable => (int)1,
-                CoreType.UInt32 or CoreType.UInt32Nullable => (uint)1,
-                CoreType.Int64 or CoreType.Int64Nullable => (long)1,
-                CoreType.UInt64 or CoreType.UInt64Nullable => (ulong)1,
-                CoreType.Single or CoreType.SingleNullable => (float)1,
-                CoreType.Double or CoreType.DoubleNullable => (double)1,
-                CoreType.Decimal or CoreType.DecimalNullable => (decimal)1,
-                CoreType.Char => default(char),
-                CoreType.DateTime => default(DateTime),
-                CoreType.DateTimeOffset => default(DateTimeOffset),
-                CoreType.TimeSpan => default(TimeSpan),
-                CoreType.Guid => default(Guid),
-                CoreType.CharNullable => null,
-                CoreType.DateTimeNullable => null,
-                CoreType.DateTimeOffsetNullable => null,
-                CoreType.TimeSpanNullable => null,
-                CoreType.GuidNullable => null,
-                _ => throw new NotImplementedException(),
-            };
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object ConvertFalseToType(CoreType coreType)
-        {
-            return coreType switch
-            {
-                CoreType.String => "false",
-                CoreType.Boolean or CoreType.BooleanNullable => false,
-                CoreType.Byte or CoreType.ByteNullable => (byte)0,
-                CoreType.SByte or CoreType.SByteNullable => (sbyte)0,
-                CoreType.Int16 or CoreType.Int16Nullable => (short)0,
-                CoreType.UInt16 or CoreType.UInt16Nullable => (ushort)0,
-                CoreType.Int32 or CoreType.Int32Nullable => (int)0,
-                CoreType.UInt32 or CoreType.UInt32Nullable => (uint)0,
-                CoreType.Int64 or CoreType.Int64Nullable => (long)0,
-                CoreType.UInt64 or CoreType.UInt64Nullable => (ulong)0,
-                CoreType.Single or CoreType.SingleNullable => (float)0,
-                CoreType.Double or CoreType.DoubleNullable => (double)0,
-                CoreType.Decimal or CoreType.DecimalNullable => (decimal)0,
-                CoreType.Char => default(char),
-                CoreType.DateTime => default(DateTime),
-                CoreType.DateTimeOffset => default(DateTimeOffset),
-                CoreType.TimeSpan => default(TimeSpan),
-                CoreType.Guid => default(Guid),
-                CoreType.CharNullable => null,
-                CoreType.DateTimeNullable => null,
-                CoreType.DateTimeOffsetNullable => null,
-                CoreType.TimeSpanNullable => null,
-                CoreType.GuidNullable => null,
-                _ => throw new NotImplementedException(),
-            };
         }
     }
 }

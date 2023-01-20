@@ -33,7 +33,7 @@ namespace Zerra.Serialization
             return obj;
         }
 
-        private object FromBytes(ref ByteReader reader, SerializerTypeDetails typeDetail, bool nullFlags, bool drainBytes)
+        private object FromBytes(ref ByteReader reader, SerializerTypeDetail typeDetail, bool nullFlags, bool drainBytes)
         {
             if (!drainBytes && typeDetail == null)
                 throw new NotSupportedException("Cannot deserialize without type information");
@@ -106,7 +106,7 @@ namespace Zerra.Serialization
 
             for (; ; )
             {
-                SerializerMemberDetails indexProperty = null;
+                SerializerMemberDetail indexProperty = null;
 
                 if (usePropertyNames)
                 {
@@ -166,7 +166,7 @@ namespace Zerra.Serialization
 
             throw new Exception("Expected end of object marker");
         }
-        private object FromBytesEnumerable(ref ByteReader reader, SerializerTypeDetails typeDetail, bool asList)
+        private object FromBytesEnumerable(ref ByteReader reader, SerializerTypeDetail typeDetail, bool asList)
         {
             var length = reader.ReadInt32();
 
@@ -518,7 +518,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private object FromBytesSpecialType(ref ByteReader reader, SerializerTypeDetails typeDetail, bool nullFlags)
+        private object FromBytesSpecialType(ref ByteReader reader, SerializerTypeDetail typeDetail, bool nullFlags)
         {
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType.Value : typeDetail.TypeDetail.SpecialType.Value;
             switch (specialType)
@@ -545,7 +545,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private object FromBytesSpecialTypeEnumerable(ref ByteReader reader, int length, SerializerTypeDetails typeDetail, bool asList)
+        private object FromBytesSpecialTypeEnumerable(ref ByteReader reader, int length, SerializerTypeDetail typeDetail, bool asList)
         {
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType.Value : typeDetail.TypeDetail.SpecialType.Value;
             switch (specialType)

@@ -13,7 +13,7 @@ namespace Zerra.Repository
         public string ConvertInternal(QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail)
         {
             var operationContext = new MemberContext();
-            var sb = new CharWriteBuffer();
+            var sb = new CharWriter();
             try
             {
                 Convert(ref sb, select, where, order, skip, take, graph, modelDetail, operationContext);
@@ -25,7 +25,7 @@ namespace Zerra.Repository
             }
         }
 
-        protected void Convert(ref CharWriteBuffer sb, QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail, MemberContext operationContext)
+        protected void Convert(ref CharWriter sb, QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail, MemberContext operationContext)
         {
             var hasWhere = where != null;
             var hasOrderSkipTake = (select == QueryOperation.Many || select == QueryOperation.First) && (order?.OrderExpressions.Length > 0 || skip > 0 || take > 0);
@@ -37,7 +37,7 @@ namespace Zerra.Repository
             if (hasWhere || hasOrderSkipTake)
             {
                 var rootDependant = new ParameterDependant(modelDetail, null);
-                var sbWhereOrder = new CharWriteBuffer();
+                var sbWhereOrder = new CharWriter();
                 try
                 {
                     if (hasWhere)
@@ -58,7 +58,7 @@ namespace Zerra.Repository
             GenerateEnding(select, graph, modelDetail, ref sb);
         }
 
-        protected void ConvertToSql(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        protected void ConvertToSql(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             switch (exp.NodeType)
             {
@@ -269,8 +269,8 @@ namespace Zerra.Repository
                     throw new NotImplementedException();
             }
         }
-        protected abstract void ConvertToSqlLambda(Expression exp, ref CharWriteBuffer sb, BuilderContext context);
-        private void ConvertToSqlUnary(Operator prefixOperation, string suffixOperation, Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        protected abstract void ConvertToSqlLambda(Expression exp, ref CharWriter sb, BuilderContext context);
+        private void ConvertToSqlUnary(Operator prefixOperation, string suffixOperation, Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(prefixOperation);
 
@@ -283,7 +283,7 @@ namespace Zerra.Repository
 
             _ = context.MemberContext.OperatorStack.Pop();
         }
-        private void ConvertToSqlBinary(Operator operation, Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        private void ConvertToSqlBinary(Operator operation, Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(operation);
 
@@ -326,7 +326,7 @@ namespace Zerra.Repository
 
             _ = context.MemberContext.OperatorStack.Pop();
         }
-        private void ConvertToSqlArrayIndex(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        private void ConvertToSqlArrayIndex(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             var array = exp as BinaryExpression;
             var member = (Array)EvaluateMemberAccess(array.Left);
@@ -344,7 +344,7 @@ namespace Zerra.Repository
 
             ConvertToSqlValue(array.Left.Type.GetElementType(), value, ref sb, context);
         }
-        protected void ConvertToSqlMember(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        protected void ConvertToSqlMember(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             var member = exp as MemberExpression;
 
@@ -359,13 +359,13 @@ namespace Zerra.Repository
                 _ = context.MemberContext.MemberAccessStack.Pop();
             }
         }
-        private void ConvertToSqlConstant(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        private void ConvertToSqlConstant(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             var constant = exp as ConstantExpression;
 
             ConvertToSqlConstantStack(constant.Type, constant.Value, ref sb, context);
         }
-        private void ConvertToSqlConstantStack(Type type, object value, ref CharWriteBuffer sb, BuilderContext context)
+        private void ConvertToSqlConstantStack(Type type, object value, ref CharWriter sb, BuilderContext context)
         {
             if (context.MemberContext.MemberAccessStack.Count > 0)
             {
@@ -404,8 +404,8 @@ namespace Zerra.Repository
                 ConvertToSqlValue(type, value, ref sb, context);
             }
         }
-        protected abstract void ConvertToSqlCall(Expression exp, ref CharWriteBuffer sb, BuilderContext context);
-        private void ConvertToSqlNew(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        protected abstract void ConvertToSqlCall(Expression exp, ref CharWriter sb, BuilderContext context);
+        private void ConvertToSqlNew(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(Operator.New);
 
@@ -426,7 +426,7 @@ namespace Zerra.Repository
 
             _ = context.MemberContext.OperatorStack.Pop();
         }
-        private void ConvertToSqlParameter(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        private void ConvertToSqlParameter(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             var parameter = exp as ParameterExpression;
 
@@ -436,9 +436,9 @@ namespace Zerra.Repository
 
             ConvertToSqlParameterModel(modelDetail, ref sb, context, parameterInContext);
         }
-        protected abstract void ConvertToSqlParameterModel(ModelDetail modelDetail, ref CharWriteBuffer sb, BuilderContext context, bool parameterInContext);
-        protected abstract void ConvertToSqlConditional(Expression exp, ref CharWriteBuffer sb, BuilderContext context);
-        protected void ConvertToSqlEvaluate(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        protected abstract void ConvertToSqlParameterModel(ModelDetail modelDetail, ref CharWriter sb, BuilderContext context, bool parameterInContext);
+        protected abstract void ConvertToSqlConditional(Expression exp, ref CharWriter sb, BuilderContext context);
+        protected void ConvertToSqlEvaluate(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(Operator.Evaluate);
 
@@ -448,7 +448,7 @@ namespace Zerra.Repository
             _ = context.MemberContext.OperatorStack.Pop();
         }
 
-        protected void ConvertToSqlValue(Type type, object value, ref CharWriteBuffer sb, BuilderContext context)
+        protected void ConvertToSqlValue(Type type, object value, ref CharWriter sb, BuilderContext context)
         {
             MemberExpression memberProperty = null;
 
@@ -464,7 +464,7 @@ namespace Zerra.Repository
                 context.MemberContext.MemberAccessStack.Push(memberProperty);
             }
         }
-        protected abstract bool ConvertToSqlValueRender(MemberExpression memberProperty, Type type, object value, ref CharWriteBuffer sb, BuilderContext context);
+        protected abstract bool ConvertToSqlValueRender(MemberExpression memberProperty, Type type, object value, ref CharWriter sb, BuilderContext context);
 
         protected bool IsEvaluatable(Expression exp)
         {
@@ -840,15 +840,15 @@ namespace Zerra.Repository
             return value;
         }
 
-        protected abstract void GenerateWhere(Expression where, ref CharWriteBuffer sb, ParameterDependant rootDependant, MemberContext operationContext);
-        protected abstract void GenerateOrderSkipTake(QueryOrder order, int? skip, int? take, ref CharWriteBuffer sb, ParameterDependant rootDependant, MemberContext operationContext);
-        protected abstract void GenerateSelect(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriteBuffer sb);
-        protected abstract void GenerateSelectProperties(Graph graph, ModelDetail modelDetail, ref CharWriteBuffer sb);
-        protected abstract void GenerateFrom(ModelDetail modelDetail, ref CharWriteBuffer sb);
-        protected abstract void GenerateJoin(ParameterDependant dependant, ref CharWriteBuffer sb);
-        protected abstract void GenerateEnding(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriteBuffer sb);
+        protected abstract void GenerateWhere(Expression where, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext);
+        protected abstract void GenerateOrderSkipTake(QueryOrder order, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext);
+        protected abstract void GenerateSelect(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriter sb);
+        protected abstract void GenerateSelectProperties(Graph graph, ModelDetail modelDetail, ref CharWriter sb);
+        protected abstract void GenerateFrom(ModelDetail modelDetail, ref CharWriter sb);
+        protected abstract void GenerateJoin(ParameterDependant dependant, ref CharWriter sb);
+        protected abstract void GenerateEnding(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriter sb);
 
-        protected abstract void AppendLineBreak(ref CharWriteBuffer sb);
+        protected abstract void AppendLineBreak(ref CharWriter sb);
 
         protected abstract string OperatorToString(Operator operation);
     }

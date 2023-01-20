@@ -9,21 +9,20 @@ using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
-
     public partial class ByteSerializer
     {
-        private class SerializerTypeDetails
+        private class SerializerTypeDetail
         {
             private readonly ByteSerializerIndexSize indexSize;
             private readonly bool ignoreIndexAttribute;
 
             public Type Type { get; private set; }
-            public IReadOnlyDictionary<ushort, SerializerMemberDetails> IndexedProperties { get; private set; }
+            public IReadOnlyDictionary<ushort, SerializerMemberDetail> IndexedProperties { get; private set; }
             public TypeDetail TypeDetail { get; private set; }
             public Func<int, object> ListCreator { get; private set; }
 
-            private SerializerTypeDetails innerTypeDetails = null;
-            public SerializerTypeDetails InnerTypeDetail
+            private SerializerTypeDetail innerTypeDetails = null;
+            public SerializerTypeDetail InnerTypeDetail
             {
                 get
                 {
@@ -41,7 +40,7 @@ namespace Zerra.Serialization
                 }
             }
 
-            public SerializerTypeDetails(ByteSerializerIndexSize indexSize, bool ignoreIndexAttribute, Type type)
+            public SerializerTypeDetail(ByteSerializerIndexSize indexSize, bool ignoreIndexAttribute, Type type)
             {
                 this.indexSize = indexSize;
                 this.ignoreIndexAttribute = ignoreIndexAttribute;
@@ -63,7 +62,7 @@ namespace Zerra.Serialization
                         memberSets.Add(new Tuple<MemberDetail, SerializerIndexAttribute, NonSerializedAttribute>(member, indexAttribute, nonSerializedAttribute));
                     }
 
-                    var indexProperties = new Dictionary<ushort, SerializerMemberDetails>();
+                    var indexProperties = new Dictionary<ushort, SerializerMemberDetail>();
 
                     if (!ignoreIndexAttribute)
                     {
@@ -87,7 +86,7 @@ namespace Zerra.Serialization
                                 }
                                 var index = (ushort)(member.Item2.Index + IndexOffset);
 
-                                indexProperties.Add(index, new SerializerMemberDetails(indexSize, ignoreIndexAttribute, member.Item1));
+                                indexProperties.Add(index, new SerializerMemberDetail(indexSize, ignoreIndexAttribute, member.Item1));
                             }
                         }
                     }
@@ -112,7 +111,7 @@ namespace Zerra.Serialization
                             }
                             var index = (ushort)(orderIndex + IndexOffset);
 
-                            indexProperties.Add(index, new SerializerMemberDetails(indexSize, ignoreIndexAttribute, member.Item1));
+                            indexProperties.Add(index, new SerializerMemberDetail(indexSize, ignoreIndexAttribute, member.Item1));
                             orderIndex++;
                         }
                     }

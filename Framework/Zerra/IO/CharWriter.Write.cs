@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 
 namespace Zerra.IO
 {
-    public ref partial struct CharWriteBuffer
+    public ref partial struct CharWriter
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(byte value)
@@ -530,11 +530,13 @@ namespace Zerra.IO
                     }
                     position += value.Length * 2;
                     break;
+                default:
+                    throw new NotImplementedException();
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void Write(in CharWriteBuffer value)
+        public unsafe void Write(in CharWriter value)
         {
             EnsureBufferSize(value.position);
             var pCount = value.position;

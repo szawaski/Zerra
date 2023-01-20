@@ -111,7 +111,7 @@ namespace Zerra.DevTest
             var timerZd = Stopwatch.StartNew();
             for (var i = 0; i < testlength; i++)
             {
-                var sb = new CharWriteBuffer();
+                var sb = new CharWriter();
                 try
                 {
                     for (var j = 0; j < sbLoops; j++)

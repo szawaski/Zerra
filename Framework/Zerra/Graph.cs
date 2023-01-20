@@ -104,7 +104,7 @@ namespace Zerra
 
         protected void GenerateSignature()
         {
-            var writer = new CharWriteBuffer();
+            var writer = new CharWriter();
             try
             {
                 GenerateSignatureBuilder(ref writer);
@@ -115,7 +115,7 @@ namespace Zerra
                 writer.Dispose();
             }
         }
-        private void GenerateSignatureBuilder(ref CharWriteBuffer writer)
+        private void GenerateSignatureBuilder(ref CharWriter writer)
         {
             if (!String.IsNullOrEmpty(this.name))
                 writer.Write("N:");
@@ -428,7 +428,7 @@ namespace Zerra
 
         public override string ToString()
         {
-            var writer = new CharWriteBuffer();
+            var writer = new CharWriter();
             try
             {
                 ToString(ref writer, 0);
@@ -439,7 +439,7 @@ namespace Zerra
                 writer.Dispose();
             }
         }
-        private void ToString(ref CharWriteBuffer writer, int depth)
+        private void ToString(ref CharWriter writer, int depth)
         {
             foreach (var property in this.properties)
             {

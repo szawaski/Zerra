@@ -119,7 +119,7 @@ namespace Zerra
 
         public override string ToString()
         {
-            var writer = new CharWriteBuffer(128);
+            var writer = new CharWriter(128);
             try
             {
                 if (Str != null)

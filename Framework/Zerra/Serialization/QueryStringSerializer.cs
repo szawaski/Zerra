@@ -112,7 +112,7 @@ namespace Zerra.Serialization
         {
             var typeDetail = TypeAnalyzer.GetTypeDetail(typeof(T));
 
-            var writer = new CharWriteBuffer(256);
+            var writer = new CharWriter(256);
             try
             {
                 foreach (var member in typeDetail.MemberDetails)

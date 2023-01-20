@@ -20,7 +20,7 @@ namespace Zerra.Repository.MsSql
             return instance.ConvertInternal(select, where, order, skip, take, graph, modelDetail);
         }
 
-        protected override void ConvertToSqlLambda(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        protected override void ConvertToSqlLambda(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(Operator.Lambda);
 
@@ -71,7 +71,7 @@ namespace Zerra.Repository.MsSql
 
             _ = context.MemberContext.OperatorStack.Pop();
         }
-        protected override void ConvertToSqlCall(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        protected override void ConvertToSqlCall(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(Operator.Call);
 
@@ -253,7 +253,7 @@ namespace Zerra.Repository.MsSql
 
             _ = context.MemberContext.OperatorStack.Pop();
         }
-        protected override void ConvertToSqlParameterModel(ModelDetail modelDetail, ref CharWriteBuffer sb, BuilderContext context, bool parameterInContext)
+        protected override void ConvertToSqlParameterModel(ModelDetail modelDetail, ref CharWriter sb, BuilderContext context, bool parameterInContext)
         {
             var member = context.MemberContext.MemberAccessStack.Pop();
 
@@ -377,7 +377,7 @@ namespace Zerra.Repository.MsSql
 
             context.MemberContext.MemberAccessStack.Push(member);
         }
-        protected override void ConvertToSqlConditional(Expression exp, ref CharWriteBuffer sb, BuilderContext context)
+        protected override void ConvertToSqlConditional(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(Operator.Conditional);
 
@@ -399,7 +399,7 @@ namespace Zerra.Repository.MsSql
 
             _ = context.MemberContext.OperatorStack.Pop();
         }
-        protected override bool ConvertToSqlValueRender(MemberExpression memberProperty, Type type, object value, ref CharWriteBuffer sb, BuilderContext context)
+        protected override bool ConvertToSqlValueRender(MemberExpression memberProperty, Type type, object value, ref CharWriter sb, BuilderContext context)
         {
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
@@ -698,7 +698,7 @@ namespace Zerra.Repository.MsSql
             throw new NotImplementedException($"{type.GetNiceName()} value {value?.ToString()} not converted");
         }
 
-        protected override void GenerateWhere(Expression where, ref CharWriteBuffer sb, ParameterDependant rootDependant, MemberContext operationContext)
+        protected override void GenerateWhere(Expression where, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
         {
             if (where == null)
                 return;
@@ -708,7 +708,7 @@ namespace Zerra.Repository.MsSql
             ConvertToSql(where, ref sb, context);
             AppendLineBreak(ref sb);
         }
-        protected override void GenerateOrderSkipTake(QueryOrder order, int? skip, int? take, ref CharWriteBuffer sb, ParameterDependant rootDependant, MemberContext operationContext)
+        protected override void GenerateOrderSkipTake(QueryOrder order, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
         {
             if (order?.OrderExpressions.Length > 0)
             {
@@ -748,7 +748,7 @@ namespace Zerra.Repository.MsSql
                 }
             }
         }
-        protected override void GenerateSelect(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriteBuffer sb)
+        protected override void GenerateSelect(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriter sb)
         {
             switch (select)
             {
@@ -772,7 +772,7 @@ namespace Zerra.Repository.MsSql
                     break;
             }
         }
-        protected override void GenerateSelectProperties(Graph graph, ModelDetail modelDetail, ref CharWriteBuffer sb)
+        protected override void GenerateSelectProperties(Graph graph, ModelDetail modelDetail, ref CharWriter sb)
         {
             AppendLineBreak(ref sb);
             if (graph.IncludeAllProperties)
@@ -810,14 +810,14 @@ namespace Zerra.Repository.MsSql
                 }
             }
         }
-        protected override void GenerateFrom(ModelDetail modelDetail, ref CharWriteBuffer sb)
+        protected override void GenerateFrom(ModelDetail modelDetail, ref CharWriter sb)
         {
             sb.Write("FROM[");
             sb.Write(modelDetail.DataSourceEntityName);
             sb.Write(']');
             AppendLineBreak(ref sb);
         }
-        protected override void GenerateJoin(ParameterDependant dependant, ref CharWriteBuffer sb)
+        protected override void GenerateJoin(ParameterDependant dependant, ref CharWriter sb)
         {
             foreach (var child in dependant.Dependants.Values)
             {
@@ -842,12 +842,12 @@ namespace Zerra.Repository.MsSql
                 GenerateJoin(child, ref sb);
             }
         }
-        protected override void GenerateEnding(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriteBuffer sb)
+        protected override void GenerateEnding(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriter sb)
         {
 
         }
 
-        protected override void AppendLineBreak(ref CharWriteBuffer sb)
+        protected override void AppendLineBreak(ref CharWriter sb)
         {
             sb.Write(Environment.NewLine);
         }

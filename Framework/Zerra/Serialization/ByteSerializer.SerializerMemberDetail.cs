@@ -9,7 +9,7 @@ namespace Zerra.Serialization
 {
     public partial class ByteSerializer
     {
-        private class SerializerMemberDetails
+        private class SerializerMemberDetail
         {
             private readonly ByteSerializerIndexSize indexSize;
             private readonly bool ignoreBinaryIndexAttribute;
@@ -18,8 +18,8 @@ namespace Zerra.Serialization
             public Type Type { get; private set; }
             public CoreType? CoreType { get; private set; }
 
-            private SerializerTypeDetails serializerTypeDetails = null;
-            public SerializerTypeDetails SerailzierTypeDetails
+            private SerializerTypeDetail serializerTypeDetails = null;
+            public SerializerTypeDetail SerailzierTypeDetails
             {
                 get
                 {
@@ -41,7 +41,7 @@ namespace Zerra.Serialization
             public Func<object, object> Getter { get; private set; }
             public Action<object, object> Setter { get; private set; }
 
-            public SerializerMemberDetails(ByteSerializerIndexSize indexSize, bool ignoreBinaryIndexAttribute, MemberDetail member)
+            public SerializerMemberDetail(ByteSerializerIndexSize indexSize, bool ignoreBinaryIndexAttribute, MemberDetail member)
             {
                 this.indexSize = indexSize;
                 this.ignoreBinaryIndexAttribute = ignoreBinaryIndexAttribute;

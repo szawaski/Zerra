@@ -14,55 +14,55 @@ namespace Zerra.Serialization
 {
     public partial class ByteSerializer
     {
-        //public byte[] NewSerialize(object obj)
-        //{
-        //    if (obj == null) throw new ArgumentNullException(nameof(obj));
-        //    return NewSerialize(obj, obj.GetType());
-        //}
-        //public byte[] NewSerialize<T>(T obj)
-        //{
-        //    return NewSerialize(obj, typeof(T));
-        //}
-        //public byte[] NewSerialize(object obj, Type type)
-        //{
-        //    if (type == null) throw new ArgumentNullException(nameof(type));
+        public byte[] NewSerializeStackBased(object obj)
+        {
+            if (obj == null) throw new ArgumentNullException(nameof(obj));
+            return SerializeStackBased(obj, obj.GetType());
+        }
+        public byte[] SerializeStackBased<T>(T obj)
+        {
+            return SerializeStackBased(obj, typeof(T));
+        }
+        public byte[] SerializeStackBased(object obj, Type type)
+        {
+            if (type == null) throw new ArgumentNullException(nameof(type));
 
-        //    var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
-        //    var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
-        //    var position = 0;
+            var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
+            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var position = 0;
 
-        //    try
-        //    {
-        //        var state = new WriteState();
-        //        state.CurrentFrame = WriteFrameFromType(obj, typeDetail, false, true);
+            try
+            {
+                var state = new WriteState();
+                state.CurrentFrame = WriteFrameFromType(obj, typeDetail, false, true);
 
-        //        for (; ; )
-        //        {
-        //            Write(buffer.AsSpan().Slice(position), ref state);
+                for (; ; )
+                {
+                    Write(buffer.AsSpan().Slice(position), ref state);
 
-        //            position += state.BufferPostion;
+                    position += state.BufferPostion;
 
-        //            if (state.Ended)
-        //                break;
+                    if (state.Ended)
+                        break;
 
-        //            if (state.BytesNeeded > 0)
-        //            {
-        //                if (state.BytesNeeded > buffer.Length - position)
-        //                    BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded + position);
+                    if (state.BytesNeeded > 0)
+                    {
+                        if (state.BytesNeeded > buffer.Length - position)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded + position);
 
-        //                state.BytesNeeded = 0;
-        //            }
-        //        }
-        //    }
-        //    finally
-        //    {
-        //        BufferArrayPool<byte>.Return(buffer);
-        //    }
+                        state.BytesNeeded = 0;
+                    }
+                }
+            }
+            finally
+            {
+                BufferArrayPool<byte>.Return(buffer);
+            }
 
-        //    var result = new byte[position];
-        //    Buffer.BlockCopy(buffer, 0, result, 0, position);
-        //    return result;
-        //}
+            var result = new byte[position];
+            Buffer.BlockCopy(buffer, 0, result, 0, position);
+            return result;
+        }
 
         public void Serialize(Stream stream, object obj)
         {
@@ -262,7 +262,7 @@ namespace Zerra.Serialization
             }
         }
 
-        private WriteFrame WriteFrameFromType(object obj, SerializerTypeDetails typeDetail, bool hasWrittenPropertyType, bool nullFlags)
+        private WriteFrame WriteFrameFromType(object obj, SerializerTypeDetail typeDetail, bool hasWrittenPropertyType, bool nullFlags)
         {
             var frame = new WriteFrame();
             frame.TypeDetail = typeDetail;

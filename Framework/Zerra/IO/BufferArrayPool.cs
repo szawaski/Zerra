@@ -45,10 +45,7 @@ namespace Zerra.IO
         public static void Grow(ref T[] buffer, int minSize)
         {
             if (buffer == null)
-            {
-                buffer = pool.Rent(minSize);
-                return;
-            }
+                throw new ArgumentNullException(nameof(buffer));
 
             if (minSize < buffer.Length)
                 return;

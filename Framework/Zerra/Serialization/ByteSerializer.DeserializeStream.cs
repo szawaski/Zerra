@@ -14,28 +14,28 @@ namespace Zerra.Serialization
 {
     public partial class ByteSerializer
     {
-        //public T NewDeserialize<T>(byte[] bytes)
-        //{
-        //    if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-        //    return (T)NewDeserialize(typeof(T), bytes);
-        //}
-        //public object NewDeserialize(Type type, byte[] bytes)
-        //{
-        //    if (type == null) throw new ArgumentNullException(nameof(type));
-        //    if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        public T DeserializeStackBased<T>(byte[] bytes)
+        {
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            return (T)DeserializeStackBased(typeof(T), bytes);
+        }
+        public object DeserializeStackBased(Type type, byte[] bytes)
+        {
+            if (type == null) throw new ArgumentNullException(nameof(type));
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 
-        //    var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
+            var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
 
-        //    var state = new ReadState();
-        //    state.CurrentFrame = ReadFrameFromType(typeDetail, false, true);
+            var state = new ReadState();
+            state.CurrentFrame = ReadFrameFromType(typeDetail, false, true);
 
-        //    Read(bytes, true, ref state);
+            Read(bytes, true, ref state);
 
-        //    if (!state.Ended || state.BytesNeeded > 0)
-        //        throw new EndOfStreamException();
+            if (!state.Ended || state.BytesNeeded > 0)
+                throw new EndOfStreamException();
 
-        //    return state.LastFrameResult;
-        //}
+            return state.LastFrameResultObject;
+        }
 
         public T Deserialize<T>(Stream stream)
         {
@@ -116,7 +116,7 @@ namespace Zerra.Serialization
                     }
                 }
 
-                return state.LastFrameResult;
+                return state.LastFrameResultObject;
             }
             finally
             {
@@ -200,7 +200,7 @@ namespace Zerra.Serialization
                     }
                 }
 
-                return (T)state.LastFrameResult;
+                return (T)state.LastFrameResultObject;
             }
             finally
             {
@@ -281,7 +281,7 @@ namespace Zerra.Serialization
                     }
                 }
 
-                return state.LastFrameResult;
+                return state.LastFrameResultObject;
             }
             finally
             {
@@ -290,7 +290,7 @@ namespace Zerra.Serialization
             }
         }
 
-        private ReadFrame ReadFrameFromType(SerializerTypeDetails typeDetail, bool hasReadPropertyType, bool nullFlags)
+        private ReadFrame ReadFrameFromType(SerializerTypeDetail typeDetail, bool hasReadPropertyType, bool nullFlags)
         {
             var frame = new ReadFrame();
             frame.TypeDetail = typeDetail;
@@ -388,7 +388,7 @@ namespace Zerra.Serialization
         {
             if (state.CurrentFrame.HasReadPropertyType)
             {
-                state.CurrentFrame.ResultObject = state.LastFrameResult;
+                state.CurrentFrame.ResultObject = state.LastFrameResultObject;
                 state.EndFrame();
                 return;
             }
@@ -1085,7 +1085,7 @@ namespace Zerra.Serialization
                             return;
                         }
 
-                        var innerValue = state.LastFrameResult;
+                        var innerValue = state.LastFrameResultObject;
                         var innerItemEnumerable = TypeAnalyzer.GetGenericType(enumerableType, typeDetail.TypeDetail.IEnumerableGenericInnerType);
                         state.CurrentFrame.ResultObject = Instantiator.CreateInstance(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
                         state.EndFrame();
@@ -1129,11 +1129,11 @@ namespace Zerra.Serialization
             {
                 if (!state.CurrentFrame.DrainBytes && state.CurrentFrame.ObjectProperty != null)
                 {
-                    state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResult);
+                    state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                     state.CurrentFrame.ObjectProperty = null;
                 }
 
-                SerializerMemberDetails property = null;
+                SerializerMemberDetail property = null;
 
                 if (usePropertyNames)
                 {
@@ -2385,9 +2385,9 @@ namespace Zerra.Serialization
                 if (!state.CurrentFrame.DrainBytes)
                 {
                     if (asList)
-                        _ = state.CurrentFrame.EnumerableList.Add(state.LastFrameResult);
+                        _ = state.CurrentFrame.EnumerableList.Add(state.LastFrameResultObject);
                     else
-                        state.CurrentFrame.EnumerableArray.SetValue(state.LastFrameResult, state.CurrentFrame.EnumerablePosition);
+                        state.CurrentFrame.EnumerableArray.SetValue(state.LastFrameResultObject, state.CurrentFrame.EnumerablePosition);
                 }
                 state.CurrentFrame.HasObjectStarted = false;
                 state.CurrentFrame.HasNullChecked = false;

@@ -49,7 +49,7 @@ namespace Zerra.Serialization
             }
         }
 
-        private void ToBytes(object value, SerializerTypeDetails typeDetail, bool nullFlags, ref ByteWriter writer)
+        private void ToBytes(object value, SerializerTypeDetail typeDetail, bool nullFlags, ref ByteWriter writer)
         {
             if (includePropertyTypes)
             {
@@ -165,7 +165,7 @@ namespace Zerra.Serialization
                 }
             }
         }
-        private void ToBytesEnumerable(IEnumerable values, int length, SerializerTypeDetails typeDetail, ref ByteWriter writer)
+        private void ToBytesEnumerable(IEnumerable values, int length, SerializerTypeDetail typeDetail, ref ByteWriter writer)
         {
             writer.Write(length); //object count
 
@@ -554,7 +554,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ToBytesSpecialType(object value, SerializerTypeDetails typeDetail, bool nullFlags, ref ByteWriter writer)
+        private void ToBytesSpecialType(object value, SerializerTypeDetail typeDetail, bool nullFlags, ref ByteWriter writer)
         {
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType.Value : typeDetail.TypeDetail.SpecialType.Value;
             switch (specialType)
@@ -587,7 +587,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ToBytesSpecialTypeEnumerable(IEnumerable values, int length, SerializerTypeDetails typeDetail, ref ByteWriter writer)
+        private void ToBytesSpecialTypeEnumerable(IEnumerable values, int length, SerializerTypeDetail typeDetail, ref ByteWriter writer)
         {
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType.Value : typeDetail.TypeDetail.SpecialType.Value;
             switch (specialType)
