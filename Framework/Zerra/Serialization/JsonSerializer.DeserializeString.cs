@@ -834,7 +834,7 @@ namespace Zerra.Serialization
                                     decodeBuffer.Write('\r');
                                     break;
                                 case 'u':
-                                    if (!reader.TryReadString(our var unicodeString, 4))
+                                    if (!reader.TryReadString(out var unicodeString, 4))
                                         throw reader.CreateException("Json ended prematurely");
                                     if (!lowUnicodeHexToChar.TryGetValue(unicodeString, out var unicodeChar))
                                         throw reader.CreateException("Incomplete escape sequence");

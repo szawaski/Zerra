@@ -14,7 +14,6 @@ namespace Zerra.Serialization
             EnumType,
             SpecialType,
             Object,
-            ObjectProperty,
 
             CoreTypeEnumerable,
             EnumTypeEnumerable,

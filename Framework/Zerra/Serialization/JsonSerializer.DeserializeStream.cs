@@ -329,7 +329,8 @@ namespace Zerra.Serialization
                     case ReadFrameType.String: ReadString(ref reader, ref state, ref decodeBufferWriter); break;
                     case ReadFrameType.StringToType: ReadStringToType(ref reader, ref state); break;
 
-                    case ReadFrameType.Object: ReadObject(ref reader, ref state); break;
+                    case ReadFrameType.Object: ReadObject(ref reader, ref state, ref decodeBufferWriter); break;
+                    case ReadFrameType.Array: ReadArray(ref reader, ref state, ref decodeBufferWriter); break;
                 }
                 if (state.Ended)
                 {
@@ -381,189 +382,236 @@ namespace Zerra.Serialization
                     return;
                 default:
                     state.PushFrame();
-                    state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Literal };
+                    state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Literal };
                     return;
             }
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object ReadObject(ref CharReader reader, ref ReadState state)
+        private static void ReadObject(ref CharReader reader, ref ReadState state, ref CharWriter decodeBuffer)
         {
-            var obj = typeDetail?.Creator();
-            var canExpectComma = false;
-            while (reader.TryReadSkipWhiteSpace(out var c))
+            var typeDetail = state.CurrentFrame.TypeDetail;
+
+            for (; ; )
             {
-                switch (c)
+                switch (state.CurrentFrame.State)
                 {
-                    case '"':
-                        if (canExpectComma)
-                            throw reader.CreateException("Unexpected character");
-                        var propertyName = ReadString(ref reader, ref decodeBuffer);
+                    case 0: //start
+                        state.CurrentFrame.ResultObject = typeDetail.Creator();
+                        state.CurrentFrame.State = 1;
+                        break;
 
-                        ReadPropertySperator(ref reader);
-
-                        if (!reader.TryReadSkipWhiteSpace(out c))
-                            throw reader.CreateException("Json ended prematurely");
-
-                        if (obj != null)
+                    case 1: //property name or end
+                        if (!reader.TryReadSkipWhiteSpace(out var c))
                         {
-                            if (typeDetail != null && typeDetail.SpecialType == SpecialType.Dictionary)
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '"':
+                                state.CurrentFrame.State = 2;
+                                state.PushFrame();
+                                state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.String };
+                                break;
+                            case '}':
+                                state.EndFrame();
+                                return;
+                            default:
+                                throw reader.CreateException("Unexpected character");
+                        }
+                        break;
+
+                    case 2: //property seperator
+                        if (!reader.TryReadSkipWhiteSpace(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+                        if (c != ':')
+                            throw reader.CreateException("Unexpected character");
+
+                        var propertyName = state.LastFrameResultString;
+
+                        if (typeDetail.TryGetMemberCaseInsensitive(propertyName, out var memberDetail))
+                            state.CurrentFrame.ObjectProperty = memberDetail;
+
+                        state.PushFrame();
+                        state.CurrentFrame = new ReadFrame() { TypeDetail = state.CurrentFrame.ObjectProperty?.TypeDetail, FrameType = ReadFrameType.Value };
+
+                        state.CurrentFrame.State = 3;
+                        break;
+
+                    case 3: //property value
+                        if (typeDetail != null && typeDetail.SpecialType == SpecialType.Dictionary)
+                        {
+                            //Dictionary Special Case
+                            throw new NotImplementedException();
+                        }
+                        else
+                        {
+                            if (state.CurrentFrame.ObjectProperty != null)
                             {
-                                //Dictionary Special Case
-                                var value = FromJson(c, ref reader, ref decodeBuffer, typeDetail.InnerTypeDetails[0].InnerTypeDetails[1], null, nameless);
-                                if (typeDetail.InnerTypeDetails[0].InnerTypeDetails[0].CoreType.HasValue)
-                                {
-                                    var key = TypeAnalyzer.Convert(propertyName, typeDetail.InnerTypeDetails[0].InnerTypes[0]);
-                                    var method = typeDetail.GetMethod("Add");
-                                    _ = method.Caller(obj, new object[] { key, value });
-                                }
+                                state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
+                            }
+                        }
+                        state.CurrentFrame.State = 3;
+                        break;
+
+                    case 4: //next property or end
+                        if (!reader.TryReadSkipWhiteSpace(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case ',':
+                                state.CurrentFrame.State = 1;
+                                break;
+                            case '}':
+                                state.EndFrame();
+                                return;
+                            default:
+                                throw reader.CreateException("Unexpected character");
+                        }
+                        break;
+                }
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReadArray(ref CharReader reader, ref ReadState state, ref CharWriter decodeBuffer)
+        {
+            var typeDetail = state.CurrentFrame.TypeDetail;
+
+            for (; ; )
+            {
+                switch (state.CurrentFrame.State)
+                {
+                    case 0: //start
+                        if (typeDetail != null && typeDetail.IsIEnumerableGeneric)
+                        {
+                            state.CurrentFrame.ArrayElementType = typeDetail.IEnumerableGenericInnerTypeDetails;
+                            if (typeDetail.Type.IsArray)
+                            {
+                                var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
+                                state.CurrentFrame.ResultObject = genericListType.Creator();
+                                state.CurrentFrame.ArrayAddMethod = genericListType.GetMethod("Add");
+                                state.CurrentFrame.ArrayAddMethodArgs = new object[1];
+                            }
+                            else if (typeDetail.IsIList && typeDetail.Type.IsInterface)
+                            {
+                                var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
+                                state.CurrentFrame.ResultObject = genericListType.Creator();
+                                state.CurrentFrame.ArrayAddMethod = genericListType.GetMethod("Add");
+                                state.CurrentFrame.ArrayAddMethodArgs = new object[1];
+                            }
+                            else if (typeDetail.IsIList && !typeDetail.Type.IsInterface)
+                            {
+                                state.CurrentFrame.ResultObject = typeDetail.Creator();
+                                state.CurrentFrame.ArrayAddMethod = typeDetail.GetMethod("Add");
+                                state.CurrentFrame.ArrayAddMethodArgs = new object[1];
+                            }
+                            else if (typeDetail.IsISet && typeDetail.Type.IsInterface)
+                            {
+                                var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, typeDetail.InnerTypeDetails[0].Type));
+                                state.CurrentFrame.ResultObject = genericListType.Creator();
+                                state.CurrentFrame.ArrayAddMethod = genericListType.GetMethod("Add");
+                                state.CurrentFrame.ArrayAddMethodArgs = new object[1];
+                            }
+                            else if (typeDetail.IsISet && !typeDetail.Type.IsInterface)
+                            {
+                                state.CurrentFrame.ResultObject = typeDetail.Creator();
+                                state.CurrentFrame.ArrayAddMethod = typeDetail.GetMethod("Add");
+                                state.CurrentFrame.ArrayAddMethodArgs = new object[1];
                             }
                             else
                             {
-                                if (typeDetail.TryGetSerializableMemberDetails(propertyName, out var memberDetail))
-                                {
-                                    var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
-                                    var value = FromJson(c, ref reader, ref decodeBuffer, memberDetail.TypeDetail, propertyGraph, nameless);
-                                    if (value != null)
-                                    {
-                                        if (graph != null)
-                                        {
-                                            if (memberDetail.TypeDetail.IsGraphLocalProperty)
-                                            {
-                                                if (graph.HasLocalProperty(memberDetail.Name))
-                                                    memberDetail.Setter(obj, value);
-                                            }
-                                            else
-                                            {
-                                                if (propertyGraph != null)
-                                                    memberDetail.Setter(obj, value);
-                                            }
-                                        }
-                                        else
-                                        {
-                                            memberDetail.Setter(obj, value);
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    _ = FromJson(c, ref reader, ref decodeBuffer, null, null, nameless);
-                                }
+                                var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
+                                state.CurrentFrame.ResultObject = genericListType.Creator();
+                                state.CurrentFrame.ArrayAddMethod = genericListType.GetMethod("Add");
+                                state.CurrentFrame.ArrayAddMethodArgs = new object[1];
                             }
                         }
-                        else
-                        {
-                            _ = FromJson(c, ref reader, ref decodeBuffer, null, null, nameless);
-                        }
-                        canExpectComma = true;
+                        state.CurrentFrame.State = 1;
                         break;
-                    case ',':
-                        if (canExpectComma)
-                            canExpectComma = false;
-                        else
-                            throw reader.CreateException("Unexpected character");
-                        break;
-                    case '}':
-                        return obj;
-                    default:
-                        throw reader.CreateException("Unexpected character");
-                }
-            }
-            throw reader.CreateException("Json ended prematurely");
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object ReadArray(ref CharReader reader, ref ReadState readState)
-        {
-            object collection = null;
-            MethodDetail addMethod = null;
-            object[] addMethodArgs = null;
-            TypeDetail arrayElementType = null;
-            if (typeDetail != null && typeDetail.IsIEnumerableGeneric)
-            {
-                arrayElementType = typeDetail.IEnumerableGenericInnerTypeDetails;
-                if (typeDetail.Type.IsArray)
-                {
-                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
-                    collection = genericListType.Creator();
-                    addMethod = genericListType.GetMethod("Add");
-                    addMethodArgs = new object[1];
-                }
-                else if (typeDetail.IsIList && typeDetail.Type.IsInterface)
-                {
-                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
-                    collection = genericListType.Creator();
-                    addMethod = genericListType.GetMethod("Add");
-                    addMethodArgs = new object[1];
-                }
-                else if (typeDetail.IsIList && !typeDetail.Type.IsInterface)
-                {
-                    collection = typeDetail.Creator();
-                    addMethod = typeDetail.GetMethod("Add");
-                    addMethodArgs = new object[1];
-                }
-                else if (typeDetail.IsISet && typeDetail.Type.IsInterface)
-                {
-                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, typeDetail.InnerTypeDetails[0].Type));
-                    collection = genericListType.Creator();
-                    addMethod = genericListType.GetMethod("Add");
-                    addMethodArgs = new object[1];
-                }
-                else if (typeDetail.IsISet && !typeDetail.Type.IsInterface)
-                {
-                    collection = typeDetail.Creator();
-                    addMethod = typeDetail.GetMethod("Add");
-                    addMethodArgs = new object[1];
-                }
-                else
-                {
-                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
-                    collection = genericListType.Creator();
-                    addMethod = genericListType.GetMethod("Add");
-                    addMethodArgs = new object[1];
-                }
-            }
 
-            var canExpectComma = false;
-            while (reader.TryReadSkipWhiteSpace(out var c))
-            {
-                switch (c)
-                {
-                    case ']':
-                        if (collection == null)
-                            return null;
-                        if (typeDetail.Type.IsArray && arrayElementType != null)
+                    case 1: //array value or end
+                        if (!reader.TryReadSkipWhiteSpace(out var c))
                         {
-                            var list = (IList)collection;
-                            var array = Array.CreateInstance(arrayElementType.Type, list.Count);
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+
+                        switch (c)
+                        {
+                            case ']':
+                                state.EndFrame();
+                                return;
+                            case '"':
+                                state.PushFrame();
+                                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.StringToType };
+                                state.PushFrame();
+                                state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.String };
+                                state.CurrentFrame.State = 2;
+                                return;
+                            case '{':
+                                state.PushFrame();
+                                state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Object };
+                                state.CurrentFrame.State = 2;
+                                return;
+                            case '[':
+                                state.PushFrame();
+                                if (!state.Nameless || (typeDetail != null && typeDetail.IsIEnumerableGeneric))
+                                    state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Array };
+                                else
+                                    state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Array };
+                                state.CurrentFrame.State = 2;
+                                return;
+                            default:
+                                state.PushFrame();
+                                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Literal };
+                                state.CurrentFrame.State = 2;
+                                return;
+                        }
+
+                    case 2: //array value
+                        if (state.CurrentFrame.ResultObject == null)
+                            return;
+                        if (typeDetail.Type.IsArray && state.CurrentFrame.ArrayElementType != null)
+                        {
+                            var list = (IList)state.CurrentFrame.ResultObject;
+                            var array = Array.CreateInstance(state.CurrentFrame.ArrayElementType.Type, list.Count);
                             for (var i = 0; i < list.Count; i++)
                                 array.SetValue(list[i], i);
-                            return array;
                         }
-                        return collection;
-                    case ',':
-                        if (canExpectComma)
-                            canExpectComma = false;
-                        else
-                            throw reader.CreateException("Unexpected character");
+                        state.CurrentFrame.State = 3;
                         break;
-                    default:
-                        if (canExpectComma)
-                            throw reader.CreateException("Unexpected character");
-                        var value = FromJson(c, ref reader, ref decodeBuffer, arrayElementType, graph, nameless);
-                        if (collection != null)
+
+                    case 3: //next array value or end
+                        if (!reader.TryReadSkipWhiteSpace(out c))
                         {
-                            addMethodArgs[0] = value;
-                            _ = addMethod.Caller(collection, addMethodArgs);
+                            state.BytesNeeded = 1;
+                            return;
                         }
-                        canExpectComma = true;
+                        switch (c)
+                        {
+                            case ',':
+                                state.CurrentFrame.State = 1;
+                                break;
+                            case ']':
+                                state.EndFrame();
+                                return;
+                            default:
+                                throw reader.CreateException("Unexpected character");
+                        }
                         break;
                 }
             }
-            throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object ReadArrayNameless(ref CharReader reader, ref ReadState readState)
+        private static void ReadArrayNameless(ref CharReader reader, ref ReadState readState)
         {
             var obj = typeDetail?.Creator();
             var canExpectComma = false;
@@ -646,7 +694,7 @@ namespace Zerra.Serialization
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object ReadLiteral(char c, ref CharReader reader, TypeDetail typeDetail)
+        private static void ReadLiteral(char c, ref CharReader reader, TypeDetail typeDetail)
         {
             switch (c)
             {

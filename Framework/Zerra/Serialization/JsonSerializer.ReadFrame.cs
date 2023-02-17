@@ -18,6 +18,12 @@ namespace Zerra.Serialization
 
             public char Char;
             public int State;
+
+            public MemberDetail ObjectProperty;
+
+            public MethodDetail ArrayAddMethod;
+            public object[] ArrayAddMethodArgs;
+            public TypeDetail ArrayElementType;
         }
     }
 }
