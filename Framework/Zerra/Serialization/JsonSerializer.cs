@@ -214,6 +214,81 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static object ConvertNumberToType(object o, TypeDetail typeDetail)
+        {
+            if (typeDetail == null)
+                return null;
+
+            var coreType = typeDetail.CoreType ?? typeDetail.EnumUnderlyingType;
+            if (coreType == null && typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].Type.IsEnum)
+                coreType = typeDetail.InnerTypeDetails[0].CoreType;
+            if (!coreType.HasValue)
+                return null;
+
+            unchecked
+            {
+                switch (coreType)
+                {
+                    case CoreType.String:
+                        return o.ToString();
+                    case CoreType.Boolean:
+                    case CoreType.BooleanNullable:
+                        return (bool)o;
+                    case CoreType.Byte:
+                    case CoreType.ByteNullable:
+                        return (byte)o;
+                    case CoreType.SByte:
+                    case CoreType.SByteNullable:
+                        return (sbyte)o;
+                    case CoreType.Int16:
+                    case CoreType.Int16Nullable:
+                        return (short)o;
+                    case CoreType.UInt16:
+                    case CoreType.UInt16Nullable:
+                        return (ushort)o;
+                    case CoreType.Int32:
+                    case CoreType.Int32Nullable:
+                        return (int)o;
+                    case CoreType.UInt32:
+                    case CoreType.UInt32Nullable:
+                        return (uint)o;
+                    case CoreType.Int64:
+                    case CoreType.Int64Nullable:
+                        return (long)o;
+                    case CoreType.UInt64:
+                    case CoreType.UInt64Nullable:
+                        return (ulong)o;
+                    case CoreType.Single:
+                    case CoreType.SingleNullable:
+                        return (float)o;
+                    case CoreType.Double:
+                    case CoreType.DoubleNullable:
+                        return (double)o;
+                    case CoreType.Decimal:
+                    case CoreType.DecimalNullable:
+                        return (decimal)o;
+                    case CoreType.Char:
+                    case CoreType.CharNullable:
+                        return (char)o;
+                    case CoreType.DateTime:
+                    case CoreType.DateTimeNullable:
+                        return new DateTime((long)o);
+                    case CoreType.DateTimeOffset:
+                    case CoreType.DateTimeOffsetNullable:
+                        return new DateTimeOffset((long)o, TimeSpan.Zero);
+                    case CoreType.TimeSpan:
+                    case CoreType.TimeSpanNullable:
+                        return new TimeSpan((long)o);
+                    case CoreType.Guid:
+                    case CoreType.GuidNullable:
+                        return null;
+                }
+            }
+
+            return null;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object ConvertNullToType(CoreType coreType)
         {
             return coreType switch

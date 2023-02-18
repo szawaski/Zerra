@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Resources;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Zerra.IO;
@@ -15,12 +16,12 @@ namespace Zerra.Serialization
 {
     public static partial class JsonSerializer
     {
-        public static T DeserializeStackBased<T>(byte[] bytes)
+        public static T DeserializeStackBased<T>(byte[] bytes, Graph graph = null)
         {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-            return (T)DeserializeStackBased(typeof(T), bytes);
+            return (T)DeserializeStackBased(typeof(T), bytes, graph);
         }
-        public static object DeserializeStackBased(Type type, byte[] bytes)
+        public static object DeserializeStackBased(Type type, byte[] bytes, Graph graph = null)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
@@ -49,13 +50,13 @@ namespace Zerra.Serialization
             }
         }
 
-        public static T Deserialize<T>(Stream stream)
+        public static T Deserialize<T>(Stream stream, Graph graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
-            return (T)Deserialize(typeof(T), stream);
+            return (T)Deserialize(typeof(T), stream, graph);
         }
-        public static object Deserialize(Type type, Stream stream)
+        public static object Deserialize(Type type, Stream stream, Graph graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -85,7 +86,7 @@ namespace Zerra.Serialization
                 var length = read;
 
                 var state = new ReadState();
-                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
+                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
 
                 for (; ; )
                 {
@@ -140,7 +141,7 @@ namespace Zerra.Serialization
             }
         }
 
-        public static async Task<T> DeserializeAsync<T>(Stream stream)
+        public static async Task<T> DeserializeAsync<T>(Stream stream, Graph graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -172,7 +173,7 @@ namespace Zerra.Serialization
                 var length = read;
 
                 var state = new ReadState();
-                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
+                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
 
                 for (; ; )
                 {
@@ -226,7 +227,7 @@ namespace Zerra.Serialization
                 BufferArrayPool<char>.Return(decodeBuffer);
             }
         }
-        public static async Task<object> DeserializeAsync(Type type, Stream stream)
+        public static async Task<object> DeserializeAsync(Type type, Stream stream, Graph graph = null)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
@@ -256,7 +257,7 @@ namespace Zerra.Serialization
                 var length = read;
 
                 var state = new ReadState();
-                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
+                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
 
                 for (; ; )
                 {
@@ -313,8 +314,13 @@ namespace Zerra.Serialization
 
         private static void Read(ReadOnlySpan<byte> buffer, bool isFinalBlock, ref ReadState state, ref char[] decodeBuffer, ref int decodeBufferPosition)
         {
+#if NET5_0_OR_GREATER
             Span<char> chars = new char[buffer.Length];
             _ = encoding.GetChars(buffer, chars);
+#else
+            var chars = new char[buffer.Length];
+            _ = encoding.GetChars(buffer.ToArray(), 0, buffer.Length, chars, 0);
+#endif
 
             var decodeBufferWriter = new CharWriter(decodeBuffer, true, decodeBufferPosition);
 
@@ -324,13 +330,19 @@ namespace Zerra.Serialization
             {
                 switch (state.CurrentFrame.FrameType)
                 {
-                    case ReadFrameType.Value: ReadValue(ref reader, ref state, ref decodeBufferWriter); break;
+                    case ReadFrameType.Value: ReadValue(ref reader, ref state); break;
 
-                    case ReadFrameType.String: ReadString(ref reader, ref state, ref decodeBufferWriter); break;
                     case ReadFrameType.StringToType: ReadStringToType(ref reader, ref state); break;
+                    case ReadFrameType.String: ReadString(ref reader, ref state, ref decodeBufferWriter); break;
 
-                    case ReadFrameType.Object: ReadObject(ref reader, ref state, ref decodeBufferWriter); break;
-                    case ReadFrameType.Array: ReadArray(ref reader, ref state, ref decodeBufferWriter); break;
+                    case ReadFrameType.Object: ReadObject(ref reader, ref state); break;
+
+                    case ReadFrameType.Array: ReadArray(ref reader, ref state); break;
+                    case ReadFrameType.ArrayNameless: ReadArrayNameless(ref reader, ref state); break;
+
+                    case ReadFrameType.Literal: ReadLiteral(ref reader, ref state); break;
+                    case ReadFrameType.LiteralNumberToType: ReadLiteralNumberToType(ref reader, ref state); break;
+                    case ReadFrameType.LiteralNumber: ReadLiteralNumber(ref reader, ref state, ref decodeBufferWriter); break;
                 }
                 if (state.Ended)
                 {
@@ -346,7 +358,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadValue(ref CharReader reader, ref ReadState state, ref CharWriter decodeBuffer)
+        private static void ReadValue(ref CharReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             if (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable)
@@ -371,25 +383,24 @@ namespace Zerra.Serialization
                     return;
                 case '{':
                     state.PushFrame();
-                    state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Object };
+                    state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Object };
                     return;
                 case '[':
                     state.PushFrame();
                     if (!state.Nameless || (typeDetail != null && typeDetail.IsIEnumerableGeneric))
-                        state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Array };
+                        state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Array };
                     else
-                        state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Array };
+                        state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.ArrayNameless };
                     return;
                 default:
                     state.PushFrame();
-                    state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Literal };
+                    state.CurrentFrame = new ReadFrame() { FirstLiteralChar = c, TypeDetail = typeDetail, FrameType = ReadFrameType.Literal };
                     return;
             }
         }
 
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadObject(ref CharReader reader, ref ReadState state, ref CharWriter decodeBuffer)
+        private static void ReadObject(ref CharReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
 
@@ -434,11 +445,15 @@ namespace Zerra.Serialization
 
                         var propertyName = state.LastFrameResultString;
 
+                        Graph propertyGraph = null;
                         if (typeDetail.TryGetMemberCaseInsensitive(propertyName, out var memberDetail))
+                        {
                             state.CurrentFrame.ObjectProperty = memberDetail;
+                            propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name);
+                        }
 
                         state.PushFrame();
-                        state.CurrentFrame = new ReadFrame() { TypeDetail = state.CurrentFrame.ObjectProperty?.TypeDetail, FrameType = ReadFrameType.Value };
+                        state.CurrentFrame = new ReadFrame() { TypeDetail = state.CurrentFrame.ObjectProperty?.TypeDetail, FrameType = ReadFrameType.Value, Graph = propertyGraph };
 
                         state.CurrentFrame.State = 3;
                         break;
@@ -453,7 +468,24 @@ namespace Zerra.Serialization
                         {
                             if (state.CurrentFrame.ObjectProperty != null)
                             {
-                                state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
+                                if (state.CurrentFrame.Graph != null)
+                                {
+                                    if (state.CurrentFrame.ObjectProperty.TypeDetail.IsGraphLocalProperty)
+                                    {
+                                        if (state.CurrentFrame.Graph.HasLocalProperty(state.CurrentFrame.ObjectProperty.Name))
+                                            state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
+                                    }
+                                    else
+                                    {
+                                        if (state.CurrentFrame.Graph.HasChildGraph(state.CurrentFrame.ObjectProperty.Name))
+                                            state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
+                                    }
+                                }
+                                else
+                                {
+                                    state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
+                                }
+                          
                             }
                         }
                         state.CurrentFrame.State = 3;
@@ -481,7 +513,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadArray(ref CharReader reader, ref ReadState state, ref CharWriter decodeBuffer)
+        private static void ReadArray(ref CharReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
 
@@ -571,20 +603,21 @@ namespace Zerra.Serialization
                                 return;
                             default:
                                 state.PushFrame();
-                                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Literal };
+                                state.CurrentFrame = new ReadFrame() { FirstLiteralChar = c, TypeDetail = typeDetail, FrameType = ReadFrameType.Literal };
                                 state.CurrentFrame.State = 2;
                                 return;
                         }
 
                     case 2: //array value
-                        if (state.CurrentFrame.ResultObject == null)
-                            return;
-                        if (typeDetail.Type.IsArray && state.CurrentFrame.ArrayElementType != null)
+                        if (state.CurrentFrame.ResultObject != null)
                         {
-                            var list = (IList)state.CurrentFrame.ResultObject;
-                            var array = Array.CreateInstance(state.CurrentFrame.ArrayElementType.Type, list.Count);
-                            for (var i = 0; i < list.Count; i++)
-                                array.SetValue(list[i], i);
+                            if (typeDetail.Type.IsArray && state.CurrentFrame.ArrayElementType != null)
+                            {
+                                var list = (IList)state.CurrentFrame.ResultObject;
+                                var array = Array.CreateInstance(state.CurrentFrame.ArrayElementType.Type, list.Count);
+                                for (var i = 0; i < list.Count; i++)
+                                    array.SetValue(list[i], i);
+                            }
                         }
                         state.CurrentFrame.State = 3;
                         break;
@@ -611,351 +644,426 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadArrayNameless(ref CharReader reader, ref ReadState readState)
+        private static void ReadArrayNameless(ref CharReader reader, ref ReadState state)
         {
-            var obj = typeDetail?.Creator();
-            var canExpectComma = false;
-            var propertyIndexForNameless = 0;
-            while (reader.TryReadSkipWhiteSpace(out var c))
+            var typeDetail = state.CurrentFrame.TypeDetail;
+
+
+            for (; ; )
             {
-                switch (c)
+                switch (state.CurrentFrame.State)
                 {
-                    case ']':
-                        return obj;
-                    case ',':
-                        if (canExpectComma)
-                            canExpectComma = false;
-                        else
-                            throw reader.CreateException("Unexpected character");
+                    case 0: //start
+                        state.CurrentFrame.ResultObject = typeDetail?.Creator();
+                        state.CurrentFrame.State = 1;
                         break;
-                    default:
-                        if (canExpectComma)
-                            throw reader.CreateException("Unexpected character");
-                        if (obj != null)
+
+                    case 1: //array value or end
+                        if (!reader.TryReadSkipWhiteSpace(out var c))
                         {
-                            var memberDetail = typeDetail != null && propertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
-                                ? typeDetail.SerializableMemberDetails[propertyIndexForNameless++]
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+
+                        switch (c)
+                        {
+                            case ']':
+                                state.EndFrame();
+                                return;
+                            case '"':
+                                state.PushFrame();
+                                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.StringToType };
+                                state.PushFrame();
+                                state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.String };
+                                state.CurrentFrame.State = 2;
+                                return;
+                            case '{':
+                                state.PushFrame();
+                                state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Object };
+                                state.CurrentFrame.State = 2;
+                                return;
+                            case '[':
+                                state.PushFrame();
+                                if (!state.Nameless || (typeDetail != null && typeDetail.IsIEnumerableGeneric))
+                                    state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Array };
+                                else
+                                    state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Array };
+                                state.CurrentFrame.State = 2;
+                                return;
+                            default:
+                                state.PushFrame();
+                                state.CurrentFrame = new ReadFrame() { FirstLiteralChar = c, TypeDetail = typeDetail, FrameType = ReadFrameType.Literal };
+                                state.CurrentFrame.State = 2;
+                                return;
+                        }
+
+                    case 2: //array value
+
+                        if (state.CurrentFrame.ResultObject != null)
+                        {
+                            var memberDetail = typeDetail != null && state.CurrentFrame.PropertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
+                                ? typeDetail.SerializableMemberDetails[state.CurrentFrame.PropertyIndexForNameless++]
                                 : null;
                             if (memberDetail != null)
                             {
-                                var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
-                                var value = FromJson(c, ref reader, ref decodeBuffer, memberDetail?.TypeDetail, propertyGraph, true);
+                                var propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name);
                                 if (memberDetail != null && memberDetail.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)
                                 {
                                     var dictionary = memberDetail.TypeDetail.Creator();
                                     var addMethod = memberDetail.TypeDetail.GetMethod("Add");
                                     var keyGetter = memberDetail.TypeDetail.InnerTypeDetails[0].GetMember("Key").Getter;
                                     var valueGetter = memberDetail.TypeDetail.InnerTypeDetails[0].GetMember("Value").Getter;
-                                    foreach (var item in (IEnumerable)value)
+                                    foreach (var item in (IEnumerable)state.LastFrameResultObject)
                                     {
                                         var itemKey = keyGetter(item);
                                         var itemValue = valueGetter(item);
                                         _ = addMethod.Caller(dictionary, new object[] { itemKey, itemValue });
                                     }
-                                    memberDetail.Setter(obj, dictionary);
+                                    memberDetail.Setter(state.LastFrameResultObject, dictionary);
                                 }
                                 else
                                 {
-                                    if (value != null)
+                                    if (state.LastFrameResultObject != null)
                                     {
-                                        if (graph != null)
+                                        if (state.CurrentFrame.Graph != null)
                                         {
                                             if (memberDetail.TypeDetail.IsGraphLocalProperty)
                                             {
-                                                if (graph.HasLocalProperty(memberDetail.Name))
-                                                    memberDetail.Setter(obj, value);
+                                                if (state.CurrentFrame.Graph.HasLocalProperty(memberDetail.Name))
+                                                    memberDetail.Setter(state.LastFrameResultObject, state.LastFrameResultObject);
                                             }
                                             else
                                             {
                                                 if (propertyGraph != null)
-                                                    memberDetail.Setter(obj, value);
+                                                    memberDetail.Setter(state.LastFrameResultObject, state.LastFrameResultObject);
                                             }
                                         }
                                         else
                                         {
-                                            memberDetail.Setter(obj, value);
+                                            memberDetail.Setter(state.LastFrameResultObject, state.LastFrameResultObject);
                                         }
                                     }
                                 }
                             }
-                            else
-                            {
-                                _ = FromJson(c, ref reader, ref decodeBuffer, null, null, true);
-                            }
                         }
-                        else
-                        {
-                            _ = FromJson(c, ref reader, ref decodeBuffer, null, null, true);
-                        }
-                        canExpectComma = true;
+
+                        state.CurrentFrame.State = 3;
                         break;
-                }
-            }
-            throw reader.CreateException("Json ended prematurely");
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadLiteral(char c, ref CharReader reader, TypeDetail typeDetail)
-        {
-            switch (c)
-            {
-                case 'n':
-                    {
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'u')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'l')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'l')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (typeDetail != null && typeDetail.CoreType.HasValue)
-                            return ConvertNullToType(typeDetail.CoreType.Value);
-                        return null;
-                    }
-                case 't':
-                    {
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'r')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'u')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'e')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (typeDetail != null && typeDetail.CoreType.HasValue)
-                            return ConvertTrueToType(typeDetail.CoreType.Value);
-                        return null;
-                    }
-                case 'f':
-                    {
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'a')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'l')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 's')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'e')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (typeDetail != null && typeDetail.CoreType.HasValue)
-                            return ConvertFalseToType(typeDetail.CoreType.Value);
-                        return null;
-                    }
-                default:
-                    {
-                        if (typeDetail != null)
-                        {
-                            if (typeDetail.CoreType == CoreType.String)
-                            {
-                                var value = ReadLiteralNumberAsString(c, ref reader);
-                                return value;
-                            }
-                            else if (typeDetail.CoreType.HasValue)
-                            {
-                                return ReadLiteralNumberAsType(c, typeDetail.CoreType.Value, ref reader);
-                            }
-                            else if (typeDetail.EnumUnderlyingType.HasValue)
-                            {
-                                return ReadLiteralNumberAsType(c, typeDetail.EnumUnderlyingType.Value, ref reader);
-                            }
-                        }
-                        ReadLiteralNumberAsEmpty(c, ref reader);
-                        return null;
-                    }
-            }
-            throw reader.CreateException("Json ended prematurely");
-        }
 
-        private static JsonObject ReadToJsonObject(char c, ref CharReader reader, Graph graph)
-        {
-            switch (c)
-            {
-                case '"':
-                    var value = ReadString(ref reader, ref decodeBuffer);
-                    return new JsonObject(value, false);
-                case '{':
-                    return FromJsonObjectToJsonObject(ref reader, ref decodeBuffer, graph);
-                case '[':
-                    return FromJsonArrayToJsonObject(ref reader, ref decodeBuffer, graph);
-                default:
-                    return FromLiteralToJsonObject(c, ref reader);
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static JsonObject ReadObjectToJsonObject(ref CharReader reader, Graph graph)
-        {
-            var properties = new Dictionary<string, JsonObject>();
-            var canExpectComma = false;
-            while (reader.TryReadSkipWhiteSpace(out var c))
-            {
-                switch (c)
-                {
-                    case '"':
-                        if (canExpectComma)
-                            throw reader.CreateException("Unexpected character");
-                        var propertyName = ReadString(ref reader, ref decodeBuffer);
-
-                        ReadPropertySperator(ref reader);
-
+                    case 3: //next array value or end
                         if (!reader.TryReadSkipWhiteSpace(out c))
-                            throw reader.CreateException("Json ended prematurely");
-
-                        var propertyGraph = graph?.GetChildGraph(propertyName);
-                        var value = FromJsonToJsonObject(c, ref reader, ref decodeBuffer, propertyGraph);
-
-                        if (graph != null)
                         {
-                            switch (value.JsonType)
-                            {
-                                case JsonObject.JsonObjectType.Literal:
-                                    if (graph.HasLocalProperty(propertyName))
-                                        properties.Add(propertyName, value);
-                                    break;
-                                case JsonObject.JsonObjectType.String:
-                                    if (graph.HasLocalProperty(propertyName))
-                                        properties.Add(propertyName, value);
-                                    break;
-                                case JsonObject.JsonObjectType.Array:
-                                    if (graph.HasLocalProperty(propertyName))
-                                        properties.Add(propertyName, value);
-                                    break;
-                                case JsonObject.JsonObjectType.Object:
-                                    if (graph.HasChildGraph(propertyName))
-                                        properties.Add(propertyName, value);
-                                    break;
-                            }
+                            state.BytesNeeded = 1;
+                            return;
                         }
-                        else
+                        switch (c)
                         {
-                            properties.Add(propertyName, value);
+                            case ',':
+                                state.CurrentFrame.State = 1;
+                                break;
+                            case ']':
+                                state.EndFrame();
+                                return;
+                            default:
+                                throw reader.CreateException("Unexpected character");
                         }
-
-                        canExpectComma = true;
-                        break;
-                    case ',':
-                        if (canExpectComma)
-                            canExpectComma = false;
-                        else
-                            throw reader.CreateException("Unexpected character");
-                        break;
-                    case '}':
-                        return new JsonObject(properties);
-                    default:
-                        throw reader.CreateException("Unexpected character");
-                }
-            }
-            throw reader.CreateException("Json ended prematurely");
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static JsonObject ReadArrayToJsonObject(ref CharReader reader, Graph graph)
-        {
-            var arrayList = new List<JsonObject>();
-
-            var canExpectComma = false;
-            while (reader.TryReadSkipWhiteSpace(out var c))
-            {
-                switch (c)
-                {
-                    case ']':
-                        return new JsonObject(arrayList.ToArray());
-                    case ',':
-                        if (canExpectComma)
-                            canExpectComma = false;
-                        else
-                            throw reader.CreateException("Unexpected character");
-                        break;
-                    default:
-                        if (canExpectComma)
-                            throw reader.CreateException("Unexpected character");
-                        var value = FromJsonToJsonObject(c, ref reader, ref decodeBuffer, graph);
-                        if (arrayList != null)
-                            arrayList.Add(value);
-                        canExpectComma = true;
                         break;
                 }
             }
-            throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static JsonObject ReadLiteralToJsonObject(char c, ref CharReader reader)
+        private static void ReadLiteral(ref CharReader reader, ref ReadState state)
         {
+            var typeDetail = state.CurrentFrame.TypeDetail;
+            var c = state.CurrentFrame.FirstLiteralChar;
+
             switch (c)
             {
                 case 'n':
+                    if (!reader.TryReadSpan(out var s, 3))
                     {
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'u')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'l')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'l')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        return new JsonObject(null, true);
+                        state.BytesNeeded = 3;
+                        return;
                     }
+                    if (s[0] != 'u' || s[1] != 'l' || s[2] != 'l')
+                        throw reader.CreateException("Expected number/true/false/null");
+                    state.EndFrame();
+                    return;
+
                 case 't':
+                    if (!reader.TryReadSpan(out s, 3))
                     {
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'r')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'u')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'e')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        return new JsonObject("true", true);
+                        state.BytesNeeded = 3;
+                        return;
                     }
+                    if (s[0] != 'r' || s[1] != 'u' || s[2] != 'e')
+                        throw reader.CreateException("Expected number/true/false/null");
+                    state.EndFrame();
+                    return;
+
                 case 'f':
+                    if (!reader.TryReadSpan(out s, 4))
                     {
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'a')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'l')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 's')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        if (!reader.TryRead(out c))
-                            throw reader.CreateException("Json ended prematurely");
-                        if (c != 'e')
-                            throw reader.CreateException("Expected number/true/false/null");
-                        return new JsonObject("false", true);
+                        state.BytesNeeded = 4;
+                        return;
                     }
+                    if (s[0] != 'a' || s[1] != 'l' || s[2] != 's' || s[3] != 'e')
+                        throw reader.CreateException("Expected number/true/false/null");
+                    state.EndFrame();
+                    return;
+
                 default:
-                    {
-                        var value = ReadLiteralNumberAsString(c, ref reader);
-                        return new JsonObject(value, true);
-                    }
+                    state.EndFrame();
+                    state.PushFrame();
+                    state.CurrentFrame = new ReadFrame() { FirstLiteralChar = c, TypeDetail = typeDetail, FrameType = ReadFrameType.LiteralNumberToType };
+                    state.PushFrame();
+                    state.CurrentFrame = new ReadFrame() { FirstLiteralChar = c, TypeDetail = typeDetail, FrameType = ReadFrameType.LiteralNumber };
+                    return;
             }
-            throw reader.CreateException("Json ended prematurely");
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReadLiteralNumberToType(ref CharReader reader, ref ReadState state)
+        {
+            var typeDetail = state.CurrentFrame.TypeDetail;
+            state.CurrentFrame.ResultObject = ConvertNumberToType(state.LastFrameResultObject, typeDetail);
+            state.EndFrame();
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReadLiteralNumber(ref CharReader reader, ref ReadState state, ref CharWriter decodeBuffer)
+        {
+            var typeDetail = state.CurrentFrame.TypeDetail;
+
+            var coreType = typeDetail == null ? null : typeDetail.CoreType ?? typeDetail.EnumUnderlyingType;
+            switch (coreType)
+            {
+                case CoreType.String:
+                    ReadLiteralNumberAsString(ref reader, ref state, ref decodeBuffer);
+                    return;
+                case CoreType.Byte:
+                case CoreType.ByteNullable:
+                    ReadLiteralNumberAsUInt64(ref reader, ref state);
+                    return;
+                case CoreType.SByte:
+                case CoreType.SByteNullable:
+                    ReadLiteralNumberAsInt64(ref reader, ref state);
+                    return;
+                case CoreType.Int16:
+                case CoreType.Int16Nullable:
+                    ReadLiteralNumberAsInt64(ref reader, ref state);
+                    return;
+                case CoreType.UInt16:
+                case CoreType.UInt16Nullable:
+                    ReadLiteralNumberAsUInt64(ref reader, ref state);
+                    return;
+                case CoreType.Int32:
+                case CoreType.Int32Nullable:
+                    ReadLiteralNumberAsInt64(ref reader, ref state);
+                    return;
+                case CoreType.UInt32:
+                case CoreType.UInt32Nullable:
+                    ReadLiteralNumberAsUInt64(ref reader, ref state);
+                    return;
+                case CoreType.Int64:
+                case CoreType.Int64Nullable:
+                    ReadLiteralNumberAsInt64(ref reader, ref state);
+                    return;
+                case CoreType.UInt64:
+                case CoreType.UInt64Nullable:
+                    ReadLiteralNumberAsUInt64(ref reader, ref state);
+                    return;
+                case CoreType.Single:
+                case CoreType.SingleNullable:
+                    ReadLiteralNumberAsDouble(ref reader, ref state);
+                    return;
+                case CoreType.Double:
+                case CoreType.DoubleNullable:
+                    ReadLiteralNumberAsDouble(ref reader, ref state);
+                    return;
+                case CoreType.Decimal:
+                case CoreType.DecimalNullable:
+                    ReadLiteralNumberAsDecimal(ref reader, ref state);
+                    return;
+                default:
+                    ReadLiteralNumberAsEmpty(ref reader, ref state);
+                    return;
+            }
+        }
+
+        //private static JsonObject ReadToJsonObject(char c, ref CharReader reader, Graph graph)
+        //{
+        //    switch (c)
+        //    {
+        //        case '"':
+        //            var value = ReadString(ref reader, ref decodeBuffer);
+        //            return new JsonObject(value, false);
+        //        case '{':
+        //            return FromJsonObjectToJsonObject(ref reader, ref decodeBuffer, graph);
+        //        case '[':
+        //            return FromJsonArrayToJsonObject(ref reader, ref decodeBuffer, graph);
+        //        default:
+        //            return FromLiteralToJsonObject(c, ref reader);
+        //    }
+        //}
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //private static JsonObject ReadObjectToJsonObject(ref CharReader reader, Graph graph)
+        //{
+        //    var properties = new Dictionary<string, JsonObject>();
+        //    var canExpectComma = false;
+        //    while (reader.TryReadSkipWhiteSpace(out var c))
+        //    {
+        //        switch (c)
+        //        {
+        //            case '"':
+        //                if (canExpectComma)
+        //                    throw reader.CreateException("Unexpected character");
+        //                var propertyName = ReadString(ref reader, ref decodeBuffer);
+
+        //                ReadPropertySperator(ref reader);
+
+        //                if (!reader.TryReadSkipWhiteSpace(out c))
+        //                    throw reader.CreateException("Json ended prematurely");
+
+        //                var propertyGraph = graph?.GetChildGraph(propertyName);
+        //                var value = FromJsonToJsonObject(c, ref reader, ref decodeBuffer, propertyGraph);
+
+        //                if (graph != null)
+        //                {
+        //                    switch (value.JsonType)
+        //                    {
+        //                        case JsonObject.JsonObjectType.Literal:
+        //                            if (graph.HasLocalProperty(propertyName))
+        //                                properties.Add(propertyName, value);
+        //                            break;
+        //                        case JsonObject.JsonObjectType.String:
+        //                            if (graph.HasLocalProperty(propertyName))
+        //                                properties.Add(propertyName, value);
+        //                            break;
+        //                        case JsonObject.JsonObjectType.Array:
+        //                            if (graph.HasLocalProperty(propertyName))
+        //                                properties.Add(propertyName, value);
+        //                            break;
+        //                        case JsonObject.JsonObjectType.Object:
+        //                            if (graph.HasChildGraph(propertyName))
+        //                                properties.Add(propertyName, value);
+        //                            break;
+        //                    }
+        //                }
+        //                else
+        //                {
+        //                    properties.Add(propertyName, value);
+        //                }
+
+        //                canExpectComma = true;
+        //                break;
+        //            case ',':
+        //                if (canExpectComma)
+        //                    canExpectComma = false;
+        //                else
+        //                    throw reader.CreateException("Unexpected character");
+        //                break;
+        //            case '}':
+        //                return new JsonObject(properties);
+        //            default:
+        //                throw reader.CreateException("Unexpected character");
+        //        }
+        //    }
+        //    throw reader.CreateException("Json ended prematurely");
+        //}
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //private static JsonObject ReadArrayToJsonObject(ref CharReader reader, Graph graph)
+        //{
+        //    var arrayList = new List<JsonObject>();
+
+        //    var canExpectComma = false;
+        //    while (reader.TryReadSkipWhiteSpace(out var c))
+        //    {
+        //        switch (c)
+        //        {
+        //            case ']':
+        //                return new JsonObject(arrayList.ToArray());
+        //            case ',':
+        //                if (canExpectComma)
+        //                    canExpectComma = false;
+        //                else
+        //                    throw reader.CreateException("Unexpected character");
+        //                break;
+        //            default:
+        //                if (canExpectComma)
+        //                    throw reader.CreateException("Unexpected character");
+        //                var value = FromJsonToJsonObject(c, ref reader, ref decodeBuffer, graph);
+        //                if (arrayList != null)
+        //                    arrayList.Add(value);
+        //                canExpectComma = true;
+        //                break;
+        //        }
+        //    }
+        //    throw reader.CreateException("Json ended prematurely");
+        //}
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //private static JsonObject ReadLiteralToJsonObject(char c, ref CharReader reader)
+        //{
+        //    switch (c)
+        //    {
+        //        case 'n':
+        //            {
+        //                if (!reader.TryRead(out c))
+        //                    throw reader.CreateException("Json ended prematurely");
+        //                if (c != 'u')
+        //                    throw reader.CreateException("Expected number/true/false/null");
+        //                if (!reader.TryRead(out c))
+        //                    throw reader.CreateException("Json ended prematurely");
+        //                if (c != 'l')
+        //                    throw reader.CreateException("Expected number/true/false/null");
+        //                if (!reader.TryRead(out c))
+        //                    throw reader.CreateException("Json ended prematurely");
+        //                if (c != 'l')
+        //                    throw reader.CreateException("Expected number/true/false/null");
+        //                return new JsonObject(null, true);
+        //            }
+        //        case 't':
+        //            {
+        //                if (!reader.TryRead(out c))
+        //                    throw reader.CreateException("Json ended prematurely");
+        //                if (c != 'r')
+        //                    throw reader.CreateException("Expected number/true/false/null");
+        //                if (!reader.TryRead(out c))
+        //                    throw reader.CreateException("Json ended prematurely");
+        //                if (c != 'u')
+        //                    throw reader.CreateException("Expected number/true/false/null");
+        //                if (!reader.TryRead(out c))
+        //                    throw reader.CreateException("Json ended prematurely");
+        //                if (c != 'e')
+        //                    throw reader.CreateException("Expected number/true/false/null");
+        //                return new JsonObject("true", true);
+        //            }
+        //        case 'f':
+        //            {
+        //                if (!reader.TryRead(out c))
+        //                    throw reader.CreateException("Json ended prematurely");
+        //                if (c != 'a')
+        //                    throw reader.CreateException("Expected number/true/false/null");
+        //                if (!reader.TryRead(out c))
+        //                    throw reader.CreateException("Json ended prematurely");
+        //                if (c != 'l')
+        //                    throw reader.CreateException("Expected number/true/false/null");
+        //                if (!reader.TryRead(out c))
+        //                    throw reader.CreateException("Json ended prematurely");
+        //                if (c != 's')
+        //                    throw reader.CreateException("Expected number/true/false/null");
+        //                if (!reader.TryRead(out c))
+        //                    throw reader.CreateException("Json ended prematurely");
+        //                if (c != 'e')
+        //                    throw reader.CreateException("Expected number/true/false/null");
+        //                return new JsonObject("false", true);
+        //            }
+        //        default:
+        //            {
+        //                var value = FromStringLiteralNumberAsString(c, ref reader);
+        //                return new JsonObject(value, true);
+        //            }
+        //    }
+        //    throw reader.CreateException("Json ended prematurely");
+        //}
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadPropertySperator(ref CharReader reader)
@@ -1071,1362 +1179,1162 @@ namespace Zerra.Serialization
             state.EndFrame();
         }
 
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object ReadLiteralNumberAsType(char c, CoreType coreType, ref CharReader reader)
+        private static void ReadLiteralNumberAsString(ref CharReader reader, ref ReadState state, ref CharWriter decodeBuffer)
         {
-            unchecked
+            for (; ; )
             {
-                switch (coreType)
+                switch (state.CurrentFrame.State)
                 {
-                    case CoreType.Byte:
-                    case CoreType.ByteNullable:
-                        return (byte)ReadLiteralNumberAsUInt64(c, ref reader);
-                    case CoreType.SByte:
-                    case CoreType.SByteNullable:
-                        return (sbyte)ReadLiteralNumberAsInt64(c, ref reader);
-                    case CoreType.Int16:
-                    case CoreType.Int16Nullable:
-                        return (short)ReadLiteralNumberAsInt64(c, ref reader);
-                    case CoreType.UInt16:
-                    case CoreType.UInt16Nullable:
-                        return (ushort)ReadLiteralNumberAsUInt64(c, ref reader);
-                    case CoreType.Int32:
-                    case CoreType.Int32Nullable:
-                        return (int)ReadLiteralNumberAsInt64(c, ref reader);
-                    case CoreType.UInt32:
-                    case CoreType.UInt32Nullable:
-                        return (uint)ReadLiteralNumberAsUInt64(c, ref reader);
-                    case CoreType.Int64:
-                    case CoreType.Int64Nullable:
-                        return (long)ReadLiteralNumberAsInt64(c, ref reader);
-                    case CoreType.UInt64:
-                    case CoreType.UInt64Nullable:
-                        return (ulong)ReadLiteralNumberAsUInt64(c, ref reader);
-                    case CoreType.Single:
-                    case CoreType.SingleNullable:
-                        return (float)ReadLiteralNumberAsDouble(c, ref reader);
-                    case CoreType.Double:
-                    case CoreType.DoubleNullable:
-                        return (double)ReadLiteralNumberAsDouble(c, ref reader);
-                    case CoreType.Decimal:
-                    case CoreType.DecimalNullable:
-                        return (decimal)ReadLiteralNumberAsDecimal(c, ref reader);
-                }
-            }
-            return null;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static string ReadLiteralNumberAsString(char c, ref CharReader reader)
-        {
-            reader.BeginSegment(true);
-
-            switch (c)
-            {
-                case '0':
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9':
-                case '-':
-                    //nothing
-                    break;
-                default: throw reader.CreateException("Unexpected character");
-            }
-
-            while (reader.TryRead(out c))
-            {
-                switch (c)
-                {
-                    case '0':
-                    case '1':
-                    case '2':
-                    case '3':
-                    case '4':
-                    case '5':
-                    case '6':
-                    case '7':
-                    case '8':
-                    case '9':
-                        //nothing
+                    case 0: //first number
+                        switch (state.CurrentFrame.FirstLiteralChar)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case '-': break;
+                            default: throw reader.CreateException("Unexpected character");
+                        }
+                        decodeBuffer.Write(state.CurrentFrame.FirstLiteralChar);
+                        state.CurrentFrame.State = 1;
                         break;
-                    case '.':
+
+                    case 1: //next number
+                        if (!reader.TryRead(out var c))
                         {
-                            while (reader.TryRead(out c))
-                            {
-                                switch (c)
-                                {
-                                    case '0':
-                                    case '1':
-                                    case '2':
-                                    case '3':
-                                    case '4':
-                                    case '5':
-                                    case '6':
-                                    case '7':
-                                    case '8':
-                                    case '9':
-                                        //nothing
-                                        break;
-                                    case 'e':
-                                    case 'E':
-                                        {
-                                            if (!reader.TryRead(out c))
-                                                throw reader.CreateException("Json ended prematurely");
-
-                                            switch (c)
-                                            {
-                                                case '0':
-                                                case '1':
-                                                case '2':
-                                                case '3':
-                                                case '4':
-                                                case '5':
-                                                case '6':
-                                                case '7':
-                                                case '8':
-                                                case '9':
-                                                case '-':
-                                                case '+':
-                                                    //nothing
-                                                    break;
-                                                default: throw reader.CreateException("Unexpected character");
-                                            }
-                                            while (reader.TryRead(out c))
-                                            {
-                                                switch (c)
-                                                {
-                                                    case '0':
-                                                    case '1':
-                                                    case '2':
-                                                    case '3':
-                                                    case '4':
-                                                    case '5':
-                                                    case '6':
-                                                    case '7':
-                                                    case '8':
-                                                    case '9':
-                                                    case '+':
-                                                        //nothing
-                                                        break;
-                                                    case ' ':
-                                                    case '\r':
-                                                    case '\n':
-                                                    case '\t':
-                                                        return reader.EndSegmentToString(false);
-                                                    case ',':
-                                                    case '}':
-                                                    case ']':
-                                                        reader.BackOne();
-                                                        return reader.EndSegmentToString(true);
-                                                    default:
-                                                        throw reader.CreateException("Unexpected character");
-                                                }
-                                            }
-                                            return reader.EndSegmentToString(true);
-                                        }
-                                    case ' ':
-                                    case '\r':
-                                    case '\n':
-                                    case '\t':
-                                        return reader.EndSegmentToString(false);
-                                    case ',':
-                                    case '}':
-                                    case ']':
-                                        reader.BackOne();
-                                        return reader.EndSegmentToString(true);
-                                    default:
-                                        throw reader.CreateException("Unexpected character");
-                                }
-                            }
-                        }
-                        break;
-                    case 'e':
-                    case 'E':
-                        {
-                            if (!reader.TryRead(out c))
-                                throw reader.CreateException("Json ended prematurely");
-
-                            switch (c)
-                            {
-                                case '0':
-                                case '1':
-                                case '2':
-                                case '3':
-                                case '4':
-                                case '5':
-                                case '6':
-                                case '7':
-                                case '8':
-                                case '9':
-                                case '-':
-                                case '+':
-                                    //nothing
-                                    break;
-                                default: throw reader.CreateException("Unexpected character");
-                            }
-                            while (reader.TryRead(out c))
-                            {
-                                switch (c)
-                                {
-                                    case '0':
-                                    case '1':
-                                    case '2':
-                                    case '3':
-                                    case '4':
-                                    case '5':
-                                    case '6':
-                                    case '7':
-                                    case '8':
-                                    case '9':
-                                    case ' ':
-                                    case '\r':
-                                    case '\n':
-                                    case '\t':
-                                        return reader.EndSegmentToString(false);
-                                    case ',':
-                                    case '}':
-                                    case ']':
-                                        reader.BackOne();
-                                        return reader.EndSegmentToString(true);
-                                    default:
-                                        throw reader.CreateException("Unexpected character");
-                                }
-                            }
-                            return reader.EndSegmentToString(true);
-                        }
-                    case ' ':
-                    case '\r':
-                    case '\n':
-                    case '\t':
-                        return reader.EndSegmentToString(false);
-                    case ',':
-                    case '}':
-                    case ']':
-                        reader.BackOne();
-                        return reader.EndSegmentToString(true);
-                    default:
-                        throw reader.CreateException("Unexpected character");
-                }
-            }
-
-            return reader.EndSegmentToString(true);
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static long ReadLiteralNumberAsInt64(char c, ref CharReader reader)
-        {
-            var negative = false;
-            long number;
-
-            switch (c)
-            {
-                case '0': number = 0; break;
-                case '1': number = 1; break;
-                case '2': number = 2; break;
-                case '3': number = 3; break;
-                case '4': number = 4; break;
-                case '5': number = 5; break;
-                case '6': number = 6; break;
-                case '7': number = 7; break;
-                case '8': number = 8; break;
-                case '9': number = 9; break;
-                case '-': number = 0; negative = true; break;
-                default: throw reader.CreateException("Unexpected character");
-            }
-
-            while (reader.TryRead(out c))
-            {
-                switch (c)
-                {
-                    case '0': number *= 10; break;
-                    case '1': number = number * 10 + 1; break;
-                    case '2': number = number * 10 + 2; break;
-                    case '3': number = number * 10 + 3; break;
-                    case '4': number = number * 10 + 4; break;
-                    case '5': number = number * 10 + 5; break;
-                    case '6': number = number * 10 + 6; break;
-                    case '7': number = number * 10 + 7; break;
-                    case '8': number = number * 10 + 8; break;
-                    case '9': number = number * 10 + 9; break;
-                    case '.':
-                        {
-                            while (reader.TryRead(out c))
-                            {
-                                switch (c)
-                                {
-                                    case '0':
-                                    case '1':
-                                    case '2':
-                                    case '3':
-                                    case '4':
-                                    case '5':
-                                    case '6':
-                                    case '7':
-                                    case '8':
-                                    case '9':
-                                        break;
-                                    case 'e':
-                                    case 'E':
-                                        {
-                                            if (!reader.TryRead(out c))
-                                                throw reader.CreateException("Json ended prematurely");
-
-                                            var negativeExponent = false;
-                                            double exponent;
-
-                                            switch (c)
-                                            {
-                                                case '0': exponent = 0; break;
-                                                case '1': exponent = 1; break;
-                                                case '2': exponent = 2; break;
-                                                case '3': exponent = 3; break;
-                                                case '4': exponent = 4; break;
-                                                case '5': exponent = 5; break;
-                                                case '6': exponent = 6; break;
-                                                case '7': exponent = 7; break;
-                                                case '8': exponent = 8; break;
-                                                case '9': exponent = 9; break;
-                                                case '+': exponent = 0; break;
-                                                case '-': exponent = 0; negativeExponent = true; break;
-                                                default: throw reader.CreateException("Unexpected character");
-                                            }
-                                            while (reader.TryRead(out c))
-                                            {
-                                                switch (c)
-                                                {
-                                                    case '0': exponent *= 10; break;
-                                                    case '1': exponent = exponent * 10 + 1; break;
-                                                    case '2': exponent = exponent * 10 + 2; break;
-                                                    case '3': exponent = exponent * 10 + 3; break;
-                                                    case '4': exponent = exponent * 10 + 4; break;
-                                                    case '5': exponent = exponent * 10 + 5; break;
-                                                    case '6': exponent = exponent * 10 + 6; break;
-                                                    case '7': exponent = exponent * 10 + 7; break;
-                                                    case '8': exponent = exponent * 10 + 8; break;
-                                                    case '9': exponent = exponent * 10 + 9; break;
-                                                    case ' ':
-                                                    case '\r':
-                                                    case '\n':
-                                                    case '\t':
-                                                        if (negativeExponent)
-                                                            exponent *= -1;
-                                                        number *= (long)Math.Pow(10, (double)exponent);
-                                                        if (negative)
-                                                            number *= -1;
-                                                        return number;
-                                                    case ',':
-                                                    case '}':
-                                                    case ']':
-                                                        reader.BackOne();
-                                                        if (negativeExponent)
-                                                            exponent *= -1;
-                                                        number *= (long)Math.Pow(10, (double)exponent);
-                                                        if (negative)
-                                                            number *= -1;
-                                                        return number;
-                                                    default:
-                                                        throw reader.CreateException("Unexpected character");
-                                                }
-                                            }
-                                            if (negativeExponent)
-                                                exponent *= -1;
-                                            number *= (long)Math.Pow(10, (double)exponent);
-                                            if (negative)
-                                                number *= -1;
-                                            return number;
-                                        }
-                                    case ' ':
-                                    case '\r':
-                                    case '\n':
-                                    case '\t':
-                                        if (negative)
-                                            number *= -1;
-                                        return number;
-                                    case ',':
-                                    case '}':
-                                    case ']':
-                                        reader.BackOne();
-                                        if (negative)
-                                            number *= -1;
-                                        return number;
-                                    default:
-                                        throw reader.CreateException("Unexpected character");
-                                }
-                            }
-                        }
-                        break;
-                    case 'e':
-                    case 'E':
-                        {
-                            if (!reader.TryRead(out c))
-                                throw reader.CreateException("Json ended prematurely");
-
-                            var negativeExponent = false;
-                            double exponent;
-
-                            switch (c)
-                            {
-                                case '0': exponent = 0; break;
-                                case '1': exponent = 1; break;
-                                case '2': exponent = 2; break;
-                                case '3': exponent = 3; break;
-                                case '4': exponent = 4; break;
-                                case '5': exponent = 5; break;
-                                case '6': exponent = 6; break;
-                                case '7': exponent = 7; break;
-                                case '8': exponent = 8; break;
-                                case '9': exponent = 9; break;
-                                case '+': exponent = 0; break;
-                                case '-': exponent = 0; negativeExponent = true; break;
-                                default: throw reader.CreateException("Unexpected character");
-                            }
-                            while (reader.TryRead(out c))
-                            {
-                                switch (c)
-                                {
-                                    case '0': exponent *= 10; break;
-                                    case '1': exponent = exponent * 10 + 1; break;
-                                    case '2': exponent = exponent * 10 + 2; break;
-                                    case '3': exponent = exponent * 10 + 3; break;
-                                    case '4': exponent = exponent * 10 + 4; break;
-                                    case '5': exponent = exponent * 10 + 5; break;
-                                    case '6': exponent = exponent * 10 + 6; break;
-                                    case '7': exponent = exponent * 10 + 7; break;
-                                    case '8': exponent = exponent * 10 + 8; break;
-                                    case '9': exponent = exponent * 10 + 9; break;
-                                    case ' ':
-                                    case '\r':
-                                    case '\n':
-                                    case '\t':
-                                        if (negativeExponent)
-                                            exponent *= -1;
-                                        number *= (long)Math.Pow(10, (double)exponent);
-                                        if (negative)
-                                            number *= -1;
-                                        return number;
-                                    case ',':
-                                    case '}':
-                                    case ']':
-                                        reader.BackOne();
-                                        if (negativeExponent)
-                                            exponent *= -1;
-                                        number *= (long)Math.Pow(10, (double)exponent);
-                                        if (negative)
-                                            number *= -1;
-                                        return number;
-                                    default:
-                                        throw reader.CreateException("Unexpected character");
-                                }
-                            }
-                            if (negativeExponent)
-                                exponent *= -1;
-                            number *= (long)Math.Pow(10, (double)exponent);
-                            if (negative)
-                                number *= -1;
-                            return number;
-                        }
-                    case ' ':
-                    case '\r':
-                    case '\n':
-                    case '\t':
-                        if (negative)
-                            number *= -1;
-                        return number;
-                    case ',':
-                    case '}':
-                    case ']':
-                        reader.BackOne();
-                        if (negative)
-                            number *= -1;
-                        return number;
-                    default:
-                        throw reader.CreateException("Unexpected character");
-                }
-            }
-
-            if (negative)
-                number *= -1;
-            return number;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ulong ReadLiteralNumberAsUInt64(char c, ref CharReader reader)
-        {
-            var number = c switch
-            {
-                '0' => 0UL,
-                '1' => 1UL,
-                '2' => 2UL,
-                '3' => 3UL,
-                '4' => 4UL,
-                '5' => 5UL,
-                '6' => 6UL,
-                '7' => 7UL,
-                '8' => 8UL,
-                '9' => 9UL,
-                '-' => 0UL,
-                _ => throw reader.CreateException("Unexpected character"),
-            };
-            while (reader.TryRead(out c))
-            {
-                switch (c)
-                {
-                    case '0': number *= 10; break;
-                    case '1': number = number * 10 + 1; break;
-                    case '2': number = number * 10 + 2; break;
-                    case '3': number = number * 10 + 3; break;
-                    case '4': number = number * 10 + 4; break;
-                    case '5': number = number * 10 + 5; break;
-                    case '6': number = number * 10 + 6; break;
-                    case '7': number = number * 10 + 7; break;
-                    case '8': number = number * 10 + 8; break;
-                    case '9': number = number * 10 + 9; break;
-                    case '.':
-                        {
-                            while (reader.TryRead(out c))
-                            {
-                                switch (c)
-                                {
-                                    case '0':
-                                    case '1':
-                                    case '2':
-                                    case '3':
-                                    case '4':
-                                    case '5':
-                                    case '6':
-                                    case '7':
-                                    case '8':
-                                    case '9':
-                                        break;
-                                    case 'e':
-                                    case 'E':
-                                        {
-                                            if (!reader.TryRead(out c))
-                                                throw reader.CreateException("Json ended prematurely");
-
-                                            var negativeExponent = false;
-                                            double exponent;
-
-                                            switch (c)
-                                            {
-                                                case '0': exponent = 0; break;
-                                                case '1': exponent = 1; break;
-                                                case '2': exponent = 2; break;
-                                                case '3': exponent = 3; break;
-                                                case '4': exponent = 4; break;
-                                                case '5': exponent = 5; break;
-                                                case '6': exponent = 6; break;
-                                                case '7': exponent = 7; break;
-                                                case '8': exponent = 8; break;
-                                                case '9': exponent = 9; break;
-                                                case '+': exponent = 0; break;
-                                                case '-': exponent = 0; negativeExponent = true; break;
-                                                default: throw reader.CreateException("Unexpected character");
-                                            }
-                                            while (reader.TryRead(out c))
-                                            {
-                                                switch (c)
-                                                {
-                                                    case '0': exponent *= 10; break;
-                                                    case '1': exponent = exponent * 10 + 1; break;
-                                                    case '2': exponent = exponent * 10 + 2; break;
-                                                    case '3': exponent = exponent * 10 + 3; break;
-                                                    case '4': exponent = exponent * 10 + 4; break;
-                                                    case '5': exponent = exponent * 10 + 5; break;
-                                                    case '6': exponent = exponent * 10 + 6; break;
-                                                    case '7': exponent = exponent * 10 + 7; break;
-                                                    case '8': exponent = exponent * 10 + 8; break;
-                                                    case '9': exponent = exponent * 10 + 9; break;
-                                                    case ' ':
-                                                    case '\r':
-                                                    case '\n':
-                                                    case '\t':
-                                                        if (negativeExponent)
-                                                            exponent *= -1;
-                                                        number *= (ulong)Math.Pow(10, (double)exponent);
-                                                        return number;
-                                                    case ',':
-                                                    case '}':
-                                                    case ']':
-                                                        reader.BackOne();
-                                                        if (negativeExponent)
-                                                            exponent *= -1;
-                                                        number *= (ulong)Math.Pow(10, (double)exponent);
-                                                        return number;
-                                                    default:
-                                                        throw reader.CreateException("Unexpected character");
-                                                }
-                                            }
-                                            if (negativeExponent)
-                                                exponent *= -1;
-                                            number *= (ulong)Math.Pow(10, (double)exponent);
-                                            return number;
-                                        }
-                                    case ' ':
-                                    case '\r':
-                                    case '\n':
-                                    case '\t':
-                                        return number;
-                                    case ',':
-                                    case '}':
-                                    case ']':
-                                        reader.BackOne();
-                                        return number;
-                                    default:
-                                        throw reader.CreateException("Unexpected character");
-                                }
-                            }
-                        }
-                        break;
-                    case 'e':
-                    case 'E':
-                        {
-                            if (!reader.TryRead(out c))
-                                throw reader.CreateException("Json ended prematurely");
-
-                            var negativeExponent = false;
-                            double exponent;
-
-                            switch (c)
-                            {
-                                case '0': exponent = 0; break;
-                                case '1': exponent = 1; break;
-                                case '2': exponent = 2; break;
-                                case '3': exponent = 3; break;
-                                case '4': exponent = 4; break;
-                                case '5': exponent = 5; break;
-                                case '6': exponent = 6; break;
-                                case '7': exponent = 7; break;
-                                case '8': exponent = 8; break;
-                                case '9': exponent = 9; break;
-                                case '+': exponent = 0; break;
-                                case '-': exponent = 0; negativeExponent = true; break;
-                                default: throw reader.CreateException("Unexpected character");
-                            }
-                            while (reader.TryRead(out c))
-                            {
-                                switch (c)
-                                {
-                                    case '0': exponent *= 10; break;
-                                    case '1': exponent = exponent * 10 + 1; break;
-                                    case '2': exponent = exponent * 10 + 2; break;
-                                    case '3': exponent = exponent * 10 + 3; break;
-                                    case '4': exponent = exponent * 10 + 4; break;
-                                    case '5': exponent = exponent * 10 + 5; break;
-                                    case '6': exponent = exponent * 10 + 6; break;
-                                    case '7': exponent = exponent * 10 + 7; break;
-                                    case '8': exponent = exponent * 10 + 8; break;
-                                    case '9': exponent = exponent * 10 + 9; break;
-                                    case ' ':
-                                    case '\r':
-                                    case '\n':
-                                    case '\t':
-                                        if (negativeExponent)
-                                            exponent *= -1;
-                                        number *= (ulong)Math.Pow(10, (double)exponent);
-                                        return number;
-                                    case ',':
-                                    case '}':
-                                    case ']':
-                                        reader.BackOne();
-                                        if (negativeExponent)
-                                            exponent *= -1;
-                                        number *= (ulong)Math.Pow(10, (double)exponent);
-                                        return number;
-                                    default:
-                                        throw reader.CreateException("Unexpected character");
-                                }
-                            }
-                            if (negativeExponent)
-                                exponent *= -1;
-                            number *= (ulong)Math.Pow(10, (double)exponent);
-                            return number;
-                        }
-                    case ' ':
-                    case '\r':
-                    case '\n':
-                    case '\t':
-                        return number;
-                    case ',':
-                    case '}':
-                    case ']':
-                        reader.BackOne();
-                        return number;
-                    default:
-                        throw reader.CreateException("Unexpected character");
-                }
-            }
-
-            return number;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static double ReadLiteralNumberAsDouble(char c, ref CharReader reader)
-        {
-            var negative = false;
-            double number;
-
-            switch (c)
-            {
-                case '0': number = 0; break;
-                case '1': number = 1; break;
-                case '2': number = 2; break;
-                case '3': number = 3; break;
-                case '4': number = 4; break;
-                case '5': number = 5; break;
-                case '6': number = 6; break;
-                case '7': number = 7; break;
-                case '8': number = 8; break;
-                case '9': number = 9; break;
-                case '-': number = 0; negative = true; break;
-                default: throw reader.CreateException("Unexpected character");
-            }
-
-            while (reader.TryRead(out c))
-            {
-                switch (c)
-                {
-                    case '0': number *= 10; break;
-                    case '1': number = number * 10 + 1; break;
-                    case '2': number = number * 10 + 2; break;
-                    case '3': number = number * 10 + 3; break;
-                    case '4': number = number * 10 + 4; break;
-                    case '5': number = number * 10 + 5; break;
-                    case '6': number = number * 10 + 6; break;
-                    case '7': number = number * 10 + 7; break;
-                    case '8': number = number * 10 + 8; break;
-                    case '9': number = number * 10 + 9; break;
-                    case '.':
-                        {
-                            double fraction = 10;
-                            while (reader.TryRead(out c))
-                            {
-                                switch (c)
-                                {
-                                    case '0': break;
-                                    case '1': number += 1 / fraction; break;
-                                    case '2': number += 2 / fraction; break;
-                                    case '3': number += 3 / fraction; break;
-                                    case '4': number += 4 / fraction; break;
-                                    case '5': number += 5 / fraction; break;
-                                    case '6': number += 6 / fraction; break;
-                                    case '7': number += 7 / fraction; break;
-                                    case '8': number += 8 / fraction; break;
-                                    case '9': number += 9 / fraction; break;
-                                    case 'e':
-                                    case 'E':
-                                        {
-                                            if (!reader.TryRead(out c))
-                                                throw reader.CreateException("Json ended prematurely");
-
-                                            var negativeExponent = false;
-                                            double exponent;
-
-                                            switch (c)
-                                            {
-                                                case '0': exponent = 0; break;
-                                                case '1': exponent = 1; break;
-                                                case '2': exponent = 2; break;
-                                                case '3': exponent = 3; break;
-                                                case '4': exponent = 4; break;
-                                                case '5': exponent = 5; break;
-                                                case '6': exponent = 6; break;
-                                                case '7': exponent = 7; break;
-                                                case '8': exponent = 8; break;
-                                                case '9': exponent = 9; break;
-                                                case '+': exponent = 0; break;
-                                                case '-': exponent = 0; negativeExponent = true; break;
-                                                default: throw reader.CreateException("Unexpected character");
-                                            }
-                                            while (reader.TryRead(out c))
-                                            {
-                                                switch (c)
-                                                {
-                                                    case '0': exponent *= 10; break;
-                                                    case '1': exponent = exponent * 10 + 1; break;
-                                                    case '2': exponent = exponent * 10 + 2; break;
-                                                    case '3': exponent = exponent * 10 + 3; break;
-                                                    case '4': exponent = exponent * 10 + 4; break;
-                                                    case '5': exponent = exponent * 10 + 5; break;
-                                                    case '6': exponent = exponent * 10 + 6; break;
-                                                    case '7': exponent = exponent * 10 + 7; break;
-                                                    case '8': exponent = exponent * 10 + 8; break;
-                                                    case '9': exponent = exponent * 10 + 9; break;
-                                                    case ' ':
-                                                    case '\r':
-                                                    case '\n':
-                                                    case '\t':
-                                                        if (negativeExponent)
-                                                            exponent *= -1;
-                                                        number *= Math.Pow(10, exponent);
-                                                        if (negative)
-                                                            number *= -1;
-                                                        return number;
-                                                    case ',':
-                                                    case '}':
-                                                    case ']':
-                                                        reader.BackOne();
-                                                        if (negativeExponent)
-                                                            exponent *= -1;
-                                                        number *= Math.Pow(10, exponent);
-                                                        if (negative)
-                                                            number *= -1;
-                                                        return number;
-                                                    default:
-                                                        throw reader.CreateException("Unexpected character");
-                                                }
-                                            }
-                                            if (negativeExponent)
-                                                exponent *= -1;
-                                            number *= Math.Pow(10, exponent);
-                                            if (negative)
-                                                number *= -1;
-                                            return number;
-                                        }
-                                    case ' ':
-                                    case '\r':
-                                    case '\n':
-                                    case '\t':
-                                        if (negative)
-                                            number *= -1;
-                                        return number;
-                                    case ',':
-                                    case '}':
-                                    case ']':
-                                        reader.BackOne();
-                                        if (negative)
-                                            number *= -1;
-                                        return number;
-                                    default:
-                                        throw reader.CreateException("Unexpected character");
-                                }
-                                fraction *= 10;
-                            }
-                        }
-                        break;
-                    case 'e':
-                    case 'E':
-                        {
-                            if (!reader.TryRead(out c))
-                                throw reader.CreateException("Json ended prematurely");
-
-                            var negativeExponent = false;
-                            double exponent;
-
-                            switch (c)
-                            {
-                                case '0': exponent = 0; break;
-                                case '1': exponent = 1; break;
-                                case '2': exponent = 2; break;
-                                case '3': exponent = 3; break;
-                                case '4': exponent = 4; break;
-                                case '5': exponent = 5; break;
-                                case '6': exponent = 6; break;
-                                case '7': exponent = 7; break;
-                                case '8': exponent = 8; break;
-                                case '9': exponent = 9; break;
-                                case '+': exponent = 0; break;
-                                case '-': exponent = 0; negativeExponent = true; break;
-                                default: throw reader.CreateException("Unexpected character");
-                            }
-                            while (reader.TryRead(out c))
-                            {
-                                switch (c)
-                                {
-                                    case '0': exponent *= 10; break;
-                                    case '1': exponent = exponent * 10 + 1; break;
-                                    case '2': exponent = exponent * 10 + 2; break;
-                                    case '3': exponent = exponent * 10 + 3; break;
-                                    case '4': exponent = exponent * 10 + 4; break;
-                                    case '5': exponent = exponent * 10 + 5; break;
-                                    case '6': exponent = exponent * 10 + 6; break;
-                                    case '7': exponent = exponent * 10 + 7; break;
-                                    case '8': exponent = exponent * 10 + 8; break;
-                                    case '9': exponent = exponent * 10 + 9; break;
-                                    case ' ':
-                                    case '\r':
-                                    case '\n':
-                                    case '\t':
-                                        if (negativeExponent)
-                                            exponent *= -1;
-                                        number *= Math.Pow(10, exponent);
-                                        if (negative)
-                                            number *= -1;
-                                        return number;
-                                    case ',':
-                                    case '}':
-                                    case ']':
-                                        reader.BackOne();
-                                        if (negativeExponent)
-                                            exponent *= -1;
-                                        number *= Math.Pow(10, exponent);
-                                        if (negative)
-                                            number *= -1;
-                                        return number;
-                                    default:
-                                        throw reader.CreateException("Unexpected character");
-                                }
-                            }
-                            if (negativeExponent)
-                                exponent *= -1;
-                            number *= Math.Pow(10, exponent);
-                            if (negative)
-                                number *= -1;
-                            return number;
-                        }
-                    case ' ':
-                    case '\r':
-                    case '\n':
-                    case '\t':
-                        if (negative)
-                            number *= -1;
-                        return number;
-                    case ',':
-                    case '}':
-                    case ']':
-                        reader.BackOne();
-                        if (negative)
-                            number *= -1;
-                        return number;
-                    default:
-                        throw reader.CreateException("Unexpected character");
-                }
-            }
-
-            if (negative)
-                number *= -1;
-            return number;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static decimal ReadLiteralNumberAsDecimal(char c, ref CharReader reader)
-        {
-            var negative = false;
-            decimal number;
-
-            switch (c)
-            {
-                case '0': number = 0; break;
-                case '1': number = 1; break;
-                case '2': number = 2; break;
-                case '3': number = 3; break;
-                case '4': number = 4; break;
-                case '5': number = 5; break;
-                case '6': number = 6; break;
-                case '7': number = 7; break;
-                case '8': number = 8; break;
-                case '9': number = 9; break;
-                case '-': number = 0; negative = true; break;
-                default: throw reader.CreateException("Unexpected character");
-            }
-
-            while (reader.TryRead(out c))
-            {
-                switch (c)
-                {
-                    case '0': number *= 10; break;
-                    case '1': number = number * 10 + 1; break;
-                    case '2': number = number * 10 + 2; break;
-                    case '3': number = number * 10 + 3; break;
-                    case '4': number = number * 10 + 4; break;
-                    case '5': number = number * 10 + 5; break;
-                    case '6': number = number * 10 + 6; break;
-                    case '7': number = number * 10 + 7; break;
-                    case '8': number = number * 10 + 8; break;
-                    case '9': number = number * 10 + 9; break;
-                    case '.':
-                        {
-                            decimal fraction = 10;
-                            while (reader.TryRead(out c))
-                            {
-                                switch (c)
-                                {
-                                    case '0': break;
-                                    case '1': number += 1 / fraction; break;
-                                    case '2': number += 2 / fraction; break;
-                                    case '3': number += 3 / fraction; break;
-                                    case '4': number += 4 / fraction; break;
-                                    case '5': number += 5 / fraction; break;
-                                    case '6': number += 6 / fraction; break;
-                                    case '7': number += 7 / fraction; break;
-                                    case '8': number += 8 / fraction; break;
-                                    case '9': number += 9 / fraction; break;
-                                    case 'e':
-                                    case 'E':
-                                        {
-                                            if (!reader.TryRead(out c))
-                                                throw reader.CreateException("Json ended prematurely");
-
-                                            var negativeExponent = false;
-                                            decimal exponent;
-
-                                            switch (c)
-                                            {
-                                                case '0': exponent = 0; break;
-                                                case '1': exponent = 1; break;
-                                                case '2': exponent = 2; break;
-                                                case '3': exponent = 3; break;
-                                                case '4': exponent = 4; break;
-                                                case '5': exponent = 5; break;
-                                                case '6': exponent = 6; break;
-                                                case '7': exponent = 7; break;
-                                                case '8': exponent = 8; break;
-                                                case '9': exponent = 9; break;
-                                                case '+': exponent = 0; break;
-                                                case '-': exponent = 0; negativeExponent = true; break;
-                                                default: throw reader.CreateException("Unexpected character");
-                                            }
-                                            while (reader.TryRead(out c))
-                                            {
-                                                switch (c)
-                                                {
-                                                    case '0': exponent *= 10; break;
-                                                    case '1': exponent = exponent * 10 + 1; break;
-                                                    case '2': exponent = exponent * 10 + 2; break;
-                                                    case '3': exponent = exponent * 10 + 3; break;
-                                                    case '4': exponent = exponent * 10 + 4; break;
-                                                    case '5': exponent = exponent * 10 + 5; break;
-                                                    case '6': exponent = exponent * 10 + 6; break;
-                                                    case '7': exponent = exponent * 10 + 7; break;
-                                                    case '8': exponent = exponent * 10 + 8; break;
-                                                    case '9': exponent = exponent * 10 + 9; break;
-                                                    case ' ':
-                                                    case '\r':
-                                                    case '\n':
-                                                    case '\t':
-                                                        if (negativeExponent)
-                                                            exponent *= -1;
-                                                        number *= (decimal)Math.Pow(10, (double)exponent);
-                                                        if (negative)
-                                                            number *= -1;
-                                                        return number;
-                                                    case ',':
-                                                    case '}':
-                                                    case ']':
-                                                        reader.BackOne();
-                                                        if (negativeExponent)
-                                                            exponent *= -1;
-                                                        number *= (decimal)Math.Pow(10, (double)exponent);
-                                                        if (negative)
-                                                            number *= -1;
-                                                        return number;
-                                                    default:
-                                                        throw reader.CreateException("Unexpected character");
-                                                }
-                                            }
-                                            if (negativeExponent)
-                                                exponent *= -1;
-                                            number *= (decimal)Math.Pow(10, (double)exponent);
-                                            if (negative)
-                                                number *= -1;
-                                            return number;
-                                        }
-                                    case ' ':
-                                    case '\r':
-                                    case '\n':
-                                    case '\t':
-                                        if (negative)
-                                            number *= -1;
-                                        return number;
-                                    case ',':
-                                    case '}':
-                                    case ']':
-                                        reader.BackOne();
-                                        if (negative)
-                                            number *= -1;
-                                        return number;
-                                    default:
-                                        throw reader.CreateException("Unexpected character");
-                                }
-                                fraction *= 10;
-                            }
-                        }
-                        break;
-                    case 'e':
-                    case 'E':
-                        {
-                            if (!reader.TryRead(out c))
-                                throw reader.CreateException("Json ended prematurely");
-
-                            var negativeExponent = false;
-                            decimal exponent;
-
-                            switch (c)
-                            {
-                                case '0': exponent = 0; break;
-                                case '1': exponent = 1; break;
-                                case '2': exponent = 2; break;
-                                case '3': exponent = 3; break;
-                                case '4': exponent = 4; break;
-                                case '5': exponent = 5; break;
-                                case '6': exponent = 6; break;
-                                case '7': exponent = 7; break;
-                                case '8': exponent = 8; break;
-                                case '9': exponent = 9; break;
-                                case '+': exponent = 0; break;
-                                case '-': exponent = 0; negativeExponent = true; break;
-                                default: throw reader.CreateException("Unexpected character");
-                            }
-                            while (reader.TryRead(out c))
-                            {
-                                switch (c)
-                                {
-                                    case '0': exponent *= 10; break;
-                                    case '1': exponent = exponent * 10 + 1; break;
-                                    case '2': exponent = exponent * 10 + 2; break;
-                                    case '3': exponent = exponent * 10 + 3; break;
-                                    case '4': exponent = exponent * 10 + 4; break;
-                                    case '5': exponent = exponent * 10 + 5; break;
-                                    case '6': exponent = exponent * 10 + 6; break;
-                                    case '7': exponent = exponent * 10 + 7; break;
-                                    case '8': exponent = exponent * 10 + 8; break;
-                                    case '9': exponent = exponent * 10 + 9; break;
-                                    case ' ':
-                                    case '\r':
-                                    case '\n':
-                                    case '\t':
-                                        if (negativeExponent)
-                                            exponent *= -1;
-                                        number *= (decimal)Math.Pow(10, (double)exponent);
-                                        if (negative)
-                                            number *= -1;
-                                        return number;
-                                    case ',':
-                                    case '}':
-                                    case ']':
-                                        reader.BackOne();
-                                        if (negativeExponent)
-                                            exponent *= -1;
-                                        number *= (decimal)Math.Pow(10, (double)exponent);
-                                        if (negative)
-                                            number *= -1;
-                                        return number;
-                                    default:
-                                        throw reader.CreateException("Unexpected character");
-                                }
-                            }
-                            if (negativeExponent)
-                                exponent *= -1;
-                            number *= (decimal)Math.Pow(10, (double)exponent);
-                            if (negative)
-                                number *= -1;
-                            return number;
-                        }
-                    case ' ':
-                    case '\r':
-                    case '\n':
-                    case '\t':
-                        if (negative)
-                            number *= -1;
-                        return number;
-                    case ',':
-                    case '}':
-                    case ']':
-                        reader.BackOne();
-                        if (negative)
-                            number *= -1;
-                        return number;
-                    default:
-                        throw reader.CreateException("Unexpected character");
-                }
-            }
-
-            if (negative)
-                number *= -1;
-            return number;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadLiteralNumberAsEmpty(char c, ref CharReader reader)
-        {
-            switch (c)
-            {
-                case '0':
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9':
-                case '-':
-                    break;
-                default: throw reader.CreateException("Unexpected character");
-            }
-
-            while (reader.TryRead(out c))
-            {
-                switch (c)
-                {
-                    case '0':
-                    case '1':
-                    case '2':
-                    case '3':
-                    case '4':
-                    case '5':
-                    case '6':
-                    case '7':
-                    case '8':
-                    case '9':
-                        break;
-                    case '.':
-                        {
-                            while (reader.TryRead(out c))
-                            {
-                                switch (c)
-                                {
-                                    case '0':
-                                    case '1':
-                                    case '2':
-                                    case '3':
-                                    case '4':
-                                    case '5':
-                                    case '6':
-                                    case '7':
-                                    case '8':
-                                    case '9':
-                                        break;
-                                    case 'e':
-                                    case 'E':
-                                        {
-                                            if (!reader.TryRead(out c))
-                                                throw reader.CreateException("Json ended prematurely");
-
-                                            switch (c)
-                                            {
-                                                case '0':
-                                                case '1':
-                                                case '2':
-                                                case '3':
-                                                case '4':
-                                                case '5':
-                                                case '6':
-                                                case '7':
-                                                case '8':
-                                                case '9':
-                                                case '+':
-                                                case '-':
-                                                    break;
-                                                default: throw reader.CreateException("Unexpected character");
-                                            }
-                                            while (reader.TryRead(out c))
-                                            {
-                                                switch (c)
-                                                {
-                                                    case '0':
-                                                    case '1':
-                                                    case '2':
-                                                    case '3':
-                                                    case '4':
-                                                    case '5':
-                                                    case '6':
-                                                    case '7':
-                                                    case '8':
-                                                    case '9':
-                                                        break;
-                                                    case ' ':
-                                                    case '\r':
-                                                    case '\n':
-                                                    case '\t':
-                                                        return;
-                                                    case ',':
-                                                    case '}':
-                                                    case ']':
-                                                        reader.BackOne();
-                                                        return;
-                                                    default:
-                                                        throw reader.CreateException("Unexpected character");
-                                                }
-                                            }
-                                            return;
-                                        }
-                                    case ' ':
-                                    case '\r':
-                                    case '\n':
-                                    case '\t':
-                                        return;
-                                    case ',':
-                                    case '}':
-                                    case ']':
-                                        reader.BackOne();
-                                        return;
-                                    default:
-                                        throw reader.CreateException("Unexpected character");
-                                }
-                            }
-                        }
-                        break;
-                    case 'e':
-                    case 'E':
-                        {
-                            if (!reader.TryRead(out c))
-                                throw reader.CreateException("Json ended prematurely");
-
-                            switch (c)
-                            {
-                                case '0':
-                                case '1':
-                                case '2':
-                                case '3':
-                                case '4':
-                                case '5':
-                                case '6':
-                                case '7':
-                                case '8':
-                                case '9':
-                                case '+':
-                                case '-':
-                                    break;
-                                default: throw reader.CreateException("Unexpected character");
-                            }
-                            while (reader.TryRead(out c))
-                            {
-                                switch (c)
-                                {
-                                    case '0':
-                                    case '1':
-                                    case '2':
-                                    case '3':
-                                    case '4':
-                                    case '5':
-                                    case '6':
-                                    case '7':
-                                    case '8':
-                                    case '9':
-                                        break;
-                                    case ' ':
-                                    case '\r':
-                                    case '\n':
-                                    case '\t':
-                                        return;
-                                    case ',':
-                                    case '}':
-                                    case ']':
-                                        reader.BackOne();
-                                        return;
-                                    default:
-                                        throw reader.CreateException("Unexpected character");
-                                }
-                            }
+                            state.BytesNeeded = 1;
                             return;
                         }
-                    case ' ':
-                    case '\r':
-                    case '\n':
-                    case '\t':
-                        return;
-                    case ',':
-                    case '}':
-                    case ']':
-                        reader.BackOne();
-                        return;
-                    default:
-                        throw reader.CreateException("Unexpected character");
+                        switch (c)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case '.':
+                                state.CurrentFrame.State = 2;
+                                break;
+                            case 'e':
+                            case 'E':
+                                state.CurrentFrame.State = 3;
+                                break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                state.CurrentFrame.ResultObject = decodeBuffer.ToString();
+                                decodeBuffer.Clear();
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                state.CurrentFrame.ResultObject = decodeBuffer.ToString();
+                                decodeBuffer.Clear();
+                                state.EndFrame();
+                                return;
+                        }
+                        decodeBuffer.Write(c);
+                        break;
+
+                    case 2: //decimal
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case 'e':
+                            case 'E':
+                                state.CurrentFrame.State = 3;
+                                break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                state.CurrentFrame.ResultObject = decodeBuffer.ToString();
+                                decodeBuffer.Clear();
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                state.CurrentFrame.ResultObject = decodeBuffer.ToString();
+                                decodeBuffer.Clear();
+                                state.EndFrame();
+                                return;
+                        }
+                        decodeBuffer.Write(c);
+                        break;
+
+                    case 3: //first exponent
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case '+': break;
+                            case '-': break;
+                            default: throw reader.CreateException("Unexpected character");
+                        }
+                        decodeBuffer.Write(c);
+                        state.CurrentFrame.State = 4;
+                        break;
+
+                    case 4: //exponent continue
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+
+                        switch (c)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                state.CurrentFrame.ResultObject = decodeBuffer.ToString();
+                                decodeBuffer.Clear();
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                state.CurrentFrame.ResultObject = decodeBuffer.ToString();
+                                decodeBuffer.Clear();
+                                state.EndFrame();
+                                return;
+                        }
+                        decodeBuffer.Write(c);
+                        break;
                 }
+                break;
             }
-            return;
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReadLiteralNumberAsInt64(ref CharReader reader, ref ReadState state)
+        {
+            long number = (long?)state.CurrentFrame.ResultObject ?? 0;
+            double workingNumber = (double?)state.CurrentFrame.LiteralNumberWorking ?? 0;
+
+            for (; ; )
+            {
+                switch (state.CurrentFrame.State)
+                {
+                    case 0: //first number
+                        switch (state.CurrentFrame.FirstLiteralChar)
+                        {
+                            case '0': number = 0; break;
+                            case '1': number = 1; break;
+                            case '2': number = 2; break;
+                            case '3': number = 3; break;
+                            case '4': number = 4; break;
+                            case '5': number = 5; break;
+                            case '6': number = 6; break;
+                            case '7': number = 7; break;
+                            case '8': number = 8; break;
+                            case '9': number = 9; break;
+                            case '-':
+                                number = 0;
+                                state.CurrentFrame.LiteralNumberIsNegative = true;
+                                break;
+                            default: throw reader.CreateException("Unexpected character");
+                        }
+                        state.CurrentFrame.State = 1;
+                        break;
+
+                    case 1: //next number
+                        if (!reader.TryRead(out var c))
+                        {
+                            state.BytesNeeded = 1;
+                            state.CurrentFrame.ResultObject = number;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': number *= 10; break;
+                            case '1': number = number * 10 + 1; break;
+                            case '2': number = number * 10 + 2; break;
+                            case '3': number = number * 10 + 3; break;
+                            case '4': number = number * 10 + 4; break;
+                            case '5': number = number * 10 + 5; break;
+                            case '6': number = number * 10 + 6; break;
+                            case '7': number = number * 10 + 7; break;
+                            case '8': number = number * 10 + 8; break;
+                            case '9': number = number * 10 + 9; break;
+                            case '.':
+                                state.CurrentFrame.State = 2;
+                                break;
+                            case 'e':
+                            case 'E':
+                                state.CurrentFrame.State = 3;
+                                break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                        }
+                        break;
+
+                    case 2: //decimal
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            state.CurrentFrame.ResultObject = number;
+                            state.CurrentFrame.LiteralNumberWorking = workingNumber;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case 'e':
+                            case 'E':
+                                state.CurrentFrame.State = 3;
+                                break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                        }
+                        break;
+
+                    case 3: //first exponent
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            state.CurrentFrame.ResultObject = number;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': workingNumber = 0; break;
+                            case '1': workingNumber = 1; break;
+                            case '2': workingNumber = 2; break;
+                            case '3': workingNumber = 3; break;
+                            case '4': workingNumber = 4; break;
+                            case '5': workingNumber = 5; break;
+                            case '6': workingNumber = 6; break;
+                            case '7': workingNumber = 7; break;
+                            case '8': workingNumber = 8; break;
+                            case '9': workingNumber = 9; break;
+                            case '+': workingNumber = 0; break;
+                            case '-':
+                                workingNumber = 0;
+                                state.CurrentFrame.LiteralNumberWorkingIsNegative = true;
+                                break;
+                            default: throw reader.CreateException("Unexpected character");
+                        }
+                        state.CurrentFrame.State = 4;
+                        break;
+
+                    case 4: //exponent continue
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            state.CurrentFrame.ResultObject = number;
+                            state.CurrentFrame.LiteralNumberWorking = workingNumber;
+                            return;
+                        }
+
+                        switch (c)
+                        {
+                            case '0': workingNumber *= 10; break;
+                            case '1': workingNumber = workingNumber * 10 + 1; break;
+                            case '2': workingNumber = workingNumber * 10 + 2; break;
+                            case '3': workingNumber = workingNumber * 10 + 3; break;
+                            case '4': workingNumber = workingNumber * 10 + 4; break;
+                            case '5': workingNumber = workingNumber * 10 + 5; break;
+                            case '6': workingNumber = workingNumber * 10 + 6; break;
+                            case '7': workingNumber = workingNumber * 10 + 7; break;
+                            case '8': workingNumber = workingNumber * 10 + 8; break;
+                            case '9': workingNumber = workingNumber * 10 + 9; break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                if (state.CurrentFrame.LiteralNumberWorkingIsNegative)
+                                    workingNumber *= -1;
+                                number *= (long)Math.Pow(10, workingNumber);
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                if (state.CurrentFrame.LiteralNumberWorkingIsNegative)
+                                    workingNumber *= -1;
+                                number *= (long)Math.Pow(10, workingNumber);
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                        }
+                        break;
+                }
+                break;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReadLiteralNumberAsUInt64(ref CharReader reader, ref ReadState state)
+        {
+            ulong number = (ulong?)state.CurrentFrame.ResultObject ?? 0;
+            double workingNumber = (double?)state.CurrentFrame.LiteralNumberWorking ?? 0;
+
+            for (; ; )
+            {
+                switch (state.CurrentFrame.State)
+                {
+                    case 0: //first number
+                        switch (state.CurrentFrame.FirstLiteralChar)
+                        {
+                            case '0': number = 0; break;
+                            case '1': number = 1; break;
+                            case '2': number = 2; break;
+                            case '3': number = 3; break;
+                            case '4': number = 4; break;
+                            case '5': number = 5; break;
+                            case '6': number = 6; break;
+                            case '7': number = 7; break;
+                            case '8': number = 8; break;
+                            case '9': number = 9; break;
+                            case '-':
+                                number = 0;
+                                state.CurrentFrame.LiteralNumberIsNegative = true;
+                                break;
+                            default: throw reader.CreateException("Unexpected character");
+                        }
+                        state.CurrentFrame.State = 1;
+                        break;
+
+                    case 1: //next number
+                        if (!reader.TryRead(out var c))
+                        {
+                            state.BytesNeeded = 1;
+                            state.CurrentFrame.ResultObject = number;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': number *= 10; break;
+                            case '1': number = number * 10 + 1; break;
+                            case '2': number = number * 10 + 2; break;
+                            case '3': number = number * 10 + 3; break;
+                            case '4': number = number * 10 + 4; break;
+                            case '5': number = number * 10 + 5; break;
+                            case '6': number = number * 10 + 6; break;
+                            case '7': number = number * 10 + 7; break;
+                            case '8': number = number * 10 + 8; break;
+                            case '9': number = number * 10 + 9; break;
+                            case '.':
+                                state.CurrentFrame.State = 2;
+                                break;
+                            case 'e':
+                            case 'E':
+                                state.CurrentFrame.State = 3;
+                                break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                        }
+                        break;
+
+                    case 2: //decimal
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            state.CurrentFrame.ResultObject = number;
+                            state.CurrentFrame.LiteralNumberWorking = workingNumber;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case 'e':
+                            case 'E':
+                                state.CurrentFrame.State = 3;
+                                break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                        }
+                        break;
+
+                    case 3: //first exponent
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            state.CurrentFrame.ResultObject = number;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': workingNumber = 0; break;
+                            case '1': workingNumber = 1; break;
+                            case '2': workingNumber = 2; break;
+                            case '3': workingNumber = 3; break;
+                            case '4': workingNumber = 4; break;
+                            case '5': workingNumber = 5; break;
+                            case '6': workingNumber = 6; break;
+                            case '7': workingNumber = 7; break;
+                            case '8': workingNumber = 8; break;
+                            case '9': workingNumber = 9; break;
+                            case '+': workingNumber = 0; break;
+                            case '-':
+                                workingNumber = 0;
+                                state.CurrentFrame.LiteralNumberWorkingIsNegative = true;
+                                break;
+                            default: throw reader.CreateException("Unexpected character");
+                        }
+                        state.CurrentFrame.State = 4;
+                        break;
+
+                    case 4: //exponent continue
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            state.CurrentFrame.ResultObject = number;
+                            state.CurrentFrame.LiteralNumberWorking = workingNumber;
+                            return;
+                        }
+
+                        switch (c)
+                        {
+                            case '0': workingNumber *= 10; break;
+                            case '1': workingNumber = workingNumber * 10 + 1; break;
+                            case '2': workingNumber = workingNumber * 10 + 2; break;
+                            case '3': workingNumber = workingNumber * 10 + 3; break;
+                            case '4': workingNumber = workingNumber * 10 + 4; break;
+                            case '5': workingNumber = workingNumber * 10 + 5; break;
+                            case '6': workingNumber = workingNumber * 10 + 6; break;
+                            case '7': workingNumber = workingNumber * 10 + 7; break;
+                            case '8': workingNumber = workingNumber * 10 + 8; break;
+                            case '9': workingNumber = workingNumber * 10 + 9; break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                if (state.CurrentFrame.LiteralNumberWorkingIsNegative)
+                                    workingNumber *= -1;
+                                number *= (ulong)Math.Pow(10, (ulong)workingNumber);
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                if (state.CurrentFrame.LiteralNumberWorkingIsNegative)
+                                    workingNumber *= -1;
+                                number *= (ulong)Math.Pow(10, (ulong)workingNumber);
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                        }
+                        break;
+                }
+                break;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReadLiteralNumberAsDouble(ref CharReader reader, ref ReadState state)
+        {
+            double number = (double?)state.CurrentFrame.ResultObject ?? 0;
+            double workingNumber = (double?)state.CurrentFrame.LiteralNumberWorking ?? 0;
+
+            for (; ; )
+            {
+                switch (state.CurrentFrame.State)
+                {
+                    case 0: //first number
+                        switch (state.CurrentFrame.FirstLiteralChar)
+                        {
+                            case '0': number = 0; break;
+                            case '1': number = 1; break;
+                            case '2': number = 2; break;
+                            case '3': number = 3; break;
+                            case '4': number = 4; break;
+                            case '5': number = 5; break;
+                            case '6': number = 6; break;
+                            case '7': number = 7; break;
+                            case '8': number = 8; break;
+                            case '9': number = 9; break;
+                            case '-':
+                                number = 0;
+                                state.CurrentFrame.LiteralNumberIsNegative = true;
+                                break;
+                            default: throw reader.CreateException("Unexpected character");
+                        }
+                        state.CurrentFrame.State = 1;
+                        break;
+
+                    case 1: //next number
+                        if (!reader.TryRead(out var c))
+                        {
+                            state.BytesNeeded = 1;
+                            state.CurrentFrame.ResultObject = number;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': number *= 10; break;
+                            case '1': number = number * 10 + 1; break;
+                            case '2': number = number * 10 + 2; break;
+                            case '3': number = number * 10 + 3; break;
+                            case '4': number = number * 10 + 4; break;
+                            case '5': number = number * 10 + 5; break;
+                            case '6': number = number * 10 + 6; break;
+                            case '7': number = number * 10 + 7; break;
+                            case '8': number = number * 10 + 8; break;
+                            case '9': number = number * 10 + 9; break;
+                            case '.':
+                                workingNumber = 10;
+                                state.CurrentFrame.State = 2;
+                                break;
+                            case 'e':
+                            case 'E':
+                                state.CurrentFrame.State = 3;
+                                break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                        }
+                        break;
+
+                    case 2: //decimal
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            state.CurrentFrame.ResultObject = number;
+                            state.CurrentFrame.LiteralNumberWorking = workingNumber;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': break;
+                            case '1': number += 1 / workingNumber; break;
+                            case '2': number += 2 / workingNumber; break;
+                            case '3': number += 3 / workingNumber; break;
+                            case '4': number += 4 / workingNumber; break;
+                            case '5': number += 5 / workingNumber; break;
+                            case '6': number += 6 / workingNumber; break;
+                            case '7': number += 7 / workingNumber; break;
+                            case '8': number += 8 / workingNumber; break;
+                            case '9': number += 9 / workingNumber; break;
+                            case 'e':
+                            case 'E':
+                                state.CurrentFrame.State = 3;
+                                break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                        }
+                        workingNumber *= 10;
+                        break;
+
+                    case 3: //first exponent
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            state.CurrentFrame.ResultObject = number;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': workingNumber = 0; break;
+                            case '1': workingNumber = 1; break;
+                            case '2': workingNumber = 2; break;
+                            case '3': workingNumber = 3; break;
+                            case '4': workingNumber = 4; break;
+                            case '5': workingNumber = 5; break;
+                            case '6': workingNumber = 6; break;
+                            case '7': workingNumber = 7; break;
+                            case '8': workingNumber = 8; break;
+                            case '9': workingNumber = 9; break;
+                            case '+': workingNumber = 0; break;
+                            case '-':
+                                workingNumber = 0;
+                                state.CurrentFrame.LiteralNumberWorkingIsNegative = true;
+                                break;
+                            default: throw reader.CreateException("Unexpected character");
+                        }
+                        state.CurrentFrame.State = 4;
+                        break;
+
+                    case 4: //exponent continue
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            state.CurrentFrame.ResultObject = number;
+                            state.CurrentFrame.LiteralNumberWorking = workingNumber;
+                            return;
+                        }
+
+                        switch (c)
+                        {
+                            case '0': workingNumber *= 10; break;
+                            case '1': workingNumber = workingNumber * 10 + 1; break;
+                            case '2': workingNumber = workingNumber * 10 + 2; break;
+                            case '3': workingNumber = workingNumber * 10 + 3; break;
+                            case '4': workingNumber = workingNumber * 10 + 4; break;
+                            case '5': workingNumber = workingNumber * 10 + 5; break;
+                            case '6': workingNumber = workingNumber * 10 + 6; break;
+                            case '7': workingNumber = workingNumber * 10 + 7; break;
+                            case '8': workingNumber = workingNumber * 10 + 8; break;
+                            case '9': workingNumber = workingNumber * 10 + 9; break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                if (state.CurrentFrame.LiteralNumberWorkingIsNegative)
+                                    workingNumber *= -1;
+                                number *= Math.Pow(10, workingNumber);
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                if (state.CurrentFrame.LiteralNumberWorkingIsNegative)
+                                    workingNumber *= -1;
+                                number *= Math.Pow(10, workingNumber);
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                        }
+                        break;
+                }
+                break;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReadLiteralNumberAsDecimal(ref CharReader reader, ref ReadState state)
+        {
+            decimal number = (decimal?)state.CurrentFrame.ResultObject ?? 0;
+            decimal workingNumber = (decimal?)state.CurrentFrame.LiteralNumberWorking ?? 0;
+
+            for (; ; )
+            {
+                switch (state.CurrentFrame.State)
+                {
+                    case 0: //first number
+                        switch (state.CurrentFrame.FirstLiteralChar)
+                        {
+                            case '0': number = 0; break;
+                            case '1': number = 1; break;
+                            case '2': number = 2; break;
+                            case '3': number = 3; break;
+                            case '4': number = 4; break;
+                            case '5': number = 5; break;
+                            case '6': number = 6; break;
+                            case '7': number = 7; break;
+                            case '8': number = 8; break;
+                            case '9': number = 9; break;
+                            case '-':
+                                number = 0;
+                                state.CurrentFrame.LiteralNumberIsNegative = true;
+                                break;
+                            default: throw reader.CreateException("Unexpected character");
+                        }
+                        state.CurrentFrame.State = 1;
+                        break;
+
+                    case 1: //next number
+                        if (!reader.TryRead(out var c))
+                        {
+                            state.BytesNeeded = 1;
+                            state.CurrentFrame.ResultObject = number;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': number *= 10; break;
+                            case '1': number = number * 10 + 1; break;
+                            case '2': number = number * 10 + 2; break;
+                            case '3': number = number * 10 + 3; break;
+                            case '4': number = number * 10 + 4; break;
+                            case '5': number = number * 10 + 5; break;
+                            case '6': number = number * 10 + 6; break;
+                            case '7': number = number * 10 + 7; break;
+                            case '8': number = number * 10 + 8; break;
+                            case '9': number = number * 10 + 9; break;
+                            case '.':
+                                workingNumber = 10;
+                                state.CurrentFrame.State = 2;
+                                break;
+                            case 'e':
+                            case 'E':
+                                state.CurrentFrame.State = 3;
+                                break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                        }
+                        break;
+
+                    case 2: //decimal
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            state.CurrentFrame.ResultObject = number;
+                            state.CurrentFrame.LiteralNumberWorking = workingNumber;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': break;
+                            case '1': number += 1 / workingNumber; break;
+                            case '2': number += 2 / workingNumber; break;
+                            case '3': number += 3 / workingNumber; break;
+                            case '4': number += 4 / workingNumber; break;
+                            case '5': number += 5 / workingNumber; break;
+                            case '6': number += 6 / workingNumber; break;
+                            case '7': number += 7 / workingNumber; break;
+                            case '8': number += 8 / workingNumber; break;
+                            case '9': number += 9 / workingNumber; break;
+                            case 'e':
+                            case 'E':
+                                state.CurrentFrame.State = 3;
+                                break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                        }
+                        workingNumber *= 10;
+                        break;
+
+                    case 3: //first exponent
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            state.CurrentFrame.ResultObject = number;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': workingNumber = 0; break;
+                            case '1': workingNumber = 1; break;
+                            case '2': workingNumber = 2; break;
+                            case '3': workingNumber = 3; break;
+                            case '4': workingNumber = 4; break;
+                            case '5': workingNumber = 5; break;
+                            case '6': workingNumber = 6; break;
+                            case '7': workingNumber = 7; break;
+                            case '8': workingNumber = 8; break;
+                            case '9': workingNumber = 9; break;
+                            case '+': workingNumber = 0; break;
+                            case '-':
+                                workingNumber = 0;
+                                state.CurrentFrame.LiteralNumberWorkingIsNegative = true;
+                                break;
+                            default: throw reader.CreateException("Unexpected character");
+                        }
+                        state.CurrentFrame.State = 4;
+                        break;
+
+                    case 4: //exponent continue
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            state.CurrentFrame.ResultObject = number;
+                            state.CurrentFrame.LiteralNumberWorking = workingNumber;
+                            return;
+                        }
+
+                        switch (c)
+                        {
+                            case '0': workingNumber *= 10; break;
+                            case '1': workingNumber = workingNumber * 10 + 1; break;
+                            case '2': workingNumber = workingNumber * 10 + 2; break;
+                            case '3': workingNumber = workingNumber * 10 + 3; break;
+                            case '4': workingNumber = workingNumber * 10 + 4; break;
+                            case '5': workingNumber = workingNumber * 10 + 5; break;
+                            case '6': workingNumber = workingNumber * 10 + 6; break;
+                            case '7': workingNumber = workingNumber * 10 + 7; break;
+                            case '8': workingNumber = workingNumber * 10 + 8; break;
+                            case '9': workingNumber = workingNumber * 10 + 9; break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                if (state.CurrentFrame.LiteralNumberWorkingIsNegative)
+                                    workingNumber *= -1;
+                                number *= (decimal)Math.Pow(10, (double)workingNumber);
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                if (state.CurrentFrame.LiteralNumberWorkingIsNegative)
+                                    workingNumber *= -1;
+                                number *= (decimal)Math.Pow(10, (double)workingNumber);
+                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.CurrentFrame.ResultObject = number;
+                                state.EndFrame();
+                                return;
+                        }
+                        break;
+                }
+                break;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReadLiteralNumberAsEmpty(ref CharReader reader, ref ReadState state)
+        {
+            for (; ; )
+            {
+                switch (state.CurrentFrame.State)
+                {
+                    case 0: //first number
+                        switch (state.CurrentFrame.FirstLiteralChar)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case '-': break;
+                            default: throw reader.CreateException("Unexpected character");
+                        }
+                        state.CurrentFrame.State = 1;
+                        break;
+
+                    case 1: //next number
+                        if (!reader.TryRead(out var c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case '.':
+                                state.CurrentFrame.State = 2;
+                                break;
+                            case 'e':
+                            case 'E':
+                                state.CurrentFrame.State = 3;
+                                break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                state.EndFrame();
+                                return;
+                        }
+                        break;
+
+                    case 2: //decimal
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case 'e':
+                            case 'E':
+                                state.CurrentFrame.State = 3;
+                                break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                state.EndFrame();
+                                return;
+                        }
+                        break;
+
+                    case 3: //first exponent
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case '+': break;
+                            case '-': break;
+                            default: throw reader.CreateException("Unexpected character");
+                        }
+                        state.CurrentFrame.State = 4;
+                        break;
+
+                    case 4: //exponent continue
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+
+                        switch (c)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                state.EndFrame();
+                                return;
+                        }
+                        break;
+                }
+                break;
+            }
+        }
+#pragma warning restore IDE0059 // Unnecessary assignment of a value
     }
 }

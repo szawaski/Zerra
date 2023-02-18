@@ -13,7 +13,10 @@ namespace Zerra.Serialization
             String,
             Object,
             Array,
-            Literal
+            ArrayNameless,
+            Literal,
+            LiteralNumberToType,
+            LiteralNumber
         }
     }
 }

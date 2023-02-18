@@ -18,7 +18,7 @@ namespace Zerra.Serialization
         private Dictionary<string, JsonObject> valueProperties;
         private JsonObject[] valueArray;
 
-        public JsonObjectType JsonType { get { return jsonType; } }
+        public JsonObjectType JsonType => jsonType;
 
         public JsonObject(string value, bool literal)
         {

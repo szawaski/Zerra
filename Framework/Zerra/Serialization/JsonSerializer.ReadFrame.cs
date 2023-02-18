@@ -13,10 +13,11 @@ namespace Zerra.Serialization
             public TypeDetail TypeDetail;
             public ReadFrameType FrameType;
 
+            public Graph Graph;
+
             public object ResultObject;
             public string ResultString;
 
-            public char Char;
             public int State;
 
             public MemberDetail ObjectProperty;
@@ -24,6 +25,14 @@ namespace Zerra.Serialization
             public MethodDetail ArrayAddMethod;
             public object[] ArrayAddMethodArgs;
             public TypeDetail ArrayElementType;
+
+            public char FirstLiteralChar;
+
+            public bool LiteralNumberIsNegative;
+            public object LiteralNumberWorking;
+            public bool LiteralNumberWorkingIsNegative;
+
+            public int PropertyIndexForNameless;
         }
     }
 }

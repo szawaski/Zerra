@@ -30,7 +30,7 @@ namespace Zerra.IO
                 return false;
             }
             c = buffer[position++];
-            while (c == ' ' || c == '\r' || c == '\n' || c == '\t')
+            while (!Char.IsWhiteSpace(c))
             {
                 if (position >= length)
                     return false;

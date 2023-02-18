@@ -213,14 +213,14 @@ namespace Zerra.Serialization
             if (json.Length == 0)
                 return new JsonObject(null, true);
 
-            var reader = new CharReader(json);
             var decodeBuffer = new CharWriter();
             try
             {
+                var reader = new CharReader(json);
                 if (!reader.TryReadSkipWhiteSpace(out var c))
                     throw reader.CreateException("Json ended prematurely");
 
-                var value = FromStringToJsonObject(c, ref reader, ref decodeBuffer, graph);
+                var value = FromStringJsonToJsonObject(c, ref reader, ref decodeBuffer, graph);
                 if (reader.HasMoreChars())
                 {
                     if (reader.TryReadSkipWhiteSpace(out _))
@@ -230,7 +230,6 @@ namespace Zerra.Serialization
             }
             finally
             {
-                reader.Dispose();
                 decodeBuffer.Dispose();
             }
         }
@@ -283,7 +282,7 @@ namespace Zerra.Serialization
                             if (typeDetail != null && typeDetail.SpecialType == SpecialType.Dictionary)
                             {
                                 //Dictionary Special Case
-                                var value = FromString(c, ref reader, ref decodeBuffer, typeDetail.InnerTypeDetails[0].InnerTypeDetails[1], null, nameless);
+                                var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail.InnerTypeDetails[0].InnerTypeDetails[1], null, nameless);
                                 if (typeDetail.InnerTypeDetails[0].InnerTypeDetails[0].CoreType.HasValue)
                                 {
                                     var key = TypeAnalyzer.Convert(propertyName, typeDetail.InnerTypeDetails[0].InnerTypes[0]);
@@ -296,7 +295,7 @@ namespace Zerra.Serialization
                                 if (typeDetail.TryGetSerializableMemberDetails(propertyName, out var memberDetail))
                                 {
                                     var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
-                                    var value = FromString(c, ref reader, ref decodeBuffer, memberDetail.TypeDetail, propertyGraph, nameless);
+                                    var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail.TypeDetail, propertyGraph, nameless);
                                     if (value != null)
                                     {
                                         if (graph != null)
@@ -320,13 +319,13 @@ namespace Zerra.Serialization
                                 }
                                 else
                                 {
-                                    _ = FromString(c, ref reader, ref decodeBuffer, null, null, nameless);
+                                    _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, nameless);
                                 }
                             }
                         }
                         else
                         {
-                            _ = FromString(c, ref reader, ref decodeBuffer, null, null, nameless);
+                            _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, nameless);
                         }
                         canExpectComma = true;
                         break;
@@ -422,7 +421,7 @@ namespace Zerra.Serialization
                     default:
                         if (canExpectComma)
                             throw reader.CreateException("Unexpected character");
-                        var value = FromString(c, ref reader, ref decodeBuffer, arrayElementType, graph, nameless);
+                        var value = FromStringJson(c, ref reader, ref decodeBuffer, arrayElementType, graph, nameless);
                         if (collection != null)
                         {
                             addMethodArgs[0] = value;
@@ -463,7 +462,7 @@ namespace Zerra.Serialization
                             if (memberDetail != null)
                             {
                                 var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
-                                var value = FromString(c, ref reader, ref decodeBuffer, memberDetail?.TypeDetail, propertyGraph, true);
+                                var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail?.TypeDetail, propertyGraph, true);
                                 if (memberDetail != null && memberDetail.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)
                                 {
                                     var dictionary = memberDetail.TypeDetail.Creator();
@@ -504,12 +503,12 @@ namespace Zerra.Serialization
                             }
                             else
                             {
-                                _ = FromString(c, ref reader, ref decodeBuffer, null, null, true);
+                                _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, true);
                             }
                         }
                         else
                         {
-                            _ = FromString(c, ref reader, ref decodeBuffer, null, null, true);
+                            _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, true);
                         }
                         canExpectComma = true;
                         break;
@@ -586,19 +585,19 @@ namespace Zerra.Serialization
                         {
                             if (typeDetail.CoreType == CoreType.String)
                             {
-                                var value = ReadLiteralNumberAsString(c, ref reader);
+                                var value = FromStringLiteralNumberAsString(c, ref reader);
                                 return value;
                             }
                             else if (typeDetail.CoreType.HasValue)
                             {
-                                return ReadLiteralNumberAsType(c, typeDetail.CoreType.Value, ref reader);
+                                return FromStringLiteralNumberAsType(c, typeDetail.CoreType.Value, ref reader);
                             }
                             else if (typeDetail.EnumUnderlyingType.HasValue)
                             {
-                                return ReadLiteralNumberAsType(c, typeDetail.EnumUnderlyingType.Value, ref reader);
+                                return FromStringLiteralNumberAsType(c, typeDetail.EnumUnderlyingType.Value, ref reader);
                             }
                         }
-                        ReadLiteralNumberAsEmpty(c, ref reader);
+                        FromStringLiteralNumberAsEmpty(c, ref reader);
                         return null;
                     }
             }
@@ -632,7 +631,7 @@ namespace Zerra.Serialization
                     case '"':
                         if (canExpectComma)
                             throw reader.CreateException("Unexpected character");
-                        var propertyName = ReadString(ref reader, ref decodeBuffer);
+                        var propertyName = FromStringString(ref reader, ref decodeBuffer);
 
                         ReadPropertySperator(ref reader);
 
@@ -640,7 +639,7 @@ namespace Zerra.Serialization
                             throw reader.CreateException("Json ended prematurely");
 
                         var propertyGraph = graph?.GetChildGraph(propertyName);
-                        var value = FromStringToJsonObject(c, ref reader, ref decodeBuffer, propertyGraph);
+                        var value = FromStringJsonToJsonObject(c, ref reader, ref decodeBuffer, propertyGraph);
 
                         if (graph != null)
                         {
@@ -706,7 +705,7 @@ namespace Zerra.Serialization
                     default:
                         if (canExpectComma)
                             throw reader.CreateException("Unexpected character");
-                        var value = FromStringToJsonObject(c, ref reader, ref decodeBuffer, graph);
+                        var value = FromStringJsonToJsonObject(c, ref reader, ref decodeBuffer, graph);
                         if (arrayList != null)
                             arrayList.Add(value);
                         canExpectComma = true;
@@ -774,7 +773,7 @@ namespace Zerra.Serialization
                     }
                 default:
                     {
-                        var value = ReadLiteralNumberAsString(c, ref reader);
+                        var value = FromStringLiteralNumberAsString(c, ref reader);
                         return new JsonObject(value, true);
                     }
             }
@@ -861,39 +860,41 @@ namespace Zerra.Serialization
             {
                 switch (coreType)
                 {
+                    case CoreType.String:
+                        return FromStringLiteralNumberAsString(c, ref reader);
                     case CoreType.Byte:
                     case CoreType.ByteNullable:
-                        return (byte)ReadLiteralNumberAsUInt64(c, ref reader);
+                        return (byte)FromStringLiteralNumberAsUInt64(c, ref reader);
                     case CoreType.SByte:
                     case CoreType.SByteNullable:
-                        return (sbyte)ReadLiteralNumberAsInt64(c, ref reader);
+                        return (sbyte)FromStringLiteralNumberAsInt64(c, ref reader);
                     case CoreType.Int16:
                     case CoreType.Int16Nullable:
-                        return (short)ReadLiteralNumberAsInt64(c, ref reader);
+                        return (short)FromStringLiteralNumberAsInt64(c, ref reader);
                     case CoreType.UInt16:
                     case CoreType.UInt16Nullable:
-                        return (ushort)ReadLiteralNumberAsUInt64(c, ref reader);
+                        return (ushort)FromStringLiteralNumberAsUInt64(c, ref reader);
                     case CoreType.Int32:
                     case CoreType.Int32Nullable:
-                        return (int)ReadLiteralNumberAsInt64(c, ref reader);
+                        return (int)FromStringLiteralNumberAsInt64(c, ref reader);
                     case CoreType.UInt32:
                     case CoreType.UInt32Nullable:
-                        return (uint)ReadLiteralNumberAsUInt64(c, ref reader);
+                        return (uint)FromStringLiteralNumberAsUInt64(c, ref reader);
                     case CoreType.Int64:
                     case CoreType.Int64Nullable:
-                        return (long)ReadLiteralNumberAsInt64(c, ref reader);
+                        return (long)FromStringLiteralNumberAsInt64(c, ref reader);
                     case CoreType.UInt64:
                     case CoreType.UInt64Nullable:
-                        return (ulong)ReadLiteralNumberAsUInt64(c, ref reader);
+                        return (ulong)FromStringLiteralNumberAsUInt64(c, ref reader);
                     case CoreType.Single:
                     case CoreType.SingleNullable:
-                        return (float)ReadLiteralNumberAsDouble(c, ref reader);
+                        return (float)FromStringLiteralNumberAsDouble(c, ref reader);
                     case CoreType.Double:
                     case CoreType.DoubleNullable:
-                        return (double)ReadLiteralNumberAsDouble(c, ref reader);
+                        return FromStringLiteralNumberAsDouble(c, ref reader);
                     case CoreType.Decimal:
                     case CoreType.DecimalNullable:
-                        return (decimal)ReadLiteralNumberAsDecimal(c, ref reader);
+                        return FromStringLiteralNumberAsDecimal(c, ref reader);
                 }
             }
             return null;
