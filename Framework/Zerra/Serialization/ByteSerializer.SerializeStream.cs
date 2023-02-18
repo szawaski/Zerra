@@ -386,8 +386,8 @@ namespace Zerra.Serialization
 
             state.CurrentFrame.HasWrittenPropertyType = true;
 
-            state.PushFrame();
-            state.CurrentFrame = WriteFrameFromType(state.CurrentFrame.Object, typeDetail, true, state.CurrentFrame.NullFlags);
+            var frame = WriteFrameFromType(state.CurrentFrame.Object, typeDetail, true, state.CurrentFrame.NullFlags);
+            state.PushFrame(frame);
         }
 
         private void WriteCoreType(ref ByteWriter writer, ref WriteState state)
@@ -814,14 +814,13 @@ namespace Zerra.Serialization
                                 var innerValue = (ICollection)method.Caller(null, new object[] { state.CurrentFrame.Object });
 
                                 state.CurrentFrame.ObjectInProgress = true;
-                                state.PushFrame();
-                                state.CurrentFrame = new WriteFrame()
+                                state.PushFrame(new WriteFrame()
                                 {
                                     FrameType = WriteFrameType.ObjectEnumerable,
                                     TypeDetail = typeDetail,
                                     NullFlags = false,
                                     Object = innerValue
-                                };
+                                });
                                 return;
                             }
                             else if (state.CurrentFrame.NullFlags)
@@ -918,8 +917,8 @@ namespace Zerra.Serialization
                 }
 
                 state.CurrentFrame.EnumeratorObjectInProgress = false;
-                state.PushFrame();
-                state.CurrentFrame = WriteFrameFromType(propertyValue, indexProperty.Value.SerailzierTypeDetails, false, false);
+                var frame = WriteFrameFromType(propertyValue, indexProperty.Value.SerailzierTypeDetails, false, false);
+                state.PushFrame(frame);
                 return;
             }
 
@@ -1490,8 +1489,8 @@ namespace Zerra.Serialization
                 }
 
                 state.CurrentFrame.EnumeratorObjectInProgress = false;
-                state.PushFrame();
-                state.CurrentFrame = WriteFrameFromType(value, typeDetail, false, false);
+                var frame = WriteFrameFromType(value, typeDetail, false, false);
+                state.PushFrame(frame);
                 return;
             }
 

@@ -14,11 +14,12 @@ namespace Zerra.Serialization
             public WriteFrame CurrentFrame;
             public bool Ended;
 
-            public void PushFrame()
+            public void PushFrame(WriteFrame frame)
             {
                 if (stack == null)
                     stack = new Stack<WriteFrame>();
                 stack.Push(CurrentFrame);
+                CurrentFrame = frame;
             }
             public void EndFrame()
             {
