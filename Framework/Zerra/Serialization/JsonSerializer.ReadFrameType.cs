@@ -15,7 +15,6 @@ namespace Zerra.Serialization
             Array,
             ArrayNameless,
             Literal,
-            LiteralNumberToType,
             LiteralNumber
         }
     }

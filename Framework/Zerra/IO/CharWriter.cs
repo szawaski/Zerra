@@ -52,6 +52,8 @@ namespace Zerra.IO
         public int Position => position;
         public int Length => length;
 
+        public char[] BufferOwner => bufferOwner;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureBufferSize(int additionalSize)
         {

@@ -5,6 +5,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Zerra.IO;
@@ -61,6 +62,28 @@ namespace Zerra.Serialization
             return Encoding.UTF8.GetBytes(json);
         }
 
+        public static void Serialize<T>(Stream stream, T obj, Graph graph = null)
+        {
+            if (obj == null)
+                return;
+
+            ToJson(stream, typeof(T), obj, graph);
+        }
+        public static void Serialize(Stream stream, object obj, Graph graph = null)
+        {
+            if (obj == null)
+                return;
+
+            ToJson(stream, obj.GetType(), obj, graph);
+        }
+        public static void Serialize(Stream stream, object obj, Type type, Graph graph = null)
+        {
+            if (obj == null)
+                return;
+
+            ToJson(stream, type, obj, graph);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static string ToJson(Type type, object obj, Graph graph = null)
         {
@@ -75,6 +98,16 @@ namespace Zerra.Serialization
             {
                 writer.Dispose();
             }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ToJson(Stream stream, Type type, object obj, Graph graph = null)
+        {
+            //Until Stack based Serializer
+            using var sr = new StreamReader(stream, new UTF8Encoding(false));
+            var writer = new CharWriter(sr.ReadToEnd().ToCharArray());
+
+            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
+            ToJson(obj, typeDetails, graph, ref writer, false);
         }
 
         public static string SerializeNameless<T>(T obj, Graph graph = null)
@@ -124,6 +157,28 @@ namespace Zerra.Serialization
             return Encoding.UTF8.GetBytes(json);
         }
 
+        public static void SerializeNameless<T>(Stream stream, T obj, Graph graph = null)
+        {
+            if (obj == null)
+                return;
+
+            ToJsonNameless(stream, typeof(T), obj, graph);
+        }
+        public static void SerializeNameless(Stream stream, object obj, Graph graph = null)
+        {
+            if (obj == null)
+                return;
+
+            ToJsonNameless(stream, obj.GetType(), obj, graph);
+        }
+        public static void SerializeNameless(Stream stream, object obj, Type type, Graph graph = null)
+        {
+            if (obj == null)
+                return;
+
+            ToJsonNameless(stream, type, obj, graph);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static string ToJsonNameless(Type type, object obj, Graph graph = null)
         {
@@ -138,6 +193,16 @@ namespace Zerra.Serialization
             {
                 writer.Dispose();
             }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ToJsonNameless(Stream stream, Type type, object obj, Graph graph = null)
+        {
+            //Until Stack based Serializer
+            using var sr = new StreamReader(stream, new UTF8Encoding(false));
+            var writer = new CharWriter(sr.ReadToEnd().ToCharArray());
+
+            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
+            ToJson(obj, typeDetails, graph, ref writer, true);
         }
 
         private static void ToJson(object value, TypeDetail typeDetail, Graph graph, ref CharWriter writer, bool nameless)

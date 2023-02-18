@@ -19,11 +19,14 @@ namespace Zerra.Serialization
             public bool Ended;
             public bool Nameless;
 
-            public void PushFrame()
+            public int Count => stack.Count;
+
+            public void PushFrame(ReadFrame frame)
             {
                 if (stack == null)
                     stack = new Stack<ReadFrame>();
                 stack.Push(CurrentFrame);
+                CurrentFrame = frame;
             }
             public void EndFrame()
             {

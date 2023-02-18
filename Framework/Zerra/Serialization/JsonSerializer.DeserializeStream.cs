@@ -312,6 +312,302 @@ namespace Zerra.Serialization
             }
         }
 
+        public static T DeserializeNamelessStackBased<T>(byte[] bytes, Graph graph = null)
+        {
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            return (T)DeserializeNamelessStackBased(typeof(T), bytes, graph);
+        }
+        public static object DeserializeNamelessStackBased(Type type, byte[] bytes, Graph graph = null)
+        {
+            if (type == null) throw new ArgumentNullException(nameof(type));
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+
+            var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
+            var decodeBufferPosition = 0;
+
+            try
+            {
+                var state = new ReadState() { Nameless = true };
+                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
+
+
+                Read(bytes, true, ref state, ref decodeBuffer, ref decodeBufferPosition);
+
+                if (!state.Ended || state.BytesNeeded > 0)
+                    throw new EndOfStreamException();
+
+                return state.LastFrameResultObject;
+            }
+            finally
+            {
+                BufferArrayPool<char>.Return(decodeBuffer);
+            }
+        }
+
+        public static T DeserializeNameless<T>(Stream stream, Graph graph = null)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            return (T)DeserializeNameless(typeof(T), stream, graph);
+        }
+        public static object DeserializeNameless(Type type, Stream stream, Graph graph = null)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+
+            var isFinalBlock = false;
+            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
+            var decodeBufferPosition = 0;
+
+            try
+            {
+
+#if NETSTANDARD2_0
+                var read = stream.Read(buffer, 0, buffer.Length);
+#else
+                var read = stream.Read(buffer.AsSpan());
+#endif
+
+                if (read == 0)
+                {
+                    isFinalBlock = true;
+                    return null;
+                }
+
+                var length = read;
+
+                var state = new ReadState() { Nameless = true };
+                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
+
+                for (; ; )
+                {
+                    Read(buffer.AsSpan().Slice(0, length), isFinalBlock, ref state, ref decodeBuffer, ref decodeBufferPosition);
+
+                    if (state.Ended)
+                        break;
+
+                    if (state.BytesNeeded > 0)
+                    {
+                        if (isFinalBlock)
+                            throw new EndOfStreamException();
+                        var position = state.BufferPostion;
+
+                        Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
+                        position = length - position;
+
+                        if (state.BytesNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+
+                        while (position < buffer.Length)
+                        {
+#if NETSTANDARD2_0
+                            read = stream.Read(buffer, position, buffer.Length - position);
+#else
+                            read = stream.Read(buffer.AsSpan(position));
+#endif
+
+                            if (read == 0)
+                            {
+                                isFinalBlock = true;
+                                break;
+                            }
+                            position += read;
+                            length = position;
+                        }
+
+                        if (position < state.BytesNeeded)
+                            throw new EndOfStreamException();
+
+                        state.BytesNeeded = 0;
+                    }
+                }
+
+                return state.LastFrameResultObject;
+            }
+            finally
+            {
+                Array.Clear(buffer, 0, buffer.Length);
+                BufferArrayPool<byte>.Return(buffer);
+                BufferArrayPool<char>.Return(decodeBuffer);
+            }
+        }
+
+        public static async Task<T> DeserializeNamelessAsync<T>(Stream stream, Graph graph = null)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+
+            var type = typeof(T);
+
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+
+            var isFinalBlock = false;
+            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
+            var decodeBufferPosition = 0;
+
+            try
+            {
+
+#if NETSTANDARD2_0
+                var read = await stream.ReadAsync(buffer, 0, buffer.Length);
+#else
+                var read = await stream.ReadAsync(buffer.AsMemory());
+#endif
+
+                if (read == 0)
+                {
+                    isFinalBlock = true;
+                    return default;
+                }
+
+                var length = read;
+
+                var state = new ReadState() { Nameless = true };
+                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
+
+                for (; ; )
+                {
+                    Read(buffer.AsSpan().Slice(0, length), isFinalBlock, ref state, ref decodeBuffer, ref decodeBufferPosition);
+
+                    if (state.Ended)
+                        break;
+
+                    if (state.BytesNeeded > 0)
+                    {
+                        if (isFinalBlock)
+                            throw new EndOfStreamException();
+                        var position = state.BufferPostion;
+
+                        Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
+                        position = length - position;
+
+                        if (state.BytesNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+
+                        while (position < buffer.Length)
+                        {
+#if NETSTANDARD2_0
+                            read = await stream.ReadAsync(buffer, position, buffer.Length - position);
+#else
+                            read = await stream.ReadAsync(buffer.AsMemory(position));
+#endif
+
+                            if (read == 0)
+                            {
+                                isFinalBlock = true;
+                                break;
+                            }
+                            position += read;
+                            length = position;
+                        }
+
+                        if (position < state.BytesNeeded)
+                            throw new EndOfStreamException();
+
+                        state.BytesNeeded = 0;
+                    }
+                }
+
+                return (T)state.LastFrameResultObject;
+            }
+            finally
+            {
+                Array.Clear(buffer, 0, buffer.Length);
+                BufferArrayPool<byte>.Return(buffer);
+                BufferArrayPool<char>.Return(decodeBuffer);
+            }
+        }
+        public static async Task<object> DeserializeNamelessAsync(Type type, Stream stream, Graph graph = null)
+        {
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+
+            var isFinalBlock = false;
+            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
+            var decodeBufferPosition = 0;
+
+            try
+            {
+#if NETSTANDARD2_0
+                var read = await stream.ReadAsync(buffer, 0, buffer.Length);
+#else
+                var read = await stream.ReadAsync(buffer.AsMemory());
+#endif
+                if (read == 0)
+                {
+                    isFinalBlock = true;
+                    return default;
+                }
+
+                var length = read;
+
+                var state = new ReadState() { Nameless = true };
+                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
+
+                for (; ; )
+                {
+                    Read(buffer.AsSpan().Slice(0, read), isFinalBlock, ref state, ref decodeBuffer, ref decodeBufferPosition);
+
+                    if (state.Ended)
+                        break;
+
+                    if (state.BytesNeeded > 0)
+                    {
+                        if (isFinalBlock)
+                            throw new EndOfStreamException();
+                        var position = state.BufferPostion;
+
+                        Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
+                        position = length - position;
+
+                        if (state.BytesNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+
+                        while (position < buffer.Length)
+                        {
+#if NETSTANDARD2_0
+                            read = await stream.ReadAsync(buffer, position, buffer.Length - position);
+#else
+                            read = await stream.ReadAsync(buffer.AsMemory(position));
+#endif
+
+                            if (read == 0)
+                            {
+                                isFinalBlock = true;
+                                break;
+                            }
+                            position += read;
+                            length = position;
+                        }
+
+                        if (position < state.BytesNeeded)
+                            throw new EndOfStreamException();
+
+                        state.BytesNeeded = 0;
+                    }
+                }
+
+                return state.LastFrameResultObject;
+            }
+            finally
+            {
+                Array.Clear(buffer, 0, buffer.Length);
+                BufferArrayPool<byte>.Return(buffer);
+                BufferArrayPool<char>.Return(decodeBuffer);
+            }
+        }
+
         private static void Read(ReadOnlySpan<byte> buffer, bool isFinalBlock, ref ReadState state, ref char[] decodeBuffer, ref int decodeBufferPosition)
         {
 #if NET5_0_OR_GREATER
@@ -340,16 +636,16 @@ namespace Zerra.Serialization
                     case ReadFrameType.Array: ReadArray(ref reader, ref state); break;
                     case ReadFrameType.ArrayNameless: ReadArrayNameless(ref reader, ref state); break;
 
-                    case ReadFrameType.Literal: ReadLiteral(ref reader, ref state); break;
-                    case ReadFrameType.LiteralNumberToType: ReadLiteralNumberToType(ref reader, ref state); break;
                     case ReadFrameType.LiteralNumber: ReadLiteralNumber(ref reader, ref state, ref decodeBufferWriter); break;
                 }
                 if (state.Ended)
                 {
+                    decodeBuffer = decodeBufferWriter.BufferOwner;
                     return;
                 }
                 if (state.BytesNeeded > 0)
                 {
+                    decodeBuffer = decodeBufferWriter.BufferOwner;
                     state.BufferPostion = reader.Position;
                     decodeBufferPosition = decodeBufferWriter.Position;
                     return;
@@ -360,41 +656,81 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadValue(ref CharReader reader, ref ReadState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
-            if (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable)
-            {
-                var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
-                typeDetail = TypeAnalyzer.GetTypeDetail(emptyImplementationType);
-            }
-
             if (!reader.TryReadSkipWhiteSpace(out var c))
             {
                 state.BytesNeeded = 1;
                 return;
             }
 
+            var typeDetail = state.CurrentFrame.TypeDetail;
+            var graph = state.CurrentFrame.Graph;
+
+            if (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable)
+            {
+                var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
+                typeDetail = TypeAnalyzer.GetTypeDetail(emptyImplementationType);
+            }
+
             switch (c)
             {
                 case '"':
-                    state.PushFrame();
-                    state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.StringToType };
-                    state.PushFrame();
-                    state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.String };
+                    state.CurrentFrame.FrameType = ReadFrameType.String;
+                    var frame = state.CurrentFrame;
+                    state.EndFrame();
+                    state.PushFrame(new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.StringToType, Graph = graph });
+                    state.PushFrame(frame);
                     return;
+
                 case '{':
-                    state.PushFrame();
-                    state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Object };
+                    state.CurrentFrame.FrameType = ReadFrameType.Object;
                     return;
+
                 case '[':
-                    state.PushFrame();
                     if (!state.Nameless || (typeDetail != null && typeDetail.IsIEnumerableGeneric))
-                        state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Array };
+                        state.CurrentFrame.FrameType = ReadFrameType.Array;
                     else
-                        state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.ArrayNameless };
+                        state.CurrentFrame.FrameType = ReadFrameType.ArrayNameless;
                     return;
+
+                case 'n':
+                    if (!reader.TryReadSpan(out var s, 3))
+                    {
+                        state.BytesNeeded = 3;
+                        return;
+                    }
+                    if (s[0] != 'u' || s[1] != 'l' || s[2] != 'l')
+                        throw reader.CreateException("Expected number/true/false/null");
+                    state.CurrentFrame.ResultObject = null;
+                    state.EndFrame();
+                    return;
+
+                case 't':
+                    if (!reader.TryReadSpan(out s, 3))
+                    {
+                        state.BytesNeeded = 3;
+                        return;
+                    }
+                    if (s[0] != 'r' || s[1] != 'u' || s[2] != 'e')
+                        throw reader.CreateException("Expected number/true/false/null");
+                    state.CurrentFrame.ResultObject = true;
+                    state.EndFrame();
+                    return;
+
+                case 'f':
+                    if (!reader.TryReadSpan(out s, 4))
+                    {
+                        state.BytesNeeded = 4;
+                        return;
+                    }
+                    if (s[0] != 'a' || s[1] != 'l' || s[2] != 's' || s[3] != 'e')
+                        throw reader.CreateException("Expected number/true/false/null");
+                    state.CurrentFrame.ResultObject = false;
+                    state.EndFrame();
+                    return;
+
                 default:
-                    state.PushFrame();
-                    state.CurrentFrame = new ReadFrame() { FirstLiteralChar = c, TypeDetail = typeDetail, FrameType = ReadFrameType.Literal };
+                    state.CurrentFrame.FirstLiteralChar = c;
+                    state.CurrentFrame.FrameType = ReadFrameType.LiteralNumber;
                     return;
             }
         }
@@ -404,15 +740,16 @@ namespace Zerra.Serialization
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
 
+            if (state.CurrentFrame.State == 0)
+            {
+                state.CurrentFrame.ResultObject = typeDetail.Creator();
+                state.CurrentFrame.State = 1;
+            }
+
             for (; ; )
             {
                 switch (state.CurrentFrame.State)
                 {
-                    case 0: //start
-                        state.CurrentFrame.ResultObject = typeDetail.Creator();
-                        state.CurrentFrame.State = 1;
-                        break;
-
                     case 1: //property name or end
                         if (!reader.TryReadSkipWhiteSpace(out var c))
                         {
@@ -423,16 +760,14 @@ namespace Zerra.Serialization
                         {
                             case '"':
                                 state.CurrentFrame.State = 2;
-                                state.PushFrame();
-                                state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.String };
-                                break;
+                                state.PushFrame(new ReadFrame() { FrameType = ReadFrameType.String });
+                                return;
                             case '}':
                                 state.EndFrame();
                                 return;
                             default:
                                 throw reader.CreateException("Unexpected character");
                         }
-                        break;
 
                     case 2: //property seperator
                         if (!reader.TryReadSkipWhiteSpace(out c))
@@ -452,11 +787,9 @@ namespace Zerra.Serialization
                             propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name);
                         }
 
-                        state.PushFrame();
-                        state.CurrentFrame = new ReadFrame() { TypeDetail = state.CurrentFrame.ObjectProperty?.TypeDetail, FrameType = ReadFrameType.Value, Graph = propertyGraph };
-
                         state.CurrentFrame.State = 3;
-                        break;
+                        state.PushFrame(new ReadFrame() { TypeDetail = state.CurrentFrame.ObjectProperty?.TypeDetail, FrameType = ReadFrameType.Value, Graph = propertyGraph });
+                        return;
 
                     case 3: //property value
                         if (typeDetail != null && typeDetail.SpecialType == SpecialType.Dictionary)
@@ -485,10 +818,10 @@ namespace Zerra.Serialization
                                 {
                                     state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                                 }
-                          
+
                             }
                         }
-                        state.CurrentFrame.State = 3;
+                        state.CurrentFrame.State = 4;
                         break;
 
                     case 4: //next property or end
@@ -516,59 +849,61 @@ namespace Zerra.Serialization
         private static void ReadArray(ref CharReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
+            var graph = state.CurrentFrame.Graph;
+
+            if (state.CurrentFrame.State == 0)
+            {
+                if (typeDetail != null && typeDetail.IsIEnumerableGeneric)
+                {
+                    state.CurrentFrame.ArrayElementType = typeDetail.IEnumerableGenericInnerTypeDetails;
+                    if (typeDetail.Type.IsArray)
+                    {
+                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
+                        state.CurrentFrame.ResultObject = genericListType.Creator();
+                        state.CurrentFrame.ArrayAddMethod = genericListType.GetMethod("Add");
+                        state.CurrentFrame.ArrayAddMethodArgs = new object[1];
+                    }
+                    else if (typeDetail.IsIList && typeDetail.Type.IsInterface)
+                    {
+                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
+                        state.CurrentFrame.ResultObject = genericListType.Creator();
+                        state.CurrentFrame.ArrayAddMethod = genericListType.GetMethod("Add");
+                        state.CurrentFrame.ArrayAddMethodArgs = new object[1];
+                    }
+                    else if (typeDetail.IsIList && !typeDetail.Type.IsInterface)
+                    {
+                        state.CurrentFrame.ResultObject = typeDetail.Creator();
+                        state.CurrentFrame.ArrayAddMethod = typeDetail.GetMethod("Add");
+                        state.CurrentFrame.ArrayAddMethodArgs = new object[1];
+                    }
+                    else if (typeDetail.IsISet && typeDetail.Type.IsInterface)
+                    {
+                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, typeDetail.InnerTypeDetails[0].Type));
+                        state.CurrentFrame.ResultObject = genericListType.Creator();
+                        state.CurrentFrame.ArrayAddMethod = genericListType.GetMethod("Add");
+                        state.CurrentFrame.ArrayAddMethodArgs = new object[1];
+                    }
+                    else if (typeDetail.IsISet && !typeDetail.Type.IsInterface)
+                    {
+                        state.CurrentFrame.ResultObject = typeDetail.Creator();
+                        state.CurrentFrame.ArrayAddMethod = typeDetail.GetMethod("Add");
+                        state.CurrentFrame.ArrayAddMethodArgs = new object[1];
+                    }
+                    else
+                    {
+                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
+                        state.CurrentFrame.ResultObject = genericListType.Creator();
+                        state.CurrentFrame.ArrayAddMethod = genericListType.GetMethod("Add");
+                        state.CurrentFrame.ArrayAddMethodArgs = new object[1];
+                    }
+                }
+                state.CurrentFrame.State = 1;
+            }
 
             for (; ; )
             {
                 switch (state.CurrentFrame.State)
                 {
-                    case 0: //start
-                        if (typeDetail != null && typeDetail.IsIEnumerableGeneric)
-                        {
-                            state.CurrentFrame.ArrayElementType = typeDetail.IEnumerableGenericInnerTypeDetails;
-                            if (typeDetail.Type.IsArray)
-                            {
-                                var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
-                                state.CurrentFrame.ResultObject = genericListType.Creator();
-                                state.CurrentFrame.ArrayAddMethod = genericListType.GetMethod("Add");
-                                state.CurrentFrame.ArrayAddMethodArgs = new object[1];
-                            }
-                            else if (typeDetail.IsIList && typeDetail.Type.IsInterface)
-                            {
-                                var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
-                                state.CurrentFrame.ResultObject = genericListType.Creator();
-                                state.CurrentFrame.ArrayAddMethod = genericListType.GetMethod("Add");
-                                state.CurrentFrame.ArrayAddMethodArgs = new object[1];
-                            }
-                            else if (typeDetail.IsIList && !typeDetail.Type.IsInterface)
-                            {
-                                state.CurrentFrame.ResultObject = typeDetail.Creator();
-                                state.CurrentFrame.ArrayAddMethod = typeDetail.GetMethod("Add");
-                                state.CurrentFrame.ArrayAddMethodArgs = new object[1];
-                            }
-                            else if (typeDetail.IsISet && typeDetail.Type.IsInterface)
-                            {
-                                var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, typeDetail.InnerTypeDetails[0].Type));
-                                state.CurrentFrame.ResultObject = genericListType.Creator();
-                                state.CurrentFrame.ArrayAddMethod = genericListType.GetMethod("Add");
-                                state.CurrentFrame.ArrayAddMethodArgs = new object[1];
-                            }
-                            else if (typeDetail.IsISet && !typeDetail.Type.IsInterface)
-                            {
-                                state.CurrentFrame.ResultObject = typeDetail.Creator();
-                                state.CurrentFrame.ArrayAddMethod = typeDetail.GetMethod("Add");
-                                state.CurrentFrame.ArrayAddMethodArgs = new object[1];
-                            }
-                            else
-                            {
-                                var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
-                                state.CurrentFrame.ResultObject = genericListType.Creator();
-                                state.CurrentFrame.ArrayAddMethod = genericListType.GetMethod("Add");
-                                state.CurrentFrame.ArrayAddMethodArgs = new object[1];
-                            }
-                        }
-                        state.CurrentFrame.State = 1;
-                        break;
-
                     case 1: //array value or end
                         if (!reader.TryReadSkipWhiteSpace(out var c))
                         {
@@ -576,49 +911,36 @@ namespace Zerra.Serialization
                             return;
                         }
 
-                        switch (c)
+                        if (c == ']')
                         {
-                            case ']':
-                                state.EndFrame();
-                                return;
-                            case '"':
-                                state.PushFrame();
-                                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.StringToType };
-                                state.PushFrame();
-                                state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.String };
-                                state.CurrentFrame.State = 2;
-                                return;
-                            case '{':
-                                state.PushFrame();
-                                state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Object };
-                                state.CurrentFrame.State = 2;
-                                return;
-                            case '[':
-                                state.PushFrame();
-                                if (!state.Nameless || (typeDetail != null && typeDetail.IsIEnumerableGeneric))
-                                    state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Array };
-                                else
-                                    state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Array };
-                                state.CurrentFrame.State = 2;
-                                return;
-                            default:
-                                state.PushFrame();
-                                state.CurrentFrame = new ReadFrame() { FirstLiteralChar = c, TypeDetail = typeDetail, FrameType = ReadFrameType.Literal };
-                                state.CurrentFrame.State = 2;
-                                return;
+                            if (state.CurrentFrame.ResultObject != null)
+                            {
+                                if (typeDetail.Type.IsArray && state.CurrentFrame.ArrayElementType != null)
+                                {
+                                    var list = (IList)state.CurrentFrame.ResultObject;
+                                    var array = Array.CreateInstance(state.CurrentFrame.ArrayElementType.Type, list.Count);
+                                    for (var i = 0; i < list.Count; i++)
+                                        array.SetValue(list[i], i);
+                                    state.CurrentFrame.ResultObject = array;
+                                }
+                            }
+                            state.EndFrame();
+                            return;
                         }
+                        
+                        reader.BackOne();
+
+                        state.CurrentFrame.State = 2;
+                        state.PushFrame(new ReadFrame() { TypeDetail = state.CurrentFrame.ArrayElementType, FrameType = ReadFrameType.Value, Graph = graph });
+                        return;
 
                     case 2: //array value
                         if (state.CurrentFrame.ResultObject != null)
                         {
-                            if (typeDetail.Type.IsArray && state.CurrentFrame.ArrayElementType != null)
-                            {
-                                var list = (IList)state.CurrentFrame.ResultObject;
-                                var array = Array.CreateInstance(state.CurrentFrame.ArrayElementType.Type, list.Count);
-                                for (var i = 0; i < list.Count; i++)
-                                    array.SetValue(list[i], i);
-                            }
+                            state.CurrentFrame.ArrayAddMethodArgs[0] = state.LastFrameResultObject;
+                            _ = state.CurrentFrame.ArrayAddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.ArrayAddMethodArgs);
                         }
+
                         state.CurrentFrame.State = 3;
                         break;
 
@@ -634,6 +956,17 @@ namespace Zerra.Serialization
                                 state.CurrentFrame.State = 1;
                                 break;
                             case ']':
+                                if (state.CurrentFrame.ResultObject != null)
+                                {
+                                    if (typeDetail.Type.IsArray && state.CurrentFrame.ArrayElementType != null)
+                                    {
+                                        var list = (IList)state.CurrentFrame.ResultObject;
+                                        var array = Array.CreateInstance(state.CurrentFrame.ArrayElementType.Type, list.Count);
+                                        for (var i = 0; i < list.Count; i++)
+                                            array.SetValue(list[i], i);
+                                        state.CurrentFrame.ResultObject = array;
+                                    }
+                                }
                                 state.EndFrame();
                                 return;
                             default:
@@ -647,17 +980,18 @@ namespace Zerra.Serialization
         private static void ReadArrayNameless(ref CharReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
+            var graph = state.CurrentFrame.Graph;
 
+            if (state.CurrentFrame.State == 0)
+            {
+                state.CurrentFrame.ResultObject = typeDetail?.Creator();
+                state.CurrentFrame.State = 1;
+            }
 
             for (; ; )
             {
                 switch (state.CurrentFrame.State)
                 {
-                    case 0: //start
-                        state.CurrentFrame.ResultObject = typeDetail?.Creator();
-                        state.CurrentFrame.State = 1;
-                        break;
-
                     case 1: //array value or end
                         if (!reader.TryReadSkipWhiteSpace(out var c))
                         {
@@ -665,37 +999,17 @@ namespace Zerra.Serialization
                             return;
                         }
 
-                        switch (c)
+                        if (c == ']')
                         {
-                            case ']':
-                                state.EndFrame();
-                                return;
-                            case '"':
-                                state.PushFrame();
-                                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.StringToType };
-                                state.PushFrame();
-                                state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.String };
-                                state.CurrentFrame.State = 2;
-                                return;
-                            case '{':
-                                state.PushFrame();
-                                state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Object };
-                                state.CurrentFrame.State = 2;
-                                return;
-                            case '[':
-                                state.PushFrame();
-                                if (!state.Nameless || (typeDetail != null && typeDetail.IsIEnumerableGeneric))
-                                    state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Array };
-                                else
-                                    state.CurrentFrame = new ReadFrame() { FrameType = ReadFrameType.Array };
-                                state.CurrentFrame.State = 2;
-                                return;
-                            default:
-                                state.PushFrame();
-                                state.CurrentFrame = new ReadFrame() { FirstLiteralChar = c, TypeDetail = typeDetail, FrameType = ReadFrameType.Literal };
-                                state.CurrentFrame.State = 2;
-                                return;
+                            state.EndFrame();
+                            return;
                         }
+
+                        reader.BackOne();
+
+                        state.CurrentFrame.State = 2;
+                        state.PushFrame(new ReadFrame() { TypeDetail = state.CurrentFrame.ArrayElementType, FrameType = ReadFrameType.Value, Graph = graph });
+                        return;
 
                     case 2: //array value
 
@@ -772,120 +1086,114 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadLiteral(ref CharReader reader, ref ReadState state)
-        {
-            var typeDetail = state.CurrentFrame.TypeDetail;
-            var c = state.CurrentFrame.FirstLiteralChar;
-
-            switch (c)
-            {
-                case 'n':
-                    if (!reader.TryReadSpan(out var s, 3))
-                    {
-                        state.BytesNeeded = 3;
-                        return;
-                    }
-                    if (s[0] != 'u' || s[1] != 'l' || s[2] != 'l')
-                        throw reader.CreateException("Expected number/true/false/null");
-                    state.EndFrame();
-                    return;
-
-                case 't':
-                    if (!reader.TryReadSpan(out s, 3))
-                    {
-                        state.BytesNeeded = 3;
-                        return;
-                    }
-                    if (s[0] != 'r' || s[1] != 'u' || s[2] != 'e')
-                        throw reader.CreateException("Expected number/true/false/null");
-                    state.EndFrame();
-                    return;
-
-                case 'f':
-                    if (!reader.TryReadSpan(out s, 4))
-                    {
-                        state.BytesNeeded = 4;
-                        return;
-                    }
-                    if (s[0] != 'a' || s[1] != 'l' || s[2] != 's' || s[3] != 'e')
-                        throw reader.CreateException("Expected number/true/false/null");
-                    state.EndFrame();
-                    return;
-
-                default:
-                    state.EndFrame();
-                    state.PushFrame();
-                    state.CurrentFrame = new ReadFrame() { FirstLiteralChar = c, TypeDetail = typeDetail, FrameType = ReadFrameType.LiteralNumberToType };
-                    state.PushFrame();
-                    state.CurrentFrame = new ReadFrame() { FirstLiteralChar = c, TypeDetail = typeDetail, FrameType = ReadFrameType.LiteralNumber };
-                    return;
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadLiteralNumberToType(ref CharReader reader, ref ReadState state)
-        {
-            var typeDetail = state.CurrentFrame.TypeDetail;
-            state.CurrentFrame.ResultObject = ConvertNumberToType(state.LastFrameResultObject, typeDetail);
-            state.EndFrame();
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadLiteralNumber(ref CharReader reader, ref ReadState state, ref CharWriter decodeBuffer)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
+            var frameCount = state.Count;
 
             var coreType = typeDetail == null ? null : typeDetail.CoreType ?? typeDetail.EnumUnderlyingType;
             switch (coreType)
             {
                 case CoreType.String:
                     ReadLiteralNumberAsString(ref reader, ref state, ref decodeBuffer);
-                    return;
+                    break;
                 case CoreType.Byte:
                 case CoreType.ByteNullable:
                     ReadLiteralNumberAsUInt64(ref reader, ref state);
-                    return;
+                    break;
                 case CoreType.SByte:
                 case CoreType.SByteNullable:
                     ReadLiteralNumberAsInt64(ref reader, ref state);
-                    return;
+                    break;
                 case CoreType.Int16:
                 case CoreType.Int16Nullable:
                     ReadLiteralNumberAsInt64(ref reader, ref state);
-                    return;
+                    break;
                 case CoreType.UInt16:
                 case CoreType.UInt16Nullable:
                     ReadLiteralNumberAsUInt64(ref reader, ref state);
-                    return;
+                    break;
                 case CoreType.Int32:
                 case CoreType.Int32Nullable:
                     ReadLiteralNumberAsInt64(ref reader, ref state);
-                    return;
+                    break;
                 case CoreType.UInt32:
                 case CoreType.UInt32Nullable:
                     ReadLiteralNumberAsUInt64(ref reader, ref state);
-                    return;
+                    break;
                 case CoreType.Int64:
                 case CoreType.Int64Nullable:
                     ReadLiteralNumberAsInt64(ref reader, ref state);
-                    return;
+                    break;
                 case CoreType.UInt64:
                 case CoreType.UInt64Nullable:
                     ReadLiteralNumberAsUInt64(ref reader, ref state);
-                    return;
+                    break;
                 case CoreType.Single:
                 case CoreType.SingleNullable:
                     ReadLiteralNumberAsDouble(ref reader, ref state);
-                    return;
+                    break;
                 case CoreType.Double:
                 case CoreType.DoubleNullable:
                     ReadLiteralNumberAsDouble(ref reader, ref state);
-                    return;
+                    break;
                 case CoreType.Decimal:
                 case CoreType.DecimalNullable:
                     ReadLiteralNumberAsDecimal(ref reader, ref state);
-                    return;
+                    break;
                 default:
                     ReadLiteralNumberAsEmpty(ref reader, ref state);
-                    return;
+                    break;
+            }
+
+            if (frameCount > state.Count)
+            {
+                unchecked
+                {
+                    switch (coreType)
+                    {
+                        case CoreType.Byte:
+                        case CoreType.ByteNullable:
+                            state.LastFrameResultObject = (byte)(ulong)state.LastFrameResultObject;
+                            break;
+                        case CoreType.SByte:
+                        case CoreType.SByteNullable:
+                            state.LastFrameResultObject = (sbyte)(long)state.LastFrameResultObject;
+                            break;
+                        case CoreType.Int16:
+                        case CoreType.Int16Nullable:
+                            state.LastFrameResultObject = (short)(long)state.LastFrameResultObject;
+                            break;
+                        case CoreType.UInt16:
+                        case CoreType.UInt16Nullable:
+                            state.LastFrameResultObject = (ushort)(ulong)state.LastFrameResultObject;
+                            break;
+                        case CoreType.Int32:
+                        case CoreType.Int32Nullable:
+                            state.LastFrameResultObject = (int)(long)state.LastFrameResultObject;
+                            break;
+                        case CoreType.UInt32:
+                        case CoreType.UInt32Nullable:
+                            state.LastFrameResultObject = (uint)(ulong)state.LastFrameResultObject;
+                            break;
+                        case CoreType.Int64:
+                        case CoreType.Int64Nullable:
+                            break;
+                        case CoreType.UInt64:
+                        case CoreType.UInt64Nullable:
+                            break;
+                        case CoreType.Single:
+                        case CoreType.SingleNullable:
+                            state.LastFrameResultObject = (float)(double)state.LastFrameResultObject;
+                            break;
+                        case CoreType.Double:
+                        case CoreType.DoubleNullable:
+                            break;
+                        case CoreType.Decimal:
+                        case CoreType.DecimalNullable:
+                            break;
+                    }
+                }
             }
         }
 
@@ -918,7 +1226,7 @@ namespace Zerra.Serialization
         //                    throw reader.CreateException("Unexpected character");
         //                var propertyName = ReadString(ref reader, ref decodeBuffer);
 
-        //                ReadPropertySperator(ref reader);
+        //                ReadPropertySeperator(ref reader);
 
         //                if (!reader.TryReadSkipWhiteSpace(out c))
         //                    throw reader.CreateException("Json ended prematurely");
@@ -1066,16 +1374,6 @@ namespace Zerra.Serialization
         //}
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadPropertySperator(ref CharReader reader)
-        {
-            if (!reader.TryReadSkipWhiteSpace(out var c))
-                throw reader.CreateException("Json ended prematurely");
-            if (c == ':')
-                return;
-            throw reader.CreateException("Unexpected character");
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadString(ref CharReader reader, ref ReadState state, ref CharWriter decodeBuffer)
         {
             char c;
@@ -1083,34 +1381,29 @@ namespace Zerra.Serialization
             {
                 switch (state.CurrentFrame.State)
                 {
-                    case 0: //start
-                        reader.BeginSegment(false);
-                        state.CurrentFrame.State = 1;
-                        break;
-                    case 1: //reading segment
-                        if (!reader.TryReadUntil(out c, '\"', '\\'))
+                    case 0: //reading segment
+                        if (!reader.TryReadSpanUntil(out var s, '\"', '\\'))
                         {
-                            reader.EndSegmentCopyTo(false, ref decodeBuffer);
+                            decodeBuffer.Write(s.Slice(0, s.Length - 1));
                             state.CurrentFrame.State = 0;
                             state.BytesNeeded = 1;
                             return;
                         }
-
+                        decodeBuffer.Write(s.Slice(0, s.Length - 1));
+                        c = s[s.Length - 1];
                         switch (c)
                         {
                             case '\"':
-                                reader.EndSegmentCopyTo(false, ref decodeBuffer);
                                 state.CurrentFrame.ResultString = decodeBuffer.ToString();
                                 decodeBuffer.Clear();
                                 state.EndFrame();
                                 return;
                             case '\\':
-                                reader.EndSegmentCopyTo(false, ref decodeBuffer);
-                                state.CurrentFrame.State = 2;
+                                state.CurrentFrame.State = 1;
                                 break;
                         }
                         break;
-                    case 2: //reading escape
+                    case 1: //reading escape
 
                         if (!reader.TryRead(out c))
                         {
@@ -1122,41 +1415,35 @@ namespace Zerra.Serialization
                         {
                             case 'b':
                                 decodeBuffer.Write('\b');
-                                reader.BeginSegment(false);
-                                state.CurrentFrame.State = 1;
+                                state.CurrentFrame.State = 0;
                                 break;
                             case 't':
                                 decodeBuffer.Write('\t');
-                                reader.BeginSegment(false);
-                                state.CurrentFrame.State = 1;
+                                state.CurrentFrame.State = 0;
                                 break;
                             case 'n':
                                 decodeBuffer.Write('\n');
-                                reader.BeginSegment(false);
-                                state.CurrentFrame.State = 1;
+                                state.CurrentFrame.State = 0;
                                 break;
                             case 'f':
                                 decodeBuffer.Write('\f');
-                                reader.BeginSegment(false);
-                                state.CurrentFrame.State = 1;
+                                state.CurrentFrame.State = 0;
                                 break;
                             case 'r':
                                 decodeBuffer.Write('\r');
-                                reader.BeginSegment(false);
-                                state.CurrentFrame.State = 1;
+                                state.CurrentFrame.State = 0;
                                 break;
                             case 'u':
-                                state.CurrentFrame.State = 3;
+                                state.CurrentFrame.State = 2;
                                 break;
                             default:
                                 decodeBuffer.Write(c);
-                                reader.BeginSegment(false);
-                                state.CurrentFrame.State = 1;
+                                state.CurrentFrame.State = 0;
                                 break;
                         }
 
                         break;
-                    case 3: //reading escape unicode
+                    case 2: //reading escape unicode
                         if (!reader.TryReadString(out var unicodeString, 4))
                         {
                             state.BytesNeeded = 4;
@@ -1165,8 +1452,7 @@ namespace Zerra.Serialization
                         if (!lowUnicodeHexToChar.TryGetValue(unicodeString, out var unicodeChar))
                             throw reader.CreateException("Incomplete escape sequence");
                         decodeBuffer.Write(unicodeChar);
-                        reader.BeginSegment(false);
-                        state.CurrentFrame.State = 1;
+                        state.CurrentFrame.State = 0;
                         break;
                 }
             }
@@ -1179,7 +1465,6 @@ namespace Zerra.Serialization
             state.EndFrame();
         }
 
-#pragma warning disable IDE0059 // Unnecessary assignment of a value
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadLiteralNumberAsString(ref CharReader reader, ref ReadState state, ref CharWriter decodeBuffer)
         {
@@ -1359,9 +1644,173 @@ namespace Zerra.Serialization
                         decodeBuffer.Write(c);
                         break;
                 }
-                break;
             }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReadLiteralNumberAsEmpty(ref CharReader reader, ref ReadState state)
+        {
+            for (; ; )
+            {
+                switch (state.CurrentFrame.State)
+                {
+                    case 0: //first number
+                        switch (state.CurrentFrame.FirstLiteralChar)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case '-': break;
+                            default: throw reader.CreateException("Unexpected character");
+                        }
+                        state.CurrentFrame.State = 1;
+                        break;
+
+                    case 1: //next number
+                        if (!reader.TryRead(out var c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case '.':
+                                state.CurrentFrame.State = 2;
+                                break;
+                            case 'e':
+                            case 'E':
+                                state.CurrentFrame.State = 3;
+                                break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                state.EndFrame();
+                                return;
+                        }
+                        break;
+
+                    case 2: //decimal
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case 'e':
+                            case 'E':
+                                state.CurrentFrame.State = 3;
+                                break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                state.EndFrame();
+                                return;
+                        }
+                        break;
+
+                    case 3: //first exponent
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case '+': break;
+                            case '-': break;
+                            default: throw reader.CreateException("Unexpected character");
+                        }
+                        state.CurrentFrame.State = 4;
+                        break;
+
+                    case 4: //exponent continue
+                        if (!reader.TryRead(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+
+                        switch (c)
+                        {
+                            case '0': break;
+                            case '1': break;
+                            case '2': break;
+                            case '3': break;
+                            case '4': break;
+                            case '5': break;
+                            case '6': break;
+                            case '7': break;
+                            case '8': break;
+                            case '9': break;
+                            case ' ':
+                            case '\r':
+                            case '\n':
+                            case '\t':
+                                state.EndFrame();
+                                return;
+                            case ',':
+                            case '}':
+                            case ']':
+                                reader.BackOne();
+                                state.EndFrame();
+                                return;
+                        }
+                        break;
+                }
+            }
+        }
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadLiteralNumberAsInt64(ref CharReader reader, ref ReadState state)
         {
@@ -1563,7 +2012,6 @@ namespace Zerra.Serialization
                         }
                         break;
                 }
-                break;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1755,7 +2203,6 @@ namespace Zerra.Serialization
                         }
                         break;
                 }
-                break;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1961,7 +2408,6 @@ namespace Zerra.Serialization
                         }
                         break;
                 }
-                break;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2167,172 +2613,6 @@ namespace Zerra.Serialization
                         }
                         break;
                 }
-                break;
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadLiteralNumberAsEmpty(ref CharReader reader, ref ReadState state)
-        {
-            for (; ; )
-            {
-                switch (state.CurrentFrame.State)
-                {
-                    case 0: //first number
-                        switch (state.CurrentFrame.FirstLiteralChar)
-                        {
-                            case '0': break;
-                            case '1': break;
-                            case '2': break;
-                            case '3': break;
-                            case '4': break;
-                            case '5': break;
-                            case '6': break;
-                            case '7': break;
-                            case '8': break;
-                            case '9': break;
-                            case '-': break;
-                            default: throw reader.CreateException("Unexpected character");
-                        }
-                        state.CurrentFrame.State = 1;
-                        break;
-
-                    case 1: //next number
-                        if (!reader.TryRead(out var c))
-                        {
-                            state.BytesNeeded = 1;
-                            return;
-                        }
-                        switch (c)
-                        {
-                            case '0': break;
-                            case '1': break;
-                            case '2': break;
-                            case '3': break;
-                            case '4': break;
-                            case '5': break;
-                            case '6': break;
-                            case '7': break;
-                            case '8': break;
-                            case '9': break;
-                            case '.':
-                                state.CurrentFrame.State = 2;
-                                break;
-                            case 'e':
-                            case 'E':
-                                state.CurrentFrame.State = 3;
-                                break;
-                            case ' ':
-                            case '\r':
-                            case '\n':
-                            case '\t':
-                                state.EndFrame();
-                                return;
-                            case ',':
-                            case '}':
-                            case ']':
-                                reader.BackOne();
-                                state.EndFrame();
-                                return;
-                        }
-                        break;
-
-                    case 2: //decimal
-                        if (!reader.TryRead(out c))
-                        {
-                            state.BytesNeeded = 1;
-                            return;
-                        }
-                        switch (c)
-                        {
-                            case '0': break;
-                            case '1': break;
-                            case '2': break;
-                            case '3': break;
-                            case '4': break;
-                            case '5': break;
-                            case '6': break;
-                            case '7': break;
-                            case '8': break;
-                            case '9': break;
-                            case 'e':
-                            case 'E':
-                                state.CurrentFrame.State = 3;
-                                break;
-                            case ' ':
-                            case '\r':
-                            case '\n':
-                            case '\t':
-                                state.EndFrame();
-                                return;
-                            case ',':
-                            case '}':
-                            case ']':
-                                reader.BackOne();
-                                state.EndFrame();
-                                return;
-                        }
-                        break;
-
-                    case 3: //first exponent
-                        if (!reader.TryRead(out c))
-                        {
-                            state.BytesNeeded = 1;
-                            return;
-                        }
-                        switch (c)
-                        {
-                            case '0': break;
-                            case '1': break;
-                            case '2': break;
-                            case '3': break;
-                            case '4': break;
-                            case '5': break;
-                            case '6': break;
-                            case '7': break;
-                            case '8': break;
-                            case '9': break;
-                            case '+': break;
-                            case '-': break;
-                            default: throw reader.CreateException("Unexpected character");
-                        }
-                        state.CurrentFrame.State = 4;
-                        break;
-
-                    case 4: //exponent continue
-                        if (!reader.TryRead(out c))
-                        {
-                            state.BytesNeeded = 1;
-                            return;
-                        }
-
-                        switch (c)
-                        {
-                            case '0': break;
-                            case '1': break;
-                            case '2': break;
-                            case '3': break;
-                            case '4': break;
-                            case '5': break;
-                            case '6': break;
-                            case '7': break;
-                            case '8': break;
-                            case '9': break;
-                            case ' ':
-                            case '\r':
-                            case '\n':
-                            case '\t':
-                                state.EndFrame();
-                                return;
-                            case ',':
-                            case '}':
-                            case ']':
-                                reader.BackOne();
-                                state.EndFrame();
-                                return;
-                        }
-                        break;
-                }
-                break;
             }
         }
 #pragma warning restore IDE0059 // Unnecessary assignment of a value

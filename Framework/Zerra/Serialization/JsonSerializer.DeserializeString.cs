@@ -272,7 +272,7 @@ namespace Zerra.Serialization
                             throw reader.CreateException("Unexpected character");
                         var propertyName = FromStringString(ref reader, ref decodeBuffer);
 
-                        ReadPropertySperator(ref reader);
+                        FromStringPropertySeperator(ref reader);
 
                         if (!reader.TryReadSkipWhiteSpace(out c))
                             throw reader.CreateException("Json ended prematurely");
@@ -633,7 +633,7 @@ namespace Zerra.Serialization
                             throw reader.CreateException("Unexpected character");
                         var propertyName = FromStringString(ref reader, ref decodeBuffer);
 
-                        ReadPropertySperator(ref reader);
+                        FromStringPropertySeperator(ref reader);
 
                         if (!reader.TryReadSkipWhiteSpace(out c))
                             throw reader.CreateException("Json ended prematurely");
@@ -781,7 +781,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void FromStringPropertySperator(ref CharReader reader)
+        private static void FromStringPropertySeperator(ref CharReader reader)
         {
             if (!reader.TryReadSkipWhiteSpace(out var c))
                 throw reader.CreateException("Json ended prematurely");

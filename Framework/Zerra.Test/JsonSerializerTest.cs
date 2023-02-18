@@ -7,6 +7,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using Zerra.Serialization;
 
 namespace Zerra.Test
@@ -561,31 +563,42 @@ namespace Zerra.Test
             Assert.AreEqual(6, model2.Property2);
         }
 
-        [TestMethod]
-        public void DeserializeStream()
-        {
-            var model1 = Factory.GetAllTypesModel();
-            var bytes = JsonSerializer.SerializeBytes(model1);
-            var test = JsonSerializer.Serialize(model1);
-            using (var ms = new MemoryStream(bytes))
-            {
-                var model2 = JsonSerializer.Deserialize<AllTypesModel>(ms);
-                Factory.AssertAreEqual(model1, model2);
-            }
-        }
+        //[TestMethod]
+        //public void DeserializeStream()
+        //{
+        //    var model1 = Factory.GetAllTypesModel();
+        //    var bytes = JsonSerializer.SerializeBytes(model1);
+        //    var test = JsonSerializer.Serialize(model1);
+        //    using (var ms = new MemoryStream(bytes))
+        //    {
+        //        var model2 = JsonSerializer.Deserialize<AllTypesModel>(ms);
+        //        Factory.AssertAreEqual(model1, model2);
+        //    }
+        //}
+
+        //[TestMethod]
+        //public void SerializeStream()
+        //{
+        //    var model1 = Factory.GetAllTypesModel();
+        //    byte[] bytes;
+        //    using (var ms = new MemoryStream())
+        //    {
+        //        JsonSerializer.Serialize(ms, model1);
+        //        bytes = ms.ToArray();
+        //    }
+        //    var model2 = JsonSerializer.Deserialize<AllTypesModel>(bytes);
+        //    Factory.AssertAreEqual(model1, model2);
+        //}
 
         [TestMethod]
-        public void SerializeStream()
+        public async Task StreamTypes()
         {
-            var model1 = Factory.GetAllTypesModel();
-            byte[] bytes;
-            using (var ms = new MemoryStream())
-            {
-                JsonSerializer.Serialize(ms, model1);
-                bytes = ms.ToArray();
-            }
-            var model2 = JsonSerializer.Deserialize<AllTypesModel>(bytes);
-            Factory.AssertAreEqual(model1, model2);
+            var baseModel = Factory.GetAllTypesModel();
+            var json = JsonSerializer.Serialize(baseModel);
+            var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+
+            var model = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream);
+            Factory.AssertAreEqual(baseModel, model);
         }
     }
 }

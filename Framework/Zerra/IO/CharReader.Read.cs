@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Drawing;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
@@ -30,7 +31,7 @@ namespace Zerra.IO
                 return false;
             }
             c = buffer[position++];
-            while (!Char.IsWhiteSpace(c))
+            while (Char.IsWhiteSpace(c))
             {
                 if (position >= length)
                     return false;
@@ -38,6 +39,7 @@ namespace Zerra.IO
             }
             return true;
         }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryReadUntil(out char c, char value)
         {
@@ -123,6 +125,7 @@ namespace Zerra.IO
             }
             return true;
         }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryReadSpan(out ReadOnlySpan<char> s, int count)
         {
@@ -132,8 +135,99 @@ namespace Zerra.IO
                 return false;
             }
             s = buffer.Slice(position, count);
+            position += count;
             return true;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryReadSpanUntil(out ReadOnlySpan<char> s, char value)
+        {
+            if (position >= length)
+            {
+                s = default;
+                return false;
+            }
+            var start = position;
+            var c = buffer[position++];
+            while (c != value)
+            {
+                if (position >= length)
+                {
+                    s = buffer.Slice(start, position - start);
+                    return false;
+                }
+                c = buffer[position++];
+            }
+            s = buffer.Slice(start, position - start);
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryReadSpanUntil(out ReadOnlySpan<char> s, char value1, char value2)
+        {
+            if (position >= length)
+            {
+                s = default;
+                return false;
+            }
+            var start = position;
+            var c = buffer[position++];
+            while (c != value1 && c != value2)
+            {
+                if (position >= length)
+                {
+                    s = buffer.Slice(start, position - start);
+                    return false;
+                }
+                c = buffer[position++];
+            }
+            s = buffer.Slice(start, position - start);
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryReadSpanUntil(out ReadOnlySpan<char> s, char value1, char value2, char value3)
+        {
+            if (position >= length)
+            {
+                s = default;
+                return false;
+            }
+            var start = position;
+            var c = buffer[position++];
+            while (c != value1 && c != value2 && c != value3)
+            {
+                if (position >= length)
+                {
+                    s = buffer.Slice(start, position - start);
+                    return false;
+                }
+                c = buffer[position++];
+            }
+            s = buffer.Slice(start, position - start);
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryReadSpanUntil(out ReadOnlySpan<char> s, char value1, char value2, char value3, char value4)
+        {
+            if (position >= length)
+            {
+                s = default;
+                return false;
+            }
+            var start = position;
+            var c = buffer[position++];
+            while (c != value1 && c != value2 && c != value3 && c != value4)
+            {
+                if (position >= length)
+                {
+                    s = buffer.Slice(start, position - start);
+                    return false;
+                }
+                c = buffer[position++];
+            }
+            s = buffer.Slice(start, position - start);
+            return true;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryReadString(out string s, int count)
         {
