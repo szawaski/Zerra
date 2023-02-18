@@ -443,8 +443,8 @@ namespace Zerra.Serialization
 
             state.CurrentFrame.HasReadPropertyType = true;
 
-            state.PushFrame();
-            state.CurrentFrame = ReadFrameFromType(typeDetail, true, state.CurrentFrame.NullFlags);
+            var frame = ReadFrameFromType(typeDetail, true, state.CurrentFrame.NullFlags);
+            state.PushFrame(frame);
         }
 
         private void ReadCoreType(ref ByteReader reader, ref ReadState state)
@@ -1074,13 +1074,12 @@ namespace Zerra.Serialization
                             }
                             state.CurrentFrame.HasObjectStarted = true;
 
-                            state.PushFrame();
-                            state.CurrentFrame = new ReadFrame()
+                            state.PushFrame(new ReadFrame()
                             {
                                 FrameType = ReadFrameType.ObjectEnumerable,
                                 TypeDetail = typeDetail,
                                 NullFlags = false
-                            };
+                            });
 
                             return;
                         }
@@ -1169,15 +1168,15 @@ namespace Zerra.Serialization
                             throw new Exception($"Cannot deserialize with property {name} undefined and no types.");
 
                         //consume bytes but object does not have property
-                        state.PushFrame();
-                        state.CurrentFrame = ReadFrameFromType(null, false, false);
+                        var frame = ReadFrameFromType(null, false, false);
+                        state.PushFrame(frame);
                         state.CurrentFrame.DrainBytes = true;
                         return;
                     }
                     else
                     {
-                        state.PushFrame();
-                        state.CurrentFrame = ReadFrameFromType(property.SerailzierTypeDetails, false, false);
+                        var frame = ReadFrameFromType(property.SerailzierTypeDetails, false, false);
+                        state.PushFrame(frame);
                         return;
                     }
                 }
@@ -1225,15 +1224,15 @@ namespace Zerra.Serialization
                             throw new Exception($"Cannot deserialize with property {propertyIndex} undefined and no types.");
 
                         //consume bytes but object does not have property
-                        state.PushFrame();
-                        state.CurrentFrame = ReadFrameFromType(null, false, false);
+                        var frame = ReadFrameFromType(null, false, false);
+                        state.PushFrame(frame);
                         state.CurrentFrame.DrainBytes = true;
                         return;
                     }
                     else
                     {
-                        state.PushFrame();
-                        state.CurrentFrame = ReadFrameFromType(property.SerailzierTypeDetails, false, false);
+                        var frame = ReadFrameFromType(property.SerailzierTypeDetails, false, false);
+                        state.PushFrame(frame);
                         return;
                     }
                 }
@@ -2377,8 +2376,8 @@ namespace Zerra.Serialization
                 if (!state.CurrentFrame.HasObjectStarted)
                 {
                     state.CurrentFrame.HasObjectStarted = true;
-                    state.PushFrame();
-                    state.CurrentFrame = ReadFrameFromType(typeDetail, false, false);
+                    var frame = ReadFrameFromType(typeDetail, false, false);
+                    state.PushFrame(frame);
                     return;
                 }
 
