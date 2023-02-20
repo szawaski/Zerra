@@ -126,95 +126,27 @@ namespace Zerra.Serialization
             }
         }
 
-        public async Task SerializeAsync(Stream stream, object obj)
+        public Task SerializeAsync(Stream stream, object obj)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
             if (obj == null)
-                return;
+                return Task.CompletedTask;
 
             var type = obj.GetType();
 
-            var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
-
-            try
-            {
-                var state = new WriteState();
-                state.CurrentFrame = WriteFrameFromType(obj, typeDetail, false, true);
-
-                for (; ; )
-                {
-                    Write(buffer, ref state);
-
-#if NETSTANDARD2_0
-                    await stream.WriteAsync(buffer, 0, state.BufferPostion);
-#else
-                    await stream.WriteAsync(buffer.AsMemory(0, state.BufferPostion));
-#endif
-
-                    if (state.Ended)
-                        break;
-
-                    if (state.BytesNeeded > 0)
-                    {
-                        if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
-
-                        state.BytesNeeded = 0;
-                    }
-                }
-            }
-            finally
-            {
-                Array.Clear(buffer, 0, buffer.Length);
-                BufferArrayPool<byte>.Return(buffer);
-            }
+            return SerializeAsync(stream, obj, type);
         }
-        public async Task SerializeAsync<T>(Stream stream, T obj)
+        public Task SerializeAsync<T>(Stream stream, T obj)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
             if (obj == null)
-                return;
+                return Task.CompletedTask;
 
             var type = typeof(T);
 
-            var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
-
-            try
-            {
-                var state = new WriteState();
-                state.CurrentFrame = WriteFrameFromType(obj, typeDetail, false, true);
-
-                for (; ; )
-                {
-                    Write(buffer, ref state);
-
-#if NETSTANDARD2_0
-                    await stream.WriteAsync(buffer, 0, state.BufferPostion);
-#else
-                    await stream.WriteAsync(buffer.AsMemory(0, state.BufferPostion));
-#endif
-
-                    if (state.Ended)
-                        break;
-
-                    if (state.BytesNeeded > 0)
-                    {
-                        if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
-
-                        state.BytesNeeded = 0;
-                    }
-                }
-            }
-            finally
-            {
-                Array.Clear(buffer, 0, buffer.Length);
-                BufferArrayPool<byte>.Return(buffer);
-            }
+            return SerializeAsync(stream, obj, type);
         }
         public async Task SerializeAsync(Stream stream, object obj, Type type)
         {

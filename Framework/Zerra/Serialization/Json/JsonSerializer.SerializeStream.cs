@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Tasks;
 using Zerra.IO;
 using Zerra.Reflection;
 
@@ -15,197 +16,167 @@ namespace Zerra.Serialization
 {
     public static partial class JsonSerializer
     {
-        public static string Serialize<T>(T obj, Graph graph = null)
+        public static Task SerializeAsync(Stream stream, object obj, Graph graph = null)
         {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
             if (obj == null)
-                return "null";
+                return Task.CompletedTask;
 
-            return ToStringJson(typeof(T), obj, graph);
+            var type = obj.GetType();
+
+            return SerializeAsync(stream, obj, type, graph);
         }
-        public static string Serialize(object obj, Graph graph = null)
+        public static Task SerializeAsync<T>(Stream stream, T obj, Graph graph = null)
         {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
             if (obj == null)
-                return "null";
+                return Task.CompletedTask;
 
-            return ToStringJson(obj.GetType(), obj, graph);
+            var type = typeof(T);
+
+            return SerializeAsync(stream, obj, type, graph);
         }
-        public static string Serialize(object obj, Type type, Graph graph = null)
+        public static async Task SerializeAsync(Stream stream, object obj, Type type, Graph graph = null)
         {
-            if (obj == null)
-                return "null";
-
-            return ToStringJson(type, obj, graph);
-        }
-
-        public static byte[] SerializeBytes<T>(T obj, Graph graph = null)
-        {
-            if (obj == null)
-                return Encoding.UTF8.GetBytes("null");
-
-            var json = ToStringJson(typeof(T), obj, graph);
-            return Encoding.UTF8.GetBytes(json);
-        }
-        public static byte[] SerializeBytes(object obj, Graph graph = null)
-        {
-            if (obj == null)
-                return Encoding.UTF8.GetBytes("null");
-
-            var json = ToStringJson(obj.GetType(), obj, graph);
-            return Encoding.UTF8.GetBytes(json);
-        }
-        public static byte[] SerializeBytes(object obj, Type type, Graph graph = null)
-        {
-            if (obj == null)
-                return Encoding.UTF8.GetBytes("null");
-
-            var json = ToStringJson(type, obj, graph);
-            return Encoding.UTF8.GetBytes(json);
-        }
-
-        public static void Serialize<T>(Stream stream, T obj, Graph graph = null)
-        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
             if (obj == null)
                 return;
 
-            ToStringJson(stream, typeof(T), obj, graph);
-        }
-        public static void Serialize(Stream stream, object obj, Graph graph = null)
-        {
-            if (obj == null)
-                return;
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
 
-            ToStringJson(stream, obj.GetType(), obj, graph);
-        }
-        public static void Serialize(Stream stream, object obj, Type type, Graph graph = null)
-        {
-            if (obj == null)
-                return;
-
-            ToStringJson(stream, type, obj, graph);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static string ToStringJson(Type type, object obj, Graph graph = null)
-        {
-            var writer = new CharWriter();
             try
             {
-                var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-                ToStringJson(obj, typeDetails, graph, ref writer, false);
-                return writer.ToString();
+                var state = new WriteState();
+                state.CurrentFrame = new WriteFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
+
+                for (; ; )
+                {
+                    Write(buffer, ref state);
+
+#if NETSTANDARD2_0
+                    await stream.WriteAsync(buffer, 0, state.BufferPostion);
+#else
+                    await stream.WriteAsync(buffer.AsMemory(0, state.BufferPostion));
+#endif
+
+                    if (state.Ended)
+                        break;
+
+                    if (state.BytesNeeded > 0)
+                    {
+                        if (state.BytesNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+
+                        state.BytesNeeded = 0;
+                    }
+                }
             }
             finally
             {
-                writer.Dispose();
+                Array.Clear(buffer, 0, buffer.Length);
+                BufferArrayPool<byte>.Return(buffer);
             }
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToStringJson(Stream stream, Type type, object obj, Graph graph = null)
-        {
-            //Until Stack based Serializer
-            using var sr = new StreamReader(stream, new UTF8Encoding(false));
-            var writer = new CharWriter(sr.ReadToEnd().ToCharArray());
-
-            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-            ToStringJson(obj, typeDetails, graph, ref writer, false);
-        }
-
-        public static string SerializeNameless<T>(T obj, Graph graph = null)
-        {
-            if (obj == null)
-                return "null";
-
-            return ToStringJsonNameless(typeof(T), obj, graph);
-        }
-        public static string SerializeNameless(object obj, Graph graph = null)
-        {
-            if (obj == null)
-                return "null";
-
-            return ToStringJsonNameless(obj.GetType(), obj, graph);
-        }
-        public static string SerializeNameless(object obj, Type type, Graph graph = null)
-        {
-            if (obj == null)
-                return "null";
-
-            return ToStringJsonNameless(type, obj, graph);
-        }
-
-        public static byte[] SerializeNamelessBytes<T>(T obj, Graph graph = null)
-        {
-            if (obj == null)
-                return Encoding.UTF8.GetBytes("null");
-
-            var json = ToStringJsonNameless(typeof(T), obj, graph);
-            return Encoding.UTF8.GetBytes(json);
-        }
-        public static byte[] SerializeNamelessBytes(object obj, Graph graph = null)
-        {
-            if (obj == null)
-                return Encoding.UTF8.GetBytes("null");
-
-            var json = ToStringJsonNameless(obj.GetType(), obj, graph);
-            return Encoding.UTF8.GetBytes(json);
-        }
-        public static byte[] SerializeNamelessBytes(object obj, Type type, Graph graph = null)
-        {
-            if (obj == null)
-                return Encoding.UTF8.GetBytes("null");
-
-            var json = ToStringJsonNameless(type, obj, graph);
-            return Encoding.UTF8.GetBytes(json);
-        }
-
-        public static void SerializeNameless<T>(Stream stream, T obj, Graph graph = null)
-        {
-            if (obj == null)
-                return;
-
-            ToStringJsonNameless(stream, typeof(T), obj, graph);
-        }
-        public static void SerializeNameless(Stream stream, object obj, Graph graph = null)
-        {
-            if (obj == null)
-                return;
-
-            ToStringJsonNameless(stream, obj.GetType(), obj, graph);
-        }
-        public static void SerializeNameless(Stream stream, object obj, Type type, Graph graph = null)
-        {
-            if (obj == null)
-                return;
-
-            ToStringJsonNameless(stream, type, obj, graph);
-        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static string ToStringJsonNameless(Type type, object obj, Graph graph = null)
+        private static void Write(Span<byte> buffer, ref WriteState state)
         {
-            var writer = new CharWriter();
-            try
+            var writer = new ByteWriter(buffer, encoding);
+            for (; ; )
             {
-                var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-                ToStringJson(obj, typeDetails, graph, ref writer, true);
-                return writer.ToString();
-            }
-            finally
-            {
-                writer.Dispose();
+                switch (state.CurrentFrame.FrameType)
+                {
+                    case ReadFrameType.Value: break;
+                }
+                if (state.Ended)
+                {
+                    state.BufferPostion = writer.Position;
+                    return;
+                }
+                if (state.BytesNeeded > 0)
+                {
+                    state.BufferPostion = writer.Position;
+                    return;
+                }
             }
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToStringJsonNameless(Stream stream, Type type, object obj, Graph graph = null)
-        {
-            //Until Stack based Serializer
-            using var sr = new StreamReader(stream, new UTF8Encoding(false));
-            var writer = new CharWriter(sr.ReadToEnd().ToCharArray());
 
-            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-            ToStringJson(obj, typeDetails, graph, ref writer, true);
-        }
+        //public static string SerializeNameless<T>(T obj, Graph graph = null)
+        //{
+        //    if (obj == null)
+        //        return "null";
 
-        private static void ToStringJson(object value, TypeDetail typeDetail, Graph graph, ref CharWriter writer, bool nameless)
+        //    return ToJsonNameless(typeof(T), obj, graph);
+        //}
+        //public static string SerializeNameless(object obj, Graph graph = null)
+        //{
+        //    if (obj == null)
+        //        return "null";
+
+        //    return ToJsonNameless(obj.GetType(), obj, graph);
+        //}
+        //public static string SerializeNameless(object obj, Type type, Graph graph = null)
+        //{
+        //    if (obj == null)
+        //        return "null";
+
+        //    return ToJsonNameless(type, obj, graph);
+        //}
+
+        //public static byte[] SerializeNamelessBytes<T>(T obj, Graph graph = null)
+        //{
+        //    if (obj == null)
+        //        return Encoding.UTF8.GetBytes("null");
+
+        //    var json = ToJsonNameless(typeof(T), obj, graph);
+        //    return Encoding.UTF8.GetBytes(json);
+        //}
+        //public static byte[] SerializeNamelessBytes(object obj, Graph graph = null)
+        //{
+        //    if (obj == null)
+        //        return Encoding.UTF8.GetBytes("null");
+
+        //    var json = ToJsonNameless(obj.GetType(), obj, graph);
+        //    return Encoding.UTF8.GetBytes(json);
+        //}
+        //public static byte[] SerializeNamelessBytes(object obj, Type type, Graph graph = null)
+        //{
+        //    if (obj == null)
+        //        return Encoding.UTF8.GetBytes("null");
+
+        //    var json = ToJsonNameless(type, obj, graph);
+        //    return Encoding.UTF8.GetBytes(json);
+        //}
+
+        //public static void SerializeNameless<T>(Stream stream, T obj, Graph graph = null)
+        //{
+        //    if (obj == null)
+        //        return;
+
+        //    ToJsonNameless(stream, typeof(T), obj, graph);
+        //}
+        //public static void SerializeNameless(Stream stream, object obj, Graph graph = null)
+        //{
+        //    if (obj == null)
+        //        return;
+
+        //    ToJsonNameless(stream, obj.GetType(), obj, graph);
+        //}
+        //public static void SerializeNameless(Stream stream, object obj, Type type, Graph graph = null)
+        //{
+        //    if (obj == null)
+        //        return;
+
+        //    ToJsonNameless(stream, type, obj, graph);
+        //}
+
+        private static void WriteJson(object value, TypeDetail typeDetail, Graph graph, ref CharWriter writer, bool nameless)
         {
             if (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable)
             {
@@ -221,7 +192,7 @@ namespace Zerra.Serialization
 
             if (typeDetail.CoreType.HasValue)
             {
-                ToStringJsonCoreType(value, typeDetail.CoreType.Value, ref writer);
+                ToJsonCoreType(value, typeDetail.CoreType.Value, ref writer);
                 return;
             }
 
@@ -242,7 +213,7 @@ namespace Zerra.Serialization
 
             if (typeDetail.SpecialType.HasValue || typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].SpecialType.HasValue)
             {
-                ToStringJsonSpecialType(value, typeDetail, ref writer, nameless);
+                ToJsonSpecialType(value, typeDetail, ref writer, nameless);
                 return;
             }
 
@@ -261,7 +232,7 @@ namespace Zerra.Serialization
                 {
                     var enumerable = value as IEnumerable;
                     writer.Write('[');
-                    ToStringJsonEnumerable(enumerable, innerTypeDetails, graph, ref writer, nameless);
+                    ToJsonEnumerable(enumerable, innerTypeDetails, graph, ref writer, nameless);
                     writer.Write(']');
                     return;
                 }
@@ -304,7 +275,7 @@ namespace Zerra.Serialization
 
                 var propertyValue = member.Getter(value);
                 var childGraph = graph?.GetChildGraph(member.Name);
-                ToStringJson(propertyValue, member.TypeDetail, childGraph, ref writer, nameless);
+                ToJson(propertyValue, member.TypeDetail, childGraph, ref writer, nameless);
             }
 
             if (!nameless)
@@ -312,11 +283,11 @@ namespace Zerra.Serialization
             else
                 writer.Write(']');
         }
-        private static void ToStringJsonEnumerable(IEnumerable values, TypeDetail typeDetail, Graph graph, ref CharWriter writer, bool nameless)
+        private static void WriteJsonEnumerable(IEnumerable values, TypeDetail typeDetail, Graph graph, ref CharWriter writer, bool nameless)
         {
             if (typeDetail.CoreType.HasValue)
             {
-                ToStringJsonCoreTypeEnumerabale(values, typeDetail.CoreType.Value, ref writer);
+                ToJsonCoreTypeEnumerabale(values, typeDetail.CoreType.Value, ref writer);
                 return;
             }
 
@@ -368,7 +339,7 @@ namespace Zerra.Serialization
             if (typeDetail.SpecialType.HasValue || typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].SpecialType.HasValue)
             {
                 writer.Write('[');
-                ToStringJsonSpecialTypeEnumerable(values, typeDetail, ref writer, nameless);
+                ToJsonSpecialTypeEnumerable(values, typeDetail, ref writer, nameless);
                 writer.Write(']');
                 return;
             }
@@ -386,7 +357,7 @@ namespace Zerra.Serialization
                     {
                         var enumerable = value as IEnumerable;
                         writer.Write('[');
-                        ToStringJsonEnumerable(enumerable, typeDetail.IEnumerableGenericInnerTypeDetails, graph, ref writer, nameless);
+                        ToJsonEnumerable(enumerable, typeDetail.IEnumerableGenericInnerTypeDetails, graph, ref writer, nameless);
                         writer.Write(']');
                     }
                     else
@@ -444,7 +415,7 @@ namespace Zerra.Serialization
 
                             var propertyValue = member.Getter(value);
                             var childGraph = graph?.GetChildGraph(member.Name);
-                            ToStringJson(propertyValue, member.TypeDetail, childGraph, ref writer, nameless);
+                            ToJson(propertyValue, member.TypeDetail, childGraph, ref writer, nameless);
                         }
 
                         if (!nameless)
@@ -459,12 +430,12 @@ namespace Zerra.Serialization
                 }
             }
         }
-        private static void ToStringJsonCoreType(object value, CoreType coreType, ref CharWriter writer)
+        private static void WriteJsonCoreType(object value, CoreType coreType, ref CharWriter writer)
         {
             switch (coreType)
             {
                 case CoreType.String:
-                    ToStringJsonString((string)value, ref writer);
+                    ToJsonString((string)value, ref writer);
                     return;
 
                 case CoreType.Boolean:
@@ -517,7 +488,7 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.Char:
                 case CoreType.CharNullable:
-                    ToStringJsonChar((char)value, ref writer);
+                    ToJsonChar((char)value, ref writer);
                     return;
                 case CoreType.DateTime:
                 case CoreType.DateTimeNullable:
@@ -548,7 +519,7 @@ namespace Zerra.Serialization
                     throw new NotImplementedException();
             }
         }
-        private static void ToStringJsonCoreTypeEnumerabale(IEnumerable values, CoreType coreType, ref CharWriter writer)
+        private static void WriteJsonCoreTypeEnumerabale(IEnumerable values, CoreType coreType, ref CharWriter writer)
         {
             switch (coreType)
             {
@@ -562,7 +533,7 @@ namespace Zerra.Serialization
                             else
                                 writer.Write(',');
 
-                            ToStringJsonString(value, ref writer);
+                            ToJsonString(value, ref writer);
                         }
                     }
                     return;
@@ -732,7 +703,7 @@ namespace Zerra.Serialization
                                 first = false;
                             else
                                 writer.Write(',');
-                            ToStringJsonChar(value, ref writer);
+                            ToJsonChar(value, ref writer);
                         }
                     }
                     return;
@@ -1000,7 +971,7 @@ namespace Zerra.Serialization
                                 writer.Write(',');
                             if (value.HasValue)
                             {
-                                ToStringJsonChar(value.Value, ref writer);
+                                ToJsonChar(value.Value, ref writer);
                             }
                             else
                             {
@@ -1102,7 +1073,7 @@ namespace Zerra.Serialization
                     throw new NotImplementedException();
             }
         }
-        private static void ToStringJsonSpecialType(object value, TypeDetail typeDetail, ref CharWriter writer, bool nameless)
+        private static void WriteJsonSpecialType(object value, TypeDetail typeDetail, ref CharWriter writer, bool nameless)
         {
             var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType.Value : typeDetail.SpecialType.Value;
             switch (specialType)
@@ -1111,7 +1082,7 @@ namespace Zerra.Serialization
                     {
                         var valueType = value == null ? null : (Type)value;
                         if (valueType != null)
-                            ToStringJsonString(valueType.FullName, ref writer);
+                            ToJsonString(valueType.FullName, ref writer);
                         else
                             writer.Write("null");
                     }
@@ -1142,16 +1113,16 @@ namespace Zerra.Serialization
                                 var kvpValue = valueGetter(kvp);
                                 if (!nameless)
                                 {
-                                    ToStringJsonString(kvpKey.ToString(), ref writer);
+                                    ToJsonString(kvpKey.ToString(), ref writer);
                                     writer.Write(':');
-                                    ToStringJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, nameless);
+                                    ToJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, nameless);
                                 }
                                 else
                                 {
                                     writer.Write('[');
-                                    ToStringJson(kvpKey, innerTypeDetail.InnerTypeDetails[0], null, ref writer, nameless);
+                                    ToJson(kvpKey, innerTypeDetail.InnerTypeDetails[0], null, ref writer, nameless);
                                     writer.Write(',');
-                                    ToStringJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, nameless);
+                                    ToJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, nameless);
                                     writer.Write(']');
                                 }
                             }
@@ -1170,7 +1141,7 @@ namespace Zerra.Serialization
                     throw new NotImplementedException();
             }
         }
-        private static void ToStringJsonSpecialTypeEnumerable(IEnumerable values, TypeDetail typeDetail, ref CharWriter writer, bool nameless)
+        private static void WriteJsonSpecialTypeEnumerable(IEnumerable values, TypeDetail typeDetail, ref CharWriter writer, bool nameless)
         {
             var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType.Value : typeDetail.SpecialType.Value;
             switch (specialType)
@@ -1186,7 +1157,7 @@ namespace Zerra.Serialization
                                 writer.Write(',');
                             var valueType = value == null ? null : (Type)value;
                             if (valueType != null)
-                                ToStringJsonString(valueType.FullName, ref writer);
+                                ToJsonString(valueType.FullName, ref writer);
                             else
                                 writer.Write("null");
                         }
@@ -1225,16 +1196,16 @@ namespace Zerra.Serialization
                                     var kvpValue = valueGetter(kvp);
                                     if (!nameless)
                                     {
-                                        ToStringJsonString(kvpKey.ToString(), ref writer);
+                                        ToJsonString(kvpKey.ToString(), ref writer);
                                         writer.Write(':');
-                                        ToStringJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, nameless);
+                                        ToJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, nameless);
                                     }
                                     else
                                     {
                                         writer.Write('[');
-                                        ToStringJson(kvpKey, innerTypeDetail.InnerTypeDetails[0], null, ref writer, nameless);
+                                        ToJson(kvpKey, innerTypeDetail.InnerTypeDetails[0], null, ref writer, nameless);
                                         writer.Write(',');
-                                        ToStringJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, nameless);
+                                        ToJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, nameless);
                                         writer.Write(']');
                                     }
                                 }
@@ -1255,7 +1226,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void ToStringJsonString(string value, ref CharWriter writer)
+        internal static void WriteJsonString(string value, ref CharWriter writer)
         {
             writer.Write('\"');
             if (value == null || value.Length == 0)
@@ -1316,7 +1287,7 @@ namespace Zerra.Serialization
             writer.Write('\"');
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToStringJsonChar(char value, ref CharWriter writer)
+        private static void WriteJsonChar(char value, ref CharWriter writer)
         {
             switch (value)
             {

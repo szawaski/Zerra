@@ -659,7 +659,7 @@ namespace Zerra.Serialization
                 {
                     case ReadFrameType.Value: ReadValue(ref reader, ref state); break;
 
-                    case ReadFrameType.StringToType: ReadStringToType(ref reader, ref state); break;
+                    case ReadFrameType.StringToType: ReadStringToType(ref state); break;
                     case ReadFrameType.String: ReadString(ref reader, ref state, ref decodeBufferWriter); break;
 
                     case ReadFrameType.Object: ReadObject(ref reader, ref state); break;
@@ -735,7 +735,7 @@ namespace Zerra.Serialization
                     }
                     if (s[0] != 'u' || s[1] != 'l' || s[2] != 'l')
                         throw reader.CreateException("Expected number/true/false/null");
-                    state.CurrentFrame.ResultObject = null;
+                    state.CurrentFrame.ResultObject = ConvertNullToType(typeDetail.CoreType.Value);
                     state.EndFrame();
                     return;
 
@@ -747,7 +747,7 @@ namespace Zerra.Serialization
                     }
                     if (s[0] != 'r' || s[1] != 'u' || s[2] != 'e')
                         throw reader.CreateException("Expected number/true/false/null");
-                    state.CurrentFrame.ResultObject = true;
+                    state.CurrentFrame.ResultObject = ConvertTrueToType(typeDetail.CoreType.Value);
                     state.EndFrame();
                     return;
 
@@ -759,7 +759,7 @@ namespace Zerra.Serialization
                     }
                     if (s[0] != 'a' || s[1] != 'l' || s[2] != 's' || s[3] != 'e')
                         throw reader.CreateException("Expected number/true/false/null");
-                    state.CurrentFrame.ResultObject = false;
+                    state.CurrentFrame.ResultObject = ConvertFalseToType(typeDetail.CoreType.Value); ;
                     state.EndFrame();
                     return;
 
@@ -1568,7 +1568,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadStringToType(ref CharReader reader, ref ReadState state)
+        private static void ReadStringToType(ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             state.CurrentFrame.ResultObject = ConvertStringToType(state.LastFrameResultString, typeDetail);

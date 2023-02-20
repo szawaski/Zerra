@@ -835,10 +835,6 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static string FromStringString(ref CharReader reader, ref CharWriter decodeBuffer)
         {
-            //return reader.ReadJsonString(decodeBuffer);
-
-            //Quote already started
-
             char c;
             while (reader.TryReadSpanUntil(out var s, '\"', '\\'))
             {

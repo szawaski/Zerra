@@ -113,7 +113,7 @@ namespace Zerra.Serialization
                     break;
                 case JsonObjectType.String:
                     {
-                        JsonSerializer.ToJsonString(valueString, ref writer);
+                        JsonSerializer.ToStringJsonString(valueString, ref writer);
                     }
                     break;
                 case JsonObjectType.Object:
@@ -126,7 +126,7 @@ namespace Zerra.Serialization
                                 first = false;
                             else
                                 writer.Write(',');
-                            JsonSerializer.ToJsonString(item.Key, ref writer);
+                            JsonSerializer.ToStringJsonString(item.Key, ref writer);
                             writer.Write(':');
                             item.Value.ToString(ref writer);
                         }
