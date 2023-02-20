@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;

@@ -3,9 +3,7 @@
 // Licensed to you under the MIT license
 
 using Azure.Messaging.ServiceBus;
-using Microsoft.Azure.Amqp.Framing;
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;

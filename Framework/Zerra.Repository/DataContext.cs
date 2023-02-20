@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Zerra.Logging;
-using Zerra.Providers;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
