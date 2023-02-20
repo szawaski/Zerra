@@ -6,7 +6,7 @@ namespace Zerra.Serialization
 {
     public partial class ByteSerializer
     {
-        private enum ReadFrameType
+        private enum ReadFrameType : byte
         {
             PropertyType,
 

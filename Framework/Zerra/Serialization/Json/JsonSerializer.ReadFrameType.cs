@@ -6,7 +6,7 @@ namespace Zerra.Serialization
 {
     public static partial class JsonSerializer
     {
-        private enum ReadFrameType
+        private enum ReadFrameType : byte
         {
             Value,
             StringToType,

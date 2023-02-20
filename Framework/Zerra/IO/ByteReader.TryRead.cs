@@ -14,7 +14,7 @@ namespace Zerra.IO
         public bool TryReadIsNull(out bool value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -29,7 +29,7 @@ namespace Zerra.IO
         public bool TryReadBoolean(out bool value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -43,7 +43,7 @@ namespace Zerra.IO
         public bool TryReadBooleanNullable(bool nullFlags, out bool? value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -64,7 +64,7 @@ namespace Zerra.IO
         public bool TryReadBooleanArray(int length, out bool[] value, out int sizeNeeded)
         {
             sizeNeeded = length;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -82,7 +82,7 @@ namespace Zerra.IO
         public bool TryReadBooleanList(int length, out List<bool> value, out int sizeNeeded)
         {
             sizeNeeded = length;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -100,7 +100,7 @@ namespace Zerra.IO
         public bool TryReadBooleanNullableArray(int length, out bool?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 2;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -121,7 +121,7 @@ namespace Zerra.IO
         public bool TryReadBooleanNullableList(int length, out List<bool?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 2;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -147,7 +147,7 @@ namespace Zerra.IO
         public bool TryReadByte(out byte value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -160,7 +160,7 @@ namespace Zerra.IO
         public bool TryReadByteNullable(bool nullFlags, out byte? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 2 : 1;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -181,7 +181,7 @@ namespace Zerra.IO
         public unsafe bool TryReadByteArray(int length, out byte[] value, out int sizeNeeded)
         {
             sizeNeeded = length;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -201,7 +201,7 @@ namespace Zerra.IO
         public bool TryReadByteList(int length, out List<byte> value, out int sizeNeeded)
         {
             sizeNeeded = length;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -219,7 +219,7 @@ namespace Zerra.IO
         public bool TryReadByteNullableArray(int length, out byte?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 2;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -240,7 +240,7 @@ namespace Zerra.IO
         public bool TryReadByteNullableList(int length, out List<byte?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 2;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -266,7 +266,7 @@ namespace Zerra.IO
         public bool TryReadSByte(out sbyte value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -279,7 +279,7 @@ namespace Zerra.IO
         public bool TryReadSByteNullable(bool nullFlags, out sbyte? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 2 : 1;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -300,7 +300,7 @@ namespace Zerra.IO
         public bool TryReadSByteArray(int length, out sbyte[] value, out int sizeNeeded)
         {
             sizeNeeded = length;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -318,7 +318,7 @@ namespace Zerra.IO
         public bool TryReadSByteList(int length, out List<sbyte> value, out int sizeNeeded)
         {
             sizeNeeded = length;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -336,7 +336,7 @@ namespace Zerra.IO
         public bool TryReadSByteNullableArray(int length, out sbyte?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 2;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -357,7 +357,7 @@ namespace Zerra.IO
         public bool TryReadSByteNullableList(int length, out List<sbyte?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 2;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 ;
@@ -384,7 +384,7 @@ namespace Zerra.IO
         public bool TryReadInt16(out short value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -397,7 +397,7 @@ namespace Zerra.IO
         public bool TryReadInt16Nullable(bool nullFlags, out short? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 3 : 2;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -418,7 +418,7 @@ namespace Zerra.IO
         public bool TryReadInt16Array(int length, out short[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 2;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -436,7 +436,7 @@ namespace Zerra.IO
         public bool TryReadInt16List(int length, out List<short> value, out int sizeNeeded)
         {
             sizeNeeded = length * 2;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -454,7 +454,7 @@ namespace Zerra.IO
         public bool TryReadInt16NullableArray(int length, out short?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 3;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -475,7 +475,7 @@ namespace Zerra.IO
         public bool TryReadInt16NullableList(int length, out List<short?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 3;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -501,7 +501,7 @@ namespace Zerra.IO
         public bool TryReadUInt16(out ushort value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -514,7 +514,7 @@ namespace Zerra.IO
         public bool TryReadUInt16Nullable(bool nullFlags, out ushort? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 3 : 2;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -535,7 +535,7 @@ namespace Zerra.IO
         public bool TryReadUInt16Array(int length, out ushort[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 2;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -553,7 +553,7 @@ namespace Zerra.IO
         public bool TryReadUInt16List(int length, out List<ushort> value, out int sizeNeeded)
         {
             sizeNeeded = length * 2;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -571,7 +571,7 @@ namespace Zerra.IO
         public bool TryReadUInt16NullableArray(int length, out ushort?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 3;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -592,7 +592,7 @@ namespace Zerra.IO
         public bool TryReadUInt16NullableList(int length, out List<ushort?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 3;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -618,7 +618,7 @@ namespace Zerra.IO
         public bool TryReadInt32(out int value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -631,7 +631,7 @@ namespace Zerra.IO
         public bool TryReadInt32Nullable(bool nullFlags, out int? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 5 : 4;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -652,7 +652,7 @@ namespace Zerra.IO
         public bool TryReadInt32Array(int length, out int[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 4;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -670,7 +670,7 @@ namespace Zerra.IO
         public bool TryReadInt32List(int length, out List<int> value, out int sizeNeeded)
         {
             sizeNeeded = length * 4;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -688,7 +688,7 @@ namespace Zerra.IO
         public bool TryReadInt32NullableArray(int length, out int?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 5;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -709,7 +709,7 @@ namespace Zerra.IO
         public bool TryReadInt32NullableList(int length, out List<int?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 5;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -735,7 +735,7 @@ namespace Zerra.IO
         public bool TryReadUInt32(out uint value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -748,7 +748,7 @@ namespace Zerra.IO
         public bool TryReadUInt32Nullable(bool nullFlags, out uint? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 5 : 4;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -769,7 +769,7 @@ namespace Zerra.IO
         public bool TryReadUInt32Array(int length, out uint[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 4;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -787,7 +787,7 @@ namespace Zerra.IO
         public bool TryReadUInt32List(int length, out List<uint> value, out int sizeNeeded)
         {
             sizeNeeded = length * 4;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -805,7 +805,7 @@ namespace Zerra.IO
         public bool TryReadUInt32NullableArray(int length, out uint?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 5;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -826,7 +826,7 @@ namespace Zerra.IO
         public bool TryReadUInt32NullableList(int length, out List<uint?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 5;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -852,7 +852,7 @@ namespace Zerra.IO
         public bool TryReadInt64(out long value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -867,7 +867,7 @@ namespace Zerra.IO
         public bool TryReadInt64Nullable(bool nullFlags, out long? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 9 : 8;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -890,7 +890,7 @@ namespace Zerra.IO
         public bool TryReadInt64Array(int length, out long[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 8;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -910,7 +910,7 @@ namespace Zerra.IO
         public bool TryReadInt64List(int length, out List<long> value, out int sizeNeeded)
         {
             sizeNeeded = length * 8;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -930,7 +930,7 @@ namespace Zerra.IO
         public bool TryReadInt64NullableArray(int length, out long?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 9;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -953,7 +953,7 @@ namespace Zerra.IO
         public bool TryReadInt64NullableList(int length, out List<long?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 9;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -981,7 +981,7 @@ namespace Zerra.IO
         public bool TryReadUInt64(out ulong value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -996,7 +996,7 @@ namespace Zerra.IO
         public bool TryReadUInt64Nullable(bool nullFlags, out ulong? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 9 : 8;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1019,7 +1019,7 @@ namespace Zerra.IO
         public bool TryReadUInt64Array(int length, out ulong[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 8;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1039,7 +1039,7 @@ namespace Zerra.IO
         public bool TryReadUInt64List(int length, out List<ulong> value, out int sizeNeeded)
         {
             sizeNeeded = length * 8;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1059,7 +1059,7 @@ namespace Zerra.IO
         public bool TryReadUInt64NullableArray(int length, out ulong?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 9;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1082,7 +1082,7 @@ namespace Zerra.IO
         public bool TryReadUInt64NullableList(int length, out List<ulong?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 9;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1110,7 +1110,7 @@ namespace Zerra.IO
         public unsafe bool TryReadSingle(out float value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1124,7 +1124,7 @@ namespace Zerra.IO
         public unsafe bool TryReadSingleNullable(bool nullFlags, out float? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 5 : 4;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1146,7 +1146,7 @@ namespace Zerra.IO
         public unsafe bool TryReadSingleArray(int length, out float[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 4;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1165,7 +1165,7 @@ namespace Zerra.IO
         public unsafe bool TryReadSingleList(int length, out List<float> value, out int sizeNeeded)
         {
             sizeNeeded = length * 4;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1184,7 +1184,7 @@ namespace Zerra.IO
         public unsafe bool TryReadSingleNullableArray(int length, out float?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 5;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1206,7 +1206,7 @@ namespace Zerra.IO
         public unsafe bool TryReadSingleNullableList(int length, out List<float?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 5;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1233,7 +1233,7 @@ namespace Zerra.IO
         public unsafe bool TryReadDouble(out double value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1249,7 +1249,7 @@ namespace Zerra.IO
         public unsafe bool TryReadDoubleNullable(bool nullFlags, out double? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 9 : 8;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1273,7 +1273,7 @@ namespace Zerra.IO
         public unsafe bool TryReadDoubleArray(int length, out double[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 8;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1294,7 +1294,7 @@ namespace Zerra.IO
         public unsafe bool TryReadDoubleList(int length, out List<double> value, out int sizeNeeded)
         {
             sizeNeeded = length * 8;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1315,7 +1315,7 @@ namespace Zerra.IO
         public unsafe bool TryReadDoubleNullableArray(int length, out double?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 9;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1339,7 +1339,7 @@ namespace Zerra.IO
         public unsafe bool TryReadDoubleNullableList(int length, out List<double?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 9;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1368,7 +1368,7 @@ namespace Zerra.IO
         public bool TryReadDecimal(out decimal value, out int sizeNeeded)
         {
             sizeNeeded = 16;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1385,7 +1385,7 @@ namespace Zerra.IO
         public bool TryReadDecimalNullable(bool nullFlags, out decimal? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 17 : 16;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1410,7 +1410,7 @@ namespace Zerra.IO
         public bool TryReadDecimalArray(int length, out decimal[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 16;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1432,7 +1432,7 @@ namespace Zerra.IO
         public bool TryReadDecimalList(int length, out List<decimal> value, out int sizeNeeded)
         {
             sizeNeeded = length * 16;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1454,7 +1454,7 @@ namespace Zerra.IO
         public bool TryReadDecimalNullableArray(int length, out decimal?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 17;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1479,7 +1479,7 @@ namespace Zerra.IO
         public bool TryReadDecimalNullableList(int length, out List<decimal?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 17;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1509,7 +1509,7 @@ namespace Zerra.IO
         public bool TryReadDateTime(out DateTime value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1525,7 +1525,7 @@ namespace Zerra.IO
         public bool TryReadDateTimeNullable(bool nullFlags, out DateTime? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 9 : 8;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1549,7 +1549,7 @@ namespace Zerra.IO
         public bool TryReadDateTimeArray(int length, out DateTime[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 8;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1570,7 +1570,7 @@ namespace Zerra.IO
         public bool TryReadDateTimeList(int length, out List<DateTime> value, out int sizeNeeded)
         {
             sizeNeeded = length * 8;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1591,7 +1591,7 @@ namespace Zerra.IO
         public bool TryReadDateTimeNullableArray(int length, out DateTime?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 9;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1615,7 +1615,7 @@ namespace Zerra.IO
         public bool TryReadDateTimeNullableList(int length, out List<DateTime?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 9;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1644,7 +1644,7 @@ namespace Zerra.IO
         public bool TryReadDateTimeOffset(out DateTimeOffset value, out int sizeNeeded)
         {
             sizeNeeded = 10;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1661,7 +1661,7 @@ namespace Zerra.IO
         public bool TryReadDateTimeOffsetNullable(bool nullFlags, out DateTimeOffset? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 11 : 10;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1686,7 +1686,7 @@ namespace Zerra.IO
         public bool TryReadDateTimeOffsetArray(int length, out DateTimeOffset[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 10;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1708,7 +1708,7 @@ namespace Zerra.IO
         public bool TryReadDateTimeOffsetList(int length, out List<DateTimeOffset> value, out int sizeNeeded)
         {
             sizeNeeded = length * 10;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1730,7 +1730,7 @@ namespace Zerra.IO
         public bool TryReadDateTimeOffsetNullableArray(int length, out DateTimeOffset?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 11;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1755,7 +1755,7 @@ namespace Zerra.IO
         public bool TryReadDateTimeOffsetNullableList(int length, out List<DateTimeOffset?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 11;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1785,7 +1785,7 @@ namespace Zerra.IO
         public bool TryReadTimeSpan(out TimeSpan value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1801,7 +1801,7 @@ namespace Zerra.IO
         public bool TryReadTimeSpanNullable(bool nullFlags, out TimeSpan? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 9 : 8;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1825,7 +1825,7 @@ namespace Zerra.IO
         public bool TryReadTimeSpanArray(int length, out TimeSpan[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 8;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1846,7 +1846,7 @@ namespace Zerra.IO
         public bool TryReadTimeSpanList(int length, out List<TimeSpan> value, out int sizeNeeded)
         {
             sizeNeeded = length * 8;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1867,7 +1867,7 @@ namespace Zerra.IO
         public bool TryReadTimeSpanNullableArray(int length, out TimeSpan?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 9;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1891,7 +1891,7 @@ namespace Zerra.IO
         public bool TryReadTimeSpanNullableList(int length, out List<TimeSpan?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 9;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1920,7 +1920,7 @@ namespace Zerra.IO
         public unsafe bool TryReadGuid(out Guid value, out int sizeNeeded)
         {
             sizeNeeded = 16;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1946,7 +1946,7 @@ namespace Zerra.IO
         public unsafe bool TryReadGuidNullable(bool nullFlags, out Guid? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 17 : 16;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -1981,7 +1981,7 @@ namespace Zerra.IO
         public unsafe bool TryReadGuidArray(int length, out Guid[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 16;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -2011,7 +2011,7 @@ namespace Zerra.IO
         public unsafe bool TryReadGuidList(int length, out List<Guid> value, out int sizeNeeded)
         {
             sizeNeeded = length * 16;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -2041,7 +2041,7 @@ namespace Zerra.IO
         public unsafe bool TryReadGuidNullableArray(int length, out Guid?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 17;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -2074,7 +2074,7 @@ namespace Zerra.IO
         public unsafe bool TryReadGuidNullableList(int length, out List<Guid?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 17;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -2112,7 +2112,7 @@ namespace Zerra.IO
         public unsafe bool TryReadChar(out char value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -2129,7 +2129,7 @@ namespace Zerra.IO
         public unsafe bool TryReadCharNullable(bool nullFlags, out char? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 3 : 2;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -2154,7 +2154,7 @@ namespace Zerra.IO
         public unsafe bool TryReadCharArray(int length, out char[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 2;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -2178,7 +2178,7 @@ namespace Zerra.IO
         public unsafe bool TryReadCharList(int length, out List<char> value, out int sizeNeeded)
         {
             sizeNeeded = length * 2;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -2201,7 +2201,7 @@ namespace Zerra.IO
         public unsafe bool TryReadCharNullableArray(int length, out char?[] value, out int sizeNeeded)
         {
             sizeNeeded = length * 3;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -2228,7 +2228,7 @@ namespace Zerra.IO
         public unsafe bool TryReadCharNullableList(int length, out List<char?> value, out int sizeNeeded)
         {
             sizeNeeded = length * 3;
-            if (!isFinalBlock && this.length - position < sizeNeeded)
+            if (this.length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -2259,7 +2259,7 @@ namespace Zerra.IO
         public unsafe bool TryReadStringLength(bool nullFlags, out int? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 5 : 4;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
@@ -2278,7 +2278,7 @@ namespace Zerra.IO
         public unsafe bool TryReadString(int byteLength, out string value, out int sizeNeeded)
         {
             sizeNeeded = byteLength;
-            if (!isFinalBlock && length - position < sizeNeeded)
+            if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;

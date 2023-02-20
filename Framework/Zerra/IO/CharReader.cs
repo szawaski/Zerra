@@ -8,6 +8,8 @@ namespace Zerra.IO
 {
     public ref partial struct CharReader
     {
+        const int errorHelperLength = 32;
+
         private ReadOnlySpan<char> buffer;
 
         private int position;
@@ -39,9 +41,8 @@ namespace Zerra.IO
 
         public FormatException CreateException(string message)
         {
-            const int helperLength = 32;
-            var start = position > helperLength ? position - helperLength - 2 : 0;
-            var length = start + helperLength > position ? position - start : helperLength;
+            var start = position > errorHelperLength ? position - errorHelperLength - 2 : 0;
+            var length = start + errorHelperLength > position ? position - start : errorHelperLength;
             var helper = buffer.Slice(start, length).ToString();
             return new FormatException($"JSON Error: {message} at position {position} character after {helper}");
         }

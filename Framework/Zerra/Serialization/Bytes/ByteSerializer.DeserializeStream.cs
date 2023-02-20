@@ -29,7 +29,7 @@ namespace Zerra.Serialization
             var state = new ReadState();
             state.CurrentFrame = ReadFrameFromType(typeDetail, false, true);
 
-            Read(bytes, true, ref state);
+            Read(bytes, ref state);
 
             if (!state.Ended || state.BytesNeeded > 0)
                 throw new EndOfStreamException();
@@ -75,7 +75,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Read(buffer.AsSpan().Slice(0, length), isFinalBlock, ref state);
+                    Read(buffer.AsSpan().Slice(0, length), ref state);
 
                     if (state.Ended)
                         break;
@@ -159,7 +159,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Read(buffer.AsSpan().Slice(0, length), isFinalBlock, ref state);
+                    Read(buffer.AsSpan().Slice(0, length), ref state);
 
                     if (state.Ended)
                         break;
@@ -240,7 +240,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Read(buffer.AsSpan().Slice(0, read), isFinalBlock, ref state);
+                    Read(buffer.AsSpan().Slice(0, read), ref state);
 
                     if (state.Ended)
                         break;
@@ -355,9 +355,9 @@ namespace Zerra.Serialization
             return frame;
         }
 
-        private void Read(ReadOnlySpan<byte> buffer, bool isFinalBlock, ref ReadState state)
+        private void Read(ReadOnlySpan<byte> buffer, ref ReadState state)
         {
-            var reader = new ByteReader(buffer, isFinalBlock, encoding);
+            var reader = new ByteReader(buffer, encoding);
             for (; ; )
             {
                 switch (state.CurrentFrame.FrameType)

@@ -18,7 +18,6 @@ namespace Zerra.IO
 
         private int position;
         private readonly int length;
-        private readonly bool isFinalBlock;
 
         private readonly Encoding encoding;
 
@@ -34,18 +33,6 @@ namespace Zerra.IO
             this.encoding = encoding ?? defaultEncoding;
             this.position = 0;
             this.length = bytes.Length;
-            this.isFinalBlock = true;
-        }
-        public ByteReader(ReadOnlySpan<byte> bytes, bool isFinal = true, Encoding encoding = null)
-        {
-            if (bytes == null)
-                throw new ArgumentNullException(nameof(bytes));
-            this.buffer = bytes;
-            this.guidBuffer = new byte[16];
-            this.encoding = encoding ?? defaultEncoding;
-            this.position = 0;
-            this.length = bytes.Length;
-            this.isFinalBlock = isFinal;
         }
     }
 }
