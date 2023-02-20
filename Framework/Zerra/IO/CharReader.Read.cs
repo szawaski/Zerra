@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace Zerra.IO
@@ -61,17 +60,19 @@ namespace Zerra.IO
                 return false;
             }
             var start = position;
-            var c = buffer[position++];
+            var p = position;
+            var c = buffer[p++];
             while (c != value)
             {
-                if (position >= length)
+                if (p >= length)
                 {
-                    s = buffer.Slice(start, position - start);
+                    s = default;
                     return false;
                 }
-                c = buffer[position++];
+                c = buffer[p++];
             }
-            s = buffer.Slice(start, position - start);
+            s = buffer.Slice(start, p - start);
+            position = p;
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -83,17 +84,19 @@ namespace Zerra.IO
                 return false;
             }
             var start = position;
-            var c = buffer[position++];
+            var p = position;
+            var c = buffer[p++];
             while (c != value1 && c != value2)
             {
-                if (position >= length)
+                if (p >= length)
                 {
-                    s = buffer.Slice(start, position - start);
+                    s = default;
                     return false;
                 }
-                c = buffer[position++];
+                c = buffer[p++];
             }
-            s = buffer.Slice(start, position - start);
+            s = buffer.Slice(start, p - start);
+            position = p;
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -105,17 +108,19 @@ namespace Zerra.IO
                 return false;
             }
             var start = position;
-            var c = buffer[position++];
+            var p = position;
+            var c = buffer[p++];
             while (c != value1 && c != value2 && c != value3)
             {
-                if (position >= length)
+                if (p >= length)
                 {
-                    s = buffer.Slice(start, position - start);
+                    s = default;
                     return false;
                 }
-                c = buffer[position++];
+                c = buffer[p++];
             }
-            s = buffer.Slice(start, position - start);
+            s = buffer.Slice(start, p - start);
+            position = p;
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -127,29 +132,19 @@ namespace Zerra.IO
                 return false;
             }
             var start = position;
-            var c = buffer[position++];
+            var p = position;
+            var c = buffer[p++];
             while (c != value1 && c != value2 && c != value3 && c != value4)
             {
-                if (position >= length)
+                if (p >= length)
                 {
-                    s = buffer.Slice(start, position - start);
+                    s = default;
                     return false;
                 }
-                c = buffer[position++];
+                c = buffer[p++];
             }
-            s = buffer.Slice(start, position - start);
-            return true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadString(out string s, int count)
-        {
-            if (position + count >= length)
-            {
-                s = default;
-                return false;
-            }
-            s = buffer.Slice(position, count).ToString();
+            s = buffer.Slice(start, p - start);
+            position = p;
             return true;
         }
 
@@ -162,7 +157,7 @@ namespace Zerra.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void BackOne(int count)
+        public void Back(int count)
         {
             if (position - count < 0)
                 throw new InvalidOperationException($"Cannot {nameof(BackOne)} before position of zero.");

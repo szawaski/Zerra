@@ -15,15 +15,13 @@ namespace Zerra.Serialization
 {
     public static partial class JsonSerializer
     {
-        public static T DeserializeStackBased<T>(byte[] bytes, Graph graph = null)
+        public static T DeserializeStackBased<T>(Memory<byte> bytes, Graph graph = null)
         {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             return (T)DeserializeStackBased(typeof(T), bytes, graph);
         }
-        public static object DeserializeStackBased(Type type, byte[] bytes, Graph graph = null)
+        public static object DeserializeStackBased(Type type, Memory<byte> bytes, Graph graph = null)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
@@ -35,8 +33,38 @@ namespace Zerra.Serialization
                 var state = new ReadState();
                 state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
 
+                Read(bytes.Span, ref state, ref decodeBuffer, ref decodeBufferPosition);
 
-                Read(bytes, true, ref state, ref decodeBuffer, ref decodeBufferPosition);
+                if (!state.Ended || state.BytesNeeded > 0)
+                    throw new EndOfStreamException();
+
+                return state.LastFrameResultObject;
+            }
+            finally
+            {
+                BufferArrayPool<char>.Return(decodeBuffer);
+            }
+        }
+
+        public static T DeserializeStackBased<T>(Memory<char> json, Graph graph = null)
+        {
+            return (T)DeserializeStackBased(typeof(T), json, graph);
+        }
+        public static object DeserializeStackBased(Type type, Memory<char> json, Graph graph = null)
+        {
+            if (type == null) throw new ArgumentNullException(nameof(type));
+
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+
+            var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
+            var decodeBufferPosition = 0;
+
+            try
+            {
+                var state = new ReadState();
+                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
+
+                Read(json.Span, ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                 if (!state.Ended || state.BytesNeeded > 0)
                     throw new EndOfStreamException();
@@ -89,7 +117,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Read(buffer.AsSpan().Slice(0, length), isFinalBlock, ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    Read(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
@@ -176,7 +204,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Read(buffer.AsSpan().Slice(0, length), isFinalBlock, ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    Read(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
@@ -260,7 +288,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Read(buffer.AsSpan().Slice(0, read), isFinalBlock, ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    Read(buffer.AsSpan().Slice(0, read), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
@@ -332,7 +360,7 @@ namespace Zerra.Serialization
                 state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
 
 
-                Read(bytes, true, ref state, ref decodeBuffer, ref decodeBufferPosition);
+                Read(bytes, ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                 if (!state.Ended || state.BytesNeeded > 0)
                     throw new EndOfStreamException();
@@ -385,7 +413,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Read(buffer.AsSpan().Slice(0, length), isFinalBlock, ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    Read(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
@@ -472,7 +500,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Read(buffer.AsSpan().Slice(0, length), isFinalBlock, ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    Read(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
@@ -556,7 +584,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Read(buffer.AsSpan().Slice(0, read), isFinalBlock, ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    Read(buffer.AsSpan().Slice(0, read), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
@@ -607,7 +635,7 @@ namespace Zerra.Serialization
             }
         }
 
-        private static void Read(ReadOnlySpan<byte> buffer, bool isFinalBlock, ref ReadState state, ref char[] decodeBuffer, ref int decodeBufferPosition)
+        private static void Read(ReadOnlySpan<byte> buffer, ref ReadState state, ref char[] decodeBuffer, ref int decodeBufferPosition)
         {
 #if NET5_0_OR_GREATER
             Span<char> chars = new char[buffer.Length];
@@ -617,9 +645,13 @@ namespace Zerra.Serialization
             _ = encoding.GetChars(buffer.ToArray(), 0, buffer.Length, chars, 0);
 #endif
 
+            Read(chars, ref state, ref decodeBuffer, ref decodeBufferPosition);
+        }
+        private static void Read(ReadOnlySpan<char> chars, ref ReadState state, ref char[] decodeBuffer, ref int decodeBufferPosition)
+        {
             var decodeBufferWriter = new CharWriter(decodeBuffer, true, decodeBufferPosition);
 
-            var reader = new CharReader(chars); //isFinalBlock);
+            var reader = new CharReader(chars);
 
             for (; ; )
             {
@@ -1463,7 +1495,6 @@ namespace Zerra.Serialization
                     case 0: //reading segment
                         if (!reader.TryReadSpanUntil(out var s, '\"', '\\'))
                         {
-                            decodeBuffer.Write(s.Slice(0, s.Length - 1));
                             state.CurrentFrame.State = 0;
                             state.BytesNeeded = 1;
                             return;
@@ -1523,12 +1554,12 @@ namespace Zerra.Serialization
 
                         break;
                     case 2: //reading escape unicode
-                        if (!reader.TryReadString(out var unicodeString, 4))
+                        if (!reader.TryReadSpan(out var unicodeSpan, 4))
                         {
                             state.BytesNeeded = 4;
                             return;
                         }
-                        if (!lowUnicodeHexToChar.TryGetValue(unicodeString, out var unicodeChar))
+                        if (!lowUnicodeHexToChar.TryGetValue(unicodeSpan.ToString(), out var unicodeChar))
                             throw reader.CreateException("Incomplete escape sequence");
                         decodeBuffer.Write(unicodeChar);
                         state.CurrentFrame.State = 0;
