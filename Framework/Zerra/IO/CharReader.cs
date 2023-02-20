@@ -16,21 +16,17 @@ namespace Zerra.IO
         public int Position => position;
         public int Length => length;
 
-        private int segmentStart;
-
         public CharReader(string chars)
         {
             this.buffer = chars.AsSpan();
             this.position = 0;
             this.length = this.buffer.Length;
-            this.segmentStart = -1;
         }
         public CharReader(ReadOnlySpan<char> chars)
         {
             this.buffer = chars;
             this.position = 0;
             this.length = this.buffer.Length;
-            this.segmentStart = -1;
         }
 
         public bool HasMoreChars()

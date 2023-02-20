@@ -12,6 +12,7 @@ namespace Zerra.Serialization
             StringToType,
             String,
             Object,
+            Dictionary,
             Array,
             ArrayNameless,
             Literal,

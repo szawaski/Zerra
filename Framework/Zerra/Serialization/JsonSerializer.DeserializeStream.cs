@@ -6,7 +6,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Resources;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Zerra.IO;
@@ -632,6 +631,7 @@ namespace Zerra.Serialization
                     case ReadFrameType.String: ReadString(ref reader, ref state, ref decodeBufferWriter); break;
 
                     case ReadFrameType.Object: ReadObject(ref reader, ref state); break;
+                    case ReadFrameType.Dictionary: ReadDictionary(ref reader, ref state); break;
 
                     case ReadFrameType.Array: ReadArray(ref reader, ref state); break;
                     case ReadFrameType.ArrayNameless: ReadArrayNameless(ref reader, ref state); break;
@@ -682,7 +682,10 @@ namespace Zerra.Serialization
                     return;
 
                 case '{':
-                    state.CurrentFrame.FrameType = ReadFrameType.Object;
+                    if (typeDetail.SpecialType == SpecialType.Dictionary)
+                        state.CurrentFrame.FrameType = ReadFrameType.Dictionary;
+                    else
+                        state.CurrentFrame.FrameType = ReadFrameType.Object;
                     return;
 
                 case '[':
@@ -792,39 +795,111 @@ namespace Zerra.Serialization
                         return;
 
                     case 3: //property value
-                        if (typeDetail != null && typeDetail.SpecialType == SpecialType.Dictionary)
+                        if (state.CurrentFrame.ObjectProperty != null)
                         {
-                            //Dictionary Special Case
-                            throw new NotImplementedException();
-                        }
-                        else
-                        {
-                            if (state.CurrentFrame.ObjectProperty != null)
+                            if (state.CurrentFrame.Graph != null)
                             {
-                                if (state.CurrentFrame.Graph != null)
+                                if (state.CurrentFrame.ObjectProperty.TypeDetail.IsGraphLocalProperty)
                                 {
-                                    if (state.CurrentFrame.ObjectProperty.TypeDetail.IsGraphLocalProperty)
-                                    {
-                                        if (state.CurrentFrame.Graph.HasLocalProperty(state.CurrentFrame.ObjectProperty.Name))
-                                            state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
-                                    }
-                                    else
-                                    {
-                                        if (state.CurrentFrame.Graph.HasChildGraph(state.CurrentFrame.ObjectProperty.Name))
-                                            state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
-                                    }
+                                    if (state.CurrentFrame.Graph.HasLocalProperty(state.CurrentFrame.ObjectProperty.Name))
+                                        state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                                 }
                                 else
                                 {
-                                    state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
+                                    if (state.CurrentFrame.Graph.HasChildGraph(state.CurrentFrame.ObjectProperty.Name))
+                                        state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                                 }
-
                             }
+                            else
+                            {
+                                state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
+                            }
+
                         }
                         state.CurrentFrame.State = 4;
                         break;
 
                     case 4: //next property or end
+                        if (!reader.TryReadSkipWhiteSpace(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case ',':
+                                state.CurrentFrame.State = 1;
+                                break;
+                            case '}':
+                                state.EndFrame();
+                                return;
+                            default:
+                                throw reader.CreateException("Unexpected character");
+                        }
+                        break;
+                }
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReadDictionary(ref CharReader reader, ref ReadState state)
+        {
+            var typeDetail = state.CurrentFrame.TypeDetail;
+
+            if (state.CurrentFrame.State == 0)
+            {
+                state.CurrentFrame.ResultObject = typeDetail.Creator();
+                state.CurrentFrame.AddMethod = typeDetail.GetMethod("Add");
+                state.CurrentFrame.AddMethodArgs = new object[2];
+                state.CurrentFrame.State = 1;
+            }
+
+            for (; ; )
+            {
+                switch (state.CurrentFrame.State)
+                {
+                    case 1: //key or end
+                        if (!reader.TryReadSkipWhiteSpace(out var c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+                        switch (c)
+                        {
+                            case '"':
+                                reader.BackOne();
+                                state.CurrentFrame.State = 2;
+                                state.PushFrame(new ReadFrame() { TypeDetail = typeDetail.InnerTypeDetails[0].InnerTypeDetails[0], FrameType = ReadFrameType.Value });
+                                return;
+                            case '}':
+                                state.EndFrame();
+                                return;
+                            default:
+                                throw reader.CreateException("Unexpected character");
+                        }
+
+                    case 2: //keyvalue seperator
+                        if (!reader.TryReadSkipWhiteSpace(out c))
+                        {
+                            state.BytesNeeded = 1;
+                            return;
+                        }
+                        if (c != ':')
+                            throw reader.CreateException("Unexpected character");
+
+                        state.CurrentFrame.DictionaryKey = state.LastFrameResultObject;
+                        state.CurrentFrame.State = 3;
+                        state.PushFrame(new ReadFrame() { TypeDetail = typeDetail.InnerTypeDetails[0].InnerTypeDetails[1], FrameType = ReadFrameType.Value, });
+                        return;
+
+                    case 3: //property value
+                        state.CurrentFrame.AddMethodArgs[0] = state.CurrentFrame.DictionaryKey;
+                        state.CurrentFrame.AddMethodArgs[1] = state.LastFrameResultObject;
+                        _ = state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+
+                        state.CurrentFrame.State = 4;
+                        break;
+
+                    case 4: //next key or end
                         if (!reader.TryReadSkipWhiteSpace(out c))
                         {
                             state.BytesNeeded = 1;
@@ -860,41 +935,41 @@ namespace Zerra.Serialization
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
                         state.CurrentFrame.ResultObject = genericListType.Creator();
-                        state.CurrentFrame.ArrayAddMethod = genericListType.GetMethod("Add");
-                        state.CurrentFrame.ArrayAddMethodArgs = new object[1];
+                        state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
+                        state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.IsIList && typeDetail.Type.IsInterface)
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
                         state.CurrentFrame.ResultObject = genericListType.Creator();
-                        state.CurrentFrame.ArrayAddMethod = genericListType.GetMethod("Add");
-                        state.CurrentFrame.ArrayAddMethodArgs = new object[1];
+                        state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
+                        state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.IsIList && !typeDetail.Type.IsInterface)
                     {
                         state.CurrentFrame.ResultObject = typeDetail.Creator();
-                        state.CurrentFrame.ArrayAddMethod = typeDetail.GetMethod("Add");
-                        state.CurrentFrame.ArrayAddMethodArgs = new object[1];
+                        state.CurrentFrame.AddMethod = typeDetail.GetMethod("Add");
+                        state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.IsISet && typeDetail.Type.IsInterface)
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, typeDetail.InnerTypeDetails[0].Type));
                         state.CurrentFrame.ResultObject = genericListType.Creator();
-                        state.CurrentFrame.ArrayAddMethod = genericListType.GetMethod("Add");
-                        state.CurrentFrame.ArrayAddMethodArgs = new object[1];
+                        state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
+                        state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.IsISet && !typeDetail.Type.IsInterface)
                     {
                         state.CurrentFrame.ResultObject = typeDetail.Creator();
-                        state.CurrentFrame.ArrayAddMethod = typeDetail.GetMethod("Add");
-                        state.CurrentFrame.ArrayAddMethodArgs = new object[1];
+                        state.CurrentFrame.AddMethod = typeDetail.GetMethod("Add");
+                        state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
                         state.CurrentFrame.ResultObject = genericListType.Creator();
-                        state.CurrentFrame.ArrayAddMethod = genericListType.GetMethod("Add");
-                        state.CurrentFrame.ArrayAddMethodArgs = new object[1];
+                        state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
+                        state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                 }
                 state.CurrentFrame.State = 1;
@@ -927,7 +1002,7 @@ namespace Zerra.Serialization
                             state.EndFrame();
                             return;
                         }
-                        
+
                         reader.BackOne();
 
                         state.CurrentFrame.State = 2;
@@ -937,8 +1012,8 @@ namespace Zerra.Serialization
                     case 2: //array value
                         if (state.CurrentFrame.ResultObject != null)
                         {
-                            state.CurrentFrame.ArrayAddMethodArgs[0] = state.LastFrameResultObject;
-                            _ = state.CurrentFrame.ArrayAddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.ArrayAddMethodArgs);
+                            state.CurrentFrame.AddMethodArgs[0] = state.LastFrameResultObject;
+                            _ = state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
                         }
 
                         state.CurrentFrame.State = 3;
@@ -1154,43 +1229,47 @@ namespace Zerra.Serialization
                     {
                         case CoreType.Byte:
                         case CoreType.ByteNullable:
-                            state.LastFrameResultObject = (byte)(ulong)state.LastFrameResultObject;
+                            state.LastFrameResultObject = (byte)state.LiteralNumberUInt64;
                             break;
                         case CoreType.SByte:
                         case CoreType.SByteNullable:
-                            state.LastFrameResultObject = (sbyte)(long)state.LastFrameResultObject;
+                            state.LastFrameResultObject = (sbyte)state.LiteralNumberInt64;
                             break;
                         case CoreType.Int16:
                         case CoreType.Int16Nullable:
-                            state.LastFrameResultObject = (short)(long)state.LastFrameResultObject;
+                            state.LastFrameResultObject = (short)state.LiteralNumberInt64;
                             break;
                         case CoreType.UInt16:
                         case CoreType.UInt16Nullable:
-                            state.LastFrameResultObject = (ushort)(ulong)state.LastFrameResultObject;
+                            state.LastFrameResultObject = (ushort)state.LiteralNumberUInt64;
                             break;
                         case CoreType.Int32:
                         case CoreType.Int32Nullable:
-                            state.LastFrameResultObject = (int)(long)state.LastFrameResultObject;
+                            state.LastFrameResultObject = (int)state.LiteralNumberInt64;
                             break;
                         case CoreType.UInt32:
                         case CoreType.UInt32Nullable:
-                            state.LastFrameResultObject = (uint)(ulong)state.LastFrameResultObject;
+                            state.LastFrameResultObject = (uint)state.LiteralNumberUInt64;
                             break;
                         case CoreType.Int64:
                         case CoreType.Int64Nullable:
+                            state.LastFrameResultObject = state.LiteralNumberInt64;
                             break;
                         case CoreType.UInt64:
                         case CoreType.UInt64Nullable:
+                            state.LastFrameResultObject = state.LiteralNumberUInt64;
                             break;
                         case CoreType.Single:
                         case CoreType.SingleNullable:
-                            state.LastFrameResultObject = (float)(double)state.LastFrameResultObject;
+                            state.LastFrameResultObject = (float)state.LiteralNumberDouble;
                             break;
                         case CoreType.Double:
                         case CoreType.DoubleNullable:
+                            state.LastFrameResultObject = state.LiteralNumberDouble;
                             break;
                         case CoreType.Decimal:
                         case CoreType.DecimalNullable:
+                            state.LastFrameResultObject = state.LiteralNumberDecimal;
                             break;
                     }
                 }
@@ -1810,18 +1889,27 @@ namespace Zerra.Serialization
                 }
             }
         }
-#pragma warning disable IDE0059 // Unnecessary assignment of a value
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadLiteralNumberAsInt64(ref CharReader reader, ref ReadState state)
         {
-            long number = (long?)state.CurrentFrame.ResultObject ?? 0;
-            double workingNumber = (double?)state.CurrentFrame.LiteralNumberWorking ?? 0;
+            if (state.CurrentFrame.State == 0)
+            {
+                state.LiteralNumberInt64 = 0;
+                state.LiteralNumberWorkingDouble = 0;
+                state.LiteralNumberIsNegative = false;
+                state.LiteralNumberWorkingIsNegative = false;
+                state.CurrentFrame.State = 1;
+            }
+            long number = state.LiteralNumberInt64;
+            double workingNumber = state.LiteralNumberWorkingDouble;
 
             for (; ; )
             {
                 switch (state.CurrentFrame.State)
                 {
-                    case 0: //first number
+                    case 1: //first number
                         switch (state.CurrentFrame.FirstLiteralChar)
                         {
                             case '0': number = 0; break;
@@ -1836,18 +1924,18 @@ namespace Zerra.Serialization
                             case '9': number = 9; break;
                             case '-':
                                 number = 0;
-                                state.CurrentFrame.LiteralNumberIsNegative = true;
+                                state.LiteralNumberIsNegative = true;
                                 break;
                             default: throw reader.CreateException("Unexpected character");
                         }
-                        state.CurrentFrame.State = 1;
+                        state.CurrentFrame.State = 2;
                         break;
 
-                    case 1: //next number
+                    case 2: //next number
                         if (!reader.TryRead(out var c))
                         {
                             state.BytesNeeded = 1;
-                            state.CurrentFrame.ResultObject = number;
+                            state.LiteralNumberInt64 = number;
                             return;
                         }
                         switch (c)
@@ -1863,39 +1951,39 @@ namespace Zerra.Serialization
                             case '8': number = number * 10 + 8; break;
                             case '9': number = number * 10 + 9; break;
                             case '.':
-                                state.CurrentFrame.State = 2;
+                                state.CurrentFrame.State = 3;
                                 break;
                             case 'e':
                             case 'E':
-                                state.CurrentFrame.State = 3;
+                                state.CurrentFrame.State = 4;
                                 break;
                             case ' ':
                             case '\r':
                             case '\n':
                             case '\t':
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberInt64 = number;
                                 state.EndFrame();
                                 return;
                             case ',':
                             case '}':
                             case ']':
                                 reader.BackOne();
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberInt64 = number;
                                 state.EndFrame();
                                 return;
                         }
                         break;
 
-                    case 2: //decimal
+                    case 3: //decimal
                         if (!reader.TryRead(out c))
                         {
                             state.BytesNeeded = 1;
-                            state.CurrentFrame.ResultObject = number;
-                            state.CurrentFrame.LiteralNumberWorking = workingNumber;
+                            state.LiteralNumberInt64 = number;
+                            state.LiteralNumberWorkingDouble = workingNumber;
                             return;
                         }
                         switch (c)
@@ -1912,34 +2000,34 @@ namespace Zerra.Serialization
                             case '9': break;
                             case 'e':
                             case 'E':
-                                state.CurrentFrame.State = 3;
+                                state.CurrentFrame.State = 4;
                                 break;
                             case ' ':
                             case '\r':
                             case '\n':
                             case '\t':
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberInt64 = number;
                                 state.EndFrame();
                                 return;
                             case ',':
                             case '}':
                             case ']':
                                 reader.BackOne();
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberInt64 = number;
                                 state.EndFrame();
                                 return;
                         }
                         break;
 
-                    case 3: //first exponent
+                    case 4: //first exponent
                         if (!reader.TryRead(out c))
                         {
                             state.BytesNeeded = 1;
-                            state.CurrentFrame.ResultObject = number;
+                            state.LiteralNumberInt64 = number;
                             return;
                         }
                         switch (c)
@@ -1957,19 +2045,19 @@ namespace Zerra.Serialization
                             case '+': workingNumber = 0; break;
                             case '-':
                                 workingNumber = 0;
-                                state.CurrentFrame.LiteralNumberWorkingIsNegative = true;
+                                state.LiteralNumberWorkingIsNegative = true;
                                 break;
                             default: throw reader.CreateException("Unexpected character");
                         }
-                        state.CurrentFrame.State = 4;
+                        state.CurrentFrame.State = 5;
                         break;
 
-                    case 4: //exponent continue
+                    case 5: //exponent continue
                         if (!reader.TryRead(out c))
                         {
                             state.BytesNeeded = 1;
-                            state.CurrentFrame.ResultObject = number;
-                            state.CurrentFrame.LiteralNumberWorking = workingNumber;
+                            state.LiteralNumberInt64 = number;
+                            state.LiteralNumberWorkingDouble = workingNumber;
                             return;
                         }
 
@@ -1989,24 +2077,24 @@ namespace Zerra.Serialization
                             case '\r':
                             case '\n':
                             case '\t':
-                                if (state.CurrentFrame.LiteralNumberWorkingIsNegative)
+                                if (state.LiteralNumberWorkingIsNegative)
                                     workingNumber *= -1;
                                 number *= (long)Math.Pow(10, workingNumber);
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberInt64 = number;
                                 state.EndFrame();
                                 return;
                             case ',':
                             case '}':
                             case ']':
                                 reader.BackOne();
-                                if (state.CurrentFrame.LiteralNumberWorkingIsNegative)
+                                if (state.LiteralNumberWorkingIsNegative)
                                     workingNumber *= -1;
                                 number *= (long)Math.Pow(10, workingNumber);
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberInt64 = number;
                                 state.EndFrame();
                                 return;
                         }
@@ -2017,14 +2105,22 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadLiteralNumberAsUInt64(ref CharReader reader, ref ReadState state)
         {
-            ulong number = (ulong?)state.CurrentFrame.ResultObject ?? 0;
-            double workingNumber = (double?)state.CurrentFrame.LiteralNumberWorking ?? 0;
+            if (state.CurrentFrame.State == 0)
+            {
+                state.LiteralNumberUInt64 = 0;
+                state.LiteralNumberWorkingDouble = 0;
+                state.LiteralNumberIsNegative = false;
+                state.LiteralNumberWorkingIsNegative = false;
+                state.CurrentFrame.State = 1;
+            }
+            ulong number = state.LiteralNumberUInt64;
+            double workingNumber = state.LiteralNumberWorkingDouble;
 
             for (; ; )
             {
                 switch (state.CurrentFrame.State)
                 {
-                    case 0: //first number
+                    case 1: //first number
                         switch (state.CurrentFrame.FirstLiteralChar)
                         {
                             case '0': number = 0; break;
@@ -2039,18 +2135,18 @@ namespace Zerra.Serialization
                             case '9': number = 9; break;
                             case '-':
                                 number = 0;
-                                state.CurrentFrame.LiteralNumberIsNegative = true;
+                                state.LiteralNumberIsNegative = true;
                                 break;
                             default: throw reader.CreateException("Unexpected character");
                         }
-                        state.CurrentFrame.State = 1;
+                        state.CurrentFrame.State = 2;
                         break;
 
-                    case 1: //next number
+                    case 2: //next number
                         if (!reader.TryRead(out var c))
                         {
                             state.BytesNeeded = 1;
-                            state.CurrentFrame.ResultObject = number;
+                            state.LiteralNumberUInt64 = number;
                             return;
                         }
                         switch (c)
@@ -2066,35 +2162,35 @@ namespace Zerra.Serialization
                             case '8': number = number * 10 + 8; break;
                             case '9': number = number * 10 + 9; break;
                             case '.':
-                                state.CurrentFrame.State = 2;
+                                state.CurrentFrame.State = 3;
                                 break;
                             case 'e':
                             case 'E':
-                                state.CurrentFrame.State = 3;
+                                state.CurrentFrame.State = 4;
                                 break;
                             case ' ':
                             case '\r':
                             case '\n':
                             case '\t':
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberUInt64 = number;
                                 state.EndFrame();
                                 return;
                             case ',':
                             case '}':
                             case ']':
                                 reader.BackOne();
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberUInt64 = number;
                                 state.EndFrame();
                                 return;
                         }
                         break;
 
-                    case 2: //decimal
+                    case 3: //decimal
                         if (!reader.TryRead(out c))
                         {
                             state.BytesNeeded = 1;
-                            state.CurrentFrame.ResultObject = number;
-                            state.CurrentFrame.LiteralNumberWorking = workingNumber;
+                            state.LiteralNumberUInt64 = number;
+                            state.LiteralNumberWorkingDouble = workingNumber;
                             return;
                         }
                         switch (c)
@@ -2111,30 +2207,30 @@ namespace Zerra.Serialization
                             case '9': break;
                             case 'e':
                             case 'E':
-                                state.CurrentFrame.State = 3;
+                                state.CurrentFrame.State = 4;
                                 break;
                             case ' ':
                             case '\r':
                             case '\n':
                             case '\t':
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberUInt64 = number;
                                 state.EndFrame();
                                 return;
                             case ',':
                             case '}':
                             case ']':
                                 reader.BackOne();
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberUInt64 = number;
                                 state.EndFrame();
                                 return;
                         }
                         break;
 
-                    case 3: //first exponent
+                    case 4: //first exponent
                         if (!reader.TryRead(out c))
                         {
                             state.BytesNeeded = 1;
-                            state.CurrentFrame.ResultObject = number;
+                            state.LiteralNumberUInt64 = number;
                             return;
                         }
                         switch (c)
@@ -2152,19 +2248,19 @@ namespace Zerra.Serialization
                             case '+': workingNumber = 0; break;
                             case '-':
                                 workingNumber = 0;
-                                state.CurrentFrame.LiteralNumberWorkingIsNegative = true;
+                                state.LiteralNumberWorkingIsNegative = true;
                                 break;
                             default: throw reader.CreateException("Unexpected character");
                         }
-                        state.CurrentFrame.State = 4;
+                        state.CurrentFrame.State = 5;
                         break;
 
-                    case 4: //exponent continue
+                    case 5: //exponent continue
                         if (!reader.TryRead(out c))
                         {
                             state.BytesNeeded = 1;
-                            state.CurrentFrame.ResultObject = number;
-                            state.CurrentFrame.LiteralNumberWorking = workingNumber;
+                            state.LiteralNumberUInt64 = number;
+                            state.LiteralNumberWorkingDouble = workingNumber;
                             return;
                         }
 
@@ -2184,20 +2280,20 @@ namespace Zerra.Serialization
                             case '\r':
                             case '\n':
                             case '\t':
-                                if (state.CurrentFrame.LiteralNumberWorkingIsNegative)
+                                if (state.LiteralNumberWorkingIsNegative)
                                     workingNumber *= -1;
                                 number *= (ulong)Math.Pow(10, (ulong)workingNumber);
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberUInt64 = number;
                                 state.EndFrame();
                                 return;
                             case ',':
                             case '}':
                             case ']':
                                 reader.BackOne();
-                                if (state.CurrentFrame.LiteralNumberWorkingIsNegative)
+                                if (state.LiteralNumberWorkingIsNegative)
                                     workingNumber *= -1;
                                 number *= (ulong)Math.Pow(10, (ulong)workingNumber);
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberUInt64 = number;
                                 state.EndFrame();
                                 return;
                         }
@@ -2208,14 +2304,22 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadLiteralNumberAsDouble(ref CharReader reader, ref ReadState state)
         {
-            double number = (double?)state.CurrentFrame.ResultObject ?? 0;
-            double workingNumber = (double?)state.CurrentFrame.LiteralNumberWorking ?? 0;
+            if (state.CurrentFrame.State == 0)
+            {
+                state.LiteralNumberDouble = 0;
+                state.LiteralNumberWorkingDouble = 0;
+                state.LiteralNumberIsNegative = false;
+                state.LiteralNumberWorkingIsNegative = false;
+                state.CurrentFrame.State = 1;
+            }
+            double number = state.LiteralNumberDouble;
+            double workingNumber = state.LiteralNumberWorkingDouble;
 
             for (; ; )
             {
                 switch (state.CurrentFrame.State)
                 {
-                    case 0: //first number
+                    case 1: //first number
                         switch (state.CurrentFrame.FirstLiteralChar)
                         {
                             case '0': number = 0; break;
@@ -2230,18 +2334,18 @@ namespace Zerra.Serialization
                             case '9': number = 9; break;
                             case '-':
                                 number = 0;
-                                state.CurrentFrame.LiteralNumberIsNegative = true;
+                                state.LiteralNumberIsNegative = true;
                                 break;
                             default: throw reader.CreateException("Unexpected character");
                         }
-                        state.CurrentFrame.State = 1;
+                        state.CurrentFrame.State = 2;
                         break;
 
-                    case 1: //next number
+                    case 2: //next number
                         if (!reader.TryRead(out var c))
                         {
                             state.BytesNeeded = 1;
-                            state.CurrentFrame.ResultObject = number;
+                            state.LiteralNumberDouble = number;
                             return;
                         }
                         switch (c)
@@ -2258,39 +2362,39 @@ namespace Zerra.Serialization
                             case '9': number = number * 10 + 9; break;
                             case '.':
                                 workingNumber = 10;
-                                state.CurrentFrame.State = 2;
+                                state.CurrentFrame.State = 3;
                                 break;
                             case 'e':
                             case 'E':
-                                state.CurrentFrame.State = 3;
+                                state.CurrentFrame.State = 4;
                                 break;
                             case ' ':
                             case '\r':
                             case '\n':
                             case '\t':
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberDouble = number;
                                 state.EndFrame();
                                 return;
                             case ',':
                             case '}':
                             case ']':
                                 reader.BackOne();
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberDouble = number;
                                 state.EndFrame();
                                 return;
                         }
                         break;
 
-                    case 2: //decimal
+                    case 3: //decimal
                         if (!reader.TryRead(out c))
                         {
                             state.BytesNeeded = 1;
-                            state.CurrentFrame.ResultObject = number;
-                            state.CurrentFrame.LiteralNumberWorking = workingNumber;
+                            state.LiteralNumberDouble = number;
+                            state.LiteralNumberWorkingDouble = workingNumber;
                             return;
                         }
                         switch (c)
@@ -2307,35 +2411,35 @@ namespace Zerra.Serialization
                             case '9': number += 9 / workingNumber; break;
                             case 'e':
                             case 'E':
-                                state.CurrentFrame.State = 3;
+                                state.CurrentFrame.State = 4;
                                 break;
                             case ' ':
                             case '\r':
                             case '\n':
                             case '\t':
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberDouble = number;
                                 state.EndFrame();
                                 return;
                             case ',':
                             case '}':
                             case ']':
                                 reader.BackOne();
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberDouble = number;
                                 state.EndFrame();
                                 return;
                         }
                         workingNumber *= 10;
                         break;
 
-                    case 3: //first exponent
+                    case 4: //first exponent
                         if (!reader.TryRead(out c))
                         {
                             state.BytesNeeded = 1;
-                            state.CurrentFrame.ResultObject = number;
+                            state.LiteralNumberDouble = number;
                             return;
                         }
                         switch (c)
@@ -2353,19 +2457,19 @@ namespace Zerra.Serialization
                             case '+': workingNumber = 0; break;
                             case '-':
                                 workingNumber = 0;
-                                state.CurrentFrame.LiteralNumberWorkingIsNegative = true;
+                                state.LiteralNumberWorkingIsNegative = true;
                                 break;
                             default: throw reader.CreateException("Unexpected character");
                         }
-                        state.CurrentFrame.State = 4;
+                        state.CurrentFrame.State = 5;
                         break;
 
-                    case 4: //exponent continue
+                    case 5: //exponent continue
                         if (!reader.TryRead(out c))
                         {
                             state.BytesNeeded = 1;
-                            state.CurrentFrame.ResultObject = number;
-                            state.CurrentFrame.LiteralNumberWorking = workingNumber;
+                            state.LiteralNumberDouble = number;
+                            state.LiteralNumberWorkingDouble = workingNumber;
                             return;
                         }
 
@@ -2385,24 +2489,24 @@ namespace Zerra.Serialization
                             case '\r':
                             case '\n':
                             case '\t':
-                                if (state.CurrentFrame.LiteralNumberWorkingIsNegative)
+                                if (state.LiteralNumberWorkingIsNegative)
                                     workingNumber *= -1;
                                 number *= Math.Pow(10, workingNumber);
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberDouble = number;
                                 state.EndFrame();
                                 return;
                             case ',':
                             case '}':
                             case ']':
                                 reader.BackOne();
-                                if (state.CurrentFrame.LiteralNumberWorkingIsNegative)
+                                if (state.LiteralNumberWorkingIsNegative)
                                     workingNumber *= -1;
                                 number *= Math.Pow(10, workingNumber);
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberDouble = number;
                                 state.EndFrame();
                                 return;
                         }
@@ -2413,14 +2517,22 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadLiteralNumberAsDecimal(ref CharReader reader, ref ReadState state)
         {
-            decimal number = (decimal?)state.CurrentFrame.ResultObject ?? 0;
-            decimal workingNumber = (decimal?)state.CurrentFrame.LiteralNumberWorking ?? 0;
+            if (state.CurrentFrame.State == 0)
+            {
+                state.LiteralNumberDecimal = 0;
+                state.LiteralNumberWorkingDecimal = 0;
+                state.LiteralNumberIsNegative = false;
+                state.LiteralNumberWorkingIsNegative = false;
+                state.CurrentFrame.State = 1;
+            }
+            decimal number = state.LiteralNumberDecimal;
+            decimal workingNumber = state.LiteralNumberWorkingDecimal;
 
             for (; ; )
             {
                 switch (state.CurrentFrame.State)
                 {
-                    case 0: //first number
+                    case 1: //first number
                         switch (state.CurrentFrame.FirstLiteralChar)
                         {
                             case '0': number = 0; break;
@@ -2435,18 +2547,18 @@ namespace Zerra.Serialization
                             case '9': number = 9; break;
                             case '-':
                                 number = 0;
-                                state.CurrentFrame.LiteralNumberIsNegative = true;
+                                state.LiteralNumberIsNegative = true;
                                 break;
                             default: throw reader.CreateException("Unexpected character");
                         }
-                        state.CurrentFrame.State = 1;
+                        state.CurrentFrame.State = 2;
                         break;
 
-                    case 1: //next number
+                    case 2: //next number
                         if (!reader.TryRead(out var c))
                         {
                             state.BytesNeeded = 1;
-                            state.CurrentFrame.ResultObject = number;
+                            state.LiteralNumberDecimal = number;
                             return;
                         }
                         switch (c)
@@ -2463,39 +2575,39 @@ namespace Zerra.Serialization
                             case '9': number = number * 10 + 9; break;
                             case '.':
                                 workingNumber = 10;
-                                state.CurrentFrame.State = 2;
+                                state.CurrentFrame.State = 3;
                                 break;
                             case 'e':
                             case 'E':
-                                state.CurrentFrame.State = 3;
+                                state.CurrentFrame.State = 4;
                                 break;
                             case ' ':
                             case '\r':
                             case '\n':
                             case '\t':
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberDecimal = number;
                                 state.EndFrame();
                                 return;
                             case ',':
                             case '}':
                             case ']':
                                 reader.BackOne();
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberDecimal = number;
                                 state.EndFrame();
                                 return;
                         }
                         break;
 
-                    case 2: //decimal
+                    case 3: //decimal
                         if (!reader.TryRead(out c))
                         {
                             state.BytesNeeded = 1;
-                            state.CurrentFrame.ResultObject = number;
-                            state.CurrentFrame.LiteralNumberWorking = workingNumber;
+                            state.LiteralNumberDecimal = number;
+                            state.LiteralNumberWorkingDecimal = workingNumber;
                             return;
                         }
                         switch (c)
@@ -2512,35 +2624,35 @@ namespace Zerra.Serialization
                             case '9': number += 9 / workingNumber; break;
                             case 'e':
                             case 'E':
-                                state.CurrentFrame.State = 3;
+                                state.CurrentFrame.State = 4;
                                 break;
                             case ' ':
                             case '\r':
                             case '\n':
                             case '\t':
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberDecimal = number;
                                 state.EndFrame();
                                 return;
                             case ',':
                             case '}':
                             case ']':
                                 reader.BackOne();
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberDecimal = number;
                                 state.EndFrame();
                                 return;
                         }
                         workingNumber *= 10;
                         break;
 
-                    case 3: //first exponent
+                    case 4: //first exponent
                         if (!reader.TryRead(out c))
                         {
                             state.BytesNeeded = 1;
-                            state.CurrentFrame.ResultObject = number;
+                            state.LiteralNumberDecimal = number;
                             return;
                         }
                         switch (c)
@@ -2558,19 +2670,19 @@ namespace Zerra.Serialization
                             case '+': workingNumber = 0; break;
                             case '-':
                                 workingNumber = 0;
-                                state.CurrentFrame.LiteralNumberWorkingIsNegative = true;
+                                state.LiteralNumberWorkingIsNegative = true;
                                 break;
                             default: throw reader.CreateException("Unexpected character");
                         }
-                        state.CurrentFrame.State = 4;
+                        state.CurrentFrame.State = 5;
                         break;
 
-                    case 4: //exponent continue
+                    case 5: //exponent continue
                         if (!reader.TryRead(out c))
                         {
                             state.BytesNeeded = 1;
-                            state.CurrentFrame.ResultObject = number;
-                            state.CurrentFrame.LiteralNumberWorking = workingNumber;
+                            state.LiteralNumberDecimal = number;
+                            state.LiteralNumberWorkingDecimal = workingNumber;
                             return;
                         }
 
@@ -2590,24 +2702,24 @@ namespace Zerra.Serialization
                             case '\r':
                             case '\n':
                             case '\t':
-                                if (state.CurrentFrame.LiteralNumberWorkingIsNegative)
+                                if (state.LiteralNumberWorkingIsNegative)
                                     workingNumber *= -1;
                                 number *= (decimal)Math.Pow(10, (double)workingNumber);
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberDecimal = number;
                                 state.EndFrame();
                                 return;
                             case ',':
                             case '}':
                             case ']':
                                 reader.BackOne();
-                                if (state.CurrentFrame.LiteralNumberWorkingIsNegative)
+                                if (state.LiteralNumberWorkingIsNegative)
                                     workingNumber *= -1;
                                 number *= (decimal)Math.Pow(10, (double)workingNumber);
-                                if (state.CurrentFrame.LiteralNumberIsNegative)
+                                if (state.LiteralNumberIsNegative)
                                     number *= -1;
-                                state.CurrentFrame.ResultObject = number;
+                                state.LiteralNumberDecimal = number;
                                 state.EndFrame();
                                 return;
                         }
@@ -2615,6 +2727,6 @@ namespace Zerra.Serialization
                 }
             }
         }
-#pragma warning restore IDE0059 // Unnecessary assignment of a value
+
     }
 }

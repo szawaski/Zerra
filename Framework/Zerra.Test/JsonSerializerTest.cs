@@ -17,7 +17,7 @@ namespace Zerra.Test
     public class JsonSerializerTest
     {
         [TestMethod]
-        public void MatchesStandards()
+        public void StringMatchesStandards()
         {
             var baseModel = Factory.GetAllTypesModel();
             var json1 = JsonSerializer.Serialize(baseModel);
@@ -29,7 +29,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void Types()
+        public void StringTypes()
         {
             var baseModel = Factory.GetAllTypesModel();
             var json = JsonSerializer.Serialize(baseModel);
@@ -38,7 +38,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void ConvertTypes()
+        public void StringConvertTypes()
         {
             var baseModel = Factory.GetAllTypesModel();
             var json1 = JsonSerializer.Serialize(baseModel);
@@ -51,121 +51,121 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void Numbers()
+        public void StringNumbers()
         {
             for (var i = -10; i < 10; i++)
-                TestNumber(i);
+                StringTestNumber(i);
             for (decimal i = -2; i < 2; i += 0.1m)
-                TestNumber(i);
+                StringTestNumber(i);
 
-            TestNumber(Byte.MinValue);
-            TestNumber(Byte.MaxValue);
-            TestNumber(SByte.MinValue);
-            TestNumber(SByte.MaxValue);
+            StringTestNumber(Byte.MinValue);
+            StringTestNumber(Byte.MaxValue);
+            StringTestNumber(SByte.MinValue);
+            StringTestNumber(SByte.MaxValue);
 
-            TestNumber(Int16.MinValue);
-            TestNumber(Int16.MaxValue);
-            TestNumber(UInt16.MinValue);
-            TestNumber(UInt16.MaxValue);
+            StringTestNumber(Int16.MinValue);
+            StringTestNumber(Int16.MaxValue);
+            StringTestNumber(UInt16.MinValue);
+            StringTestNumber(UInt16.MaxValue);
 
-            TestNumber(Int32.MinValue);
-            TestNumber(Int32.MaxValue);
-            TestNumber(UInt32.MinValue);
-            TestNumber(UInt32.MaxValue);
+            StringTestNumber(Int32.MinValue);
+            StringTestNumber(Int32.MaxValue);
+            StringTestNumber(UInt32.MinValue);
+            StringTestNumber(UInt32.MaxValue);
 
-            TestNumber(Int64.MinValue);
-            TestNumber(Int64.MaxValue);
-            TestNumber(UInt64.MinValue);
-            TestNumber(UInt64.MaxValue);
+            StringTestNumber(Int64.MinValue);
+            StringTestNumber(Int64.MaxValue);
+            StringTestNumber(UInt64.MinValue);
+            StringTestNumber(UInt64.MaxValue);
 
-            TestNumber(Single.MinValue);
-            TestNumber(Single.MaxValue);
+            StringTestNumber(Single.MinValue);
+            StringTestNumber(Single.MaxValue);
 
-            TestNumber(Double.MinValue);
-            TestNumber(Double.MaxValue);
+            StringTestNumber(Double.MinValue);
+            StringTestNumber(Double.MaxValue);
 
-            TestNumber(Decimal.MinValue);
-            TestNumber(Decimal.MaxValue);
+            StringTestNumber(Decimal.MinValue);
+            StringTestNumber(Decimal.MaxValue);
 
-            TestNumberAsString(Double.MinValue);
-            TestNumberAsString(Double.MaxValue);
+            StringTestNumberAsString(Double.MinValue);
+            StringTestNumberAsString(Double.MaxValue);
 
-            TestNumberAsString(Decimal.MinValue);
-            TestNumberAsString(Decimal.MaxValue);
+            StringTestNumberAsString(Decimal.MinValue);
+            StringTestNumberAsString(Decimal.MaxValue);
         }
-        private static void TestNumber(byte value)
+        private static void StringTestNumber(byte value)
         {
             var json = JsonSerializer.Serialize(value);
             var result = JsonSerializer.Deserialize<byte>(json);
             Assert.AreEqual(value, result);
         }
-        private static void TestNumber(sbyte value)
+        private static void StringTestNumber(sbyte value)
         {
             var json = JsonSerializer.Serialize(value);
             var result = JsonSerializer.Deserialize<sbyte>(json);
             Assert.AreEqual(value, result);
         }
-        private static void TestNumber(short value)
+        private static void StringTestNumber(short value)
         {
             var json = JsonSerializer.Serialize(value);
             var result = JsonSerializer.Deserialize<short>(json);
             Assert.AreEqual(value, result);
         }
-        private static void TestNumber(ushort value)
+        private static void StringTestNumber(ushort value)
         {
             var json = JsonSerializer.Serialize(value);
             var result = JsonSerializer.Deserialize<ushort>(json);
             Assert.AreEqual(value, result);
         }
-        private static void TestNumber(int value)
+        private static void StringTestNumber(int value)
         {
             var json = JsonSerializer.Serialize(value);
             var result = JsonSerializer.Deserialize<int>(json);
             Assert.AreEqual(value, result);
         }
-        private static void TestNumber(uint value)
+        private static void StringTestNumber(uint value)
         {
             var json = JsonSerializer.Serialize(value);
             var result = JsonSerializer.Deserialize<uint>(json);
             Assert.AreEqual(value, result);
         }
-        private static void TestNumber(long value)
+        private static void StringTestNumber(long value)
         {
             var json = JsonSerializer.Serialize(value);
             var result = JsonSerializer.Deserialize<long>(json);
             Assert.AreEqual(value, result);
         }
-        private static void TestNumber(ulong value)
+        private static void StringTestNumber(ulong value)
         {
             var json = JsonSerializer.Serialize(value);
             var result = JsonSerializer.Deserialize<ulong>(json);
             Assert.AreEqual(value, result);
         }
-        private static void TestNumber(decimal value)
+        private static void StringTestNumber(decimal value)
         {
             var json = JsonSerializer.Serialize(value);
             var result = JsonSerializer.Deserialize<decimal>(json);
             Assert.AreEqual(value, result);
         }
-        private static void TestNumber(float value)
+        private static void StringTestNumber(float value)
         {
             var json = JsonSerializer.Serialize(value);
             var result = JsonSerializer.Deserialize<float>(json);
             Assert.AreEqual(value, result);
         }
-        private static void TestNumber(double value)
+        private static void StringTestNumber(double value)
         {
             var json = JsonSerializer.Serialize(value);
             var result = JsonSerializer.Deserialize<double>(json);
             Assert.AreEqual(value, result);
         }
-        private static void TestNumberAsString(double value)
+        private static void StringTestNumberAsString(double value)
         {
             var json = JsonSerializer.Serialize(value);
             var result = JsonSerializer.Deserialize<string>(json);
             Assert.AreEqual(json, result);
         }
-        private static void TestNumberAsString(decimal value)
+        private static void StringTestNumberAsString(decimal value)
         {
             var json = JsonSerializer.Serialize(value);
             var result = JsonSerializer.Deserialize<string>(json);
@@ -173,7 +173,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void EnumConversion()
+        public void StringEnumConversion()
         {
             //var model1 = new EnumConversionModel1() { Thing = EnumModel.Item2 };
             //var test1 = JsonSerializer.Serialize(model1);
@@ -187,7 +187,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void Pretty()
+        public void StringPretty()
         {
             var baseModel = Factory.GetAllTypesModel();
             var json = JsonSerializer.Serialize(baseModel);
@@ -205,7 +205,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void Nameless()
+        public void StringNameless()
         {
             var baseModel = Factory.GetAllTypesModel();
             var json = JsonSerializer.SerializeNameless(baseModel);
@@ -214,7 +214,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void Emptys()
+        public void StringEmptys()
         {
             var json1 = JsonSerializer.Serialize<string>(null);
             Assert.AreEqual("null", json1);
@@ -254,7 +254,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void Escaping()
+        public void StringEscaping()
         {
             for (var i = 0; i < 255; i++)
             {
@@ -284,7 +284,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void JsonObject()
+        public void StringJsonObject()
         {
             var baseModel = Factory.GetAllTypesModel();
             var json = JsonSerializer.Serialize(baseModel);
@@ -539,7 +539,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void ExceptionObject()
+        public void StringExceptionObject()
         {
             var model1 = new Exception("bad things happened");
             var bytes = JsonSerializer.Serialize(model1);
@@ -548,7 +548,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void Interface()
+        public void StringInterface()
         {
             ITestInterface model1 = new TestInterfaceImplemented()
             {
@@ -562,33 +562,6 @@ namespace Zerra.Test
             Assert.AreEqual(5, model2.Property1);
             Assert.AreEqual(6, model2.Property2);
         }
-
-        //[TestMethod]
-        //public void DeserializeStream()
-        //{
-        //    var model1 = Factory.GetAllTypesModel();
-        //    var bytes = JsonSerializer.SerializeBytes(model1);
-        //    var test = JsonSerializer.Serialize(model1);
-        //    using (var ms = new MemoryStream(bytes))
-        //    {
-        //        var model2 = JsonSerializer.Deserialize<AllTypesModel>(ms);
-        //        Factory.AssertAreEqual(model1, model2);
-        //    }
-        //}
-
-        //[TestMethod]
-        //public void SerializeStream()
-        //{
-        //    var model1 = Factory.GetAllTypesModel();
-        //    byte[] bytes;
-        //    using (var ms = new MemoryStream())
-        //    {
-        //        JsonSerializer.Serialize(ms, model1);
-        //        bytes = ms.ToArray();
-        //    }
-        //    var model2 = JsonSerializer.Deserialize<AllTypesModel>(bytes);
-        //    Factory.AssertAreEqual(model1, model2);
-        //}
 
         [TestMethod]
         public async Task StreamTypes()

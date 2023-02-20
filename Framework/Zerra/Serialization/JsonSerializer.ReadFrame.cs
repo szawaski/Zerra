@@ -18,21 +18,18 @@ namespace Zerra.Serialization
             public object ResultObject;
             public string ResultString;
 
-            public int State;
+            public byte State;
 
             public MemberDetail ObjectProperty;
 
-            public MethodDetail ArrayAddMethod;
-            public object[] ArrayAddMethodArgs;
+            public MethodDetail AddMethod;
+            public object[] AddMethodArgs;
             public TypeDetail ArrayElementType;
 
             public char FirstLiteralChar;
 
-            public bool LiteralNumberIsNegative;
-            public object LiteralNumberWorking;
-            public bool LiteralNumberWorkingIsNegative;
-
             public int PropertyIndexForNameless;
+            public object DictionaryKey;
         }
     }
 }

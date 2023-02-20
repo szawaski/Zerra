@@ -42,6 +42,16 @@ namespace Zerra.Serialization
 
             public int BytesNeeded;
             public int BufferPostion;
+
+            public long LiteralNumberInt64;
+            public ulong LiteralNumberUInt64;
+            public double LiteralNumberDouble;
+            public decimal LiteralNumberDecimal;
+            public bool LiteralNumberIsNegative;
+
+            public double LiteralNumberWorkingDouble;
+            public decimal LiteralNumberWorkingDecimal;
+            public bool LiteralNumberWorkingIsNegative;
         }
     }
 }

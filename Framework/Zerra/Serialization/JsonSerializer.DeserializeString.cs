@@ -248,14 +248,17 @@ namespace Zerra.Serialization
                     var value = FromStringString(ref reader, ref decodeBuffer);
                     return ConvertStringToType(value, typeDetail);
                 case '{':
-                    return FromStringJsonObject(ref reader, ref decodeBuffer, typeDetail, graph, nameless);
+                    if (typeDetail.SpecialType == SpecialType.Dictionary)
+                        return FromStringJsonDictionary(ref reader, ref decodeBuffer, typeDetail, graph, nameless);
+                    else
+                        return FromStringJsonObject(ref reader, ref decodeBuffer, typeDetail, graph, nameless);
                 case '[':
                     if (!nameless || (typeDetail != null && typeDetail.IsIEnumerableGeneric))
                         return FromStringJsonArray(ref reader, ref decodeBuffer, typeDetail, graph, nameless);
                     else
                         return FromStringJsonArrayNameless(ref reader, ref decodeBuffer, typeDetail, graph);
                 default:
-                    return FromStringLiteral(c, ref reader, typeDetail);
+                    return FromStringLiteral(c, ref reader, ref decodeBuffer, typeDetail);
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -279,48 +282,87 @@ namespace Zerra.Serialization
 
                         if (obj != null)
                         {
-                            if (typeDetail != null && typeDetail.SpecialType == SpecialType.Dictionary)
+                            if (typeDetail.TryGetSerializableMemberDetails(propertyName, out var memberDetail))
                             {
-                                //Dictionary Special Case
-                                var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail.InnerTypeDetails[0].InnerTypeDetails[1], null, nameless);
-                                if (typeDetail.InnerTypeDetails[0].InnerTypeDetails[0].CoreType.HasValue)
+                                var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
+                                var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail.TypeDetail, propertyGraph, nameless);
+                                if (value != null)
                                 {
-                                    var key = TypeAnalyzer.Convert(propertyName, typeDetail.InnerTypeDetails[0].InnerTypes[0]);
-                                    var method = typeDetail.GetMethod("Add");
-                                    _ = method.Caller(obj, new object[] { key, value });
+                                    if (graph != null)
+                                    {
+                                        if (memberDetail.TypeDetail.IsGraphLocalProperty)
+                                        {
+                                            if (graph.HasLocalProperty(memberDetail.Name))
+                                                memberDetail.Setter(obj, value);
+                                        }
+                                        else
+                                        {
+                                            if (propertyGraph != null)
+                                                memberDetail.Setter(obj, value);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        memberDetail.Setter(obj, value);
+                                    }
                                 }
                             }
                             else
                             {
-                                if (typeDetail.TryGetSerializableMemberDetails(propertyName, out var memberDetail))
-                                {
-                                    var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
-                                    var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail.TypeDetail, propertyGraph, nameless);
-                                    if (value != null)
-                                    {
-                                        if (graph != null)
-                                        {
-                                            if (memberDetail.TypeDetail.IsGraphLocalProperty)
-                                            {
-                                                if (graph.HasLocalProperty(memberDetail.Name))
-                                                    memberDetail.Setter(obj, value);
-                                            }
-                                            else
-                                            {
-                                                if (propertyGraph != null)
-                                                    memberDetail.Setter(obj, value);
-                                            }
-                                        }
-                                        else
-                                        {
-                                            memberDetail.Setter(obj, value);
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, nameless);
-                                }
+                                _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, nameless);
+                            }
+                        }
+                        else
+                        {
+                            _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, nameless);
+                        }
+                        canExpectComma = true;
+                        break;
+                    case ',':
+                        if (canExpectComma)
+                            canExpectComma = false;
+                        else
+                            throw reader.CreateException("Unexpected character");
+                        break;
+                    case '}':
+                        return obj;
+                    default:
+                        throw reader.CreateException("Unexpected character");
+                }
+            }
+            throw reader.CreateException("Json ended prematurely");
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static object FromStringJsonDictionary(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph graph, bool nameless)
+        {
+            var obj = typeDetail?.Creator();
+            object[] addMethodArgs = new object[2];
+            var method = typeDetail.GetMethod("Add");
+            var canExpectComma = false;
+            while (reader.TryReadSkipWhiteSpace(out var c))
+            {
+                switch (c)
+                {
+                    case '"':
+                        if (canExpectComma)
+                            throw reader.CreateException("Unexpected character");
+                        var dictionaryKey = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail.InnerTypeDetails[0].InnerTypeDetails[0], null, nameless);
+
+                        FromStringPropertySeperator(ref reader);
+
+                        if (!reader.TryReadSkipWhiteSpace(out c))
+                            throw reader.CreateException("Json ended prematurely");
+
+                        if (obj != null)
+                        {
+
+                            //Dictionary Special Case
+                            var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail.InnerTypeDetails[0].InnerTypeDetails[1], null, nameless);
+                            if (typeDetail.InnerTypeDetails[0].InnerTypeDetails[0].CoreType.HasValue)
+                            {
+                                addMethodArgs[0] = dictionaryKey;
+                                addMethodArgs[1] = value;
+                                _ = method.Caller(obj, addMethodArgs);
                             }
                         }
                         else
@@ -517,7 +559,7 @@ namespace Zerra.Serialization
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromStringLiteral(char c, ref CharReader reader, TypeDetail typeDetail)
+        private static object FromStringLiteral(char c, ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail)
         {
             switch (c)
             {
@@ -585,16 +627,16 @@ namespace Zerra.Serialization
                         {
                             if (typeDetail.CoreType == CoreType.String)
                             {
-                                var value = FromStringLiteralNumberAsString(c, ref reader);
+                                var value = FromStringLiteralNumberAsString(c, ref reader, ref decodeBuffer);
                                 return value;
                             }
                             else if (typeDetail.CoreType.HasValue)
                             {
-                                return FromStringLiteralNumberAsType(c, typeDetail.CoreType.Value, ref reader);
+                                return FromStringLiteralNumberAsType(c, typeDetail.CoreType.Value, ref reader, ref decodeBuffer);
                             }
                             else if (typeDetail.EnumUnderlyingType.HasValue)
                             {
-                                return FromStringLiteralNumberAsType(c, typeDetail.EnumUnderlyingType.Value, ref reader);
+                                return FromStringLiteralNumberAsType(c, typeDetail.EnumUnderlyingType.Value, ref reader, ref decodeBuffer);
                             }
                         }
                         FromStringLiteralNumberAsEmpty(c, ref reader);
@@ -616,7 +658,7 @@ namespace Zerra.Serialization
                 case '[':
                     return FromStringArrayToJsonObject(ref reader, ref decodeBuffer, graph);
                 default:
-                    return FromStringLiteralToJsonObject(c, ref reader);
+                    return FromStringLiteralToJsonObject(c, ref reader, ref decodeBuffer);
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -715,7 +757,7 @@ namespace Zerra.Serialization
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static JsonObject FromStringLiteralToJsonObject(char c, ref CharReader reader)
+        private static JsonObject FromStringLiteralToJsonObject(char c, ref CharReader reader, ref CharWriter decodeBuffer)
         {
             switch (c)
             {
@@ -773,7 +815,7 @@ namespace Zerra.Serialization
                     }
                 default:
                     {
-                        var value = FromStringLiteralNumberAsString(c, ref reader);
+                        var value = FromStringLiteralNumberAsString(c, ref reader, ref decodeBuffer);
                         return new JsonObject(value, true);
                     }
             }
@@ -796,22 +838,22 @@ namespace Zerra.Serialization
             //return reader.ReadJsonString(decodeBuffer);
 
             //Quote already started
-            reader.BeginSegment(false);
-            while (reader.TryReadUntil(out var c, '\"', '\\'))
+
+            char c;
+            while (reader.TryReadSpanUntil(out var s, '\"', '\\'))
             {
+                decodeBuffer.Write(s.Slice(0, s.Length - 1));
+                c = s[s.Length - 1];
                 switch (c)
                 {
                     case '\"':
                         {
-                            reader.EndSegmentCopyTo(false, ref decodeBuffer);
-                            var s = decodeBuffer.ToString();
+                            var result = decodeBuffer.ToString();
                             decodeBuffer.Clear();
-                            return s;
+                            return result;
                         }
                     case '\\':
                         {
-                            reader.EndSegmentCopyTo(false, ref decodeBuffer);
-
                             if (!reader.TryRead(out c))
                                 throw reader.CreateException("Json ended prematurely");
 
@@ -843,8 +885,6 @@ namespace Zerra.Serialization
                                     decodeBuffer.Write(c);
                                     break;
                             }
-
-                            reader.BeginSegment(false);
                         }
                         break;
                 }
@@ -854,14 +894,14 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromStringLiteralNumberAsType(char c, CoreType coreType, ref CharReader reader)
+        private static object FromStringLiteralNumberAsType(char c, CoreType coreType, ref CharReader reader, ref CharWriter decodeBuffer)
         {
             unchecked
             {
                 switch (coreType)
                 {
                     case CoreType.String:
-                        return FromStringLiteralNumberAsString(c, ref reader);
+                        return FromStringLiteralNumberAsString(c, ref reader, ref decodeBuffer);
                     case CoreType.Byte:
                     case CoreType.ByteNullable:
                         return (byte)FromStringLiteralNumberAsUInt64(c, ref reader);
@@ -900,10 +940,8 @@ namespace Zerra.Serialization
             return null;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static string FromStringLiteralNumberAsString(char c, ref CharReader reader)
+        private static string FromStringLiteralNumberAsString(char c, ref CharReader reader, ref CharWriter decodeBuffer)
         {
-            reader.BeginSegment(true);
-
             switch (c)
             {
                 case '0':
@@ -921,6 +959,7 @@ namespace Zerra.Serialization
                     break;
                 default: throw reader.CreateException("Unexpected character");
             }
+            decodeBuffer.Write(c);
 
             while (reader.TryRead(out c))
             {
@@ -936,7 +975,7 @@ namespace Zerra.Serialization
                     case '7':
                     case '8':
                     case '9':
-                        //nothing
+                        decodeBuffer.Write(c);
                         break;
                     case '.':
                         {
@@ -954,7 +993,7 @@ namespace Zerra.Serialization
                                     case '7':
                                     case '8':
                                     case '9':
-                                        //nothing
+                                        decodeBuffer.Write(c);
                                         break;
                                     case 'e':
                                     case 'E':
@@ -976,7 +1015,7 @@ namespace Zerra.Serialization
                                                 case '9':
                                                 case '-':
                                                 case '+':
-                                                    //nothing
+                                                    decodeBuffer.Write(c);
                                                     break;
                                                 default: throw reader.CreateException("Unexpected character");
                                             }
@@ -995,34 +1034,54 @@ namespace Zerra.Serialization
                                                     case '8':
                                                     case '9':
                                                     case '+':
-                                                        //nothing
+                                                        decodeBuffer.Write(c);
                                                         break;
                                                     case ' ':
                                                     case '\r':
                                                     case '\n':
                                                     case '\t':
-                                                        return reader.EndSegmentToString(false);
+                                                        {
+                                                            var result = decodeBuffer.ToString();
+                                                            decodeBuffer.Clear();
+                                                            return result;
+                                                        }
                                                     case ',':
                                                     case '}':
                                                     case ']':
                                                         reader.BackOne();
-                                                        return reader.EndSegmentToString(true);
+                                                        {
+                                                            var result = decodeBuffer.ToString();
+                                                            decodeBuffer.Clear();
+                                                            return result;
+                                                        }
                                                     default:
                                                         throw reader.CreateException("Unexpected character");
                                                 }
                                             }
-                                            return reader.EndSegmentToString(true);
+                                            {
+                                                var result = decodeBuffer.ToString();
+                                                decodeBuffer.Clear();
+                                                return result;
+                                            }
                                         }
                                     case ' ':
                                     case '\r':
                                     case '\n':
                                     case '\t':
-                                        return reader.EndSegmentToString(false);
+                                        {
+                                            var result = decodeBuffer.ToString();
+                                            decodeBuffer.Clear();
+                                            return result;
+                                        }
                                     case ',':
                                     case '}':
                                     case ']':
                                         reader.BackOne();
-                                        return reader.EndSegmentToString(true);
+                                        {
+                                            var result = decodeBuffer.ToString();
+                                            decodeBuffer.Clear();
+                                            return result;
+                                        }
                                     default:
                                         throw reader.CreateException("Unexpected character");
                                 }
@@ -1049,7 +1108,7 @@ namespace Zerra.Serialization
                                 case '9':
                                 case '-':
                                 case '+':
-                                    //nothing
+                                    decodeBuffer.Write(c);
                                     break;
                                 default: throw reader.CreateException("Unexpected character");
                             }
@@ -1071,34 +1130,58 @@ namespace Zerra.Serialization
                                     case '\r':
                                     case '\n':
                                     case '\t':
-                                        return reader.EndSegmentToString(false);
+                                        {
+                                            var result = decodeBuffer.ToString();
+                                            decodeBuffer.Clear();
+                                            return result;
+                                        }
                                     case ',':
                                     case '}':
                                     case ']':
                                         reader.BackOne();
-                                        return reader.EndSegmentToString(true);
+                                        {
+                                            var result = decodeBuffer.ToString();
+                                            decodeBuffer.Clear();
+                                            return result;
+                                        }
                                     default:
                                         throw reader.CreateException("Unexpected character");
                                 }
                             }
-                            return reader.EndSegmentToString(true);
+                            {
+                                var result = decodeBuffer.ToString();
+                                decodeBuffer.Clear();
+                                return result;
+                            }
                         }
                     case ' ':
                     case '\r':
                     case '\n':
                     case '\t':
-                        return reader.EndSegmentToString(false);
+                        {
+                            var result = decodeBuffer.ToString();
+                            decodeBuffer.Clear();
+                            return result;
+                        }
                     case ',':
                     case '}':
                     case ']':
                         reader.BackOne();
-                        return reader.EndSegmentToString(true);
+                        {
+                            var result = decodeBuffer.ToString();
+                            decodeBuffer.Clear();
+                            return result;
+                        }
                     default:
                         throw reader.CreateException("Unexpected character");
                 }
             }
 
-            return reader.EndSegmentToString(true);
+            {
+                var result = decodeBuffer.ToString();
+                decodeBuffer.Clear();
+                return result;
+            }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long FromStringLiteralNumberAsInt64(char c, ref CharReader reader)
