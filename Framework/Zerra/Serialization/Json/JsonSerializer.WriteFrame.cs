@@ -15,6 +15,8 @@ namespace Zerra.Serialization
 
             public Graph Graph;
 
+            public object Object;
+
             public byte State;
 
             public MemberDetail ObjectProperty;

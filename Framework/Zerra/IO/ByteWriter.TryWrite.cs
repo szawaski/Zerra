@@ -12,19 +12,6 @@ namespace Zerra.IO
     public ref partial struct ByteWriter
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe void WriteInternal(byte[] bytes)
-        {
-            fixed (byte* pBuffer = &buffer[position], pBytes = bytes)
-            {
-                for (var i = 0; i < bytes.Length; i++)
-                {
-                    pBuffer[i] = pBytes[i];
-                }
-            }
-            position += bytes.Length;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(byte[] bytes, out int sizeNeeded)
         {
             sizeNeeded = bytes.Length;

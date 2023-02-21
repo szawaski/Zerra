@@ -34,7 +34,7 @@ namespace Zerra.Serialization
                     Ended = true;
             }
 
-            public int BytesNeeded;
+            public int CharsNeeded;
             public int BufferPostion;
         }
     }

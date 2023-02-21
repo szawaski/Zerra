@@ -207,7 +207,7 @@ namespace Zerra.Serialization
 
         private static void ToStringJson(object value, TypeDetail typeDetail, Graph graph, ref CharWriter writer, bool nameless)
         {
-            if (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable)
+            if (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable && value != null)
             {
                 var objectType = value.GetType();
                 typeDetail = TypeAnalyzer.GetTypeDetail(objectType);

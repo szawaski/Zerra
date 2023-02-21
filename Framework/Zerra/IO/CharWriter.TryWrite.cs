@@ -10,99 +10,143 @@ namespace Zerra.IO
     public ref partial struct CharWriter
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(byte value)
+        public bool TryWrite(byte value, out int sizeNeeded)
         {
-            EnsureBufferSize(4);
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded)
+                return false;
             WriteUInt64(value);
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(sbyte value)
+        public bool TryWrite(sbyte value, out int sizeNeeded)
         {
-            EnsureBufferSize(3);
+            sizeNeeded = 3;
+            if (length - position < sizeNeeded)
+                return false;
             WriteInt64(value);
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(short value)
+        public bool TryWrite(short value, out int sizeNeeded)
         {
-            EnsureBufferSize(6);
+            sizeNeeded = 6;
+            if (length - position < sizeNeeded)
+                return false;
             WriteInt64(value);
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(ushort value)
+        public bool TryWrite(ushort value, out int sizeNeeded)
         {
-            EnsureBufferSize(5);
+            sizeNeeded = 5;
+            if (length - position < sizeNeeded)
+                return false;
             WriteUInt64(value);
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(int value)
+        public bool TryWrite(int value, out int sizeNeeded)
         {
-            EnsureBufferSize(11);
+            sizeNeeded = 11;
+            if (length - position < sizeNeeded)
+                return false;
             WriteInt64(value);
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(uint value)
+        public bool TryWrite(uint value, out int sizeNeeded)
         {
-            EnsureBufferSize(10);
+            sizeNeeded = 10;
+            if (length - position < sizeNeeded)
+                return false;
             WriteUInt64(value);
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(long value)
+        public bool TryWrite(long value, out int sizeNeeded)
         {
-            EnsureBufferSize(20);
+            sizeNeeded = 20;
+            if (length - position < sizeNeeded)
+                return false;
             WriteInt64(value);
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(ulong value)
+        public bool TryWrite(ulong value, out int sizeNeeded)
         {
-            EnsureBufferSize(20);
+            sizeNeeded = 20;
+            if (length - position < sizeNeeded)
+                return false;
             WriteUInt64(value);
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(float value)
+        public bool TryWrite(float value, out int sizeNeeded)
         {
-            EnsureBufferSize(16); //min
+            sizeNeeded = 16; //min
+            if (length - position < sizeNeeded)
+                return false; 
             Write(value.ToString());
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(double value)
+        public bool TryWrite(double value, out int sizeNeeded)
         {
-            EnsureBufferSize(32); //min
+            sizeNeeded = 32; //min
+            if (length - position < sizeNeeded)
+                return false; 
             Write(value.ToString());
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(decimal value)
+        public bool TryWrite(decimal value, out int sizeNeeded)
         {
-            EnsureBufferSize(31);
+            sizeNeeded = 31;
+            if (length - position < sizeNeeded)
+                return false;
             Write(value.ToString());
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(char value)
+        public bool TryWrite(char value, out int sizeNeeded)
         {
-            EnsureBufferSize(1);
+            sizeNeeded = 1;
+            if (length - position < sizeNeeded)
+                return false;
             buffer[position++] = value;
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void Write(string value)
+        public unsafe bool TryWrite(string value, out int sizeNeeded)
         {
             if (value == null)
-                return;
+            {
+                sizeNeeded = 0;
+                return true;
+            }
             var length = value.Length;
             if (length == 0)
-                return;
+            {
+                sizeNeeded = 0;
+                return true;
+            }
 
-            EnsureBufferSize(length);
+            sizeNeeded = length;
+            if (length - position < sizeNeeded)
+                return false;
 
             var valueSpan = value.AsSpan();
             var pCount = value.Length;
@@ -114,14 +158,18 @@ namespace Zerra.IO
                 }
             }
             position += pCount;
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void Write(char[] value, int index, int count)
+        public unsafe bool TryWrite(char[] value, int index, int count, out int sizeNeeded)
         {
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
-            EnsureBufferSize(count);
+            sizeNeeded = count;
+            if (length - position < sizeNeeded)
+                return false;
+
             var pCount = value.Length;
             fixed (char* pSource = value, pBuffer = &buffer[position])
             {
@@ -131,17 +179,20 @@ namespace Zerra.IO
                 }
             }
             position += pCount;
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(DateTime value, DateTimeFormat format)
+        public bool TryWrite(DateTime value, DateTimeFormat format, out int sizeNeeded)
         {
             switch (format)
             {
                 case DateTimeFormat.ISO8601:
                     {
                         //yyyy-MM-ddTHH:mm:ss.fffffff+00:00
-                        EnsureBufferSize(33);
+                        sizeNeeded = 33;
+                        if (length - position < sizeNeeded)
+                            return false;
 
                         if (value.Year < 10)
                             buffer[position++] = '0';
@@ -224,12 +275,15 @@ namespace Zerra.IO
                                 }
                             default: throw new NotImplementedException();
                         }
-                        break;
+
+                        return true;
                     }
                 case DateTimeFormat.MsSql:
                     {
                         //yyyy-MM-dd HH:mm:ss.fff
-                        EnsureBufferSize(23);
+                        sizeNeeded = 23;
+                        if (length - position < sizeNeeded)
+                            return false;
 
                         if (value.Year < 10)
                             buffer[position++] = '0';
@@ -273,7 +327,7 @@ namespace Zerra.IO
                             buffer[position++] = '0';
                         WriteInt64(fraction);
 
-                        break;
+                        return true;
                     }
                 default:
                     throw new NotImplementedException();
@@ -281,14 +335,16 @@ namespace Zerra.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(DateTimeOffset value, DateTimeFormat format)
+        public bool TryWrite(DateTimeOffset value, DateTimeFormat format, out int sizeNeeded)
         {
             switch (format)
             {
                 case DateTimeFormat.ISO8601:
                     {
                         //yyyy-MM-ddTHH:mm:ss.fffffff+00:00
-                        EnsureBufferSize(33);
+                        sizeNeeded = 33;
+                        if (length - position < sizeNeeded)
+                            return false;
 
                         if (value.Year < 10)
                             buffer[position++] = '0';
@@ -353,12 +409,14 @@ namespace Zerra.IO
                             buffer[position++] = '0';
                         WriteInt64(value.Offset.Minutes);
 
-                        break;
+                        return true;
                     }
                 case DateTimeFormat.MsSql:
                     {
                         //yyyy-MM-dd HH:mm:ss.fff zzz
-                        EnsureBufferSize(27);
+                        sizeNeeded = 27;
+                        if (length - position < sizeNeeded)
+                            return false;
 
                         if (value.Year < 10)
                             buffer[position++] = '0';
@@ -417,7 +475,7 @@ namespace Zerra.IO
                             buffer[position++] = '0';
                         WriteInt64(value.Offset.Minutes);
 
-                        break;
+                        return true;
                     }
                 default:
                     throw new NotImplementedException();
@@ -425,14 +483,16 @@ namespace Zerra.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(TimeSpan value, TimeFormat format)
+        public bool TryWrite(TimeSpan value, TimeFormat format, out int sizeNeeded)
         {
             switch (format)
             {
                 case TimeFormat.ISO8601:
                 case TimeFormat.MsSql:
                     //HH:mm:ss.fffffff
-                    EnsureBufferSize(16);
+                    sizeNeeded = 16;
+                    if (length - position < sizeNeeded)
+                        return false;
 
                     if (value.TotalHours < 10)
                         buffer[position++] = '0';
@@ -463,23 +523,29 @@ namespace Zerra.IO
                     if (fraction < 1000000)
                         buffer[position++] = '0';
                     WriteInt64(fraction);
-                    break;
+
+                    return true;
+                default:
+                    throw new NotImplementedException();
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(Guid value)
+        public bool TryWrite(Guid value, out int sizeNeeded)
         {
-            Write(value.ToString());
+            return TryWrite(value.ToString(), out sizeNeeded);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void Write(byte[] value, ByteFormat format)
+        public unsafe bool TryWrite(byte[] value, ByteFormat format, out int sizeNeeded)
         {
             switch (format)
             {
                 case ByteFormat.Hex:
-                    EnsureBufferSize(2 * value.Length);
+                    sizeNeeded = 2 * value.Length;
+                    if (length - position < sizeNeeded)
+                        return false;
+
                     fixed (byte* pValue = value)
                     fixed (char* pBuffer = &buffer[position])
                     {
@@ -529,16 +595,20 @@ namespace Zerra.IO
                         }
                     }
                     position += value.Length * 2;
-                    break;
+
+                    return true;
                 default:
                     throw new NotImplementedException();
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void Write(in CharWriter value)
+        public unsafe bool TryWrite(in CharWriter value, out int sizeNeeded)
         {
-            EnsureBufferSize(value.position);
+            sizeNeeded = value.position;
+            if (length - position < sizeNeeded)
+                return false;
+
             var pCount = value.position;
 
             fixed (char* pSource = value.buffer, pBuffer = &buffer[position])
@@ -549,16 +619,22 @@ namespace Zerra.IO
                 }
             }
             position += pCount;
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void Write(ReadOnlySpan<char> value)
+        public unsafe bool TryWrite(ReadOnlySpan<char> value, out int sizeNeeded)
         {
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
             if (value.Length == 0)
-                return;
-            EnsureBufferSize(value.Length);
+            {
+                sizeNeeded = 0;
+                return true;
+            }
+            sizeNeeded = value.Length;
+            if (length - position < sizeNeeded)
+                return false;
 
             var pCount = value.Length;
             fixed (char* pSource = value, pBuffer = &buffer[position])
@@ -569,6 +645,7 @@ namespace Zerra.IO
                 }
             }
             position += pCount;
+            return true;
         }
     }
 }

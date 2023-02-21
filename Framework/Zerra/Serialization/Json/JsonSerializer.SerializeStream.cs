@@ -5,8 +5,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Zerra.IO;
@@ -53,11 +55,11 @@ namespace Zerra.Serialization
             try
             {
                 var state = new WriteState();
-                state.CurrentFrame = new WriteFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
+                state.CurrentFrame = new WriteFrame() { TypeDetail = typeDetail, Object = obj, FrameType = ReadFrameType.Value };
 
                 for (; ; )
                 {
-                    Write(buffer, ref state);
+                    WriteConvertBytes(buffer, ref state);
 
 #if NETSTANDARD2_0
                     await stream.WriteAsync(buffer, 0, state.BufferPostion);
@@ -68,12 +70,12 @@ namespace Zerra.Serialization
                     if (state.Ended)
                         break;
 
-                    if (state.BytesNeeded > 0)
+                    if (state.CharsNeeded > 0)
                     {
-                        if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+                        if (state.CharsNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
 
-                        state.BytesNeeded = 0;
+                        state.CharsNeeded = 0;
                     }
                 }
             }
@@ -85,21 +87,46 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void Write(Span<byte> buffer, ref WriteState state)
+        private static void WriteConvertBytes(Span<byte> buffer, ref WriteState state)
         {
-            var writer = new ByteWriter(buffer, encoding);
+            var bufferCharOwner = BufferArrayPool<char>.Rent(buffer.Length);
+
+            try
+            {
+
+#if NET5_0_OR_GREATER
+                var chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
+                Write(chars, ref state);
+                _ = encoding.GetBytes(chars, buffer);
+#else
+                Write(bufferCharOwner.AsSpan().Slice(0, buffer.Length), ref state);
+                _ = encoding.GetBytes(bufferCharOwner, 0, state.BufferPostion, buffer.ToArray(), 0);
+#endif
+            }
+            finally
+            {
+                Array.Clear(bufferCharOwner, 0, bufferCharOwner.Length);
+                BufferArrayPool<char>.Return(bufferCharOwner);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Write(Span<char> buffer, ref WriteState state)
+        {
+            var writer = new CharWriter(buffer);
             for (; ; )
             {
                 switch (state.CurrentFrame.FrameType)
                 {
-                    case ReadFrameType.Value: break;
+                    case ReadFrameType.Value: WriteJson(ref writer, ref state); break;
+                    case ReadFrameType.CoreType: WriteCoreType(ref writer, ref state); break;
                 }
                 if (state.Ended)
                 {
                     state.BufferPostion = writer.Position;
                     return;
                 }
-                if (state.BytesNeeded > 0)
+                if (state.CharsNeeded > 0)
                 {
                     state.BufferPostion = writer.Position;
                     return;
@@ -176,33 +203,65 @@ namespace Zerra.Serialization
         //    ToJsonNameless(stream, type, obj, graph);
         //}
 
-        private static void WriteJson(object value, TypeDetail typeDetail, Graph graph, ref CharWriter writer, bool nameless)
+        private static void WriteJson(ref CharWriter writer, ref WriteState state)
         {
-            if (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable)
+            var typeDetail = state.CurrentFrame.TypeDetail;
+
+            if (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable && state.CurrentFrame.Object != null)
             {
-                var objectType = value.GetType();
+                var objectType = state.CurrentFrame.Object.GetType();
                 typeDetail = TypeAnalyzer.GetTypeDetail(objectType);
             }
 
-            if (value == null)
+            if (state.CurrentFrame.Object == null)
             {
-                writer.Write("null");
+                if (!writer.TryWrite("null", out var sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return;
+                }
+                state.EndFrame();
                 return;
             }
 
             if (typeDetail.CoreType.HasValue)
             {
-                ToJsonCoreType(value, typeDetail.CoreType.Value, ref writer);
+                state.CurrentFrame.FrameType = ReadFrameType.CoreType;
                 return;
             }
 
             if (typeDetail.Type.IsEnum)
             {
-                writer.Write('\"');
-                writer.Write(EnumName.GetName(typeDetail.Type, value));
-                writer.Write('\"');
-                return;
+                if (state.CurrentFrame.State == 0)
+                {
+                    if (!writer.TryWrite('\"', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 1;
+                }
+                if (state.CurrentFrame.State == 1)
+                {
+                    if (!writer.TryWrite(EnumName.GetName(typeDetail.Type, state.CurrentFrame.Object), out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 2;
+                }
+                if (state.CurrentFrame.State == 2)
+                {
+                    if (!writer.TryWrite('\"', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
+                    return;
+                }
             }
+
             if (typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
             {
                 writer.Write('\"');
@@ -434,6 +493,7 @@ namespace Zerra.Serialization
         {
             switch (coreType)
             {
+                
                 case CoreType.String:
                     ToJsonString((string)value, ref writer);
                     return;

@@ -33,9 +33,9 @@ namespace Zerra.Serialization
                 var state = new ReadState();
                 state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
 
-                Read(bytes.Span, ref state, ref decodeBuffer, ref decodeBufferPosition);
+                ReadConvertBytes(bytes.Span, ref state, ref decodeBuffer, ref decodeBufferPosition);
 
-                if (!state.Ended || state.BytesNeeded > 0)
+                if (!state.Ended || state.CharsNeeded > 0)
                     throw new EndOfStreamException();
 
                 return state.LastFrameResultObject;
@@ -66,7 +66,7 @@ namespace Zerra.Serialization
 
                 Read(json.Span, ref state, ref decodeBuffer, ref decodeBufferPosition);
 
-                if (!state.Ended || state.BytesNeeded > 0)
+                if (!state.Ended || state.CharsNeeded > 0)
                     throw new EndOfStreamException();
 
                 return state.LastFrameResultObject;
@@ -117,12 +117,12 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Read(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
 
-                    if (state.BytesNeeded > 0)
+                    if (state.CharsNeeded > 0)
                     {
                         if (isFinalBlock)
                             throw new EndOfStreamException();
@@ -131,8 +131,8 @@ namespace Zerra.Serialization
                         Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
                         position = length - position;
 
-                        if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+                        if (state.CharsNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
 
                         while (position < buffer.Length)
                         {
@@ -151,10 +151,10 @@ namespace Zerra.Serialization
                             length = position;
                         }
 
-                        if (position < state.BytesNeeded)
+                        if (position < state.CharsNeeded)
                             throw new EndOfStreamException();
 
-                        state.BytesNeeded = 0;
+                        state.CharsNeeded = 0;
                     }
                 }
 
@@ -204,12 +204,12 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Read(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
 
-                    if (state.BytesNeeded > 0)
+                    if (state.CharsNeeded > 0)
                     {
                         if (isFinalBlock)
                             throw new EndOfStreamException();
@@ -218,8 +218,8 @@ namespace Zerra.Serialization
                         Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
                         position = length - position;
 
-                        if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+                        if (state.CharsNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
 
                         while (position < buffer.Length)
                         {
@@ -238,10 +238,10 @@ namespace Zerra.Serialization
                             length = position;
                         }
 
-                        if (position < state.BytesNeeded)
+                        if (position < state.CharsNeeded)
                             throw new EndOfStreamException();
 
-                        state.BytesNeeded = 0;
+                        state.CharsNeeded = 0;
                     }
                 }
 
@@ -288,12 +288,12 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Read(buffer.AsSpan().Slice(0, read), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    ReadConvertBytes(buffer.AsSpan().Slice(0, read), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
 
-                    if (state.BytesNeeded > 0)
+                    if (state.CharsNeeded > 0)
                     {
                         if (isFinalBlock)
                             throw new EndOfStreamException();
@@ -302,8 +302,8 @@ namespace Zerra.Serialization
                         Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
                         position = length - position;
 
-                        if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+                        if (state.CharsNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
 
                         while (position < buffer.Length)
                         {
@@ -322,10 +322,10 @@ namespace Zerra.Serialization
                             length = position;
                         }
 
-                        if (position < state.BytesNeeded)
+                        if (position < state.CharsNeeded)
                             throw new EndOfStreamException();
 
-                        state.BytesNeeded = 0;
+                        state.CharsNeeded = 0;
                     }
                 }
 
@@ -360,9 +360,9 @@ namespace Zerra.Serialization
                 state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
 
 
-                Read(bytes, ref state, ref decodeBuffer, ref decodeBufferPosition);
+                ReadConvertBytes(bytes, ref state, ref decodeBuffer, ref decodeBufferPosition);
 
-                if (!state.Ended || state.BytesNeeded > 0)
+                if (!state.Ended || state.CharsNeeded > 0)
                     throw new EndOfStreamException();
 
                 return state.LastFrameResultObject;
@@ -413,12 +413,12 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Read(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
 
-                    if (state.BytesNeeded > 0)
+                    if (state.CharsNeeded > 0)
                     {
                         if (isFinalBlock)
                             throw new EndOfStreamException();
@@ -427,8 +427,8 @@ namespace Zerra.Serialization
                         Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
                         position = length - position;
 
-                        if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+                        if (state.CharsNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
 
                         while (position < buffer.Length)
                         {
@@ -447,10 +447,10 @@ namespace Zerra.Serialization
                             length = position;
                         }
 
-                        if (position < state.BytesNeeded)
+                        if (position < state.CharsNeeded)
                             throw new EndOfStreamException();
 
-                        state.BytesNeeded = 0;
+                        state.CharsNeeded = 0;
                     }
                 }
 
@@ -500,12 +500,12 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Read(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
 
-                    if (state.BytesNeeded > 0)
+                    if (state.CharsNeeded > 0)
                     {
                         if (isFinalBlock)
                             throw new EndOfStreamException();
@@ -514,8 +514,8 @@ namespace Zerra.Serialization
                         Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
                         position = length - position;
 
-                        if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+                        if (state.CharsNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
 
                         while (position < buffer.Length)
                         {
@@ -534,10 +534,10 @@ namespace Zerra.Serialization
                             length = position;
                         }
 
-                        if (position < state.BytesNeeded)
+                        if (position < state.CharsNeeded)
                             throw new EndOfStreamException();
 
-                        state.BytesNeeded = 0;
+                        state.CharsNeeded = 0;
                     }
                 }
 
@@ -584,12 +584,12 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Read(buffer.AsSpan().Slice(0, read), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    ReadConvertBytes(buffer.AsSpan().Slice(0, read), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
 
-                    if (state.BytesNeeded > 0)
+                    if (state.CharsNeeded > 0)
                     {
                         if (isFinalBlock)
                             throw new EndOfStreamException();
@@ -598,8 +598,8 @@ namespace Zerra.Serialization
                         Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
                         position = length - position;
 
-                        if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+                        if (state.CharsNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
 
                         while (position < buffer.Length)
                         {
@@ -618,10 +618,10 @@ namespace Zerra.Serialization
                             length = position;
                         }
 
-                        if (position < state.BytesNeeded)
+                        if (position < state.CharsNeeded)
                             throw new EndOfStreamException();
 
-                        state.BytesNeeded = 0;
+                        state.CharsNeeded = 0;
                     }
                 }
 
@@ -635,18 +635,31 @@ namespace Zerra.Serialization
             }
         }
 
-        private static void Read(ReadOnlySpan<byte> buffer, ref ReadState state, ref char[] decodeBuffer, ref int decodeBufferPosition)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReadConvertBytes(ReadOnlySpan<byte> buffer, ref ReadState state, ref char[] decodeBuffer, ref int decodeBufferPosition)
         {
+            var bufferCharOwner = BufferArrayPool<char>.Rent(buffer.Length);
+            try
+            {
 #if NET5_0_OR_GREATER
-            Span<char> chars = new char[buffer.Length];
-            _ = encoding.GetChars(buffer, chars);
-#else
-            var chars = new char[buffer.Length];
-            _ = encoding.GetChars(buffer.ToArray(), 0, buffer.Length, chars, 0);
-#endif
+                Span<char> chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
+                _ = encoding.GetChars(buffer, chars);
+                Read(chars, ref state, ref decodeBuffer, ref decodeBufferPosition);
 
-            Read(chars, ref state, ref decodeBuffer, ref decodeBufferPosition);
+#else
+                var chars = new char[buffer.Length];
+                _ = encoding.GetChars(buffer.ToArray(), 0, buffer.Length, chars, 0);
+                Read(chars.AsSpan().Slice(0, buffer.Length), ref state, ref decodeBuffer, ref decodeBufferPosition);
+#endif
+            }
+            finally
+            {
+                Array.Clear(bufferCharOwner, 0, bufferCharOwner.Length);
+                BufferArrayPool<char>.Return(bufferCharOwner);
+            }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void Read(ReadOnlySpan<char> chars, ref ReadState state, ref char[] decodeBuffer, ref int decodeBufferPosition)
         {
             var decodeBufferWriter = new CharWriter(decodeBuffer, true, decodeBufferPosition);
@@ -675,7 +688,7 @@ namespace Zerra.Serialization
                     decodeBuffer = decodeBufferWriter.BufferOwner;
                     return;
                 }
-                if (state.BytesNeeded > 0)
+                if (state.CharsNeeded > 0)
                 {
                     decodeBuffer = decodeBufferWriter.BufferOwner;
                     state.BufferPostion = reader.Position;
@@ -690,7 +703,7 @@ namespace Zerra.Serialization
         {
             if (!reader.TryReadSkipWhiteSpace(out var c))
             {
-                state.BytesNeeded = 1;
+                state.CharsNeeded = 1;
                 return;
             }
 
@@ -730,7 +743,7 @@ namespace Zerra.Serialization
                 case 'n':
                     if (!reader.TryReadSpan(out var s, 3))
                     {
-                        state.BytesNeeded = 3;
+                        state.CharsNeeded = 3;
                         return;
                     }
                     if (s[0] != 'u' || s[1] != 'l' || s[2] != 'l')
@@ -742,7 +755,7 @@ namespace Zerra.Serialization
                 case 't':
                     if (!reader.TryReadSpan(out s, 3))
                     {
-                        state.BytesNeeded = 3;
+                        state.CharsNeeded = 3;
                         return;
                     }
                     if (s[0] != 'r' || s[1] != 'u' || s[2] != 'e')
@@ -754,7 +767,7 @@ namespace Zerra.Serialization
                 case 'f':
                     if (!reader.TryReadSpan(out s, 4))
                     {
-                        state.BytesNeeded = 4;
+                        state.CharsNeeded = 4;
                         return;
                     }
                     if (s[0] != 'a' || s[1] != 'l' || s[2] != 's' || s[3] != 'e')
@@ -788,7 +801,7 @@ namespace Zerra.Serialization
                     case 1: //property name or end
                         if (!reader.TryReadSkipWhiteSpace(out var c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
                         switch (c)
@@ -807,7 +820,7 @@ namespace Zerra.Serialization
                     case 2: //property seperator
                         if (!reader.TryReadSkipWhiteSpace(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
                         if (c != ':')
@@ -854,7 +867,7 @@ namespace Zerra.Serialization
                     case 4: //next property or end
                         if (!reader.TryReadSkipWhiteSpace(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
                         switch (c)
@@ -892,7 +905,7 @@ namespace Zerra.Serialization
                     case 1: //key or end
                         if (!reader.TryReadSkipWhiteSpace(out var c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
                         switch (c)
@@ -912,7 +925,7 @@ namespace Zerra.Serialization
                     case 2: //keyvalue seperator
                         if (!reader.TryReadSkipWhiteSpace(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
                         if (c != ':')
@@ -934,7 +947,7 @@ namespace Zerra.Serialization
                     case 4: //next key or end
                         if (!reader.TryReadSkipWhiteSpace(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
                         switch (c)
@@ -1014,7 +1027,7 @@ namespace Zerra.Serialization
                     case 1: //array value or end
                         if (!reader.TryReadSkipWhiteSpace(out var c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
 
@@ -1054,7 +1067,7 @@ namespace Zerra.Serialization
                     case 3: //next array value or end
                         if (!reader.TryReadSkipWhiteSpace(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
                         switch (c)
@@ -1102,7 +1115,7 @@ namespace Zerra.Serialization
                     case 1: //array value or end
                         if (!reader.TryReadSkipWhiteSpace(out var c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
 
@@ -1174,7 +1187,7 @@ namespace Zerra.Serialization
                     case 3: //next array value or end
                         if (!reader.TryReadSkipWhiteSpace(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
                         switch (c)
@@ -1496,7 +1509,7 @@ namespace Zerra.Serialization
                         if (!reader.TryReadSpanUntil(out var s, '\"', '\\'))
                         {
                             state.CurrentFrame.State = 0;
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
                         decodeBuffer.Write(s.Slice(0, s.Length - 1));
@@ -1517,7 +1530,7 @@ namespace Zerra.Serialization
 
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
 
@@ -1556,7 +1569,7 @@ namespace Zerra.Serialization
                     case 2: //reading escape unicode
                         if (!reader.TryReadSpan(out var unicodeSpan, 4))
                         {
-                            state.BytesNeeded = 4;
+                            state.CharsNeeded = 4;
                             return;
                         }
                         if (!lowUnicodeHexToChar.TryGetValue(unicodeSpan.ToString(), out var unicodeChar))
@@ -1605,7 +1618,7 @@ namespace Zerra.Serialization
                     case 1: //next number
                         if (!reader.TryRead(out var c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
                         switch (c)
@@ -1650,7 +1663,7 @@ namespace Zerra.Serialization
                     case 2: //decimal
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
                         switch (c)
@@ -1692,7 +1705,7 @@ namespace Zerra.Serialization
                     case 3: //first exponent
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
                         switch (c)
@@ -1718,7 +1731,7 @@ namespace Zerra.Serialization
                     case 4: //exponent continue
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
 
@@ -1785,7 +1798,7 @@ namespace Zerra.Serialization
                     case 1: //next number
                         if (!reader.TryRead(out var c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
                         switch (c)
@@ -1825,7 +1838,7 @@ namespace Zerra.Serialization
                     case 2: //decimal
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
                         switch (c)
@@ -1862,7 +1875,7 @@ namespace Zerra.Serialization
                     case 3: //first exponent
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
                         switch (c)
@@ -1887,7 +1900,7 @@ namespace Zerra.Serialization
                     case 4: //exponent continue
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             return;
                         }
 
@@ -1965,7 +1978,7 @@ namespace Zerra.Serialization
                     case 2: //next number
                         if (!reader.TryRead(out var c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             state.LiteralNumberInt64 = number;
                             return;
                         }
@@ -2012,7 +2025,7 @@ namespace Zerra.Serialization
                     case 3: //decimal
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             state.LiteralNumberInt64 = number;
                             state.LiteralNumberWorkingDouble = workingNumber;
                             return;
@@ -2057,7 +2070,7 @@ namespace Zerra.Serialization
                     case 4: //first exponent
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             state.LiteralNumberInt64 = number;
                             return;
                         }
@@ -2086,7 +2099,7 @@ namespace Zerra.Serialization
                     case 5: //exponent continue
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             state.LiteralNumberInt64 = number;
                             state.LiteralNumberWorkingDouble = workingNumber;
                             return;
@@ -2176,7 +2189,7 @@ namespace Zerra.Serialization
                     case 2: //next number
                         if (!reader.TryRead(out var c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             state.LiteralNumberUInt64 = number;
                             return;
                         }
@@ -2219,7 +2232,7 @@ namespace Zerra.Serialization
                     case 3: //decimal
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             state.LiteralNumberUInt64 = number;
                             state.LiteralNumberWorkingDouble = workingNumber;
                             return;
@@ -2260,7 +2273,7 @@ namespace Zerra.Serialization
                     case 4: //first exponent
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             state.LiteralNumberUInt64 = number;
                             return;
                         }
@@ -2289,7 +2302,7 @@ namespace Zerra.Serialization
                     case 5: //exponent continue
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             state.LiteralNumberUInt64 = number;
                             state.LiteralNumberWorkingDouble = workingNumber;
                             return;
@@ -2375,7 +2388,7 @@ namespace Zerra.Serialization
                     case 2: //next number
                         if (!reader.TryRead(out var c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             state.LiteralNumberDouble = number;
                             return;
                         }
@@ -2423,7 +2436,7 @@ namespace Zerra.Serialization
                     case 3: //decimal
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             state.LiteralNumberDouble = number;
                             state.LiteralNumberWorkingDouble = workingNumber;
                             return;
@@ -2469,7 +2482,7 @@ namespace Zerra.Serialization
                     case 4: //first exponent
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             state.LiteralNumberDouble = number;
                             return;
                         }
@@ -2498,7 +2511,7 @@ namespace Zerra.Serialization
                     case 5: //exponent continue
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             state.LiteralNumberDouble = number;
                             state.LiteralNumberWorkingDouble = workingNumber;
                             return;
@@ -2588,7 +2601,7 @@ namespace Zerra.Serialization
                     case 2: //next number
                         if (!reader.TryRead(out var c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             state.LiteralNumberDecimal = number;
                             return;
                         }
@@ -2636,7 +2649,7 @@ namespace Zerra.Serialization
                     case 3: //decimal
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             state.LiteralNumberDecimal = number;
                             state.LiteralNumberWorkingDecimal = workingNumber;
                             return;
@@ -2682,7 +2695,7 @@ namespace Zerra.Serialization
                     case 4: //first exponent
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             state.LiteralNumberDecimal = number;
                             return;
                         }
@@ -2711,7 +2724,7 @@ namespace Zerra.Serialization
                     case 5: //exponent continue
                         if (!reader.TryRead(out c))
                         {
-                            state.BytesNeeded = 1;
+                            state.CharsNeeded = 1;
                             state.LiteralNumberDecimal = number;
                             state.LiteralNumberWorkingDecimal = workingNumber;
                             return;

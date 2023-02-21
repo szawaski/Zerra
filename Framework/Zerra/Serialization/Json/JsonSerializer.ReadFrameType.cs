@@ -9,14 +9,7 @@ namespace Zerra.Serialization
         private enum ReadFrameType : byte
         {
             Value,
-            StringToType,
-            String,
-            Object,
-            Dictionary,
-            Array,
-            ArrayNameless,
-            Literal,
-            LiteralNumber
+            CoreType
         }
     }
 }
