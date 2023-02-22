@@ -9,14 +9,14 @@ namespace Zerra.Serialization
         private enum WriteFrameType : byte
         {
             Value,
-            StringToType,
-            String,
+            CoreType,
+            EnumType,
+            SpecialType,
+            ByteArray,
             Object,
-            Dictionary,
-            Array,
-            ArrayNameless,
-            Literal,
-            LiteralNumber
+            String,
+
+            Enumerable
         }
     }
 }

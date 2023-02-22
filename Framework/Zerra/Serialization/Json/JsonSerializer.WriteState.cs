@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System;
 using System.Collections.Generic;
 
 namespace Zerra.Serialization
@@ -36,6 +37,10 @@ namespace Zerra.Serialization
 
             public int CharsNeeded;
             public int BufferPostion;
+
+            public ReadOnlyMemory<char> WorkingString;
+            public int WorkingStringIndex;
+            public int WorkingStringMark;
         }
     }
 }

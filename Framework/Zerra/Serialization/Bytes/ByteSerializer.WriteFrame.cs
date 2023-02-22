@@ -22,7 +22,7 @@ namespace Zerra.Serialization
             public int? EnumerableLength;
             public bool ObjectInProgress;
 
-            public IEnumerator<KeyValuePair<ushort, SerializerMemberDetail>> PropertyEnumerator;
+            public IEnumerator<KeyValuePair<ushort, SerializerMemberDetail>> MemberEnumerator;
             public IEnumerator ObjectEnumerator;
             public bool EnumeratorObjectInProgress;
         }

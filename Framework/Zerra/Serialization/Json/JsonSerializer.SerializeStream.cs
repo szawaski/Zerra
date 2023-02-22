@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -226,124 +227,37 @@ namespace Zerra.Serialization
 
             if (typeDetail.CoreType.HasValue)
             {
-                state.CurrentFrame.FrameType = ReadFrameType.CoreType;
+                if (typeDetail.CoreType == CoreType.String)
+                    state.CurrentFrame.FrameType = WriteFrameType.String;
+                else
+                    state.CurrentFrame.FrameType = WriteFrameType.CoreType;
                 return;
             }
 
-            if (typeDetail.Type.IsEnum)
+            if (typeDetail.Type.IsEnum || typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
             {
-                if (state.CurrentFrame.State == 0)
-                {
-                    if (!writer.TryWrite('\"', out var sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return;
-                    }
-                    state.CurrentFrame.State = 1;
-                }
-                if (state.CurrentFrame.State == 1)
-                {
-                    if (!writer.TryWrite(EnumName.GetName(typeDetail.Type, state.CurrentFrame.Object), out var sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return;
-                    }
-                    state.CurrentFrame.State = 2;
-                }
-                if (state.CurrentFrame.State == 2)
-                {
-                    if (!writer.TryWrite('\"', out var sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return;
-                    }
-                    state.EndFrame();
-                    return;
-                }
-            }
-
-            if (typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
-            {
-                writer.Write('\"');
-                writer.Write(EnumName.GetName(typeDetail.InnerTypes[0], value));
-                writer.Write('\"');
+                state.CurrentFrame.FrameType = WriteFrameType.EnumType;
                 return;
             }
 
             if (typeDetail.SpecialType.HasValue || typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].SpecialType.HasValue)
             {
-                ToJsonSpecialType(value, typeDetail, ref writer, nameless);
+                state.CurrentFrame.FrameType = WriteFrameType.SpecialType;
                 return;
             }
 
             if (typeDetail.IsIEnumerableGeneric)
             {
-                var innerTypeDetails = typeDetail.IEnumerableGenericInnerTypeDetails;
-                if (typeDetail.Type.IsArray && innerTypeDetails.CoreType == CoreType.Byte)
-                {
-                    //special case
-                    writer.Write('\"');
-                    writer.Write(Convert.ToBase64String((byte[])value));
-                    writer.Write('\"');
-                    return;
-                }
-                else
-                {
-                    var enumerable = value as IEnumerable;
-                    writer.Write('[');
-                    ToJsonEnumerable(enumerable, innerTypeDetails, graph, ref writer, nameless);
-                    writer.Write(']');
-                    return;
-                }
+                state.CurrentFrame.FrameType = WriteFrameType.ByteArray;
+                return;
             }
 
-            if (!nameless)
-                writer.Write('{');
-            else
-                writer.Write('[');
-
-            var firstProperty = true;
-            foreach (var member in typeDetail.SerializableMemberDetails)
-            {
-                if (graph != null)
-                {
-                    if (member.TypeDetail.IsGraphLocalProperty)
-                    {
-                        if (!graph.HasLocalProperty(member.Name))
-                            continue;
-                    }
-                    else
-                    {
-                        if (!graph.HasChildGraph(member.Name))
-                            continue;
-                    }
-                }
-
-                if (firstProperty)
-                    firstProperty = false;
-                else
-                    writer.Write(',');
-
-                if (!nameless)
-                {
-                    writer.Write('\"');
-                    writer.Write(member.Name);
-                    writer.Write('\"');
-                    writer.Write(':');
-                }
-
-                var propertyValue = member.Getter(value);
-                var childGraph = graph?.GetChildGraph(member.Name);
-                ToJson(propertyValue, member.TypeDetail, childGraph, ref writer, nameless);
-            }
-
-            if (!nameless)
-                writer.Write('}');
-            else
-                writer.Write(']');
+            state.CurrentFrame.FrameType = WriteFrameType.Object;
         }
-        private static void WriteJsonEnumerable(IEnumerable values, TypeDetail typeDetail, Graph graph, ref CharWriter writer, bool nameless)
+        private static void WriteJsonEnumerable(ref CharWriter writer, ref WriteState state)
         {
+            var typeDetail = state.CurrentFrame.TypeDetail;
+
             if (typeDetail.CoreType.HasValue)
             {
                 ToJsonCoreTypeEnumerabale(values, typeDetail.CoreType.Value, ref writer);
@@ -489,96 +403,451 @@ namespace Zerra.Serialization
                 }
             }
         }
-        private static void WriteJsonCoreType(object value, CoreType coreType, ref CharWriter writer)
+        private static void WriteJsonCoreType(ref CharWriter writer, ref WriteState state)
         {
-            switch (coreType)
-            {
-                
-                case CoreType.String:
-                    ToJsonString((string)value, ref writer);
-                    return;
+            var typeDetail = state.CurrentFrame.TypeDetail;
 
+            switch (typeDetail.CoreType)
+            {
                 case CoreType.Boolean:
                 case CoreType.BooleanNullable:
-                    writer.Write((bool)value == false ? "false" : "true");
+                    if (!writer.TryWrite((bool)state.CurrentFrame.Object == false ? "false" : "true", out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
                     return;
                 case CoreType.Byte:
                 case CoreType.ByteNullable:
-                    writer.Write((byte)value);
+                    if (!writer.TryWrite((byte)state.CurrentFrame.Object, out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
                     return;
                 case CoreType.SByte:
                 case CoreType.SByteNullable:
-                    writer.Write((sbyte)value);
+                    if (!writer.TryWrite((sbyte)state.CurrentFrame.Object, out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
                     return;
                 case CoreType.Int16:
                 case CoreType.Int16Nullable:
-                    writer.Write((short)value);
+                    if (!writer.TryWrite((short)state.CurrentFrame.Object, out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
                     return;
                 case CoreType.UInt16:
                 case CoreType.UInt16Nullable:
-                    writer.Write((ushort)value);
+                    if (!writer.TryWrite((ushort)state.CurrentFrame.Object, out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
                     return;
                 case CoreType.Int32:
                 case CoreType.Int32Nullable:
-                    writer.Write((int)value);
+                    if (!writer.TryWrite((int)state.CurrentFrame.Object, out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
                     return;
                 case CoreType.UInt32:
                 case CoreType.UInt32Nullable:
-                    writer.Write((uint)value);
+                    if (!writer.TryWrite((uint)state.CurrentFrame.Object, out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
                     return;
                 case CoreType.Int64:
                 case CoreType.Int64Nullable:
-                    writer.Write((long)value);
+                    if (!writer.TryWrite((long)state.CurrentFrame.Object, out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
                     return;
                 case CoreType.UInt64:
                 case CoreType.UInt64Nullable:
-                    writer.Write((ulong)value);
+                    if (!writer.TryWrite((ulong)state.CurrentFrame.Object, out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
                     return;
                 case CoreType.Single:
                 case CoreType.SingleNullable:
-                    writer.Write((float)value);
+                    if (!writer.TryWrite((float)state.CurrentFrame.Object, out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
                     return;
                 case CoreType.Double:
                 case CoreType.DoubleNullable:
-                    writer.Write((double)value);
+                    if (!writer.TryWrite((double)state.CurrentFrame.Object, out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
                     return;
                 case CoreType.Decimal:
                 case CoreType.DecimalNullable:
-                    writer.Write((decimal)value);
+                    if (!writer.TryWrite((decimal)state.CurrentFrame.Object, out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
                     return;
                 case CoreType.Char:
                 case CoreType.CharNullable:
-                    ToJsonChar((char)value, ref writer);
+                    if (WriteJsonChar(ref writer, ref state))
+                        state.EndFrame();
                     return;
                 case CoreType.DateTime:
                 case CoreType.DateTimeNullable:
-                    writer.Write('\"');
-                    writer.Write((DateTime)value, DateTimeFormat.ISO8601);
-                    writer.Write('\"');
+                    if (state.CurrentFrame.State == 0)
+                    {
+                        if (!writer.TryWrite('\"', out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 1;
+                    }
+
+                    if (state.CurrentFrame.State == 1)
+                    {
+                        if (!writer.TryWrite((DateTime)state.CurrentFrame.Object, DateTimeFormat.ISO8601, out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 2;
+                    }
+
+                    if (!writer.TryWrite('\"', out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
                     return;
                 case CoreType.DateTimeOffset:
                 case CoreType.DateTimeOffsetNullable:
-                    writer.Write('\"');
-                    writer.Write((DateTimeOffset)value, DateTimeFormat.ISO8601);
-                    writer.Write('\"');
+                    if (state.CurrentFrame.State == 0)
+                    {
+                        if (!writer.TryWrite('\"', out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 1;
+                    }
+
+                    if (state.CurrentFrame.State == 1)
+                    {
+                        if (!writer.TryWrite((DateTimeOffset)state.CurrentFrame.Object, DateTimeFormat.ISO8601, out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 2;
+                    }
+
+                    if (!writer.TryWrite('\"', out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
                     return;
                 case CoreType.TimeSpan:
                 case CoreType.TimeSpanNullable:
-                    writer.Write('\"');
-                    writer.Write((TimeSpan)value, TimeFormat.ISO8601);
-                    writer.Write('\"');
+                    if (state.CurrentFrame.State == 0)
+                    {
+                        if (!writer.TryWrite('\"', out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 1;
+                    }
+
+                    if (state.CurrentFrame.State == 1)
+                    {
+                        if (!writer.TryWrite((TimeSpan)state.CurrentFrame.Object, TimeFormat.ISO8601, out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 2;
+                    }
+
+                    if (!writer.TryWrite('\"', out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
                     return;
                 case CoreType.Guid:
                 case CoreType.GuidNullable:
-                    writer.Write('\"');
-                    writer.Write((Guid)value);
-                    writer.Write('\"');
+                    if (state.CurrentFrame.State == 0)
+                    {
+                        if (!writer.TryWrite('\"', out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 1;
+                    }
+
+                    if (state.CurrentFrame.State == 1)
+                    {
+                        if (!writer.TryWrite((Guid)state.CurrentFrame.Object, out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 2;
+                    }
+
+                    if (!writer.TryWrite('\"', out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
                     return;
 
                 default:
                     throw new NotImplementedException();
             }
         }
+        private static void WriteJsonEnumType(ref CharWriter writer, ref WriteState state)
+        {
+            var typeDetail = state.CurrentFrame.TypeDetail;
+
+            if (typeDetail.CoreType.HasValue)
+            {
+                state.CurrentFrame.FrameType = WriteFrameType.CoreType;
+                return;
+            }
+
+            if (typeDetail.Type.IsEnum)
+            {
+                if (state.CurrentFrame.State == 0)
+                {
+                    if (!writer.TryWrite('\"', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 1;
+                }
+                if (state.CurrentFrame.State == 1)
+                {
+                    if (!writer.TryWrite(EnumName.GetName(typeDetail.Type, state.CurrentFrame.Object), out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 2;
+                }
+
+                {
+                    if (!writer.TryWrite('\"', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
+                }
+            }
+        }
+        private static void WriteJsonByteArray(ref CharWriter writer, ref WriteState state)
+        {
+            var typeDetail = state.CurrentFrame.TypeDetail;
+
+            var innerTypeDetails = typeDetail.IEnumerableGenericInnerTypeDetails;
+            if (typeDetail.Type.IsArray && innerTypeDetails.CoreType == CoreType.Byte)
+            {
+                //special case
+                if (state.CurrentFrame.State == 0)
+                {
+                    if (!writer.TryWrite('\"', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 1;
+                }
+
+                if (state.CurrentFrame.State == 1)
+                {
+                    var str = Convert.ToBase64String((byte[])state.CurrentFrame.Object);
+                    if (!writer.TryWrite(str, out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 2;
+                }
+
+                if (state.CurrentFrame.State == 2)
+                {
+                    if (state.CurrentFrame.State == 2 && !writer.TryWrite('\"', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                }
+                state.EndFrame();
+                return;
+            }
+            else
+            {
+                state.CurrentFrame.FrameType = WriteFrameType.Enumerable;
+                return;
+            }
+        }
+        private static void WriteJsonObject(ref CharWriter writer, ref WriteState state)
+        {
+            var typeDetail = state.CurrentFrame.TypeDetail;
+            var graph = state.CurrentFrame.Graph;
+
+            if (state.CurrentFrame.State == 0)
+            {
+                if (!state.Nameless)
+                {
+                    if (!writer.TryWrite('{', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                }
+                else
+                {
+                    if (!writer.TryWrite('[', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                }
+
+                state.CurrentFrame.MemberEnumerator = typeDetail.SerializableMemberDetails.GetEnumerator();
+                state.CurrentFrame.State = 1;
+            }
+
+            for (; ; )
+            {
+                switch (state.CurrentFrame.State)
+                {
+                    case 1: //Next Property
+                        if (!state.CurrentFrame.MemberEnumerator.MoveNext())
+                        {
+                            state.CurrentFrame.State = 7;
+                            break;
+                        }
+                        if (state.CurrentFrame.EnumeratorPassedFirstProperty)
+                        {
+                            state.CurrentFrame.State = 2;
+                            break;
+                        }
+
+                        state.CurrentFrame.EnumeratorPassedFirstProperty = true;
+                        state.CurrentFrame.State = 3;
+                        break;
+                    case 2: //Seperate Properties
+                        if (!writer.TryWrite(',', out var sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        if (state.Nameless)
+                            state.CurrentFrame.State = 10;
+                        else
+                            state.CurrentFrame.State = 3;
+                        break;
+
+                    case 3: //Being Member Name
+                        if (!writer.TryWrite('\"', out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 4;
+                        break;
+                    case 4: //Member Name
+                        var member = state.CurrentFrame.MemberEnumerator.Current;
+                        if (!writer.TryWrite(member.Name, out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 5;
+                        break;
+                    case 5: //End Member Name
+                        if (!writer.TryWrite("\":", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 6;
+                        break;
+
+
+                    case 6: //Member Value
+                        member = state.CurrentFrame.MemberEnumerator.Current;
+                        var propertyValue = member.Getter(state.CurrentFrame.Object);
+                        var childGraph = graph?.GetChildGraph(member.Name);
+
+                        state.PushFrame(new WriteFrame() { TypeDetail = member.TypeDetail, Object = propertyValue, Graph = childGraph });
+                        state.CurrentFrame.State = 1;
+                        return;
+
+                    case 7: //End Object
+                        if (!state.Nameless)
+                        {
+                            if (!writer.TryWrite('}', out sizeNeeded))
+                            {
+                                state.CharsNeeded = sizeNeeded;
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            if (!writer.TryWrite(']', out sizeNeeded))
+                            {
+                                state.CharsNeeded = sizeNeeded;
+                                return;
+                            }
+                        }
+                        state.EndFrame();
+                        return;
+                }
+            }
+        }
+
         private static void WriteJsonCoreTypeEnumerabale(IEnumerable values, CoreType coreType, ref CharWriter writer)
         {
             switch (coreType)
@@ -1285,22 +1554,52 @@ namespace Zerra.Serialization
                     throw new NotImplementedException();
             }
         }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void WriteJsonString(string value, ref CharWriter writer)
+        private static void WriteJsonString(ref CharWriter writer, ref WriteState state)
         {
-            writer.Write('\"');
-            if (value == null || value.Length == 0)
+            if (state.CurrentFrame.State == 0)
             {
-                writer.Write('\"');
-                return;
+                if (!writer.TryWrite('\"', out var sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return;
+                }
+                state.CurrentFrame.State = 1;
             }
 
-            var chars = value.AsSpan();
-
-            var start = 0;
-            for (var i = 0; i < chars.Length; i++)
+            if (state.CurrentFrame.State == 1)
             {
-                var c = chars[i];
+                if (state.CurrentFrame.Object == null)
+                {
+                    if (!writer.TryWrite('\"', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
+                }
+
+                var value = (string)state.CurrentFrame.Object;
+                if (value.Length == 0)
+                {
+                    if (!writer.TryWrite('\"', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
+                }
+
+                state.CurrentFrame.State = 2;
+                state.WorkingString = value.AsMemory();
+            }
+
+            var chars = state.WorkingString.Span;
+
+            for (; state.WorkingStringIndex < chars.Length; state.WorkingStringIndex++)
+            {
+                var c = chars[state.WorkingStringIndex];
                 char escapedChar;
                 switch (c)
                 {
@@ -1329,66 +1628,146 @@ namespace Zerra.Serialization
                         if (c >= ' ')
                             continue;
 
-                        writer.Write(chars.Slice(start, i - start));
-                        start = i + 1;
+                        writer.Write(chars.Slice(state.WorkingStringMark, state.WorkingStringIndex - state.WorkingStringMark));
+                        state.WorkingStringMark = state.WorkingStringIndex + 1;
                         var code = lowUnicodeIntToEncodedHex[c];
                         writer.Write(code);
                         continue;
                 }
 
-                writer.Write(chars.Slice(start, i - start));
-                start = i + 1;
                 writer.Write('\\');
                 writer.Write(escapedChar);
             }
 
-            if (start != chars.Length)
-                writer.Write(chars.Slice(start, chars.Length - start));
+            if (state.WorkingStringMark != chars.Length)
+                writer.Write(chars.Slice(state.WorkingStringMark, chars.Length - state.WorkingStringMark));
             writer.Write('\"');
+
+            state.WorkingString = null;
+            state.WorkingStringIndex = 0;
+            state.WorkingStringMark = 0;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteJsonChar(char value, ref CharWriter writer)
+        private static bool WriteJsonChar(ref CharWriter writer, ref WriteState state)
         {
-            switch (value)
+            var c = (char)state.CurrentFrame.Object;
+            switch (c)
             {
                 case '\\':
-                    writer.Write("\"\\\\\"");
-                    return;
-                case '"':
-                    writer.Write("\"\\\"\"");
-                    return;
-                case '/':
-                    writer.Write("\"\\/\"");
-                    return;
-                case '\b':
-                    writer.Write("\"\\b\"");
-                    return;
-                case '\t':
-                    writer.Write("\"\\t\"");
-                    return;
-                case '\n':
-                    writer.Write("\"\\n\"");
-                    return;
-                case '\f':
-                    writer.Write("\"\\f\"");
-                    return;
-                case '\r':
-                    writer.Write("\"\\r\"");
-                    return;
-                default:
-                    if (value < ' ')
+                    if (!writer.TryWrite("\"\\\\\"", out var sizeNeeded))
                     {
-                        var code = lowUnicodeIntToEncodedHex[value];
-                        writer.Write("\"");
-                        writer.Write(code);
-                        writer.Write("\"");
-                        return;
+                        state.CharsNeeded = sizeNeeded;
+                        return false;
                     }
-                    writer.Write("\"");
-                    writer.Write(value);
-                    writer.Write("\"");
-                    return;
+                    return true;
+                case '"':
+                    if (!writer.TryWrite("\"\\\"\"", out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return false;
+                    }
+                    return true;
+                case '/':
+                    if (!writer.TryWrite("\"\\/\"", out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return false;
+                    }
+                    return true;
+                case '\b':
+                    if (!writer.TryWrite("\"\\b\"", out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return false;
+                    }
+                    return true;
+                case '\t':
+                    if (!writer.TryWrite("\"\\t\"", out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return false;
+                    }
+                    return true;
+                case '\n':
+                    if (!writer.TryWrite("\"\\n\"", out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return false;
+                    }
+                    return true;
+                case '\f':
+                    if (!writer.TryWrite("\"\\f\"", out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return false;
+                    }
+                    return true;
+                case '\r':
+                    if (!writer.TryWrite("\"\\r\"", out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return false;
+                    }
+                    return true;
             }
+
+            if (c < ' ')
+            {
+                var code = lowUnicodeIntToEncodedHex[c];
+                if (state.CurrentFrame.State == 0)
+                {
+                    if (!writer.TryWrite('\"', out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return false;
+                    }
+                    state.CurrentFrame.State = 1;
+                }
+
+                if (state.CurrentFrame.State == 1)
+                {
+                    if (!writer.TryWrite(code, out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return false;
+                    }
+                    state.CurrentFrame.State = 2;
+                }
+
+                if (!writer.TryWrite('\"', out sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return false;
+                }
+                return true;
+            }
+
+            if (state.CurrentFrame.State == 0)
+            {
+                if (!writer.TryWrite('\"', out sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return false;
+                }
+                state.CurrentFrame.State = 1;
+            }
+
+            if (state.CurrentFrame.State == 1)
+            {
+                if (!writer.TryWrite(c, out sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return false;
+                }
+                state.CurrentFrame.State = 2;
+            }
+
+            if (!writer.TryWrite('\"', out var sizeNeeded))
+            {
+                state.CharsNeeded = sizeNeeded;
+                return false;
+            }
+            return true;
         }
     }
 }

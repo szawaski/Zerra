@@ -367,9 +367,9 @@ namespace Zerra.Serialization
 
             if (typeDetail.SpecialType.HasValue || typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].SpecialType.HasValue)
             {
-                writer.Write('[');
+                //writer.Write('[');
                 ToStringJsonSpecialTypeEnumerable(values, typeDetail, ref writer, nameless);
-                writer.Write(']');
+                //writer.Write(']');
                 return;
             }
 

@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections;
+using System.Collections.Generic;
 using Zerra.Reflection;
 
 namespace Zerra.Serialization
@@ -11,7 +13,7 @@ namespace Zerra.Serialization
         private class WriteFrame
         {
             public TypeDetail TypeDetail;
-            public ReadFrameType FrameType;
+            public WriteFrameType FrameType;
 
             public Graph Graph;
 
@@ -22,6 +24,9 @@ namespace Zerra.Serialization
             public MemberDetail ObjectProperty;
 
             public int PropertyIndexForNameless;
+
+            public IEnumerator<MemberDetail> MemberEnumerator;
+            public bool EnumeratorPassedFirstProperty;
         }
     }
 }
