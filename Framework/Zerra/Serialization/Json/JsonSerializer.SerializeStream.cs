@@ -5,12 +5,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.Metrics;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
 using Zerra.IO;
 using Zerra.Reflection;
@@ -56,7 +52,7 @@ namespace Zerra.Serialization
             try
             {
                 var state = new WriteState();
-                state.CurrentFrame = new WriteFrame() { TypeDetail = typeDetail, Object = obj, FrameType = ReadFrameType.Value };
+                state.CurrentFrame = new WriteFrame() { TypeDetail = typeDetail, Object = obj, FrameType = WriteFrameType.Value };
 
                 for (; ; )
                 {
@@ -119,8 +115,14 @@ namespace Zerra.Serialization
             {
                 switch (state.CurrentFrame.FrameType)
                 {
-                    case ReadFrameType.Value: WriteJson(ref writer, ref state); break;
-                    case ReadFrameType.CoreType: WriteCoreType(ref writer, ref state); break;
+                    case WriteFrameType.Value: WriteJson(ref writer, ref state); break;
+                    case WriteFrameType.CoreType: WriteJsonCoreType(ref writer, ref state); break;
+                    case WriteFrameType.EnumType: WriteJsonEnumType(ref writer, ref state); break;
+                    case WriteFrameType.SpecialType: WriteJsonSpecialType(ref writer, ref state); break;
+                    case WriteFrameType.ByteArray: WriteJsonByteArray(ref writer, ref state); break;
+                    case WriteFrameType.Object: WriteJsonObject(ref writer, ref state); break;
+                    case WriteFrameType.Enumerable: WriteJsonEnumerable(ref writer, ref state); break;
+
                 }
                 if (state.Ended)
                 {
@@ -253,155 +255,6 @@ namespace Zerra.Serialization
             }
 
             state.CurrentFrame.FrameType = WriteFrameType.Object;
-        }
-        private static void WriteJsonEnumerable(ref CharWriter writer, ref WriteState state)
-        {
-            var typeDetail = state.CurrentFrame.TypeDetail;
-
-            if (typeDetail.CoreType.HasValue)
-            {
-                ToJsonCoreTypeEnumerabale(values, typeDetail.CoreType.Value, ref writer);
-                return;
-            }
-
-            if (typeDetail.Type.IsEnum)
-            {
-                var first = true;
-                foreach (var value in values)
-                {
-                    if (first)
-                        first = false;
-                    else
-                        writer.Write(',');
-                    if (value != null)
-                    {
-                        writer.Write('\"');
-                        writer.Write(EnumName.GetName(typeDetail.Type, value));
-                        writer.Write('\"');
-                    }
-                    else
-                    {
-                        writer.Write("null");
-                    }
-                }
-                return;
-            }
-            if (typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
-            {
-                var first = true;
-                foreach (var value in values)
-                {
-                    if (first)
-                        first = false;
-                    else
-                        writer.Write(',');
-                    if (value != null)
-                    {
-                        writer.Write('\"');
-                        writer.Write(EnumName.GetName(typeDetail.InnerTypes[0], (Enum)value));
-                        writer.Write('\"');
-                    }
-                    else
-                    {
-                        writer.Write("null");
-                    }
-                }
-                return;
-            }
-
-            if (typeDetail.SpecialType.HasValue || typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].SpecialType.HasValue)
-            {
-                writer.Write('[');
-                ToJsonSpecialTypeEnumerable(values, typeDetail, ref writer, nameless);
-                writer.Write(']');
-                return;
-            }
-
-            if (typeDetail.IsIEnumerableGeneric)
-            {
-                var first = true;
-                foreach (var value in values)
-                {
-                    if (first)
-                        first = false;
-                    else
-                        writer.Write(',');
-                    if (value != null)
-                    {
-                        var enumerable = value as IEnumerable;
-                        writer.Write('[');
-                        ToJsonEnumerable(enumerable, typeDetail.IEnumerableGenericInnerTypeDetails, graph, ref writer, nameless);
-                        writer.Write(']');
-                    }
-                    else
-                    {
-                        writer.Write("null");
-                    }
-                }
-                return;
-            }
-
-            {
-                var first = true;
-                foreach (var value in values)
-                {
-                    if (first)
-                        first = false;
-                    else
-                        writer.Write(',');
-                    if (value != null)
-                    {
-                        if (!nameless)
-                            writer.Write('{');
-                        else
-                            writer.Write('[');
-
-                        var firstProperty = true;
-                        foreach (var member in typeDetail.SerializableMemberDetails)
-                        {
-                            if (graph != null)
-                            {
-                                if (member.TypeDetail.IsGraphLocalProperty)
-                                {
-                                    if (!graph.HasLocalProperty(member.Name))
-                                        continue;
-                                }
-                                else
-                                {
-                                    if (!graph.HasChildGraph(member.Name))
-                                        continue;
-                                }
-                            }
-
-                            if (firstProperty)
-                                firstProperty = false;
-                            else
-                                writer.Write(',');
-
-                            if (!nameless)
-                            {
-                                writer.Write('\"');
-                                writer.Write(member.Name);
-                                writer.Write('\"');
-                                writer.Write(':');
-                            }
-
-                            var propertyValue = member.Getter(value);
-                            var childGraph = graph?.GetChildGraph(member.Name);
-                            ToJson(propertyValue, member.TypeDetail, childGraph, ref writer, nameless);
-                        }
-
-                        if (!nameless)
-                            writer.Write('}');
-                        else
-                            writer.Write(']');
-                    }
-                    else
-                    {
-                        writer.Write("null");
-                    }
-                }
-            }
         }
         private static void WriteJsonCoreType(ref CharWriter writer, ref WriteState state)
         {
@@ -684,6 +537,182 @@ namespace Zerra.Serialization
                 }
             }
         }
+        private static void WriteJsonSpecialType(ref CharWriter writer, ref WriteState state)
+        {
+            var typeDetail = state.CurrentFrame.TypeDetail;
+            var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType.Value : typeDetail.SpecialType.Value;
+
+            int sizeNeeded;
+            switch (specialType)
+            {
+                case SpecialType.Type:
+                    var valueType = state.CurrentFrame.Object == null ? null : (Type)state.CurrentFrame.Object;
+                    if (valueType == null)
+                    {
+                        if (!writer.TryWrite("null", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                    }
+                    state.CurrentFrame.FrameType = WriteFrameType.String;
+                    state.CurrentFrame.Object = valueType.FullName;
+                    return;
+
+                case SpecialType.Dictionary:
+
+                    if (state.CurrentFrame.Object == null)
+                    {
+                        if (!writer.TryWrite("null", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                    }
+
+                    var innerTypeDetail = typeDetail.InnerTypeDetails[0];
+                    if (state.CurrentFrame.State == 0)
+                    {
+                        var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.InnerTypes[0]);
+
+                        state.CurrentFrame.Enumerator = ((ICollection)method.Caller(null, new object[] { state.CurrentFrame.Object })).GetEnumerator();
+                        state.CurrentFrame.State = 1;
+                    }
+
+                    if (state.CurrentFrame.State == 1)
+                    {
+                        if (!state.Nameless)
+                        {
+                            if (!writer.TryWrite('{', out sizeNeeded))
+                            {
+                                state.CharsNeeded = sizeNeeded;
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            if (!writer.TryWrite('[', out sizeNeeded))
+                            {
+                                state.CharsNeeded = sizeNeeded;
+                                return;
+                            }
+                        }
+
+                        state.CurrentFrame.State = 2;
+                    }
+
+                    for (; ; )
+                    {
+                        switch (state.CurrentFrame.State)
+                        {
+                            case 2: //Next KeyValuePair
+                                if (!state.CurrentFrame.Enumerator.MoveNext())
+                                {
+                                    state.CurrentFrame.State = 20;
+                                    break;
+                                }
+                                if (state.CurrentFrame.EnumeratorPassedFirstProperty)
+                                {
+                                    state.CurrentFrame.State = 2;
+                                    break;
+                                }
+                                else
+                                {
+                                    state.CurrentFrame.EnumeratorPassedFirstProperty = true;
+                                }
+
+                                if (state.Nameless)
+                                    state.CurrentFrame.State = 7;
+                                else
+                                    state.CurrentFrame.State = 4;
+                                break;
+                            case 3:  //Seperate Properties
+                                if (!writer.TryWrite(',', out sizeNeeded))
+                                {
+                                    state.CharsNeeded = sizeNeeded;
+                                    return;
+                                }
+                                break;
+
+                            case 4: //Key
+                                state.CurrentFrame.State = 5;
+                                var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").Getter;
+                                var key = keyGetter(state.CurrentFrame.Enumerator.Current);
+                                state.PushFrame(new WriteFrame() { TypeDetail = innerTypeDetail.InnerTypeDetails[0], Object = key, FrameType = WriteFrameType.Value });
+                                break;
+                            case 5: //KeyValue Seperator
+                                if (!writer.TryWrite("\":", out sizeNeeded))
+                                {
+                                    state.CharsNeeded = sizeNeeded;
+                                    return;
+                                }
+                                state.CurrentFrame.State = 6;
+                                break;
+                            case 6: //Value
+                                state.CurrentFrame.State = 1;
+                                var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").Getter;
+                                var value = valueGetter(state.CurrentFrame.Enumerator.Current);
+                                state.PushFrame(new WriteFrame() { TypeDetail = innerTypeDetail.InnerTypeDetails[1], Object = value, FrameType = WriteFrameType.Value });
+                                break;
+
+
+                            case 7:  //Begin Nameless
+                                if (!writer.TryWrite('[', out sizeNeeded))
+                                {
+                                    state.CharsNeeded = sizeNeeded;
+                                    return;
+                                }
+                                state.CurrentFrame.State = 8;
+                                break;
+                            case 8: //Nameless Key
+                                state.CurrentFrame.State = 9;
+                                keyGetter = innerTypeDetail.GetMemberFieldBacked("key").Getter;
+                                key = keyGetter(state.CurrentFrame.Enumerator.Current);
+                                state.PushFrame(new WriteFrame() { TypeDetail = innerTypeDetail.InnerTypeDetails[0], Object = key, FrameType = WriteFrameType.Value });
+                                break;
+                            case 9:  //Nameless KeyValue Seperator
+                                if (!writer.TryWrite(',', out sizeNeeded))
+                                {
+                                    state.CharsNeeded = sizeNeeded;
+                                    return;
+                                }
+                                state.CurrentFrame.State = 10;
+                                break;
+                            case 10:  //End Nameless
+                                if (!writer.TryWrite(']', out sizeNeeded))
+                                {
+                                    state.CharsNeeded = sizeNeeded;
+                                    return;
+                                }
+                                state.CurrentFrame.State = 2;
+                                break;
+
+                            case 20: //End Dictionary
+                                if (!state.Nameless)
+                                {
+                                    if (!writer.TryWrite('}', out sizeNeeded))
+                                    {
+                                        state.CharsNeeded = sizeNeeded;
+                                        return;
+                                    }
+                                }
+                                else
+                                {
+                                    if (!writer.TryWrite(']', out sizeNeeded))
+                                    {
+                                        state.CharsNeeded = sizeNeeded;
+                                        return;
+                                    }
+                                }
+                                state.EndFrame();
+                                return;
+                        }
+                    }
+                    
+                default:
+                    throw new NotImplementedException();
+            }
+        }
         private static void WriteJsonByteArray(ref CharWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
@@ -773,9 +802,15 @@ namespace Zerra.Serialization
                             state.CurrentFrame.State = 2;
                             break;
                         }
+                        else
+                        {
+                            state.CurrentFrame.EnumeratorPassedFirstProperty = true;
+                        }
 
-                        state.CurrentFrame.EnumeratorPassedFirstProperty = true;
-                        state.CurrentFrame.State = 3;
+                        if (state.Nameless)
+                            state.CurrentFrame.State = 6;
+                        else
+                            state.CurrentFrame.State = 3;
                         break;
                     case 2: //Seperate Properties
                         if (!writer.TryWrite(',', out var sizeNeeded))
@@ -784,7 +819,7 @@ namespace Zerra.Serialization
                             return;
                         }
                         if (state.Nameless)
-                            state.CurrentFrame.State = 10;
+                            state.CurrentFrame.State = 6;
                         else
                             state.CurrentFrame.State = 3;
                         break;
@@ -815,7 +850,6 @@ namespace Zerra.Serialization
                         state.CurrentFrame.State = 6;
                         break;
 
-
                     case 6: //Member Value
                         member = state.CurrentFrame.MemberEnumerator.Current;
                         var propertyValue = member.Getter(state.CurrentFrame.Object);
@@ -844,6 +878,155 @@ namespace Zerra.Serialization
                         }
                         state.EndFrame();
                         return;
+                }
+            }
+        }
+        private static void WriteJsonEnumerable(ref CharWriter writer, ref WriteState state)
+        {
+            var typeDetail = state.CurrentFrame.TypeDetail;
+
+            if (typeDetail.CoreType.HasValue)
+            {
+                ToJsonCoreTypeEnumerabale(values, typeDetail.CoreType.Value, ref writer);
+                return;
+            }
+
+            if (typeDetail.Type.IsEnum)
+            {
+                var first = true;
+                foreach (var value in values)
+                {
+                    if (first)
+                        first = false;
+                    else
+                        writer.Write(',');
+                    if (value != null)
+                    {
+                        writer.Write('\"');
+                        writer.Write(EnumName.GetName(typeDetail.Type, value));
+                        writer.Write('\"');
+                    }
+                    else
+                    {
+                        writer.Write("null");
+                    }
+                }
+                return;
+            }
+            if (typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
+            {
+                var first = true;
+                foreach (var value in values)
+                {
+                    if (first)
+                        first = false;
+                    else
+                        writer.Write(',');
+                    if (value != null)
+                    {
+                        writer.Write('\"');
+                        writer.Write(EnumName.GetName(typeDetail.InnerTypes[0], (Enum)value));
+                        writer.Write('\"');
+                    }
+                    else
+                    {
+                        writer.Write("null");
+                    }
+                }
+                return;
+            }
+
+            if (typeDetail.SpecialType.HasValue || typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].SpecialType.HasValue)
+            {
+                writer.Write('[');
+                ToJsonSpecialTypeEnumerable(values, typeDetail, ref writer, nameless);
+                writer.Write(']');
+                return;
+            }
+
+            if (typeDetail.IsIEnumerableGeneric)
+            {
+                var first = true;
+                foreach (var value in values)
+                {
+                    if (first)
+                        first = false;
+                    else
+                        writer.Write(',');
+                    if (value != null)
+                    {
+                        var enumerable = value as IEnumerable;
+                        writer.Write('[');
+                        ToJsonEnumerable(enumerable, typeDetail.IEnumerableGenericInnerTypeDetails, graph, ref writer, nameless);
+                        writer.Write(']');
+                    }
+                    else
+                    {
+                        writer.Write("null");
+                    }
+                }
+                return;
+            }
+
+            {
+                var first = true;
+                foreach (var value in values)
+                {
+                    if (first)
+                        first = false;
+                    else
+                        writer.Write(',');
+                    if (value != null)
+                    {
+                        if (!nameless)
+                            writer.Write('{');
+                        else
+                            writer.Write('[');
+
+                        var firstProperty = true;
+                        foreach (var member in typeDetail.SerializableMemberDetails)
+                        {
+                            if (graph != null)
+                            {
+                                if (member.TypeDetail.IsGraphLocalProperty)
+                                {
+                                    if (!graph.HasLocalProperty(member.Name))
+                                        continue;
+                                }
+                                else
+                                {
+                                    if (!graph.HasChildGraph(member.Name))
+                                        continue;
+                                }
+                            }
+
+                            if (firstProperty)
+                                firstProperty = false;
+                            else
+                                writer.Write(',');
+
+                            if (!nameless)
+                            {
+                                writer.Write('\"');
+                                writer.Write(member.Name);
+                                writer.Write('\"');
+                                writer.Write(':');
+                            }
+
+                            var propertyValue = member.Getter(value);
+                            var childGraph = graph?.GetChildGraph(member.Name);
+                            ToJson(propertyValue, member.TypeDetail, childGraph, ref writer, nameless);
+                        }
+
+                        if (!nameless)
+                            writer.Write('}');
+                        else
+                            writer.Write(']');
+                    }
+                    else
+                    {
+                        writer.Write("null");
+                    }
                 }
             }
         }
@@ -1402,74 +1585,7 @@ namespace Zerra.Serialization
                     throw new NotImplementedException();
             }
         }
-        private static void WriteJsonSpecialType(object value, TypeDetail typeDetail, ref CharWriter writer, bool nameless)
-        {
-            var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType.Value : typeDetail.SpecialType.Value;
-            switch (specialType)
-            {
-                case SpecialType.Type:
-                    {
-                        var valueType = value == null ? null : (Type)value;
-                        if (valueType != null)
-                            ToJsonString(valueType.FullName, ref writer);
-                        else
-                            writer.Write("null");
-                    }
-                    return;
-                case SpecialType.Dictionary:
-                    {
-                        if (value != null)
-                        {
-                            var innerTypeDetail = typeDetail.InnerTypeDetails[0];
 
-                            var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").Getter;
-                            var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").Getter;
-                            var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.InnerTypes[0]);
-
-                            var innerValue = (ICollection)method.Caller(null, new object[] { value });
-                            if (!nameless)
-                                writer.Write('{');
-                            else
-                                writer.Write('[');
-                            var firstkvp = true;
-                            foreach (var kvp in innerValue)
-                            {
-                                if (firstkvp)
-                                    firstkvp = false;
-                                else
-                                    writer.Write(',');
-                                var kvpKey = keyGetter(kvp);
-                                var kvpValue = valueGetter(kvp);
-                                if (!nameless)
-                                {
-                                    ToJsonString(kvpKey.ToString(), ref writer);
-                                    writer.Write(':');
-                                    ToJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, nameless);
-                                }
-                                else
-                                {
-                                    writer.Write('[');
-                                    ToJson(kvpKey, innerTypeDetail.InnerTypeDetails[0], null, ref writer, nameless);
-                                    writer.Write(',');
-                                    ToJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, nameless);
-                                    writer.Write(']');
-                                }
-                            }
-                            if (!nameless)
-                                writer.Write('}');
-                            else
-                                writer.Write(']');
-                        }
-                        else
-                        {
-                            writer.Write("null");
-                        }
-                    }
-                    return;
-                default:
-                    throw new NotImplementedException();
-            }
-        }
         private static void WriteJsonSpecialTypeEnumerable(IEnumerable values, TypeDetail typeDetail, ref CharWriter writer, bool nameless)
         {
             var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType.Value : typeDetail.SpecialType.Value;

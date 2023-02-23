@@ -26,6 +26,7 @@ namespace Zerra.Serialization
             public int PropertyIndexForNameless;
 
             public IEnumerator<MemberDetail> MemberEnumerator;
+            public IEnumerator Enumerator;
             public bool EnumeratorPassedFirstProperty;
         }
     }

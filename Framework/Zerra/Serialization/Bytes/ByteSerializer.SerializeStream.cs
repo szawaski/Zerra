@@ -802,12 +802,12 @@ namespace Zerra.Serialization
                 state.CurrentFrame.HasWrittenIsNull = true;
             }
 
-            if (state.CurrentFrame.PropertyEnumerator == null)
-                state.CurrentFrame.PropertyEnumerator = typeDetail.IndexedProperties.GetEnumerator();
+            if (state.CurrentFrame.MemberEnumerator == null)
+                state.CurrentFrame.MemberEnumerator = typeDetail.IndexedProperties.GetEnumerator();
 
-            while (state.CurrentFrame.EnumeratorObjectInProgress || state.CurrentFrame.PropertyEnumerator.MoveNext())
+            while (state.CurrentFrame.EnumeratorObjectInProgress || state.CurrentFrame.MemberEnumerator.MoveNext())
             {
-                var indexProperty = state.CurrentFrame.PropertyEnumerator.Current;
+                var indexProperty = state.CurrentFrame.MemberEnumerator.Current;
                 state.CurrentFrame.EnumeratorObjectInProgress = true;
 
                 var propertyValue = indexProperty.Value.Getter(value);
