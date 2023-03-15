@@ -219,8 +219,50 @@ namespace Zerra.Serialization
             if (!typeDetail.TryGetMemberCaseInsensitive(name, out var member))
                 return;
 
-            var convertedValue = TypeAnalyzer.Convert(value, member.Type);
-            member.Setter(model, convertedValue);
+            if (!TypeLookup.CoreTypeLookup(member.Type, out var coreType))
+                throw new NotImplementedException($"Type convert not available for {member.Type.Name}");
+
+            object parsed = coreType switch
+            {
+                CoreType.Boolean => Boolean.Parse(value),
+                CoreType.Byte => Byte.Parse(value),
+                CoreType.SByte => SByte.Parse(value),
+                CoreType.UInt16 => UInt16.Parse(value),
+                CoreType.Int16 => Int16.Parse(value),
+                CoreType.UInt32 => UInt32.Parse(value),
+                CoreType.Int32 => Int32.Parse(value),
+                CoreType.UInt64 => UInt64.Parse(value),
+                CoreType.Int64 => Int64.Parse(value),
+                CoreType.Single => Single.Parse(value),
+                CoreType.Double => Double.Parse(value),
+                CoreType.Decimal => Decimal.Parse(value),
+                CoreType.Char => Char.Parse(value),
+                CoreType.DateTime => DateTime.Parse(value),
+                CoreType.DateTimeOffset => DateTimeOffset.Parse(value),
+                CoreType.TimeSpan => TimeSpan.Parse(value),
+                CoreType.Guid => Guid.Parse(value),
+                CoreType.String => value,
+                CoreType.BooleanNullable => value == null ? null : Boolean.Parse(value),
+                CoreType.ByteNullable => value == null ? null : Byte.Parse(value),
+                CoreType.SByteNullable => value == null ? null : SByte.Parse(value),
+                CoreType.UInt16Nullable => value == null ? null : UInt16.Parse(value),
+                CoreType.Int16Nullable => value == null ? null : Int16.Parse(value),
+                CoreType.UInt32Nullable => value == null ? null : UInt32.Parse(value),
+                CoreType.Int32Nullable => value == null ? null : Int32.Parse(value),
+                CoreType.UInt64Nullable => value == null ? null : UInt64.Parse(value),
+                CoreType.Int64Nullable => value == null ? null : Int64.Parse(value),
+                CoreType.SingleNullable => value == null ? null : Single.Parse(value),
+                CoreType.DoubleNullable => value == null ? null : Double.Parse(value),
+                CoreType.DecimalNullable => value == null ? null : Decimal.Parse(value),
+                CoreType.CharNullable => value == null ? null : Char.Parse(value),
+                CoreType.DateTimeNullable => value == null ? null : DateTime.Parse(value),
+                CoreType.DateTimeOffsetNullable => value == null ? null : DateTimeOffset.Parse(value),
+                CoreType.TimeSpanNullable => value == null ? null : TimeSpan.Parse(value),
+                CoreType.GuidNullable => value == null ? null : Guid.Parse(value),
+                _ => throw new NotImplementedException($"Type conversion not available for {member.Type.Name}"),
+            };
+
+            member.Setter(model, parsed);
         }
     }
 }
