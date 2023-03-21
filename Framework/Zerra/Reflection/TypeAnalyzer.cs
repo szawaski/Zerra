@@ -100,7 +100,6 @@ namespace Zerra.Reflection
                     CoreType.GuidNullable => ConvertToGuid(obj),
                     _ => throw new NotImplementedException($"Type conversion not available for {type.Name}"),
                 };
-                ;
             }
         }
 

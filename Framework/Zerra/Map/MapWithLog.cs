@@ -956,38 +956,7 @@ namespace Zerra
         {
             if (source == null)
                 return "calculated";
-
-            string name;
-            if (source.NodeType == ExpressionType.MemberAccess)
-            {
-                name = $"{((MemberExpression)source).Member.DeclaringType.Name}.{source.ReadMemberName()}";
-            }
-            else if (source.NodeType == ExpressionType.Index)
-            {
-                name = GetMemberName(((IndexExpression)source).Object);
-            }
-            else if (source.NodeType == ExpressionType.Parameter)
-            {
-                name = $"member of {((ParameterExpression)source).Type.Name}";
-            }
-            else if (source.NodeType == ExpressionType.Convert)
-            {
-                name = GetMemberName(((UnaryExpression)source).Operand);
-            }
-            else if (source.NodeType == ExpressionType.Call)
-            {
-                var callExpression = (MethodCallExpression)source;
-                if (callExpression.Object != null)
-                    name = GetMemberName(callExpression.Object);
-                else
-                    name = source.ReadMemberName();
-            }
-            else
-            {
-                name = source.ReadMemberName();
-            }
-
-            return name;
+            return source.ToLinqString();
         }
     }
 }
