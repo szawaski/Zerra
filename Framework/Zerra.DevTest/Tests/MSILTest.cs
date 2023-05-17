@@ -65,7 +65,7 @@ namespace Zerra.DevTest
 
             var item4 = typeDetail.ConstructorDetails[0].Creator(null);
 
-            var item5 = Instantiator.CreateInstance<Stuff>();
+            var item5 = Instantiator.Create<Stuff>();
         }
 
         public static void TestSpeed()

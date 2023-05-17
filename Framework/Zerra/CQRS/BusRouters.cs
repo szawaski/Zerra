@@ -28,7 +28,7 @@ namespace Zerra.CQRS
             {
                 return GenerateProviderToCallInternalClass(t);
             });
-            var instance = Instantiator.GetSingleInstance(callerClassType);
+            var instance = Instantiator.GetSingle(callerClassType);
             return instance;
         }
         private static Type GenerateProviderToCallInternalClass(Type interfaceType)
@@ -166,7 +166,7 @@ namespace Zerra.CQRS
             {
                 return GenerateCommandHandlerToDispatchInternalClass(t);
             });
-            var instance = Instantiator.GetSingleInstance(dispatcherClassType);
+            var instance = Instantiator.GetSingle(dispatcherClassType);
             return instance;
         }
         private static Type GenerateCommandHandlerToDispatchInternalClass(Type interfaceType)
@@ -269,7 +269,7 @@ namespace Zerra.CQRS
             {
                 return GenerateEventHandlerToDispatchInternalClass(t);
             });
-            var instance = Instantiator.GetSingleInstance(dispatcherClassType);
+            var instance = Instantiator.GetSingle(dispatcherClassType);
             return instance;
         }
         private static Type GenerateEventHandlerToDispatchInternalClass(Type interfaceType)

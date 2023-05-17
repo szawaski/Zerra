@@ -38,7 +38,7 @@ namespace Zerra.Reflection
             {
                 return GenerateEmptyImplementation(t);
             });
-            var instance = Instantiator.CreateInstance(classType);
+            var instance = Instantiator.Create(classType);
             return instance;
         }
         private static Type GenerateEmptyImplementation(Type interfaceType)

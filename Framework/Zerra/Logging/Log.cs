@@ -12,7 +12,7 @@ namespace Zerra.Logging
     {
         public static Task InfoAsync(string message)
         {
-            if (Resolver.TryGet(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle(out ILoggingProvider provider))
             {
                 return provider.InfoAsync(message);
             }
@@ -20,7 +20,7 @@ namespace Zerra.Logging
         }
         public static Task DebugAsync(string message)
         {
-            if (Resolver.TryGet(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle(out ILoggingProvider provider))
             {
                 return provider.DebugAsync(message);
             }
@@ -28,7 +28,7 @@ namespace Zerra.Logging
         }
         public static Task WarnAsync(string message)
         {
-            if (Resolver.TryGet(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle(out ILoggingProvider provider))
             {
                 return provider.WarnAsync(message);
             }
@@ -36,7 +36,7 @@ namespace Zerra.Logging
         } 
         public static Task TraceAsync(string message)
         {
-            if (Resolver.TryGet(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle(out ILoggingProvider provider))
             {
                 return provider.TraceAsync(message);
             }
@@ -44,7 +44,7 @@ namespace Zerra.Logging
         }
         public static Task ErrorAsync(string message, Exception exception = null)
         {
-            if (Resolver.TryGet(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle(out ILoggingProvider provider))
             {
                 return provider.ErrorAsync(message, exception);
             }
@@ -52,7 +52,7 @@ namespace Zerra.Logging
         }
         public static Task ErrorAsync(Exception exception)
         {
-            if (Resolver.TryGet(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle(out ILoggingProvider provider))
             {
                 return provider.ErrorAsync(null, exception);
             }
@@ -60,7 +60,7 @@ namespace Zerra.Logging
         }
         public static Task CriticalAsync(string message, Exception exception = null)
         {
-            if (Resolver.TryGet(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle(out ILoggingProvider provider))
             {
                 return provider.CriticalAsync(message, exception);
             }
@@ -68,7 +68,7 @@ namespace Zerra.Logging
         }
         public static Task CriticalAsync(Exception exception)
         {
-            if (Resolver.TryGet(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle(out ILoggingProvider provider))
             {
                 return provider.CriticalAsync(null, exception);
             }

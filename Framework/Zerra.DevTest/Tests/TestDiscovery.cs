@@ -12,7 +12,7 @@ namespace Zerra.DevTest
     {
         public static void Test()
         {
-            var typePrimitiveInstantiator = Instantiator.CreateInstance<byte>();
+            var typePrimitiveInstantiator = Instantiator.Create<byte>();
 
             var typeA = typeof(Tuple<,>).MakeGenericType(typeof(string[]), typeof(List<int>)).MakeArrayType().MakeArrayType(1).MakeArrayType(2);
             var name = typeA.GetNiceFullName();

@@ -17,7 +17,7 @@ namespace Zerra.Repository
         {
             get
             {
-                var context = Instantiator.CreateInstance<TThisProviderInterface>();
+                var context = Instantiator.Create<TThisProviderInterface>();
                 return context;
             }
         }

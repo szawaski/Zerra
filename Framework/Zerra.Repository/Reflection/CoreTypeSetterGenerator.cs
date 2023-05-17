@@ -20,7 +20,7 @@ namespace Zerra.Repository.Reflection
             {
                 return Generate(memberInfo, coreType, isByteArray);
             });
-            var instance = Instantiator.CreateInstance(generatedType);
+            var instance = Instantiator.Create(generatedType);
             return instance;
         }
 

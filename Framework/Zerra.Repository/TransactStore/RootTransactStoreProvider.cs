@@ -73,7 +73,7 @@ namespace Zerra.Repository
 
             var relatedProviderType = TypeAnalyzer.GetGenericType(dataQueryProviderType, propertyType);
 
-            if (Resolver.TryGet(relatedProviderType, out var relatedProvider))
+            if (Resolver.TryGetSingle(relatedProviderType, out var relatedProvider))
             {
                 return new GetWhereExpressionMethodInfo
                 {
@@ -98,7 +98,7 @@ namespace Zerra.Repository
 
                     if (appendWhereExpressionMethodInfo != null)
                     {
-                        var relatedProvider = Resolver.Get(appendWhereExpressionMethodInfo.RelatedProviderType);
+                        var relatedProvider = Resolver.GetSingle(appendWhereExpressionMethodInfo.RelatedProviderType);
                         var relatedGraph = graph.GetChildGraphNotNull(property.Name, appendWhereExpressionMethodInfo.PropertyType);
 
                         Expression returnWhereExpression = null;
@@ -155,7 +155,7 @@ namespace Zerra.Repository
 
             var relatedProviderType = TypeAnalyzer.GetGenericType(dataQueryProviderType, propertyType);
 
-            if (Resolver.TryGet(relatedProviderType, out var relatedProvider))
+            if (Resolver.TryGetSingle(relatedProviderType, out var relatedProvider))
             {
                 return new OnQueryMethodInfo
                 {
@@ -179,7 +179,7 @@ namespace Zerra.Repository
 
                     if (onQueryMethodInfo != null)
                     {
-                        var relatedProvider = Resolver.Get(onQueryMethodInfo.RelatedProviderType);
+                        var relatedProvider = Resolver.GetSingle(onQueryMethodInfo.RelatedProviderType);
                         var relatedGraph = graph.GetChildGraphNotNull(property.Name, onQueryMethodInfo.PropertyType);
 
                         if (relatedProvider is IProviderRelation relatedProviderGeneric)
@@ -231,7 +231,7 @@ namespace Zerra.Repository
 
             var relatedProviderType = TypeAnalyzer.GetGenericType(dataQueryProviderType, propertyType);
 
-            if (Resolver.TryGet(relatedProviderType, out var relatedProvider))
+            if (Resolver.TryGetSingle(relatedProviderType, out var relatedProvider))
             {
                 return new OnGetMethodInfo
                 {
@@ -588,7 +588,7 @@ namespace Zerra.Repository
 
                     if (onGetMethodInfo != null)
                     {
-                        var relatedProvider = Resolver.Get(onGetMethodInfo.RelatedProviderType);
+                        var relatedProvider = Resolver.GetSingle(onGetMethodInfo.RelatedProviderType);
                         if (relatedProvider is IProviderRelation relatedProviderGeneric)
                         {
                             var relatedGraph = graph.GetChildGraphNotNull(property.Name, onGetMethodInfo.PropertyType);
@@ -660,7 +660,7 @@ namespace Zerra.Repository
 
                     if (onGetMethodInfo != null)
                     {
-                        var relatedProvider = Resolver.Get(onGetMethodInfo.RelatedProviderType);
+                        var relatedProvider = Resolver.GetSingle(onGetMethodInfo.RelatedProviderType);
                         if (relatedProvider is IProviderRelation relatedProviderGeneric)
                         {
                             var relatedGraph = graph.GetChildGraphNotNull(property.Name, onGetMethodInfo.PropertyType);

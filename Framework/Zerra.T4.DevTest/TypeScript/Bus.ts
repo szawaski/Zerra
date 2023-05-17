@@ -165,7 +165,7 @@ export class Bus {
             const headers: HeadersInit = {};
             headers["Provider-Type"] = provider;
             headers["Content-Type"] = "application/json; charset=utf-8";
-            headers["Accept"] = "application/json; charset=utf-8";
+            headers["Accept"] = accept;
             for (const property in Bus._customHeaders) {
                 const value = Bus._customHeaders[property];
                 if (value !== null) {
@@ -253,7 +253,6 @@ export class Bus {
             const headers: HeadersInit = {};
             headers["Provider-Type"] = type;
             headers["Content-Type"] = "application/json; charset=utf-8";
-            headers["Accept"] = "application/json; charset=utf-8";
             for (const property in Bus._customHeaders) {
                 const value = Bus._customHeaders[property];
                 if (value !== null) {
@@ -315,7 +314,6 @@ export class Bus {
             const headers: HeadersInit = {};
             headers["Provider-Type"] = type;
             headers["Content-Type"] = "application/json; charset=utf-8";
-            headers["Accept"] = "application/json; charset=utf-8";
             for (const property in Bus._customHeaders) {
                 const value = Bus._customHeaders[property];
                 if (value !== null) {

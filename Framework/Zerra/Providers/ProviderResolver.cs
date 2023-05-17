@@ -71,7 +71,7 @@ namespace Zerra.Providers
             if (providerType == null)
                 return default;
 
-            var provider = (InterfaceT)Instantiator.GetSingleInstance(providerType);
+            var provider = (InterfaceT)Instantiator.GetSingle(providerType);
             if (provider == null)
                 return provider;
 

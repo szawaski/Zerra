@@ -25,7 +25,7 @@ namespace Zerra.Repository
         public TransactStoreProvider()
         {
             this.deleteBatchSize = ModelDetail.IdentityProperties.Count == 1 ? deleteBatchSizeSingleIdentity : deleteBatchSizeManyIdentity;
-            var context = Instantiator.GetSingleInstance<TContext>();
+            var context = Instantiator.GetSingle<TContext>();
             this.Engine = context.InitializeEngine<ITransactStoreEngine>();
         }
 

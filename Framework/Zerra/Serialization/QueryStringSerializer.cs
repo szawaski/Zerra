@@ -12,7 +12,7 @@ namespace Zerra.Serialization
     {
         public static T Deserialize<T>(IEnumerable<KeyValuePair<string, string>> query)
         {
-            var model = Instantiator.CreateInstance<T>();
+            var model = Instantiator.Create<T>();
             var typeDetail = TypeAnalyzer.GetTypeDetail(typeof(T));
 
             foreach (var item in query)
@@ -24,7 +24,7 @@ namespace Zerra.Serialization
         }
         public static T Deserialize<T>(IEnumerable<KeyValuePair<string, StringValues>> query)
         {
-            var model = Instantiator.CreateInstance<T>();
+            var model = Instantiator.Create<T>();
             var typeDetail = TypeAnalyzer.GetTypeDetail(typeof(T));
 
             foreach (var item in query)
@@ -37,7 +37,7 @@ namespace Zerra.Serialization
 
         public static unsafe T Deserialize<T>(string queryString)
         {
-            var model = Instantiator.CreateInstance<T>();
+            var model = Instantiator.Create<T>();
             var typeDetail = TypeAnalyzer.GetTypeDetail(typeof(T));
 
             var bufferOwner = BufferArrayPool<char>.Rent(256);

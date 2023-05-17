@@ -288,7 +288,7 @@ namespace Zerra
             var instanceTypes = Discovery.GetImplementationTypes(mapDefinitionsType);
             foreach (var instanceType in instanceTypes)
             {
-                var instance = (IMapDefinition<TSource, TTarget>)Instantiator.CreateInstance(instanceType);
+                var instance = (IMapDefinition<TSource, TTarget>)Instantiator.Create(instanceType);
                 instance.Define(this);
             }
         }
