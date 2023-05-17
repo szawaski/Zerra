@@ -544,7 +544,14 @@ namespace Zerra.Reflection
 
         public static void DefineImplementation(Type interfaceType, Type implementationType)
         {
-            var classList = classByInterface.AddOrUpdate(interfaceType, (key) => { return new() { implementationType }; }, (key, old) => { return new() { implementationType }; });
+            if (interfaceType == null)
+                throw new ArgumentNullException(nameof(interfaceType));
+            if (!interfaceType.IsInterface)
+                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+            if (implementationType == null)
+                throw new ArgumentNullException(nameof(implementationType));
+
+            _ = classByInterface.AddOrUpdate(interfaceType, (key) => { return new() { implementationType }; }, (key, old) => { return new() { implementationType }; });
         }
 
         public static IEnumerable<Type> GetTypesFromAttribute(Type attribute)
