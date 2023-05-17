@@ -1086,7 +1086,7 @@ namespace Zerra.Serialization
 
                         var innerValue = state.LastFrameResult;
                         var innerItemEnumerable = TypeAnalyzer.GetGenericType(enumerableType, typeDetail.TypeDetail.IEnumerableGenericInnerType);
-                        state.CurrentFrame.ResultObject = Instantiator.CreateInstance(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
+                        state.CurrentFrame.ResultObject = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
                         state.EndFrame();
                         return;
                     }

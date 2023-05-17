@@ -25,11 +25,11 @@ namespace Zerra.Reflection
         {
             Config.SetDiscoveryStarted();
 
-            classByInterface = new ConcurrentDictionary<Type, List<Type>>();
-            interfaceByType = new ConcurrentDictionary<Type, List<Type>>();
-            typeByAttribute = new ConcurrentDictionary<Type, List<Type>>();
-            typeByName = new ConcurrentDictionary<string, ConcurrentReadWriteList<Type>>();
-            discoveredAssemblies = new List<string>();
+            classByInterface = new();
+            interfaceByType = new();
+            typeByAttribute = new();
+            typeByName = new();
+            discoveredAssemblies = new();
 
             LoadAssemblies();
             Discover();
@@ -133,11 +133,11 @@ namespace Zerra.Reflection
         }
         private static void DiscoverType(Type typeInAssembly)
         {
-            var typeList1 = typeByName.GetOrAdd(typeInAssembly.Name, (key) => { return new ConcurrentReadWriteList<Type>(); });
+            var typeList1 = typeByName.GetOrAdd(typeInAssembly.Name, (key) => { return new(); });
             typeList1.Add(typeInAssembly);
             if (typeInAssembly.Name != typeInAssembly.FullName)
             {
-                var typeList2 = typeByName.GetOrAdd(typeInAssembly.FullName, (key) => { return new ConcurrentReadWriteList<Type>(); });
+                var typeList2 = typeByName.GetOrAdd(typeInAssembly.FullName, (key) => { return new(); });
                 typeList2.Add(typeInAssembly);
             }
 
@@ -146,7 +146,7 @@ namespace Zerra.Reflection
                 var interfaceTypes = typeInAssembly.GetInterfaces();
                 if (interfaceTypes.Length > 0)
                 {
-                    var interfaceList = interfaceByType.GetOrAdd(typeInAssembly, (key) => { return new List<Type>(); });
+                    var interfaceList = interfaceByType.GetOrAdd(typeInAssembly, (key) => { return new(); });
 
                     foreach (var interfaceType in interfaceTypes)
                     {
@@ -154,7 +154,7 @@ namespace Zerra.Reflection
                         {
                             interfaceList.Add(interfaceType);
 
-                            var classList = classByInterface.GetOrAdd(interfaceType, (key) => { return new List<Type>(); });
+                            var classList = classByInterface.GetOrAdd(interfaceType, (key) => { return new(); });
                             classList.Add(typeInAssembly);
                         }
                     }
@@ -167,7 +167,7 @@ namespace Zerra.Reflection
                 var thisAttributeType = attributeType;
                 while (thisAttributeType != typeof(Attribute))
                 {
-                    var list = typeByAttribute.GetOrAdd(thisAttributeType, (key) => { return new List<Type>(); });
+                    var list = typeByAttribute.GetOrAdd(thisAttributeType, (key) => { return new(); });
                     list.Add(typeInAssembly);
                     thisAttributeType = thisAttributeType.BaseType;
                 }
@@ -540,6 +540,11 @@ namespace Zerra.Reflection
             flagPool.Return(levels);
 
             return list;
+        }
+
+        public static void DefineImplementation(Type interfaceType, Type implementationType)
+        {
+            var classList = classByInterface.AddOrUpdate(interfaceType, (key) => { return new() { implementationType }; }, (key, old) => { return new() { implementationType }; });
         }
 
         public static IEnumerable<Type> GetTypesFromAttribute(Type attribute)

@@ -106,9 +106,9 @@ namespace Zerra.CQRS
                     var methodSetNextProvider = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(BaseLayerProvider<IBaseProvider>.SetNextProvider));
                     if (methodSetNextProvider != null)
                     {
-                        var providerCache = Instantiator.GetSingleInstance($"{providerCacheType.FullName}_Bus.DispatchAsync_Cache", () =>
+                        var providerCache = Instantiator.GetSingle($"{providerCacheType.FullName}_Bus.DispatchAsync_Cache", () =>
                         {
-                            var instance = Instantiator.CreateInstance(providerCacheType);
+                            var instance = Instantiator.Create(providerCacheType);
 
                             var methodGetProviderInterfaceType = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(BaseLayerProvider<IBaseProvider>.GetProviderInterfaceType));
                             var interfaceType = (Type)methodGetProviderInterfaceType.Caller(instance, null);
@@ -145,9 +145,9 @@ namespace Zerra.CQRS
                     var methodSetNextProvider = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(BaseLayerProvider<IBaseProvider>.SetNextProvider));
                     if (methodSetNextProvider != null)
                     {
-                        var providerCache = Instantiator.GetSingleInstance($"{providerCacheType.FullName}_Bus.DispatchAsync_Cache", () =>
+                        var providerCache = Instantiator.GetSingle($"{providerCacheType.FullName}_Bus.DispatchAsync_Cache", () =>
                         {
-                            var instance = Instantiator.CreateInstance(providerCacheType);
+                            var instance = Instantiator.Create(providerCacheType);
 
                             var methodGetProviderInterfaceType = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(BaseLayerProvider<IBaseProvider>.GetProviderInterfaceType));
                             var interfaceType = (Type)methodGetProviderInterfaceType.Caller(instance, null);
@@ -229,7 +229,7 @@ namespace Zerra.CQRS
                 return Task.CompletedTask;
             var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand>.Handle), new Type[] { commandType });
 
-            var provider = Instantiator.GetSingleInstance(providerType);
+            var provider = Instantiator.GetSingle(providerType);
 
             var task = (Task)method.Caller(provider, new object[] { command });
 
@@ -246,7 +246,7 @@ namespace Zerra.CQRS
                 return Task.CompletedTask;
             var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(IEventHandler<IEvent>.Handle), new Type[] { eventType });
 
-            var provider = Instantiator.GetSingleInstance(providerType);
+            var provider = Instantiator.GetSingle(providerType);
 
             var task = (Task)method.Caller(provider, new object[] { @event });
 
@@ -287,9 +287,9 @@ namespace Zerra.CQRS
                         var methodSetNextProvider = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(BaseLayerProvider<IBaseProvider>.SetNextProvider)).MethodInfo;
                         if (methodSetNextProvider != null)
                         {
-                            var providerCache = Instantiator.GetSingleInstance($"{providerCacheType.FullName}_Bus.Call_Cache", () =>
+                            var providerCache = Instantiator.GetSingle($"{providerCacheType.FullName}_Bus.Call_Cache", () =>
                             {
-                                var instance = Instantiator.CreateInstance(providerCacheType);
+                                var instance = Instantiator.Create(providerCacheType);
                                 _ = methodSetNextProvider.Invoke(instance, new object[] { callerProvider });
                                 return instance;
                             });
@@ -318,7 +318,7 @@ namespace Zerra.CQRS
                 }
             }
 
-            var provider = Resolver.Get<TInterface>();
+            var provider = Resolver.GetSingle<TInterface>();
             var methodDetails = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
             if (methodDetails.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
                 throw new ArgumentException("Invalid number of arguments for this method");

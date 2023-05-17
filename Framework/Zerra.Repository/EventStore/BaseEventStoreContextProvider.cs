@@ -13,7 +13,7 @@ namespace Zerra.Repository
     {
         public DataContext GetContext()
         {
-            var context = Instantiator.CreateInstance<TContext>();
+            var context = Instantiator.Create<TContext>();
             return context;
         }
     }

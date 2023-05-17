@@ -76,7 +76,7 @@ namespace Zerra.Repository
                         foreach (var modelType in allModelTypes.Where(x => !x.IsAbstract))
                         {
                             var providerType = typeof(ITransactStoreProvider<>).MakeGenericType(modelType);
-                            if (!Resolver.TryGet(providerType, out var provider))
+                            if (!Resolver.TryGetSingle(providerType, out var provider))
                                 continue;
                             var typeDetails = TypeAnalyzer.GetTypeDetail(provider.GetType());
                             if (typeDetails.InnerTypes.Contains(thisType))

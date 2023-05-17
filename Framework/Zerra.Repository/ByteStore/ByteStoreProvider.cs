@@ -16,7 +16,7 @@ namespace Zerra.Repository
 
         public ByteStoreProvider()
         {
-            var context = Instantiator.GetSingleInstance<TContext>();
+            var context = Instantiator.GetSingle<TContext>();
             this.Engine = context.InitializeEngine<IByteStoreEngine>();
         }
 

@@ -21,7 +21,7 @@ namespace Zerra.Repository
 
         public EventStoreAsTransactStoreProvider()
         {
-            var context = Instantiator.GetSingleInstance<TContext>();
+            var context = Instantiator.GetSingle<TContext>();
             this.Engine = context.InitializeEngine<IEventStoreEngine>();
         }
 
@@ -395,7 +395,7 @@ namespace Zerra.Repository
                 return Array.Empty<TModel>();
 
             if (modelState == null)
-                modelState = Instantiator.CreateInstance<TModel>();
+                modelState = Instantiator.Create<TModel>();
 
             if (many)
             {
@@ -517,7 +517,7 @@ namespace Zerra.Repository
                 return Array.Empty<EventModel<TModel>>();
 
             if (modelState == null)
-                modelState = Instantiator.CreateInstance<TModel>();
+                modelState = Instantiator.Create<TModel>();
 
             if (many)
             {

@@ -271,7 +271,7 @@ namespace Zerra.Repository.PostgreSql
                         if (isProperty)
                             value = modelPropertyDetail.Getter(model);
                         else
-                            value = Instantiator.CreateInstance(modelPropertyDetail.Type);
+                            value = Instantiator.Create(modelPropertyDetail.Type);
 
                         if (value != null)
                         {
@@ -299,7 +299,7 @@ namespace Zerra.Repository.PostgreSql
                             if (isProperty)
                                 value = modelPropertyDetail.Getter(model);
                             else
-                                value = Instantiator.CreateInstance(modelPropertyDetail.Type);
+                                value = Instantiator.Create(modelPropertyDetail.Type);
 
                             if (value != null)
                             {

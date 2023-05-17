@@ -271,7 +271,7 @@ namespace Zerra.Repository.MySql
                         if (isProperty)
                             value = modelPropertyDetail.Getter(model);
                         else
-                            value = Instantiator.CreateInstance(modelPropertyDetail.Type);
+                            value = Instantiator.Create(modelPropertyDetail.Type);
 
                         if (value != null)
                         {

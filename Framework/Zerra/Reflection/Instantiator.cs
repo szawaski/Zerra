@@ -12,36 +12,34 @@ namespace Zerra.Reflection
     {
         private static readonly ConcurrentFactoryDictionary<Type, object> singleInstancesByType = new();
         private static readonly ConcurrentFactoryDictionary<string, object> singleInstancesByKey = new();
-        public static T GetSingleInstance<T>(Func<T> factory = null)
+        public static T GetSingle<T>(Func<T> factory = null)
         {
             var type = typeof(T);
-            if (factory == null)
-                factory = CreateInstance<T>;
+            factory ??= Create<T>;
             var instance = (T)singleInstancesByType.GetOrAdd(type, (key) => { return factory(); });
             return instance;
         }
-        public static object GetSingleInstance(Type type, Func<object> factory = null)
+        public static object GetSingle(Type type, Func<object> factory = null)
         {
-            if (factory == null)
-                factory = () => { return CreateInstance(type); };
+            factory ??= () => { return Create(type); };
             var instance = singleInstancesByType.GetOrAdd(type, (key) => { return factory(); });
             return instance;
         }
-        public static object GetSingleInstance(string key, Func<object> factory)
+        public static object GetSingle(string key, Func<object> factory)
         {
             var instance = singleInstancesByKey.GetOrAdd(key, (factoryKey) => { return factory.Invoke(); });
             return instance;
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object[], object>> creatorsByType = new();
-        public static T CreateInstance<T>() { return (T)CreateInstance(typeof(T), Type.EmptyTypes, null); }
-        public static T CreateInstance<T>(Type[] parameterTypes, params object[] args) { return (T)CreateInstance(typeof(T), parameterTypes, args); }
-        public static object CreateInstance(Type type) { return CreateInstance(type, Type.EmptyTypes, null); }
-        public static object CreateInstance(Type type, Type[] parameterTypes, params object[] args)
+        public static T Create<T>() { return (T)Create(typeof(T), Type.EmptyTypes, null); }
+        public static T Create<T>(Type[] parameterTypes, params object[] args) { return (T)Create(typeof(T), parameterTypes, args); }
+        public static object Create(Type type) { return Create(type, Type.EmptyTypes, null); }
+        public static object Create(Type type, Type[] parameterTypes, params object[] args)
         {
             return GetCreator(type, parameterTypes)(args);
         }
-        public static Func<object[], object> GetCreator(Type type, Type[] parameterTypes)
+        private static Func<object[], object> GetCreator(Type type, Type[] parameterTypes)
         {
             var key = new TypeKey(type, parameterTypes);
             var creator = creatorsByType.GetOrAdd(key, (keyArg) =>
