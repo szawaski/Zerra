@@ -2,9 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections.Generic;
-using Zerra.IO;
 
 namespace Zerra.Serialization
 {
@@ -23,15 +21,13 @@ namespace Zerra.Serialization
 
             public void PushFrame(ReadFrame frame)
             {
-                if (stack == null)
-                    stack = new Stack<ReadFrame>();
+                stack ??= new Stack<ReadFrame>();
                 stack.Push(CurrentFrame);
                 CurrentFrame = frame;
             }
             public void EndFrame()
             {
-                if (stack == null)
-                    stack = new Stack<ReadFrame>();
+                stack ??= new Stack<ReadFrame>();
                 LastFrameResultObject = CurrentFrame.ResultObject;
                 LastFrameResultString = CurrentFrame.ResultString;
                 if (stack.Count > 0)

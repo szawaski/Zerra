@@ -65,8 +65,7 @@ namespace Zerra.Identity.Saml2.Bindings
             if (this.Signature != null)
                 throw new InvalidOperationException("Saml2 Document is Already Signed");
 
-            if (this.SignatureAlgorithm == null)
-                this.SignatureAlgorithm = Cryptography.XmlSignatureAlgorithmType.RsaSha256;
+            this.SignatureAlgorithm ??= Cryptography.XmlSignatureAlgorithmType.RsaSha256;
 
             var samlEncoded = EncodeSaml(this.Document.InnerXml);
             this.singingInput = BuildSignatureQueryString(samlEncoded);

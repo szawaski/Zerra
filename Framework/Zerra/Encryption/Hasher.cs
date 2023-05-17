@@ -47,8 +47,7 @@ namespace Zerra.Encryption
         {
             using (var hashAlgorithm = GetHashAlgorithm(hashAlgoritmType))
             {
-                if (saltBytes == null)
-                    saltBytes = GenerateSaltBytes();
+                saltBytes ??= GenerateSaltBytes();
 
                 //plain+salt
                 var textBytesSalted = new byte[plainBytes.Length + saltBytes.Length];
@@ -117,8 +116,7 @@ namespace Zerra.Encryption
         }
         public static byte[] PBKDF2GenerateHash(byte[] plainBytes, byte[] saltBytes = null)
         {
-            if (saltBytes == null)
-                saltBytes = GenerateSaltBytes();
+            saltBytes ??= GenerateSaltBytes();
 
             using (var deriveBytes = new Rfc2898DeriveBytes(plainBytes, saltBytes, rfc2898HashItterations))
             {

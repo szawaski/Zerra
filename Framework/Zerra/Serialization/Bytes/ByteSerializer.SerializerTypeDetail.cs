@@ -30,10 +30,7 @@ namespace Zerra.Serialization
                     {
                         lock (this)
                         {
-                            if (innerTypeDetails == null)
-                            {
-                                innerTypeDetails = GetTypeInformation(TypeDetail.IEnumerableGenericInnerType, indexSize, ignoreIndexAttribute);
-                            }
+                            innerTypeDetails ??= GetTypeInformation(TypeDetail.IEnumerableGenericInnerType, indexSize, ignoreIndexAttribute);
                         }
                     }
                     return innerTypeDetails;

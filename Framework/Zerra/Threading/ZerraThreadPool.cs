@@ -25,10 +25,7 @@ namespace Zerra.Threading
                 {
                     lock (currentLock)
                     {
-                        if (current == null)
-                        {
-                            current = new ZerraThreadPool();
-                        }
+                        current ??= new ZerraThreadPool();
                     }
                 }
                 return current;
@@ -67,10 +64,7 @@ namespace Zerra.Threading
             if (disposed)
                 throw new ObjectDisposedException("Thread pool has been disposed.");
 
-            if (principal == null)
-            {
-                principal = Thread.CurrentPrincipal.CopyClaimsPrincipal();
-            }
+            principal ??= Thread.CurrentPrincipal.CopyClaimsPrincipal();
 
             lock (workItems)
             {

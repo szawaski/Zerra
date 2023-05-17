@@ -802,8 +802,7 @@ namespace Zerra.Serialization
                 state.CurrentFrame.HasWrittenIsNull = true;
             }
 
-            if (state.CurrentFrame.MemberEnumerator == null)
-                state.CurrentFrame.MemberEnumerator = typeDetail.IndexedProperties.GetEnumerator();
+            state.CurrentFrame.MemberEnumerator ??= typeDetail.IndexedProperties.GetEnumerator();
 
             while (state.CurrentFrame.EnumeratorObjectInProgress || state.CurrentFrame.MemberEnumerator.MoveNext())
             {
@@ -1393,8 +1392,7 @@ namespace Zerra.Serialization
 
             typeDetail = typeDetail.InnerTypeDetail;
 
-            if (state.CurrentFrame.ObjectEnumerator == null)
-                state.CurrentFrame.ObjectEnumerator = values.GetEnumerator();
+            state.CurrentFrame.ObjectEnumerator ??= values.GetEnumerator();
 
             while (state.CurrentFrame.EnumeratorObjectInProgress || state.CurrentFrame.ObjectEnumerator.MoveNext())
             {

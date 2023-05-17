@@ -34,10 +34,7 @@ namespace Zerra.Repository
             {
                 lock (this)
                 {
-                    if (contexts == null)
-                    {
-                        contexts = LoadDataContexts();
-                    }
+                    contexts ??= LoadDataContexts();
                 }
             }
             return contexts;

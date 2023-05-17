@@ -16,15 +16,13 @@ namespace Zerra.Serialization
 
             public void PushFrame(WriteFrame frame)
             {
-                if (stack == null)
-                    stack = new Stack<WriteFrame>();
+                stack ??= new Stack<WriteFrame>();
                 stack.Push(CurrentFrame);
                 CurrentFrame = frame;
             }
             public void EndFrame()
             {
-                if (stack == null)
-                    stack = new Stack<WriteFrame>();
+                stack ??= new Stack<WriteFrame>();
                 if (stack.Count > 0)
                     CurrentFrame = stack.Pop();
                 else

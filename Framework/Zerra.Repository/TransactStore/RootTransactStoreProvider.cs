@@ -109,8 +109,7 @@ namespace Zerra.Repository
 
                         if (returnWhereExpression != null)
                         {
-                            if (whereExpression == null)
-                                whereExpression = x => true;
+                            whereExpression ??= x => true;
                             whereExpression = whereExpression.AppendExpressionOnMember(property.MemberInfo, returnWhereExpression);
                         }
                     }

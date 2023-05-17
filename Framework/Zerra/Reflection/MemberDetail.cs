@@ -27,8 +27,7 @@ namespace Zerra.Reflection
                 {
                     lock (this)
                     {
-                        if (this.attributes == null)
-                            this.attributes = MemberInfo.GetCustomAttributes().ToArray();
+                        this.attributes ??= MemberInfo.GetCustomAttributes().ToArray();
                     }
                 }
                 return this.attributes;
@@ -220,8 +219,7 @@ namespace Zerra.Reflection
                 {
                     lock (this)
                     {
-                        if (typeDetail == null)
-                            typeDetail = TypeAnalyzer.GetTypeDetail(Type);
+                        typeDetail ??= TypeAnalyzer.GetTypeDetail(Type);
                     }
                 }
                 return typeDetail;

@@ -23,8 +23,7 @@ namespace Zerra.Reflection
                 {
                     lock (this)
                     {
-                        if (this.parameterInfos == null)
-                            this.parameterInfos = ConstructorInfo.GetParameters();
+                        this.parameterInfos ??= ConstructorInfo.GetParameters();
                     }
                 }
                 return this.parameterInfos;
@@ -40,8 +39,7 @@ namespace Zerra.Reflection
                 {
                     lock (this)
                     {
-                        if (this.attributes == null)
-                            this.attributes = ConstructorInfo.GetCustomAttributes().ToArray();
+                        this.attributes ??= ConstructorInfo.GetCustomAttributes().ToArray();
                     }
                 }
                 return this.attributes;

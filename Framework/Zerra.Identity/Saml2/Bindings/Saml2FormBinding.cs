@@ -83,10 +83,8 @@ namespace Zerra.Identity.Saml2.Bindings
             if (cert == null)
                 return;
 
-            if (this.SignatureAlgorithm == null)
-                this.SignatureAlgorithm = Cryptography.XmlSignatureAlgorithmType.RsaSha256;
-            if (this.DigestAlgorithm == null)
-                this.DigestAlgorithm = Cryptography.XmlDigestAlgorithmType.Sha256;
+            this.SignatureAlgorithm ??= Cryptography.XmlSignatureAlgorithmType.RsaSha256;
+            this.DigestAlgorithm ??= Cryptography.XmlDigestAlgorithmType.Sha256;
 
             this.Document = X509XmlSigner.SignXmlDoc(this.Document, cert, this.SignatureAlgorithm.Value, this.DigestAlgorithm.Value);
             this.HasSignature = true;
@@ -121,8 +119,7 @@ namespace Zerra.Identity.Saml2.Bindings
             if (this.HasEncryption)
                 throw new InvalidOperationException("Saml2 Document is already encrypted");
 
-            if (this.EncryptionAlgorithm == null)
-                this.EncryptionAlgorithm = Cryptography.XmlEncryptionAlgorithmType.Aes128Cbc;
+            this.EncryptionAlgorithm ??= Cryptography.XmlEncryptionAlgorithmType.Aes128Cbc;
 
             this.Document = X509XmlEncryptor.EncryptXmlDoc(this.Document, cert, this.EncryptionAlgorithm.Value, Saml2Names.AssertionPrefix, "Assertion", Saml2Names.AssertionPrefix, "EncryptedAssertion");
             this.HasEncryption = true;

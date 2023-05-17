@@ -394,8 +394,7 @@ namespace Zerra.Repository
             if (modelState == null && eventDatas.Length == 0)
                 return Array.Empty<TModel>();
 
-            if (modelState == null)
-                modelState = Instantiator.CreateInstance<TModel>();
+            modelState ??= Instantiator.CreateInstance<TModel>();
 
             if (many)
             {
@@ -516,8 +515,7 @@ namespace Zerra.Repository
             if (modelState == null && eventDatas.Length == 0)
                 return Array.Empty<EventModel<TModel>>();
 
-            if (modelState == null)
-                modelState = Instantiator.CreateInstance<TModel>();
+            modelState ??= Instantiator.CreateInstance<TModel>();
 
             if (many)
             {

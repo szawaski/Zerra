@@ -200,10 +200,7 @@ namespace Zerra
                 {
                     lock (this)
                     {
-                        if (compiledMap == null)
-                        {
-                            compiledMap = CompileMap(null);
-                        }
+                        compiledMap ??= CompileMap(null);
                     }
                 }
                 return compiledMap(source, target, new Dictionary<MapRecursionKey, object>());
@@ -230,10 +227,7 @@ namespace Zerra
                 {
                     lock (this)
                     {
-                        if (compiledMap == null)
-                        {
-                            compiledMap = CompileMap(null);
-                        }
+                        compiledMap ??= CompileMap(null);
                     }
                 }
                 return compiledMap(source, target, recursionDictionary);

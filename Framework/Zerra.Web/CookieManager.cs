@@ -95,8 +95,7 @@ namespace Zerra.Web
 
         private void PersistCookie(string name, string value, TimeSpan? maxAge, SameSiteMode sameSite, bool httpOnly, bool secure)
         {
-            if (value == null)
-                value = String.Empty;
+            value ??= String.Empty;
             var cookieSeriesCount = value.Length * 2 / maxCookieSizeBytes + 1;
 
             if (cookieSeriesCount > maxCookiesPerDomain)

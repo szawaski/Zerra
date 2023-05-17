@@ -191,10 +191,7 @@ namespace Zerra.Reflection
                 {
                     lock (this)
                     {
-                        if (serializableMemberDetails == null)
-                        {
-                            serializableMemberDetails = MemberDetails.Where(x => x.IsBacked && IsSerializableType(x.TypeDetail)).ToArray();
-                        }
+                        serializableMemberDetails ??= MemberDetails.Where(x => x.IsBacked && IsSerializableType(x.TypeDetail)).ToArray();
                     }
                 }
                 return serializableMemberDetails;
@@ -208,10 +205,7 @@ namespace Zerra.Reflection
             {
                 lock (this)
                 {
-                    if (membersFieldBackedByName == null)
-                    {
-                        membersFieldBackedByName = MemberDetails.ToDictionary(x => x.Name);
-                    }
+                    membersFieldBackedByName ??= MemberDetails.ToDictionary(x => x.Name);
                 }
             }
             if (!this.membersFieldBackedByName.TryGetValue(name, out var member))
@@ -224,10 +218,7 @@ namespace Zerra.Reflection
             {
                 lock (this)
                 {
-                    if (membersFieldBackedByName == null)
-                    {
-                        membersFieldBackedByName = MemberDetails.ToDictionary(x => x.Name);
-                    }
+                    membersFieldBackedByName ??= MemberDetails.ToDictionary(x => x.Name);
                 }
             }
             return this.membersFieldBackedByName.TryGetValue(name, out property);
@@ -270,10 +261,7 @@ namespace Zerra.Reflection
                 {
                     lock (this)
                     {
-                        if (iEnumerableGenericInnerTypeDetails == null)
-                        {
-                            iEnumerableGenericInnerTypeDetails = TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
-                        }
+                        iEnumerableGenericInnerTypeDetails ??= TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
                     }
                 }
                 return iEnumerableGenericInnerTypeDetails;

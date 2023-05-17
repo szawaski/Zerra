@@ -24,8 +24,7 @@ namespace Zerra.Identity.OpenID.Bindings
             this.BindingDirection = document.BindingDirection;
             this.SignatureAlgorithm = signatureAlgorithm;
 
-            if (this.SignatureAlgorithm == null)
-                this.SignatureAlgorithm = Cryptography.XmlSignatureAlgorithmType.RsaSha256;
+            this.SignatureAlgorithm ??= Cryptography.XmlSignatureAlgorithmType.RsaSha256;
 
             this.Document = document.GetJson();
         }

@@ -27,10 +27,7 @@ namespace Zerra.Serialization
                     {
                         lock (this)
                         {
-                            if (serializerTypeDetails == null)
-                            {
-                                serializerTypeDetails = GetTypeInformation(Type, indexSize, ignoreBinaryIndexAttribute);
-                            }
+                            serializerTypeDetails ??= GetTypeInformation(Type, indexSize, ignoreBinaryIndexAttribute);
                         }
                     }
                     return serializerTypeDetails;

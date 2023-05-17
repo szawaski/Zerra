@@ -1767,10 +1767,11 @@ namespace Zerra.Serialization
         private static bool WriteJsonChar(ref CharWriter writer, ref WriteState state)
         {
             var c = (char)state.CurrentFrame.Object;
+            int sizeNeeded;
             switch (c)
             {
                 case '\\':
-                    if (!writer.TryWrite("\"\\\\\"", out var sizeNeeded))
+                    if (!writer.TryWrite("\"\\\\\"", out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return false;
@@ -1878,7 +1879,7 @@ namespace Zerra.Serialization
                 state.CurrentFrame.State = 2;
             }
 
-            if (!writer.TryWrite('\"', out var sizeNeeded))
+            if (!writer.TryWrite('\"', out sizeNeeded))
             {
                 state.CharsNeeded = sizeNeeded;
                 return false;

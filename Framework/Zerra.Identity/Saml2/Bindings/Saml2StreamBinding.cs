@@ -65,10 +65,8 @@ namespace Zerra.Identity.Saml2.Bindings
             if (cert == null)
                 return;
 
-            if (this.SignatureAlgorithm == null)
-                this.SignatureAlgorithm = Cryptography.XmlSignatureAlgorithmType.RsaSha256;
-            if (this.DigestAlgorithm == null)
-                this.DigestAlgorithm = Cryptography.XmlDigestAlgorithmType.Sha256;
+            this.SignatureAlgorithm ??= Cryptography.XmlSignatureAlgorithmType.RsaSha256;
+            this.DigestAlgorithm ??= Cryptography.XmlDigestAlgorithmType.Sha256;
 
             this.Document = X509XmlSigner.SignXmlDoc(this.Document, cert, this.SignatureAlgorithm.Value, this.DigestAlgorithm.Value);
             this.HasSignature = true;

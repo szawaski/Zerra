@@ -91,8 +91,7 @@ namespace Zerra.Identity.OpenID.Documents
             this.UserID = json[nameof(JwtOpenIDPayload.AAD_ObjectID)]?.ToObject<string>();
 
             this.UserName = json[nameof(JwtOpenIDPayload.UniqueName)]?.ToObject<string>();
-            if (this.UserName == null)
-                this.UserName = json[nameof(JwtOpenIDPayload.AAD_UserPrincipalName)]?.ToObject<string>();
+            this.UserName ??= json[nameof(JwtOpenIDPayload.AAD_UserPrincipalName)]?.ToObject<string>();
 
             this.Name = json[nameof(JwtOpenIDPayload.AAD_Name)]?.ToObject<string>();
             if (json[nameof(JwtOpenIDPayload.Roles)] != null)

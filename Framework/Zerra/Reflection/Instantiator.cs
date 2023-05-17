@@ -15,15 +15,13 @@ namespace Zerra.Reflection
         public static T GetSingleInstance<T>(Func<T> factory = null)
         {
             var type = typeof(T);
-            if (factory == null)
-                factory = CreateInstance<T>;
+            factory ??= CreateInstance<T>;
             var instance = (T)singleInstancesByType.GetOrAdd(type, (key) => { return factory(); });
             return instance;
         }
         public static object GetSingleInstance(Type type, Func<object> factory = null)
         {
-            if (factory == null)
-                factory = () => { return CreateInstance(type); };
+            factory ??= () => { return CreateInstance(type); };
             var instance = singleInstancesByType.GetOrAdd(type, (key) => { return factory(); });
             return instance;
         }

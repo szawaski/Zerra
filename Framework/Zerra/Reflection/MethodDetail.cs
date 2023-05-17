@@ -24,8 +24,7 @@ namespace Zerra.Reflection
                 {
                     lock (this)
                     {
-                        if (this.parameterInfos == null)
-                            this.parameterInfos = MethodInfo.GetParameters();
+                        this.parameterInfos ??= MethodInfo.GetParameters();
                     }
                 }
                 return this.parameterInfos;
@@ -41,8 +40,7 @@ namespace Zerra.Reflection
                 {
                     lock (this)
                     {
-                        if (this.attributes == null)
-                            this.attributes = MethodInfo.GetCustomAttributes().ToArray();
+                        this.attributes ??= MethodInfo.GetCustomAttributes().ToArray();
                     }
                 }
                 return this.attributes;
@@ -98,8 +96,7 @@ namespace Zerra.Reflection
                 {
                     lock (this)
                     {
-                        if (returnType == null)
-                            returnType = TypeAnalyzer.GetTypeDetail(MethodInfo.ReturnType);
+                        returnType ??= TypeAnalyzer.GetTypeDetail(MethodInfo.ReturnType);
                     }
                 }
                 return returnType;
