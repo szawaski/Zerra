@@ -67,7 +67,7 @@ namespace Zerra.Collections
             return new AsyncQueueEnumerator(this, cancellationToken);
         }
 
-        private class AsyncQueueEnumerator : IAsyncEnumerator<T>
+        private sealed class AsyncQueueEnumerator : IAsyncEnumerator<T>
         {
             private readonly AsyncConcurrentQueue<T> queue;
             private readonly CancellationToken cancellationToken;

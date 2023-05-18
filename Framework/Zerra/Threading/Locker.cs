@@ -11,7 +11,7 @@ namespace Zerra.Threading
 {
     public class Locker<T> : IDisposable
     {
-        private class ItemLocker
+        private sealed class ItemLocker
         {
             public readonly SemaphoreSlim Semaphore = new(1, 1);
             public int Checkouts = 0;

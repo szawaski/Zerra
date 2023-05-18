@@ -166,7 +166,7 @@ namespace Zerra.Threading
             }
         }
 
-        private class WorkItem
+        private sealed class WorkItem
         {
             public MulticastDelegate Delegate { get; private set; }
             public ZerraAsyncResult AsyncResult { get; private set; }
@@ -180,7 +180,7 @@ namespace Zerra.Threading
             }
         }
 
-        private class WorkerThread : IDisposable
+        private sealed class WorkerThread : IDisposable
         {
             private readonly Thread thread = null;
             private IPrincipal principal = null;
@@ -275,7 +275,7 @@ namespace Zerra.Threading
             }
         }
 
-        private class ZerraAsyncResult : IAsyncResult
+        private sealed class ZerraAsyncResult : IAsyncResult
         {
             private bool isCompleted = false;
             private readonly ManualResetEvent waitHandle;

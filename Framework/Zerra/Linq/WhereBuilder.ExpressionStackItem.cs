@@ -10,7 +10,7 @@ namespace Zerra.Linq
     public partial class WhereBuilder<TModel>
         where TModel : class, new()
     {
-        private class ExpressionStackItem
+        private sealed class ExpressionStackItem
         {
             public Expression<Func<TModel, bool>> Expression { get; set; }
             public bool And { get; set; }

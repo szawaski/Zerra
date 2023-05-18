@@ -8,7 +8,7 @@ namespace Zerra.Serialization
 {
     public static partial class JsonSerializer
     {
-        private class ReadFrame
+        private sealed class ReadFrame
         {
             public TypeDetail TypeDetail;
             public ReadFrameType FrameType;

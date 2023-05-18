@@ -5,7 +5,7 @@ namespace Zerra.Mathematics
 {
     public partial class MathParser
     {
-        private class BinaryOperator
+        private sealed class BinaryOperator
         {
             public string Token { get; private set; }
             public LambdaExpression Operation { get; private set; }

@@ -10,7 +10,7 @@ namespace Zerra.Serialization
 {
     public static partial class JsonSerializer
     {
-        private class WriteFrame
+        private sealed class WriteFrame
         {
             public TypeDetail TypeDetail;
             public WriteFrameType FrameType;

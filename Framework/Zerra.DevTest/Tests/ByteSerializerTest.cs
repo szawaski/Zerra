@@ -16,14 +16,14 @@ namespace Zerra.DevTest
     public static class ByteSerializerTest
     {
         [Serializable]
-        private class Test
+        private sealed class Test
         {
             public string Name { get; set; }
             public int[] Things { get; set; }
             public Test2[] Test2 { get; set; }
         }
         [Serializable]
-        private class Test2
+        private sealed class Test2
         {
             public int? Thing { get; set; }
         }

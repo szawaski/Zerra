@@ -6,7 +6,7 @@ namespace Zerra.Repository.MsSql
 {
     public sealed partial class MsSqlEngine
     {
-        private class SqlColumnType
+        private sealed class SqlColumnType
         {
             public string Table { get; set; }
             public string Column { get; set; }

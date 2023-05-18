@@ -6,7 +6,7 @@ namespace Zerra.Mathematics
 {
     public partial class MathParser
     {
-        private class StatementPart
+        private sealed class StatementPart
         {
             public int Index { get; private set; }
             public string Token

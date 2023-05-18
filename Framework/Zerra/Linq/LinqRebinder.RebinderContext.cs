@@ -10,7 +10,7 @@ namespace Zerra.Linq
 {
     public partial class LinqRebinder
     {
-        private class RebinderContext
+        private sealed class RebinderContext
         {
             //public IDictionary<Type, Type> TypeReplacements { get; private set; }
             public IDictionary<Expression, Expression> ExpressionReplacements { get; private set; }

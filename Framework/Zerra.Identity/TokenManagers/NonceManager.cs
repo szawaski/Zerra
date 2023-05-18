@@ -74,7 +74,7 @@ namespace Zerra.Identity.TokenManagers
             }
         }
 
-        private class NonceInfo
+        private sealed class NonceInfo
         {
             public string ServiceProvider { get; set; }
             public string Nonce { get; set; }

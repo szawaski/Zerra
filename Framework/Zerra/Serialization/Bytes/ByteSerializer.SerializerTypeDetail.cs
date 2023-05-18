@@ -11,7 +11,7 @@ namespace Zerra.Serialization
 {
     public partial class ByteSerializer
     {
-        private class SerializerTypeDetail
+        private sealed class SerializerTypeDetail
         {
             private readonly ByteSerializerIndexSize indexSize;
             private readonly bool ignoreIndexAttribute;

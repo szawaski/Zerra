@@ -9,7 +9,7 @@ namespace Zerra.Serialization
 {
     public partial class ByteSerializer
     {
-        private class WriteFrame
+        private sealed class WriteFrame
         {
             public SerializerTypeDetail TypeDetail;
             public bool NullFlags;

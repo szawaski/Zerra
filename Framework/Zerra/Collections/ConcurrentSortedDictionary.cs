@@ -407,7 +407,7 @@ namespace Zerra.Collections
             }
         }
 
-        private class ConcurrentSortedDictionaryEnumerator : IDictionaryEnumerator
+        private sealed class ConcurrentSortedDictionaryEnumerator : IDictionaryEnumerator
         {
             private readonly IEnumerator<KeyValuePair<TKey, TValue>> enumerator;
             public ConcurrentSortedDictionaryEnumerator(IEnumerator<KeyValuePair<TKey, TValue>> enumerator)

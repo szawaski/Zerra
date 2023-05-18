@@ -6,7 +6,7 @@ namespace Zerra.Mathematics
 {
     public partial class MathParser
     {
-        private class MethodOperator
+        private sealed class MethodOperator
         {
             public static readonly char ArgumentOpener = '(';
             public static readonly char ArgumentCloser = ')';

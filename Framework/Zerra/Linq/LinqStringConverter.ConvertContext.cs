@@ -10,7 +10,7 @@ namespace Zerra.Linq
 {
     public static partial class LinqStringConverter
     {
-        private class ConvertContext
+        private sealed class ConvertContext
         {
             public StringBuilder Builder { get; private set; }
             public Stack<MemberExpression> MemberAccessStack { get; private set; }

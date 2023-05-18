@@ -16,7 +16,7 @@ namespace Zerra.CQRS.RabbitMQ
 {
     public partial class RabbitMQConsumer
     {
-        private class CommandComsumer : IDisposable
+        private sealed class CommandComsumer : IDisposable
         {
             public Type Type { get; private set; }
             public bool IsOpen { get; private set; }

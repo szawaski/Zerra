@@ -8,7 +8,7 @@ namespace Zerra.Repository
 {
     internal static partial class LinqValueExtractor
     {
-        private class Return
+        private sealed class Return
         {
             public Type PropertyModelType { get; private set; }
             public string PropertyName { get; private set; }

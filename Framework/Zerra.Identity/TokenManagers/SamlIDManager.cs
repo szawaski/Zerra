@@ -74,7 +74,7 @@ namespace Zerra.Identity.TokenManagers
             }
         }
 
-        private class SamlIDInfo
+        private sealed class SamlIDInfo
         {
             public string ServiceProvider { get; set; }
             public string Nonce { get; set; }

@@ -6,7 +6,7 @@ namespace Zerra.Repository.MySql
 {
     public sealed partial class MySqlEngine
     {
-        private class SqlColumnType
+        private sealed class SqlColumnType
         {
             public string Table { get; set; }
             public string Column { get; set; }

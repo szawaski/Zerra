@@ -8,7 +8,7 @@ namespace Zerra.Repository
 {
     public abstract partial class RootTransactStoreProvider<TModel> where TModel : class, new()
     {
-        private class GetWhereExpressionMethodInfo
+        private sealed class GetWhereExpressionMethodInfo
         {
             public Type PropertyType { get; set; }
             public bool Enumerable { get; set; }

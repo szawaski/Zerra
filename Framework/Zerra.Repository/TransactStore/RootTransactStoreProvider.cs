@@ -127,7 +127,7 @@ namespace Zerra.Repository
             return GetWhereExpression(graph);
         }
 
-        private class OnQueryMethodInfo
+        private sealed class OnQueryMethodInfo
         {
             public Type PropertyType { get; set; }
             public Type RelatedProviderType { get; set; }
@@ -200,7 +200,7 @@ namespace Zerra.Repository
             OnQueryWithRelations(graph);
         }
 
-        private class OnGetMethodInfo
+        private sealed class OnGetMethodInfo
         {
             public Type PropertyType { get; set; }
             public bool Enumerable { get; set; }

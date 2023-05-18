@@ -104,7 +104,7 @@ namespace Zerra.Identity.TokenManagers
             }
         }
 
-        private class AccessCodeInfo
+        private sealed class AccessCodeInfo
         {
             public string ServiceProvider { get; set; }
             public string AccessCode { get; set; }
@@ -112,7 +112,7 @@ namespace Zerra.Identity.TokenManagers
             public DateTime Time { get; set; }
         }
 
-        private class AuthInfo
+        private sealed class AuthInfo
         {
             public string ServiceProvider { get; set; }
             public string Token { get; set; }

@@ -9,7 +9,7 @@ namespace Zerra.Serialization
 {
     public partial class ByteSerializer
     {
-        private class SerializerMemberDetail
+        private sealed class SerializerMemberDetail
         {
             private readonly ByteSerializerIndexSize indexSize;
             private readonly bool ignoreBinaryIndexAttribute;
