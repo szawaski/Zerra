@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Resources;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Zerra.IO;
@@ -121,6 +122,11 @@ namespace Zerra.Serialization
                     case WriteFrameType.SpecialType: WriteJsonSpecialType(ref writer, ref state); break;
                     case WriteFrameType.ByteArray: WriteJsonByteArray(ref writer, ref state); break;
                     case WriteFrameType.Object: WriteJsonObject(ref writer, ref state); break;
+
+                    case WriteFrameType.CoreTypeEnumerable: WriteJsonCoreTypeEnumerable(ref writer, ref state); break;
+                    case WriteFrameType.EnumEnumerable: WriteJsonEnumEnumerable(ref writer, ref state); break;
+                    case WriteFrameType.SpecialTypeEnumerable: WriteJsonSpecialTypeEnumerable(ref writer, ref state); break;
+                    case WriteFrameType.GenericEnumerable: WriteJsonGenericEnumerable(ref writer, ref state); break;
                     case WriteFrameType.Enumerable: WriteJsonEnumerable(ref writer, ref state); break;
 
                 }
@@ -250,8 +256,36 @@ namespace Zerra.Serialization
 
             if (typeDetail.IsIEnumerableGeneric)
             {
-                state.CurrentFrame.FrameType = WriteFrameType.ByteArray;
-                return;
+                if (typeDetail.Type.IsArray && typeDetail.IEnumerableGenericInnerTypeDetails.CoreType == CoreType.Byte)
+                {
+                    state.CurrentFrame.FrameType = WriteFrameType.ByteArray;
+                    return;
+                }
+                else
+                {
+                    if (typeDetail.CoreType.HasValue)
+                    {
+                        state.CurrentFrame.FrameType = WriteFrameType.CoreTypeEnumerable;
+                        return;
+                    }
+                    if (typeDetail.Type.IsEnum || typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
+                    {
+                        state.CurrentFrame.FrameType = WriteFrameType.EnumEnumerable;
+                        return;
+                    }
+                    if (typeDetail.SpecialType.HasValue || typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].SpecialType.HasValue)
+                    {
+                        state.CurrentFrame.FrameType = WriteFrameType.SpecialTypeEnumerable;
+                        return;
+                    }
+                    if (typeDetail.IsIEnumerableGeneric)
+                    {
+                        state.CurrentFrame.FrameType = WriteFrameType.GenericEnumerable;
+                        return;
+                    }
+                    state.CurrentFrame.FrameType = WriteFrameType.Enumerable;
+                    return;
+                }
             }
 
             state.CurrentFrame.FrameType = WriteFrameType.Object;
@@ -500,41 +534,49 @@ namespace Zerra.Serialization
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
 
-            if (typeDetail.CoreType.HasValue)
+            string str = null;
+
+            if (state.CurrentFrame.State == 0)
             {
-                state.CurrentFrame.FrameType = WriteFrameType.CoreType;
-                return;
+                if (!writer.TryWrite('\"', out var sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return;
+                }
+               
+                if (typeDetail.IsNullable)
+                {
+                    if (state.CurrentFrame.Object == null)
+                        str = "null";
+                    else
+                        EnumName.GetName(typeDetail.InnerTypes[0], state.CurrentFrame.Object);
+                }
+                else
+                {
+                    str = EnumName.GetName(typeDetail.Type, state.CurrentFrame.Object);
+                }
+                
+                state.CurrentFrame.Object = str;
+                state.CurrentFrame.State = 1;
             }
-
-            if (typeDetail.Type.IsEnum)
+            if (state.CurrentFrame.State == 1)
             {
-                if (state.CurrentFrame.State == 0)
+                str ??= (string)state.CurrentFrame.Object;
+                if (!writer.TryWrite(str, out var sizeNeeded))
                 {
-                    if (!writer.TryWrite('\"', out var sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return;
-                    }
-                    state.CurrentFrame.State = 1;
+                    state.CharsNeeded = sizeNeeded;
+                    return;
                 }
-                if (state.CurrentFrame.State == 1)
+                state.CurrentFrame.State = 2;
+            }
+            if (state.CurrentFrame.State == 2)
+            {
+                if (!writer.TryWrite('\"', out var sizeNeeded))
                 {
-                    if (!writer.TryWrite(EnumName.GetName(typeDetail.Type, state.CurrentFrame.Object), out var sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return;
-                    }
-                    state.CurrentFrame.State = 2;
+                    state.CharsNeeded = sizeNeeded;
+                    return;
                 }
-
-                {
-                    if (!writer.TryWrite('\"', out var sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return;
-                    }
-                    state.EndFrame();
-                }
+                state.EndFrame();
             }
         }
         private static void WriteJsonSpecialType(ref CharWriter writer, ref WriteState state)
@@ -708,56 +750,51 @@ namespace Zerra.Serialization
                                 return;
                         }
                     }
-                    
+
                 default:
                     throw new NotImplementedException();
             }
         }
         private static void WriteJsonByteArray(ref CharWriter writer, ref WriteState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
-
-            var innerTypeDetails = typeDetail.IEnumerableGenericInnerTypeDetails;
-            if (typeDetail.Type.IsArray && innerTypeDetails.CoreType == CoreType.Byte)
+            if (state.CurrentFrame.State == 0)
             {
-                //special case
-                if (state.CurrentFrame.State == 0)
+                if (!writer.TryWrite('\"', out var sizeNeeded))
                 {
-                    if (!writer.TryWrite('\"', out var sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return;
-                    }
-                    state.CurrentFrame.State = 1;
+                    state.CharsNeeded = sizeNeeded;
+                    return;
                 }
-
-                if (state.CurrentFrame.State == 1)
-                {
-                    var str = Convert.ToBase64String((byte[])state.CurrentFrame.Object);
-                    if (!writer.TryWrite(str, out var sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return;
-                    }
-                    state.CurrentFrame.State = 2;
-                }
-
-                if (state.CurrentFrame.State == 2)
-                {
-                    if (state.CurrentFrame.State == 2 && !writer.TryWrite('\"', out var sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return;
-                    }
-                }
-                state.EndFrame();
-                return;
+                state.CurrentFrame.State = 1;
             }
-            else
+
+            string str = null;
+            if (state.CurrentFrame.State == 1)
             {
-                state.CurrentFrame.FrameType = WriteFrameType.Enumerable;
-                return;
+                str = Convert.ToBase64String((byte[])state.CurrentFrame.Object);
+                state.CurrentFrame.Object = str;
+                state.CurrentFrame.State = 2;
             }
+
+            if (state.CurrentFrame.State == 2)
+            {
+                str ??= (string)state.CurrentFrame.Object;
+                if (!writer.TryWrite(str, out var sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return;
+                }
+                state.CurrentFrame.State = 3;
+            }
+
+            if (state.CurrentFrame.State == 3)
+            {
+                if (!writer.TryWrite('\"', out var sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return;
+                }
+            }
+            state.EndFrame();
         }
         private static void WriteJsonObject(ref CharWriter writer, ref WriteState state)
         {
@@ -881,67 +918,212 @@ namespace Zerra.Serialization
                 }
             }
         }
+
+        private static void WriteJsonCoreTypeEnumerable(ref CharWriter writer, ref WriteState state)
+        {
+
+        }
+        private static void WriteJsonEnumEnumerable(ref CharWriter writer, ref WriteState state)
+        {
+            var typeDetail = state.CurrentFrame.TypeDetail;
+
+            if (state.CurrentFrame.State == 0)
+            {
+                state.CurrentFrame.Enumerator = ((IEnumerable)state.CurrentFrame.Object).GetEnumerator();
+                state.CurrentFrame.State = 1;
+            }
+
+            string str = null;
+            for (; ; )
+            {
+                if (state.CurrentFrame.State == 1)
+                {
+                    if (!state.CurrentFrame.Enumerator.MoveNext())
+                    {
+                        state.EndFrame();
+                        return;
+                    }
+                    if (state.CurrentFrame.EnumeratorPassedFirstProperty)
+                        state.CurrentFrame.State = 2;
+                    else
+                        state.CurrentFrame.State = 3;
+                }
+                if (state.CurrentFrame.State == 2)
+                {
+                    if (writer.TryWrite(',', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 3;
+                }
+                if (state.CurrentFrame.State == 3)
+                {
+                    if (writer.TryWrite('\"', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                  
+                    if (typeDetail.IsNullable)
+                    {
+                        if (state.CurrentFrame.Object == null)
+                            str = "null";
+                        else
+                            EnumName.GetName(typeDetail.InnerTypes[0], state.CurrentFrame.Object);
+                    }
+                    else
+                    {
+                        str = EnumName.GetName(typeDetail.Type, state.CurrentFrame.Object);
+                    }
+                    state.CurrentFrame.Object = str;
+                    state.CurrentFrame.State = 4;
+                }
+                if (state.CurrentFrame.State == 4)
+                {
+                    str ??= (string)state.CurrentFrame.Object;
+                    if (writer.TryWrite(str, out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    str = null;
+                    state.CurrentFrame.State = 5;
+                }
+                if (state.CurrentFrame.State == 5)
+                {
+                    if (writer.TryWrite('\"', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 1;
+                }
+            }
+        }
+        private static void WriteJsonSpecialTypeEnumerable(ref CharWriter writer, ref WriteState state)
+        {
+            var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType.Value : typeDetail.SpecialType.Value;
+            switch (specialType)
+            {
+                case SpecialType.Type:
+                    {
+                        var first = true;
+                        foreach (var value in values)
+                        {
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
+                            var valueType = value == null ? null : (Type)value;
+                            if (valueType != null)
+                                ToJsonString(valueType.FullName, ref writer);
+                            else
+                                writer.Write("null");
+                        }
+                    }
+                    return;
+                case SpecialType.Dictionary:
+                    {
+                        var first = true;
+                        foreach (var value in values)
+                        {
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
+                            if (value != null)
+                            {
+                                var innerTypeDetail = typeDetail.InnerTypeDetails[0];
+
+                                var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").Getter;
+                                var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").Getter;
+                                var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.InnerTypes[0]);
+
+                                var innerValue = (ICollection)method.Caller(null, new object[] { value });
+                                if (!nameless)
+                                    writer.Write('{');
+                                else
+                                    writer.Write('[');
+                                var firstkvp = true;
+                                foreach (var kvp in innerValue)
+                                {
+                                    if (firstkvp)
+                                        firstkvp = false;
+                                    else
+                                        writer.Write(',');
+                                    var kvpKey = keyGetter(kvp);
+                                    var kvpValue = valueGetter(kvp);
+                                    if (!nameless)
+                                    {
+                                        ToJsonString(kvpKey.ToString(), ref writer);
+                                        writer.Write(':');
+                                        ToJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, nameless);
+                                    }
+                                    else
+                                    {
+                                        writer.Write('[');
+                                        ToJson(kvpKey, innerTypeDetail.InnerTypeDetails[0], null, ref writer, nameless);
+                                        writer.Write(',');
+                                        ToJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, nameless);
+                                        writer.Write(']');
+                                    }
+                                }
+                                if (!nameless)
+                                    writer.Write('}');
+                                else
+                                    writer.Write(']');
+                            }
+                            else
+                            {
+                                writer.Write("null");
+                            }
+                        }
+                    }
+                    return;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+        private static void WriteJsonGenericEnumerable(ref CharWriter writer, ref WriteState state)
+        {
+            var typeDetail = state.CurrentFrame.TypeDetail;
+
+            if (state.CurrentFrame.State == 0)
+            {
+                state.CurrentFrame.Enumerator = ((IEnumerable)state.CurrentFrame.Object).GetEnumerator();
+                state.CurrentFrame.State = 1;
+            }
+
+            var first = true;
+            foreach (var value in values)
+            {
+                if (first)
+                    first = false;
+                else
+                    writer.Write(',');
+                if (value != null)
+                {
+                    var enumerable = value as IEnumerable;
+                    writer.Write('[');
+                    ToJsonEnumerable(enumerable, typeDetail.IEnumerableGenericInnerTypeDetails, graph, ref writer, nameless);
+                    writer.Write(']');
+                }
+                else
+                {
+                    writer.Write("null");
+                }
+            }
+            return;
+        }
         private static void WriteJsonEnumerable(ref CharWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
 
-            if (typeDetail.CoreType.HasValue)
+            if (state.CurrentFrame.State == 0)
             {
-                ToJsonCoreTypeEnumerabale(values, typeDetail.CoreType.Value, ref writer);
-                return;
-            }
-
-            if (typeDetail.Type.IsEnum)
-            {
-                var first = true;
-                foreach (var value in values)
-                {
-                    if (first)
-                        first = false;
-                    else
-                        writer.Write(',');
-                    if (value != null)
-                    {
-                        writer.Write('\"');
-                        writer.Write(EnumName.GetName(typeDetail.Type, value));
-                        writer.Write('\"');
-                    }
-                    else
-                    {
-                        writer.Write("null");
-                    }
-                }
-                return;
-            }
-            if (typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
-            {
-                var first = true;
-                foreach (var value in values)
-                {
-                    if (first)
-                        first = false;
-                    else
-                        writer.Write(',');
-                    if (value != null)
-                    {
-                        writer.Write('\"');
-                        writer.Write(EnumName.GetName(typeDetail.InnerTypes[0], (Enum)value));
-                        writer.Write('\"');
-                    }
-                    else
-                    {
-                        writer.Write("null");
-                    }
-                }
-                return;
-            }
-
-            if (typeDetail.SpecialType.HasValue || typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].SpecialType.HasValue)
-            {
-                writer.Write('[');
-                ToJsonSpecialTypeEnumerable(values, typeDetail, ref writer, nameless);
-                writer.Write(']');
-                return;
+                state.CurrentFrame.Enumerator = ((IEnumerable)state.CurrentFrame.Object).GetEnumerator();
+                state.CurrentFrame.State = 1;
             }
 
             if (typeDetail.IsIEnumerableGeneric)
@@ -1028,646 +1210,6 @@ namespace Zerra.Serialization
                         writer.Write("null");
                     }
                 }
-            }
-        }
-
-        private static void WriteJsonCoreTypeEnumerabale(IEnumerable values, CoreType coreType, ref CharWriter writer)
-        {
-            switch (coreType)
-            {
-                case CoreType.String:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<string>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-
-                            ToJsonString(value, ref writer);
-                        }
-                    }
-                    return;
-
-                case CoreType.Boolean:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<bool>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            writer.Write(value == false ? "false" : "true");
-                        }
-                    }
-                    return;
-                case CoreType.Byte:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<byte>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            writer.Write(value);
-                        }
-                    }
-                    return;
-                case CoreType.SByte:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<sbyte>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            writer.Write(value);
-                        }
-                    }
-                    return;
-                case CoreType.Int16:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<short>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            writer.Write(value);
-                        }
-                    }
-                    return;
-                case CoreType.UInt16:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<ushort>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            writer.Write(value);
-                        }
-                    }
-                    return;
-                case CoreType.Int32:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<int>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            writer.Write(value);
-                        }
-                    }
-                    return;
-                case CoreType.UInt32:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<uint>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            writer.Write(value);
-                        }
-                    }
-                    return;
-                case CoreType.Int64:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<long>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            writer.Write(value);
-                        }
-                    }
-                    return;
-                case CoreType.UInt64:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<ulong>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            writer.Write(value);
-                        }
-                    }
-                    return;
-                case CoreType.Single:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<float>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            writer.Write(value);
-                        }
-                    }
-                    return;
-                case CoreType.Double:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<double>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            writer.Write(value);
-                        }
-                    }
-                    return;
-                case CoreType.Decimal:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<decimal>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            writer.Write(value);
-                        }
-                    }
-                    return;
-                case CoreType.Char:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<char>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            ToJsonChar(value, ref writer);
-                        }
-                    }
-                    return;
-                case CoreType.DateTime:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<DateTime>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            writer.Write('\"');
-                            writer.Write(value, DateTimeFormat.ISO8601);
-                            writer.Write('\"');
-                        }
-                    }
-                    return;
-                case CoreType.DateTimeOffset:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<DateTimeOffset>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            writer.Write('\"');
-                            writer.Write(value, DateTimeFormat.ISO8601);
-                            writer.Write('\"');
-                        }
-                    }
-                    return;
-                case CoreType.TimeSpan:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<TimeSpan>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            writer.Write('\"');
-                            writer.Write(value, TimeFormat.ISO8601);
-                            writer.Write('\"');
-                        }
-                    }
-                    return;
-                case CoreType.Guid:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<Guid>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            writer.Write('\"');
-                            writer.Write(value);
-                            writer.Write('\"');
-                        }
-                    }
-                    return;
-
-                case CoreType.BooleanNullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<bool?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                                writer.Write(value == false ? "false" : "true");
-                            else
-                                writer.Write("null");
-                        }
-                    }
-                    return;
-                case CoreType.ByteNullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<byte?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                                writer.Write(value.Value);
-                            else
-                                writer.Write("null");
-                        }
-                    }
-                    return;
-                case CoreType.SByteNullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<sbyte?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                                writer.Write(value.Value);
-                            else
-                                writer.Write("null");
-                        }
-                    }
-                    return;
-                case CoreType.Int16Nullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<short?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                                writer.Write(value.Value);
-                            else
-                                writer.Write("null");
-                        }
-                    }
-                    return;
-                case CoreType.UInt16Nullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<ushort?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                                writer.Write(value.Value);
-                            else
-                                writer.Write("null");
-                        }
-                    }
-                    return;
-                case CoreType.Int32Nullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<int?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                                writer.Write(value.Value);
-                            else
-                                writer.Write("null");
-                        }
-                    }
-                    return;
-                case CoreType.UInt32Nullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<uint?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                                writer.Write(value.Value);
-                            else
-                                writer.Write("null");
-                        }
-                    }
-                    return;
-                case CoreType.Int64Nullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<long?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                                writer.Write(value.Value);
-                            else
-                                writer.Write("null");
-                        }
-                    }
-                    return;
-                case CoreType.UInt64Nullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<ulong?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                                writer.Write(value.Value);
-                            else
-                                writer.Write("null");
-                        }
-                    }
-                    return;
-                case CoreType.SingleNullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<float?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                                writer.Write(value.Value);
-                            else
-                                writer.Write("null");
-                        }
-                    }
-                    return;
-                case CoreType.DoubleNullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<double?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                                writer.Write(value.Value);
-                            else
-                                writer.Write("null");
-                        }
-                    }
-                    return;
-                case CoreType.DecimalNullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<decimal?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                                writer.Write(value.Value);
-                            else
-                                writer.Write("null");
-                        }
-                    }
-                    return;
-                case CoreType.CharNullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<char?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                            {
-                                ToJsonChar(value.Value, ref writer);
-                            }
-                            else
-                            {
-                                writer.Write("null");
-                            }
-                        }
-                    }
-                    return;
-                case CoreType.DateTimeNullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<DateTime?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                            {
-                                writer.Write('\"');
-                                writer.Write(value.Value, DateTimeFormat.ISO8601);
-                                writer.Write('\"');
-                            }
-                            else
-                            {
-                                writer.Write("null");
-                            }
-                        }
-                    }
-                    return;
-                case CoreType.DateTimeOffsetNullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<DateTimeOffset?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                            {
-                                writer.Write('\"');
-                                writer.Write(value.Value, DateTimeFormat.ISO8601);
-                                writer.Write('\"');
-                            }
-                            else
-                            {
-                                writer.Write("null");
-                            }
-                        }
-                    }
-                    return;
-                case CoreType.TimeSpanNullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<TimeSpan?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                            {
-                                writer.Write('\"');
-                                writer.Write(value.Value, TimeFormat.ISO8601);
-                                writer.Write('\"');
-                            }
-                            else
-                            {
-                                writer.Write("null");
-                            }
-                        }
-                    }
-                    return;
-                case CoreType.GuidNullable:
-                    {
-                        var first = true;
-                        foreach (var value in (IEnumerable<Guid?>)values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value.HasValue)
-                            {
-                                writer.Write('\"');
-                                writer.Write(value.Value);
-                                writer.Write('\"');
-                            }
-                            else
-                            {
-                                writer.Write("null");
-                            }
-                        }
-                    }
-                    return;
-
-                default:
-                    throw new NotImplementedException();
-            }
-        }
-
-        private static void WriteJsonSpecialTypeEnumerable(IEnumerable values, TypeDetail typeDetail, ref CharWriter writer, bool nameless)
-        {
-            var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType.Value : typeDetail.SpecialType.Value;
-            switch (specialType)
-            {
-                case SpecialType.Type:
-                    {
-                        var first = true;
-                        foreach (var value in values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            var valueType = value == null ? null : (Type)value;
-                            if (valueType != null)
-                                ToJsonString(valueType.FullName, ref writer);
-                            else
-                                writer.Write("null");
-                        }
-                    }
-                    return;
-                case SpecialType.Dictionary:
-                    {
-                        var first = true;
-                        foreach (var value in values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value != null)
-                            {
-                                var innerTypeDetail = typeDetail.InnerTypeDetails[0];
-
-                                var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").Getter;
-                                var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").Getter;
-                                var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.InnerTypes[0]);
-
-                                var innerValue = (ICollection)method.Caller(null, new object[] { value });
-                                if (!nameless)
-                                    writer.Write('{');
-                                else
-                                    writer.Write('[');
-                                var firstkvp = true;
-                                foreach (var kvp in innerValue)
-                                {
-                                    if (firstkvp)
-                                        firstkvp = false;
-                                    else
-                                        writer.Write(',');
-                                    var kvpKey = keyGetter(kvp);
-                                    var kvpValue = valueGetter(kvp);
-                                    if (!nameless)
-                                    {
-                                        ToJsonString(kvpKey.ToString(), ref writer);
-                                        writer.Write(':');
-                                        ToJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, nameless);
-                                    }
-                                    else
-                                    {
-                                        writer.Write('[');
-                                        ToJson(kvpKey, innerTypeDetail.InnerTypeDetails[0], null, ref writer, nameless);
-                                        writer.Write(',');
-                                        ToJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, nameless);
-                                        writer.Write(']');
-                                    }
-                                }
-                                if (!nameless)
-                                    writer.Write('}');
-                                else
-                                    writer.Write(']');
-                            }
-                            else
-                            {
-                                writer.Write("null");
-                            }
-                        }
-                    }
-                    return;
-                default:
-                    throw new NotImplementedException();
             }
         }
 

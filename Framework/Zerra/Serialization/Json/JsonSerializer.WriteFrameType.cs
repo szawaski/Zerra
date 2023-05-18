@@ -16,6 +16,10 @@ namespace Zerra.Serialization
             Object,
             String,
 
+            CoreTypeEnumerable,
+            EnumEnumerable,
+            SpecialTypeEnumerable,
+            GenericEnumerable,
             Enumerable
         }
     }

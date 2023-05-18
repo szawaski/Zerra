@@ -316,7 +316,7 @@ namespace Zerra.Serialization
         {
             if (typeDetail.CoreType.HasValue)
             {
-                ToStringJsonCoreTypeEnumerabale(values, typeDetail.CoreType.Value, ref writer);
+                ToStringJsonCoreTypeEnumerable(values, typeDetail.CoreType.Value, ref writer);
                 return;
             }
 
@@ -548,7 +548,7 @@ namespace Zerra.Serialization
                     throw new NotImplementedException();
             }
         }
-        private static void ToStringJsonCoreTypeEnumerabale(IEnumerable values, CoreType coreType, ref CharWriter writer)
+        private static void ToStringJsonCoreTypeEnumerable(IEnumerable values, CoreType coreType, ref CharWriter writer)
         {
             switch (coreType)
             {
