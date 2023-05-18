@@ -14,6 +14,74 @@ namespace Zerra.Serialization
 {
     public static partial class JsonSerializer
     {
+        public static void Serialize(Stream stream, object obj, Graph graph = null)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (obj == null)
+                return;
+
+            var type = obj.GetType();
+
+            Serialize(stream, obj, type, graph);
+        }
+        public static void Serialize<T>(Stream stream, T obj, Graph graph = null)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (obj == null)
+                return;
+
+            var type = typeof(T);
+
+            Serialize(stream, obj, type, graph);
+        }
+        public static void Serialize(Stream stream, object obj, Type type, Graph graph = null)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+            if (obj == null)
+                return;
+
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+
+            try
+            {
+                var state = new WriteState();
+                state.CurrentFrame = new WriteFrame() { TypeDetail = typeDetail, Object = obj, FrameType = WriteFrameType.Value };
+
+                for (; ; )
+                {
+                    WriteConvertBytes(buffer, ref state);
+
+#if NETSTANDARD2_0
+                    stream.Write(buffer, 0, state.BufferPostion);
+#else
+                    stream.Write(buffer.AsSpan(0, state.BufferPostion));
+#endif
+
+                    if (state.Ended)
+                        break;
+
+                    if (state.CharsNeeded == 0)
+                        throw new EndOfStreamException("Invalid JSON");
+
+                    if (state.CharsNeeded > buffer.Length)
+                        BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
+
+                    state.CharsNeeded = 0;
+                }
+            }
+            finally
+            {
+                Array.Clear(buffer, 0, buffer.Length);
+                BufferArrayPool<byte>.Return(buffer);
+            }
+        }
+
         public static Task SerializeAsync(Stream stream, object obj, Graph graph = null)
         {
             if (stream == null)
@@ -66,13 +134,13 @@ namespace Zerra.Serialization
                     if (state.Ended)
                         break;
 
-                    if (state.CharsNeeded > 0)
-                    {
-                        if (state.CharsNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
+                    if (state.CharsNeeded == 0)
+                        throw new EndOfStreamException("Invalid JSON");
 
-                        state.CharsNeeded = 0;
-                    }
+                    if (state.CharsNeeded > buffer.Length)
+                        BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
+
+                    state.CharsNeeded = 0;
                 }
             }
             finally
@@ -120,6 +188,7 @@ namespace Zerra.Serialization
                     case WriteFrameType.SpecialType: WriteJsonSpecialType(ref writer, ref state); break;
                     case WriteFrameType.ByteArray: WriteJsonByteArray(ref writer, ref state); break;
                     case WriteFrameType.Object: WriteJsonObject(ref writer, ref state); break;
+                    case WriteFrameType.String: WriteJsonString(ref writer, ref state); break;
 
                     case WriteFrameType.CoreTypeEnumerable: WriteJsonCoreTypeEnumerable(ref writer, ref state); break;
                     case WriteFrameType.EnumEnumerable: WriteJsonEnumEnumerable(ref writer, ref state); break;
@@ -137,6 +206,75 @@ namespace Zerra.Serialization
                     state.BufferPostion = writer.Position;
                     return;
                 }
+            }
+        }
+
+        public static void SerializeNameless(Stream stream, object obj, Graph graph = null)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (obj == null)
+                return;
+
+            var type = obj.GetType();
+
+            SerializeNameless(stream, obj, type, graph);
+        }
+        public static void SerializeNameless<T>(Stream stream, T obj, Graph graph = null)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (obj == null)
+                return;
+
+            var type = typeof(T);
+
+            SerializeNameless(stream, obj, type, graph);
+        }
+        public static void SerializeNameless(Stream stream, object obj, Type type, Graph graph = null)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+            if (obj == null)
+                return;
+
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+
+            try
+            {
+                var state = new WriteState();
+                state.Nameless = true;
+                state.CurrentFrame = new WriteFrame() { TypeDetail = typeDetail, Object = obj, FrameType = WriteFrameType.Value };
+
+                for (; ; )
+                {
+                    WriteConvertBytes(buffer, ref state);
+
+#if NETSTANDARD2_0
+                    stream.Write(buffer, 0, state.BufferPostion);
+#else
+                    stream.Write(buffer.AsSpan(0, state.BufferPostion));
+#endif
+
+                    if (state.Ended)
+                        break;
+
+                    if (state.CharsNeeded > 0)
+                    {
+                        if (state.CharsNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
+
+                        state.CharsNeeded = 0;
+                    }
+                }
+            }
+            finally
+            {
+                Array.Clear(buffer, 0, buffer.Length);
+                BufferArrayPool<byte>.Return(buffer);
             }
         }
 
@@ -674,11 +812,12 @@ namespace Zerra.Serialization
                                 break;
 
                             case 4: //Key
-                                state.CurrentFrame.State = 5;
                                 var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").Getter;
                                 var key = keyGetter(state.CurrentFrame.Enumerator.Current);
+                                state.CurrentFrame.State = 5;
                                 state.PushFrame(new WriteFrame() { TypeDetail = innerTypeDetail.InnerTypeDetails[0], Object = key, FrameType = WriteFrameType.Value });
-                                break;
+                                return;
+
                             case 5: //KeyValue Seperator
                                 if (!writer.TryWrite("\":", out sizeNeeded))
                                 {
@@ -688,11 +827,11 @@ namespace Zerra.Serialization
                                 state.CurrentFrame.State = 6;
                                 break;
                             case 6: //Value
-                                state.CurrentFrame.State = 1;
                                 var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").Getter;
                                 var value = valueGetter(state.CurrentFrame.Enumerator.Current);
+                                state.CurrentFrame.State = 1;
                                 state.PushFrame(new WriteFrame() { TypeDetail = innerTypeDetail.InnerTypeDetails[1], Object = value, FrameType = WriteFrameType.Value });
-                                break;
+                                return;
 
                             case 7:  //Begin Nameless
                                 if (!writer.TryWrite('[', out sizeNeeded))
@@ -703,11 +842,11 @@ namespace Zerra.Serialization
                                 state.CurrentFrame.State = 8;
                                 break;
                             case 8: //Nameless Key
-                                state.CurrentFrame.State = 9;
                                 keyGetter = innerTypeDetail.GetMemberFieldBacked("key").Getter;
                                 key = keyGetter(state.CurrentFrame.Enumerator.Current);
+                                state.CurrentFrame.State = 9;
                                 state.PushFrame(new WriteFrame() { TypeDetail = innerTypeDetail.InnerTypeDetails[0], Object = key, FrameType = WriteFrameType.Value });
-                                break;
+                                return;
                             case 9:  //Nameless KeyValue Seperator
                                 if (!writer.TryWrite(',', out sizeNeeded))
                                 {
@@ -857,7 +996,7 @@ namespace Zerra.Serialization
                             state.CurrentFrame.State = 3;
                         break;
 
-                    case 3: //Being Member Name
+                    case 3: //Begin Member Name
                         if (!writer.TryWrite('\"', out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
@@ -888,8 +1027,8 @@ namespace Zerra.Serialization
                         var propertyValue = member.Getter(state.CurrentFrame.Object);
                         var childGraph = graph?.GetChildGraph(member.Name);
 
-                        state.PushFrame(new WriteFrame() { TypeDetail = member.TypeDetail, Object = propertyValue, Graph = childGraph });
                         state.CurrentFrame.State = 1;
+                        state.PushFrame(new WriteFrame() { TypeDetail = member.TypeDetail, Object = propertyValue, Graph = childGraph });
                         return;
 
                     case 7: //End Object
@@ -940,10 +1079,14 @@ namespace Zerra.Serialization
                         return;
                     }
                     if (state.CurrentFrame.EnumeratorPassedFirstProperty)
+                    {
                         state.CurrentFrame.State = 2;
+                    }
                     else
+                    {
                         state.CurrentFrame.State = 3;
-                    state.CurrentFrame.EnumeratorPassedFirstProperty = true;
+                        state.CurrentFrame.EnumeratorPassedFirstProperty = true;
+                    }
                 }
                 if (state.CurrentFrame.State == 2)
                 {
@@ -1020,10 +1163,14 @@ namespace Zerra.Serialization
                     }
                     state.CurrentFrame.State = 2;
                     if (state.CurrentFrame.EnumeratorPassedFirstProperty)
+                    {
                         state.CurrentFrame.State = 2;
+                    }
                     else
+                    {
                         state.CurrentFrame.State = 3;
-                    state.CurrentFrame.EnumeratorPassedFirstProperty = true;
+                        state.CurrentFrame.EnumeratorPassedFirstProperty = true;
+                    }
                 }
                 if (state.CurrentFrame.State == 2)
                 {
@@ -1036,8 +1183,8 @@ namespace Zerra.Serialization
                 }
                 if (state.CurrentFrame.State == 4)
                 {
-                    state.PushFrame(new WriteFrame() { TypeDetail = specialTypeDetail, Object = state.CurrentFrame.Enumerator.Current, FrameType = WriteFrameType.SpecialType });
                     state.CurrentFrame.State = 5;
+                    state.PushFrame(new WriteFrame() { TypeDetail = specialTypeDetail, Object = state.CurrentFrame.Enumerator.Current, FrameType = WriteFrameType.SpecialType });
                     return;
                 }
             }
@@ -1063,10 +1210,14 @@ namespace Zerra.Serialization
                     }
                     state.CurrentFrame.State = 2;
                     if (state.CurrentFrame.EnumeratorPassedFirstProperty)
+                    {
                         state.CurrentFrame.State = 2;
+                    }
                     else
+                    {
                         state.CurrentFrame.State = 3;
-                    state.CurrentFrame.EnumeratorPassedFirstProperty = true;
+                        state.CurrentFrame.EnumeratorPassedFirstProperty = true;
+                    }
                 }
                 if (state.CurrentFrame.State == 2)
                 {
@@ -1088,8 +1239,9 @@ namespace Zerra.Serialization
                 }
                 if (state.CurrentFrame.State == 4)
                 {
-                    state.PushFrame(new WriteFrame() { TypeDetail = typeDetail.InnerTypeDetails[0], Object = state.CurrentFrame.Enumerator.Current, FrameType = WriteFrameType.Value });
                     state.CurrentFrame.State = 5;
+                    state.PushFrame(new WriteFrame() { TypeDetail = typeDetail.InnerTypeDetails[0], Object = state.CurrentFrame.Enumerator.Current, FrameType = WriteFrameType.Value });
+                    return;
                 }
                 if (state.CurrentFrame.State == 5)
                 {
@@ -1125,18 +1277,27 @@ namespace Zerra.Serialization
                     if (state.CurrentFrame.Enumerator.Current == null)
                     {
                         if (state.CurrentFrame.EnumeratorPassedFirstProperty)
+                        {
                             state.CurrentFrame.State = 2;
+                        }
                         else
+                        {
                             state.CurrentFrame.State = 3;
+                            state.CurrentFrame.EnumeratorPassedFirstProperty = true;
+                        }
                     }
                     else
                     {
                         if (state.CurrentFrame.EnumeratorPassedFirstProperty)
+                        {
                             state.CurrentFrame.State = 4;
+                        }
                         else
+                        {
                             state.CurrentFrame.State = 5;
+                            state.CurrentFrame.EnumeratorPassedFirstProperty = true;
+                        }
                     }
-                    state.CurrentFrame.EnumeratorPassedFirstProperty = true;
                 }
 
                 if (state.CurrentFrame.State == 2)
@@ -1261,8 +1422,9 @@ namespace Zerra.Serialization
                     var member = state.CurrentFrame.MemberEnumerator.Current;
                     var propertyValue = member.Getter(state.CurrentFrame.Object);
                     var childGraph = graph?.GetChildGraph(member.Name);
-                    state.PushFrame(new WriteFrame() { TypeDetail = member.TypeDetail, Object = propertyValue, Graph = childGraph, FrameType = WriteFrameType.Value });
                     state.CurrentFrame.State = 1;
+                    state.PushFrame(new WriteFrame() { TypeDetail = member.TypeDetail, Object = propertyValue, Graph = childGraph, FrameType = WriteFrameType.Value });
+                    return;
                 }
 
                 if (state.CurrentFrame.State == 100)

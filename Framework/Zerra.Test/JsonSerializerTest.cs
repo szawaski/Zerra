@@ -567,9 +567,15 @@ namespace Zerra.Test
         public async Task StreamTypes()
         {
             var baseModel = Factory.GetAllTypesModel();
-            var json = JsonSerializer.Serialize(baseModel);
-            var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
 
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, baseModel);
+
+            stream.Position = 0;
+            using var sr = new StreamReader(stream, Encoding.UTF8);
+            var json = await sr.ReadToEndAsync();
+
+            stream.Position = 0;
             var model = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream);
             Factory.AssertAreEqual(baseModel, model);
         }

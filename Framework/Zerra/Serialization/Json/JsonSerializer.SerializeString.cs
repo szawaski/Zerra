@@ -62,28 +62,6 @@ namespace Zerra.Serialization
             return Encoding.UTF8.GetBytes(json);
         }
 
-        public static void Serialize<T>(Stream stream, T obj, Graph graph = null)
-        {
-            if (obj == null)
-                return;
-
-            ToStringJson(stream, typeof(T), obj, graph);
-        }
-        public static void Serialize(Stream stream, object obj, Graph graph = null)
-        {
-            if (obj == null)
-                return;
-
-            ToStringJson(stream, obj.GetType(), obj, graph);
-        }
-        public static void Serialize(Stream stream, object obj, Type type, Graph graph = null)
-        {
-            if (obj == null)
-                return;
-
-            ToStringJson(stream, type, obj, graph);
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static string ToStringJson(Type type, object obj, Graph graph = null)
         {
@@ -155,28 +133,6 @@ namespace Zerra.Serialization
 
             var json = ToStringJsonNameless(type, obj, graph);
             return Encoding.UTF8.GetBytes(json);
-        }
-
-        public static void SerializeNameless<T>(Stream stream, T obj, Graph graph = null)
-        {
-            if (obj == null)
-                return;
-
-            ToStringJsonNameless(stream, typeof(T), obj, graph);
-        }
-        public static void SerializeNameless(Stream stream, object obj, Graph graph = null)
-        {
-            if (obj == null)
-                return;
-
-            ToStringJsonNameless(stream, obj.GetType(), obj, graph);
-        }
-        public static void SerializeNameless(Stream stream, object obj, Type type, Graph graph = null)
-        {
-            if (obj == null)
-                return;
-
-            ToStringJsonNameless(stream, type, obj, graph);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

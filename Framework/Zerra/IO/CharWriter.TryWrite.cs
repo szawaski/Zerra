@@ -137,16 +137,17 @@ namespace Zerra.IO
                 sizeNeeded = 0;
                 return true;
             }
-            var length = value.Length;
-            if (length == 0)
+            if (value.Length == 0)
             {
                 sizeNeeded = 0;
                 return true;
             }
 
-            sizeNeeded = length;
+            sizeNeeded = value.Length;
             if (length - position < sizeNeeded)
+            {
                 return false;
+            }
 
             var valueSpan = value.AsSpan();
             var pCount = value.Length;

@@ -26,7 +26,7 @@ namespace Zerra.Test
     public class ByteSerializerTest
     {
         [TestMethod]
-        public void Types()
+        public void ByteArrayTypes()
         {
             var serializer = new ByteSerializer();
             var model1 = Factory.GetAllTypesModel();
@@ -36,7 +36,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void EmptyObjectsAndNulls()
+        public void ByteArrayEmptyObjectsAndNulls()
         {
             var serializer = new ByteSerializer();
 
@@ -91,7 +91,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void Arrays()
+        public void ByteArrayArrays()
         {
             var serializer = new ByteSerializer();
             var model1 = Factory.GetArrayModel();
@@ -101,7 +101,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void Boxing()
+        public void ByteArrayBoxing()
         {
             var serializer = new ByteSerializer(false, true);
             var model1 = Factory.GetBoxingModel();
@@ -111,7 +111,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void ByPropertyName()
+        public void ByteArrayByPropertyName()
         {
             var serializer = new ByteSerializer(true);
             var model1 = Factory.GetAllTypesModel();
@@ -121,7 +121,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void BySerializerIndex()
+        public void ByteArrayBySerializerIndex()
         {
             var serializer = new ByteSerializer();
             var model1 = Factory.GetSerializerIndexModel();
@@ -131,7 +131,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void ByIgnoreSerailizerIndex()
+        public void ByteArrayByIgnoreSerailizerIndex()
         {
             var serializer = new ByteSerializer(false, false, true);
             var model1 = Factory.GetSerializerIndexModel();
@@ -141,7 +141,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void ByLargeSerializerIndex()
+        public void ByteArrayByLargeSerializerIndex()
         {
             var serializer = new ByteSerializer(false, false, false, ByteSerializerIndexSize.UInt16);
             var model1 = Factory.GetSerializerLongIndexModel();
@@ -151,7 +151,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void CookieObject()
+        public void ByteArrayCookieObject()
         {
             var serializer = new ByteSerializer();
             var model1 = new Cookie("tester", "stuff", null, null);
@@ -164,7 +164,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void ExceptionObject()
+        public void ByteArrayExceptionObject()
         {
             var serializer = new ByteSerializer();
             var model1 = new Exception("bad things happened");
@@ -174,7 +174,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void Interface()
+        public void ByteArrayInterface()
         {
             var serializer = new ByteSerializer();
             ITestInterface model1 = new TestInterfaceImplemented()
@@ -191,7 +191,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void StringArrayOfArrayThing()
+        public void ByteArrayStringArrayOfArrayThing()
         {
             var serializer = new ByteSerializer();
             var model1 = new string[][] { new string[] { "a", "b", "c" }, new string[] { "d", "e", "f" } };
