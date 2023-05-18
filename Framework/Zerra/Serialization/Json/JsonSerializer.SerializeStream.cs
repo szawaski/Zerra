@@ -4,9 +4,7 @@
 
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.IO;
-using System.Resources;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Zerra.IO;
@@ -128,7 +126,6 @@ namespace Zerra.Serialization
                     case WriteFrameType.SpecialTypeEnumerable: WriteJsonSpecialTypeEnumerable(ref writer, ref state); break;
                     case WriteFrameType.GenericEnumerable: WriteJsonGenericEnumerable(ref writer, ref state); break;
                     case WriteFrameType.Enumerable: WriteJsonEnumerable(ref writer, ref state); break;
-
                 }
                 if (state.Ended)
                 {
@@ -143,74 +140,74 @@ namespace Zerra.Serialization
             }
         }
 
-        //public static string SerializeNameless<T>(T obj, Graph graph = null)
-        //{
-        //    if (obj == null)
-        //        return "null";
+        public static Task SerializeNamelessAsync(Stream stream, object obj, Graph graph = null)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (obj == null)
+                return Task.CompletedTask;
 
-        //    return ToJsonNameless(typeof(T), obj, graph);
-        //}
-        //public static string SerializeNameless(object obj, Graph graph = null)
-        //{
-        //    if (obj == null)
-        //        return "null";
+            var type = obj.GetType();
 
-        //    return ToJsonNameless(obj.GetType(), obj, graph);
-        //}
-        //public static string SerializeNameless(object obj, Type type, Graph graph = null)
-        //{
-        //    if (obj == null)
-        //        return "null";
+            return SerializeNamelessAsync(stream, obj, type, graph);
+        }
+        public static Task SerializeNamelessAsync<T>(Stream stream, T obj, Graph graph = null)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (obj == null)
+                return Task.CompletedTask;
 
-        //    return ToJsonNameless(type, obj, graph);
-        //}
+            var type = typeof(T);
 
-        //public static byte[] SerializeNamelessBytes<T>(T obj, Graph graph = null)
-        //{
-        //    if (obj == null)
-        //        return Encoding.UTF8.GetBytes("null");
+            return SerializeNamelessAsync(stream, obj, type, graph);
+        }
+        public static async Task SerializeNamelessAsync(Stream stream, object obj, Type type, Graph graph = null)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+            if (obj == null)
+                return;
 
-        //    var json = ToJsonNameless(typeof(T), obj, graph);
-        //    return Encoding.UTF8.GetBytes(json);
-        //}
-        //public static byte[] SerializeNamelessBytes(object obj, Graph graph = null)
-        //{
-        //    if (obj == null)
-        //        return Encoding.UTF8.GetBytes("null");
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
 
-        //    var json = ToJsonNameless(obj.GetType(), obj, graph);
-        //    return Encoding.UTF8.GetBytes(json);
-        //}
-        //public static byte[] SerializeNamelessBytes(object obj, Type type, Graph graph = null)
-        //{
-        //    if (obj == null)
-        //        return Encoding.UTF8.GetBytes("null");
+            try
+            {
+                var state = new WriteState();
+                state.Nameless = true;
+                state.CurrentFrame = new WriteFrame() { TypeDetail = typeDetail, Object = obj, FrameType = WriteFrameType.Value };
 
-        //    var json = ToJsonNameless(type, obj, graph);
-        //    return Encoding.UTF8.GetBytes(json);
-        //}
+                for (; ; )
+                {
+                    WriteConvertBytes(buffer, ref state);
 
-        //public static void SerializeNameless<T>(Stream stream, T obj, Graph graph = null)
-        //{
-        //    if (obj == null)
-        //        return;
+#if NETSTANDARD2_0
+                    await stream.WriteAsync(buffer, 0, state.BufferPostion);
+#else
+                    await stream.WriteAsync(buffer.AsMemory(0, state.BufferPostion));
+#endif
 
-        //    ToJsonNameless(stream, typeof(T), obj, graph);
-        //}
-        //public static void SerializeNameless(Stream stream, object obj, Graph graph = null)
-        //{
-        //    if (obj == null)
-        //        return;
+                    if (state.Ended)
+                        break;
 
-        //    ToJsonNameless(stream, obj.GetType(), obj, graph);
-        //}
-        //public static void SerializeNameless(Stream stream, object obj, Type type, Graph graph = null)
-        //{
-        //    if (obj == null)
-        //        return;
+                    if (state.CharsNeeded > 0)
+                    {
+                        if (state.CharsNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
 
-        //    ToJsonNameless(stream, type, obj, graph);
-        //}
+                        state.CharsNeeded = 0;
+                    }
+                }
+            }
+            finally
+            {
+                Array.Clear(buffer, 0, buffer.Length);
+                BufferArrayPool<byte>.Return(buffer);
+            }
+        }
 
         private static void WriteJson(ref CharWriter writer, ref WriteState state)
         {
@@ -543,7 +540,7 @@ namespace Zerra.Serialization
                     state.CharsNeeded = sizeNeeded;
                     return;
                 }
-               
+
                 if (typeDetail.IsNullable)
                 {
                     if (state.CurrentFrame.Object == null)
@@ -555,7 +552,7 @@ namespace Zerra.Serialization
                 {
                     str = EnumName.GetName(typeDetail.Type, state.CurrentFrame.Object);
                 }
-                
+
                 state.CurrentFrame.Object = str;
                 state.CurrentFrame.State = 1;
             }
@@ -696,7 +693,6 @@ namespace Zerra.Serialization
                                 var value = valueGetter(state.CurrentFrame.Enumerator.Current);
                                 state.PushFrame(new WriteFrame() { TypeDetail = innerTypeDetail.InnerTypeDetails[1], Object = value, FrameType = WriteFrameType.Value });
                                 break;
-
 
                             case 7:  //Begin Nameless
                                 if (!writer.TryWrite('[', out sizeNeeded))
@@ -947,6 +943,7 @@ namespace Zerra.Serialization
                         state.CurrentFrame.State = 2;
                     else
                         state.CurrentFrame.State = 3;
+                    state.CurrentFrame.EnumeratorPassedFirstProperty = true;
                 }
                 if (state.CurrentFrame.State == 2)
                 {
@@ -964,7 +961,7 @@ namespace Zerra.Serialization
                         state.CharsNeeded = sizeNeeded;
                         return;
                     }
-                  
+
                     if (typeDetail.IsNullable)
                     {
                         if (state.CurrentFrame.Object == null)
@@ -1003,86 +1000,46 @@ namespace Zerra.Serialization
         }
         private static void WriteJsonSpecialTypeEnumerable(ref CharWriter writer, ref WriteState state)
         {
-            var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType.Value : typeDetail.SpecialType.Value;
-            switch (specialType)
+            var typeDetail = state.CurrentFrame.TypeDetail;
+            var specialTypeDetail = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0] : typeDetail;
+
+            if (state.CurrentFrame.State == 0)
             {
-                case SpecialType.Type:
-                    {
-                        var first = true;
-                        foreach (var value in values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            var valueType = value == null ? null : (Type)value;
-                            if (valueType != null)
-                                ToJsonString(valueType.FullName, ref writer);
-                            else
-                                writer.Write("null");
-                        }
-                    }
-                    return;
-                case SpecialType.Dictionary:
-                    {
-                        var first = true;
-                        foreach (var value in values)
-                        {
-                            if (first)
-                                first = false;
-                            else
-                                writer.Write(',');
-                            if (value != null)
-                            {
-                                var innerTypeDetail = typeDetail.InnerTypeDetails[0];
+                state.CurrentFrame.Enumerator = ((IEnumerable)state.CurrentFrame.Object).GetEnumerator();
+                state.CurrentFrame.State = 1;
+            }
 
-                                var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").Getter;
-                                var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").Getter;
-                                var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.InnerTypes[0]);
-
-                                var innerValue = (ICollection)method.Caller(null, new object[] { value });
-                                if (!nameless)
-                                    writer.Write('{');
-                                else
-                                    writer.Write('[');
-                                var firstkvp = true;
-                                foreach (var kvp in innerValue)
-                                {
-                                    if (firstkvp)
-                                        firstkvp = false;
-                                    else
-                                        writer.Write(',');
-                                    var kvpKey = keyGetter(kvp);
-                                    var kvpValue = valueGetter(kvp);
-                                    if (!nameless)
-                                    {
-                                        ToJsonString(kvpKey.ToString(), ref writer);
-                                        writer.Write(':');
-                                        ToJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, nameless);
-                                    }
-                                    else
-                                    {
-                                        writer.Write('[');
-                                        ToJson(kvpKey, innerTypeDetail.InnerTypeDetails[0], null, ref writer, nameless);
-                                        writer.Write(',');
-                                        ToJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, nameless);
-                                        writer.Write(']');
-                                    }
-                                }
-                                if (!nameless)
-                                    writer.Write('}');
-                                else
-                                    writer.Write(']');
-                            }
-                            else
-                            {
-                                writer.Write("null");
-                            }
-                        }
+            for (; ; )
+            {
+                if (state.CurrentFrame.State == 1)
+                {
+                    if (!state.CurrentFrame.Enumerator.MoveNext())
+                    {
+                        state.EndFrame();
+                        return;
                     }
+                    state.CurrentFrame.State = 2;
+                    if (state.CurrentFrame.EnumeratorPassedFirstProperty)
+                        state.CurrentFrame.State = 2;
+                    else
+                        state.CurrentFrame.State = 3;
+                    state.CurrentFrame.EnumeratorPassedFirstProperty = true;
+                }
+                if (state.CurrentFrame.State == 2)
+                {
+                    if (!writer.TryWrite(',', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 3;
+                }
+                if (state.CurrentFrame.State == 4)
+                {
+                    state.PushFrame(new WriteFrame() { TypeDetail = specialTypeDetail, Object = state.CurrentFrame.Enumerator.Current, FrameType = WriteFrameType.SpecialType });
+                    state.CurrentFrame.State = 5;
                     return;
-                default:
-                    throw new NotImplementedException();
+                }
             }
         }
         private static void WriteJsonGenericEnumerable(ref CharWriter writer, ref WriteState state)
@@ -1095,26 +1052,55 @@ namespace Zerra.Serialization
                 state.CurrentFrame.State = 1;
             }
 
-            var first = true;
-            foreach (var value in values)
+            for (; ; )
             {
-                if (first)
-                    first = false;
-                else
-                    writer.Write(',');
-                if (value != null)
+                if (state.CurrentFrame.State == 1)
                 {
-                    var enumerable = value as IEnumerable;
-                    writer.Write('[');
-                    ToJsonEnumerable(enumerable, typeDetail.IEnumerableGenericInnerTypeDetails, graph, ref writer, nameless);
-                    writer.Write(']');
+                    if (!state.CurrentFrame.Enumerator.MoveNext())
+                    {
+                        state.EndFrame();
+                        return;
+                    }
+                    state.CurrentFrame.State = 2;
+                    if (state.CurrentFrame.EnumeratorPassedFirstProperty)
+                        state.CurrentFrame.State = 2;
+                    else
+                        state.CurrentFrame.State = 3;
+                    state.CurrentFrame.EnumeratorPassedFirstProperty = true;
                 }
-                else
+                if (state.CurrentFrame.State == 2)
                 {
-                    writer.Write("null");
+                    if (!writer.TryWrite(',', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 3;
+                }
+                if (state.CurrentFrame.State == 3)
+                {
+                    if (!writer.TryWrite('[', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 4;
+                }
+                if (state.CurrentFrame.State == 4)
+                {
+                    state.PushFrame(new WriteFrame() { TypeDetail = typeDetail.InnerTypeDetails[0], Object = state.CurrentFrame.Enumerator.Current, FrameType = WriteFrameType.Value });
+                    state.CurrentFrame.State = 5;
+                }
+                if (state.CurrentFrame.State == 5)
+                {
+                    if (!writer.TryWrite(']', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 1;
                 }
             }
-            return;
         }
         private static void WriteJsonEnumerable(ref CharWriter writer, ref WriteState state)
         {
@@ -1126,88 +1112,178 @@ namespace Zerra.Serialization
                 state.CurrentFrame.State = 1;
             }
 
-            if (typeDetail.IsIEnumerableGeneric)
+            for (; ; )
             {
-                var first = true;
-                foreach (var value in values)
+                if (state.CurrentFrame.State == 1)
                 {
-                    if (first)
-                        first = false;
-                    else
-                        writer.Write(',');
-                    if (value != null)
+                    if (!state.CurrentFrame.Enumerator.MoveNext())
                     {
-                        var enumerable = value as IEnumerable;
-                        writer.Write('[');
-                        ToJsonEnumerable(enumerable, typeDetail.IEnumerableGenericInnerTypeDetails, graph, ref writer, nameless);
-                        writer.Write(']');
+                        state.EndFrame();
+                        return;
+                    }
+                    state.CurrentFrame.MemberEnumerator = typeDetail.SerializableMemberDetails.GetEnumerator();
+                    if (state.CurrentFrame.Enumerator.Current == null)
+                    {
+                        if (state.CurrentFrame.EnumeratorPassedFirstProperty)
+                            state.CurrentFrame.State = 2;
+                        else
+                            state.CurrentFrame.State = 3;
                     }
                     else
                     {
-                        writer.Write("null");
+                        if (state.CurrentFrame.EnumeratorPassedFirstProperty)
+                            state.CurrentFrame.State = 4;
+                        else
+                            state.CurrentFrame.State = 5;
+                    }
+                    state.CurrentFrame.EnumeratorPassedFirstProperty = true;
+                }
+
+                if (state.CurrentFrame.State == 2)
+                {
+                    if (!writer.TryWrite(",null", out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 1;
+                }
+                if (state.CurrentFrame.State == 3)
+                {
+                    if (!writer.TryWrite("null", out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 1;
+                }
+
+                if (state.CurrentFrame.State == 4)
+                {
+                    if (!writer.TryWrite(",", out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 5;
+                }
+
+                if (state.CurrentFrame.State == 5)
+                {
+                    if (!state.Nameless)
+                    {
+                        if (!writer.TryWrite('{', out var sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 6;
+                    }
+                    else
+                    {
+                        if (!writer.TryWrite('[', out var sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 6;
                     }
                 }
-                return;
-            }
-
-            {
-                var first = true;
-                foreach (var value in values)
+                if (state.CurrentFrame.State == 6)
                 {
-                    if (first)
-                        first = false;
-                    else
-                        writer.Write(',');
-                    if (value != null)
+                nextprop:
+                    if (!state.CurrentFrame.MemberEnumerator.MoveNext())
                     {
-                        if (!nameless)
-                            writer.Write('{');
-                        else
-                            writer.Write('[');
+                        state.CurrentFrame.State = 100;
+                    }
 
-                        var firstProperty = true;
-                        foreach (var member in typeDetail.SerializableMemberDetails)
+                    var graph = state.CurrentFrame.Graph;
+                    var member = state.CurrentFrame.MemberEnumerator.Current;
+                    if (graph != null)
+                    {
+                        if (member.TypeDetail.IsGraphLocalProperty)
                         {
-                            if (graph != null)
-                            {
-                                if (member.TypeDetail.IsGraphLocalProperty)
-                                {
-                                    if (!graph.HasLocalProperty(member.Name))
-                                        continue;
-                                }
-                                else
-                                {
-                                    if (!graph.HasChildGraph(member.Name))
-                                        continue;
-                                }
-                            }
-
-                            if (firstProperty)
-                                firstProperty = false;
-                            else
-                                writer.Write(',');
-
-                            if (!nameless)
-                            {
-                                writer.Write('\"');
-                                writer.Write(member.Name);
-                                writer.Write('\"');
-                                writer.Write(':');
-                            }
-
-                            var propertyValue = member.Getter(value);
-                            var childGraph = graph?.GetChildGraph(member.Name);
-                            ToJson(propertyValue, member.TypeDetail, childGraph, ref writer, nameless);
+                            if (!graph.HasLocalProperty(member.Name))
+                                goto nextprop;
                         }
-
-                        if (!nameless)
-                            writer.Write('}');
                         else
-                            writer.Write(']');
+                        {
+                            if (!graph.HasChildGraph(member.Name))
+                                goto nextprop;
+                        }
+                    }
+
+                    state.CurrentFrame.State = 7;
+                }
+                if (state.CurrentFrame.State == 7)
+                {
+                    if (!state.CurrentFrame.MemberEnumerator.MoveNext())
+                    {
+                        state.CurrentFrame.State = 100;
+                    }
+                    if (state.Nameless)
+                        state.CurrentFrame.State = 20;
+                    else
+                        state.CurrentFrame.State = 8;
+                }
+
+                if (state.CurrentFrame.State == 8)
+                {
+                    if (!writer.TryWrite('\"', out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 9;
+                }
+                if (state.CurrentFrame.State == 9)
+                {
+                    if (!writer.TryWrite(state.CurrentFrame.MemberEnumerator.Current.Name, out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 10;
+                }
+                if (state.CurrentFrame.State == 10)
+                {
+                    if (!writer.TryWrite("\":", out var sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 20;
+                }
+
+                if (state.CurrentFrame.State == 20)
+                {
+                    var graph = state.CurrentFrame.Graph;
+                    var member = state.CurrentFrame.MemberEnumerator.Current;
+                    var propertyValue = member.Getter(state.CurrentFrame.Object);
+                    var childGraph = graph?.GetChildGraph(member.Name);
+                    state.PushFrame(new WriteFrame() { TypeDetail = member.TypeDetail, Object = propertyValue, Graph = childGraph, FrameType = WriteFrameType.Value });
+                    state.CurrentFrame.State = 1;
+                }
+
+                if (state.CurrentFrame.State == 100)
+                {
+                    if (!state.Nameless)
+                    {
+                        if (!writer.TryWrite('}', out var sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 1;
                     }
                     else
                     {
-                        writer.Write("null");
+                        if (!writer.TryWrite(']', out var sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 1;
                     }
                 }
             }
