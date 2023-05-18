@@ -398,6 +398,7 @@ namespace Zerra.Serialization
                 }
                 else
                 {
+                    typeDetail = typeDetail.InnerTypeDetails[0];
                     if (typeDetail.CoreType.HasValue)
                     {
                         state.CurrentFrame.FrameType = WriteFrameType.CoreTypeEnumerable;
@@ -1056,7 +1057,15 @@ namespace Zerra.Serialization
 
         private static void WriteJsonCoreTypeEnumerable(ref CharWriter writer, ref WriteState state)
         {
+            var typeDetail = state.CurrentFrame.TypeDetail;
 
+            if (state.CurrentFrame.State == 0)
+            {
+                state.CurrentFrame.Enumerator = ((IEnumerable)state.CurrentFrame.Object).GetEnumerator();
+                state.CurrentFrame.State = 1;
+            }
+
+            throw new NotImplementedException();
         }
         private static void WriteJsonEnumEnumerable(ref CharWriter writer, ref WriteState state)
         {
@@ -1454,9 +1463,11 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteJsonString(ref CharWriter writer, ref WriteState state)
         {
+            int sizeNeeded;
+
             if (state.CurrentFrame.State == 0)
             {
-                if (!writer.TryWrite('\"', out var sizeNeeded))
+                if (!writer.TryWrite('\"', out sizeNeeded))
                 {
                     state.CharsNeeded = sizeNeeded;
                     return;
@@ -1466,33 +1477,22 @@ namespace Zerra.Serialization
 
             if (state.CurrentFrame.State == 1)
             {
-                if (state.CurrentFrame.Object == null)
-                {
-                    if (!writer.TryWrite('\"', out var sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return;
-                    }
-                    state.EndFrame();
-                }
-
                 var value = (string)state.CurrentFrame.Object;
                 if (value.Length == 0)
                 {
-                    if (!writer.TryWrite('\"', out var sizeNeeded))
+                    if (!writer.TryWrite('\"', out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
                     }
                     state.EndFrame();
+                    return;
                 }
-
-                state.CurrentFrame.State = 2;
                 state.WorkingString = value.AsMemory();
+                state.CurrentFrame.State = 2;
             }
 
             var chars = state.WorkingString.Span;
-
             for (; state.WorkingStringIndex < chars.Length; state.WorkingStringIndex++)
             {
                 var c = chars[state.WorkingStringIndex];
@@ -1524,24 +1524,80 @@ namespace Zerra.Serialization
                         if (c >= ' ')
                             continue;
 
-                        writer.Write(chars.Slice(state.WorkingStringMark, state.WorkingStringIndex - state.WorkingStringMark));
-                        state.WorkingStringMark = state.WorkingStringIndex + 1;
+                        if (state.CurrentFrame.State == 2)
+                        {
+                            var slice = chars.Slice(state.WorkingStringStart, state.WorkingStringIndex - state.WorkingStringStart);
+                            if (!writer.TryWrite(slice, out sizeNeeded))
+                            {
+                                state.CharsNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.State = 3;
+                        }
+           
                         var code = lowUnicodeIntToEncodedHex[c];
-                        writer.Write(code);
+                        if (!writer.TryWrite(code, out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 2;
+                        state.WorkingStringStart = state.WorkingStringIndex + 1;
                         continue;
                 }
 
-                writer.Write('\\');
-                writer.Write(escapedChar);
+                if (state.CurrentFrame.State == 2)
+                {
+                    var slice = chars.Slice(state.WorkingStringStart, state.WorkingStringIndex - state.WorkingStringStart);
+                    if (!writer.TryWrite(slice, out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 3;
+                }
+                if (state.CurrentFrame.State == 3)
+                {
+                    if (!writer.TryWrite('\\', out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.CurrentFrame.State = 4;
+                }
+                if (!writer.TryWrite(escapedChar, out sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return;
+                }
+                state.CurrentFrame.State = 2;
+                state.WorkingStringStart = state.WorkingStringIndex + 1;
             }
 
-            if (state.WorkingStringMark != chars.Length)
-                writer.Write(chars.Slice(state.WorkingStringMark, chars.Length - state.WorkingStringMark));
-            writer.Write('\"');
+            if (state.CurrentFrame.State == 2)
+            {
+                if (state.WorkingStringStart != chars.Length)
+                {
+                    var slice = chars.Slice(state.WorkingStringStart, chars.Length - state.WorkingStringStart);
+                    if (!writer.TryWrite(slice, out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                }
+                state.CurrentFrame.State = 3;
+            }
 
-            state.WorkingString = null;
+            if (!writer.TryWrite('\"', out sizeNeeded))
+            {
+                state.CharsNeeded = sizeNeeded;
+                return;
+            }
+
             state.WorkingStringIndex = 0;
-            state.WorkingStringMark = 0;
+            state.WorkingStringStart = 0;
+            state.WorkingString = null;
+            state.EndFrame();
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool WriteJsonChar(ref CharWriter writer, ref WriteState state)

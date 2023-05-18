@@ -38,7 +38,7 @@ namespace Zerra.Serialization
 
             public ReadOnlyMemory<char> WorkingString;
             public int WorkingStringIndex;
-            public int WorkingStringMark;
+            public int WorkingStringStart;
         }
     }
 }
