@@ -121,7 +121,7 @@ namespace Zerra.Serialization
                     if (value == null)
                         continue;
 
-                    if (writer.Length > 0)
+                    if (writer.Position > 0)
                         writer.Write('&');
                     writer.Write(WebUtility.UrlEncode(member.Name));
                     writer.Write('=');

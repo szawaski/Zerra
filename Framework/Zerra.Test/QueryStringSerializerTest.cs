@@ -14,8 +14,8 @@ namespace Zerra.Test
         public void Types()
         {
             var model1 = Factory.GetCoreTypesModel();
-            var bytes = QueryStringSerializer.Serialize(model1);
-            var model2 = QueryStringSerializer.Deserialize<CoreTypesModel>(bytes);
+            var str = QueryStringSerializer.Serialize(model1);
+            var model2 = QueryStringSerializer.Deserialize<CoreTypesModel>(str);
             Factory.AssertAreEqual(model1, model2);
         }
     }
