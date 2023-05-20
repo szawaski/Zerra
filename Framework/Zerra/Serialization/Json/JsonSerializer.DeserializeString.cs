@@ -975,6 +975,8 @@ namespace Zerra.Serialization
                         break;
                     case '.':
                         {
+                            decodeBuffer.Write('.');
+
                             while (reader.TryRead(out c))
                             {
                                 switch (c)
@@ -994,6 +996,8 @@ namespace Zerra.Serialization
                                     case 'e':
                                     case 'E':
                                         {
+                                            decodeBuffer.Write('E');
+
                                             if (!reader.TryRead(out c))
                                                 throw reader.CreateException("Json ended prematurely");
 
@@ -1087,6 +1091,8 @@ namespace Zerra.Serialization
                     case 'e':
                     case 'E':
                         {
+                            decodeBuffer.Write('E');
+
                             if (!reader.TryRead(out c))
                                 throw reader.CreateException("Json ended prematurely");
 
