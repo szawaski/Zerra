@@ -665,7 +665,7 @@ namespace Zerra.Test
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, value);
             stream.Position = 0;
-            var result = JsonSerializer.DeserializeAsync<byte>(stream);
+            var result = await JsonSerializer.DeserializeAsync<byte>(stream);
             Assert.AreEqual(value, result);
         }
         private static async Task StreamTestNumber(sbyte value)
@@ -673,7 +673,7 @@ namespace Zerra.Test
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, value);
             stream.Position = 0;
-            var result = JsonSerializer.DeserializeAsync<sbyte>(stream);
+            var result = await JsonSerializer.DeserializeAsync<sbyte>(stream);
             Assert.AreEqual(value, result);
         }
         private static async Task StreamTestNumber(short value)
@@ -681,7 +681,7 @@ namespace Zerra.Test
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, value);
             stream.Position = 0;
-            var result = JsonSerializer.DeserializeAsync<short>(stream);
+            var result = await JsonSerializer.DeserializeAsync<short>(stream);
             Assert.AreEqual(value, result);
         }
         private static async Task StreamTestNumber(ushort value)
@@ -689,7 +689,7 @@ namespace Zerra.Test
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, value);
             stream.Position = 0;
-            var result = JsonSerializer.DeserializeAsync<ushort>(stream);
+            var result = await JsonSerializer.DeserializeAsync<ushort>(stream);
             Assert.AreEqual(value, result);
         }
         private static async Task StreamTestNumber(int value)
@@ -700,7 +700,7 @@ namespace Zerra.Test
             stream.Position = 0;
             var json = await sr.ReadToEndAsync();
             stream.Position = 0;
-            var result = JsonSerializer.DeserializeAsync<int>(stream);
+            var result = await JsonSerializer.DeserializeAsync<int>(stream);
             Assert.AreEqual(value, result);
         }
         private static async Task StreamTestNumber(uint value)
@@ -708,7 +708,7 @@ namespace Zerra.Test
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, value);
             stream.Position = 0;
-            var result = JsonSerializer.DeserializeAsync<uint>(stream);
+            var result = await JsonSerializer.DeserializeAsync<uint>(stream);
             Assert.AreEqual(value, result);
         }
         private static async Task StreamTestNumber(long value)
@@ -716,7 +716,7 @@ namespace Zerra.Test
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, value);
             stream.Position = 0;
-            var result = JsonSerializer.DeserializeAsync<long>(stream);
+            var result = await JsonSerializer.DeserializeAsync<long>(stream);
             Assert.AreEqual(value, result);
         }
         private static async Task StreamTestNumber(ulong value)
@@ -724,7 +724,7 @@ namespace Zerra.Test
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, value);
             stream.Position = 0;
-            var result = JsonSerializer.DeserializeAsync<ulong>(stream);
+            var result = await JsonSerializer.DeserializeAsync<ulong>(stream);
             Assert.AreEqual(value, result);
         }
         private static async Task StreamTestNumber(decimal value)
@@ -732,7 +732,7 @@ namespace Zerra.Test
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, value);
             stream.Position = 0;
-            var result = JsonSerializer.DeserializeAsync<decimal>(stream);
+            var result = await JsonSerializer.DeserializeAsync<decimal>(stream);
             Assert.AreEqual(value, result);
         }
         private static async Task StreamTestNumber(float value)
@@ -740,7 +740,7 @@ namespace Zerra.Test
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, value);
             stream.Position = 0;
-            var result = JsonSerializer.DeserializeAsync<float>(stream);
+            var result = await JsonSerializer.DeserializeAsync<float>(stream);
             Assert.AreEqual(value, result);
         }
         private static async Task StreamTestNumber(double value)
@@ -748,7 +748,7 @@ namespace Zerra.Test
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, value);
             stream.Position = 0;
-            var result = JsonSerializer.DeserializeAsync<double>(stream);
+            var result = await JsonSerializer.DeserializeAsync<double>(stream);
             Assert.AreEqual(value, result);
         }
         private static async Task StreamTestNumberAsStream(double value)
@@ -759,7 +759,7 @@ namespace Zerra.Test
             stream.Position = 0;
             var json = await sr.ReadToEndAsync();
             stream.Position = 0;
-            var result = JsonSerializer.DeserializeAsync<string>(stream);
+            var result = await JsonSerializer.DeserializeAsync<string>(stream);
             Assert.AreEqual(json, result);
         }
         private static async Task StreamTestNumberAsStream(decimal value)
@@ -770,7 +770,7 @@ namespace Zerra.Test
             stream.Position = 0;
             var json = await sr.ReadToEndAsync();
             stream.Position = 0;
-            var result = JsonSerializer.DeserializeAsync<string>(stream);
+            var result = await JsonSerializer.DeserializeAsync<string>(stream);
             Assert.AreEqual(json, result);
         }
 
@@ -823,6 +823,11 @@ namespace Zerra.Test
 
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeNamelessAsync(stream, baseModel);
+           
+            using var sr = new StreamReader(stream, Encoding.UTF8);
+            stream.Position = 0;
+            var json = await sr.ReadToEndAsync();
+
             stream.Position = 0;
             var model = await JsonSerializer.DeserializeNamelessAsync<AllTypesModel>(stream);
             Factory.AssertAreEqual(baseModel, model);
@@ -896,7 +901,7 @@ namespace Zerra.Test
                 stream.Position = 0;
                 var json = await sr.ReadToEndAsync();
                 stream.Position = 0;
-                var result = JsonSerializer.DeserializeAsync<char>(stream);
+                var result = await JsonSerializer.DeserializeAsync<char>(stream);
                 Assert.AreEqual(c, result);
 
                 switch (c)

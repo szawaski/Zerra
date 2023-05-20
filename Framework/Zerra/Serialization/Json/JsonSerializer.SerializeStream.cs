@@ -149,7 +149,7 @@ namespace Zerra.Serialization
 #if NET5_0_OR_GREATER
                 var chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
                 Write(chars, ref state);
-                _ = encoding.GetBytes(chars, buffer);
+                state.BufferPostion = encoding.GetBytes(chars.Slice(0, state.BufferPostion), buffer);
 #else
                 Write(bufferCharOwner.AsSpan().Slice(0, buffer.Length), ref state);
                 _ = encoding.GetBytes(bufferCharOwner, 0, state.BufferPostion, buffer.ToArray(), 0);
@@ -1826,7 +1826,7 @@ namespace Zerra.Serialization
                     }
                     state.CurrentFrame.State = 3;
                 }
-                if(state.CurrentFrame.State == 3)
+                if (state.CurrentFrame.State == 3)
                 {
                     if (typeDetail.IsNullable)
                     {
@@ -2163,7 +2163,7 @@ namespace Zerra.Serialization
         private static bool WriteJsonString(ref CharWriter writer, ref WriteState state, string value, byte initialFrameState)
         {
             int sizeNeeded;
-           
+
             if (value == null)
             {
                 if (!writer.TryWrite("null", out sizeNeeded))
@@ -2310,115 +2310,112 @@ namespace Zerra.Serialization
         private static bool WriteJsonChar(ref CharWriter writer, ref WriteState state, char c, byte initialFrameState)
         {
             int sizeNeeded;
-            switch (c)
-            {
-                case '\\':
-                    if (!writer.TryWrite("\"\\\\\"", out sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return false;
-                    }
-                    return true;
-                case '"':
-                    if (!writer.TryWrite("\"\\\"\"", out sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return false;
-                    }
-                    return true;
-                case '/':
-                    if (!writer.TryWrite("\"\\/\"", out sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return false;
-                    }
-                    return true;
-                case '\b':
-                    if (!writer.TryWrite("\"\\b\"", out sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return false;
-                    }
-                    return true;
-                case '\t':
-                    if (!writer.TryWrite("\"\\t\"", out sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return false;
-                    }
-                    return true;
-                case '\n':
-                    if (!writer.TryWrite("\"\\n\"", out sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return false;
-                    }
-                    return true;
-                case '\f':
-                    if (!writer.TryWrite("\"\\f\"", out sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return false;
-                    }
-                    return true;
-                case '\r':
-                    if (!writer.TryWrite("\"\\r\"", out sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return false;
-                    }
-                    return true;
-            }
-
-            if (c < ' ')
-            {
-                var code = lowUnicodeIntToEncodedHex[c];
-                if (state.CurrentFrame.State == initialFrameState + 0)
-                {
-                    if (!writer.TryWrite('\"', out sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return false;
-                    }
-                    state.CurrentFrame.State = (byte)(initialFrameState + 1);
-                }
-
-                if (state.CurrentFrame.State == initialFrameState + 1)
-                {
-                    if (!writer.TryWrite(code, out sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
-                        return false;
-                    }
-                    state.CurrentFrame.State = (byte)(initialFrameState + 2);
-                }
-
-                if (!writer.TryWrite('\"', out sizeNeeded))
-                {
-                    state.CharsNeeded = sizeNeeded;
-                    return false;
-                }
-                return true;
-            }
 
             if (state.CurrentFrame.State == initialFrameState + 0)
             {
+                switch (c)
+                {
+                    case '\\':
+                        if (!writer.TryWrite("\"\\\\\"", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        return true;
+                    case '"':
+                        if (!writer.TryWrite("\"\\\"\"", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        return true;
+                    case '/':
+                        if (!writer.TryWrite("\"\\/\"", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        return true;
+                    case '\b':
+                        if (!writer.TryWrite("\"\\b\"", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        return true;
+                    case '\t':
+                        if (!writer.TryWrite("\"\\t\"", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        return true;
+                    case '\n':
+                        if (!writer.TryWrite("\"\\n\"", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        return true;
+                    case '\f':
+                        if (!writer.TryWrite("\"\\f\"", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        return true;
+                    case '\r':
+                        if (!writer.TryWrite("\"\\r\"", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        return true;
+                }
+
+                if (c < ' ')
+                    state.CurrentFrame.State = (byte)(initialFrameState + 1);
+                else
+                    state.CurrentFrame.State = (byte)(initialFrameState + 3);
+            }
+
+            if (state.CurrentFrame.State == initialFrameState + 1)
+            {
                 if (!writer.TryWrite('\"', out sizeNeeded))
                 {
                     state.CharsNeeded = sizeNeeded;
                     return false;
                 }
-                state.CurrentFrame.State = (byte)(initialFrameState + 1);
+                state.CurrentFrame.State = (byte)(initialFrameState + 2);
+            }
+            if (state.CurrentFrame.State == initialFrameState + 2)
+            {
+                var code = lowUnicodeIntToEncodedHex[c];
+                if (!writer.TryWrite(code, out sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return false;
+                }
+                state.CurrentFrame.State = (byte)(initialFrameState + 10);
             }
 
-            if (state.CurrentFrame.State == initialFrameState + 1)
+            if (state.CurrentFrame.State == initialFrameState + 3)
+            {
+                if (!writer.TryWrite('\"', out sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return false;
+                }
+                state.CurrentFrame.State = (byte)(initialFrameState + 4);
+            }
+            if (state.CurrentFrame.State == initialFrameState + 4)
             {
                 if (!writer.TryWrite(c, out sizeNeeded))
                 {
                     state.CharsNeeded = sizeNeeded;
                     return false;
                 }
-                state.CurrentFrame.State = (byte)(initialFrameState + 2);
+                state.CurrentFrame.State = (byte)(initialFrameState + 10);
             }
 
             if (!writer.TryWrite('\"', out sizeNeeded))

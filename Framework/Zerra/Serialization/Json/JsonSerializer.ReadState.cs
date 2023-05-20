@@ -33,14 +33,14 @@ namespace Zerra.Serialization
                 stack.Push(CurrentFrame);
                 CurrentFrame = frame;
             }
-            public void EndFrame(bool noEnd = false)
+            public void EndFrame()
             {
                 stack ??= new Stack<ReadFrame>();
                 LastFrameResultObject = CurrentFrame.ResultObject;
                 LastFrameResultString = CurrentFrame.ResultString;
                 if (stack.Count > 0)
                     CurrentFrame = stack.Pop();
-                else if (!noEnd)
+                else
                     Ended = true;
             }
 

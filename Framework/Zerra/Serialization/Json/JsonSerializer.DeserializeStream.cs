@@ -790,11 +790,8 @@ namespace Zerra.Serialization
             switch (c)
             {
                 case '"':
-                    state.CurrentFrame.FrameType = ReadFrameType.String;
-                    var frame = state.CurrentFrame;
-                    state.EndFrame(true);
-                    state.PushFrame(new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.StringToType, Graph = graph });
-                    state.PushFrame(frame);
+                    state.CurrentFrame.FrameType = ReadFrameType.StringToType;
+                    state.PushFrame(new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.String, Graph = graph });
                     return;
 
                 case '{':
@@ -1340,57 +1337,54 @@ namespace Zerra.Serialization
                     break;
             }
 
-            if (frameCount > state.Count)
+            unchecked
             {
-                unchecked
+                switch (coreType)
                 {
-                    switch (coreType)
-                    {
-                        case CoreType.Byte:
-                        case CoreType.ByteNullable:
-                            state.LastFrameResultObject = (byte)state.LiteralNumberUInt64;
-                            break;
-                        case CoreType.SByte:
-                        case CoreType.SByteNullable:
-                            state.LastFrameResultObject = (sbyte)state.LiteralNumberInt64;
-                            break;
-                        case CoreType.Int16:
-                        case CoreType.Int16Nullable:
-                            state.LastFrameResultObject = (short)state.LiteralNumberInt64;
-                            break;
-                        case CoreType.UInt16:
-                        case CoreType.UInt16Nullable:
-                            state.LastFrameResultObject = (ushort)state.LiteralNumberUInt64;
-                            break;
-                        case CoreType.Int32:
-                        case CoreType.Int32Nullable:
-                            state.LastFrameResultObject = (int)state.LiteralNumberInt64;
-                            break;
-                        case CoreType.UInt32:
-                        case CoreType.UInt32Nullable:
-                            state.LastFrameResultObject = (uint)state.LiteralNumberUInt64;
-                            break;
-                        case CoreType.Int64:
-                        case CoreType.Int64Nullable:
-                            state.LastFrameResultObject = state.LiteralNumberInt64;
-                            break;
-                        case CoreType.UInt64:
-                        case CoreType.UInt64Nullable:
-                            state.LastFrameResultObject = state.LiteralNumberUInt64;
-                            break;
-                        case CoreType.Single:
-                        case CoreType.SingleNullable:
-                            state.LastFrameResultObject = (float)state.LiteralNumberDouble;
-                            break;
-                        case CoreType.Double:
-                        case CoreType.DoubleNullable:
-                            state.LastFrameResultObject = state.LiteralNumberDouble;
-                            break;
-                        case CoreType.Decimal:
-                        case CoreType.DecimalNullable:
-                            state.LastFrameResultObject = state.LiteralNumberDecimal;
-                            break;
-                    }
+                    case CoreType.Byte:
+                    case CoreType.ByteNullable:
+                        state.LastFrameResultObject = (byte)state.LiteralNumberUInt64;
+                        break;
+                    case CoreType.SByte:
+                    case CoreType.SByteNullable:
+                        state.LastFrameResultObject = (sbyte)state.LiteralNumberInt64;
+                        break;
+                    case CoreType.Int16:
+                    case CoreType.Int16Nullable:
+                        state.LastFrameResultObject = (short)state.LiteralNumberInt64;
+                        break;
+                    case CoreType.UInt16:
+                    case CoreType.UInt16Nullable:
+                        state.LastFrameResultObject = (ushort)state.LiteralNumberUInt64;
+                        break;
+                    case CoreType.Int32:
+                    case CoreType.Int32Nullable:
+                        state.LastFrameResultObject = (int)state.LiteralNumberInt64;
+                        break;
+                    case CoreType.UInt32:
+                    case CoreType.UInt32Nullable:
+                        state.LastFrameResultObject = (uint)state.LiteralNumberUInt64;
+                        break;
+                    case CoreType.Int64:
+                    case CoreType.Int64Nullable:
+                        state.LastFrameResultObject = state.LiteralNumberInt64;
+                        break;
+                    case CoreType.UInt64:
+                    case CoreType.UInt64Nullable:
+                        state.LastFrameResultObject = state.LiteralNumberUInt64;
+                        break;
+                    case CoreType.Single:
+                    case CoreType.SingleNullable:
+                        state.LastFrameResultObject = (float)state.LiteralNumberDouble;
+                        break;
+                    case CoreType.Double:
+                    case CoreType.DoubleNullable:
+                        state.LastFrameResultObject = state.LiteralNumberDouble;
+                        break;
+                    case CoreType.Decimal:
+                    case CoreType.DecimalNullable:
+                        state.LastFrameResultObject = state.LiteralNumberDecimal;
+                        break;
                 }
             }
         }
@@ -1692,6 +1686,13 @@ namespace Zerra.Serialization
                     case 1: //next number
                         if (!reader.TryRead(out var c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                state.CurrentFrame.ResultObject = decodeBuffer.ToString();
+                                decodeBuffer.Clear();
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             return;
                         }
@@ -1737,6 +1738,13 @@ namespace Zerra.Serialization
                     case 2: //decimal
                         if (!reader.TryRead(out c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                state.CurrentFrame.ResultObject = decodeBuffer.ToString();
+                                decodeBuffer.Clear();
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             return;
                         }
@@ -1779,6 +1787,13 @@ namespace Zerra.Serialization
                     case 3: //first exponent
                         if (!reader.TryRead(out c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                state.CurrentFrame.ResultObject = decodeBuffer.ToString();
+                                decodeBuffer.Clear();
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             return;
                         }
@@ -1805,6 +1820,13 @@ namespace Zerra.Serialization
                     case 4: //exponent continue
                         if (!reader.TryRead(out c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                state.CurrentFrame.ResultObject = decodeBuffer.ToString();
+                                decodeBuffer.Clear();
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             return;
                         }
@@ -2052,6 +2074,14 @@ namespace Zerra.Serialization
                     case 2: //next number
                         if (!reader.TryRead(out var c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                if (state.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.LiteralNumberInt64 = number;
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             state.LiteralNumberInt64 = number;
                             return;
@@ -2099,6 +2129,14 @@ namespace Zerra.Serialization
                     case 3: //decimal
                         if (!reader.TryRead(out c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                if (state.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.LiteralNumberInt64 = number;
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             state.LiteralNumberInt64 = number;
                             state.LiteralNumberWorkingDouble = workingNumber;
@@ -2144,6 +2182,14 @@ namespace Zerra.Serialization
                     case 4: //first exponent
                         if (!reader.TryRead(out c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                if (state.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.LiteralNumberInt64 = number;
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             state.LiteralNumberInt64 = number;
                             return;
@@ -2173,6 +2219,17 @@ namespace Zerra.Serialization
                     case 5: //exponent continue
                         if (!reader.TryRead(out c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                if (state.LiteralNumberWorkingIsNegative)
+                                    workingNumber *= -1;
+                                number *= (long)Math.Pow(10, workingNumber);
+                                if (state.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.LiteralNumberInt64 = number;
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             state.LiteralNumberInt64 = number;
                             state.LiteralNumberWorkingDouble = workingNumber;
@@ -2263,6 +2320,12 @@ namespace Zerra.Serialization
                     case 2: //next number
                         if (!reader.TryRead(out var c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                state.LiteralNumberUInt64 = number;
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             state.LiteralNumberUInt64 = number;
                             return;
@@ -2306,6 +2369,12 @@ namespace Zerra.Serialization
                     case 3: //decimal
                         if (!reader.TryRead(out c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                state.LiteralNumberUInt64 = number;
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             state.LiteralNumberUInt64 = number;
                             state.LiteralNumberWorkingDouble = workingNumber;
@@ -2347,6 +2416,12 @@ namespace Zerra.Serialization
                     case 4: //first exponent
                         if (!reader.TryRead(out c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                state.LiteralNumberUInt64 = number;
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             state.LiteralNumberUInt64 = number;
                             return;
@@ -2376,6 +2451,12 @@ namespace Zerra.Serialization
                     case 5: //exponent continue
                         if (!reader.TryRead(out c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                state.LiteralNumberUInt64 = number;
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             state.LiteralNumberUInt64 = number;
                             state.LiteralNumberWorkingDouble = workingNumber;
@@ -2462,6 +2543,14 @@ namespace Zerra.Serialization
                     case 2: //next number
                         if (!reader.TryRead(out var c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                if (state.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.LiteralNumberDouble = number;
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             state.LiteralNumberDouble = number;
                             return;
@@ -2510,6 +2599,14 @@ namespace Zerra.Serialization
                     case 3: //decimal
                         if (!reader.TryRead(out c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                if (state.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.LiteralNumberDouble = number;
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             state.LiteralNumberDouble = number;
                             state.LiteralNumberWorkingDouble = workingNumber;
@@ -2556,6 +2653,14 @@ namespace Zerra.Serialization
                     case 4: //first exponent
                         if (!reader.TryRead(out c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                if (state.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.LiteralNumberDouble = number;
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             state.LiteralNumberDouble = number;
                             return;
@@ -2585,6 +2690,17 @@ namespace Zerra.Serialization
                     case 5: //exponent continue
                         if (!reader.TryRead(out c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                if (state.LiteralNumberWorkingIsNegative)
+                                    workingNumber *= -1;
+                                number *= Math.Pow(10, workingNumber);
+                                if (state.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.LiteralNumberDouble = number;
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             state.LiteralNumberDouble = number;
                             state.LiteralNumberWorkingDouble = workingNumber;
@@ -2675,6 +2791,14 @@ namespace Zerra.Serialization
                     case 2: //next number
                         if (!reader.TryRead(out var c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                if (state.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.LiteralNumberDecimal = number;
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             state.LiteralNumberDecimal = number;
                             return;
@@ -2723,6 +2847,14 @@ namespace Zerra.Serialization
                     case 3: //decimal
                         if (!reader.TryRead(out c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                if (state.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.LiteralNumberDecimal = number;
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             state.LiteralNumberDecimal = number;
                             state.LiteralNumberWorkingDecimal = workingNumber;
@@ -2769,6 +2901,14 @@ namespace Zerra.Serialization
                     case 4: //first exponent
                         if (!reader.TryRead(out c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                if (state.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.LiteralNumberDecimal = number;
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             state.LiteralNumberDecimal = number;
                             return;
@@ -2798,6 +2938,17 @@ namespace Zerra.Serialization
                     case 5: //exponent continue
                         if (!reader.TryRead(out c))
                         {
+                            if (state.IsFinalBlock)
+                            {
+                                if (state.LiteralNumberWorkingIsNegative)
+                                    workingNumber *= -1;
+                                number *= (decimal)Math.Pow(10, (double)workingNumber);
+                                if (state.LiteralNumberIsNegative)
+                                    number *= -1;
+                                state.LiteralNumberDecimal = number;
+                                state.EndFrame();
+                                return;
+                            }
                             state.CharsNeeded = 1;
                             state.LiteralNumberDecimal = number;
                             state.LiteralNumberWorkingDecimal = workingNumber;
@@ -2845,6 +2996,5 @@ namespace Zerra.Serialization
                 }
             }
         }
-
     }
 }
