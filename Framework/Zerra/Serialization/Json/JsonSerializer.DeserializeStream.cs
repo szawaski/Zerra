@@ -715,6 +715,7 @@ namespace Zerra.Serialization
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 typeDetail = TypeAnalyzer.GetTypeDetail(emptyImplementationType);
+                state.CurrentFrame.TypeDetail = typeDetail;
             }
 
             switch (c)
