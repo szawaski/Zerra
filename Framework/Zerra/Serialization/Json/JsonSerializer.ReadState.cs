@@ -16,6 +16,7 @@ namespace Zerra.Serialization
             public string LastFrameResultString;
             public bool Ended;
             public bool Nameless;
+            public bool IsFinalBlock;
 
             public int Count
             {

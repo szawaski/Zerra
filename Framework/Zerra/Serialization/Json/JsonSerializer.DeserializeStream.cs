@@ -78,41 +78,53 @@ namespace Zerra.Serialization
 
         public static T Deserialize<T>(Stream stream, Graph graph = null)
         {
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
             return (T)Deserialize(typeof(T), stream, graph);
         }
         public static object Deserialize(Type type, Stream stream, Graph graph = null)
         {
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
-            var isFinalBlock = false;
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
             var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
             var decodeBufferPosition = 0;
 
             try
             {
-
-#if NETSTANDARD2_0
-                var read = stream.Read(buffer, 0, buffer.Length);
-#else
-                var read = stream.Read(buffer.AsSpan());
-#endif
-
-                if (read == 0)
+                var position = 0;
+                var length = 0;
+                var read = -1;
+                var isFinalBlock = false;
+                while (position < buffer.Length)
                 {
-                    isFinalBlock = true;
-                    return null;
+#if NETSTANDARD2_0
+                    read = stream.Read(buffer, position, buffer.Length - position);
+#else
+                    read = stream.Read(buffer.AsSpan(position));
+#endif
+                    if (read == 0)
+                    {
+                        isFinalBlock = true;
+                        break;
+                    }
+                    position += read;
+                    length = position;
                 }
 
-                var length = read;
+                if (position == 0)
+                {
+                    if (typeDetail.CoreType == CoreType.String)
+                        return (object)String.Empty;
+                    return default;
+                }
 
                 var state = new ReadState();
                 state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
+                state.IsFinalBlock = isFinalBlock;
 
                 for (; ; )
                 {
@@ -123,9 +135,9 @@ namespace Zerra.Serialization
 
                     if (state.CharsNeeded > 0)
                     {
-                        if (isFinalBlock)
+                        if (state.IsFinalBlock)
                             throw new EndOfStreamException();
-                        var position = state.BufferPostion;
+                        position = state.BufferPostion;
 
                         Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
                         position = length - position;
@@ -140,10 +152,9 @@ namespace Zerra.Serialization
 #else
                             read = stream.Read(buffer.AsSpan(position));
 #endif
-
                             if (read == 0)
                             {
-                                isFinalBlock = true;
+                                state.IsFinalBlock = true;
                                 break;
                             }
                             position += read;
@@ -176,32 +187,42 @@ namespace Zerra.Serialization
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
-            var isFinalBlock = false;
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
             var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
             var decodeBufferPosition = 0;
 
             try
             {
-
-#if NETSTANDARD2_0
-                var read = await stream.ReadAsync(buffer, 0, buffer.Length);
-#else
-                var read = await stream.ReadAsync(buffer.AsMemory());
-#endif
-
-                if (read == 0)
+                var position = 0;
+                var length = 0;
+                var read = -1;
+                var isFinalBlock = false;
+                while (position < buffer.Length)
                 {
-                    isFinalBlock = true;
+#if NETSTANDARD2_0
+                    read = await stream.ReadAsync(buffer, position, buffer.Length - position);
+#else
+                    read = await stream.ReadAsync(buffer.AsMemory(position));
+#endif
+                    if (read == 0)
+                    {
+                        isFinalBlock = true;
+                        break;
+                    }
+                    position += read;
+                    length = position;
+                }
+
+                if (position == 0)
+                {
                     if (typeDetail.CoreType == CoreType.String)
                         return (T)(object)String.Empty;
                     return default;
                 }
 
-                var length = read;
-
                 var state = new ReadState();
                 state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
+                state.IsFinalBlock = isFinalBlock;
 
                 for (; ; )
                 {
@@ -212,9 +233,9 @@ namespace Zerra.Serialization
 
                     if (state.CharsNeeded > 0)
                     {
-                        if (isFinalBlock)
+                        if (state.IsFinalBlock)
                             throw new EndOfStreamException();
-                        var position = state.BufferPostion;
+                        position = state.BufferPostion;
 
                         Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
                         position = length - position;
@@ -229,10 +250,9 @@ namespace Zerra.Serialization
 #else
                             read = await stream.ReadAsync(buffer.AsMemory(position));
 #endif
-
                             if (read == 0)
                             {
-                                isFinalBlock = true;
+                                state.IsFinalBlock = true;
                                 break;
                             }
                             position += read;
@@ -264,41 +284,55 @@ namespace Zerra.Serialization
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
-            var isFinalBlock = false;
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
             var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
             var decodeBufferPosition = 0;
 
             try
             {
-#if NETSTANDARD2_0
-                var read = await stream.ReadAsync(buffer, 0, buffer.Length);
-#else
-                var read = await stream.ReadAsync(buffer.AsMemory());
-#endif
-                if (read == 0)
+                var position = 0;
+                var length = 0;
+                var read = -1;
+                var isFinalBlock = false;
+                while (position < buffer.Length)
                 {
-                    isFinalBlock = true;
+#if NETSTANDARD2_0
+                    read = await stream.ReadAsync(buffer, position, buffer.Length - position);
+#else
+                    read = await stream.ReadAsync(buffer.AsMemory(position));
+#endif
+                    if (read == 0)
+                    {
+                        isFinalBlock = true;
+                        break;
+                    }
+                    position += read;
+                    length = position;
+                }
+
+                if (position == 0)
+                {
+                    if (typeDetail.CoreType == CoreType.String)
+                        return (object)String.Empty;
                     return default;
                 }
 
-                var length = read;
-
                 var state = new ReadState();
                 state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
+                state.IsFinalBlock = isFinalBlock;
 
                 for (; ; )
                 {
-                    ReadConvertBytes(buffer.AsSpan().Slice(0, read), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
 
                     if (state.CharsNeeded > 0)
                     {
-                        if (isFinalBlock)
+                        if (state.IsFinalBlock)
                             throw new EndOfStreamException();
-                        var position = state.BufferPostion;
+                        position = state.BufferPostion;
 
                         Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
                         position = length - position;
@@ -313,10 +347,9 @@ namespace Zerra.Serialization
 #else
                             read = await stream.ReadAsync(buffer.AsMemory(position));
 #endif
-
                             if (read == 0)
                             {
-                                isFinalBlock = true;
+                                state.IsFinalBlock = true;
                                 break;
                             }
                             position += read;
@@ -342,7 +375,6 @@ namespace Zerra.Serialization
 
         public static T DeserializeNamelessStackBased<T>(byte[] bytes, Graph graph = null)
         {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             return (T)DeserializeNamelessStackBased(typeof(T), bytes, graph);
         }
         public static object DeserializeNamelessStackBased(Type type, byte[] bytes, Graph graph = null)
@@ -360,7 +392,6 @@ namespace Zerra.Serialization
                 var state = new ReadState() { Nameless = true };
                 state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
 
-
                 ReadConvertBytes(bytes, ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                 if (!state.Ended || state.CharsNeeded > 0)
@@ -376,41 +407,54 @@ namespace Zerra.Serialization
 
         public static T DeserializeNameless<T>(Stream stream, Graph graph = null)
         {
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
             return (T)DeserializeNameless(typeof(T), stream, graph);
         }
         public static object DeserializeNameless(Type type, Stream stream, Graph graph = null)
         {
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
-            var isFinalBlock = false;
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
             var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
             var decodeBufferPosition = 0;
 
             try
             {
-
-#if NETSTANDARD2_0
-                var read = stream.Read(buffer, 0, buffer.Length);
-#else
-                var read = stream.Read(buffer.AsSpan());
-#endif
-
-                if (read == 0)
+                var position = 0;
+                var length = 0;
+                var read = -1;
+                var isFinalBlock = false;
+                while (position < buffer.Length)
                 {
-                    isFinalBlock = true;
-                    return null;
+#if NETSTANDARD2_0
+                    read = stream.Read(buffer, position, buffer.Length - position);
+#else
+                    read = stream.Read(buffer.AsSpan(position));
+#endif
+                    if (read == 0)
+                    {
+                        isFinalBlock = true;
+                        break;
+                    }
+                    position += read;
+                    length = position;
                 }
 
-                var length = read;
+                if (position == 0)
+                {
+                    if (typeDetail.CoreType == CoreType.String)
+                        return (object)String.Empty;
+                    return default;
+                }
 
-                var state = new ReadState() { Nameless = true };
+                var state = new ReadState();
                 state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
+                state.IsFinalBlock = isFinalBlock;
+                state.Nameless = true;
 
                 for (; ; )
                 {
@@ -421,9 +465,9 @@ namespace Zerra.Serialization
 
                     if (state.CharsNeeded > 0)
                     {
-                        if (isFinalBlock)
+                        if (state.IsFinalBlock)
                             throw new EndOfStreamException();
-                        var position = state.BufferPostion;
+                        position = state.BufferPostion;
 
                         Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
                         position = length - position;
@@ -438,10 +482,9 @@ namespace Zerra.Serialization
 #else
                             read = stream.Read(buffer.AsSpan(position));
 #endif
-
                             if (read == 0)
                             {
-                                isFinalBlock = true;
+                                state.IsFinalBlock = true;
                                 break;
                             }
                             position += read;
@@ -474,30 +517,43 @@ namespace Zerra.Serialization
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
-            var isFinalBlock = false;
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
             var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
             var decodeBufferPosition = 0;
 
             try
             {
-
-#if NETSTANDARD2_0
-                var read = await stream.ReadAsync(buffer, 0, buffer.Length);
-#else
-                var read = await stream.ReadAsync(buffer.AsMemory());
-#endif
-
-                if (read == 0)
+                var position = 0;
+                var length = 0;
+                var read = -1;
+                var isFinalBlock = false;
+                while (position < buffer.Length)
                 {
-                    isFinalBlock = true;
+#if NETSTANDARD2_0
+                    read = await stream.ReadAsync(buffer, position, buffer.Length - position);
+#else
+                    read = await stream.ReadAsync(buffer.AsMemory(position));
+#endif
+                    if (read == 0)
+                    {
+                        isFinalBlock = true;
+                        break;
+                    }
+                    position += read;
+                    length = position;
+                }
+
+                if (position == 0)
+                {
+                    if (typeDetail.CoreType == CoreType.String)
+                        return (T)(object)String.Empty;
                     return default;
                 }
 
-                var length = read;
-
-                var state = new ReadState() { Nameless = true };
+                var state = new ReadState();
                 state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
+                state.IsFinalBlock = isFinalBlock;
+                state.Nameless = true;
 
                 for (; ; )
                 {
@@ -508,9 +564,9 @@ namespace Zerra.Serialization
 
                     if (state.CharsNeeded > 0)
                     {
-                        if (isFinalBlock)
+                        if (state.IsFinalBlock)
                             throw new EndOfStreamException();
-                        var position = state.BufferPostion;
+                        position = state.BufferPostion;
 
                         Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
                         position = length - position;
@@ -525,10 +581,9 @@ namespace Zerra.Serialization
 #else
                             read = await stream.ReadAsync(buffer.AsMemory(position));
 #endif
-
                             if (read == 0)
                             {
-                                isFinalBlock = true;
+                                state.IsFinalBlock = true;
                                 break;
                             }
                             position += read;
@@ -560,41 +615,56 @@ namespace Zerra.Serialization
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
-            var isFinalBlock = false;
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
             var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
             var decodeBufferPosition = 0;
 
             try
             {
-#if NETSTANDARD2_0
-                var read = await stream.ReadAsync(buffer, 0, buffer.Length);
-#else
-                var read = await stream.ReadAsync(buffer.AsMemory());
-#endif
-                if (read == 0)
+                var position = 0;
+                var length = 0;
+                var read = -1;
+                var isFinalBlock = false;
+                while (position < buffer.Length)
                 {
-                    isFinalBlock = true;
+#if NETSTANDARD2_0
+                    read = await stream.ReadAsync(buffer, position, buffer.Length - position);
+#else
+                    read = await stream.ReadAsync(buffer.AsMemory(position));
+#endif
+                    if (read == 0)
+                    {
+                        isFinalBlock = true;
+                        break;
+                    }
+                    position += read;
+                    length = position;
+                }
+
+                if (position == 0)
+                {
+                    if (typeDetail.CoreType == CoreType.String)
+                        return (object)String.Empty;
                     return default;
                 }
 
-                var length = read;
-
-                var state = new ReadState() { Nameless = true };
+                var state = new ReadState();
                 state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
+                state.IsFinalBlock = isFinalBlock;
+                state.Nameless = true;
 
                 for (; ; )
                 {
-                    ReadConvertBytes(buffer.AsSpan().Slice(0, read), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
 
                     if (state.CharsNeeded > 0)
                     {
-                        if (isFinalBlock)
+                        if (state.IsFinalBlock)
                             throw new EndOfStreamException();
-                        var position = state.BufferPostion;
+                        position = state.BufferPostion;
 
                         Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
                         position = length - position;
@@ -609,10 +679,9 @@ namespace Zerra.Serialization
 #else
                             read = await stream.ReadAsync(buffer.AsMemory(position));
 #endif
-
                             if (read == 0)
                             {
-                                isFinalBlock = true;
+                                state.IsFinalBlock = true;
                                 break;
                             }
                             position += read;
