@@ -213,7 +213,6 @@ namespace Zerra.Serialization
             return null;
         }
 
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object ConvertNullToType(CoreType coreType)
         {

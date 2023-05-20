@@ -41,7 +41,7 @@ namespace Zerra.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryReadSpan(out ReadOnlySpan<char> s, int count)
         {
-            if (position + count >= length)
+            if (position + count > length)
             {
                 s = default;
                 return false;

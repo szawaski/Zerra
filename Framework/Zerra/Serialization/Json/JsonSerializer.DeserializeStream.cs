@@ -193,6 +193,8 @@ namespace Zerra.Serialization
                 if (read == 0)
                 {
                     isFinalBlock = true;
+                    if (typeDetail.CoreType == CoreType.String)
+                        return (T)(object)String.Empty;
                     return default;
                 }
 
@@ -720,7 +722,7 @@ namespace Zerra.Serialization
                 case '"':
                     state.CurrentFrame.FrameType = ReadFrameType.String;
                     var frame = state.CurrentFrame;
-                    state.EndFrame();
+                    state.EndFrame(true);
                     state.PushFrame(new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.StringToType, Graph = graph });
                     state.PushFrame(frame);
                     return;
@@ -747,7 +749,10 @@ namespace Zerra.Serialization
                     }
                     if (s[0] != 'u' || s[1] != 'l' || s[2] != 'l')
                         throw reader.CreateException("Expected number/true/false/null");
-                    state.CurrentFrame.ResultObject = ConvertNullToType(typeDetail.CoreType.Value);
+                    if (typeDetail != null && typeDetail.CoreType.HasValue)
+                        state.CurrentFrame.ResultObject = ConvertNullToType(typeDetail.CoreType.Value);
+                    //else
+                    //    state.CurrentFrame.ResultObject = null;
                     state.EndFrame();
                     return;
 

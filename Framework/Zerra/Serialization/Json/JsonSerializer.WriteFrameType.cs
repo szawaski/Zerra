@@ -8,19 +8,18 @@ namespace Zerra.Serialization
     {
         private enum WriteFrameType : byte
         {
-            Value,
+            Null,
             CoreType,
             EnumType,
             SpecialType,
             ByteArray,
             Object,
-            String,
 
             CoreTypeEnumerable,
             EnumEnumerable,
             SpecialTypeEnumerable,
-            GenericEnumerable,
-            Enumerable
+            Enumerable,
+            ObjectEnumerable
         }
     }
 }
