@@ -275,12 +275,12 @@ namespace Zerra.Serialization
                 }
                 if (state.Ended)
                 {
-                    state.BufferPostion = writer.Position;
+                    state.BufferPostion = writer.Length;
                     return;
                 }
                 if (state.BytesNeeded > 0)
                 {
-                    state.BufferPostion = writer.Position;
+                    state.BufferPostion = writer.Length;
                     return;
                 }
             }

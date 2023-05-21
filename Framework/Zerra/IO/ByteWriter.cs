@@ -23,8 +23,7 @@ namespace Zerra.IO
 
         private readonly Encoding encoding;
 
-        public int Position => position;
-        public int Length => length;
+        public int Length => position;
 
         public ByteWriter()
         {

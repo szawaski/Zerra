@@ -49,8 +49,7 @@ namespace Zerra.IO
             this.length = buffer.Length;
         }
 
-        public int Position => position;
-        public int Length => length;
+        public int Length => position;
 
         public char[] BufferOwner => bufferOwner;
 

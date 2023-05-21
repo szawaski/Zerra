@@ -762,7 +762,7 @@ namespace Zerra.Serialization
                 {
                     decodeBuffer = decodeBufferWriter.BufferOwner;
                     state.BufferPostion = reader.Position;
-                    decodeBufferPosition = decodeBufferWriter.Position;
+                    decodeBufferPosition = decodeBufferWriter.Length;
                     return;
                 }
             }
