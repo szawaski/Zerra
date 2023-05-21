@@ -1198,21 +1198,25 @@ namespace Zerra.Serialization
 
                         reader.BackOne();
 
+
+                        var memberDetail = typeDetail != null && state.CurrentFrame.PropertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
+                          ? typeDetail.SerializableMemberDetails[state.CurrentFrame.PropertyIndexForNameless]
+                          : null;
                         state.CurrentFrame.State = 2;
-                        state.PushFrame(new ReadFrame() { TypeDetail = state.CurrentFrame.ArrayElementType, FrameType = ReadFrameType.Value, Graph = graph });
+                        state.PushFrame(new ReadFrame() { TypeDetail = memberDetail.TypeDetail, FrameType = ReadFrameType.Value, Graph = graph });
                         return;
 
                     case 2: //array value
 
                         if (state.CurrentFrame.ResultObject != null)
                         {
-                            var memberDetail = typeDetail != null && state.CurrentFrame.PropertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
-                                ? typeDetail.SerializableMemberDetails[state.CurrentFrame.PropertyIndexForNameless++]
+                            memberDetail = typeDetail != null && state.CurrentFrame.PropertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
+                                ? typeDetail.SerializableMemberDetails[state.CurrentFrame.PropertyIndexForNameless]
                                 : null;
-                            if (memberDetail != null)
+                            if (memberDetail != null && state.LastFrameResultObject != null)
                             {
                                 var propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name);
-                                if (memberDetail != null && memberDetail.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)
+                                if (memberDetail.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)
                                 {
                                     var dictionary = memberDetail.TypeDetail.Creator();
                                     var addMethod = memberDetail.TypeDetail.GetMethod("Add");
@@ -1224,34 +1228,31 @@ namespace Zerra.Serialization
                                         var itemValue = valueGetter(item);
                                         _ = addMethod.Caller(dictionary, new object[] { itemKey, itemValue });
                                     }
-                                    memberDetail.Setter(state.LastFrameResultObject, dictionary);
+                                    memberDetail.Setter(state.CurrentFrame.ResultObject, dictionary);
                                 }
                                 else
                                 {
-                                    if (state.LastFrameResultObject != null)
+                                    if (state.CurrentFrame.Graph != null)
                                     {
-                                        if (state.CurrentFrame.Graph != null)
+                                        if (memberDetail.TypeDetail.IsGraphLocalProperty)
                                         {
-                                            if (memberDetail.TypeDetail.IsGraphLocalProperty)
-                                            {
-                                                if (state.CurrentFrame.Graph.HasLocalProperty(memberDetail.Name))
-                                                    memberDetail.Setter(state.LastFrameResultObject, state.LastFrameResultObject);
-                                            }
-                                            else
-                                            {
-                                                if (propertyGraph != null)
-                                                    memberDetail.Setter(state.LastFrameResultObject, state.LastFrameResultObject);
-                                            }
+                                            if (state.CurrentFrame.Graph.HasLocalProperty(memberDetail.Name))
+                                                memberDetail.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                                         }
                                         else
                                         {
-                                            memberDetail.Setter(state.LastFrameResultObject, state.LastFrameResultObject);
+                                            if (propertyGraph != null)
+                                                memberDetail.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                                         }
+                                    }
+                                    else
+                                    {
+                                        memberDetail.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                                     }
                                 }
                             }
                         }
-
+                        state.CurrentFrame.PropertyIndexForNameless++;
                         state.CurrentFrame.State = 3;
                         break;
 

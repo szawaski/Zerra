@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.VisualStudio.TestPlatform.PlatformAbstractions.Interfaces;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -823,10 +822,6 @@ namespace Zerra.Test
 
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeNamelessAsync(stream, baseModel);
-           
-            using var sr = new StreamReader(stream, Encoding.UTF8);
-            stream.Position = 0;
-            var json = await sr.ReadToEndAsync();
 
             stream.Position = 0;
             var model = await JsonSerializer.DeserializeNamelessAsync<AllTypesModel>(stream);

@@ -770,17 +770,15 @@ namespace Zerra.Serialization
                                 if (state.CurrentFrame.EnumeratorPassedFirstProperty)
                                 {
                                     state.CurrentFrame.State = 3;
-                                    break;
                                 }
                                 else
                                 {
+                                    if (state.Nameless)
+                                        state.CurrentFrame.State = 7;
+                                    else
+                                        state.CurrentFrame.State = 4;
                                     state.CurrentFrame.EnumeratorPassedFirstProperty = true;
                                 }
-
-                                if (state.Nameless)
-                                    state.CurrentFrame.State = 7;
-                                else
-                                    state.CurrentFrame.State = 4;
                                 break;
                             case 3:  //Seperate Properties
                                 if (!writer.TryWrite(',', out sizeNeeded))
@@ -788,7 +786,10 @@ namespace Zerra.Serialization
                                     state.CharsNeeded = sizeNeeded;
                                     return;
                                 }
-                                state.CurrentFrame.State = 4;
+                                if (state.Nameless)
+                                    state.CurrentFrame.State = 7;
+                                else
+                                    state.CurrentFrame.State = 4;
                                 break;
 
                             case 4: //Key
@@ -835,7 +836,13 @@ namespace Zerra.Serialization
                                 }
                                 state.CurrentFrame.State = 10;
                                 break;
-                            case 10:  //End Nameless
+                            case 10: //Nameless Value
+                                valueGetter = innerTypeDetail.GetMemberFieldBacked("value").Getter;
+                                value = valueGetter(state.CurrentFrame.Enumerator.Current);
+                                state.CurrentFrame.State = 11;
+                                state.PushFrame(CreateWriteFrame(innerTypeDetail.InnerTypeDetails[1], value));
+                                return;
+                            case 11:  //End Nameless
                                 if (!writer.TryWrite(']', out sizeNeeded))
                                 {
                                     state.CharsNeeded = sizeNeeded;
@@ -2092,7 +2099,10 @@ namespace Zerra.Serialization
                             }
                         }
 
-                        state.CurrentFrame.State = 7;
+                        if (state.Nameless)
+                            state.CurrentFrame.State = 20;
+                        else
+                            state.CurrentFrame.State = 7;
                     }
                 }
 

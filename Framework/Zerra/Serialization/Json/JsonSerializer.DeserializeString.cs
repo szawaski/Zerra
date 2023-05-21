@@ -505,7 +505,7 @@ namespace Zerra.Serialization
                             {
                                 var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
                                 var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail?.TypeDetail, propertyGraph, true);
-                                if (memberDetail != null && memberDetail.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)
+                                if (memberDetail.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)
                                 {
                                     var dictionary = memberDetail.TypeDetail.Creator();
                                     var addMethod = memberDetail.TypeDetail.GetMethod("Add");
