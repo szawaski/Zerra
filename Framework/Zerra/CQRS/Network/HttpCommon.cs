@@ -341,7 +341,7 @@ namespace Zerra.CQRS.Network
 
             headerBuffer.Write(newLineBytes);
 
-            return headerBuffer.Position;
+            return headerBuffer.Length;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -426,7 +426,7 @@ namespace Zerra.CQRS.Network
             headerBuffer.Write(newLineBytes);
 
             headerBuffer.Write(newLineBytes);
-            return headerBuffer.Position;
+            return headerBuffer.Length;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -456,7 +456,7 @@ namespace Zerra.CQRS.Network
             headerBuffer.Write(newLineBytes);
             headerBuffer.Write(newLineBytes);
 
-            return headerBuffer.Position;
+            return headerBuffer.Length;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -468,7 +468,7 @@ namespace Zerra.CQRS.Network
             headerBuffer.Write(newLineBytes);
             headerBuffer.Write(newLineBytes);
 
-            return headerBuffer.Position;
+            return headerBuffer.Length;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int BufferOkResponseHeader(Memory<byte> buffer, string origion, string providerType, ContentType? contentType, IDictionary<string, IList<string>> authHeaders)
@@ -539,7 +539,7 @@ namespace Zerra.CQRS.Network
             headerBuffer.Write(newLineBytes);
             headerBuffer.Write(newLineBytes);
 
-            return headerBuffer.Position;
+            return headerBuffer.Length;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -551,7 +551,7 @@ namespace Zerra.CQRS.Network
             headerBuffer.Write(newLineBytes);
             headerBuffer.Write(newLineBytes);
 
-            return headerBuffer.Position;
+            return headerBuffer.Length;
         }
     }
 }
