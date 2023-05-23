@@ -14,6 +14,7 @@ using Zerra.IO;
 using Zerra.CQRS.Network;
 using System.IO;
 using System.Linq;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.Relay
 {
@@ -128,7 +129,7 @@ namespace Zerra.CQRS.Relay
                                 if (header.RelayKey != relayKey)
                                     throw new SecurityException("Invalid Relay Key");
 
-                                var serviceInfo = await System.Text.Json.JsonSerializer.DeserializeAsync<ServiceInfo>(incommingBodyStream);
+                                var serviceInfo = await JsonSerializer.DeserializeAsync<ServiceInfo>(incommingBodyStream);
                                 await incommingBodyStream.DisposeAsync();
                                 incommingBodyStream = null;
 

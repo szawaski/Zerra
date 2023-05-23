@@ -17,6 +17,7 @@ using Zerra.Encryption;
 using Zerra.IO;
 using Zerra.Logging;
 using Zerra.Reflection;
+using Zerra.Serialization;
 
 namespace Zerra.Web
 {
@@ -296,7 +297,7 @@ namespace Zerra.Web
                     if (!exposed)
                         throw new Exception($"Message {data.MessageType} is not exposed");
 
-                    var command = (ICommand)System.Text.Json.JsonSerializer.Deserialize(data.MessageData, messageType);
+                    var command = (ICommand)JsonSerializer.Deserialize(data.MessageData, messageType);
 
                     if (data.MessageAwait)
                         await settings.HandlerAwaitAsync(command);

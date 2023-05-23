@@ -13,6 +13,7 @@ using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using System.Net.Http.Headers;
 using Zerra.Encryption;
+using Zerra.Serialization;
 
 namespace Zerra.Web
 {
@@ -275,7 +276,7 @@ namespace Zerra.Web
             var messageType = command.GetType();
             var messageTypeName = messageType.GetNiceName();
 
-            var messageData = System.Text.Json.JsonSerializer.Serialize(command, messageType);
+            var messageData = JsonSerializer.Serialize(command, messageType);
 
             var data = new CQRSRequestData()
             {

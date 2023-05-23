@@ -12,6 +12,7 @@ using Zerra.Logging;
 using Zerra.Encryption;
 using Zerra.IO;
 using System.IO;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
@@ -228,7 +229,7 @@ namespace Zerra.CQRS.Network
                     if (!exposed)
                         throw new Exception($"Command {data.MessageType} is not exposed");
 
-                    var command = (ICommand)System.Text.Json.JsonSerializer.Deserialize(data.MessageData, commandType);
+                    var command = (ICommand)JsonSerializer.Deserialize(data.MessageData, commandType);
 
                     if (data.MessageAwait)
                         await handlerAwaitAsync(command);

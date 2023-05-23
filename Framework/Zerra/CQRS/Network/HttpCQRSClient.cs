@@ -11,6 +11,7 @@ using Zerra.Logging;
 using Zerra.IO;
 using System.Collections.Generic;
 using System.Text;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
@@ -288,7 +289,7 @@ namespace Zerra.CQRS.Network
             var messageType = command.GetType();
             var messageTypeName = messageType.GetNiceName();
 
-            var messageData = System.Text.Json.JsonSerializer.Serialize(command, messageType);
+            var messageData = JsonSerializer.Serialize(command, messageType);
 
             var data = new CQRSRequestData()
             {
