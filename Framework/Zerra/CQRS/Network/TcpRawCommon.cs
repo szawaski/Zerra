@@ -149,7 +149,7 @@ namespace Zerra.CQRS.Network
             var contentTypeBytes = encoding.GetBytes(((int)contentType).ToString());
             headerBuffer.Write(contentTypeBytes);
             headerBuffer.Write(headerEnderBytes);
-            return headerBuffer.Position;
+            return headerBuffer.Length;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -173,7 +173,7 @@ namespace Zerra.CQRS.Network
             headerBuffer.Write(contentTypeBytes);
             headerBuffer.Write(headerEnderBytes);
 
-            return headerBuffer.Position;
+            return headerBuffer.Length;
         }
     }
 }
