@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Zerra.Identity
 {
-    public class IdentityHttpRequest
+    public sealed class IdentityHttpRequest
     {
         public string QueryString { get; private set; }
         public IReadOnlyDictionary<string, string> Query { get; private set; }

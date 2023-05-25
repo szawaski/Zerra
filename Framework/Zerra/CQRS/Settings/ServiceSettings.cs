@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Zerra.CQRS.Settings
 {
-    public class ServiceSettings
+    public sealed class ServiceSettings
     {
         public string ThisServiceName { get; internal set; }
 

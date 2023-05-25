@@ -7,7 +7,7 @@ using System;
 
 namespace Zerra.Identity.OAuth2.Documents
 {
-    public class OAuth2TokenRequest : OAuth2Document
+    public sealed class OAuth2TokenRequest : OAuth2Document
     { 
         public string ServiceProvider { get; protected set; }
         public string Code { get; protected set; }

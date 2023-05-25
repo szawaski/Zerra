@@ -8,7 +8,7 @@ using Zerra.Linq;
 
 namespace Zerra.Mathematics
 {
-    public partial class MathParser
+    public sealed partial class MathParser
     {
         public static IEnumerable<string> MethodOperators => methodOperators.Select(x => x.Token);
         public static IEnumerable<string> BinaryOperators => binaryOperators.Select(x => x.Token);

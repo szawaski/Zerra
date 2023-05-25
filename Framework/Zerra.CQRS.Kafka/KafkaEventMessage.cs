@@ -4,7 +4,7 @@
 
 namespace Zerra.CQRS.Kafka
 {
-    public class KafkaEventMessage
+    public sealed class KafkaEventMessage
     {
         public IEvent Message { get; set; }
         public string[][] Claims { get; set; }

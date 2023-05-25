@@ -21,7 +21,7 @@ using Zerra.Serialization;
 
 namespace Zerra.Web
 {
-    public class KestrelCQRSServerMiddleware
+    public sealed class KestrelCQRSServerMiddleware
     {
         private readonly RequestDelegate requestDelegate;
         private readonly SymmetricConfig symmetricConfig;

@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace Zerra.Mathematics
 {
-    public partial class MathParser
+    public sealed partial class MathParser
     {
         private sealed class MethodOperator
         {

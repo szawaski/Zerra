@@ -8,7 +8,7 @@ using System.Linq.Expressions;
 
 namespace Zerra.Linq
 {
-    public partial class LinqRebinder
+    public sealed partial class LinqRebinder
     {
         private sealed class RebinderContext
         {

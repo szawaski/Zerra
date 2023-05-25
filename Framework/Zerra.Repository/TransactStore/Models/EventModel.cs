@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.Repository
 {
-    public class EventModel<TModel> where TModel : class, new()
+    public sealed class EventModel<TModel> where TModel : class, new()
     {
         public Guid EventID { get; set; }
         public string EventName { get; set; }

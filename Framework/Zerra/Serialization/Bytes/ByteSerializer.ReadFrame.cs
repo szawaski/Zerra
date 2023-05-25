@@ -7,7 +7,7 @@ using System.Collections;
 
 namespace Zerra.Serialization
 {
-    public partial class ByteSerializer
+    public sealed partial class ByteSerializer
     {
         private sealed class ReadFrame
         {

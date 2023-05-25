@@ -7,7 +7,6 @@
     <Product>Zerra Framework Repository</Product>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <LangVersion>8.0</LangVersion>
     <Description>Agnostic repository core library for the Zerra Framework.  Can switch between relational storage, document storage, and event storage without changing domain code.   This library will need a backing such as Zerra.Repository.Sql.MsSql or Zerra.Repository.EventStore.EventStoreDB
 
 Commonly used types:
@@ -32,7 +31,8 @@ Zerra.Repository.ApplyEntityAttribute</Description>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM</PackageTags>
     <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-	<Version>3.7.0</Version>
+    <LangVersion>10.0</LangVersion>
+	<Version>4.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

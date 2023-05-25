@@ -12,7 +12,7 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
-    public partial class AzureServiceBusConsumer : ICommandConsumer, IEventConsumer, IAsyncDisposable
+    public sealed partial class AzureServiceBusConsumer : ICommandConsumer, IEventConsumer, IAsyncDisposable
     {
         private static readonly string applicationName = Config.EntryAssemblyName;
 

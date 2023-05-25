@@ -8,7 +8,7 @@ using System.Collections.Generic;
 
 namespace Zerra.Identity.OpenID.Documents
 {
-    public class OpenIDLogoutResponse : OpenIDDocument
+    public sealed class OpenIDLogoutResponse : OpenIDDocument
     {
         public string ServiceProvider { get; protected set; }
         public string State { get; protected set; }

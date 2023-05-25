@@ -10,7 +10,7 @@ using Zerra.Collections;
 using Zerra.Reflection;
 
 [AttributeUsage(AttributeTargets.Field)]
-public class EnumName : Attribute
+public sealed class EnumName : Attribute
 {
     public string Text { get; set; }
     public EnumName(string text) { this.Text = text; }

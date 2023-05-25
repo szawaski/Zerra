@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace ZerraDemo.Common
 {
-    public class Access
+    public static class Access
     {
         public static void Authorize()
         {

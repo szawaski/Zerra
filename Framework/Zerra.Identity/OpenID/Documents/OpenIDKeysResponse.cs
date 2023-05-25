@@ -11,7 +11,7 @@ using Zerra.Encryption;
 
 namespace Zerra.Identity.OpenID.Documents
 {
-    public class OpenIDKeysResponse : OpenIDDocument
+    public sealed class OpenIDKeysResponse : OpenIDDocument
     {
         public X509Certificate2[] Certs { get; protected set; }
 

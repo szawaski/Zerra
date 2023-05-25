@@ -15,7 +15,7 @@ using Zerra.Reflection;
 
 namespace Zerra
 {
-    public class MapWithLog<TSource, TTarget> : IMapSetup<TSource, TTarget>
+    public sealed class MapWithLog<TSource, TTarget> : IMapSetup<TSource, TTarget>
     {
         private const int maxBuildDepthBeforeCall = 3;
 

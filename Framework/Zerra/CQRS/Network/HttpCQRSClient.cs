@@ -15,7 +15,7 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
-    public class HttpCQRSClient : TcpCQRSClientBase
+    public sealed class HttpCQRSClient : TcpCQRSClientBase
     {
         private readonly ContentType contentType;
         private readonly ICQRSAuthorizer authorizer;

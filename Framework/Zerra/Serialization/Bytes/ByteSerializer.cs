@@ -36,7 +36,7 @@ namespace Zerra.Serialization
     /// <summary>
     /// Converts objects to bytes and back with minimal size and maximum speed.
     /// </summary>
-    public partial class ByteSerializer
+    public sealed partial class ByteSerializer
     {
         private const int defaultBufferSize = 8 * 1024;
 

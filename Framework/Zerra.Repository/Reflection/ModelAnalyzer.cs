@@ -14,7 +14,7 @@ namespace Zerra.Repository.Reflection
 {
     public static class ModelAnalyzer
     {
-        private static readonly ConcurrentFactoryDictionary<Type, ModelDetail> modelInfos = new ConcurrentFactoryDictionary<Type, ModelDetail>();
+        private static readonly ConcurrentFactoryDictionary<Type, ModelDetail> modelInfos = new();
         public static ModelDetail GetModel<TModel>()
         {
             var type = typeof(TModel);
@@ -31,7 +31,7 @@ namespace Zerra.Repository.Reflection
             return modelInfo;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, object> getterFunctionsByAttribute = new ConcurrentFactoryDictionary<TypeKey, object>();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, object> getterFunctionsByAttribute = new();
         private static Func<T, object> GetGetterFunctionByNameOrAttribute<T>(string propertyNames, Type attributeType)
         {
             TypeKey key = default;
@@ -95,7 +95,7 @@ namespace Zerra.Repository.Reflection
             return lambda.Compile();
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, object> setterFunctionsByAttribute = new ConcurrentFactoryDictionary<TypeKey, object>();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, object> setterFunctionsByAttribute = new();
         private static Action<T, object> GetSetterFunctionByNameOrAttribute<T>(string propertyNames, Type attributeType)
         {
             TypeKey key = default;
@@ -168,7 +168,7 @@ namespace Zerra.Repository.Reflection
             return lambda.Compile();
         }
 
-        private static readonly ConcurrentFactoryDictionary<Type, string[]> identityPropertyNames = new ConcurrentFactoryDictionary<Type, string[]>();
+        private static readonly ConcurrentFactoryDictionary<Type, string[]> identityPropertyNames = new();
         public static string[] GetIdentityPropertyNames(Type type)
         {
             var names = identityPropertyNames.GetOrAdd(type, (key) =>

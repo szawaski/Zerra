@@ -12,9 +12,9 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.PostgreSql
 {
-    public class LinqPostgreSqlConverter : BaseLinqSqlConverter
+    public sealed class LinqPostgreSqlConverter : BaseLinqSqlConverter
     {
-        private static readonly LinqPostgreSqlConverter instance = new LinqPostgreSqlConverter();
+        private static readonly LinqPostgreSqlConverter instance = new();
         public static string Convert(QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail)
         {
             return instance.ConvertInternal(select, where, order, skip, take, graph, modelDetail);

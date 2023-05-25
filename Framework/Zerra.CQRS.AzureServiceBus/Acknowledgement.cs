@@ -4,7 +4,7 @@
 
 namespace Zerra.CQRS.AzureServiceBus
 {
-    public class Acknowledgement
+    public sealed class Acknowledgement
     {
         public bool Success { get; set; }
         public string ErrorMessage { get; set; }

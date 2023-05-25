@@ -5,7 +5,7 @@ using System.Net;
 
 namespace Zerra.Identity
 {
-    public class IdentityHttpResponse
+    public sealed class IdentityHttpResponse
     {
         public string RedirectUrl { get; private set; }
         public string ContentType { get; private set; }

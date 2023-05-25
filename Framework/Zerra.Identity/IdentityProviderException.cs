@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.Identity
 {
-    public class IdentityProviderException : Exception
+    public sealed class IdentityProviderException : Exception
     {
         public string DebugMessage { get; private set; }
         public IdentityProviderException(string message, string debugMessage = null) : base(message)

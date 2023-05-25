@@ -5,7 +5,7 @@ using Zerra.Logging;
 
 namespace Zerra.Repository.PostgreSql
 {
-    public class PostgreSqlDataStoreGenerationPlan : IDataStoreGenerationPlan
+    public sealed class PostgreSqlDataStoreGenerationPlan : IDataStoreGenerationPlan
     {
         private readonly PostgreSqlEngine engine;
         private readonly string createDatabaseName;

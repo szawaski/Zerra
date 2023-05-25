@@ -4,7 +4,7 @@
 
 namespace Zerra.CQRS.RabbitMQ
 {
-    public class RabbitMQCommandMessage
+    public sealed class RabbitMQCommandMessage
     {
         public ICommand Message { get; set; }
         public string[][] Claims { get; set; }

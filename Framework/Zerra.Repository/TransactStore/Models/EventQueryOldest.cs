@@ -7,7 +7,7 @@ using System.Linq.Expressions;
 
 namespace Zerra.Repository.Models
 {
-    public class EventQueryOldest<TModel> : Query<TModel> where TModel : class, new()
+    public sealed class EventQueryOldest<TModel> : Query<TModel> where TModel : class, new()
     {
         public EventQueryOldest(DateTime? temporalDateFrom, DateTime? temporalDateTo) : this(temporalDateFrom, temporalDateTo, null, null, null, null, null) { }
         public EventQueryOldest(DateTime? temporalDateFrom, DateTime? temporalDateTo, QueryOrder<TModel> order) : this(temporalDateFrom, temporalDateTo, null, null, null, order, null) { }

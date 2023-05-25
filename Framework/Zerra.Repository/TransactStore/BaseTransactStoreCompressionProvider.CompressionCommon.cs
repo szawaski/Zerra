@@ -93,7 +93,7 @@ namespace Zerra.Repository
                 return gzipStream;
             }
 
-            private static readonly ConcurrentFactoryDictionary<TypeKey, MemberDetail[]> compressableProperties = new ConcurrentFactoryDictionary<TypeKey, MemberDetail[]>();
+            private static readonly ConcurrentFactoryDictionary<TypeKey, MemberDetail[]> compressableProperties = new();
             public static MemberDetail[] GetModelCompressableProperties(Type type, Graph graph)
             {
                 var key = new TypeKey(graph?.Signature, type);

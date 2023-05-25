@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace Zerra.Repository
 {
-    public class Create<TModel> : Persist<TModel> where TModel : class, new()
+    public sealed class Create<TModel> : Persist<TModel> where TModel : class, new()
     {
         public Create(TModel model) : this(null, null, model, null) { }
         public Create(string eventName, TModel model) : this(eventName, null, model, null) { }

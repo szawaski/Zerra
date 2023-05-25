@@ -9,7 +9,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Repository
 {
-    public class EventStoreAggregateAttribute : BaseGenerateAttribute
+    public sealed class EventStoreAggregateAttribute : BaseGenerateAttribute
     {
         private readonly Type aggregateType;
 

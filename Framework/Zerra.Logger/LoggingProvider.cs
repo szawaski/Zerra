@@ -12,7 +12,7 @@ using Zerra.Logging;
 
 namespace Zerra.Logger
 {
-    public class LoggingProvider : ILoggingProvider
+    public sealed class LoggingProvider : ILoggingProvider
     {
         private static readonly string infoFileName = $"{AppDomain.CurrentDomain.FriendlyName}.txt";
         private static readonly string traceFileName = $"{AppDomain.CurrentDomain.FriendlyName}-Verbose.txt";

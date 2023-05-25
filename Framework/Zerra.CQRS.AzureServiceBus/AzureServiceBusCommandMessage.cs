@@ -4,7 +4,7 @@
 
 namespace Zerra.CQRS.AzureServiceBus
 {
-    public class AzureServiceBusCommandMessage
+    public sealed class AzureServiceBusCommandMessage
     {
         public ICommand Message { get; set; }
         public string[][] Claims { get; set; }

@@ -10,7 +10,7 @@ using System.Xml;
 
 namespace Zerra.Identity.Cryptography
 {
-    public class PrefixedSignedXml : SignedXml
+    public sealed class PrefixedSignedXml : SignedXml
     {
         public PrefixedSignedXml(XmlDocument document) : base(document)
         {

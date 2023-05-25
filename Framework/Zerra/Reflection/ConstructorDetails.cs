@@ -9,7 +9,7 @@ using System.Reflection;
 
 namespace Zerra.Reflection
 {
-    public class ConstructorDetails
+    public sealed class ConstructorDetails
     {
         public ConstructorInfo ConstructorInfo { get; private set; }
         public string Name { get; private set; }

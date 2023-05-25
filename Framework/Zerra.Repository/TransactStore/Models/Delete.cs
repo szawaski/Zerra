@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace Zerra.Repository
 {
-    public class Delete<TModel> : Persist<TModel> where TModel : class, new()
+    public sealed class Delete<TModel> : Persist<TModel> where TModel : class, new()
     {
         public Delete(TModel model) : this(null, null, model, null) { }
         public Delete(string eventName, TModel model) : this(eventName, null, model, null) { }

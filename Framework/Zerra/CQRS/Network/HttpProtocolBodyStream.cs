@@ -12,7 +12,7 @@ using Zerra.IO;
 
 namespace Zerra.CQRS.Network
 {
-    public class HttpProtocolBodyStream : StreamTransform
+    public sealed class HttpProtocolBodyStream : StreamTransform
     {
         private static readonly Encoding encoding = Encoding.UTF8;
         private static readonly byte[] newLineBytes = encoding.GetBytes("\r\n");

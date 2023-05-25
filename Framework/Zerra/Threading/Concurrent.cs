@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.Threading
 {
-    public class Concurrent<T>
+    public sealed class Concurrent<T>
     {
         private readonly object locker = new();
 

@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.Encryption
 {
-    public class SymmetricKey
+    public sealed class SymmetricKey
     {
         public byte[] Key { get; private set; }
         public byte[] IV { get; private set; }

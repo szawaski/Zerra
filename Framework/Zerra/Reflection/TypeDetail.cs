@@ -12,7 +12,7 @@ using Zerra.Collections;
 
 namespace Zerra.Reflection
 {
-    public class TypeDetail
+    public sealed class TypeDetail
     {
         private static readonly string nullaleTypeName = typeof(Nullable<>).Name;
         private static readonly string enumberableTypeName = nameof(IEnumerable);

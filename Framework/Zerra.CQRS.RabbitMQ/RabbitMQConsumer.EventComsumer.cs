@@ -14,7 +14,7 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.RabbitMQ
 {
-    public partial class RabbitMQConsumer
+    public sealed partial class RabbitMQConsumer
     {
         private sealed class EventComsumer : IDisposable
         {

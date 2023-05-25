@@ -6,7 +6,7 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
-    public class ExceptionModel
+    public sealed class ExceptionModel
     {
         [SerializerIndex(0)]
         public string Message { get; set; }

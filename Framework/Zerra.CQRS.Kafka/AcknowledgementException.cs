@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.CQRS.Kafka
 {
-    public class AcknowledgementException : Exception
+    public sealed class AcknowledgementException : Exception
     {
         public string Topic { get; private set; }
         public Acknowledgement Acknowledgement { get; private set; }

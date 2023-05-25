@@ -9,7 +9,7 @@ using System.Xml;
 
 namespace Zerra.Identity.Saml2.Documents
 {
-    public class Saml2AuthnResponse : Saml2Document
+    public sealed class Saml2AuthnResponse : Saml2Document
     {
         public string ID { get; protected set; }
         public string Issuer { get; protected set; }

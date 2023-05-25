@@ -14,7 +14,7 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
-    public class TcpRawCQRSClient : TcpCQRSClientBase
+    public sealed class TcpRawCQRSClient : TcpCQRSClientBase
     {
         private readonly ContentType contentType;
         private readonly SymmetricConfig symmetricConfig;

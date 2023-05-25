@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace Zerra.Serialization
 {
-    public partial class ByteSerializer
+    public sealed partial class ByteSerializer
     {
         private struct WriteState
         {

@@ -9,7 +9,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Web
 {
-    public class ZerraLogger : ILogger
+    public sealed class ZerraLogger : ILogger
     {
         public IDisposable BeginScope<TState>(TState state)
         {

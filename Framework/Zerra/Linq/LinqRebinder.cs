@@ -9,7 +9,7 @@ using System.Linq.Expressions;
 
 namespace Zerra.Linq
 {
-    public partial class LinqRebinder
+    public sealed partial class LinqRebinder
     {
         //public static Expression RebindType(Expression exp, Type current, Type replacement, bool evaluateCalls = false)
         //{

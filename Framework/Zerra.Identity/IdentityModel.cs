@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace Zerra.Identity
 {
-    public class IdentityModel
+    public sealed class IdentityModel
     {
         public string UserID { get; set; }
         public string UserName { get; set; }

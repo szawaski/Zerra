@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace Zerra.Identity.Consumers
 {
-    public class LogoutModel
+    public sealed class LogoutModel
     {
         public string ServiceProvider { get; set; }
         public string State { get; set; }

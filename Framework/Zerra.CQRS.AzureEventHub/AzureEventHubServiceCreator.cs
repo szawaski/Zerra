@@ -8,7 +8,7 @@ using Zerra.Encryption;
 
 namespace Zerra.CQRS.AzureEventHub
 {
-    public class AzureEventHubServiceCreator : IServiceCreator
+    public sealed class AzureEventHubServiceCreator : IServiceCreator
     {
         private static readonly ConcurrentFactoryDictionary<string, AzureEventHubConsumer> azureEventHubServers = new();
         private static readonly ConcurrentFactoryDictionary<string, AzureEventHubProducer> azureEventHubClients = new();

@@ -9,7 +9,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
-    public partial class ByteSerializer
+    public sealed partial class ByteSerializer
     {
         private sealed class SerializerTypeDetail
         {

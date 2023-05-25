@@ -6,7 +6,7 @@ namespace Zerra.Repository
 {
     public abstract partial class BaseLinqSqlConverter
     {
-        protected class ParameterDependant
+        protected sealed class ParameterDependant
         {
             public ModelDetail ModelDetail;
             public ModelPropertyDetail ParentMember;

@@ -8,7 +8,7 @@ using System.Net;
 
 namespace Zerra.Identity.OAuth2.Documents
 {
-    public class OAuth2LogoutRequest : OAuth2Document
+    public sealed class OAuth2LogoutRequest : OAuth2Document
     {
         public string ServiceProvider { get; protected set; }
         public string RedirectUrlPostLogout { get; protected set; }

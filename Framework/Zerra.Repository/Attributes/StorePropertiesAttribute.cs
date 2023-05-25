@@ -7,7 +7,7 @@ using System;
 namespace Zerra.Repository
 {
     [AttributeUsage(AttributeTargets.Property)]
-    public class StorePropertiesAttribute : Attribute
+    public sealed class StorePropertiesAttribute : Attribute
     {
         public StoreTextEncoding TextEncoding { get; private set; }
         public StoreDatePart DatePart { get; private set; }

@@ -7,7 +7,7 @@ using System.Linq.Expressions;
 
 namespace Zerra.Repository
 {
-    public class EventQueryMany<TModel> : Query<TModel> where TModel : class, new()
+    public sealed class EventQueryMany<TModel> : Query<TModel> where TModel : class, new()
     {
         public EventQueryMany(DateTime? temporalDateFrom, DateTime? temporalDateTo) : this(null, temporalDateFrom, temporalDateTo, null, null, null, null, null, null, null, null, null) { }
         public EventQueryMany(DateTime? temporalDateFrom, DateTime? temporalDateTo, QueryOrder<TModel> order) : this(null, temporalDateFrom, temporalDateTo, null, null, null, null, null, order, null, null, null) { }

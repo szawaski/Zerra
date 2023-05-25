@@ -16,7 +16,7 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.AzureEventHub
 {
-    public class AzureEventHubProducer : ICommandProducer, IEventProducer, IDisposable
+    public sealed class AzureEventHubProducer : ICommandProducer, IEventProducer, IDisposable
     {
         private bool listenerStarted = false;
 

@@ -4,7 +4,7 @@
 
 namespace Zerra.Encryption
 {
-    public class SymmetricConfig
+    public sealed class SymmetricConfig
     {
         public SymmetricAlgorithmType Algorithm { get; private set; }
         public SymmetricKey Key { get; private set; }

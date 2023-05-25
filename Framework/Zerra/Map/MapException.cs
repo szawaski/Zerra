@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra
 {
-    public class MapException : Exception
+    public sealed class MapException : Exception
     {
         public MapException(string message) : base(message) { }
         public MapException(string message, Exception innerException) : base(message, innerException) { }

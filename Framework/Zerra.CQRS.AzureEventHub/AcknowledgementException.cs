@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.CQRS.AzureEventHub
 {
-    public class AcknowledgementException : Exception
+    public sealed class AcknowledgementException : Exception
     {
         public string Partition { get; private set; }
         public Acknowledgement Acknowledgement { get; private set; }

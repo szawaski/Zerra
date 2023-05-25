@@ -4,7 +4,7 @@
 
 namespace Zerra.Encryption
 {
-    public class AsymmetricKeyPair
+    public sealed class AsymmetricKeyPair
     {
         public string PublicKey { get; private set; }
         public string PrivateKey { get; private set; }

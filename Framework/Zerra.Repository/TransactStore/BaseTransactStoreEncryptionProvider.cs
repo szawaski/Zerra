@@ -452,7 +452,7 @@ namespace Zerra.Repository
             return NextProvider.PersistAsync(persist);
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, MemberDetail[]> encryptableProperties = new ConcurrentFactoryDictionary<TypeKey, MemberDetail[]>();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, MemberDetail[]> encryptableProperties = new();
         public static MemberDetail[] GetEncryptableProperties(Type type, Graph graph)
         {
             var key = new TypeKey(graph?.Signature, type);

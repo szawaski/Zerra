@@ -15,7 +15,7 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.RabbitMQ
 {
-    public class RabbitMQProducer : ICommandProducer, IEventProducer, IDisposable
+    public sealed class RabbitMQProducer : ICommandProducer, IEventProducer, IDisposable
     {
         private readonly string host;
         private readonly SymmetricConfig symmetricConfig;

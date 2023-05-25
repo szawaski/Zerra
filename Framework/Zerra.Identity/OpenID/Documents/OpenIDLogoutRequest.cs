@@ -9,7 +9,7 @@ using System.Net;
 
 namespace Zerra.Identity.OpenID.Documents
 {
-    public class OpenIDLogoutRequest : OpenIDDocument
+    public sealed class OpenIDLogoutRequest : OpenIDDocument
     {
         public string ServiceProvider { get; protected set; }
         public string RedirectUrlPostLogout { get; protected set; }

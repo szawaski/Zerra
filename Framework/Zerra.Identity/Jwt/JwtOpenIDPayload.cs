@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace Zerra.Identity.Jwt
 {
-    public class JwtOpenIDPayload
+    public sealed class JwtOpenIDPayload
     {
         //Standard---------------------------------------
 

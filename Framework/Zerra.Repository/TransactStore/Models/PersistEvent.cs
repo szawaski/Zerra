@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.Repository
 {
-    public class PersistEvent
+    public sealed class PersistEvent
     {
         public Guid ID { get; set; }
         public string Name { get; set; }

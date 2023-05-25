@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace Zerra.Identity.Jwt
 {
-    public class JwtHeader
+    public sealed class JwtHeader
     {
         [JsonProperty(PropertyName = "typ")]
         public string Type { get; set; }

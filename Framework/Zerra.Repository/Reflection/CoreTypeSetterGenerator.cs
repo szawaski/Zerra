@@ -13,7 +13,7 @@ namespace Zerra.Repository.Reflection
 {
     public static class CoreTypeSetterGenerator
     {
-        private static readonly ConcurrentFactoryDictionary<MemberInfo, Type> generatedTypes = new ConcurrentFactoryDictionary<MemberInfo, Type>();
+        private static readonly ConcurrentFactoryDictionary<MemberInfo, Type> generatedTypes = new();
         public static object Get(MemberInfo memberInfo, CoreType? coreType, bool isByteArray)
         {
             var generatedType = generatedTypes.GetOrAdd(memberInfo, (t) =>

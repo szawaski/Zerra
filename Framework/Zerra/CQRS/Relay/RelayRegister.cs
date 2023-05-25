@@ -6,7 +6,7 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS.Relay
 {
-    public class RelayRegister : IRelayRegister
+    public sealed class RelayRegister : IRelayRegister
     {
         private readonly string relayUrl;
         private readonly string relayKey;

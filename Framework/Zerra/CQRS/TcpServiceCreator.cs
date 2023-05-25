@@ -10,7 +10,7 @@ using Zerra.Encryption;
 
 namespace Zerra.CQRS
 {
-    public class TcpServiceCreator : IServiceCreator
+    public sealed class TcpServiceCreator : IServiceCreator
     {
         private static readonly ConcurrentFactoryDictionary<string, TcpRawCQRSServer> servers = new();
 

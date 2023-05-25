@@ -11,7 +11,7 @@ using Zerra.CQRS;
 
 namespace Zerra.Logger
 {
-    public class MessageLoggingProvider : IMessageLogger
+    public sealed class MessageLoggingProvider : IMessageLogger
     {
         private static readonly string fileName = AppDomain.CurrentDomain.FriendlyName + "-Messages.txt";
 

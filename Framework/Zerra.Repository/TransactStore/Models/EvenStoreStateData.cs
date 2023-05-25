@@ -4,7 +4,7 @@
 
 namespace Zerra.Repository
 {
-    public class EvenStoreStateData<TModel> where TModel : class, new()
+    public sealed class EvenStoreStateData<TModel> where TModel : class, new()
     {
         public ulong? Number { get; set; }
         public bool Deleted { get; set; }

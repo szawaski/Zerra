@@ -2,13 +2,11 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0;net6.0</TargetFrameworks>
-    <Company>KaKush LLC</Company>
-    <Authors>Steven Zawaski</Authors>
-    <Product>Zerra Framework Web</Product>
-    <Copyright>KaKush LLC</Copyright>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+      <Authors>Steven Zawaski</Authors>
+      <Copyright>KaKush LLC</Copyright>
+      <Product>Zerra Framework Repository Sql</Product>
+      <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+      <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <Description>Web and AspNetCore specific components for the Zerra Framework.
 
 Commonly used types:
@@ -17,8 +15,8 @@ Zerra.Web.ZerraLogger
 Zerra.Web.CheckBoxList</Description>
     <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
     <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, ASPNET, Web</PackageTags>
-    <Version>3.7.8</Version>
-	<LangVersion>10.0</LangVersion>
+    <LangVersion>10.0</LangVersion>
+    <Version>4.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

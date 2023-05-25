@@ -8,7 +8,7 @@ using System.Collections.Generic;
 
 namespace Zerra.Identity.OAuth2.Documents
 {
-    public class OAuth2LogoutResponse : OAuth2Document
+    public sealed class OAuth2LogoutResponse : OAuth2Document
     {
         public string ServiceProvider { get; protected set; }
         public string State { get; protected set; }

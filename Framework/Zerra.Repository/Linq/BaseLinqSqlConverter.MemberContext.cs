@@ -6,7 +6,7 @@ namespace Zerra.Repository
 {
     public abstract partial class BaseLinqSqlConverter
     {
-        protected class MemberContext
+        protected sealed class MemberContext
         {
             public Dictionary<string, ModelDetail> ModelContexts { get; private set; }
             public Stack<ModelDetail> ModelStack { get; private set; }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Zerra.Repository
 {
-    public class EmptyDataStoreGenerationPlan : IDataStoreGenerationPlan
+    public sealed class EmptyDataStoreGenerationPlan : IDataStoreGenerationPlan
     {
         public ICollection<string> Plan => Array.Empty<string>();
 

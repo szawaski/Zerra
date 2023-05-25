@@ -12,9 +12,9 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.MsSql
 {
-    public class LinqMsSqlConverter : BaseLinqSqlConverter
+    public sealed class LinqMsSqlConverter : BaseLinqSqlConverter
     {
-        private static readonly LinqMsSqlConverter instance = new LinqMsSqlConverter();
+        private static readonly LinqMsSqlConverter instance = new();
         public static string Convert(QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail)
         {
             return instance.ConvertInternal(select, where, order, skip, take, graph, modelDetail);

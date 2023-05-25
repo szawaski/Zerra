@@ -7,7 +7,7 @@ using System.Linq.Expressions;
 
 namespace Zerra.Linq
 {
-    public partial class WhereBuilder<TModel>
+    public sealed partial class WhereBuilder<TModel>
         where TModel : class, new()
     {
         private sealed class ExpressionStackItem

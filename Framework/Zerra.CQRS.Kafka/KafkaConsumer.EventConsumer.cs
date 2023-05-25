@@ -13,9 +13,9 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.Kafka
 {
-    public partial class KafkaConsumer
+    public sealed partial class KafkaConsumer
     {
-        public class EventConsumer : IDisposable
+        public sealed class EventConsumer : IDisposable
         {
             public Type Type { get; private set; }
             public bool IsOpen { get; private set; }

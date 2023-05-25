@@ -5,7 +5,7 @@ using Zerra.Logging;
 
 namespace Zerra.Repository.MsSql
 {
-    public class MsSqlDataStoreGenerationPlan : IDataStoreGenerationPlan
+    public sealed class MsSqlDataStoreGenerationPlan : IDataStoreGenerationPlan
     {
         private readonly MsSqlEngine engine;
         private readonly string createDatabaseName;

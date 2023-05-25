@@ -9,7 +9,7 @@ using System.Reflection;
 
 namespace Zerra.Reflection
 {
-    public class MemberDetail
+    public sealed class MemberDetail
     {
         public MemberDetail BackingFieldDetail { get; private set; }
 

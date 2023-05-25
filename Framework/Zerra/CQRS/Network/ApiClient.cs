@@ -16,7 +16,7 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
-    public class ApiClient : IQueryClient, ICommandProducer
+    public sealed class ApiClient : IQueryClient, ICommandProducer
     {
         private readonly string endpointAddress;
         private readonly ContentType requestContentType;

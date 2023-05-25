@@ -8,7 +8,7 @@ using System;
 
 namespace Zerra.Identity.OpenID.Documents
 {
-    public class OpenIDIdentityResponse : OpenIDDocument
+    public sealed class OpenIDIdentityResponse : OpenIDDocument
     {
         public string ServiceProvider { get; protected set; }
         public string UserID { get; protected set; }

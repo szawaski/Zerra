@@ -9,7 +9,7 @@ using Zerra.CQRS;
 
 namespace Zerra.Web
 {
-    public class KestrelCQRSServerQueryServer : IQueryServer
+    public sealed class KestrelCQRSServerQueryServer : IQueryServer
     {
         private readonly KestrelCQRSServerLinkedSettings settings;
         public KestrelCQRSServerQueryServer(KestrelCQRSServerLinkedSettings settings)

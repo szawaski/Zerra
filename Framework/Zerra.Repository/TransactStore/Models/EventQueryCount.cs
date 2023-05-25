@@ -7,7 +7,7 @@ using System.Linq.Expressions;
 
 namespace Zerra.Repository.Models
 {
-    public class EventQueryCount<TModel> : Query<TModel> where TModel : class, new()
+    public sealed class EventQueryCount<TModel> : Query<TModel> where TModel : class, new()
     {
         public EventQueryCount(DateTime? temporalDateFrom, DateTime? temporalDateTo) : this(temporalDateFrom, temporalDateTo, null, null, null) { }
         public EventQueryCount(DateTime? temporalDateFrom, DateTime? temporalDateTo, QueryOrder<TModel> order) : this(temporalDateFrom, temporalDateTo, null, null, null) { }

@@ -16,7 +16,7 @@ namespace Zerra.Repository
     {
         private static bool isValid = false;
         private static bool validated = false;
-        private static readonly object validatedLock = new object();
+        private static readonly object validatedLock = new();
 
         public bool TryGetEngine<T>(out T engine, out DataStoreGenerationType dataStoreGenerationType) where T : class, IDataStoreEngine
         {
@@ -43,7 +43,7 @@ namespace Zerra.Repository
         }
 
         private static bool initialized = false;
-        private static readonly object initializedLock = new object();
+        private static readonly object initializedLock = new();
         public T InitializeEngine<T>(bool reinitialize = false) where T : class, IDataStoreEngine
         {
             var (engine, dataStoreGenerationType) = GetEngine<T>();

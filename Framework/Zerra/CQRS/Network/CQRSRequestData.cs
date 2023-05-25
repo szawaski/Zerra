@@ -8,7 +8,7 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
-    public class CQRSRequestData
+    public sealed class CQRSRequestData
     {
         public string ProviderType { get; set; }
         public string ProviderMethod { get; set; }
@@ -20,7 +20,7 @@ namespace Zerra.CQRS.Network
 
         public CallDataClaim[] Claims { get; set; }
 
-        public class CallDataClaim
+        public sealed class CallDataClaim
         {
             public string Type { get; set; }
             public string Value { get; set; }

@@ -7,7 +7,6 @@
     <Product>Zerra Framework Repository Sql</Product>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <LangVersion>8.0</LangVersion>
     <Description>MsSql implementation of repository for Zerra Framework. 
 
 Commonly used types:
@@ -16,7 +15,8 @@ Zerra.Repository.MsSql.MsSqlDataContext</Description>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, SQL</PackageTags>
     <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-	<Version>3.0.0</Version>
+    <LangVersion>10.0</LangVersion>
+	<Version>4.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

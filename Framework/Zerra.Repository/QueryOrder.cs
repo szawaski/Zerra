@@ -162,7 +162,7 @@ namespace Zerra.Repository
         }
     }
 
-    public class OrderExpression<TModel> : OrderExpression
+    public sealed class OrderExpression<TModel> : OrderExpression
         where TModel : class, new()
     {
         private OrderExpression(Expression expression, bool descending)

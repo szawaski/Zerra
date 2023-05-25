@@ -8,7 +8,7 @@ using System.Linq;
 namespace Zerra.Repository
 {
     [AttributeUsage(AttributeTargets.Class)]
-    public class EntityAttribute : Attribute
+    public sealed class EntityAttribute : Attribute
     {
         public string StoreName { get; private set; }
         public EntityAttribute(string storeName = null)

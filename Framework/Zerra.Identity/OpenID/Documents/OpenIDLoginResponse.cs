@@ -11,7 +11,7 @@ using System.Linq;
 
 namespace Zerra.Identity.OpenID.Documents
 {
-    public class OpenIDLoginResponse : OpenIDDocument
+    public sealed class OpenIDLoginResponse : OpenIDDocument
     {
         public string AccessCode { get; protected set; }
 

@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.DataProtection;
 
 namespace Zerra.Web
 {
-    public class CookieManager
+    public sealed class CookieManager
     {
         private readonly HttpContext context = null;
         private readonly IDataProtectionProvider dataProtectionProvider = null;

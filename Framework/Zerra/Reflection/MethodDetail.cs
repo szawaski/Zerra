@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Zerra.Reflection
 {
-    public class MethodDetail
+    public sealed class MethodDetail
     {
         public MethodInfo MethodInfo { get; private set; }
         public string Name { get; private set; }

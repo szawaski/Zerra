@@ -2,8 +2,8 @@
 
 namespace Zerra.Mathematics
 {
-    public partial class MathParser
+    public sealed partial class MathParser
     {
-        public class MathParserException : Exception { public MathParserException(string message) : base(message) { } }
+        public sealed class MathParserException : Exception { public MathParserException(string message) : base(message) { } }
     }
 }

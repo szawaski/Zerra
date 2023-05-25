@@ -4,7 +4,7 @@
 
 namespace Zerra.Serialization
 {
-    public partial class ByteSerializer
+    public sealed partial class ByteSerializer
     {
         private enum WriteFrameType : byte
         {

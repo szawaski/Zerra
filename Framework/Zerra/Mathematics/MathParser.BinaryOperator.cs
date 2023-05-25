@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 
 namespace Zerra.Mathematics
 {
-    public partial class MathParser
+    public sealed partial class MathParser
     {
         private sealed class BinaryOperator
         {

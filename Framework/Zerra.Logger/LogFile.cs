@@ -12,7 +12,7 @@ namespace Zerra.Logger
 {
     public static class LogFile
     {
-        private static readonly SemaphoreSlim fileLock = new SemaphoreSlim(1, 1);
+        private static readonly SemaphoreSlim fileLock = new(1, 1);
         public static async Task Log(string fileName, string category, string message)
         {
             if (!String.IsNullOrWhiteSpace(message))

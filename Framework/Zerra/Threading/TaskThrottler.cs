@@ -11,7 +11,7 @@ using Zerra.Collections;
 
 namespace Zerra.Threading
 {
-    public class TaskThrottler : IAsyncDisposable, IDisposable
+    public sealed class TaskThrottler : IAsyncDisposable, IDisposable
     {
         private static readonly int defaultMaxRunningTasks = Environment.ProcessorCount;
 

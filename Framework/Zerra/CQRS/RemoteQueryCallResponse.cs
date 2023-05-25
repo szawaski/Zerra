@@ -6,7 +6,7 @@ using System.IO;
 
 namespace Zerra.CQRS
 {
-    public class RemoteQueryCallResponse
+    public sealed class RemoteQueryCallResponse
     {
         public object Model { get; private set; }
         public Stream Stream { get; private set; }

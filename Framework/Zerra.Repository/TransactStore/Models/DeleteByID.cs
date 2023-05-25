@@ -6,7 +6,7 @@ using System.Collections;
 
 namespace Zerra.Repository
 {
-    public class DeleteByID<TModel> : Persist<TModel> where TModel : class, new()
+    public sealed class DeleteByID<TModel> : Persist<TModel> where TModel : class, new()
     {
         public DeleteByID(object id) : this(null, null, id, null) { }
         public DeleteByID(string eventName, object id) : this(eventName, null, id, null) { }

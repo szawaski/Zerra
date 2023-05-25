@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.Serialization
 {
-    public class SerializerIndexAttribute : Attribute
+    public sealed class SerializerIndexAttribute : Attribute
     {
         public ushort Index { get; private set; }
         public SerializerIndexAttribute(ushort index)

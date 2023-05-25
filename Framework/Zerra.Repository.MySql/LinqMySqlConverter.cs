@@ -12,9 +12,9 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.MySql
 {
-    public class LinqMySqlConverter : BaseLinqSqlConverter
+    public sealed class LinqMySqlConverter : BaseLinqSqlConverter
     {
-        private static readonly LinqMySqlConverter instance = new LinqMySqlConverter();
+        private static readonly LinqMySqlConverter instance = new();
         public static string Convert(QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail)
         {
             return instance.ConvertInternal(select, where, order, skip, take, graph, modelDetail);

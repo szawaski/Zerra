@@ -7,7 +7,7 @@ using System;
 namespace Zerra.CQRS
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
-    public class ServiceExposedAttribute : Attribute
+    public sealed class ServiceExposedAttribute : Attribute
     {
         public ServiceExposedAttribute()
         {

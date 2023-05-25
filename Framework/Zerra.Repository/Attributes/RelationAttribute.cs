@@ -8,7 +8,7 @@ using System.Linq;
 namespace Zerra.Repository
 {
     [AttributeUsage(AttributeTargets.Property)]
-    public class RelationAttribute : Attribute
+    public sealed class RelationAttribute : Attribute
     {
         public string ForeignIdentity { get; private set; }
         public RelationAttribute(string foreignIdentity)

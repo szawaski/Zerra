@@ -11,7 +11,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Repository
 {
-    public class TransactStoreEntityAttribute : BaseGenerateAttribute
+    public sealed class TransactStoreEntityAttribute : BaseGenerateAttribute
     {
         private readonly Type entityType;
         private readonly bool? eventLinking;

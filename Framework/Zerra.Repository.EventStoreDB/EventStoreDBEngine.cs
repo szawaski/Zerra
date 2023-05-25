@@ -11,7 +11,7 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.EventStoreDB
 {
-    public class EventStoreDBEngine : IEventStoreEngine, IDisposable
+    public sealed class EventStoreDBEngine : IEventStoreEngine, IDisposable
     {
         private const int maxPerQuery = 25;
         public static int SaveStateEvery => 100;

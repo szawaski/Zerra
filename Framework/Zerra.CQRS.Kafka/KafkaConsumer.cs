@@ -11,7 +11,7 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.Kafka
 {
-    public partial class KafkaConsumer : ICommandConsumer, IEventConsumer, IDisposable
+    public sealed partial class KafkaConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
         private readonly string host;
         private readonly SymmetricConfig symmetricConfig;

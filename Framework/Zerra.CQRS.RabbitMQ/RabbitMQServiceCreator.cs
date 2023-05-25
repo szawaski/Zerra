@@ -10,8 +10,8 @@ namespace Zerra.CQRS.RabbitMQ
 {
     public class RabbitMQServiceCreator : IServiceCreator
     {
-        private static readonly ConcurrentFactoryDictionary<string, RabbitMQConsumer> rabbitServers = new ConcurrentFactoryDictionary<string, RabbitMQConsumer>();
-        private static readonly ConcurrentFactoryDictionary<string, RabbitMQProducer> rabbitClients = new ConcurrentFactoryDictionary<string, RabbitMQProducer>();
+        private static readonly ConcurrentFactoryDictionary<string, RabbitMQConsumer> rabbitServers = new();
+        private static readonly ConcurrentFactoryDictionary<string, RabbitMQProducer> rabbitClients = new();
 
         private readonly string rabbitHost;
         private readonly IServiceCreator serviceCreatorForQueries;

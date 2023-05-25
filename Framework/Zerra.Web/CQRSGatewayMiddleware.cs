@@ -11,7 +11,7 @@ using Zerra.CQRS.Network;
 
 namespace Zerra.Web
 {
-    public class CQRSGatewayMiddleware
+    public sealed class CQRSGatewayMiddleware
     {
         private readonly RequestDelegate requestDelegate;
         private readonly string route;

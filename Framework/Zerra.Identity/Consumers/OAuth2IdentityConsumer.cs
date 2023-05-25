@@ -11,7 +11,7 @@ using System.Net.Http;
 
 namespace Zerra.Identity.Consumers
 {
-    public class OAuth2IdentityConsumer : IIdentityConsumer
+    public sealed class OAuth2IdentityConsumer : IIdentityConsumer
     {
         private readonly string serviceProvider;
         private readonly string loginUrl;

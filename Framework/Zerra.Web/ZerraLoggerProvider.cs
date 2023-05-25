@@ -8,7 +8,7 @@ using Zerra.Collections;
 
 namespace Zerra.Web
 {
-    public class ZerraLoggerProvider : ILoggerProvider
+    public sealed class ZerraLoggerProvider : ILoggerProvider
     {
         private readonly ConcurrentFactoryDictionary<string, ZerraLogger> loggers = new();
 

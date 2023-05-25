@@ -11,7 +11,7 @@ using System.Threading;
 
 namespace Zerra.Web
 {
-    public class WriteStreamContent : HttpContent
+    public sealed class WriteStreamContent : HttpContent
     {
         private readonly Func<Stream, Task> streamAsyncDelegate;
         private readonly Action<Stream> streamDelegate;

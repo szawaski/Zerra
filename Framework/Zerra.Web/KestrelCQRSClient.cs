@@ -17,7 +17,7 @@ using Zerra.Serialization;
 
 namespace Zerra.Web
 {
-    public class KestrelCQRSClient : CQRSClientBase, IDisposable
+    public sealed class KestrelCQRSClient : CQRSClientBase, IDisposable
     {
         private readonly ContentType contentType;
         private readonly SymmetricConfig symmetricConfig;

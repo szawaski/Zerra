@@ -9,7 +9,7 @@ using Zerra.Collections;
 
 namespace Zerra.Threading
 {
-    public class Locker<T> : IDisposable
+    public sealed class Locker<T> : IDisposable
     {
         private sealed class ItemLocker
         {

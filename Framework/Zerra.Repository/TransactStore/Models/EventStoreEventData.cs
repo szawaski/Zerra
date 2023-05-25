@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.Repository
 {
-    public class EventStoreEventData
+    public sealed class EventStoreEventData
     {
         public Guid EventID { get; set; }
         public string EventName { get; set; }

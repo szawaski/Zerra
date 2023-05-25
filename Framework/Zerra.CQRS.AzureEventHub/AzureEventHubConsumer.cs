@@ -19,7 +19,7 @@ using Zerra.Threading;
 
 namespace Zerra.CQRS.AzureEventHub
 {
-    public class AzureEventHubConsumer : ICommandConsumer, IEventConsumer, IDisposable
+    public sealed class AzureEventHubConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
         private static readonly string requestedConsumerGroup = Config.EntryAssemblyName;
 

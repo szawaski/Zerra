@@ -12,7 +12,7 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.RabbitMQ
 {
-    public partial class RabbitMQConsumer : ICommandConsumer, IEventConsumer, IDisposable
+    public sealed partial class RabbitMQConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
         private const int retryDelay = 10000;
 

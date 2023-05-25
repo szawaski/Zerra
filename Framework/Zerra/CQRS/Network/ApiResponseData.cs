@@ -6,7 +6,7 @@ using System.IO;
 
 namespace Zerra.CQRS.Network
 {
-    public class ApiResponseData
+    public sealed class ApiResponseData
     {
         public byte[] Bytes { get; private set; }
         public Stream Stream { get; private set; }

@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Zerra.Identity.Consumers
 {
-    public class Saml2IdentityConsumer : IIdentityConsumer
+    public sealed class Saml2IdentityConsumer : IIdentityConsumer
     {
         private readonly string serviceProvider;
         private readonly string loginUrl;

@@ -11,7 +11,7 @@ using Zerra.Encryption;
 
 namespace Zerra.Web
 {
-    public class KestrelServiceCreator : IServiceCreator
+    public sealed class KestrelServiceCreator : IServiceCreator
     {
         private readonly IApplicationBuilder applicationBuilder;
         private readonly KestrelCQRSServerLinkedSettings settings;

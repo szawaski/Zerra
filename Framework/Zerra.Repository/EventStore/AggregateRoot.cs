@@ -13,7 +13,7 @@ namespace Zerra.Repository
     public abstract class AggregateRoot
     {
         private static Type typeCache = null;
-        private static readonly object typeCacheLock = new object();
+        private static readonly object typeCacheLock = new();
         private Type GetAggregateType()
         {
             if (typeCache == null)
@@ -30,7 +30,7 @@ namespace Zerra.Repository
         }
 
         private static IEventStoreEngine engineCache = null;
-        private static readonly object engineCacheLock = new object();
+        private static readonly object engineCacheLock = new();
         private IEventStoreEngine GetEngine()
         {
             if (engineCache == null)
@@ -123,7 +123,7 @@ namespace Zerra.Repository
             return true;
         }
 
-        private static readonly ConcurrentFactoryDictionary<Type, MethodDetail> methodCache = new ConcurrentFactoryDictionary<Type, MethodDetail>();
+        private static readonly ConcurrentFactoryDictionary<Type, MethodDetail> methodCache = new();
         private Task ApplyEvent(IEvent @event, Type eventType)
         {
             var methodDetail = methodCache.GetOrAdd(eventType, (t) =>

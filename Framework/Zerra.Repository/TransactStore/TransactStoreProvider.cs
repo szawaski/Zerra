@@ -11,7 +11,7 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
-    public class TransactStoreProvider<TContext, TModel> : RootTransactStoreProvider<TModel>
+    public abstract class TransactStoreProvider<TContext, TModel> : RootTransactStoreProvider<TModel>
         where TContext : DataContext
         where TModel : class, new()
     {

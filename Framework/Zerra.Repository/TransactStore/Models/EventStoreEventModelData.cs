@@ -4,7 +4,7 @@
 
 namespace Zerra.Repository
 {
-    public class EventStoreEventModelData<TModel> where TModel : class, new()
+    public sealed class EventStoreEventModelData<TModel> where TModel : class, new()
     {
         public object Source { get; set; }
         public string SourceType { get; set; }

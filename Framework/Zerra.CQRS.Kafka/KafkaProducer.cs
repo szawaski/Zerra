@@ -15,7 +15,7 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.Kafka
 {
-    public class KafkaProducer : ICommandProducer, IEventProducer, IDisposable
+    public sealed class KafkaProducer : ICommandProducer, IEventProducer, IDisposable
     {
         private bool listenerStarted = false;
         private SemaphoreSlim listenerStartedLock = new(1, 1);

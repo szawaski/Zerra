@@ -10,7 +10,7 @@ using Zerra.CQRS.Network;
 
 namespace Zerra.Web
 {
-    public class KestrelCQRSServerLinkedSettings
+    public sealed class KestrelCQRSServerLinkedSettings
     {
         public List<Type> InterfaceTypes { get; private set; }
         public List<Type> CommandTypes { get; private set; }

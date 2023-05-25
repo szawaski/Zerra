@@ -5,7 +5,7 @@ using Zerra.Logging;
 
 namespace Zerra.Repository.MySql
 {
-    public class MySqlDataStoreGenerationPlan : IDataStoreGenerationPlan
+    public sealed class MySqlDataStoreGenerationPlan : IDataStoreGenerationPlan
     {
         private readonly MySqlEngine engine;
         private readonly string createDatabaseName;

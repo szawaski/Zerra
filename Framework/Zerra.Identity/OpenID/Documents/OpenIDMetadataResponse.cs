@@ -10,7 +10,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Zerra.Identity.OpenID.Documents
 {
-    public class OpenIDMetadataResponse : OpenIDDocument
+    public sealed class OpenIDMetadataResponse : OpenIDDocument
     {
         public string Issuer { get; protected set; }
         public string LoginUrl { get; protected set; }

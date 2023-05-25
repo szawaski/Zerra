@@ -13,9 +13,9 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
-    public partial class AzureServiceBusConsumer
+    public sealed partial class AzureServiceBusConsumer
     {
-        public class CommandConsumer : IDisposable
+        public sealed class CommandConsumer : IDisposable
         {
             public Type Type { get; private set; }
             public bool IsOpen { get; private set; }

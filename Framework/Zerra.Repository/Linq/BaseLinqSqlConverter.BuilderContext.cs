@@ -2,7 +2,7 @@
 {
     public abstract partial class BaseLinqSqlConverter
     {
-        protected class BuilderContext
+        protected sealed class BuilderContext
         {
             public ParameterDependant RootDependant;
 

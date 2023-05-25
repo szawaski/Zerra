@@ -4,7 +4,7 @@
 
 namespace Zerra.Identity.Jwt
 {
-    public class JwtKeys
+    public sealed class JwtKeys
     {
         public JwtKey[] keys { get; set; }
     }

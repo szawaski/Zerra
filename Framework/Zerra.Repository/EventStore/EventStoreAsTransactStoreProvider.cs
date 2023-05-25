@@ -15,7 +15,7 @@ namespace Zerra.Repository
         where TContext : DataContext
         where TModel : class, new()
     {
-        protected virtual ulong SaveStateEvery { get { return 100; } }
+        protected virtual ulong SaveStateEvery => 100;
 
         protected readonly IEventStoreEngine Engine;
 

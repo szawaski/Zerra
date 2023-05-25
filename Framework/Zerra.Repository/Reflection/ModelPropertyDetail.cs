@@ -9,7 +9,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Repository.Reflection
 {
-    public class ModelPropertyDetail
+    public sealed class ModelPropertyDetail
     {
         public MemberInfo MemberInfo { get; private set; }
         public bool IsDataSourceEntity { get; private set; }
