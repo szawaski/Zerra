@@ -954,6 +954,85 @@ namespace Zerra.Test
             Assert.AreEqual(String.Empty, model2.StringThingEmpty);
         }
 
+        public static BasicTypesNotNullable GetBasicTypesNotNullableModel()
+        {
+            var model = new BasicTypesNotNullable()
+            {
+                BooleanThing = true,
+                ByteThing = 1,
+                SByteThing = -2,
+                Int16Thing = -3,
+                UInt16Thing = 4,
+                Int32Thing = -5,
+                UInt32Thing = 6,
+                Int64Thing = -7,
+                UInt64Thing = 8,
+                SingleThing = -9.1f,
+                DoubleThing = -10.2,
+                DecimalThing = -11.3m,
+                CharThing = 'Z',
+                DateTimeThing = DateTime.Now,
+                DateTimeOffsetThing = DateTimeOffset.Now.AddDays(1),
+                TimeSpanThing = DateTime.Now.TimeOfDay,
+                GuidThing = Guid.NewGuid(),
+
+                EnumThing = EnumModel.Item1,
+            };
+            return model;
+        }
+        public static void AssertAreEqual(BasicTypesNotNullable model1, BasicTypesNotNullable model2)
+        {
+            Assert.IsNotNull(model1);
+            Assert.IsNotNull(model2);
+            Assert.AreNotEqual(model1, model2);
+
+            Assert.AreEqual(model1.BooleanThing, model2.BooleanThing);
+            Assert.AreEqual(model1.ByteThing, model2.ByteThing);
+            Assert.AreEqual(model1.SByteThing, model2.SByteThing);
+            Assert.AreEqual(model1.Int16Thing, model2.Int16Thing);
+            Assert.AreEqual(model1.UInt16Thing, model2.UInt16Thing);
+            Assert.AreEqual(model1.Int32Thing, model2.Int32Thing);
+            Assert.AreEqual(model1.UInt32Thing, model2.UInt32Thing);
+            Assert.AreEqual(model1.Int64Thing, model2.Int64Thing);
+            Assert.AreEqual(model1.UInt64Thing, model2.UInt64Thing);
+            Assert.AreEqual(model1.SingleThing, model2.SingleThing);
+            Assert.AreEqual(model1.DoubleThing, model2.DoubleThing);
+            Assert.AreEqual(model1.DecimalThing, model2.DecimalThing);
+            Assert.AreEqual(model1.CharThing, model2.CharThing);
+            Assert.AreEqual(model1.DateTimeThing, model2.DateTimeThing);
+            Assert.AreEqual(model1.DateTimeOffsetThing, model2.DateTimeOffsetThing);
+            Assert.AreEqual(model1.TimeSpanThing, model2.TimeSpanThing);
+            Assert.AreEqual(model1.GuidThing, model2.GuidThing);
+
+            Assert.AreEqual(model1.EnumThing, model2.EnumThing);
+        }
+        public static void AssertAreEqual(BasicTypesNotNullable model1, BasicTypesNullable model2)
+        {
+            Assert.IsNotNull(model1);
+            Assert.IsNotNull(model2);
+            Assert.AreNotEqual(model1, model2);
+
+            Assert.AreEqual(model1.BooleanThing, model2.BooleanThing.Value);
+            Assert.AreEqual(model1.ByteThing, model2.ByteThing.Value);
+            Assert.AreEqual(model1.SByteThing, model2.SByteThing.Value);
+            Assert.AreEqual(model1.Int16Thing, model2.Int16Thing.Value);
+            Assert.AreEqual(model1.UInt16Thing, model2.UInt16Thing.Value);
+            Assert.AreEqual(model1.Int32Thing, model2.Int32Thing.Value);
+            Assert.AreEqual(model1.UInt32Thing, model2.UInt32Thing.Value);
+            Assert.AreEqual(model1.Int64Thing, model2.Int64Thing.Value);
+            Assert.AreEqual(model1.UInt64Thing, model2.UInt64Thing.Value);
+            Assert.AreEqual(model1.SingleThing, model2.SingleThing.Value);
+            Assert.AreEqual(model1.DoubleThing, model2.DoubleThing.Value);
+            Assert.AreEqual(model1.DecimalThing, model2.DecimalThing.Value);
+            Assert.AreEqual(model1.CharThing, model2.CharThing.Value);
+            Assert.AreEqual(model1.DateTimeThing, model2.DateTimeThing.Value);
+            Assert.AreEqual(model1.DateTimeOffsetThing, model2.DateTimeOffsetThing.Value);
+            Assert.AreEqual(model1.TimeSpanThing, model2.TimeSpanThing.Value);
+            Assert.AreEqual(model1.GuidThing, model2.GuidThing.Value);
+
+            Assert.AreEqual(model1.EnumThing, model2.EnumThing.Value);
+        }
+
         public static TestBoxingModel GetBoxingModel()
         {
             var model = new TestBoxingModel()

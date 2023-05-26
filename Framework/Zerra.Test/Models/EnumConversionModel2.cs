@@ -6,6 +6,9 @@ namespace Zerra.Test
 {
     public class EnumConversionModel2
     {
-        public int Thing { get; set; }
+        public int Thing1 { get; set; }
+        public int? Thing2 { get; set; }
+        public int Thing3 { get; set; }
+        public int? Thing4 { get; set; }
     }
 }

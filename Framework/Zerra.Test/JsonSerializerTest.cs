@@ -38,6 +38,19 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void StringConvertNullables()
+        {
+            var baseModel = Factory.GetBasicTypesNotNullableModel();
+            var json1 = JsonSerializer.Serialize(baseModel);
+            var model1 = JsonSerializer.Deserialize<BasicTypesNullable>(json1);
+            Factory.AssertAreEqual(baseModel, model1);
+
+            var json2 = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<BasicTypesNotNullable>(json2);
+            Factory.AssertAreEqual(baseModel, model2);
+        }
+
+        [TestMethod]
         public void StringConvertTypes()
         {
             var baseModel = Factory.GetAllTypesModel();
@@ -180,10 +193,35 @@ namespace Zerra.Test
             //var result1 = JsonSerializer.Deserialize<EnumConversionModel2>(test1);
             //Assert.AreEqual((int)model1.Thing, result1.Thing);
 
-            var model2 = new EnumConversionModel2() { Thing = 3 };
-            var test2 = JsonSerializer.Serialize(model2);
-            var result2 = JsonSerializer.Deserialize<EnumConversionModel1>(test2);
-            Assert.AreEqual(model2.Thing, (int)result2.Thing);
+            var model2 = new EnumConversionModel2()
+            {
+                Thing1 = 1,
+                Thing2 = 2,
+                Thing3 = 3,
+                Thing4 = 4
+            };
+
+            var json2 = JsonSerializer.Serialize(model2);
+            var result2 = JsonSerializer.Deserialize<EnumConversionModel1>(json2);
+            Assert.AreEqual(model2.Thing1, (int)result2.Thing1);
+            Assert.AreEqual(model2.Thing2, (int?)result2.Thing2);
+            Assert.AreEqual(model2.Thing3, (int)result2.Thing3);
+            Assert.AreEqual(model2.Thing4, (int?)result2.Thing4);
+
+            var model3 = new EnumConversionModel2()
+            {
+                Thing1 = 1,
+                Thing2 = null,
+                Thing3 = 3,
+                Thing4 = null
+            };
+
+            var json3 = JsonSerializer.Serialize(model3);
+            var result3 = JsonSerializer.Deserialize<EnumConversionModel1>(json3);
+            Assert.AreEqual(model3.Thing1, (int)result3.Thing1);
+            Assert.AreEqual(default, result3.Thing2);
+            Assert.AreEqual(model3.Thing3, (int)result3.Thing3);
+            Assert.AreEqual(model3.Thing4, (int?)result3.Thing4);
         }
 
         [TestMethod]
@@ -564,6 +602,15 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void StringEmptyModel()
+        {
+            var baseModel = Factory.GetAllTypesModel();
+            var json = JsonSerializer.Serialize(baseModel);
+            var model = JsonSerializer.Deserialize<EmptyModel>(json);
+            Assert.IsNotNull(model);
+        }
+
+        [TestMethod]
         public async Task StreamMatchesStandards()
         {
             var baseModel = Factory.GetAllTypesModel();
@@ -594,6 +641,26 @@ namespace Zerra.Test
             stream.Position = 0;
             var model = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream);
             Factory.AssertAreEqual(baseModel, model);
+        }
+
+        [TestMethod]
+        public async Task StreamConvertNullables()
+        {
+            var baseModel = Factory.GetBasicTypesNotNullableModel();
+
+            using var stream1 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream1, baseModel);
+
+            stream1.Position = 0;
+            var model1 = await JsonSerializer.DeserializeAsync<BasicTypesNullable>(stream1);
+            Factory.AssertAreEqual(baseModel, model1);
+
+            using var stream2 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream2, model1);
+
+            stream2.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<BasicTypesNotNullable>(stream2);
+            Factory.AssertAreEqual(baseModel, model2);
         }
 
         [TestMethod]
@@ -781,13 +848,39 @@ namespace Zerra.Test
             //var result1 = JsonSerializer.Deserialize<EnumConversionModel2>(test1);
             //Assert.AreEqual((int)model1.Thing, result1.Thing);
 
-            var model2 = new EnumConversionModel2() { Thing = 3 };
+            var model2 = new EnumConversionModel2()
+            {
+                Thing1 = 1,
+                Thing2 = 2,
+                Thing3 = 3,
+                Thing4 = 4
+            };
 
-            using var stream = new MemoryStream();
-            await JsonSerializer.SerializeAsync(stream, model2);
-            stream.Position = 0;
-            var result2 = await JsonSerializer.DeserializeAsync<EnumConversionModel1>(stream);
-            Assert.AreEqual(model2.Thing, (int)result2.Thing);
+            using var stream2 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream2, model2);
+            stream2.Position = 0;
+            var result2 = await JsonSerializer.DeserializeAsync<EnumConversionModel1>(stream2);
+            Assert.AreEqual(model2.Thing1, (int)result2.Thing1);
+            Assert.AreEqual(model2.Thing2, (int?)result2.Thing2);
+            Assert.AreEqual(model2.Thing3, (int)result2.Thing3);
+            Assert.AreEqual(model2.Thing4, (int?)result2.Thing4);
+
+            var model3 = new EnumConversionModel2()
+            {
+                Thing1 = 1,
+                Thing2 = null,
+                Thing3 = 3,
+                Thing4 = null
+            };
+
+            using var stream3 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream3, model3);
+            stream3.Position = 0;
+            var result3 = await JsonSerializer.DeserializeAsync<EnumConversionModel1>(stream3);
+            Assert.AreEqual(model3.Thing1, (int)result3.Thing1);
+            Assert.AreEqual(default, result3.Thing2);
+            Assert.AreEqual(model3.Thing3, (int)result3.Thing3);
+            Assert.AreEqual(model3.Thing4, (int?)result3.Thing4);
         }
 
         [TestMethod]
@@ -1201,6 +1294,19 @@ namespace Zerra.Test
 
             Assert.AreEqual(5, model2.Property1);
             Assert.AreEqual(6, model2.Property2);
+        }
+
+        [TestMethod]
+        public async Task StreamEmptyModel()
+        {
+            var baseModel = Factory.GetAllTypesModel();
+
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, baseModel);
+
+            stream.Position = 0;
+            var model = await JsonSerializer.DeserializeAsync<EmptyModel>(stream);
+            Assert.IsNotNull(model);
         }
     }
 }

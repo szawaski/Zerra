@@ -780,7 +780,7 @@ namespace Zerra.Serialization
             var typeDetail = state.CurrentFrame.TypeDetail;
             var graph = state.CurrentFrame.Graph;
 
-            if (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable)
+            if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 typeDetail = TypeAnalyzer.GetTypeDetail(emptyImplementationType);
@@ -795,7 +795,7 @@ namespace Zerra.Serialization
                     return;
 
                 case '{':
-                    if (typeDetail.SpecialType == SpecialType.Dictionary)
+                    if (typeDetail != null && typeDetail.SpecialType == SpecialType.Dictionary)
                         state.CurrentFrame.FrameType = ReadFrameType.Dictionary;
                     else
                         state.CurrentFrame.FrameType = ReadFrameType.Object;
@@ -818,8 +818,6 @@ namespace Zerra.Serialization
                         throw reader.CreateException("Expected number/true/false/null");
                     if (typeDetail != null && typeDetail.CoreType.HasValue)
                         state.CurrentFrame.ResultObject = ConvertNullToType(typeDetail.CoreType.Value);
-                    //else
-                    //    state.CurrentFrame.ResultObject = null;
                     state.EndFrame();
                     return;
 
@@ -831,7 +829,8 @@ namespace Zerra.Serialization
                     }
                     if (s[0] != 'r' || s[1] != 'u' || s[2] != 'e')
                         throw reader.CreateException("Expected number/true/false/null");
-                    state.CurrentFrame.ResultObject = ConvertTrueToType(typeDetail.CoreType.Value);
+                    if (typeDetail != null && typeDetail.CoreType.HasValue)
+                        state.CurrentFrame.ResultObject = ConvertTrueToType(typeDetail.CoreType.Value);
                     state.EndFrame();
                     return;
 
@@ -843,7 +842,8 @@ namespace Zerra.Serialization
                     }
                     if (s[0] != 'a' || s[1] != 'l' || s[2] != 's' || s[3] != 'e')
                         throw reader.CreateException("Expected number/true/false/null");
-                    state.CurrentFrame.ResultObject = ConvertFalseToType(typeDetail.CoreType.Value); ;
+                    if (typeDetail != null && typeDetail.CoreType.HasValue)
+                        state.CurrentFrame.ResultObject = ConvertFalseToType(typeDetail.CoreType.Value);
                     state.EndFrame();
                     return;
 
@@ -861,7 +861,8 @@ namespace Zerra.Serialization
 
             if (state.CurrentFrame.State == 0)
             {
-                state.CurrentFrame.ResultObject = typeDetail.Creator();
+                if (typeDetail != null)
+                    state.CurrentFrame.ResultObject = typeDetail.Creator();
                 state.CurrentFrame.State = 1;
             }
 
@@ -900,7 +901,7 @@ namespace Zerra.Serialization
                         var propertyName = state.LastFrameResultString;
 
                         Graph propertyGraph = null;
-                        if (typeDetail.TryGetMemberCaseInsensitive(propertyName, out var memberDetail))
+                        if (typeDetail != null && typeDetail.TryGetMemberCaseInsensitive(propertyName, out var memberDetail))
                         {
                             state.CurrentFrame.ObjectProperty = memberDetail;
                             propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name);
@@ -911,8 +912,12 @@ namespace Zerra.Serialization
                         return;
 
                     case 3: //property value
-                        if (state.CurrentFrame.ObjectProperty != null)
-                        {
+                        if (state.CurrentFrame.ObjectProperty != null && state.LastFrameResultObject != null)
+                        {                                    
+                            //special case nullable enum
+                            if (state.CurrentFrame.ObjectProperty.TypeDetail.IsNullable && state.CurrentFrame.ObjectProperty.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
+                                state.LastFrameResultObject = Enum.ToObject(state.CurrentFrame.ObjectProperty.TypeDetail.InnerTypeDetails[0].Type, state.LastFrameResultObject);
+
                             if (state.CurrentFrame.Graph != null)
                             {
                                 if (state.CurrentFrame.ObjectProperty.TypeDetail.IsGraphLocalProperty)
@@ -1208,12 +1213,12 @@ namespace Zerra.Serialization
 
                     case 2: //array value
 
-                        if (state.CurrentFrame.ResultObject != null)
+                        if (state.CurrentFrame.ResultObject != null && state.LastFrameResultObject != null)
                         {
                             memberDetail = typeDetail != null && state.CurrentFrame.PropertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
                                 ? typeDetail.SerializableMemberDetails[state.CurrentFrame.PropertyIndexForNameless]
                                 : null;
-                            if (memberDetail != null && state.LastFrameResultObject != null)
+                            if (memberDetail != null)
                             {
                                 var propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name);
                                 if (memberDetail.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)
@@ -1231,7 +1236,11 @@ namespace Zerra.Serialization
                                     memberDetail.Setter(state.CurrentFrame.ResultObject, dictionary);
                                 }
                                 else
-                                {
+                                {   
+                                    //special case nullable enum
+                                    if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
+                                        state.LastFrameResultObject = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetails[0].Type, state.LastFrameResultObject);
+
                                     if (state.CurrentFrame.Graph != null)
                                     {
                                         if (memberDetail.TypeDetail.IsGraphLocalProperty)

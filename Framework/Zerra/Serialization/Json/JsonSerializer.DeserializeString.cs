@@ -248,7 +248,7 @@ namespace Zerra.Serialization
                     var value = FromStringString(ref reader, ref decodeBuffer);
                     return ConvertStringToType(value, typeDetail);
                 case '{':
-                    if (typeDetail.SpecialType == SpecialType.Dictionary)
+                    if (typeDetail != null && typeDetail.SpecialType == SpecialType.Dictionary)
                         return FromStringJsonDictionary(ref reader, ref decodeBuffer, typeDetail, graph, nameless);
                     else
                         return FromStringJsonObject(ref reader, ref decodeBuffer, typeDetail, graph, nameless);
@@ -288,6 +288,10 @@ namespace Zerra.Serialization
                                 var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail.TypeDetail, propertyGraph, nameless);
                                 if (value != null)
                                 {
+                                    //special case nullable enum
+                                    if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
+                                        value = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetails[0].Type, value);
+
                                     if (graph != null)
                                     {
                                         if (memberDetail.TypeDetail.IsGraphLocalProperty)
@@ -522,7 +526,11 @@ namespace Zerra.Serialization
                                 else
                                 {
                                     if (value != null)
-                                    {
+                                    {            
+                                        //special case nullable enum
+                                        if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
+                                            value = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetails[0].Type, value);
+
                                         if (graph != null)
                                         {
                                             if (memberDetail.TypeDetail.IsGraphLocalProperty)
