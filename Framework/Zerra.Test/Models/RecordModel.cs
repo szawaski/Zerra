@@ -4,5 +4,9 @@
 
 namespace Zerra.Test
 {
-    public record RecordModel(bool Property1, int Property2, string Property3);
+    public record RecordModel(bool Property1)
+    {
+        public int Property2 { get; init; }
+        public string Property3 { get; init; }
+    }
 }
