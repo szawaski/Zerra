@@ -231,6 +231,9 @@ namespace Zerra.Serialization
             var firstProperty = true;
             foreach (var member in typeDetail.SerializableMemberDetails)
             {
+                if (member.Getter == null)
+                    continue;
+
                 if (graph != null)
                 {
                     if (member.TypeDetail.IsGraphLocalProperty)
@@ -369,6 +372,9 @@ namespace Zerra.Serialization
                         var firstProperty = true;
                         foreach (var member in typeDetail.SerializableMemberDetails)
                         {
+                            if (member.Getter == null)
+                                continue;
+
                             if (graph != null)
                             {
                                 if (member.TypeDetail.IsGraphLocalProperty)

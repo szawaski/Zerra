@@ -956,6 +956,8 @@ namespace Zerra.Serialization
                             state.CurrentFrame.State = 7;
                             break;
                         }
+                        if (state.CurrentFrame.MemberEnumerator.Current.Getter == null)
+                            break;
                         if (state.CurrentFrame.EnumeratorPassedFirstProperty)
                         {
                             state.CurrentFrame.State = 2;
@@ -2083,6 +2085,9 @@ namespace Zerra.Serialization
                     }
                     else
                     {
+                        if (state.CurrentFrame.MemberEnumerator.Current.Getter == null)
+                            goto nextprop;
+
                         var graph = state.CurrentFrame.Graph;
                         var member = state.CurrentFrame.MemberEnumerator.Current;
                         if (graph != null)

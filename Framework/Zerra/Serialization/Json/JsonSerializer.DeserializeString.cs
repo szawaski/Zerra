@@ -264,7 +264,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object FromStringJsonObject(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph graph, bool nameless)
         {
-            var obj = typeDetail?.Creator();
+            var obj = typeDetail != null && typeDetail.Creator != null ? typeDetail.Creator() : null;
             var canExpectComma = false;
             while (reader.TryReadSkipWhiteSpace(out var c))
             {
@@ -286,7 +286,7 @@ namespace Zerra.Serialization
                             {
                                 var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
                                 var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail.TypeDetail, propertyGraph, nameless);
-                                if (value != null)
+                                if (value != null && memberDetail.Setter != null)
                                 {
                                     //special case nullable enum
                                     if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
@@ -339,7 +339,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object FromStringJsonDictionary(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph graph, bool nameless)
         {
-            var obj = typeDetail?.Creator();
+            var obj = typeDetail != null && typeDetail.Creator != null ? typeDetail.Creator() : null;
             object[] addMethodArgs = new object[2];
             var method = typeDetail.GetMethod("Add");
             var canExpectComma = false;
@@ -482,7 +482,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object FromStringJsonArrayNameless(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph graph)
         {
-            var obj = typeDetail?.Creator();
+            var obj = typeDetail != null && typeDetail.Creator != null ? typeDetail.Creator() : null;
             var canExpectComma = false;
             var propertyIndexForNameless = 0;
             while (reader.TryReadSkipWhiteSpace(out var c))
@@ -505,7 +505,7 @@ namespace Zerra.Serialization
                             var memberDetail = typeDetail != null && propertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
                                 ? typeDetail.SerializableMemberDetails[propertyIndexForNameless++]
                                 : null;
-                            if (memberDetail != null)
+                            if (memberDetail != null && memberDetail.Setter != null)
                             {
                                 var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
                                 var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail?.TypeDetail, propertyGraph, true);

@@ -611,6 +611,19 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void StringGetsSets()
+        {
+            var baseModel = new GetsSetsModel(1, 2);
+            var baseModelJson = baseModel.ToJsonString();
+            var typeDetail = Zerra.Reflection.TypeAnalyzer.GetTypeDetail(typeof(GetsSetsModel));
+
+            var json = JsonSerializer.Serialize(baseModel);
+
+            var model = JsonSerializer.Deserialize<GetsSetsModel>(baseModelJson);
+            Assert.IsNotNull(model);           
+        }
+
+        [TestMethod]
         public async Task StreamMatchesStandards()
         {
             var baseModel = Factory.GetAllTypesModel();
@@ -1306,6 +1319,21 @@ namespace Zerra.Test
 
             stream.Position = 0;
             var model = await JsonSerializer.DeserializeAsync<EmptyModel>(stream);
+            Assert.IsNotNull(model);
+        }
+
+        [TestMethod]
+        public async Task StreamGetsSets()
+        {
+            var baseModel = new GetsSetsModel(1, 2);
+            var baseModelJson = baseModel.ToJsonString();
+            var typeDetail = Zerra.Reflection.TypeAnalyzer.GetTypeDetail(typeof(GetsSetsModel));
+
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, baseModel);
+
+            stream.Position = 0;
+            var model = await JsonSerializer.DeserializeAsync<GetsSetsModel>(stream);
             Assert.IsNotNull(model);
         }
     }

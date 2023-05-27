@@ -912,7 +912,7 @@ namespace Zerra.Serialization
                         return;
 
                     case 3: //property value
-                        if (state.CurrentFrame.ObjectProperty != null && state.LastFrameResultObject != null)
+                        if (state.CurrentFrame.ObjectProperty != null && state.LastFrameResultObject != null && state.CurrentFrame.ObjectProperty.Setter != null)
                         {                                    
                             //special case nullable enum
                             if (state.CurrentFrame.ObjectProperty.TypeDetail.IsNullable && state.CurrentFrame.ObjectProperty.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
@@ -1180,7 +1180,7 @@ namespace Zerra.Serialization
 
             if (state.CurrentFrame.State == 0)
             {
-                state.CurrentFrame.ResultObject = typeDetail?.Creator();
+                state.CurrentFrame.ResultObject = typeDetail != null && typeDetail.Creator != null ? typeDetail.Creator() : null;
                 state.CurrentFrame.State = 1;
             }
 
@@ -1218,7 +1218,7 @@ namespace Zerra.Serialization
                             memberDetail = typeDetail != null && state.CurrentFrame.PropertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
                                 ? typeDetail.SerializableMemberDetails[state.CurrentFrame.PropertyIndexForNameless]
                                 : null;
-                            if (memberDetail != null)
+                            if (memberDetail != null && memberDetail.Setter != null)
                             {
                                 var propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name);
                                 if (memberDetail.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)
