@@ -620,7 +620,20 @@ namespace Zerra.Test
             var json = JsonSerializer.Serialize(baseModel);
 
             var model = JsonSerializer.Deserialize<GetsSetsModel>(baseModelJson);
-            Assert.IsNotNull(model);           
+            Assert.IsNotNull(model);
+        }
+
+        [TestMethod]
+        public void StringRecord()
+        {
+            return; //TODO
+            var baseModel = new RecordModel(true, 42, "moo");
+            var json = JsonSerializer.Serialize(baseModel);
+            var model = JsonSerializer.Deserialize<RecordModel>(json);
+            Assert.IsNotNull(model);
+            Assert.AreEqual(baseModel.Property1, model.Property1);
+            Assert.AreEqual(baseModel.Property2, model.Property2);
+            Assert.AreEqual(baseModel.Property3, model.Property3);
         }
 
         [TestMethod]
@@ -1335,6 +1348,23 @@ namespace Zerra.Test
             stream.Position = 0;
             var model = await JsonSerializer.DeserializeAsync<GetsSetsModel>(stream);
             Assert.IsNotNull(model);
+        }
+
+        [TestMethod]
+        public async Task StreamRecord()
+        {
+            return; //TODO
+            var baseModel = new RecordModel(true, 42, "moo");
+
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, baseModel);
+
+            stream.Position = 0;
+            var model = await JsonSerializer.DeserializeAsync<RecordModel>(stream);
+            Assert.IsNotNull(model);
+            Assert.AreEqual(baseModel.Property1, model.Property1);
+            Assert.AreEqual(baseModel.Property2, model.Property2);
+            Assert.AreEqual(baseModel.Property3, model.Property3);
         }
     }
 }

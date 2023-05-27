@@ -771,10 +771,15 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadValue(ref CharReader reader, ref ReadState state)
         {
-            if (!reader.TryReadSkipWhiteSpace(out var c))
+            if (state.CurrentFrame.State == 0)
             {
-                state.CharsNeeded = 1;
-                return;
+                if (!reader.TryReadSkipWhiteSpace(out var c))
+                {
+                    state.CharsNeeded = 1;
+                    return;
+                }
+                state.CurrentFrame.State = 1;
+                state.CurrentFrame.FirstLiteralChar = c;
             }
 
             var typeDetail = state.CurrentFrame.TypeDetail;
@@ -787,14 +792,16 @@ namespace Zerra.Serialization
                 state.CurrentFrame.TypeDetail = typeDetail;
             }
 
-            switch (c)
+            switch (state.CurrentFrame.FirstLiteralChar)
             {
                 case '"':
+                    state.CurrentFrame.State = 0;
                     state.CurrentFrame.FrameType = ReadFrameType.StringToType;
                     state.PushFrame(new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.String, Graph = graph });
                     return;
 
                 case '{':
+                    state.CurrentFrame.State = 0;
                     if (typeDetail != null && typeDetail.SpecialType == SpecialType.Dictionary)
                         state.CurrentFrame.FrameType = ReadFrameType.Dictionary;
                     else
@@ -802,6 +809,7 @@ namespace Zerra.Serialization
                     return;
 
                 case '[':
+                    state.CurrentFrame.State = 0;
                     if (!state.Nameless || (typeDetail != null && typeDetail.IsIEnumerableGeneric))
                         state.CurrentFrame.FrameType = ReadFrameType.Array;
                     else
@@ -814,6 +822,7 @@ namespace Zerra.Serialization
                         state.CharsNeeded = 3;
                         return;
                     }
+                    state.CurrentFrame.State = 0;
                     if (s[0] != 'u' || s[1] != 'l' || s[2] != 'l')
                         throw reader.CreateException("Expected number/true/false/null");
                     if (typeDetail != null && typeDetail.CoreType.HasValue)
@@ -827,6 +836,7 @@ namespace Zerra.Serialization
                         state.CharsNeeded = 3;
                         return;
                     }
+                    state.CurrentFrame.State = 0;
                     if (s[0] != 'r' || s[1] != 'u' || s[2] != 'e')
                         throw reader.CreateException("Expected number/true/false/null");
                     if (typeDetail != null && typeDetail.CoreType.HasValue)
@@ -840,6 +850,7 @@ namespace Zerra.Serialization
                         state.CharsNeeded = 4;
                         return;
                     }
+                    state.CurrentFrame.State = 0;
                     if (s[0] != 'a' || s[1] != 'l' || s[2] != 's' || s[3] != 'e')
                         throw reader.CreateException("Expected number/true/false/null");
                     if (typeDetail != null && typeDetail.CoreType.HasValue)
@@ -848,7 +859,7 @@ namespace Zerra.Serialization
                     return;
 
                 default:
-                    state.CurrentFrame.FirstLiteralChar = c;
+                    state.CurrentFrame.State = 0;
                     state.CurrentFrame.FrameType = ReadFrameType.LiteralNumber;
                     return;
             }
@@ -912,7 +923,7 @@ namespace Zerra.Serialization
                         return;
 
                     case 3: //property value
-                        if (state.CurrentFrame.ObjectProperty != null && state.LastFrameResultObject != null && state.CurrentFrame.ObjectProperty.Setter != null)
+                        if (state.CurrentFrame.ObjectProperty != null && state.CurrentFrame.ResultObject != null && state.LastFrameResultObject != null && state.CurrentFrame.ObjectProperty.Setter != null)
                         {                                    
                             //special case nullable enum
                             if (state.CurrentFrame.ObjectProperty.TypeDetail.IsNullable && state.CurrentFrame.ObjectProperty.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
