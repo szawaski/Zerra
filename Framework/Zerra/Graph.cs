@@ -342,11 +342,11 @@ namespace Zerra
 
         public bool HasLocalProperty(string name)
         {
-            return (this.includeAllProperties && !this.removedProperties.Contains(name)) || this.properties.Contains(name);
+            return !this.removedProperties.Contains(name) && (this.includeAllProperties || this.properties.Contains(name));
         }
         public bool HasProperty(string name)
         {
-            return (this.includeAllProperties && !this.removedProperties.Contains(name)) || this.properties.Contains(name) || childGraphs.ContainsKey(name);
+            return !this.removedProperties.Contains(name) && (this.includeAllProperties || this.properties.Contains(name) || childGraphs.ContainsKey(name));
         }
         public bool HasChildGraph(string name)
         {
