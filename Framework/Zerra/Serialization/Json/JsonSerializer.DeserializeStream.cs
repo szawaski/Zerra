@@ -872,8 +872,7 @@ namespace Zerra.Serialization
 
             if (state.CurrentFrame.State == 0)
             {
-                if (typeDetail != null)
-                    state.CurrentFrame.ResultObject = typeDetail.Creator();
+                state.CurrentFrame.ResultObject = typeDetail != null && typeDetail.Creator != null ? typeDetail.Creator() : null;
                 state.CurrentFrame.State = 1;
             }
 
@@ -924,7 +923,7 @@ namespace Zerra.Serialization
 
                     case 3: //property value
                         if (state.CurrentFrame.ObjectProperty != null && state.CurrentFrame.ResultObject != null && state.LastFrameResultObject != null && state.CurrentFrame.ObjectProperty.Setter != null)
-                        {                                    
+                        {
                             //special case nullable enum
                             if (state.CurrentFrame.ObjectProperty.TypeDetail.IsNullable && state.CurrentFrame.ObjectProperty.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
                                 state.LastFrameResultObject = Enum.ToObject(state.CurrentFrame.ObjectProperty.TypeDetail.InnerTypeDetails[0].Type, state.LastFrameResultObject);
@@ -1247,7 +1246,7 @@ namespace Zerra.Serialization
                                     memberDetail.Setter(state.CurrentFrame.ResultObject, dictionary);
                                 }
                                 else
-                                {   
+                                {
                                     //special case nullable enum
                                     if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
                                         state.LastFrameResultObject = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetails[0].Type, state.LastFrameResultObject);
