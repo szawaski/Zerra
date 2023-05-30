@@ -916,6 +916,10 @@ namespace Zerra.Serialization
                             state.CurrentFrame.ObjectProperty = memberDetail;
                             propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name);
                         }
+                        else
+                        {
+                            state.CurrentFrame.ObjectProperty = null;
+                        }
 
                         state.CurrentFrame.State = 3;
                         state.PushFrame(new ReadFrame() { TypeDetail = state.CurrentFrame.ObjectProperty?.TypeDetail, FrameType = ReadFrameType.Value, Graph = propertyGraph });
