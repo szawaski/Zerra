@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net5.0</TargetFrameworks>
+    <TargetFrameworks>net5.0;net6.0;net7.0</TargetFrameworks>
     <Authors>Steven Zawaski</Authors>
     <Copyright>KaKush LLC</Copyright>
     <Product>Zerra Framework Repository Event Store</Product>
@@ -17,7 +17,7 @@ Zerra.Repository.EventStore.EventStoreDB.EventStoreDBProvider</Description>
     <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, EventStore</PackageTags>
     <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
     <LangVersion>10.0</LangVersion>
-    <Version>4.0.0</Version>
+    <Version>4.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
