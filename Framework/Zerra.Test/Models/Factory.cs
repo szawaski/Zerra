@@ -167,6 +167,57 @@ namespace Zerra.Test
             Assert.AreEqual(model1.GuidThingNullable?.ToString(), model2.GuidThingNullable);
         }
 
+        public static CoreTypesAlternatingModel GetCoreTypesAlternatingModel()
+        {
+            var model = new CoreTypesAlternatingModel()
+            {
+                BooleanThing = true,
+                SByteThing = -2,
+                UInt16Thing = 4,
+                UInt32Thing = 6,
+                UInt64Thing = 8,
+                DoubleThing = -10.2,
+                CharThing = 'Z',
+                DateTimeOffsetThing = DateTimeOffset.Now.AddDays(1),
+                GuidThing = Guid.NewGuid(),
+
+                ByteThingNullable = 11,
+                Int16ThingNullable = -13,
+                Int32ThingNullable = -15,
+                Int64ThingNullable = -17,
+                SingleThingNullable = -19.1f,
+                DecimalThingNullable = -111.3m,
+                DateTimeThingNullable = DateTime.Now.AddMonths(1),
+                TimeSpanThingNullable = DateTime.Now.AddHours(1).TimeOfDay,
+            };
+            return model;
+        }
+        public static void AssertAreEqual(CoreTypesAlternatingModel model1, CoreTypesModel model2)
+        {
+            Assert.IsNotNull(model1);
+            Assert.IsNotNull(model2);
+            Assert.AreNotEqual(model1, model2);
+
+            Assert.AreEqual(model1.BooleanThing, model2.BooleanThing);
+            Assert.AreEqual(model1.SByteThing, model2.SByteThing);
+            Assert.AreEqual(model1.UInt16Thing, model2.UInt16Thing);
+            Assert.AreEqual(model1.UInt32Thing, model2.UInt32Thing);
+            Assert.AreEqual(model1.UInt64Thing, model2.UInt64Thing);
+            Assert.AreEqual(model1.DoubleThing, model2.DoubleThing);
+            Assert.AreEqual(model1.CharThing, model2.CharThing);
+            Assert.AreEqual(model1.DateTimeOffsetThing, model2.DateTimeOffsetThing);
+            Assert.AreEqual(model1.GuidThing, model2.GuidThing);
+
+            Assert.AreEqual(model1.ByteThingNullable, model2.ByteThingNullable);
+            Assert.AreEqual(model1.Int16ThingNullable, model2.Int16ThingNullable);
+            Assert.AreEqual(model1.Int32ThingNullable, model2.Int32ThingNullable);
+            Assert.AreEqual(model1.Int64ThingNullable, model2.Int64ThingNullable);
+            Assert.AreEqual(model1.SingleThingNullable, model2.SingleThingNullable);
+            Assert.AreEqual(model1.DecimalThingNullable, model2.DecimalThingNullable);
+            Assert.AreEqual(model1.DateTimeThingNullable, model2.DateTimeThingNullable);
+            Assert.AreEqual(model1.TimeSpanThingNullable, model2.TimeSpanThingNullable);
+        }
+
         public static AllTypesModel GetAllTypesModel()
         {
             var model = new AllTypesModel()

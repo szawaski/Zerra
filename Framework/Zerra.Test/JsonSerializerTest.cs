@@ -624,6 +624,20 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void StringReducedModel()
+        {
+            var model1 = Factory.GetCoreTypesAlternatingModel();
+            var json1 = JsonSerializer.Serialize(model1);
+            var result1 = JsonSerializer.Deserialize<CoreTypesModel>(json1);
+            Factory.AssertAreEqual(model1, result1);
+
+            var model2 = Factory.GetCoreTypesModel();
+            var json2 = JsonSerializer.Serialize(model2);
+            var result2 = JsonSerializer.Deserialize<CoreTypesAlternatingModel>(json2);
+            Factory.AssertAreEqual(result2, model2);
+        }
+
+        [TestMethod]
         public void StringRecord()
         {
             var baseModel = new RecordModel(true) { Property2 = 42, Property3 = "moo" };
@@ -1347,6 +1361,24 @@ namespace Zerra.Test
             stream.Position = 0;
             var model = await JsonSerializer.DeserializeAsync<GetsSetsModel>(stream);
             Assert.IsNotNull(model);
+        }
+
+        [TestMethod]
+        public async Task StreamReducedModel()
+        {
+            var model1 = Factory.GetCoreTypesAlternatingModel();
+            using var stream1 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream1, model1);
+            stream1.Position = 0;
+            var result1 = await JsonSerializer.DeserializeAsync<CoreTypesModel>(stream1);
+            Factory.AssertAreEqual(model1, result1);
+
+            var model2 = Factory.GetCoreTypesModel();
+            using var stream2 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream2, model2);
+            stream2.Position = 0;
+            var result2 = await JsonSerializer.DeserializeAsync<CoreTypesAlternatingModel>(stream2);
+            Factory.AssertAreEqual(result2, model2);
         }
 
         [TestMethod]
