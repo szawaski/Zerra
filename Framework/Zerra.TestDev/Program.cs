@@ -23,7 +23,7 @@ namespace Zerra.TestDev
             //InlineTest.Test();
 
             JsonSerializerTest.TestSpeed().GetAwaiter().GetResult();
-            ByteSerializerTest.TestSpeed();
+            //ByteSerializerTest.TestSpeed();
 
             //TestMath.Test();
 

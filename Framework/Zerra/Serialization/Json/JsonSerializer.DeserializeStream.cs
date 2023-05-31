@@ -1217,7 +1217,6 @@ namespace Zerra.Serialization
 
                         reader.BackOne();
 
-
                         var memberDetail = typeDetail != null && state.CurrentFrame.PropertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
                           ? typeDetail.SerializableMemberDetails[state.CurrentFrame.PropertyIndexForNameless]
                           : null;
