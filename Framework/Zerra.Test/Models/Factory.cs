@@ -367,11 +367,11 @@ namespace Zerra.Test
                 EnumList = new List<EnumModel> { EnumModel.Item1, EnumModel.Item2, EnumModel.Item3 },
                 EnumListNullable = new List<EnumModel?> { EnumModel.Item1, null, EnumModel.Item3 },
 
-                ClassThing = new BasicModel { Value = 1234 },
+                ClassThing = new BasicModel { Value1 = 1234, Value2 = "S-1234" },
                 ClassThingNull = null,
-                ClassArray = new BasicModel[] { new BasicModel { Value = 10 }, new BasicModel { Value = 11 } },
-                ClassEnumerable = new List<BasicModel>() { new BasicModel { Value = 12 }, new BasicModel { Value = 13 } },
-                ClassList = new List<BasicModel>() { new BasicModel { Value = 14 }, new BasicModel { Value = 15 } },
+                ClassArray = new BasicModel[] { new BasicModel { Value1 = 10, Value2 = "S-10" }, new BasicModel { Value1 = 11, Value2 = "S-11" } },
+                ClassEnumerable = new List<BasicModel>() { new BasicModel { Value1 = 12, Value2 = "S-12" }, new BasicModel { Value1 = 13, Value2 = "S-13" } },
+                ClassList = new List<BasicModel>() { new BasicModel { Value1 = 14, Value2 = "S-14" }, new BasicModel { Value1 = 15, Value2 = "S-15" } },
 
                 DictionaryThing = new Dictionary<int, string>() { { 1, "A" }, { 2, "B" }, { 3, "C" }, { 4, null } },
                 StringArrayOfArrayThing = new string[][] { new string[] { "a", "b", "c" }, null, new string[] { "d", "e", "f" } }
@@ -555,7 +555,8 @@ namespace Zerra.Test
             if (model1.ClassThing != null)
             {
                 Assert.IsNotNull(model2.ClassThing);
-                Assert.AreEqual(model1.ClassThing.Value, model2.ClassThing.Value);
+                Assert.AreEqual(model1.ClassThing.Value1, model2.ClassThing.Value1);
+                Assert.AreEqual(model1.ClassThing.Value2, model2.ClassThing.Value2);
             }
             else
             {
@@ -570,7 +571,10 @@ namespace Zerra.Test
                 Assert.IsNotNull(model2.ClassArray);
                 Assert.AreEqual(model1.ClassArray.Length, model2.ClassArray.Length);
                 for (var i = 0; i < model1.ClassArray.Length; i++)
-                    Assert.AreEqual(model1.ClassArray[i].Value, model2.ClassArray[i].Value);
+                {
+                    Assert.AreEqual(model1.ClassArray[i].Value1, model2.ClassArray[i].Value1);
+                    Assert.AreEqual(model1.ClassArray[i].Value2, model2.ClassArray[i].Value2);
+                }
             }
             else
             {
@@ -589,7 +593,10 @@ namespace Zerra.Test
 
                 Assert.AreEqual(items1.Count, items2.Count);
                 for (var i = 0; i < items1.Count; i++)
-                    Assert.AreEqual(items1[i].Value, items2[i].Value);
+                {
+                    Assert.AreEqual(items1[i].Value1, items2[i].Value1);
+                    Assert.AreEqual(items1[i].Value2, items2[i].Value2);
+                }
             }
             else
             {
@@ -600,7 +607,10 @@ namespace Zerra.Test
             {
                 Assert.AreEqual(model1.ClassList.Count, model2.ClassList.Count);
                 for (var i = 0; i < model1.ClassList.Count; i++)
-                    Assert.AreEqual(model1.ClassList[i].Value, model2.ClassList[i].Value);
+                {
+                    Assert.AreEqual(model1.ClassList[i].Value1, model2.ClassList[i].Value1);
+                    Assert.AreEqual(model1.ClassList[i].Value2, model2.ClassList[i].Value2);
+                }
             }
             else
             {
@@ -824,7 +834,8 @@ namespace Zerra.Test
             if (model1.ClassThing != null)
             {
                 Assert.IsNotNull(model2.ClassThing);
-                Assert.AreEqual(model1.ClassThing.Value, model2.ClassThing.Value);
+                Assert.AreEqual(model1.ClassThing.Value1, model2.ClassThing.Value1);
+                Assert.AreEqual(model1.ClassThing.Value2, model2.ClassThing.Value2);
             }
             else
             {
@@ -839,7 +850,10 @@ namespace Zerra.Test
                 Assert.IsNotNull(model2.ClassArray);
                 Assert.AreEqual(model1.ClassArray.Length, model2.ClassArray.Length);
                 for (var i = 0; i < model1.ClassArray.Length; i++)
-                    Assert.AreEqual(model1.ClassArray[i].Value, model2.ClassArray[i].Value);
+                {
+                    Assert.AreEqual(model1.ClassArray[i].Value1, model2.ClassArray[i].Value1);
+                    Assert.AreEqual(model1.ClassArray[i].Value2, model2.ClassArray[i].Value2);
+                }
             }
             else
             {
@@ -858,7 +872,10 @@ namespace Zerra.Test
 
                 Assert.AreEqual(items1.Count, items2.Count);
                 for (var i = 0; i < items1.Count; i++)
-                    Assert.AreEqual(items1[i].Value, items2[i].Value);
+                {
+                    Assert.AreEqual(items1[i].Value1, items2[i].Value1);
+                    Assert.AreEqual(items1[i].Value2, items2[i].Value2);
+                }
             }
             else
             {
@@ -869,7 +886,10 @@ namespace Zerra.Test
             {
                 Assert.AreEqual(model1.ClassList.Count, model2.ClassList.Count);
                 for (var i = 0; i < model1.ClassList.Count; i++)
-                    Assert.AreEqual(model1.ClassList[i].Value, model2.ClassList[i].Value);
+                {
+                    Assert.AreEqual(model1.ClassList[i].Value1, model2.ClassList[i].Value1);
+                    Assert.AreEqual(model1.ClassList[i].Value2, model2.ClassList[i].Value2);
+                }
             }
             else
             {
@@ -1088,7 +1108,7 @@ namespace Zerra.Test
         {
             var model = new TestBoxingModel()
             {
-                BoxedThing = new BasicModel() { Value = 10 }
+                BoxedThing = new BasicModel() { Value1 = 10, Value2 = "S-10" }
             };
             return model;
         }
@@ -1104,16 +1124,17 @@ namespace Zerra.Test
             var subModel2 = model2.BoxedThing as BasicModel;
             Assert.IsNotNull(subModel1);
             Assert.IsNotNull(subModel2);
-            Assert.AreEqual(subModel1.Value, subModel2.Value);
+            Assert.AreEqual(subModel1.Value1, subModel2.Value1);
+            Assert.AreEqual(subModel1.Value2, subModel2.Value2);
         }
 
         public static BasicModel[] GetArrayModel()
         {
             var model = new BasicModel[]
             {
-                new BasicModel() { Value = 1 },
-                new BasicModel() { Value = 2 },
-                new BasicModel() { Value = 3 }
+                new BasicModel() { Value1 = 1, Value2 = "S-1" },
+                new BasicModel() { Value1 = 2, Value2 = "S-2" },
+                new BasicModel() { Value1 = 3, Value2 = "S-3" }
             };
             return model;
         }
@@ -1125,7 +1146,10 @@ namespace Zerra.Test
 
             Assert.AreEqual(model1.Length, model2.Length);
             for (var i = 0; i < model1.Length; i++)
-                Assert.AreEqual(model1[i]?.Value, model2[i]?.Value);
+            {
+                Assert.AreEqual(model1[i]?.Value1, model2[i]?.Value1);
+                Assert.AreEqual(model1[i]?.Value2, model2[i]?.Value2);
+            }
         }
 
         public static TestSerializerIndexModel1 GetSerializerIndexModel()

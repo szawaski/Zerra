@@ -28,6 +28,7 @@ namespace Zerra.Serialization
             public IEnumerator<MemberDetail> MemberEnumerator;
             public IEnumerator Enumerator;
             public bool EnumeratorPassedFirstProperty;
+            public bool EnumeratorPassedFirstProperty2;
         }
     }
 }

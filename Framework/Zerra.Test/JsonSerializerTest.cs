@@ -483,14 +483,16 @@ namespace Zerra.Test
             if (!classThingJsonObject.IsNull)
             {
                 model1.ClassThing = new BasicModel();
-                model1.ClassThing.Value = (int)classThingJsonObject["Value"];
+                model1.ClassThing.Value1 = (int)classThingJsonObject["Value1"];
+                model1.ClassThing.Value2 = (string)classThingJsonObject["Value2"];
             }
 
             var classThingNullJsonObject = jsonObject[nameof(AllTypesModel.ClassThingNull)];
             if (!classThingNullJsonObject.IsNull)
             {
                 model1.ClassThingNull = new BasicModel();
-                model1.ClassThingNull.Value = (int)classThingNullJsonObject["Value"];
+                model1.ClassThingNull.Value1 = (int)classThingNullJsonObject["Value1"];
+                model1.ClassThingNull.Value2 = (string)classThingNullJsonObject["Value2"];
             }
 
 
@@ -501,7 +503,8 @@ namespace Zerra.Test
                 if (!item.IsNull)
                 {
                     var obj = new BasicModel();
-                    obj.Value = (int)item["Value"];
+                    obj.Value1 = (int)item["Value1"];
+                    obj.Value2 = (string)item["Value2"];
                     classArray.Add(obj);
                 }
                 else
@@ -518,7 +521,8 @@ namespace Zerra.Test
                 if (!item.IsNull)
                 {
                     var obj = new BasicModel();
-                    obj.Value = (int)item["Value"];
+                    obj.Value1 = (int)item["Value1"];
+                    obj.Value2 = (string)item["Value2"];
                     classEnumerable.Add(obj);
                 }
                 else
@@ -535,7 +539,8 @@ namespace Zerra.Test
                 if (!item.IsNull)
                 {
                     var obj = new BasicModel();
-                    obj.Value = (int)item["Value"];
+                    obj.Value1 = (int)item["Value1"];
+                    obj.Value2 = (string)item["Value2"];
                     classList.Add(obj);
                 }
                 else
@@ -635,6 +640,20 @@ namespace Zerra.Test
             var json2 = JsonSerializer.Serialize(model2);
             var result2 = JsonSerializer.Deserialize<CoreTypesAlternatingModel>(json2);
             Factory.AssertAreEqual(result2, model2);
+        }
+
+        [TestMethod]
+        public void StringLargeModel()
+        {
+            var models = new List<AllTypesModel>();
+            for (var i = 0; i < 1000; i++)
+                models.Add(Factory.GetAllTypesModel());
+
+            var json = JsonSerializer.Serialize(models);
+            var result = JsonSerializer.Deserialize<AllTypesModel[]>(json);
+
+            for (var i = 0; i < models.Count; i++)
+                Factory.AssertAreEqual(models[i], result[i]);
         }
 
         [TestMethod]
@@ -1379,6 +1398,25 @@ namespace Zerra.Test
             stream2.Position = 0;
             var result2 = await JsonSerializer.DeserializeAsync<CoreTypesAlternatingModel>(stream2);
             Factory.AssertAreEqual(result2, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamLargeModel()
+        {
+            var models = new List<AllTypesModel>();
+            for (var i = 0; i < 1000; i++)
+                models.Add(Factory.GetAllTypesModel());
+
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, models);
+            stream.Position = 0;
+            using var sr = new StreamReader(stream);
+            var json = sr.ReadToEnd();
+            stream.Position = 0;
+            var result = await JsonSerializer.DeserializeAsync<AllTypesModel[]>(stream);
+
+            for (var i = 0; i < models.Count; i++)
+                Factory.AssertAreEqual(models[i], result[i]);
         }
 
         [TestMethod]
