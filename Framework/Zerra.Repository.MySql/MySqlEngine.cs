@@ -378,9 +378,9 @@ namespace Zerra.Repository.MySql
             var sbWhere = new CharWriter();
             try
             {
-                sbWhere.Write($"DELETE FROM [");
+                sbWhere.Write($"DELETE FROM `");
                 sbWhere.Write(modelDetail.DataSourceEntityName);
-                sbWhere.Write("] WHERE ");
+                sbWhere.Write("` WHERE ");
 
                 if (modelDetail.IdentityProperties.Count == 1)
                 {
@@ -509,19 +509,19 @@ namespace Zerra.Repository.MySql
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
                         writer.Write('\'');
-                        writer.Write((DateTime)value, DateTimeFormat.MsSql);
+                        writer.Write((DateTime)value, DateTimeFormat.ISO8601);
                         writer.Write('\'');
                         return;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
                         writer.Write('\'');
-                        writer.Write((DateTimeOffset)value, DateTimeFormat.MsSql);
+                        writer.Write((DateTimeOffset)value, DateTimeFormat.ISO8601);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:
                         writer.Write('\'');
-                        writer.Write((TimeSpan)value, TimeFormat.MsSql);
+                        writer.Write((TimeSpan)value, TimeFormat.ISO8601);
                         writer.Write('\'');
                         return;
                     case CoreType.Guid:

@@ -398,9 +398,9 @@ namespace Zerra.Repository.PostgreSql
             var sbWhere = new CharWriter();
             try
             {
-                sbWhere.Write($"DELETE FROM [");
+                sbWhere.Write($"DELETE FROM ");
                 sbWhere.Write(modelDetail.DataSourceEntityName);
-                sbWhere.Write("] WHERE ");
+                sbWhere.Write(" WHERE ");
 
                 if (modelDetail.IdentityProperties.Count == 1)
                 {
