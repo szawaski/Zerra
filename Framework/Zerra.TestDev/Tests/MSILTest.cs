@@ -9,7 +9,7 @@ using Zerra.Reflection;
 using System.Collections.Generic;
 using FastMember;
 
-namespace Zerra.DevTest
+namespace Zerra.TestDev
 {
     public static class MSILTest
     {

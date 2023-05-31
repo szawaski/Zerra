@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using Zerra.Reflection;
 
-namespace Zerra.DevTest
+namespace Zerra.TestDev
 {
     public static class TestDiscovery
     {

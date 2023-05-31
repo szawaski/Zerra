@@ -6,7 +6,7 @@ using System;
 using System.Diagnostics;
 using System.Text;
 
-namespace Zerra.DevTest
+namespace Zerra.TestDev
 {
     public static class LanguageTests
     {

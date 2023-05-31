@@ -11,7 +11,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using Zerra.Serialization;
 
-namespace Zerra.DevTest
+namespace Zerra.TestDev
 {
     public static class ByteSerializerTest
     {
@@ -60,6 +60,8 @@ namespace Zerra.DevTest
 
         public static void TestSpeed()
         {
+            Console.WriteLine("Note: Run in Release Mode!");
+
             var items = GetTestStuff();
 
             var timer0 = Stopwatch.StartNew();

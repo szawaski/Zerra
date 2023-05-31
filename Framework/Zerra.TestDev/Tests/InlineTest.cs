@@ -6,7 +6,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace Zerra.DevTest
+namespace Zerra.TestDev
 {
     public static class InlineTest
     {

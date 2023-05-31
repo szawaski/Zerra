@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace Zerra.T4.DevTest
+namespace Zerra.T4.TestDev
 {
     class Program
     {

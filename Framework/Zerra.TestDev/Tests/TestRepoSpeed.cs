@@ -12,7 +12,7 @@
 //using System.Threading.Tasks;
 //using Zerra.Repository;
 
-//namespace Zerra.DevTest
+//namespace Zerra.TestDev
 //{
 //    public static class TestRepoSpeed
 //    {

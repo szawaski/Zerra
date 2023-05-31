@@ -12,7 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Collections;
 
-namespace Zerra.DevTest
+namespace Zerra.TestDev
 {
     public static class DictionaryThreadTest
     {

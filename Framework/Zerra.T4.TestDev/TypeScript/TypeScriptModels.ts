@@ -138,10 +138,10 @@ export class ILedger1QueryProvider {
     public static HasBalance(accountID: string): Promise<boolean> {
         return Bus.Call("ILedger1QueryProvider", "HasBalance", [accountID], null, false);
     }
-    public static GetBalance(accountID: string): Promise<Balance1Model | null> {
+    public static GetBalance(accountID: string): Promise<Balance1Model> {
         return Bus.Call("ILedger1QueryProvider", "GetBalance", [accountID], Balance1ModelType, false);
     }
-    public static GetTransactions(accountID: string): Promise<Transaction1Model[] | null> {
+    public static GetTransactions(accountID: string): Promise<Transaction1Model[]> {
         return Bus.Call("ILedger1QueryProvider", "GetTransactions", [accountID], Transaction1ModelType, true);
     }
 }
@@ -150,25 +150,25 @@ export class ILedger2QueryProvider {
     public static HasBalance(accountID: string): Promise<boolean> {
         return Bus.Call("ILedger2QueryProvider", "HasBalance", [accountID], null, false);
     }
-    public static GetBalance(accountID: string): Promise<Balance2Model | null> {
+    public static GetBalance(accountID: string): Promise<Balance2Model> {
         return Bus.Call("ILedger2QueryProvider", "GetBalance", [accountID], Balance2ModelType, false);
     }
-    public static GetTransactions(accountID: string): Promise<Transaction2Model[] | null> {
+    public static GetTransactions(accountID: string): Promise<Transaction2Model[]> {
         return Bus.Call("ILedger2QueryProvider", "GetTransactions", [accountID], Transaction2ModelType, true);
     }
 }
 
 export class IPetsQueryProvider {
-    public static GetSpecies(): Promise<SpeciesModel[] | null> {
+    public static GetSpecies(): Promise<SpeciesModel[]> {
         return Bus.Call("IPetsQueryProvider", "GetSpecies", [], SpeciesModelType, true);
     }
-    public static GetBreeds(speciesID: string): Promise<BreedModel[] | null> {
+    public static GetBreeds(speciesID: string): Promise<BreedModel[]> {
         return Bus.Call("IPetsQueryProvider", "GetBreeds", [speciesID], BreedModelType, true);
     }
-    public static GetPets(): Promise<PetModel[] | null> {
+    public static GetPets(): Promise<PetModel[]> {
         return Bus.Call("IPetsQueryProvider", "GetPets", [], PetModelType, true);
     }
-    public static GetPet(id: string): Promise<PetModel | null> {
+    public static GetPet(id: string): Promise<PetModel> {
         return Bus.Call("IPetsQueryProvider", "GetPet", [id], PetModelType, false);
     }
     public static IsHungry(id: string): Promise<boolean> {
@@ -180,7 +180,7 @@ export class IPetsQueryProvider {
 }
 
 export class IWeatherQueryProvider {
-    public static GetWeather(): Promise<WeatherModel | null> {
+    public static GetWeather(): Promise<WeatherModel> {
         return Bus.Call("IWeatherQueryProvider", "GetWeather", [], WeatherModelType, false);
     }
     public static TestStreams(): Promise<any> {

@@ -9,7 +9,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using Zerra.Repository;
 
-namespace Zerra.DevTest
+namespace Zerra.TestDev
 {
     [Entity("Customer")]
     public class TestCustomerEntityFrameworkModel

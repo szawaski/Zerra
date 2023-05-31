@@ -5,7 +5,7 @@
 using System;
 using Zerra.Repository;
 
-namespace Zerra.DevTest
+namespace Zerra.TestDev
 {
     public static class TestRepo
     {

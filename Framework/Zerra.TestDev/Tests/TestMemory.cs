@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using Zerra.IO;
 
-namespace Zerra.DevTest
+namespace Zerra.TestDev
 {
     [MemoryDiagnoser]
     public class TestMemory

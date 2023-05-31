@@ -13,7 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.Repository.EventStore
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.CQRS.RabbitMQ", "Framework\Zerra.CQRS.RabbitMQ\Zerra.CQRS.RabbitMQ.csproj", "{1B862D0C-12D6-4367-98F6-9BFFC7537917}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.DevTest", "Framework\Zerra.DevTest\Zerra.DevTest.csproj", "{CE0739EA-61E0-40E8-B121-BA4C119BEB70}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.TestDev", "Framework\Zerra.TestDev\Zerra.TestDev.csproj", "{CE0739EA-61E0-40E8-B121-BA4C119BEB70}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.Logger", "Framework\Zerra.Logger\Zerra.Logger.csproj", "{88547363-76A2-4715-AB3B-C4CE90E0E9A8}"
 EndProject
@@ -25,7 +25,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.Web", "Framework\Zerr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.T4", "Framework\Zerra.T4\Zerra.T4.csproj", "{1E58C937-08B3-40FF-A36F-0CEFAA606711}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.T4.DevTest", "Framework\Zerra.T4.DevTest\Zerra.T4.DevTest.csproj", "{EC5F5D49-0550-4200-A740-DD7F244F7BEE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.T4.TestDev", "Framework\Zerra.T4.TestDev\Zerra.T4.TestDev.csproj", "{EC5F5D49-0550-4200-A740-DD7F244F7BEE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Demo", "Demo", "{9A82B733-BBB1-4686-9DBB-65DCFBBD60E1}"
 EndProject

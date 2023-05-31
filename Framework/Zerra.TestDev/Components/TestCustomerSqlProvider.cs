@@ -6,7 +6,7 @@ using System;
 using Zerra.Repository;
 using Zerra.Repository.MsSql;
 
-namespace Zerra.DevTest
+namespace Zerra.TestDev
 {
     [Entity("Customer")]
     public class TestCustomerSqlModel

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Zerra.Mathematics;
 
-namespace Zerra.DevTest
+namespace Zerra.TestDev
 {
     public static class TestMath
     {
