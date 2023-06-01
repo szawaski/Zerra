@@ -294,7 +294,7 @@ namespace Zerra.Test
         [TestMethod]
         public void StringEscaping()
         {
-            for (var i = 0; i < 255; i++)
+            for (var i = 0; i < (int)byte.MaxValue; i++)
             {
                 var c = (char)i;
                 var json = JsonSerializer.Serialize(c);
@@ -695,6 +695,9 @@ namespace Zerra.Test
 
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, baseModel);
+            stream.Position = 0;
+            using var sr = new StreamReader(stream);
+            var json = sr.ReadToEnd();
 
             stream.Position = 0;
             var model = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream);
@@ -1038,7 +1041,7 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamEscaping()
         {
-            for (var i = 0; i < 255; i++)
+            for (var i = 0; i < (int)byte.MaxValue; i++)
             {
                 var c = (char)i;
                 using var stream = new MemoryStream();
@@ -1409,9 +1412,6 @@ namespace Zerra.Test
 
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, models);
-            stream.Position = 0;
-            using var sr = new StreamReader(stream);
-            var json = sr.ReadToEnd();
             stream.Position = 0;
             var result = await JsonSerializer.DeserializeAsync<AllTypesModel[]>(stream);
 
