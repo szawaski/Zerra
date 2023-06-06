@@ -542,6 +542,7 @@ namespace Zerra.Reflection
             return list;
         }
 
+        public static void DefineImplementation<T>(Type implementationType) => DefineImplementation(typeof(T), implementationType);
         public static void DefineImplementation(Type interfaceType, Type implementationType)
         {
             if (interfaceType == null)
@@ -550,6 +551,8 @@ namespace Zerra.Reflection
                 throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
             if (implementationType == null)
                 throw new ArgumentNullException(nameof(implementationType));
+            if (!TypeAnalyzer.GetTypeDetail(implementationType).Interfaces.Contains(interfaceType))
+                throw new ArgumentException($"Type {implementationType.GetNiceName()} does not implement {interfaceType.GetNiceName()}");
 
             _ = classByInterface.AddOrUpdate(interfaceType, (key) => { return new() { implementationType }; }, (key, old) => { return new() { implementationType }; });
         }
