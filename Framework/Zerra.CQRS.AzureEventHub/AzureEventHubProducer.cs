@@ -18,6 +18,8 @@ namespace Zerra.CQRS.AzureEventHub
 {
     public sealed class AzureEventHubProducer : ICommandProducer, IEventProducer, IDisposable
     {
+        private readonly object locker = new object();
+
         private bool listenerStarted = false;
 
         private readonly string host;
@@ -48,7 +50,7 @@ namespace Zerra.CQRS.AzureEventHub
         {
             if (requireAcknowledgement)
             {
-                lock (this)
+                lock (locker)
                 {
                     if (!listenerStarted)
                     {

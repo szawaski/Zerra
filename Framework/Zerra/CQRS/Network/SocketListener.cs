@@ -28,7 +28,7 @@ namespace Zerra.CQRS.Network
 
         public void Open()
         {
-            lock (this)
+            lock (socket)
             {
                 if (disposed)
                     throw new ObjectDisposedException(nameof(SocketListener));
@@ -59,7 +59,7 @@ namespace Zerra.CQRS.Network
             canceller.Dispose();
             canceller = null;
 
-            lock (this)
+            lock (socket)
             {
                 if (disposed)
                 {
@@ -87,7 +87,7 @@ namespace Zerra.CQRS.Network
 
         public void Close()
         {
-            lock (this)
+            lock (socket)
             {
                 if (canceller != null)
                 {
@@ -110,7 +110,7 @@ namespace Zerra.CQRS.Network
 
         private void DisposeInternal()
         {
-            lock (this)
+            lock (socket)
             {
                 if (disposed)
                     return;

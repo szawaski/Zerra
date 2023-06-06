@@ -22,7 +22,7 @@ namespace Zerra.Reflection
             {
                 if (this.parameterInfos == null)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         this.parameterInfos ??= MethodInfo.GetParameters();
                     }
@@ -38,7 +38,7 @@ namespace Zerra.Reflection
             {
                 if (this.attributes == null)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         this.attributes ??= MethodInfo.GetCustomAttributes().ToArray();
                     }
@@ -56,7 +56,7 @@ namespace Zerra.Reflection
             {
                 if (!callerLoaded)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         if (!callerLoaded)
                         {
@@ -74,7 +74,7 @@ namespace Zerra.Reflection
             {
                 if (!callerLoaded)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         if (!callerLoaded)
                         {
@@ -94,7 +94,7 @@ namespace Zerra.Reflection
             {
                 if (returnType == null)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         returnType ??= TypeAnalyzer.GetTypeDetail(MethodInfo.ReturnType);
                     }
@@ -108,8 +108,10 @@ namespace Zerra.Reflection
             return $"{Name}({(String.Join(", ", ParametersInfo.Select(x => $"{x.ParameterType.Name} {x.Name}").ToArray()))})";
         }
 
-        internal MethodDetail(MethodInfo method)
+        private readonly object locker;
+        internal MethodDetail(MethodInfo method, object locker)
         {
+            this.locker = locker;
             this.MethodInfo = method;
             this.Name = method.Name;
         }

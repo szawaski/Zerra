@@ -27,12 +27,13 @@ namespace Zerra.Repository
             throw new NotSupportedException();
         }
 
+        private readonly object locker = new();
         private ICollection<DataContext> contexts = null;
         protected ICollection<DataContext> GetDataContexts()
         {
             if (contexts == null)
             {
-                lock (this)
+                lock (locker)
                 {
                     contexts ??= LoadDataContexts();
                 }

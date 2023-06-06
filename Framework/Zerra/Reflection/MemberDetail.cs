@@ -25,7 +25,7 @@ namespace Zerra.Reflection
             {
                 if (this.attributes == null)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         this.attributes ??= MemberInfo.GetCustomAttributes().ToArray();
                     }
@@ -42,7 +42,7 @@ namespace Zerra.Reflection
             {
                 if (!getterLoaded)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         if (!getterLoaded)
                         {
@@ -86,7 +86,7 @@ namespace Zerra.Reflection
             {
                 if (!setterLoaded)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         if (!setterLoaded)
                         {
@@ -130,7 +130,7 @@ namespace Zerra.Reflection
             {
                 if (!getterTypedLoaded)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         if (!getterTypedLoaded)
                         {
@@ -174,7 +174,7 @@ namespace Zerra.Reflection
             {
                 if (!setterTypedLoaded)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         if (!setterTypedLoaded)
                         {
@@ -217,7 +217,7 @@ namespace Zerra.Reflection
             {
                 if (typeDetail == null)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         typeDetail ??= TypeAnalyzer.GetTypeDetail(Type);
                     }
@@ -231,8 +231,10 @@ namespace Zerra.Reflection
             return $"{Type.Name} {Name}";
         }
 
-        internal MemberDetail(MemberInfo member, MemberDetail backingFieldDetail)
+        private readonly object locker;
+        internal MemberDetail(MemberInfo member, MemberDetail backingFieldDetail, object locker)
         {
+            this.locker = locker;
             this.BackingFieldDetail = backingFieldDetail;
             this.MemberInfo = member;
             this.Name = member.Name;

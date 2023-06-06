@@ -17,6 +17,8 @@ namespace Zerra.CQRS.RabbitMQ
 {
     public sealed class RabbitMQProducer : ICommandProducer, IEventProducer, IDisposable
     {
+        private readonly object locker = new();
+
         private readonly string host;
         private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
@@ -55,7 +57,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                 if (connection.IsOpen == false)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         if (connection.IsOpen == false)
                         {
@@ -176,7 +178,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                 if (connection.IsOpen == false)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         if (connection.IsOpen == false)
                         {

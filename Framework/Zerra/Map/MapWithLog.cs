@@ -19,6 +19,8 @@ namespace Zerra
     {
         private const int maxBuildDepthBeforeCall = 3;
 
+        private readonly object locker = new();
+
         private readonly TypeDetail sourceType;
         private readonly TypeDetail targetType;
         private readonly Dictionary<string, Tuple<Expression<Func<TSource, object>>, Expression<Func<TTarget, object>>>> memberMaps;
@@ -72,7 +74,7 @@ namespace Zerra
 
         void IMapSetup<TSource, TTarget>.Define(Expression<Func<TTarget, object>> property, Expression<Func<TSource, object>> value)
         {
-            lock (this)
+            lock (locker)
             {
                 if (compiledMap != null || compiledGraphMaps.Count > 0)
                     throw new MapException("Map already complied. Define must be called before Maps are used. Create a class that inherits IMapDefiner<T, U>.");
@@ -101,7 +103,7 @@ namespace Zerra
         }
         void IMapSetup<TSource, TTarget>.Undefine(Expression<Func<TTarget, object>> property)
         {
-            lock (this)
+            lock (locker)
             {
                 if (compiledMap != null || compiledGraphMaps.Count > 0)
                     throw new MapException("Map already complied. Define must be called before Maps are used. Create a class that inherits IMapDefiner<T, U>.");
@@ -129,7 +131,7 @@ namespace Zerra
         }
         void IMapSetup<TSource, TTarget>.UndefineAll()
         {
-            lock (this)
+            lock (locker)
             {
                 memberMaps.Clear();
             }
@@ -201,7 +203,7 @@ namespace Zerra
             {
                 if (compiledMap == null)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         compiledMap ??= CompileMap(null);
                     }
@@ -228,7 +230,7 @@ namespace Zerra
             {
                 if (compiledMap == null)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         compiledMap ??= CompileMap(null);
                     }

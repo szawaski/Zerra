@@ -14,6 +14,8 @@ namespace Zerra.Reflection
 {
     public sealed class TypeDetail
     {
+        private readonly object locker = new();
+
         private static readonly string nullaleTypeName = typeof(Nullable<>).Name;
         private static readonly string enumberableTypeName = nameof(IEnumerable);
         private static readonly string enumberableGenericTypeName = typeof(IEnumerable<>).Name;
@@ -63,7 +65,7 @@ namespace Zerra.Reflection
         {
             if (membersByNameLower == null)
             {
-                lock (this)
+                lock (locker)
                 {
                     if (membersByNameLower != null)
                         this.membersByNameLower = this.MemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First());
@@ -77,7 +79,7 @@ namespace Zerra.Reflection
         {
             if (membersByNameLower == null)
             {
-                lock (this)
+                lock (locker)
                 {
                     if (membersByNameLower == null)
                         this.membersByNameLower = this.MemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First());
@@ -189,7 +191,7 @@ namespace Zerra.Reflection
             {
                 if (serializableMemberDetails == null)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         serializableMemberDetails ??= MemberDetails.Where(x => x.IsBacked && IsSerializableType(x.TypeDetail)).ToArray();
                     }
@@ -203,7 +205,7 @@ namespace Zerra.Reflection
         {
             if (membersFieldBackedByName == null)
             {
-                lock (this)
+                lock (locker)
                 {
                     membersFieldBackedByName ??= MemberDetails.ToDictionary(x => x.Name);
                 }
@@ -216,7 +218,7 @@ namespace Zerra.Reflection
         {
             if (membersFieldBackedByName == null)
             {
-                lock (this)
+                lock (locker)
                 {
                     membersFieldBackedByName ??= MemberDetails.ToDictionary(x => x.Name);
                 }
@@ -233,7 +235,7 @@ namespace Zerra.Reflection
                     return null;
                 if (innerTypesDetails == null)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         if (innerTypesDetails == null)
                         {
@@ -259,7 +261,7 @@ namespace Zerra.Reflection
                     return null;
                 if (iEnumerableGenericInnerTypeDetails == null)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         iEnumerableGenericInnerTypeDetails ??= TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
                     }
@@ -377,14 +379,14 @@ namespace Zerra.Reflection
             {
                 var methods = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                 foreach (var method in methods)
-                    methodDetails.Add(new MethodDetail(method));
+                    methodDetails.Add(new MethodDetail(method, locker));
                 if (type.IsInterface)
                 {
                     foreach (var i in Interfaces)
                     {
                         var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                         foreach (var method in iMethods)
-                            methodDetails.Add(new MethodDetail(method));
+                            methodDetails.Add(new MethodDetail(method, locker));
                     }
                 }
             }
@@ -395,7 +397,7 @@ namespace Zerra.Reflection
             {
                 var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                 foreach (var constructor in constructors)
-                    constructorDetails.Add(new ConstructorDetails(constructor));
+                    constructorDetails.Add(new ConstructorDetails(constructor, locker));
             }
             this.ConstructorDetails = constructorDetails.ToArray();
 
@@ -445,12 +447,12 @@ namespace Zerra.Reflection
                         MemberDetail backingMember = null;
                         var backingField = fields.FirstOrDefault(x => x.Name == $"<{property.Name}>k__BackingField");
                         if (backingField != null)
-                            backingMember = new MemberDetail(backingField, null);
-                        typeMembers.Add(new MemberDetail(property, backingMember));
+                            backingMember = new MemberDetail(backingField, null, locker);
+                        typeMembers.Add(new MemberDetail(property, backingMember, locker));
                     }
                     foreach (var field in fields.Where(x => !x.Name.EndsWith("k__BackingField")))
                     {
-                        typeMembers.Add(new MemberDetail(field, null));
+                        typeMembers.Add(new MemberDetail(field, null, locker));
                     }
                 }
 

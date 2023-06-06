@@ -12,6 +12,7 @@ namespace Zerra.Providers
     {
         private static readonly Type InterfaceType = typeof(TNextProviderInterface);
 
+        private readonly object locker = new();
         private TNextProviderInterface nextProvider;
         protected TNextProviderInterface NextProvider
         {
@@ -19,7 +20,7 @@ namespace Zerra.Providers
             {
                 if (this.nextProvider == null)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         if (this.nextProvider == null)
                         {
@@ -38,7 +39,7 @@ namespace Zerra.Providers
 
         public void SetNextProvider(TNextProviderInterface provider)
         {
-            lock (this)
+            lock (locker)
             {
                 if (this.nextProvider != null)
                     throw new InvalidOperationException("Next provider already set.");

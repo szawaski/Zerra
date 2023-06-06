@@ -89,7 +89,7 @@ namespace Zerra.CQRS.Network
         }
         protected void Open()
         {
-            lock (this)
+            lock (listeners)
             {
                 if (disposed)
                     throw new ObjectDisposedException(nameof(TcpCQRSServerBase));
@@ -117,7 +117,7 @@ namespace Zerra.CQRS.Network
         }
         protected void Close()
         {
-            lock (this)
+            lock (listeners)
             {
                 foreach (var listener in listeners)
                     listener.Close();
@@ -126,7 +126,7 @@ namespace Zerra.CQRS.Network
 
         public void Dispose()
         {
-            lock (this)
+            lock (listeners)
             {
                 if (disposed)
                     return;

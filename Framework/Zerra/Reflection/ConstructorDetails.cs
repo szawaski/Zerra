@@ -21,7 +21,7 @@ namespace Zerra.Reflection
             {
                 if (this.parameterInfos == null)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         this.parameterInfos ??= ConstructorInfo.GetParameters();
                     }
@@ -37,7 +37,7 @@ namespace Zerra.Reflection
             {
                 if (this.attributes == null)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         this.attributes ??= ConstructorInfo.GetCustomAttributes().ToArray();
                     }
@@ -54,7 +54,7 @@ namespace Zerra.Reflection
             {
                 if (!creatorLoaded)
                 {
-                    lock (this)
+                    lock (locker)
                     {
                         if (!creatorLoaded)
                         {
@@ -75,8 +75,10 @@ namespace Zerra.Reflection
             return $"new({(String.Join(", ", ParametersInfo.Select(x => $"{x.ParameterType.Name} {x.Name}").ToArray()))})";
         }
 
-        internal ConstructorDetails(ConstructorInfo constructor)
+        private readonly object locker;
+        internal ConstructorDetails(ConstructorInfo constructor, object locker)
         {
+            this.locker = locker;
             this.ConstructorInfo = constructor;
             this.Name = constructor.Name;
         }
