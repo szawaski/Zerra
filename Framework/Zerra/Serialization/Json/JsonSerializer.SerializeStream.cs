@@ -154,13 +154,13 @@ namespace Zerra.Serialization
 
             try
             {
-
 #if NET5_0_OR_GREATER
                 var chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
                 var charPosition = Write(chars, ref state);
                 return encoding.GetBytes(chars.Slice(0, charPosition), buffer);
 #else
-                var charPosition = Write(bufferCharOwner.AsSpan().Slice(0, buffer.Length), ref state);
+                var chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
+                var charPosition = Write(chars, ref state);
                 return encoding.GetBytes(bufferCharOwner, 0, charPosition, buffer.ToArray(), 0);
 #endif
             }
