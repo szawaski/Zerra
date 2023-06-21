@@ -30,7 +30,6 @@ namespace Zerra.Serialization
             }
 
             public int BytesNeeded;
-            public int BufferPostion;
         }
     }
 }

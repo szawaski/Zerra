@@ -25,6 +25,13 @@ namespace Zerra.Test
     [TestClass]
     public class ByteSerializerTest
     {
+        public ByteSerializerTest()
+        {
+#if DEBUG
+            JsonSerializer.Testing = true;
+#endif
+        }
+
         [TestMethod]
         public void ByteArrayTypes()
         {

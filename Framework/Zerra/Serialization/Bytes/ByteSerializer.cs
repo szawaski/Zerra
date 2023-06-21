@@ -39,6 +39,9 @@ namespace Zerra.Serialization
     public sealed partial class ByteSerializer
     {
         private const int defaultBufferSize = 8 * 1024;
+#if DEBUG
+        public static bool Testing { get; set; }
+#endif
 
         private static readonly Type genericListType = typeof(List<>);
         private static readonly MethodInfo enumerableToArrayMethod = typeof(Enumerable).GetMethod("ToArray");

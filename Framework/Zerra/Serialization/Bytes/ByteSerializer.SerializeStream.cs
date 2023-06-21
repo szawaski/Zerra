@@ -28,7 +28,11 @@ namespace Zerra.Serialization
             if (type == null) throw new ArgumentNullException(nameof(type));
 
             var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
+#if DEBUG
+            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+#endif
             var position = 0;
 
             try
@@ -38,9 +42,9 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Write(buffer.AsSpan().Slice(position), ref state);
+                    var usedBytes = Write(buffer.AsSpan().Slice(position), ref state);
 
-                    position += state.BufferPostion;
+                    position += usedBytes;
 
                     if (state.Ended)
                         break;
@@ -84,7 +88,11 @@ namespace Zerra.Serialization
                 throw new ArgumentNullException(nameof(type));
 
             var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
+#if DEBUG
+            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+#endif
 
             try
             {
@@ -93,12 +101,12 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Write(buffer, ref state);
+                    var usedBytes = Write(buffer, ref state);
 
 #if NETSTANDARD2_0
-                    stream.Write(buffer, 0, state.BufferPostion);
+                    stream.Write(buffer, 0, usedBytes);
 #else
-                    stream.Write(buffer.AsSpan(0, state.BufferPostion));
+                    stream.Write(buffer.AsSpan(0, usedBytes));
 #endif
 
                     if (state.Ended)
@@ -112,12 +120,6 @@ namespace Zerra.Serialization
                         state.BytesNeeded = 0;
                     }
                 }
-
-#if NETSTANDARD2_0
-                stream.Write(buffer, state.BufferPostion, buffer.Length - state.BufferPostion);
-#else
-                stream.Write(buffer.AsSpan(state.BufferPostion));
-#endif
             }
             finally
             {
@@ -158,7 +160,11 @@ namespace Zerra.Serialization
                 return;
 
             var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
+#if DEBUG
+            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+#endif
 
             try
             {
@@ -167,12 +173,12 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    Write(buffer, ref state);
+                    var usedBytes = Write(buffer, ref state);
 
 #if NETSTANDARD2_0
-                    await stream.WriteAsync(buffer, 0, state.BufferPostion);
+                    await stream.WriteAsync(buffer, 0, usedBytes);
 #else
-                    await stream.WriteAsync(buffer.AsMemory(0, state.BufferPostion));
+                    await stream.WriteAsync(buffer.AsMemory(0, usedBytes));
 #endif
 
                     if (state.Ended)
@@ -256,7 +262,7 @@ namespace Zerra.Serialization
             return frame;
         }
 
-        private void Write(Span<byte> buffer, ref WriteState state)
+        private int Write(Span<byte> buffer, ref WriteState state)
         {
             var writer = new ByteWriter(buffer, encoding);
             for (; ; )
@@ -275,13 +281,11 @@ namespace Zerra.Serialization
                 }
                 if (state.Ended)
                 {
-                    state.BufferPostion = writer.Length;
-                    return;
+                    return writer.Length;
                 }
                 if (state.BytesNeeded > 0)
                 {
-                    state.BufferPostion = writer.Length;
-                    return;
+                    return writer.Length;
                 }
             }
         }

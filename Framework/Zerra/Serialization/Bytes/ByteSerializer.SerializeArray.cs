@@ -36,7 +36,12 @@ namespace Zerra.Serialization
 
             var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
 
+#if DEBUG
+            var writer = new ByteWriter(Testing ? 1 : defaultBufferSize, encoding);
+#else
             var writer = new ByteWriter(defaultBufferSize, encoding);
+#endif
+
             try
             {
                 ToBytes(obj, typeDetail, true, ref writer);
