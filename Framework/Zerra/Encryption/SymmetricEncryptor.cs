@@ -26,7 +26,11 @@ namespace Zerra.Encryption
         {
             var saltBytes = SaltFromPassword(password, salt);
 
+#if NETSTANDARD2_0
             using (var deriveBytes = new Rfc2898DeriveBytes(password, saltBytes))
+#else
+            using (var deriveBytes = new Rfc2898DeriveBytes(password, saltBytes, 1000, HashAlgorithmName.SHA1))
+#endif
             {
                 var keySizeValue = (int)keySize;
                 var blockSizeValue = (int)blockSize;
