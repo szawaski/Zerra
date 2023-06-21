@@ -40,7 +40,12 @@ namespace Zerra.Serialization
                 throw new ArgumentNullException(nameof(type));
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+#if DEBUG
+            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+#endif
+
 
             try
             {
@@ -49,12 +54,12 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    WriteConvertBytes(buffer, ref state);
+                    var usedBytes = WriteConvertBytes(buffer, ref state);
 
 #if NETSTANDARD2_0
-                    stream.Write(buffer, 0, state.BufferPostion);
+                    stream.Write(buffer, 0, usedBytes);
 #else
-                    stream.Write(buffer.AsSpan(0, state.BufferPostion));
+                    stream.Write(buffer.AsSpan(0, usedBytes));
 #endif
 
                     if (state.Ended)
@@ -102,7 +107,11 @@ namespace Zerra.Serialization
                 throw new ArgumentNullException(nameof(type));
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+#if DEBUG
+            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+#endif
 
             try
             {
@@ -111,12 +120,12 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    WriteConvertBytes(buffer, ref state);
+                    var usedBytes = WriteConvertBytes(buffer, ref state);
 
 #if NETSTANDARD2_0
-                    await stream.WriteAsync(buffer, 0, state.BufferPostion);
+                    await stream.WriteAsync(buffer, 0, usedBytes);
 #else
-                    await stream.WriteAsync(buffer.AsMemory(0, state.BufferPostion));
+                    await stream.WriteAsync(buffer.AsMemory(0, usedBytes));
 #endif
 
                     if (state.Ended)
@@ -139,7 +148,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteConvertBytes(Span<byte> buffer, ref WriteState state)
+        private static int WriteConvertBytes(Span<byte> buffer, ref WriteState state)
         {
             var bufferCharOwner = BufferArrayPool<char>.Rent(buffer.Length);
 
@@ -148,11 +157,11 @@ namespace Zerra.Serialization
 
 #if NET5_0_OR_GREATER
                 var chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
-                Write(chars, ref state);
-                state.BufferPostion = encoding.GetBytes(chars.Slice(0, state.BufferPostion), buffer);
+                var charPosition = Write(chars, ref state);
+                return encoding.GetBytes(chars.Slice(0, charPosition), buffer);
 #else
-                Write(bufferCharOwner.AsSpan().Slice(0, buffer.Length), ref state);
-                _ = encoding.GetBytes(bufferCharOwner, 0, state.BufferPostion, buffer.ToArray(), 0);
+                var charPosition = Write(bufferCharOwner.AsSpan().Slice(0, buffer.Length), ref state);
+                return encoding.GetBytes(bufferCharOwner, 0, charPosition, buffer.ToArray(), 0);
 #endif
             }
             finally
@@ -163,7 +172,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void Write(Span<char> buffer, ref WriteState state)
+        private static int Write(Span<char> buffer, ref WriteState state)
         {
             var writer = new CharWriter(buffer);
             for (; ; )
@@ -185,13 +194,11 @@ namespace Zerra.Serialization
                 }
                 if (state.Ended)
                 {
-                    state.BufferPostion = writer.Length;
-                    return;
+                    return writer.Length;
                 }
                 if (state.CharsNeeded > 0)
                 {
-                    state.BufferPostion = writer.Length;
-                    return;
+                    return writer.Length;
                 }
             }
         }
@@ -228,7 +235,11 @@ namespace Zerra.Serialization
                 return;
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+#if DEBUG
+            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+#endif
 
             try
             {
@@ -238,12 +249,12 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    WriteConvertBytes(buffer, ref state);
+                    var usedBytes = WriteConvertBytes(buffer, ref state);
 
 #if NETSTANDARD2_0
-                    stream.Write(buffer, 0, state.BufferPostion);
+                    stream.Write(buffer, 0, usedBytes);
 #else
-                    stream.Write(buffer.AsSpan(0, state.BufferPostion));
+                    stream.Write(buffer.AsSpan(0, usedBytes));
 #endif
 
                     if (state.Ended)
@@ -297,7 +308,11 @@ namespace Zerra.Serialization
                 return;
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+#if DEBUG
+            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+#endif
 
             try
             {
@@ -307,12 +322,12 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    WriteConvertBytes(buffer, ref state);
+                    var usedBytes = WriteConvertBytes(buffer, ref state);
 
 #if NETSTANDARD2_0
-                    await stream.WriteAsync(buffer, 0, state.BufferPostion);
+                    await stream.WriteAsync(buffer, 0, usedBytes);
 #else
-                    await stream.WriteAsync(buffer.AsMemory(0, state.BufferPostion));
+                    await stream.WriteAsync(buffer.AsMemory(0, usedBytes));
 #endif
 
                     if (state.Ended)
@@ -410,7 +425,8 @@ namespace Zerra.Serialization
             switch (typeDetail.CoreType)
             {
                 case CoreType.String:
-                    _ = WriteJsonString(ref writer, ref state, (string)state.CurrentFrame.Object, 0);
+                    if (!WriteJsonString(ref writer, ref state, (string)state.CurrentFrame.Object, 0))
+                        return;
                     state.EndFrame();
                     return;
                 case CoreType.Boolean:
@@ -711,7 +727,8 @@ namespace Zerra.Serialization
                             return;
                         }
                     }
-                    _ = WriteJsonString(ref writer, ref state, valueType.FullName, 0);
+                    if (!WriteJsonString(ref writer, ref state, valueType.FullName, 0))
+                        return;
                     state.EndFrame();
                     return;
 
@@ -795,7 +812,19 @@ namespace Zerra.Serialization
                             case 4: //Key
                                 var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").Getter;
                                 var key = keyGetter(state.CurrentFrame.Enumerator.Current).ToString();
-                                WriteJsonString(ref writer, ref state, key, 4);
+                                if (!WriteJsonString(ref writer, ref state, key, 4))
+                                {
+                                    var writeJsonStringState = (byte)(state.CurrentFrame.State - 4);
+                                    state.CurrentFrame.State = 4;
+                                    state.PushFrame(new WriteFrame()
+                                    {
+                                        FrameType = WriteFrameType.CoreType,
+                                        TypeDetail = TypeAnalyzer.GetTypeDetail(typeof(string)),
+                                        Object = key,
+                                        State = writeJsonStringState
+                                    });
+                                    return;
+                                }
                                 state.CurrentFrame.State = 5;
                                 break;
 
@@ -825,7 +854,19 @@ namespace Zerra.Serialization
                             case 8: //Nameless Key
                                 keyGetter = innerTypeDetail.GetMemberFieldBacked("key").Getter;
                                 key = keyGetter(state.CurrentFrame.Enumerator.Current).ToString();
-                                WriteJsonString(ref writer, ref state, key, 8);
+                                if (!WriteJsonString(ref writer, ref state, key, 8))
+                                {
+                                    var writeJsonStringState = (byte)(state.CurrentFrame.State - 8);
+                                    state.CurrentFrame.State = 8;
+                                    state.PushFrame(new WriteFrame()
+                                    {
+                                        FrameType = WriteFrameType.CoreType,
+                                        TypeDetail = TypeAnalyzer.GetTypeDetail(typeof(string)),
+                                        Object = key,
+                                        State = writeJsonStringState
+                                    });
+                                    return;
+                                }
                                 state.CurrentFrame.State = 9;
                                 return;
                             case 9:  //Nameless KeyValue Seperator
@@ -2329,7 +2370,12 @@ namespace Zerra.Serialization
 
             if (state.CurrentFrame.State == initialFrameState + 2)
             {
-                if (state.WorkingStringStart != chars.Length)
+                if (chars.Length < state.WorkingStringStart)
+                {
+                    state.CharsNeeded = state.WorkingStringStart;
+                    return false;
+                }
+                else if (chars.Length > state.WorkingStringStart)
                 {
                     var slice = chars.Slice(state.WorkingStringStart, chars.Length - state.WorkingStringStart);
                     if (!writer.TryWrite(slice, out sizeNeeded))

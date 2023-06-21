@@ -45,7 +45,6 @@ namespace Zerra.Serialization
             }
 
             public int CharsNeeded;
-            public int BufferPostion;
 
             public long LiteralNumberInt64;
             public ulong LiteralNumberUInt64;

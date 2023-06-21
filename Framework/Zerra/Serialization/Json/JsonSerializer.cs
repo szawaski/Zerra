@@ -16,6 +16,9 @@ namespace Zerra.Serialization
         private const int defaultBufferSize = 8 * 1024;
         private const int defaultDecodeBufferSize = 1024;
         private static readonly Encoding encoding = Encoding.UTF8;
+#if DEBUG
+        public static bool Testing { get; set; }
+#endif
 
         private static readonly MethodInfo dictionaryToArrayMethod = typeof(System.Linq.Enumerable).GetMethod("ToArray");
         private static readonly Type genericListType = typeof(List<>);

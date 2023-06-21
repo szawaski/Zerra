@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading.Tasks;
 using Zerra.IO;
 using Zerra.Reflection;
@@ -89,7 +90,11 @@ namespace Zerra.Serialization
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
+#if DEBUG
+            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+#endif
             var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
             var decodeBufferPosition = 0;
 
@@ -128,7 +133,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    var usedBytes = ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
@@ -137,13 +142,12 @@ namespace Zerra.Serialization
                     {
                         if (state.IsFinalBlock)
                             throw new EndOfStreamException();
-                        position = state.BufferPostion;
 
-                        Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
-                        position = length - position;
+                        Buffer.BlockCopy(buffer, usedBytes, buffer, 0, length - usedBytes);
+                        position = length - usedBytes;
 
-                        if (state.CharsNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
+                        if (position + state.CharsNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, position + state.CharsNeeded);
 
                         while (position < buffer.Length)
                         {
@@ -187,7 +191,11 @@ namespace Zerra.Serialization
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
+#if DEBUG
+            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+#endif
             var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
             var decodeBufferPosition = 0;
 
@@ -226,7 +234,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    var usedBytes = ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
@@ -235,13 +243,12 @@ namespace Zerra.Serialization
                     {
                         if (state.IsFinalBlock)
                             throw new EndOfStreamException();
-                        position = state.BufferPostion;
 
-                        Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
-                        position = length - position;
+                        Buffer.BlockCopy(buffer, usedBytes, buffer, 0, length - usedBytes);
+                        position = length - usedBytes;
 
-                        if (state.CharsNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
+                        if (position + state.CharsNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, position + state.CharsNeeded);
 
                         while (position < buffer.Length)
                         {
@@ -284,7 +291,11 @@ namespace Zerra.Serialization
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
+#if DEBUG
+            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+#endif
             var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
             var decodeBufferPosition = 0;
 
@@ -323,7 +334,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    var usedBytes = ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
@@ -332,13 +343,12 @@ namespace Zerra.Serialization
                     {
                         if (state.IsFinalBlock)
                             throw new EndOfStreamException();
-                        position = state.BufferPostion;
 
-                        Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
-                        position = length - position;
+                        Buffer.BlockCopy(buffer, usedBytes, buffer, 0, length - usedBytes);
+                        position = length - usedBytes;
 
-                        if (state.CharsNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
+                        if (position + state.CharsNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, position + state.CharsNeeded);
 
                         while (position < buffer.Length)
                         {
@@ -418,7 +428,11 @@ namespace Zerra.Serialization
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
+#if DEBUG
+            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+#endif
             var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
             var decodeBufferPosition = 0;
 
@@ -458,7 +472,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    var usedBytes = ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
@@ -467,13 +481,12 @@ namespace Zerra.Serialization
                     {
                         if (state.IsFinalBlock)
                             throw new EndOfStreamException();
-                        position = state.BufferPostion;
 
-                        Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
-                        position = length - position;
+                        Buffer.BlockCopy(buffer, usedBytes, buffer, 0, length - usedBytes);
+                        position = length - usedBytes;
 
-                        if (state.CharsNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
+                        if (position + state.CharsNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, position + state.CharsNeeded);
 
                         while (position < buffer.Length)
                         {
@@ -517,7 +530,11 @@ namespace Zerra.Serialization
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
+#if DEBUG
+            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+#endif
             var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
             var decodeBufferPosition = 0;
 
@@ -557,7 +574,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    var usedBytes = ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
@@ -566,13 +583,12 @@ namespace Zerra.Serialization
                     {
                         if (state.IsFinalBlock)
                             throw new EndOfStreamException();
-                        position = state.BufferPostion;
 
-                        Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
-                        position = length - position;
+                        Buffer.BlockCopy(buffer, usedBytes, buffer, 0, length - usedBytes);
+                        position = length - usedBytes;
 
-                        if (state.CharsNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
+                        if (position + state.CharsNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, position + state.CharsNeeded);
 
                         while (position < buffer.Length)
                         {
@@ -615,7 +631,11 @@ namespace Zerra.Serialization
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
+#if DEBUG
+            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+#endif
             var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
             var decodeBufferPosition = 0;
 
@@ -655,7 +675,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    var usedBytes = ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
 
                     if (state.Ended)
                         break;
@@ -664,13 +684,12 @@ namespace Zerra.Serialization
                     {
                         if (state.IsFinalBlock)
                             throw new EndOfStreamException();
-                        position = state.BufferPostion;
 
-                        Buffer.BlockCopy(buffer, position, buffer, 0, length - position);
-                        position = length - position;
+                        Buffer.BlockCopy(buffer, usedBytes, buffer, 0, length - usedBytes);
+                        position = length - usedBytes;
 
-                        if (state.CharsNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
+                        if (position + state.CharsNeeded > buffer.Length)
+                            BufferArrayPool<byte>.Grow(ref buffer, position + state.CharsNeeded);
 
                         while (position < buffer.Length)
                         {
@@ -706,20 +725,27 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadConvertBytes(ReadOnlySpan<byte> buffer, ref ReadState state, ref char[] decodeBuffer, ref int decodeBufferPosition)
+        private static int ReadConvertBytes(ReadOnlySpan<byte> buffer, ref ReadState state, ref char[] decodeBuffer, ref int decodeBufferPosition)
         {
             var bufferCharOwner = BufferArrayPool<char>.Rent(buffer.Length);
             try
             {
 #if NET5_0_OR_GREATER
                 Span<char> chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
-                _ = encoding.GetChars(buffer, chars);
-                Read(chars, ref state, ref decodeBuffer, ref decodeBufferPosition);
-
+                var length = encoding.GetChars(buffer, chars);
+                var charPosition = Read(chars.Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                if (!state.Ended && length != buffer.Length)
+                    return encoding.GetByteCount(chars.Slice(0, charPosition));
+                else
+                    return charPosition;
 #else
                 var chars = new char[buffer.Length];
-                _ = encoding.GetChars(buffer.ToArray(), 0, buffer.Length, chars, 0);
-                Read(chars.AsSpan().Slice(0, buffer.Length), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                var length = encoding.GetChars(buffer.ToArray(), 0, buffer.Length, chars, 0);
+                var charPosition = Read(chars.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                if (length != buffer.Length)
+                    return encoding.GetByteCount(chars, 0, charPosition);
+                else
+                    return charPosition;
 #endif
             }
             finally
@@ -730,7 +756,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void Read(ReadOnlySpan<char> chars, ref ReadState state, ref char[] decodeBuffer, ref int decodeBufferPosition)
+        private static int Read(ReadOnlySpan<char> chars, ref ReadState state, ref char[] decodeBuffer, ref int decodeBufferPosition)
         {
             var decodeBufferWriter = new CharWriter(decodeBuffer, true, decodeBufferPosition);
 
@@ -756,14 +782,13 @@ namespace Zerra.Serialization
                 if (state.Ended)
                 {
                     decodeBuffer = decodeBufferWriter.BufferOwner;
-                    return;
+                    return -1;
                 }
                 if (state.CharsNeeded > 0)
                 {
                     decodeBuffer = decodeBufferWriter.BufferOwner;
-                    state.BufferPostion = reader.Position;
                     decodeBufferPosition = decodeBufferWriter.Length;
-                    return;
+                    return reader.Position;
                 }
             }
         }
@@ -949,8 +974,8 @@ namespace Zerra.Serialization
                             {
                                 state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                             }
-
                         }
+
                         state.CurrentFrame.State = 4;
                         break;
 

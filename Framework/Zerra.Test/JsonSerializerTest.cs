@@ -16,6 +16,13 @@ namespace Zerra.Test
     [TestClass]
     public class JsonSerializerTest
     {
+        public JsonSerializerTest()
+        {
+#if DEBUG
+            JsonSerializer.Testing = true;
+#endif
+        }
+
         [TestMethod]
         public void StringMatchesStandards()
         {
@@ -1406,6 +1413,7 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamLargeModel()
         {
+            JsonSerializer.Testing = false;
             var models = new List<AllTypesModel>();
             for (var i = 0; i < 1000; i++)
                 models.Add(Factory.GetAllTypesModel());
@@ -1417,6 +1425,7 @@ namespace Zerra.Test
 
             for (var i = 0; i < models.Count; i++)
                 Factory.AssertAreEqual(models[i], result[i]);
+            JsonSerializer.Testing = true;
         }
 
         [TestMethod]
