@@ -220,6 +220,23 @@ namespace Zerra.Test
             }
         }
 
+        [TestMethod]
+        public void EmptyStream()
+        {
+            var result = Array.Empty<byte>();
+
+            var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AESwithShift);
+
+            var serializer = new ByteSerializer();
+
+            using (var ms = new MemoryStream(result))
+            using (var cryptoStreamReader = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AES, key, ms, false))
+            using (var sr = new StreamReader(cryptoStreamReader))
+            {
+                sr.ReadToEnd();
+            }
+        }
+
         private static byte[] GetTestBytes()
         {
             var bytes = new List<byte>();
