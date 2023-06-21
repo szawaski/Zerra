@@ -98,7 +98,7 @@ namespace Zerra.Reflection
                     var taskInnerType = method.ReturnType.GetGenericArguments()[0];
                     var getFromResultsTaskMethod = taskType.GetMethod(nameof(Task.FromResult)).MakeGenericMethod(taskInnerType);
 
-                    EmitDefault(methodBuilderIL, method.ReturnType);
+                    EmitDefault(methodBuilderIL, method.ReturnType.GetGenericArguments()[0]);
                     methodBuilderIL.Emit(OpCodes.Call, getFromResultsTaskMethod);
                     methodBuilderIL.Emit(OpCodes.Ret);
                 }

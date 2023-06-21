@@ -73,6 +73,5 @@ namespace Zerra.Test
             var prop3 = ((dynamic)thingy).Property3;
             Assert.AreEqual(7, prop3);
         }
-
     }
 }
