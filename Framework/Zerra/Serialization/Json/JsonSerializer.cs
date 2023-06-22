@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -159,7 +160,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (DateTime.TryParse(s, out var value))
+                            if (DateTime.TryParse(s, null, DateTimeStyles.RoundtripKind, out var value))
                                 return value;
                             return null;
                         }
@@ -168,7 +169,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (DateTimeOffset.TryParse(s, out var value))
+                            if (DateTimeOffset.TryParse(s, null, DateTimeStyles.RoundtripKind, out var value))
                                 return value;
                             return null;
                         }
