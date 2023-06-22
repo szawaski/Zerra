@@ -235,7 +235,7 @@ namespace Zerra.Test
                 DoubleThing = -10.2,
                 DecimalThing = -11.3m,
                 CharThing = 'Z',
-                DateTimeThing = DateTime.Now,
+                DateTimeThing = DateTime.UtcNow.Date,
                 DateTimeOffsetThing = DateTimeOffset.Now.AddDays(1),
                 TimeSpanThing = DateTime.Now.TimeOfDay,
                 GuidThing = Guid.NewGuid(),

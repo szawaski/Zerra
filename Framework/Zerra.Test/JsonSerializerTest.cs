@@ -24,14 +24,33 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void StringMatchesStandards()
+        public void StringMatchesNewtonsoft()
         {
             var baseModel = Factory.GetAllTypesModel();
             var json1 = JsonSerializer.Serialize(baseModel);
             var json2 = Newtonsoft.Json.JsonConvert.SerializeObject(baseModel, new Newtonsoft.Json.Converters.StringEnumConverter());
+
             //swap serializers
             var model1 = JsonSerializer.Deserialize<AllTypesModel>(json2);
             var model2 = Newtonsoft.Json.JsonConvert.DeserializeObject<AllTypesModel>(json1, new Newtonsoft.Json.Converters.StringEnumConverter());
+            Factory.AssertAreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringMatchesSystemTextJson()
+        {
+            var options = new System.Text.Json.JsonSerializerOptions();
+            options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+
+            var baseModel = Factory.GetAllTypesModel();
+            var json1 = JsonSerializer.Serialize(baseModel);
+            var json2 = System.Text.Json.JsonSerializer.Serialize(baseModel, options);
+
+            Assert.IsTrue(json1 == json2);
+
+            //swap serializers
+            var model1 = JsonSerializer.Deserialize<AllTypesModel>(json2);
+            var model2 = System.Text.Json.JsonSerializer.Deserialize<AllTypesModel>(json1, options);
             Factory.AssertAreEqual(model1, model2);
         }
 
@@ -676,7 +695,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public async Task StreamMatchesStandards()
+        public async Task StreamMatchesNewtonsoft()
         {
             var baseModel = Factory.GetAllTypesModel();
 
@@ -692,6 +711,38 @@ namespace Zerra.Test
             using var stream2 = new MemoryStream(Encoding.UTF8.GetBytes(json2));
             var model1 = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream2);
             var model2 = Newtonsoft.Json.JsonConvert.DeserializeObject<AllTypesModel>(json1, new Newtonsoft.Json.Converters.StringEnumConverter());
+            Factory.AssertAreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamMatchesSystemTextJson()
+        {
+            var options = new System.Text.Json.JsonSerializerOptions();
+            options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+
+            var baseModel = Factory.GetAllTypesModel();
+
+            using var stream1 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream1, baseModel);
+            stream1.Position = 0;
+            using var sr1 = new StreamReader(stream1, Encoding.UTF8);
+            var json1 = await sr1.ReadToEndAsync();
+
+            using var stream2 = new MemoryStream();
+            await System.Text.Json.JsonSerializer.SerializeAsync(stream2, baseModel, options);
+            stream1.Position = 0;
+            using var sr2 = new StreamReader(stream1, Encoding.UTF8);
+            var json2 = await sr2.ReadToEndAsync();
+
+            Assert.IsTrue(json1 == json2);
+
+            //swap serializers
+            using var stream3 = new MemoryStream(Encoding.UTF8.GetBytes(json2));
+            var model1 = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream3);
+
+            using var stream4 = new MemoryStream(Encoding.UTF8.GetBytes(json1));
+            var model2 = await System.Text.Json.JsonSerializer.DeserializeAsync<AllTypesModel>(stream3, options);
+
             Factory.AssertAreEqual(model1, model2);
         }
 
