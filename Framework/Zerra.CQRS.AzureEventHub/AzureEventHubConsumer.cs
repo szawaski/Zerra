@@ -31,8 +31,6 @@ namespace Zerra.CQRS.AzureEventHub
         private readonly ConcurrentReadWriteList<Type> commandTypes;
         private readonly ConcurrentReadWriteList<Type> eventTypes;
 
-        private readonly TaskThrottler throttler;
-
         private Func<ICommand, Task> commandHandlerAsync = null;
         private Func<ICommand, Task> commandHandlerAwaitAsync = null;
         private Func<IEvent, Task> eventHandlerAsync = null;
@@ -48,8 +46,6 @@ namespace Zerra.CQRS.AzureEventHub
             this.eventHubName = eventHubName;
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
-
-            this.throttler = new TaskThrottler();
 
             this.commandTypes = new ConcurrentReadWriteList<Type>();
             this.eventTypes = new ConcurrentReadWriteList<Type>();

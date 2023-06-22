@@ -1464,7 +1464,10 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamLargeModel()
         {
+#if DEBUG
             JsonSerializer.Testing = false;
+#endif
+
             var models = new List<AllTypesModel>();
             for (var i = 0; i < 1000; i++)
                 models.Add(Factory.GetAllTypesModel());
@@ -1476,7 +1479,10 @@ namespace Zerra.Test
 
             for (var i = 0; i < models.Count; i++)
                 Factory.AssertAreEqual(models[i], result[i]);
+
+#if DEBUG
             JsonSerializer.Testing = true;
+#endif
         }
 
         [TestMethod]

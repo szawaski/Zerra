@@ -41,10 +41,19 @@ namespace Zerra.IO
 
         public FormatException CreateException(string message)
         {
-            var start = position > errorHelperLength ? position - errorHelperLength - 2 : 0;
-            var length = start + errorHelperLength > position ? position - start : errorHelperLength;
-            var helper = buffer.Slice(start, length).ToString();
-            return new FormatException($"JSON Error: {message} at position {position} character after {helper}");
+            var character = buffer[position];
+
+            var start1 = (position - 1) > errorHelperLength ? (position - 1) - errorHelperLength : 0;
+            var length1 = start1 + errorHelperLength > (position - 1) ? (position - 1) - start1 : errorHelperLength;
+            var helper1 = buffer.Slice(start1, length1).ToString();
+
+            var start2 = position + 1;
+            var length2 = start2 + errorHelperLength > buffer.Length ? buffer.Length - start2 : errorHelperLength;
+            var helper2 = buffer.Slice(start2, length2).ToString();
+
+            var tester = buffer.Slice(position - 10, 20).ToString();
+
+            return new FormatException($"JSON Error: {message} at position {position} character {character} between {helper1} and {helper2}");
         }
     }
 }

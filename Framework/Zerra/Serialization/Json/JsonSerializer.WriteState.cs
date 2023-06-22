@@ -35,6 +35,7 @@ namespace Zerra.Serialization
 
             public int CharsNeeded;
 
+            public byte WorkingStringState;
             public ReadOnlyMemory<char> WorkingString;
             public int WorkingStringIndex;
             public int WorkingStringStart;
