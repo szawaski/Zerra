@@ -5,6 +5,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Zerra.IO;
 using Zerra.Reflection;
@@ -233,13 +234,13 @@ namespace Zerra.Serialization
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            return DateTime.Parse(obj.valueString);
+            return DateTime.Parse(obj.valueString, null, DateTimeStyles.RoundtripKind);
         }
         public static explicit operator DateTimeOffset(JsonObject obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            return DateTimeOffset.Parse(obj.valueString);
+            return DateTimeOffset.Parse(obj.valueString, null, DateTimeStyles.RoundtripKind);
         }
         public static explicit operator TimeSpan(JsonObject obj)
         {
