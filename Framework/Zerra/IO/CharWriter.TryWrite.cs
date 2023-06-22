@@ -228,22 +228,27 @@ namespace Zerra.IO
                         if (value.Second < 10)
                             buffer[position++] = '0';
                         WriteInt64(value.Second);
-                        buffer[position++] = '.';
 
                         var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
-                        if (fraction < 10)
-                            buffer[position++] = '0';
-                        if (fraction < 100)
-                            buffer[position++] = '0';
-                        if (fraction < 1000)
-                            buffer[position++] = '0';
-                        if (fraction < 10000)
-                            buffer[position++] = '0';
-                        if (fraction < 100000)
-                            buffer[position++] = '0';
-                        if (fraction < 1000000)
-                            buffer[position++] = '0';
-                        WriteInt64(fraction);
+                        if (fraction > 0)
+                        {
+                            buffer[position++] = '.';
+                            if (fraction < 10)
+                                buffer[position++] = '0';
+                            if (fraction < 100)
+                                buffer[position++] = '0';
+                            if (fraction < 1000)
+                                buffer[position++] = '0';
+                            if (fraction < 10000)
+                                buffer[position++] = '0';
+                            if (fraction < 100000)
+                                buffer[position++] = '0';
+                            if (fraction < 1000000)
+                                buffer[position++] = '0';
+                            while (fraction % 10 == 0)
+                                fraction /= 10;
+                            WriteInt64(fraction);
+                        }
 
                         switch (value.Kind)
                         {
@@ -380,22 +385,27 @@ namespace Zerra.IO
                         if (value.Second < 10)
                             buffer[position++] = '0';
                         WriteInt64(value.Second);
-                        buffer[position++] = '.';
 
                         var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
-                        if (fraction < 10)
-                            buffer[position++] = '0';
-                        if (fraction < 100)
-                            buffer[position++] = '0';
-                        if (fraction < 1000)
-                            buffer[position++] = '0';
-                        if (fraction < 10000)
-                            buffer[position++] = '0';
-                        if (fraction < 100000)
-                            buffer[position++] = '0';
-                        if (fraction < 1000000)
-                            buffer[position++] = '0';
-                        WriteInt64(fraction);
+                        if (fraction > 0)
+                        {
+                            buffer[position++] = '.';
+                            if (fraction < 10)
+                                buffer[position++] = '0';
+                            if (fraction < 100)
+                                buffer[position++] = '0';
+                            if (fraction < 1000)
+                                buffer[position++] = '0';
+                            if (fraction < 10000)
+                                buffer[position++] = '0';
+                            if (fraction < 100000)
+                                buffer[position++] = '0';
+                            if (fraction < 1000000)
+                                buffer[position++] = '0';
+                            while (fraction % 10 == 0)
+                                fraction /= 10;
+                            WriteInt64(fraction);
+                        }
 
                         if (value.Offset.Hours > 0)
                             buffer[position++] = '+';
