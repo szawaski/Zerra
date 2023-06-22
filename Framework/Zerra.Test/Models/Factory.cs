@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace Zerra.Test
 {
@@ -955,8 +956,8 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DoubleThing.ToString(), model2.DoubleThing);
             Assert.AreEqual(model1.DecimalThing.ToString(), model2.DecimalThing);
             Assert.AreEqual(model1.CharThing.ToString(), model2.CharThing);
-            Assert.AreEqual(model1.DateTimeThing, DateTime.Parse(model2.DateTimeThing)); //extra zeros removed at end of fractional sectons
-            Assert.AreEqual(model1.DateTimeOffsetThing, DateTimeOffset.Parse(model2.DateTimeOffsetThing));//extra zeros removed at end of fractional sectons
+            Assert.AreEqual(model1.DateTimeThing, DateTime.Parse(model2.DateTimeThing, null, DateTimeStyles.RoundtripKind)); //extra zeros removed at end of fractional sectons
+            Assert.AreEqual(model1.DateTimeOffsetThing, DateTimeOffset.Parse(model2.DateTimeOffsetThing, null, DateTimeStyles.RoundtripKind));//extra zeros removed at end of fractional sectons
             Assert.AreEqual(model1.TimeSpanThing.ToString(), model2.TimeSpanThing);
             Assert.AreEqual(model1.GuidThing.ToString(), model2.GuidThing);
 

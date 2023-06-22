@@ -741,7 +741,7 @@ namespace Zerra.Test
             var model1 = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream3);
 
             using var stream4 = new MemoryStream(Encoding.UTF8.GetBytes(json1));
-            var model2 = await System.Text.Json.JsonSerializer.DeserializeAsync<AllTypesModel>(stream3, options);
+            var model2 = await System.Text.Json.JsonSerializer.DeserializeAsync<AllTypesModel>(stream4, options);
 
             Factory.AssertAreEqual(model1, model2);
         }
