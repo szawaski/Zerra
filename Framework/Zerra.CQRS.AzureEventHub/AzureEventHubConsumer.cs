@@ -15,7 +15,6 @@ using Zerra.Collections;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Reflection;
-using Zerra.Threading;
 
 namespace Zerra.CQRS.AzureEventHub
 {

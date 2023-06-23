@@ -1,229 +1,241 @@
-﻿//// Copyright © KaKush LLC
-//// Written By Steven Zawaski
-//// Licensed to you under the MIT license
+﻿// Copyright © KaKush LLC
+// Written By Steven Zawaski
+// Licensed to you under the MIT license
 
-//using System;
-//using System.Collections.Generic;
-//using System.Linq;
-//using System.Threading;
-//using System.Threading.Tasks;
-//using Zerra.Collections;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Zerra.Collections;
 
-//namespace Zerra.Threading
-//{
-//    public sealed class TaskThrottler : IAsyncDisposable, IDisposable
-//    {
-//        private static readonly int defaultMaxRunningTasks = Environment.ProcessorCount;
+namespace Zerra.Threading
+{
+    public sealed class TaskThrottler : IAsyncDisposable, IDisposable
+    {
+        private static readonly int defaultMaxRunningTasks = Environment.ProcessorCount;
 
-//        private readonly CancellationTokenSource canceller;
-//        private readonly AsyncConcurrentQueue<Func<Task>> queue;
-//        private readonly ConcurrentReadWriteList<Task> running;
-//        private readonly SemaphoreSlim taskLimiter;
-//        private readonly Queue<TaskCompletionSource<object>> waiters;
-//        private readonly Task mainTask;
+        private readonly CancellationTokenSource canceller;
+        private readonly AsyncConcurrentQueue<Func<Task>> queue;
+        private readonly ConcurrentReadWriteList<Task> running;
+        private readonly SemaphoreSlim taskLimiter;
+        private readonly List<TaskCompletionSource<object>> waiters;
+        private readonly SemaphoreSlim locker;
+        private readonly Task mainTask;
 
-//        public TaskThrottler() : this(defaultMaxRunningTasks) { }
-//        public TaskThrottler(int maxRunningTasks)
-//        {
-//            if (maxRunningTasks <= 0)
-//                throw new ArgumentException("maxRunningTasks must be greater than zero");
 
-//            this.canceller = new CancellationTokenSource();
-//            this.queue = new AsyncConcurrentQueue<Func<Task>>();
-//            this.running = new ConcurrentReadWriteList<Task>();
-//            this.taskLimiter = new SemaphoreSlim(maxRunningTasks, maxRunningTasks);
-//            this.waiters = new Queue<TaskCompletionSource<object>>();
+        private int active;
 
-//            mainTask = Task.Run(RunningThread, canceller.Token);
-//        }
+        public TaskThrottler() : this(defaultMaxRunningTasks) { }
+        public TaskThrottler(int maxRunningTasks)
+        {
+            if (maxRunningTasks <= 0)
+                throw new ArgumentException("maxRunningTasks must be greater than zero");
 
-//        public void Run(Func<Task> taskFunc)
-//        {
-//            if (taskFunc == null)
-//                throw new ArgumentNullException(nameof(taskFunc));
+            this.canceller = new();
+            this.queue = new();
+            this.running = new();
+            this.taskLimiter = new(maxRunningTasks, maxRunningTasks);
+            this.waiters = new();
+            this.locker = new(1, 1);
 
-//            if (canceller.IsCancellationRequested)
-//                throw new ObjectDisposedException(nameof(TaskThrottler));
+            this.active = 0;
 
-//            queue.Enqueue(taskFunc);
-//        }
+            mainTask = Task.Run(RunningThread, canceller.Token);
+        }
 
-//        public async ValueTask DisposeAsync()
-//        {
-//            if (!canceller.IsCancellationRequested)
-//                canceller.Cancel();
+        public void Run(Func<Task> taskFunc)
+        {
+            if (taskFunc == null)
+                throw new ArgumentNullException(nameof(taskFunc));
 
-//            await mainTask;
+            if (canceller.IsCancellationRequested)
+                throw new ObjectDisposedException(nameof(TaskThrottler));
 
-//            DisposeInternal();
-//            GC.SuppressFinalize(this);
-//        }
+            locker.Wait();
+            active++;
+            locker.Release();
+            queue.Enqueue(taskFunc);
+        }
 
-//        public void Dispose()
-//        {
-//            if (!canceller.IsCancellationRequested)
-//                canceller.Cancel();
+        public async ValueTask DisposeAsync()
+        {
+            if (!canceller.IsCancellationRequested)
+                canceller.Cancel();
 
-//            DisposeInternal();
-//            GC.SuppressFinalize(this);
-//        }
+            await mainTask;
 
-//        ~TaskThrottler()
-//        {
-//            if (!canceller.IsCancellationRequested)
-//                canceller.Cancel();
-//            DisposeInternal();
-//        }
+            DisposeInternal();
+            GC.SuppressFinalize(this);
+        }
 
-//        private void DisposeInternal()
-//        {
-//            running.Dispose();
-//            taskLimiter.Dispose();
-//        }
+        public void Dispose()
+        {
+            if (!canceller.IsCancellationRequested)
+                canceller.Cancel();
 
-//        private async Task RunningThread()
-//        {
-//            try
-//            {
-//                while (!canceller.Token.IsCancellationRequested)
-//                {
-//                    await taskLimiter.WaitAsync(canceller.Token);
+            DisposeInternal();
+            GC.SuppressFinalize(this);
+        }
 
-//                    var taskFunc = await queue.DequeueAsync(canceller.Token);
+        ~TaskThrottler()
+        {
+            if (!canceller.IsCancellationRequested)
+                canceller.Cancel();
+            DisposeInternal();
+        }
 
-//                    _ = Task.Run(async () =>
-//                    {
-//                        var task = taskFunc();
-//                        if (canceller.Token.IsCancellationRequested)
-//                            return;
-//                        running.Add(task);
-//                        await task;
-//                        _ = running.Remove(task);
-//                        _ = taskLimiter.Release();
-//                        if (queue.Count == 0 && running.Count == 0)
-//                        {
-//                            lock (waiters)
-//                            {
-//                                waiters.ToArray().ForEach(x => x.SetResult(null));
-//                                waiters.Clear();
-//                            }
-//                        }
-//                    }, canceller.Token);
-//                }
-//            }
-//            catch (OperationCanceledException) { }
+        private void DisposeInternal()
+        {
+            running.Dispose();
+            taskLimiter.Dispose();
+        }
 
-//            canceller.Dispose();
+        private async Task RunningThread()
+        {
+            try
+            {
+                while (!canceller.Token.IsCancellationRequested)
+                {
+                    await taskLimiter.WaitAsync(canceller.Token);
 
-//            if (running.Count > 0)
-//                await Task.WhenAll(running.ToArray());
-//        }
+                    var taskFunc = await queue.DequeueAsync(canceller.Token);
 
-//        public void Wait(CancellationToken cancellationToken = default)
-//        {
-//            if (queue.Count == 0 && running.Count == 0)
-//                return;
+                    _ = Task.Run(async () =>
+                    {
+                        var task = taskFunc();
+                        if (canceller.Token.IsCancellationRequested)
+                            return;
+                        running.Add(task);
+                        await task;
+                        _ = running.Remove(task);
+                        _ = taskLimiter.Release();
+                        lock (locker)
+                        {
+                            active--;
 
-//            lock (waiters)
-//            {
-//                var waiter = new TaskCompletionSource<object>();
-//                _ = cancellationToken.Register(() => { _ = waiter.TrySetCanceled(cancellationToken); });
-//                waiters.Enqueue(waiter);
-//                _ = waiter.Task.GetAwaiter().GetResult();
-//            }
-//        }
+                            if (active == 0)
+                            {
+                                //SetResult will continue the waiter in this thread and could case a threadlock
+                                waiters.ForEach(x => Task.Run(() => x.SetResult(null)));
+                                waiters.Clear();
+                            }
+                        }
+                    }, canceller.Token);
+                }
+            }
+            catch (OperationCanceledException) { }
 
-//        public Task WaitAsync(CancellationToken cancellationToken = default)
-//        {
-//            if (queue.Count == 0 && running.Count == 0)
-//                return Task.CompletedTask;
+            canceller.Dispose();
 
-//            lock (waiters)
-//            {
-//                var waiter = new TaskCompletionSource<object>();
-//                _ = cancellationToken.Register(() => { _ = waiter.TrySetCanceled(cancellationToken); });
-//                waiters.Enqueue(waiter);
-//                return waiter.Task;
-//            }
-//        }
+            if (running.Count > 0)
+                await Task.WhenAll(running.ToArray());
+        }
 
-//        //for .NET versions before Parallel.ForEachAsync which is more efficient
-//        public static Task ForEachAsync<TSource>(IEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, cancellationToken, body); }
-//        public static Task ForEachAsync<TSource>(IEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, CancellationToken.None, body); }
-//        public static Task ForEachAsync<TSource>(int maxRunningTasks, IEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(maxRunningTasks, source, CancellationToken.None, body); }
-//        public static async Task ForEachAsync<TSource>(int maxRunningTasks, IEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body)
-//        {
-//            if (maxRunningTasks <= 0)
-//                throw new ArgumentException("maxRunningTasks must be greater than zero");
-//            var waiter = new TaskCompletionSource<object>();
-//            var runningCount = 0;
-//            var loopCompleted = false;
-//            using (var taskLimiter = new SemaphoreSlim(defaultMaxRunningTasks, defaultMaxRunningTasks))
-//            {
-//                foreach (var item in source)
-//                {
-//                    await taskLimiter.WaitAsync();
-//                    lock (waiter)
-//                        runningCount++;
-//                    _ = Task.Run(async () =>
-//                  {
+        public void Wait(CancellationToken cancellationToken = default)
+        {
+            lock (locker)
+            {
+                if (active == 0)
+                    return;
 
-//                      var task = body(item, cancellationToken);
-//                      await task;
-//                      _ = taskLimiter.Release();
-//                      lock (waiter)
-//                      {
-//                          runningCount--;
-//                          if (loopCompleted && runningCount == 0)
-//                              waiter.SetResult(null);
-//                      }
-//                  }, cancellationToken);
-//                }
-//                lock (waiter)
-//                {
-//                    loopCompleted = true;
-//                }
-//                _ = await waiter.Task;
-//            }
-//        }
+                var waiter = new TaskCompletionSource<object>();
+                _ = cancellationToken.Register(() => { _ = waiter.TrySetCanceled(cancellationToken); });
+                waiters.Add(waiter);
+                _ = waiter.Task.GetAwaiter().GetResult();
+            }
+        }
 
-//        public static Task ForEachAsync<TSource>(IAsyncEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, cancellationToken, body); }
-//        public static Task ForEachAsync<TSource>(IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, CancellationToken.None, body); }
-//        public static Task ForEachAsync<TSource>(int maxRunningTasks, IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(maxRunningTasks, source, CancellationToken.None, body); }
-//        public static async Task ForEachAsync<TSource>(int maxRunningTasks, IAsyncEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body)
-//        {
-//            if (maxRunningTasks <= 0)
-//                throw new ArgumentException("maxRunningTasks must be greater than zero");
-//            var waiter = new TaskCompletionSource<object>();
-//            var runningCount = 0;
-//            var loopCompleted = false;
-//            using (var taskLimiter = new SemaphoreSlim(defaultMaxRunningTasks, defaultMaxRunningTasks))
-//            {
-//                await foreach (var item in source)
-//                {
-//                    await taskLimiter.WaitAsync();
-//                    lock (waiter)
-//                        runningCount++;
-//                    _ = Task.Run(async () =>
-//                    {
+        public Task WaitAsync(CancellationToken cancellationToken = default)
+        {
+            lock (locker)
+            {
+                if (active == 0)
+                    return Task.CompletedTask;
 
-//                        var task = body(item, cancellationToken);
-//                        await task;
-//                        _ = taskLimiter.Release();
-//                        lock (waiter)
-//                        {
-//                            runningCount--;
-//                            if (loopCompleted && runningCount == 0)
-//                                waiter.SetResult(null);
-//                        }
-//                    }, cancellationToken);
-//                }
-//                lock (waiter)
-//                {
-//                    loopCompleted = true;
-//                }
-//                _ = await waiter.Task;
-//            }
-//        }
-//    }
-//}
+                var waiter = new TaskCompletionSource<object>();
+                _ = cancellationToken.Register(() => { _ = waiter.TrySetCanceled(cancellationToken); });
+                waiters.Add(waiter);
+                return waiter.Task;
+            }
+        }
+
+        //for .NET versions before Parallel.ForEachAsync which is more efficient
+        public static Task ForEachAsync<TSource>(IEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, cancellationToken, body); }
+        public static Task ForEachAsync<TSource>(IEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, CancellationToken.None, body); }
+        public static Task ForEachAsync<TSource>(int maxRunningTasks, IEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(maxRunningTasks, source, CancellationToken.None, body); }
+        public static async Task ForEachAsync<TSource>(int maxRunningTasks, IEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body)
+        {
+            if (maxRunningTasks <= 0)
+                throw new ArgumentException("maxRunningTasks must be greater than zero");
+            var waiter = new TaskCompletionSource<object>();
+            var runningCount = 0;
+            var loopCompleted = false;
+            using (var taskLimiter = new SemaphoreSlim(defaultMaxRunningTasks, defaultMaxRunningTasks))
+            {
+                foreach (var item in source)
+                {
+                    await taskLimiter.WaitAsync();
+                    lock (waiter)
+                        runningCount++;
+                    _ = Task.Run(async () =>
+                  {
+
+                      var task = body(item, cancellationToken);
+                      await task;
+                      _ = taskLimiter.Release();
+                      lock (waiter)
+                      {
+                          runningCount--;
+                          if (loopCompleted && runningCount == 0)
+                              waiter.SetResult(null);
+                      }
+                  }, cancellationToken);
+                }
+                lock (waiter)
+                {
+                    loopCompleted = true;
+                }
+                _ = await waiter.Task;
+            }
+        }
+
+        public static Task ForEachAsync<TSource>(IAsyncEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, cancellationToken, body); }
+        public static Task ForEachAsync<TSource>(IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, CancellationToken.None, body); }
+        public static Task ForEachAsync<TSource>(int maxRunningTasks, IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(maxRunningTasks, source, CancellationToken.None, body); }
+        public static async Task ForEachAsync<TSource>(int maxRunningTasks, IAsyncEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body)
+        {
+            if (maxRunningTasks <= 0)
+                throw new ArgumentException("maxRunningTasks must be greater than zero");
+            var waiter = new TaskCompletionSource<object>();
+            var runningCount = 0;
+            var loopCompleted = false;
+            using (var taskLimiter = new SemaphoreSlim(defaultMaxRunningTasks, defaultMaxRunningTasks))
+            {
+                await foreach (var item in source)
+                {
+                    await taskLimiter.WaitAsync();
+                    lock (waiter)
+                        runningCount++;
+                    _ = Task.Run(async () =>
+                    {
+
+                        var task = body(item, cancellationToken);
+                        await task;
+                        _ = taskLimiter.Release();
+                        lock (waiter)
+                        {
+                            runningCount--;
+                            if (loopCompleted && runningCount == 0)
+                                waiter.SetResult(null);
+                        }
+                    }, cancellationToken);
+                }
+                lock (waiter)
+                {
+                    loopCompleted = true;
+                }
+                _ = await waiter.Task;
+            }
+        }
+    }
+}

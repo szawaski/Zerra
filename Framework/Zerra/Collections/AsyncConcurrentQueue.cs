@@ -22,11 +22,14 @@ namespace Zerra.Collections
             this.waiters = new Queue<TaskCompletionSource<T>>();
         }
 
-        public int Count { get
+        public int Count
+        {
+            get
             {
                 lock (queue)
                 {
-                    return queue.Count; }
+                    return queue.Count;
+                }
             }
         }
 
