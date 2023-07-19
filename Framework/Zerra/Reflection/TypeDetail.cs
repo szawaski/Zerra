@@ -45,7 +45,7 @@ namespace Zerra.Reflection
         public IReadOnlyList<Type> BaseTypes { get; private set; }
         public IReadOnlyList<MemberDetail> MemberDetails { get; private set; }
         public IReadOnlyList<MethodDetail> MethodDetails { get; private set; }
-        public IReadOnlyList<ConstructorDetails> ConstructorDetails { get; private set; }
+        public IReadOnlyList<ConstructorDetail> ConstructorDetails { get; private set; }
         public IReadOnlyList<Attribute> Attributes { get; private set; }
 
         private IDictionary<string, MemberDetail> membersByName;
@@ -136,8 +136,8 @@ namespace Zerra.Reflection
             return method != null;
         }
 
-        private readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetails> constructorLookups = new();
-        private ConstructorDetails GetConstructorInternal(Type[] parameterTypes)
+        private readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetail> constructorLookups = new();
+        private ConstructorDetail GetConstructorInternal(Type[] parameterTypes)
         {
             var key = new TypeKey(parameterTypes);
             var constructor = constructorLookups.GetOrAdd(key, (keyArg) =>
@@ -166,19 +166,19 @@ namespace Zerra.Reflection
             });
             return constructor;
         }
-        public ConstructorDetails GetConstructor(params Type[] parameterTypes)
+        public ConstructorDetail GetConstructor(params Type[] parameterTypes)
         {
             var constructor = GetConstructorInternal(parameterTypes);
             if (constructor == null)
                 throw new MissingMethodException($"{Type.Name} constructor not found for the given parameters {String.Join(",", parameterTypes.Select(x => x.GetNiceName()))}");
             return constructor;
         }
-        public bool TryGetConstructor(out ConstructorDetails constructor)
+        public bool TryGetConstructor(out ConstructorDetail constructor)
         {
             constructor = GetConstructorInternal(null);
             return constructor != null;
         }
-        public bool TryGetConstructor(Type[] parameterTypes, out ConstructorDetails constructor)
+        public bool TryGetConstructor(Type[] parameterTypes, out ConstructorDetail constructor)
         {
             constructor = GetConstructorInternal(parameterTypes);
             return constructor != null;
@@ -392,12 +392,12 @@ namespace Zerra.Reflection
             }
             this.MethodDetails = methodDetails.ToArray();
 
-            var constructorDetails = new List<ConstructorDetails>();
+            var constructorDetails = new List<ConstructorDetail>();
             if (!type.IsGenericTypeDefinition)
             {
                 var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                 foreach (var constructor in constructors)
-                    constructorDetails.Add(new ConstructorDetails(constructor, locker));
+                    constructorDetails.Add(new ConstructorDetail(constructor, locker));
             }
             this.ConstructorDetails = constructorDetails.ToArray();
 

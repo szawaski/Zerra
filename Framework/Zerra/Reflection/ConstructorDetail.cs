@@ -9,7 +9,7 @@ using System.Reflection;
 
 namespace Zerra.Reflection
 {
-    public sealed class ConstructorDetails
+    public sealed class ConstructorDetail
     {
         public ConstructorInfo ConstructorInfo { get; private set; }
         public string Name { get; private set; }
@@ -76,7 +76,7 @@ namespace Zerra.Reflection
         }
 
         private readonly object locker;
-        internal ConstructorDetails(ConstructorInfo constructor, object locker)
+        internal ConstructorDetail(ConstructorInfo constructor, object locker)
         {
             this.locker = locker;
             this.ConstructorInfo = constructor;

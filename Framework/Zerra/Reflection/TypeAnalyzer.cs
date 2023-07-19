@@ -107,14 +107,14 @@ namespace Zerra.Reflection
         {
             if (obj == null)
                 return Guid.Empty;
-            return Guid.Parse(obj.ToString());
+            return Guid.Parse(obj.ToString(), System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private static TimeSpan ConvertToTimeSpan(object obj)
         {
             if (obj == null)
                 return TimeSpan.MinValue;
-            return TimeSpan.Parse(obj.ToString(), System.Globalization.CultureInfo.CurrentCulture);
+            return TimeSpan.Parse(obj.ToString(), System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private static DateTimeOffset ConvertToDateTimeOffset(object obj)
@@ -166,8 +166,8 @@ namespace Zerra.Reflection
             return method;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetails> constructorDetailsByType = new();
-        public static ConstructorDetails GetConstructorDetail(Type type, Type[] parameterTypes = null)
+        private static readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetail> constructorDetailsByType = new();
+        public static ConstructorDetail GetConstructorDetail(Type type, Type[] parameterTypes = null)
         {
             var key = new TypeKey(type, parameterTypes);
             var constructor = constructorDetailsByType.GetOrAdd(key, (keyArg) =>
