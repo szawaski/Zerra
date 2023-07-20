@@ -107,7 +107,7 @@ namespace Zerra.Reflection
         {
             if (obj == null)
                 return Guid.Empty;
-            return Guid.Parse(obj.ToString(), System.Globalization.CultureInfo.InvariantCulture);
+            return Guid.Parse(obj.ToString());
         }
 
         private static TimeSpan ConvertToTimeSpan(object obj)
