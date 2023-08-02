@@ -7,6 +7,8 @@ namespace Zerra.IO
     public enum DateTimeFormat : byte
     {
         ISO8601,
-        MsSql
+        MsSql,
+        MySql,
+        PostgreSql
     }
 }

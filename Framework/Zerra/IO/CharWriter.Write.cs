@@ -269,14 +269,139 @@ namespace Zerra.IO
                         if (value.Second < 10)
                             buffer[position++] = '0';
                         WriteInt64(value.Second);
-                        buffer[position++] = '.';
 
                         var fraction = (value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000) / 10000;
-                        if (fraction < 10)
+                        if (fraction > 0)
+                        {
+                            buffer[position++] = '.';
+                            if (fraction < 10)
+                                buffer[position++] = '0';
+                            if (fraction < 100)
+                                buffer[position++] = '0';
+                            while (fraction % 10 == 0)
+                                fraction /= 10;
+                            WriteInt64(fraction);
+                        }
+
+                        break;
+                    }
+                case DateTimeFormat.MySql:
+                    {
+                        //yyyy-MM-dd HH:mm:ss.ffffff
+                        EnsureBufferSize(26);
+
+                        if (value.Year < 10)
                             buffer[position++] = '0';
-                        if (fraction < 100)
+                        if (value.Year < 100)
                             buffer[position++] = '0';
-                        WriteInt64(fraction);
+                        if (value.Year < 1000)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Year);
+                        buffer[position++] = '-';
+
+                        if (value.Month < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Month);
+                        buffer[position++] = '-';
+
+                        if (value.Day < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Day);
+
+                        buffer[position++] = ' ';
+
+                        if (value.Hour < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Hour);
+                        buffer[position++] = ':';
+
+                        if (value.Minute < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Minute);
+                        buffer[position++] = ':';
+
+                        if (value.Second < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Second);
+
+                        var fraction = (value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000) / 10;
+                        if (fraction > 0)
+                        {
+                            buffer[position++] = '.';
+                            if (fraction < 10)
+                                buffer[position++] = '0';
+                            if (fraction < 100)
+                                buffer[position++] = '0';
+                            if (fraction < 1000)
+                                buffer[position++] = '0';
+                            if (fraction < 10000)
+                                buffer[position++] = '0';
+                            if (fraction < 100000)
+                                buffer[position++] = '0';
+                            while (fraction % 10 == 0)
+                                fraction /= 10;
+                            WriteInt64(fraction);
+                        }
+
+                        break;
+                    }
+                case DateTimeFormat.PostgreSql:
+                    {
+                        //yyyy-MM-dd HH:mm:ss.ffffff
+                        EnsureBufferSize(26);
+
+                        if (value.Year < 10)
+                            buffer[position++] = '0';
+                        if (value.Year < 100)
+                            buffer[position++] = '0';
+                        if (value.Year < 1000)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Year);
+                        buffer[position++] = '-';
+
+                        if (value.Month < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Month);
+                        buffer[position++] = '-';
+
+                        if (value.Day < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Day);
+
+                        buffer[position++] = ' ';
+
+                        if (value.Hour < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Hour);
+                        buffer[position++] = ':';
+
+                        if (value.Minute < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Minute);
+                        buffer[position++] = ':';
+
+                        if (value.Second < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Second);
+
+                        var fraction = (value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000) / 10;
+                        if (fraction > 0)
+                        {
+                            buffer[position++] = '.';
+                            if (fraction < 10)
+                                buffer[position++] = '0';
+                            if (fraction < 100)
+                                buffer[position++] = '0';
+                            if (fraction < 1000)
+                                buffer[position++] = '0';
+                            if (fraction < 10000)
+                                buffer[position++] = '0';
+                            if (fraction < 100000)
+                                buffer[position++] = '0';
+                            while (fraction % 10 == 0)
+                                fraction /= 10;
+                            WriteInt64(fraction);
+                        }
 
                         break;
                     }
@@ -367,8 +492,8 @@ namespace Zerra.IO
                     }
                 case DateTimeFormat.MsSql:
                     {
-                        //yyyy-MM-dd HH:mm:ss.fff zzz
-                        EnsureBufferSize(27);
+                        //yyyy-MM-dd HH:mm:ss.fff+00:00
+                        EnsureBufferSize(29);
 
                         if (value.Year < 10)
                             buffer[position++] = '0';
@@ -403,16 +528,153 @@ namespace Zerra.IO
                         if (value.Second < 10)
                             buffer[position++] = '0';
                         WriteInt64(value.Second);
-                        buffer[position++] = '.';
 
                         var fraction = (value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000) / 10000;
-                        if (fraction < 10)
+                        if (fraction > 0)
+                        {
+                            buffer[position++] = '.';
+                            if (fraction < 10)
+                                buffer[position++] = '0';
+                            if (fraction < 100)
+                                buffer[position++] = '0';
+                            while (fraction % 10 == 0)
+                                fraction /= 10;
+                            WriteInt64(fraction);
+                        }
+
+                        if (value.Offset.Hours > 0)
+                            buffer[position++] = '+';
+                        else
+                            buffer[position++] = '-';
+                        if (value.Offset.Hours < 10)
                             buffer[position++] = '0';
-                        if (fraction < 100)
+                        WriteInt64(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
+                        buffer[position++] = ':';
+
+                        if (value.Offset.Minutes < 10)
                             buffer[position++] = '0';
-                        WriteInt64(fraction);
+                        WriteInt64(value.Offset.Minutes);
+
+                        break;
+                    }
+                case DateTimeFormat.MySql:
+                    {
+                        //yyyy-MM-dd HH:mm:ss.ffffff
+                        EnsureBufferSize(26);
+
+                        if (value.Year < 10)
+                            buffer[position++] = '0';
+                        if (value.Year < 100)
+                            buffer[position++] = '0';
+                        if (value.Year < 1000)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Year);
+                        buffer[position++] = '-';
+
+                        if (value.Month < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Month);
+                        buffer[position++] = '-';
+
+                        if (value.Day < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Day);
 
                         buffer[position++] = ' ';
+
+                        if (value.Hour < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Hour);
+                        buffer[position++] = ':';
+
+                        if (value.Minute < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Minute);
+                        buffer[position++] = ':';
+
+                        if (value.Second < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Second);
+
+                        var fraction = (value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000) / 10;
+                        if (fraction > 0)
+                        {
+                            buffer[position++] = '.';
+                            if (fraction < 10)
+                                buffer[position++] = '0';
+                            if (fraction < 100)
+                                buffer[position++] = '0';
+                            if (fraction < 1000)
+                                buffer[position++] = '0';
+                            if (fraction < 10000)
+                                buffer[position++] = '0';
+                            if (fraction < 100000)
+                                buffer[position++] = '0';
+                            while (fraction % 10 == 0)
+                                fraction /= 10;
+                            WriteInt64(fraction);
+                        }
+
+                        break;
+                    }
+                case DateTimeFormat.PostgreSql:
+                    {
+                        //yyyy-MM-dd HH:mm:ss.ffffff+00:00
+                        EnsureBufferSize(32);
+
+                        if (value.Year < 10)
+                            buffer[position++] = '0';
+                        if (value.Year < 100)
+                            buffer[position++] = '0';
+                        if (value.Year < 1000)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Year);
+                        buffer[position++] = '-';
+
+                        if (value.Month < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Month);
+                        buffer[position++] = '-';
+
+                        if (value.Day < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Day);
+
+                        buffer[position++] = ' ';
+
+                        if (value.Hour < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Hour);
+                        buffer[position++] = ':';
+
+                        if (value.Minute < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Minute);
+                        buffer[position++] = ':';
+
+                        if (value.Second < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Second);
+
+                        var fraction = (value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000) / 10;
+                        if (fraction > 0)
+                        {
+                            buffer[position++] = '.';
+                            if (fraction < 10)
+                                buffer[position++] = '0';
+                            if (fraction < 100)
+                                buffer[position++] = '0';
+                            if (fraction < 1000)
+                                buffer[position++] = '0';
+                            if (fraction < 10000)
+                                buffer[position++] = '0';
+                            if (fraction < 100000)
+                                buffer[position++] = '0';
+                            while (fraction % 10 == 0)
+                                fraction /= 10;
+                            WriteInt64(fraction);
+                        }
+
 
                         if (value.Offset.Hours > 0)
                             buffer[position++] = '+';
@@ -440,40 +702,130 @@ namespace Zerra.IO
             switch (format)
             {
                 case TimeFormat.ISO8601:
+                    {
+                        //HH:mm:ss.fffffff
+                        EnsureBufferSize(16);
+
+                        if (value.TotalHours < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Hours);
+                        buffer[position++] = ':';
+
+                        if (value.Minutes < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Minutes);
+                        buffer[position++] = ':';
+
+                        if (value.Seconds < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Seconds);
+
+                        var fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
+                        if (fraction > 0)
+                        {
+                            buffer[position++] = '.';
+                            if (fraction < 10)
+                                buffer[position++] = '0';
+                            if (fraction < 100)
+                                buffer[position++] = '0';
+                            if (fraction < 1000)
+                                buffer[position++] = '0';
+                            if (fraction < 10000)
+                                buffer[position++] = '0';
+                            if (fraction < 100000)
+                                buffer[position++] = '0';
+                            if (fraction < 1000000)
+                                buffer[position++] = '0';
+                            //while (fraction % 10 == 0) System.Text.Json does all figures
+                            //    fraction /= 10;
+                            WriteInt64(fraction);
+                        }
+
+                        break;
+                    }
                 case TimeFormat.MsSql:
-                    //HH:mm:ss.fffffff
-                    EnsureBufferSize(16);
+                    {
+                        //HH:mm:ss.fffffff
+                        EnsureBufferSize(16);
 
-                    if (value.TotalHours < 10)
-                        buffer[position++] = '0';
-                    WriteInt64(value.Hours);
-                    buffer[position++] = ':';
+                        if (value.TotalHours < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Hours);
+                        buffer[position++] = ':';
 
-                    if (value.Minutes < 10)
-                        buffer[position++] = '0';
-                    WriteInt64(value.Minutes);
-                    buffer[position++] = ':';
+                        if (value.Minutes < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Minutes);
+                        buffer[position++] = ':';
 
-                    if (value.Seconds < 10)
-                        buffer[position++] = '0';
-                    WriteInt64(value.Seconds);
-                    buffer[position++] = '.';
+                        if (value.Seconds < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Seconds);
 
-                    var fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
-                    if (fraction < 10)
-                        buffer[position++] = '0';
-                    if (fraction < 100)
-                        buffer[position++] = '0';
-                    if (fraction < 1000)
-                        buffer[position++] = '0';
-                    if (fraction < 10000)
-                        buffer[position++] = '0';
-                    if (fraction < 100000)
-                        buffer[position++] = '0';
-                    if (fraction < 1000000)
-                        buffer[position++] = '0';
-                    WriteInt64(fraction);
-                    break;
+                        var fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
+                        if (fraction > 0)
+                        {
+                            buffer[position++] = '.';
+                            if (fraction < 10)
+                                buffer[position++] = '0';
+                            if (fraction < 100)
+                                buffer[position++] = '0';
+                            if (fraction < 1000)
+                                buffer[position++] = '0';
+                            if (fraction < 10000)
+                                buffer[position++] = '0';
+                            if (fraction < 100000)
+                                buffer[position++] = '0';
+                            if (fraction < 1000000)
+                                buffer[position++] = '0';
+                            while (fraction % 10 == 0)
+                                fraction /= 10;
+                            WriteInt64(fraction);
+                        }
+
+                        break;
+                    }
+                case TimeFormat.MySql:
+                case TimeFormat.PostgreSql:
+                    {
+                        //HH:mm:ss.ffffff
+                        EnsureBufferSize(15);
+
+                        if (value.TotalHours < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Hours);
+                        buffer[position++] = ':';
+
+                        if (value.Minutes < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Minutes);
+                        buffer[position++] = ':';
+
+                        if (value.Seconds < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Seconds);
+
+                        var fraction = (value.Ticks - (value.Ticks / 10000000) * 10000000) / 10;
+                        if (fraction > 0)
+                        {
+                            buffer[position++] = '.';
+                            if (fraction < 10)
+                                buffer[position++] = '0';
+                            if (fraction < 100)
+                                buffer[position++] = '0';
+                            if (fraction < 1000)
+                                buffer[position++] = '0';
+                            if (fraction < 10000)
+                                buffer[position++] = '0';
+                            if (fraction < 100000)
+                                buffer[position++] = '0';
+                            while (fraction % 10 == 0)
+                                fraction /= 10;
+                            WriteInt64(fraction);
+                        }
+
+                        break;
+                    }
             }
         }
 

@@ -560,7 +560,7 @@ namespace Zerra.Repository.PostgreSql
 
                         }
                         sb.Write('\'');
-                        sb.Write((DateTime)value, DateTimeFormat.MsSql);
+                        sb.Write((DateTime)value, DateTimeFormat.PostgreSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.DateTimeOffset:
@@ -616,7 +616,7 @@ namespace Zerra.Repository.PostgreSql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((DateTimeOffset)value, DateTimeFormat.MsSql);
+                        sb.Write((DateTimeOffset)value, DateTimeFormat.PostgreSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.TimeSpan:
@@ -667,7 +667,7 @@ namespace Zerra.Repository.PostgreSql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((TimeSpan)value, TimeFormat.MsSql);
+                        sb.Write((TimeSpan)value, TimeFormat.PostgreSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.Guid:

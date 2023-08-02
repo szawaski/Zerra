@@ -156,8 +156,8 @@ namespace Zerra.Repository.Test
             Assert.AreEqual(model1.DoubleThing, model2.DoubleThing);
             Assert.AreEqual(model1.DecimalThing, model2.DecimalThing);
             Assert.AreEqual(model1.CharThing, model2.CharThing);
-            Assert.AreEqual(model1.DateTimeThing.ToUniversalTime().ToString("yyyyMMddHHmmss.f"), model2.DateTimeThing.ToUniversalTime().ToString("yyyyMMddHHmmss.f"));
-            Assert.AreEqual(model1.DateTimeOffsetThing.ToUniversalTime().ToString("yyyyMMddHHmmss.fzzz"), model2.DateTimeOffsetThing.ToUniversalTime().ToString("yyyyMMddHHmmss.fzzz"));
+            Assert.AreEqual(model1.DateTimeThing.ToUniversalTime().ToString("yyyyMMddHHmmss.ff"), model2.DateTimeThing.ToUniversalTime().ToString("yyyyMMddHHmmss.ff"));
+            Assert.AreEqual(model1.DateTimeOffsetThing.ToUniversalTime().ToString("yyyyMMddHHmmss.ffzzz"), model2.DateTimeOffsetThing.ToUniversalTime().ToString("yyyyMMddHHmmss.ffzzz"));
             Assert.AreEqual((int)model1.TimeSpanThing.TotalMilliseconds, (int)model2.TimeSpanThing.TotalMilliseconds);
             Assert.AreEqual(model1.GuidThing, model2.GuidThing);
 
@@ -169,8 +169,8 @@ namespace Zerra.Repository.Test
             Assert.AreEqual(model1.DoubleNullableThing, model2.DoubleNullableThing);
             Assert.AreEqual(model1.DecimalNullableThing, model2.DecimalNullableThing);
             Assert.AreEqual(model1.CharNullableThing, model2.CharNullableThing);
-            Assert.AreEqual(model1.DateTimeNullableThing.Value.ToUniversalTime().ToString("yyyyMMddHHmmss.f"), model2.DateTimeNullableThing.Value.ToUniversalTime().ToString("yyyyMMddHHmmss.f"));
-            Assert.AreEqual(model1.DateTimeOffsetNullableThing.Value.ToUniversalTime().ToString("yyyyMMddHHmmss.fzzz"), model2.DateTimeOffsetNullableThing.Value.ToUniversalTime().ToString("yyyyMMddHHmmss.fzzz"));
+            Assert.AreEqual(model1.DateTimeNullableThing.Value.ToUniversalTime().ToString("yyyyMMddHHmmss.ff"), model2.DateTimeNullableThing.Value.ToUniversalTime().ToString("yyyyMMddHHmmss.ff"));
+            Assert.AreEqual(model1.DateTimeOffsetNullableThing.Value.ToUniversalTime().ToString("yyyyMMddHHmmss.ffzzz"), model2.DateTimeOffsetNullableThing.Value.ToUniversalTime().ToString("yyyyMMddHHmmss.ffzzz"));
             Assert.AreEqual((int)model1.TimeSpanNullableThing.Value.TotalMilliseconds, (int)model2.TimeSpanNullableThing.Value.TotalMilliseconds);
             Assert.AreEqual(model1.GuidNullableThing, model2.GuidNullableThing);
 

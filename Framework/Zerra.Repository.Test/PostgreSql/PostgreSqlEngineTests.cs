@@ -105,6 +105,8 @@ namespace Zerra.Repository.Test
             _ = ExecuteSql(context, addJunkColumns);
 
             _ = context.InitializeEngine<ITransactStoreEngine>(true);
+
+            DropDatabase(context);
         }
     }
 }

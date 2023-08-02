@@ -958,8 +958,8 @@ namespace Zerra.Test
             Assert.AreEqual(model1.CharThing.ToString(), model2.CharThing);
             Assert.AreEqual(model1.DateTimeThing, DateTime.Parse(model2.DateTimeThing, null, DateTimeStyles.RoundtripKind)); //extra zeros removed at end of fractional sectons
             Assert.AreEqual(model1.DateTimeOffsetThing, DateTimeOffset.Parse(model2.DateTimeOffsetThing, null, DateTimeStyles.RoundtripKind));//extra zeros removed at end of fractional sectons
-            Assert.AreEqual(model1.TimeSpanThing.ToString(), model2.TimeSpanThing);
-            Assert.AreEqual(model1.GuidThing.ToString(), model2.GuidThing);
+            Assert.AreEqual(model1.TimeSpanThing, TimeSpan.Parse(model2.TimeSpanThing));
+            Assert.AreEqual(model1.GuidThing, Guid.Parse(model2.GuidThing));
 
             Assert.AreEqual(model1.BooleanThingNullable?.ToString().ToLower(), model2.BooleanThingNullable);
             Assert.AreEqual(model1.ByteThingNullable?.ToString(), model2.ByteThingNullable);
@@ -976,8 +976,8 @@ namespace Zerra.Test
             Assert.AreEqual(model1.CharThingNullable?.ToString(), model2.CharThingNullable);
             Assert.AreEqual(model1.DateTimeThingNullable, DateTime.Parse(model2.DateTimeThingNullable));//extra zeros removed at end of fractional sectons
             Assert.AreEqual(model1.DateTimeOffsetThingNullable, DateTimeOffset.Parse(model2.DateTimeOffsetThingNullable));//extra zeros removed at end of fractional sectons
-            Assert.AreEqual(model1.TimeSpanThingNullable?.ToString(), model2.TimeSpanThingNullable);
-            Assert.AreEqual(model1.GuidThingNullable?.ToString(), model2.GuidThingNullable);
+            Assert.AreEqual(model1.TimeSpanThingNullable, TimeSpan.Parse(model2.TimeSpanThingNullable));
+            Assert.AreEqual(model1.GuidThingNullable, Guid.Parse(model2.GuidThingNullable));
 
             Assert.IsNull(model1.ByteThingNullableNull);
             Assert.IsNull(model1.SByteThingNullableNull);

@@ -509,19 +509,19 @@ namespace Zerra.Repository.MySql
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
                         writer.Write('\'');
-                        writer.Write((DateTime)value, DateTimeFormat.ISO8601);
+                        writer.Write((DateTime)value, DateTimeFormat.MySql);
                         writer.Write('\'');
                         return;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
                         writer.Write('\'');
-                        writer.Write((DateTimeOffset)value, DateTimeFormat.ISO8601);
+                        writer.Write((DateTimeOffset)value, DateTimeFormat.MySql);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:
                         writer.Write('\'');
-                        writer.Write((TimeSpan)value, TimeFormat.ISO8601);
+                        writer.Write((TimeSpan)value, TimeFormat.MySql);
                         writer.Write('\'');
                         return;
                     case CoreType.Guid:
@@ -1442,7 +1442,7 @@ namespace Zerra.Repository.MySql
                         break;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
-                        _ = sb.Append("timestamp(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
+                        _ = sb.Append("datetime(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
                         break;
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:

@@ -526,19 +526,19 @@ namespace Zerra.Repository.PostgreSql
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
                         writer.Write('\'');
-                        writer.Write(((DateTime)value).ToUniversalTime(), DateTimeFormat.MsSql);
+                        writer.Write(((DateTime)value).ToUniversalTime(), DateTimeFormat.PostgreSql);
                         writer.Write('\'');
                         return;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
                         writer.Write('\'');
-                        writer.Write(((DateTimeOffset)value).ToUniversalTime(), DateTimeFormat.MsSql);
+                        writer.Write(((DateTimeOffset)value).ToUniversalTime(), DateTimeFormat.PostgreSql);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:
                         writer.Write('\'');
-                        writer.Write((TimeSpan)value, TimeFormat.MsSql);
+                        writer.Write((TimeSpan)value, TimeFormat.PostgreSql);
                         writer.Write('\'');
                         return;
                     case CoreType.Guid:
