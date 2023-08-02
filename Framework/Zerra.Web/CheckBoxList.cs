@@ -4,7 +4,6 @@
 
 using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
-using Microsoft.AspNetCore.Mvc.ViewFeatures.Internal;
 using Microsoft.AspNetCore.Routing;
 using System;
 using System.Collections;
@@ -22,7 +21,8 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
         {
             var modelExpressionProvider = (ModelExpressionProvider)htmlHelper.ViewContext.HttpContext.RequestServices.GetService(typeof(ModelExpressionProvider));
 
-            var listName = ExpressionHelper.GetExpressionText(expression);
+            var listName = modelExpressionProvider.GetExpressionText(expression);
+
             var metaData = modelExpressionProvider.CreateModelExpression(htmlHelper.ViewData, expression);
 
             items = GetCheckboxListWithDefaultValues(metaData.Model, items);
