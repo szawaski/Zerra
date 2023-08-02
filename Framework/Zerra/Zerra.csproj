@@ -1,15 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFrameworks>net7.0;net6.0;net5.0;netstandard2.1;netstandard2.0</TargetFrameworks>
-		<Authors>Steven Zawaski</Authors>
-		<Copyright>KaKush LLC</Copyright>
-		<Product>Zerra Framework</Product>
-		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-		<PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM</PackageTags>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<Description>Core library for the Zerra Framework.
+    <PropertyGroup>
+        <TargetFrameworks>net7.0;net6.0;net5.0;netstandard2.1;netstandard2.0</TargetFrameworks>
+        <Authors>Steven Zawaski</Authors>
+        <Copyright>KaKush LLC</Copyright>
+        <Product>Zerra Framework</Product>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM</PackageTags>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Description>Core library for the Zerra Framework.
 
 Commonly used types:
 Zerra.Providers.IBaseProvider
@@ -24,29 +24,29 @@ Zerra.Encryption.Hasher
 Zerra.Compression.CompressionCommon
 Zerra.Linq.WhereBuilder
 Zerra.Reflection.TypeAnalyzer
-		</Description>
-		<Company>KaKush LLC</Company>
-		<RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
+        </Description>
+        <Company>KaKush LLC</Company>
+        <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <LangVersion>10.0</LangVersion>
-		<Version>4.1.4</Version>
-	</PropertyGroup>
+        <Version>4.1.5</Version>
+    </PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	</PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	</PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
 
-	<ItemGroup>
-		<None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\amd64\KernelTraceControl.dll" />
-		<None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\amd64\msdia140.dll" />
-		<None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\x86\KernelTraceControl.dll" />
-		<None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\x86\KernelTraceControl.Win61.dll" />
-		<None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\x86\msdia140.dll" />
-		<None Remove="Serialization\nt20iehw.1xn~" />
-	</ItemGroup>
+    <ItemGroup>
+        <None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\amd64\KernelTraceControl.dll" />
+        <None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\amd64\msdia140.dll" />
+        <None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\x86\KernelTraceControl.dll" />
+        <None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\x86\KernelTraceControl.Win61.dll" />
+        <None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\x86\msdia140.dll" />
+        <None Remove="Serialization\nt20iehw.1xn~" />
+    </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net7.0'">
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
@@ -58,50 +58,50 @@ Zerra.Reflection.TypeAnalyzer
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-		<PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="6.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="6.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
         <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.0" />
-	</ItemGroup>
+    </ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
-		<PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="5.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="5.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="5.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
-	</ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="5.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="5.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="5.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
+    </ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
-		<PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="3.1.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="3.1.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="3.1.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.1.0" />
-	</ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="3.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="3.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="3.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.1.0" />
+    </ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-		<PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="3.1.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="3.1.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="3.1.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.1.0" />
-		<PackageReference Include="System.Buffers" Version="4.5.1" />
-		<PackageReference Include="System.Memory" Version="4.5.4" />
-		<PackageReference Include="System.Reflection.Emit" Version="4.6.0" />
-		<PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.6.0" />
-	</ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="3.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="3.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="3.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.1.0" />
+        <PackageReference Include="System.Buffers" Version="4.5.1" />
+        <PackageReference Include="System.Memory" Version="4.5.4" />
+        <PackageReference Include="System.Reflection.Emit" Version="4.6.0" />
+        <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.6.0" />
+    </ItemGroup>
 
-	<ItemGroup>
-		<None Include="..\..\LICENSE.txt">
-			<Pack>True</Pack>
-			<PackagePath></PackagePath>
-		</None>
-	</ItemGroup>
-    
+    <ItemGroup>
+        <None Include="..\..\LICENSE">
+            <Pack>True</Pack>
+            <PackagePath></PackagePath>
+        </None>
+    </ItemGroup>
+
 </Project>

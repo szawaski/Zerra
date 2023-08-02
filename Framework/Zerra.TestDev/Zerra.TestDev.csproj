@@ -7,7 +7,7 @@
     <Copyright>KaKush LLC</Copyright>
     <Product>Zerra Framework</Product>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -39,9 +39,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\LICENSE.txt">
+    <None Include="..\..\LICENSE">
       <Pack>True</Pack>
-      <PackagePath></PackagePath>
+      <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
 

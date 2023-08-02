@@ -1,33 +1,33 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFrameworks>net5.0;net6.0;net7.0</TargetFrameworks>
-    <Authors>Steven Zawaski</Authors>
-    <Product>KaKush LLC</Product>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, Azure Service Bus</PackageTags>
-    <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-    <Description>Azure Service Bus implementations of producer and consumer for commands and events in the CQRS Zerra Framework.</Description>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <LangVersion>10.0</LangVersion>
-    <Version>4.1.0</Version>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFrameworks>net5.0;net6.0;net7.0</TargetFrameworks>
+        <Authors>Steven Zawaski</Authors>
+        <Product>KaKush LLC</Product>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, Azure Service Bus</PackageTags>
+        <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
+        <Description>Azure Service Bus implementations of producer and consumer for commands and events in the CQRS Zerra Framework.</Description>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <LangVersion>10.0</LangVersion>
+        <Version>4.1.5</Version>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <None Include="..\..\LICENSE.txt">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="..\..\LICENSE">
+            <Pack>True</Pack>
+            <PackagePath></PackagePath>
+        </None>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.9.0" />
-    <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="4.0.0" />
-  </ItemGroup>
-	
-  <ItemGroup>
-    <ProjectReference Include="..\Zerra\Zerra.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.9.0" />
+        <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="4.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Zerra\Zerra.csproj" />
+    </ItemGroup>
 
 </Project>

@@ -1,38 +1,39 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0;net6.0;net7.0</TargetFrameworks>
-    <Authors>Steven Zawaski</Authors>
-    <Copyright>KaKush LLC</Copyright>
-    <Product>Zerra Framework Repository Sql</Product>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <Description>MySql implementation of repository for Zerra Framework.
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0;net6.0;net7.0</TargetFrameworks>
+        <Authors>Steven Zawaski</Authors>
+        <Copyright>KaKush LLC</Copyright>
+        <Product>Zerra Framework Repository Sql</Product>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <Description>MySql implementation of repository for Zerra Framework.
 
 Commonly used types:
-Zerra.Repository.MySql.MySqlDataContext</Description>
-    <Company>KaKush LLC</Company>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, SQL</PackageTags>
-    <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-    <LangVersion>10.0</LangVersion>
-	<Version>4.1.0</Version>
-  </PropertyGroup>
+Zerra.Repository.MySql.MySqlDataContext
+        </Description>
+        <Company>KaKush LLC</Company>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, SQL</PackageTags>
+        <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
+        <LangVersion>10.0</LangVersion>
+        <Version>4.1.5</Version>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <None Include="..\..\LICENSE.txt" Link="LICENSE.txt">
-      <PackagePath></PackagePath>
-      <Pack>True</Pack>
-    </None>
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="..\..\LICENSE">
+            <PackagePath></PackagePath>
+            <Pack>True</Pack>
+        </None>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="MySql.Data" Version="8.0.27" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="MySql.Data" Version="8.0.27" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Zerra.Repository\Zerra.Repository.csproj" />
-    <ProjectReference Include="..\Zerra\Zerra.csproj" />
-  </ItemGroup>
-  
+    <ItemGroup>
+        <ProjectReference Include="..\Zerra.Repository\Zerra.Repository.csproj" />
+        <ProjectReference Include="..\Zerra\Zerra.csproj" />
+    </ItemGroup>
+
 </Project>

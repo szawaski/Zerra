@@ -7,16 +7,16 @@
     <Copyright>KaKush LLC</Copyright>
     <Product>Zerra Framework</Product>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <LangVersion>8.0</LangVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Company>KaKush LLC</Company>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\LICENSE.txt">
+    <None Include="..\..\LICENSE" Link="LICENSE">
+      <PackagePath>\</PackagePath>
       <Pack>True</Pack>
-      <PackagePath></PackagePath>
     </None>
   </ItemGroup>
 

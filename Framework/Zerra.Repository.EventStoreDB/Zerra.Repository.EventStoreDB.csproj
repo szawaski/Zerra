@@ -1,39 +1,40 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFrameworks>net5.0;net6.0;net7.0</TargetFrameworks>
-    <Authors>Steven Zawaski</Authors>
-    <Copyright>KaKush LLC</Copyright>
-    <Product>Zerra Framework Repository Event Store</Product>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <Description>EventStore implementation of repository for Zerra Framework. 
+    <PropertyGroup>
+        <TargetFrameworks>net5.0;net6.0;net7.0</TargetFrameworks>
+        <Authors>Steven Zawaski</Authors>
+        <Copyright>KaKush LLC</Copyright>
+        <Product>Zerra Framework Repository Event Store</Product>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <Description>EventStore implementation of repository for Zerra Framework.
 
 Commonly used types:
 Zerra.Repository.EventStore.EventStoreDB.EventStoreDBDataContext
-Zerra.Repository.EventStore.EventStoreDB.EventStoreDBProvider</Description>
-    <Company>KaKush LLC</Company>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, EventStore</PackageTags>
-    <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-    <LangVersion>10.0</LangVersion>
-    <Version>4.1.0</Version>
-  </PropertyGroup>
+Zerra.Repository.EventStore.EventStoreDB.EventStoreDBProvider
+        </Description>
+        <Company>KaKush LLC</Company>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, EventStore</PackageTags>
+        <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
+        <LangVersion>10.0</LangVersion>
+        <Version>4.1.5</Version>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Zerra\Zerra.csproj" />
-    <ProjectReference Include="..\Zerra.Repository\Zerra.Repository.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Zerra\Zerra.csproj" />
+        <ProjectReference Include="..\Zerra.Repository\Zerra.Repository.csproj" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\..\LICENSE.txt">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="..\..\LICENSE">
+            <Pack>True</Pack>
+            <PackagePath></PackagePath>
+        </None>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="EventStore.Client.Grpc.Streams" Version="21.2.0" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="EventStore.Client.Grpc.Streams" Version="21.2.0" />
+    </ItemGroup>
 
 </Project>
