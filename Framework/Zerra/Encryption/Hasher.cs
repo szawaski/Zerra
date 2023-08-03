@@ -118,7 +118,11 @@ namespace Zerra.Encryption
         {
             saltBytes ??= GenerateSaltBytes();
 
+#if NETSTANDARD2_0
             using (var deriveBytes = new Rfc2898DeriveBytes(plainBytes, saltBytes, rfc2898HashItterations))
+#else
+            using (var deriveBytes = new Rfc2898DeriveBytes(plainBytes, saltBytes, rfc2898HashItterations, HashAlgorithmName.SHA1))
+#endif
             {
                 var hashBytes = deriveBytes.GetBytes(pbkdf2HashByteSize);
 
@@ -154,7 +158,11 @@ namespace Zerra.Encryption
             Array.Copy(hashWithSaltBytes, 0, hashBytes, 0, hashBytes.Length);
             Array.Copy(hashWithSaltBytes, pbkdf2HashByteSize, saltBytes, 0, saltBytes.Length);
 
+#if NETSTANDARD2_0
             using (var deriveBytes = new Rfc2898DeriveBytes(plainBytes, saltBytes, rfc2898HashItterations))
+#else
+            using (var deriveBytes = new Rfc2898DeriveBytes(plainBytes, saltBytes, rfc2898HashItterations, HashAlgorithmName.SHA1))
+#endif
             {
                 var expectedHashBytes = deriveBytes.GetBytes(pbkdf2HashByteSize);
 
