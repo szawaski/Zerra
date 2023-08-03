@@ -95,7 +95,7 @@ namespace Zerra.Identity.Saml2.Documents
             xw.WriteEndElement();
         }
 
-        private void WriteStatus(XmlWriter xw)
+        private static void WriteStatus(XmlWriter xw)
         {
             xw.WriteStartElement(Saml2Names.ProtocolPrefix, "Status", null);
             xw.WriteStartElement(Saml2Names.ProtocolPrefix, "StatusCode", null);

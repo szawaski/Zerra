@@ -73,9 +73,7 @@ namespace Zerra.Identity.OpenID.Documents
             var keys = new List<JwtKey>();
             foreach (var cert in certs)
             {
-                var rsa = cert.GetRSAPublicKey();
-                if (rsa == null)
-                    throw new IdentityProviderException("X509 must be RSA");
+                var rsa = cert.GetRSAPublicKey() ?? throw new IdentityProviderException("X509 must be RSA");
 
                 var parameters = rsa.ExportParameters(false);
                 var publicKey = cert.Export(X509ContentType.Cert);

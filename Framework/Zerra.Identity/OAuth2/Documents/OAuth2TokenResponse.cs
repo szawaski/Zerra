@@ -17,9 +17,7 @@ namespace Zerra.Identity.OAuth2.Documents
 
         public OAuth2TokenResponse(string serviceProvider, string code)
         {
-            var token = AuthTokenManager.GetToken(serviceProvider, code);
-            if (token == null)
-                throw new IdentityProviderException("Invalid access code");
+            var token = AuthTokenManager.GetToken(serviceProvider, code) ?? throw new IdentityProviderException("Invalid access code");
 
             this.ServiceProvider = serviceProvider;
             this.Token = token;

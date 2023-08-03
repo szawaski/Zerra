@@ -19,9 +19,7 @@ namespace Zerra.Identity.OpenID.Documents
 
         public OpenIDIdentityResponse(string serviceProvider, string  token)
         {
-            var identity = AuthTokenManager.GetIdentity(serviceProvider, token);
-            if (identity == null)
-                throw new IdentityProviderException("Invalid token");
+            var identity = AuthTokenManager.GetIdentity(serviceProvider, token) ?? throw new IdentityProviderException("Invalid token");
 
             this.ServiceProvider = serviceProvider;
             this.UserID = identity.UserID;
