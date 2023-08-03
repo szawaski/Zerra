@@ -76,7 +76,7 @@ namespace Zerra.Encryption
         public static string Encrypt(SymmetricConfig symmetricConfig, string plainData) { return Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, plainData); }
         public static byte[] Encrypt(SymmetricConfig symmetricConfig, byte[] plainBytes) { return Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, plainBytes); }
 #if !NETSTANDARD2_0
-        public static Span<byte> Encrypt(SymmetricConfig symmetricConfig, Span<byte> plainBytes) { return Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, plainBytes); }
+        public static Span<byte> Encrypt(SymmetricConfig symmetricConfig, ReadOnlySpan<byte> plainBytes) { return Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, plainBytes); }
 #endif
         public static FinalBlockStream Encrypt(SymmetricConfig symmetricConfig, Stream stream, bool write, bool leaveOpen = false) { return Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, stream, write, leaveOpen); }
 
@@ -106,12 +106,12 @@ namespace Zerra.Encryption
             }
         }
 #if !NETSTANDARD2_0
-        public static Span<byte> Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, Span<byte> plainBytes)
+        public static Span<byte> Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, ReadOnlySpan<byte> plainBytes)
         {
             if (plainBytes == null)
                 return null;
             if (plainBytes.Length == 0)
-                return plainBytes;
+                return Span<byte>.Empty;
             using (var memoryStream = new MemoryStream())
             using (var cryptoStream = Encrypt(symmetricAlgorithmType, key, memoryStream, true, false))
             {
@@ -183,7 +183,7 @@ namespace Zerra.Encryption
         public static string Decrypt(SymmetricConfig symmetricConfig, string encryptedData) { return Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedData); }
         public static byte[] Decrypt(SymmetricConfig symmetricConfig, byte[] encryptedBytes) { return Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedBytes); }
 #if !NETSTANDARD2_0
-        public static Span<byte> Decrypt(SymmetricConfig symmetricConfig, Span<byte> encryptedBytes) { return Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedBytes); }
+        public static Span<byte> Decrypt(SymmetricConfig symmetricConfig, ReadOnlySpan<byte> encryptedBytes) { return Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedBytes); }
 #endif
         public static FinalBlockStream Decrypt(SymmetricConfig symmetricConfig, Stream stream, bool write, bool leaveOpen = false) { return Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, stream, write, leaveOpen); }
 
@@ -216,12 +216,12 @@ namespace Zerra.Encryption
             }
         }
 #if !NETSTANDARD2_0
-        public static Span<byte> Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, Span<byte> encryptedBytes)
+        public static Span<byte> Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, ReadOnlySpan<byte> encryptedBytes)
         {
             if (encryptedBytes == null)
                 return null;
             if (encryptedBytes.Length == 0)
-                return encryptedBytes;
+                return Span<byte>.Empty;
             using (var memoryStream = new MemoryStream())
             using (var cryptoStream = Decrypt(symmetricAlgorithmType, key, memoryStream, true, false))
             {
