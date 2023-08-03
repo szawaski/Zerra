@@ -73,11 +73,11 @@ namespace Zerra.CQRS.RabbitMQ
 
                         try
                         {
-                            var body = e.Body;
+                            RabbitMQEventMessage rabbitMessage;
                             if (symmetricConfig != null)
-                                body = SymmetricEncryptor.Decrypt(symmetricConfig, e.Body);
-
-                            var rabbitMessage = RabbitMQCommon.Deserialize<RabbitMQEventMessage>(body);
+                                rabbitMessage = RabbitMQCommon.Deserialize<RabbitMQEventMessage>(SymmetricEncryptor.Decrypt(symmetricConfig, e.Body.Span));
+                            else
+                                rabbitMessage = RabbitMQCommon.Deserialize<RabbitMQEventMessage>(e.Body.Span);
 
                             if (rabbitMessage.Claims != null)
                             {

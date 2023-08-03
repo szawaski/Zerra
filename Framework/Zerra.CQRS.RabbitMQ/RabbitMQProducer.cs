@@ -124,7 +124,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                             channel.BasicCancel(consumerTag);
 
-                            var acknowledgementBody = e.Body;
+                            var acknowledgementBody = e.Body.Span;
                             if (symmetricConfig != null)
                                 acknowledgementBody = SymmetricEncryptor.Decrypt(symmetricConfig, acknowledgementBody);
                             

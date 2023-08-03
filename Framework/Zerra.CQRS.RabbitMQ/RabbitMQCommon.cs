@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System;
 using Zerra.Serialization;
 
 namespace Zerra.CQRS.RabbitMQ
@@ -16,7 +17,7 @@ namespace Zerra.CQRS.RabbitMQ
             return serializer.Serialize(obj);
         }
 
-        public static T Deserialize<T>(byte[] bytes)
+        public static T Deserialize<T>(ReadOnlySpan<byte> bytes)
         {
             var serializer = new ByteSerializer(true, true, true);
             return serializer.Deserialize<T>(bytes);
