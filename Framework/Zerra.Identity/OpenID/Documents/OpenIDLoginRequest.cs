@@ -9,15 +9,15 @@ namespace Zerra.Identity.OpenID.Documents
 {
     public sealed class OpenIDLoginRequest : OpenIDDocument
     {
-        public string ServiceProvider { get; protected set; }
-        public string RedirectUrl { get; protected set; }
-        public BindingType BindingType { get; protected set; }
-        public OpenIDResponseType? ResponseType { get; protected set; }
-        public OpenIDResponseMode? ResponseMode { get; protected set; }
-        public string Scope { get; protected set; }
-        public string State { get; protected set; }
-        public string Nonce { get; protected set; }
-        public string AcrValues { get; protected set; }
+        public string ServiceProvider { get; private set; }
+        public string RedirectUrl { get; private set; }
+        public BindingType BindingType { get; private set; }
+        public OpenIDResponseType? ResponseType { get; private set; }
+        public OpenIDResponseMode? ResponseMode { get; private set; }
+        public string Scope { get; private set; }
+        public string State { get; private set; }
+        public string Nonce { get; private set; }
+        public string AcrValues { get; private set; }
 
         public override BindingDirection BindingDirection => BindingDirection.Request;
 

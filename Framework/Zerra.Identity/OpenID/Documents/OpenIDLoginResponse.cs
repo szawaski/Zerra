@@ -13,31 +13,31 @@ namespace Zerra.Identity.OpenID.Documents
 {
     public sealed class OpenIDLoginResponse : OpenIDDocument
     {
-        public string AccessCode { get; protected set; }
+        public string AccessCode { get; private set; }
 
-        public string ID { get; protected set; }
-        public string Issuer { get; protected set; }
-        public string Subject { get; protected set; }
-        public string Audience { get; protected set; }
-        public string UserID { get; protected set; }
-        public string UserName { get; protected set; }
-        public string Name { get; protected set; }
-        public string[] Roles { get; protected set; }
-        public string[] Emails { get; protected set; }
-        public string X509Thumbprint { get; protected set; }
-        public string KeyID { get; protected set; }
+        public string ID { get; private set; }
+        public string Issuer { get; private set; }
+        public string Subject { get; private set; }
+        public string Audience { get; private set; }
+        public string UserID { get; private set; }
+        public string UserName { get; private set; }
+        public string Name { get; private set; }
+        public string[] Roles { get; private set; }
+        public string[] Emails { get; private set; }
+        public string X509Thumbprint { get; private set; }
+        public string KeyID { get; private set; }
 
-        public string Nonce { get; protected set; }
-        public long? IssuedAtTime { get; protected set; }
-        public long? NotBefore { get; protected set; }
-        public long? Expiration { get; protected set; }
+        public string Nonce { get; private set; }
+        public long? IssuedAtTime { get; private set; }
+        public long? NotBefore { get; private set; }
+        public long? Expiration { get; private set; }
 
         public string State { get; set; }
 
         public Dictionary<string, string> OtherClaims { get; set; }
 
-        public string Error { get; protected set; }
-        public string ErrorDescription { get; protected set; }
+        public string Error { get; private set; }
+        public string ErrorDescription { get; private set; }
 
         public override BindingDirection BindingDirection => BindingDirection.Response;
 

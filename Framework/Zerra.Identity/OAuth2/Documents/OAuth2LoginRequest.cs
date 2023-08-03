@@ -9,9 +9,9 @@ namespace Zerra.Identity.OAuth2.Documents
 {
     public sealed class OAuth2LoginRequest : OAuth2Document
     { 
-        public string ServiceProvider { get; protected set; }
-        public string RedirectUrl { get; protected set; }
-        public string State { get; protected set; }
+        public string ServiceProvider { get; private set; }
+        public string RedirectUrl { get; private set; }
+        public string State { get; private set; }
 
         public override BindingDirection BindingDirection => BindingDirection.Request;
 

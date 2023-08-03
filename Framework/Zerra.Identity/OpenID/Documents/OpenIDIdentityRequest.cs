@@ -9,8 +9,8 @@ namespace Zerra.Identity.OpenID.Documents
 {
     public sealed class OpenIDIdentityRequest : OpenIDDocument
     {
-        public string ServiceProvider { get; protected set; }
-        public string Token { get; protected set; }
+        public string ServiceProvider { get; private set; }
+        public string Token { get; private set; }
 
         public override BindingDirection BindingDirection => BindingDirection.Request;
 

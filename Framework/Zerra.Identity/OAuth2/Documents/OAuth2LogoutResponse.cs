@@ -10,8 +10,8 @@ namespace Zerra.Identity.OAuth2.Documents
 {
     public sealed class OAuth2LogoutResponse : OAuth2Document
     {
-        public string ServiceProvider { get; protected set; }
-        public string State { get; protected set; }
+        public string ServiceProvider { get; private set; }
+        public string State { get; private set; }
         public Dictionary<string, string> OtherClaims { get; set; }
 
         public override BindingDirection BindingDirection => BindingDirection.Response;

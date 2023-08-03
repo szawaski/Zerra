@@ -13,7 +13,7 @@ namespace Zerra.Identity.OpenID.Documents
 {
     public sealed class OpenIDKeysResponse : OpenIDDocument
     {
-        public X509Certificate2[] Certs { get; protected set; }
+        public X509Certificate2[] Certs { get; private set; }
 
         public override BindingDirection BindingDirection => BindingDirection.Response;
 

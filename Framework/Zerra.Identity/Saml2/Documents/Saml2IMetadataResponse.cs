@@ -11,24 +11,24 @@ namespace Zerra.Identity.Saml2.Documents
 {
     public sealed class Saml2IMetadataResponse : Saml2Document
     {
-        public string EntityID { get; protected set; }
-        public string ValidUntil { get; protected set; }
-        public string LoginUrl { get; protected set; }
-        public string LogoutUrl { get; protected set; }
-        public bool WantAuthnRequestsSigned { get; protected set; }
+        public string EntityID { get; private set; }
+        public string ValidUntil { get; private set; }
+        public string LoginUrl { get; private set; }
+        public string LogoutUrl { get; private set; }
+        public bool WantAuthnRequestsSigned { get; private set; }
 
-        public string OrganizationName { get; protected set; }
-        public string OrganizationDisplayName { get; protected set; }
-        public string OrganizationUrl { get; protected set; }
+        public string OrganizationName { get; private set; }
+        public string OrganizationDisplayName { get; private set; }
+        public string OrganizationUrl { get; private set; }
 
-        public string TechnicalContactName { get; protected set; }
-        public string TechnicalContactEmail { get; protected set; }
+        public string TechnicalContactName { get; private set; }
+        public string TechnicalContactEmail { get; private set; }
 
-        public string SupportContactName { get; protected set; }
-        public string SupportContactEmail { get; protected set; }
+        public string SupportContactName { get; private set; }
+        public string SupportContactEmail { get; private set; }
 
-        public X509Certificate2 IdentityProviderCert { get; protected set; }
-        public X509Certificate2 ServiceProviderCert { get; protected set; }
+        public X509Certificate2 IdentityProviderCert { get; private set; }
+        public X509Certificate2 ServiceProviderCert { get; private set; }
 
         public static readonly string[] NameIDFormats = new string[]
         {

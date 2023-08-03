@@ -10,11 +10,11 @@ namespace Zerra.Identity.Saml2.Documents
 {
     public sealed class Saml2AuthnRequest : Saml2Document
     {
-        public string ID { get; protected set; }
-        public string Issuer { get; protected set; }
-        public string AssertionConsumerServiceURL { get; protected set; }
-        public BindingType BindingType { get; protected set; }
-        public string IssueInstant { get; protected set; }
+        public string ID { get; private set; }
+        public string Issuer { get; private set; }
+        public string AssertionConsumerServiceURL { get; private set; }
+        public BindingType BindingType { get; private set; }
+        public string IssueInstant { get; private set; }
 
         public override BindingDirection BindingDirection => BindingDirection.Request;
 

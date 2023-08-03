@@ -10,10 +10,10 @@ namespace Zerra.Identity.Saml2.Documents
 {
     public sealed class Saml2LogoutRequest : Saml2Document
     {
-        public string ID { get; protected set; }
-        public string Issuer { get; protected set; }
-        public string Destination { get; protected set; }
-        public string IssueInstant { get; protected set; }
+        public string ID { get; private set; }
+        public string Issuer { get; private set; }
+        public string Destination { get; private set; }
+        public string IssueInstant { get; private set; }
 
         public override BindingDirection BindingDirection => BindingDirection.Request;
 
