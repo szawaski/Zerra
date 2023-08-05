@@ -12,7 +12,7 @@ namespace Zerra.Repository
     public sealed class ByteStoreProvider<TContext> : IBaseProvider, IByteStoreProvider
         where TContext : DataContext
     {
-        protected readonly IByteStoreEngine Engine;
+        private readonly IByteStoreEngine Engine;
 
         public ByteStoreProvider()
         {

@@ -389,7 +389,7 @@ namespace Zerra.Repository
             return models;
         }
 
-        private ICollection<TModel> LoadModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel modelState, bool many, Query<TModel> query)
+        private static ICollection<TModel> LoadModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel modelState, bool many, Query<TModel> query)
         {
             if (modelState == null && eventDatas.Length == 0)
                 return Array.Empty<TModel>();
@@ -510,7 +510,7 @@ namespace Zerra.Repository
                 }
             }
         }
-        private ICollection<EventModel<TModel>> LoadEventModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel modelState, bool many, Query<TModel> query)
+        private static ICollection<EventModel<TModel>> LoadEventModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel modelState, bool many, Query<TModel> query)
         {
             if (modelState == null && eventDatas.Length == 0)
                 return Array.Empty<EventModel<TModel>>();
@@ -750,7 +750,7 @@ namespace Zerra.Repository
             return (model, modelEventNumber);
         }
 
-        private object[] GetIDs(Query<TModel> query)
+        private static object[] GetIDs(Query<TModel> query)
         {
             var identityProperties = ModelAnalyzer.GetIdentityPropertyNames(typeof(TModel));
             object[] ids = null;
@@ -773,7 +773,7 @@ namespace Zerra.Repository
 
             return ids;
         }
-        private object[] CalculatePermutations(IList<object[]> sets)
+        private static object[] CalculatePermutations(IList<object[]> sets)
         {
             var list = new List<object>();
 
