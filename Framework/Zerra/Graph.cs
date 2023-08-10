@@ -19,12 +19,12 @@ namespace Zerra
         protected string type;
 
         protected bool includeAllProperties;
-        protected readonly List<string> properties;
-        protected readonly List<string> removedProperties;
+        protected readonly HashSet<string> properties;
+        protected readonly HashSet<string> removedProperties;
         protected readonly Dictionary<string, Graph> childGraphs;
 
-        public bool IncludeAllProperties { get { return includeAllProperties; } }
-        public IReadOnlyList<string> LocalProperties { get { return properties; } }
+        public bool IncludeAllProperties => includeAllProperties;
+        public ICollection<string> LocalProperties => properties;
 
         [NonSerialized]
         protected string signature = null;
@@ -48,16 +48,16 @@ namespace Zerra
                 this.includeAllProperties = graph.includeAllProperties;
                 this.properties = graph.properties;
                 this.removedProperties = graph.removedProperties;
-                this.childGraphs = new Dictionary<string, Graph>(graph.childGraphs);
+                this.childGraphs = new(graph.childGraphs);
                 this.type = graph.type;
                 this.signature = graph.signature;
             }
             else
             {
                 this.includeAllProperties = true;
-                this.properties = new List<string>();
-                this.removedProperties = new List<string>();
-                this.childGraphs = new Dictionary<string, Graph>();
+                this.properties = new();
+                this.removedProperties = new();
+                this.childGraphs = new();
                 this.type = null;
                 this.signature = null;
             }
@@ -81,15 +81,15 @@ namespace Zerra
         {
             this.name = name;
             this.includeAllProperties = includeAllProperties;
-            this.properties = new List<string>();
-            removedProperties = new List<string>();
-            this.childGraphs = new Dictionary<string, Graph>();
+            this.properties = new();
+            removedProperties = new();
+            this.childGraphs = new();
 
             AddProperties(properties);
             AddChildGraphs(childGraphs);
         }
 
-        public bool IsEmpty { get { return !includeAllProperties && properties.Count == 0 && childGraphs.Count == 0; } }
+        public bool IsEmpty => !includeAllProperties && properties.Count == 0 && childGraphs.Count == 0;
 
         public override bool Equals(object obj)
         {
@@ -130,7 +130,7 @@ namespace Zerra
                 writer.Write(property);
             }
 
-            if (!this.includeAllProperties)
+            if (includeAllProperties)
             {
                 foreach (var property in this.removedProperties.OrderBy(x => x))
                 {
@@ -246,7 +246,6 @@ namespace Zerra
                 _ = this.properties.Remove(property);
             if (!removedProperties.Contains(property))
                 removedProperties.Add(property);
-
             if (childGraphs.ContainsKey(property))
                 _ = childGraphs.Remove(property);
         }
@@ -278,7 +277,6 @@ namespace Zerra
                 _ = this.properties.Remove(graph.name);
             if (!removedProperties.Contains(graph.name))
                 removedProperties.Add(graph.name);
-
             if (childGraphs.ContainsKey(graph.name))
                 _ = childGraphs.Remove(graph.name);
         }
@@ -342,11 +340,11 @@ namespace Zerra
 
         public bool HasLocalProperty(string name)
         {
-            return !this.removedProperties.Contains(name) && (this.includeAllProperties || this.properties.Contains(name));
+            return (this.includeAllProperties && !this.removedProperties.Contains(name)) || this.properties.Contains(name);
         }
         public bool HasProperty(string name)
         {
-            return !this.removedProperties.Contains(name) && (this.includeAllProperties || this.properties.Contains(name) || childGraphs.ContainsKey(name));
+            return (this.includeAllProperties && !this.removedProperties.Contains(name)) || this.properties.Contains(name) || childGraphs.ContainsKey(name));
         }
         public bool HasChildGraph(string name)
         {
@@ -658,136 +656,4 @@ namespace Zerra
             return initializer;
         }
     }
-
-    public class Graph<T> : Graph
-    {
-        public Graph(Graph graph)
-            : base(graph)
-        {
-        }
-
-        public Graph() : this(null, false, (string[])null) { }
-        public Graph(bool includeProperties) : this(null, includeProperties, (string[])null) { }
-        public Graph(string name, bool includeProperties) : this(name, includeProperties, (string[])null) { }
-        public Graph(params string[] properties) : this(null, false, properties) { }
-        public Graph(bool includeAllProperties, params string[] properties) : this(null, includeAllProperties, properties) { }
-        public Graph(string name, bool includeAllProperties, params string[] properties)
-            : base(name, includeAllProperties, null)
-        {
-            this.type = GetModelType().FullName;
-            AddProperties(properties);
-        }
-
-        public Graph(params Expression<Func<T, object>>[] properties) : this(null, false, (ICollection<Expression<Func<T, object>>>)properties) { }
-        public Graph(string name, params Expression<Func<T, object>>[] properties) : this(name, false, (ICollection<Expression<Func<T, object>>>)properties) { }
-        public Graph(bool includeAllProperties, params Expression<Func<T, object>>[] properties) : this(null, includeAllProperties, (ICollection<Expression<Func<T, object>>>)properties) { }
-        public Graph(string name, bool includeAllProperties, params Expression<Func<T, object>>[] properties) : this(name, includeAllProperties, (ICollection<Expression<Func<T, object>>>)properties) { }
-
-        public Graph(ICollection<Expression<Func<T, object>>> properties) : this(null, false, properties) { }
-        public Graph(string name, ICollection<Expression<Func<T, object>>> properties) : this(name, false, properties) { }
-        public Graph(bool includeAllProperties, ICollection<Expression<Func<T, object>>> properties) : this(null, includeAllProperties, properties) { }
-        public Graph(string name, bool includeAllProperties, ICollection<Expression<Func<T, object>>> properties)
-            : base(name, includeAllProperties, (ICollection<string>)null, null)
-        {
-            this.type = GetModelType().FullName;
-            AddProperties(properties);
-        }
-
-        private static void ReadPropertyExpression(Expression property, Stack<MemberInfo> members)
-        {
-            if (property.NodeType != ExpressionType.Lambda)
-                throw new ArgumentException("Invalid property expression");
-            var lambda = property as LambdaExpression;
-            ReadPropertyExpressionMember(lambda.Body, members);
-        }
-        private static void ReadPropertyExpressionMember(Expression property, Stack<MemberInfo> members)
-        {
-            if (property.NodeType == ExpressionType.Parameter)
-            {
-                return;
-            }
-            else if (property.NodeType == ExpressionType.Call)
-            {
-                var call = property as MethodCallExpression;
-                if (call.Arguments.Count != 2 || call.Object != null)
-                    throw new ArgumentException("Invalid property expression");
-                if (call.Arguments[0].NodeType != ExpressionType.MemberAccess)
-                    throw new ArgumentException("Invalid property expression");
-                if (call.Arguments[1].NodeType != ExpressionType.Lambda)
-                    throw new ArgumentException("Invalid property expression");
-
-                var lambda = call.Arguments[1] as LambdaExpression;
-                ReadPropertyExpressionMember(lambda.Body, members);
-
-                var member = call.Arguments[0] as MemberExpression;
-                members.Push(member.Member);
-                ReadPropertyExpressionMember(member.Expression, members);
-            }
-            else
-            {
-                if (property.NodeType == ExpressionType.Convert)
-                {
-                    var convert = property as UnaryExpression;
-                    property = convert.Operand;
-                }
-                if (property.NodeType != ExpressionType.MemberAccess)
-                    throw new ArgumentException("Invalid property expression");
-
-                var member = property as MemberExpression;
-                members.Push(member.Member);
-                ReadPropertyExpressionMember(member.Expression, members);
-            }
-        }
-
-        public void AddProperties(params Expression<Func<T, object>>[] properties) { AddProperties((ICollection<Expression<Func<T, object>>>)properties); }
-        public void AddProperties(ICollection<Expression<Func<T, object>>> properties)
-        {
-            if (properties == null || properties.Count == 0)
-                return;
-
-            var members = new Stack<MemberInfo>();
-            foreach (var property in properties)
-            {
-                ReadPropertyExpression(property, members);
-                AddMembers(members);
-                members.Clear();
-            }
-            this.signature = null;
-        }
-        public void RemoveProperties(params Expression<Func<T, object>>[] properties) { RemoveProperties((ICollection<Expression<Func<T, object>>>)properties); }
-        public void RemoveProperties(ICollection<Expression<Func<T, object>>> properties)
-        {
-            if (properties == null || properties.Count == 0)
-                return;
-
-            var members = new Stack<MemberInfo>();
-            foreach (var property in properties)
-            {
-                ReadPropertyExpression(property, members);
-                RemoveMembers(members);
-                members.Clear();
-            }
-            this.signature = null;
-        }
-
-        public new Graph<T> Copy()
-        {
-            return new Graph<T>(this);
-        }
-
-        public override Type GetModelType()
-        {
-            return typeof(T);
-        }
-
-        public Expression<Func<TSource, T>> GenerateSelect<TSource>() { return GenerateSelect<TSource, T>(); }
-    }
-
-    //public static class GraphExtensions
-    //{
-    //    public static T Graph<T>(this IEnumerable<T> it)
-    //    {
-    //        throw new InvalidOperationException($"{nameof(GraphExtensions)}.{nameof(Graph)} is an indicator and cannot be executed");
-    //    }
-    //}
 }
