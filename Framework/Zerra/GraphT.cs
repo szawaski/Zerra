@@ -37,7 +37,7 @@ namespace Zerra
         public Graph(string name, ICollection<Expression<Func<T, object>>> properties) : this(name, false, properties) { }
         public Graph(bool includeAllProperties, ICollection<Expression<Func<T, object>>> properties) : this(null, includeAllProperties, properties) { }
         public Graph(string name, bool includeAllProperties, ICollection<Expression<Func<T, object>>> properties)
-            : base(name, includeAllProperties, (ICollection<string>)null, null)
+            : base(name, includeAllProperties, (IReadOnlyCollection<string>)null, null)
         {
             this.type = GetModelType().FullName;
             AddProperties(properties);

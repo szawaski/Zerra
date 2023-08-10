@@ -24,7 +24,7 @@ namespace Zerra
         protected readonly Dictionary<string, Graph> childGraphs;
 
         public bool IncludeAllProperties => includeAllProperties;
-        public ICollection<string> LocalProperties => properties;
+        public IReadOnlyCollection<string> LocalProperties => properties;
 
         [NonSerialized]
         protected string signature = null;
@@ -63,21 +63,21 @@ namespace Zerra
             }
         }
 
-        public Graph() : this(null, false, null, (ICollection<Graph>)null)
+        public Graph() : this(null, false, null, (IReadOnlyCollection<Graph>)null)
         {
             this.signature = "";
         }
-        public Graph(bool includeAllProperties) : this(null, includeAllProperties, null, (ICollection<Graph>)null) { }
+        public Graph(bool includeAllProperties) : this(null, includeAllProperties, null, (IReadOnlyCollection<Graph>)null) { }
         public Graph(params string[] properties) : this(null, false, properties, null) { }
         public Graph(bool includeAllProperties, params string[] properties) : this(null, includeAllProperties, properties, null) { }
         public Graph(string name, bool includeAllProperties, params string[] properties) : this(name, includeAllProperties, properties, null) { }
 
-        public Graph(ICollection<string> properties) : this(null, false, properties, null) { }
-        public Graph(bool includeAllProperties, ICollection<string> properties) : this(null, includeAllProperties, properties, null) { }
-        public Graph(bool includeAllProperties, ICollection<string> properties, ICollection<Graph> childGraphs) : this(null, includeAllProperties, properties, childGraphs) { }
-        public Graph(string name, ICollection<string> properties) : this(name, false, properties, null) { }
-        public Graph(string name, bool includeAllProperties, ICollection<string> properties) : this(name, includeAllProperties, properties, null) { }
-        public Graph(string name, bool includeAllProperties, ICollection<string> properties, ICollection<Graph> childGraphs)
+        public Graph(IReadOnlyCollection<string> properties) : this(null, false, properties, null) { }
+        public Graph(bool includeAllProperties, IReadOnlyCollection<string> properties) : this(null, includeAllProperties, properties, null) { }
+        public Graph(bool includeAllProperties, IReadOnlyCollection<string> properties, IReadOnlyCollection<Graph> childGraphs) : this(null, includeAllProperties, properties, childGraphs) { }
+        public Graph(string name, IReadOnlyCollection<string> properties) : this(name, false, properties, null) { }
+        public Graph(string name, bool includeAllProperties, IReadOnlyCollection<string> properties) : this(name, includeAllProperties, properties, null) { }
+        public Graph(string name, bool includeAllProperties, IReadOnlyCollection<string> properties, IReadOnlyCollection<Graph> childGraphs)
         {
             this.name = name;
             this.includeAllProperties = includeAllProperties;
@@ -148,8 +148,8 @@ namespace Zerra
             }
         }
 
-        public void AddProperties(params string[] properties) { AddProperties((ICollection<string>)properties); }
-        public void AddProperties(ICollection<string> properties)
+        public void AddProperties(params string[] properties) { AddProperties((IReadOnlyCollection<string>)properties); }
+        public void AddProperties(IReadOnlyCollection<string> properties)
         {
             if (properties == null || properties.Count == 0)
                 return;
@@ -157,8 +157,8 @@ namespace Zerra
                 AddProperty(property);
         }
 
-        public void RemoveProperties(params string[] properties) { RemoveProperties((ICollection<string>)properties); }
-        public void RemoveProperties(ICollection<string> properties)
+        public void RemoveProperties(params string[] properties) { RemoveProperties((IReadOnlyCollection<string>)properties); }
+        public void RemoveProperties(IReadOnlyCollection<string> properties)
         {
             if (properties == null || properties.Count == 0)
                 return;
@@ -183,8 +183,8 @@ namespace Zerra
             }
         }
 
-        public void AddChildGraphs(params Graph[] graphs) { AddChildGraphs((ICollection<Graph>)graphs); }
-        public void AddChildGraphs(ICollection<Graph> graphs)
+        public void AddChildGraphs(params Graph[] graphs) { AddChildGraphs((IReadOnlyCollection<Graph>)graphs); }
+        public void AddChildGraphs(IReadOnlyCollection<Graph> graphs)
         {
             if (graphs == null || graphs.Count == 0)
                 return;
@@ -192,8 +192,8 @@ namespace Zerra
                 AddChildGraph(graph);
             this.signature = null;
         }
-        public void RemoveChildGraphs(params Graph[] graphs) { RemoveChildGraphs((ICollection<Graph>)graphs); }
-        public void RemoveChildGraphs(ICollection<Graph> graphs)
+        public void RemoveChildGraphs(params Graph[] graphs) { RemoveChildGraphs((IReadOnlyCollection<Graph>)graphs); }
+        public void RemoveChildGraphs(IReadOnlyCollection<Graph> graphs)
         {
             if (graphs == null || graphs.Count == 0)
                 return;
@@ -344,7 +344,7 @@ namespace Zerra
         }
         public bool HasProperty(string name)
         {
-            return (this.includeAllProperties && !this.removedProperties.Contains(name)) || this.properties.Contains(name) || childGraphs.ContainsKey(name));
+            return (this.includeAllProperties && !this.removedProperties.Contains(name)) || this.properties.Contains(name) || childGraphs.ContainsKey(name);
         }
         public bool HasChildGraph(string name)
         {
