@@ -7,9 +7,10 @@ using System.Collections;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Reflection;
 using Zerra.Serialization;
@@ -95,147 +96,104 @@ namespace Zerra.CQRS.Network
 
         private TReturn Request<TReturn>(string address, string providerType, ContentType contentType, object data, bool getResponseData)
         {
-            var request = WebRequest.CreateHttp(address);
-
-            request.Method = "POST";
-            switch (contentType)
-            {
-                case ContentType.Bytes:
-                    request.ContentType = "application/octet-stream";
-                    break;
-                case ContentType.Json:
-                    request.ContentType = "application/json; charset=utf-8";
-                    break;
-                case ContentType.JsonNameless:
-                    request.ContentType = "application/jsonnameless; charset=utf-8";
-                    break;
-            }
-
-            request.Accept = request.ContentType;
-            request.Timeout = Timeout.Infinite;
-
-            if (!String.IsNullOrWhiteSpace(providerType))
-                request.Headers.Add("Provider-Type", providerType);
-
             var cookieContainer = new CookieContainer();
             if (cookies != null)
                 cookieContainer.Add(cookies);
-            request.CookieContainer = cookieContainer;
 
-            request.SendChunked = true;
-            using (var postStream = request.GetRequestStream())
+            using var handler = new HttpClientHandler() { CookieContainer = cookieContainer };
+            using var client = new HttpClient(handler);
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, address);
+
+            request.Content = new WriteStreamContent((postStream) =>
             {
                 ContentTypeSerializer.Serialize(contentType, postStream, data);
-            }
-
-            try
+            });
+            request.Content.Headers.ContentType = contentType switch
             {
-                var response = (HttpWebResponse)request.GetResponse();
+                ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
+                ContentType.Json => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson),
+                ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
+                _ => throw new NotImplementedException(),
+            };
 
-                if (getResponseData)
-                {
-                    using (var stream = response.GetResponseStream())
-                    {
-                        var result = ContentTypeSerializer.Deserialize<TReturn>(contentType, stream);
-                        return result;
-                    }
-                }
+            request.Headers.TransferEncodingChunked = true;
+            request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
+            request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+            request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
 
-                response.Close();
-                response.Dispose();
-            }
-            catch (WebException ex)
+            if (!String.IsNullOrWhiteSpace(providerType))
+                request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
+
+#if NET5_0_OR_GREATER
+            using var response = client.Send(request);
+            using var responseStream = response.Content.ReadAsStream();
+#else
+            using var response = client.SendAsync(request).GetAwaiter().GetResult();
+            using var responseStream = response.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
+#endif
+
+            if (!response.IsSuccessStatusCode)
             {
-                if (ex.Response != null)
-                {
-                    Exception innerException;
-                    using (var exStream = ex.Response.GetResponseStream())
-                    {
-                        innerException = ContentTypeSerializer.DeserializeException(contentType, exStream);
-                    }
-                    ex.Response.Close();
-                    ex.Response.Dispose();
-
-                    throw innerException;
-                }
-                throw;
+                var responseException = ContentTypeSerializer.DeserializeException(contentType, responseStream);
+                throw responseException;
             }
 
             this.cookies = GetCookiesFromContainer(cookieContainer);
 
-            return default;
+            var result = ContentTypeSerializer.Deserialize<TReturn>(contentType, responseStream);
+
+            return result;
         }
         private async Task<TReturn> RequestAsync<TReturn>(string address, string providerType, ContentType contentType, object data, bool getResponseData)
         {
-            var request = WebRequest.CreateHttp(address);
-
-            request.Method = "POST";
-            switch (contentType)
-            {
-                case ContentType.Bytes:
-                    request.ContentType = "application/octet-stream";
-                    break;
-                case ContentType.Json:
-                    request.ContentType = "application/json; charset=utf-8";
-                    break;
-                case ContentType.JsonNameless:
-                    request.ContentType = "application/jsonnameless; charset=utf-8";
-                    break;
-            }
-
-            request.Accept = request.ContentType;
-            request.Timeout = Timeout.Infinite;
-
-            if (!String.IsNullOrWhiteSpace(providerType))
-                request.Headers.Add("Provider-Type", providerType);
-
             var cookieContainer = new CookieContainer();
             if (cookies != null)
                 cookieContainer.Add(cookies);
-            request.CookieContainer = cookieContainer;
 
-            request.SendChunked = true;
-            using (var postStream = request.GetRequestStream())
+            using var handler = new HttpClientHandler() { CookieContainer = cookieContainer };
+            using var client = new HttpClient(handler);
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, address);
+
+            request.Content = new WriteStreamContent(async (postStream) =>
             {
                 await ContentTypeSerializer.SerializeAsync(contentType, postStream, data);
-            }
-
-            try
+            });
+            request.Content.Headers.ContentType = contentType switch
             {
-                var response = (HttpWebResponse)await request.GetResponseAsync();
+                ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
+                ContentType.Json => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson),
+                ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
+                _ => throw new NotImplementedException(),
+            };
 
-                if (getResponseData)
-                {
-                    using (var stream = response.GetResponseStream())
-                    {
-                        var result = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, stream);
-                        return result;
-                    }
-                }
+            request.Headers.TransferEncodingChunked = true;
+            request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
+            request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+            request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
 
-                response.Close();
-                response.Dispose();
-            }
-            catch (WebException ex)
+            if (!String.IsNullOrWhiteSpace(providerType))
+                request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
+
+            using var response = await client.SendAsync(request);
+#if NETSTANDARD2_0
+            using var responseStream = await response.Content.ReadAsStreamAsync();
+#else
+            await using var responseStream = await response.Content.ReadAsStreamAsync();
+#endif
+
+            if (!response.IsSuccessStatusCode)
             {
-                if (ex.Response != null)
-                {
-                    Exception innerException;
-                    using (var exStream = ex.Response.GetResponseStream())
-                    {
-                        innerException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, exStream);
-                    }
-                    ex.Response.Close();
-                    ex.Response.Dispose();
-
-                    throw innerException;
-                }
-                throw;
+                var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseStream);
+                throw responseException;
             }
 
             this.cookies = GetCookiesFromContainer(cookieContainer);
 
-            return default;
+            var result = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, responseStream);
+
+            return result;
         }
 
         public CookieCollection GetCookieCredentials()

@@ -52,9 +52,7 @@ namespace Zerra.Web
 
             var stopwatch = Stopwatch.StartNew();
 
-            var request = new HttpRequestMessage();
-            request.RequestUri = serviceUrl;
-            request.Method = HttpMethod.Post;
+            var request = new HttpRequestMessage(HttpMethod.Post, serviceUrl);
             HttpResponseMessage response = null;
             Stream responseBodyStream = null;
             try
@@ -82,7 +80,6 @@ namespace Zerra.Web
                     }
                 });
 
-                request.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
                 request.Content.Headers.ContentType = contentType switch
                 {
                     ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
@@ -90,6 +87,7 @@ namespace Zerra.Web
                     ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
                     _ => throw new NotImplementedException(),
                 };
+                request.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
                 request.Headers.TransferEncodingChunked = true;
                 request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
                 request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
@@ -159,9 +157,7 @@ namespace Zerra.Web
 
             var stopwatch = Stopwatch.StartNew();
 
-            var request = new HttpRequestMessage();
-            request.RequestUri = serviceUrl;
-            request.Method = HttpMethod.Post;
+        var request = new HttpRequestMessage(HttpMethod.Post, serviceUrl);
             HttpResponseMessage response = null;
             Stream responseBodyStream = null;
             try
@@ -293,9 +289,7 @@ namespace Zerra.Web
 
             var stopwatch = Stopwatch.StartNew();
 
-            var request = new HttpRequestMessage();
-            request.RequestUri = serviceUrl;
-            request.Method = HttpMethod.Post;
+            var request = new HttpRequestMessage(HttpMethod.Post, serviceUrl);
             HttpResponseMessage response = null;
             Stream responseBodyStream = null;
             try

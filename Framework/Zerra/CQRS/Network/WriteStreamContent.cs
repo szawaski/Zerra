@@ -9,7 +9,7 @@ using System.Net.Http;
 using System.Net;
 using System.Threading;
 
-namespace Zerra.Web
+namespace Zerra.CQRS.Network
 {
     public sealed class WriteStreamContent : HttpContent
     {
