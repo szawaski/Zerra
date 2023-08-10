@@ -46,8 +46,8 @@ namespace Zerra
             {
                 this.name = graph.name;
                 this.includeAllProperties = graph.includeAllProperties;
-                this.properties = graph.properties;
-                this.removedProperties = graph.removedProperties;
+                this.properties = new(graph.properties);
+                this.removedProperties = new(graph.removedProperties);
                 this.childGraphs = new(graph.childGraphs);
                 this.type = graph.type;
                 this.signature = graph.signature;
