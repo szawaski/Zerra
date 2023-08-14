@@ -18,6 +18,7 @@ using System.Threading;
 using Zerra.CQRS.Settings;
 using Zerra.CQRS.Relay;
 using Zerra.Encryption;
+using System.Data;
 
 #pragma warning disable IDE1006 // Naming Styles
 
@@ -187,7 +188,7 @@ namespace Zerra.CQRS
 
         public static Task _DispatchCommandInternalAsync(ICommand message, Type messageType, bool requireAffirmation, bool externallyReceived)
         {
-            if (!externallyReceived)
+            if (!commandConsumerTypes.Contains(messageType))
             {
                 ICommandProducer producer = null;
                 var messageBaseType = messageType;
@@ -224,7 +225,7 @@ namespace Zerra.CQRS
         }
         public static Task _DispatchEventInternalAsync(IEvent message, Type messageType, bool externallyReceived)
         {
-            if (!externallyReceived)
+            if (!eventConsumerTypes.Contains(messageType))
             {
                 IEventProducer producer = null;
                 var messageBaseType = messageType;
@@ -387,7 +388,7 @@ namespace Zerra.CQRS
         private static readonly SemaphoreSlim asyncServiceLock = new(1, 1);
 
         private static readonly ConcurrentDictionary<Type, ICommandProducer> commandProducers = new();
-        public static void AddCommandClient<TInterface>(ICommandProducer commandProducer) where TInterface : IBaseProvider
+        public static void AddCommandProducer<TInterface>(ICommandProducer commandProducer) where TInterface : IBaseProvider
         {
             lock (serviceLock)
             {
@@ -396,37 +397,39 @@ namespace Zerra.CQRS
                 foreach (var commandType in commandTypes)
                 {
                     if (commandConsumerTypes.Contains(commandType))
-                        throw new InvalidOperationException($"Cannot create loopback. Command Server already registered for type {commandType.GetNiceName()}");
+                        throw new InvalidOperationException($"Cannot add Command Producer: Command Consumer already registered for type {commandType.GetNiceName()}");
                     if (commandProducers.ContainsKey(commandType))
-                        throw new InvalidOperationException($"Command Client already registered for type {commandType.GetNiceName()}");
+                        throw new InvalidOperationException($"Cannot add Command Producer: Command Producer already registered for type {commandType.GetNiceName()}");
                     _ = commandProducers.TryAdd(commandType, commandProducer);
-                    //_ = Log.InfoAsync($"{nameof(Bus)} Added Command Client For {commandType.GetNiceName()}");
+                    _ = Log.InfoAsync($"{nameof(Bus)} Added Command Producer For {commandType.GetNiceName()}");
                 }
             }
         }
 
         private static readonly ConcurrentReadWriteHashSet<ICommandConsumer> commandConsumers = new();
         private static readonly HashSet<Type> commandConsumerTypes = new();
-        public static void AddCommandServer(ICommandConsumer commandConsumer)
+        public static void AddCommandConsumer(ICommandConsumer commandConsumer)
         {
             lock (serviceLock)
             {
                 var exposedTypes = Discovery.GetTypesFromAttribute(typeof(ServiceExposedAttribute));
-                foreach (var type in exposedTypes)
+                foreach (var commandType in exposedTypes)
                 {
-                    if (type.IsClass)
+                    if (commandType.IsClass)
                     {
-                        if (TypeAnalyzer.GetTypeDetail(type).Interfaces.Any(x => x == typeof(ICommand)))
+                        if (TypeAnalyzer.GetTypeDetail(commandType).Interfaces.Any(x => x == typeof(ICommand)))
                         {
                             var interfaceStack = ProviderLayers.GetProviderInterfaceStack();
-                            var hasHandler = Discovery.HasImplementationType(TypeAnalyzer.GetGenericType(typeof(ICommandHandler<>), type), interfaceStack, interfaceStack.Length - 1);
+                            var hasHandler = Discovery.HasImplementationType(TypeAnalyzer.GetGenericType(typeof(ICommandHandler<>), commandType), interfaceStack, interfaceStack.Length - 1);
                             if (hasHandler)
                             {
-                                if (commandProducers.ContainsKey(type))
-                                    throw new InvalidOperationException($"Cannot create loopback. Command Client already registered for type {type.GetNiceName()}");
-                                if (!commandConsumerTypes.Contains(type))
-                                    _ = commandConsumerTypes.Add(type);
-                                commandConsumer.RegisterCommandType(type);
+                                if (commandProducers.ContainsKey(commandType))
+                                    throw new InvalidOperationException($"Cannot add Command Consumer: Command Producer already registered for type {commandType.GetNiceName()}");
+                                if (!commandConsumerTypes.Contains(commandType))
+                                    throw new InvalidOperationException($"Cannot add Command Consumer: Command Consumer already registered for type {commandType.GetNiceName()}");
+                                _ = commandConsumerTypes.Add(commandType);
+                                commandConsumer.RegisterCommandType(commandType);
+                                _ = Log.InfoAsync($"{nameof(Bus)} Added Command Consumer For {commandType.GetNiceName()}");
                             }
                         }
                     }
@@ -439,7 +442,7 @@ namespace Zerra.CQRS
         }
 
         private static readonly ConcurrentDictionary<Type, IEventProducer> eventProducers = new();
-        public static void AddEventClient<TInterface>(IEventProducer eventProducer) where TInterface : IBaseProvider
+        public static void AddEventProducer<TInterface>(IEventProducer eventProducer) where TInterface : IBaseProvider
         {
             lock (serviceLock)
             {
@@ -447,38 +450,35 @@ namespace Zerra.CQRS
                 var eventTypes = GetEventTypesFromInterface(type);
                 foreach (var eventType in eventTypes)
                 {
-                    if (eventConsumerTypes.Contains(type))
-                        throw new InvalidOperationException($"Cannot create loopback. Event Server already registered for type {type.GetNiceName()}");
                     if (eventProducers.ContainsKey(eventType))
-                        throw new InvalidOperationException($"Event Client already registered for type {eventType.GetNiceName()}");
+                        throw new InvalidOperationException($"Cannot add Event Producer: Event Producer already registered for type {eventType.GetNiceName()}");
                     _ = eventProducers.TryAdd(eventType, eventProducer);
-                    _ = Log.InfoAsync($"{nameof(Bus)} Added Event Client For {eventType.GetNiceName()}");
+                    _ = Log.InfoAsync($"{nameof(Bus)} Added Event Producer For {eventType.GetNiceName()}");
                 }
             }
         }
 
         private static readonly ConcurrentReadWriteHashSet<IEventConsumer> eventConsumers = new();
         private static readonly HashSet<Type> eventConsumerTypes = new();
-        public static void AddEventServer(IEventConsumer eventConsumer)
+        public static void AddEventConsumer(IEventConsumer eventConsumer)
         {
             lock (serviceLock)
             {
                 var exposedTypes = Discovery.GetTypesFromAttribute(typeof(ServiceExposedAttribute));
-                foreach (var type in exposedTypes)
+                foreach (var eventType in exposedTypes)
                 {
-                    if (type.IsClass)
+                    if (eventType.IsClass)
                     {
-                        if (TypeAnalyzer.GetTypeDetail(type).Interfaces.Any(x => x == typeof(IEvent)))
+                        if (TypeAnalyzer.GetTypeDetail(eventType).Interfaces.Any(x => x == typeof(IEvent)))
                         {
                             var interfaceStack = ProviderLayers.GetProviderInterfaceStack();
-                            var hasHandler = Discovery.HasImplementationType(TypeAnalyzer.GetGenericType(typeof(IEventHandler<>), type), interfaceStack, interfaceStack.Length - 1);
+                            var hasHandler = Discovery.HasImplementationType(TypeAnalyzer.GetGenericType(typeof(IEventHandler<>), eventType), interfaceStack, interfaceStack.Length - 1);
                             if (hasHandler)
                             {
-                                if (eventProducers.ContainsKey(type))
-                                    throw new InvalidOperationException($"Cannot create loopback. Event Client already registered for type {type.GetNiceName()}");
-                                if (!eventConsumerTypes.Contains(type))
-                                    _ = eventConsumerTypes.Add(type);
-                                eventConsumer.RegisterEventType(type);
+                                if (!eventConsumerTypes.Contains(eventType))
+                                    throw new InvalidOperationException($"Cannot add Event Consumer: Event Consumer already registered for type {eventType.GetNiceName()}");
+                                _ = eventConsumerTypes.Add(eventType);
+                                eventConsumer.RegisterEventType(eventType);
                             }
                         }
                     }
@@ -497,9 +497,9 @@ namespace Zerra.CQRS
             {
                 var interfaceType = typeof(TInterface);
                 if (queryServerTypes.Contains(interfaceType))
-                    throw new InvalidOperationException($"Cannot create loopback. Query Server already registered for type {interfaceType.GetNiceName()}");
-                if (commandProducers.ContainsKey(interfaceType))
-                    throw new InvalidOperationException($"Query Client already registered for type {interfaceType.GetNiceName()}");
+                    throw new InvalidOperationException($"Cannot add Query Client: Query Server already registered for type {interfaceType.GetNiceName()}");
+                if (queryClients.ContainsKey(interfaceType))
+                    throw new InvalidOperationException($"Cannot add Query Client: Query Client already registered for type {interfaceType.GetNiceName()}");
                 _ = queryClients.TryAdd(interfaceType, queryClient);
                 _ = Log.InfoAsync($"{nameof(Bus)} Added Query Client For {interfaceType.GetNiceName()}");
             }
@@ -512,19 +512,20 @@ namespace Zerra.CQRS
             lock (serviceLock)
             {
                 var exposedTypes = Discovery.GetTypesFromAttribute(typeof(ServiceExposedAttribute));
-                foreach (var type in exposedTypes)
+                foreach (var interfaceType in exposedTypes)
                 {
-                    if (type.IsInterface && TypeAnalyzer.GetTypeDetail(type).Interfaces.Any(x => x == typeof(IBaseProvider)))
+                    if (interfaceType.IsInterface && TypeAnalyzer.GetTypeDetail(interfaceType).Interfaces.Any(x => x == typeof(IBaseProvider)))
                     {
                         var interfaceStack = ProviderLayers.GetProviderInterfaceStack();
-                        var hasImplementation = Discovery.HasImplementationType(type, interfaceStack, interfaceStack.Length - 1);
+                        var hasImplementation = Discovery.HasImplementationType(interfaceType, interfaceStack, interfaceStack.Length - 1);
                         if (hasImplementation)
                         {
-                            if (queryClients.ContainsKey(type))
-                                throw new InvalidOperationException($"Cannot create loopback. Query Client already registered for type {type.GetNiceName()}");
-                            if (!queryServerTypes.Contains(type))
-                                _ = queryServerTypes.Add(type);
-                            queryServer.RegisterInterfaceType(type);
+                            if (queryClients.ContainsKey(interfaceType))
+                                throw new InvalidOperationException($"Cannot add Query Client: Query Server already registered for type {interfaceType.GetNiceName()}");
+                            if (queryServerTypes.Contains(interfaceType))
+                                throw new InvalidOperationException($"Cannot add Query Server: Query Server already registered for type {interfaceType.GetNiceName()}");
+                            _ = queryServerTypes.Add(interfaceType);
+                            queryServer.RegisterInterfaceType(interfaceType);
                         }
                     }
                 }
@@ -780,14 +781,14 @@ namespace Zerra.CQRS
 
                     foreach (var typeName in serviceSetting.Types)
                     {
-                        var type = Discovery.GetTypeFromName(typeName);
-                        if (!type.IsInterface)
-                            throw new Exception($"{type.GetNiceName()} is not an interface");
-                        var typeDetails = TypeAnalyzer.GetTypeDetail(type);
+                        var interfaceType = Discovery.GetTypeFromName(typeName);
+                        if (!interfaceType.IsInterface)
+                            throw new Exception($"{interfaceType.GetNiceName()} is not an interface");
+                        var typeDetails = TypeAnalyzer.GetTypeDetail(interfaceType);
                         if (!typeDetails.Interfaces.Contains(typeof(IBaseProvider)))
-                            throw new Exception($"{type.GetNiceName()} does not inherit {nameof(IBaseProvider)}");
+                            throw new Exception($"{interfaceType.GetNiceName()} does not inherit {nameof(IBaseProvider)}");
 
-                        var commandTypes = GetCommandTypesFromInterface(type);
+                        var commandTypes = GetCommandTypesFromInterface(interfaceType);
                         if (commandTypes.Count > 0)
                         {
                             if (serviceSetting == serverSetting)
@@ -804,9 +805,9 @@ namespace Zerra.CQRS
                                 foreach (var commandType in commandTypes)
                                 {
                                     if (commandProducers.ContainsKey(commandType))
-                                        throw new InvalidOperationException($"Command Client already registered for type {commandType.GetNiceName()}");
+                                        throw new InvalidOperationException($"Cannot add Command Consumer: Command Producer already registered for type {commandType.GetNiceName()}");
                                     if (commandConsumerTypes.Contains(commandType))
-                                        throw new InvalidOperationException($"Command Server already registered for type {commandType.GetNiceName()}");
+                                        throw new InvalidOperationException($"Cannot add Command Consumer: Command Consumer already registered for type {commandType.GetNiceName()}");
                                     _ = commandConsumerTypes.Add(commandType);
                                     commandConsumer.RegisterCommandType(commandType);
                                 }
@@ -825,16 +826,16 @@ namespace Zerra.CQRS
                                     foreach (var commandType in clientCommandTypes)
                                     {
                                         if (commandConsumerTypes.Contains(commandType))
-                                            throw new InvalidOperationException($"Command Server already registered for type {commandType.GetNiceName()}");
+                                            throw new InvalidOperationException($"Cannot add Command Producer: Command Consumer already registered for type {commandType.GetNiceName()}");
                                         if (commandProducers.ContainsKey(commandType))
-                                            throw new InvalidOperationException($"Command Client already registered for type {commandType.GetNiceName()}");
+                                            throw new InvalidOperationException($"Cannot add Command Producer: Command Producer already registered for type {commandType.GetNiceName()}");
                                         _ = commandProducers.TryAdd(commandType, commandProducer);
                                     }
                                 }
                             }
                         }
 
-                        var eventTypes = GetEventTypesFromInterface(type);
+                        var eventTypes = GetEventTypesFromInterface(interfaceType);
                         if (eventTypes.Count > 0)
                         {
                             //events fan out so can have producer and consumer on same service
@@ -852,7 +853,7 @@ namespace Zerra.CQRS
                                 foreach (var eventType in eventTypes)
                                 {
                                     if (eventConsumerTypes.Contains(eventType))
-                                        throw new InvalidOperationException($"Event Server already registered for type {eventType.GetNiceName()}");
+                                        throw new InvalidOperationException($"Cannot add Event Consumer: Event Consumer already registered for type {eventType.GetNiceName()}");
                                     _ = eventConsumerTypes.Add(eventType);
                                     eventConsumer.RegisterEventType(eventType);
                                 }
@@ -868,7 +869,7 @@ namespace Zerra.CQRS
                             foreach (var eventType in eventTypes)
                             {
                                 if (eventProducers.ContainsKey(eventType))
-                                    throw new InvalidOperationException($"Event Client already registered for type {eventType.GetNiceName()}");
+                                    throw new InvalidOperationException($"Cannot add Event Producer: Event Producer already registered for type {eventType.GetNiceName()}");
                                 _ = eventProducers.TryAdd(eventType, eventProducer);
                             }
                         }
@@ -886,12 +887,12 @@ namespace Zerra.CQRS
                                     if (!queryServers.Contains(queryServer))
                                         _ = queryServers.Add(queryServer);
                                 }
-                                if (queryClients.ContainsKey(type))
-                                    throw new InvalidOperationException($"Query Client already registered for type {type.GetNiceName()}");
-                                if (queryServerTypes.Contains(type))
-                                    throw new InvalidOperationException($"Query Server already registered for type {type.GetNiceName()}");
-                                _ = queryServerTypes.Add(type);
-                                queryServer.RegisterInterfaceType(type);
+                                if (queryClients.ContainsKey(interfaceType))
+                                    throw new InvalidOperationException($"Cannot add Query Server: Query Client already registered for type {interfaceType.GetNiceName()}");
+                                if (queryServerTypes.Contains(interfaceType))
+                                    throw new InvalidOperationException($"Cannot add Query Server: Query Server already registered for type {interfaceType.GetNiceName()}");
+                                _ = queryServerTypes.Add(interfaceType);
+                                queryServer.RegisterInterfaceType(interfaceType);
                             }
                             else
                             {
@@ -901,13 +902,13 @@ namespace Zerra.CQRS
                                     var symmetricConfig = new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                     queryClient = serviceCreator.CreateQueryClient(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, symmetricConfig);
                                 }
-                                if (!serverTypes.Contains(type))
+                                if (!serverTypes.Contains(interfaceType))
                                 {
-                                    if (queryServerTypes.Contains(type))
-                                        throw new InvalidOperationException($"Query Server already registered for type {type.GetNiceName()}");
-                                    if (commandProducers.ContainsKey(type))
-                                        throw new InvalidOperationException($"Query Client already registered for type {type.GetNiceName()}");
-                                    _ = queryClients.TryAdd(type, queryClient);
+                                    if (queryServerTypes.Contains(interfaceType))
+                                        throw new InvalidOperationException($"Cannot add Query Client: Query Server already registered for type {interfaceType.GetNiceName()}");
+                                    if (commandProducers.ContainsKey(interfaceType))
+                                        throw new InvalidOperationException($"Cannot add Query Client: Query Client already registered for type {interfaceType.GetNiceName()}");
+                                    _ = queryClients.TryAdd(interfaceType, queryClient);
                                 }
                                 else
                                 {
