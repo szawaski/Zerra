@@ -188,7 +188,7 @@ namespace Zerra.CQRS
 
         public static Task _DispatchCommandInternalAsync(ICommand message, Type messageType, bool requireAffirmation, bool externallyReceived)
         {
-            if (!commandConsumerTypes.Contains(messageType))
+            if (!externallyReceived || !commandConsumerTypes.Contains(messageType))
             {
                 ICommandProducer producer = null;
                 var messageBaseType = messageType;
@@ -225,7 +225,7 @@ namespace Zerra.CQRS
         }
         public static Task _DispatchEventInternalAsync(IEvent message, Type messageType, bool externallyReceived)
         {
-            if (!eventConsumerTypes.Contains(messageType))
+            if (!externallyReceived || !eventConsumerTypes.Contains(messageType))
             {
                 IEventProducer producer = null;
                 var messageBaseType = messageType;
