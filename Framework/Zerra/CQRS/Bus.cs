@@ -19,6 +19,8 @@ using Zerra.CQRS.Settings;
 using Zerra.CQRS.Relay;
 using Zerra.Encryption;
 
+#pragma warning disable IDE1006 // Naming Styles
+
 namespace Zerra.CQRS
 {
     public static class Bus
@@ -78,147 +80,178 @@ namespace Zerra.CQRS
         }
         public static Task HandleRemoteCommandDispatchAsync(ICommand command)
         {
-            return DispatchAsync(command);
+            return _DispatchAsync(command, false, true);
         }
         public static Task HandleRemoteCommandDispatchAwaitAsync(ICommand command)
         {
-            return DispatchAwaitAsync(command);
+            return _DispatchAsync(command, true, true);
         }
         public static Task HandleRemoteEventDispatchAsync(IEvent @event)
         {
-            return DispatchAsync(@event);
+            return _DispatchAsync(@event, true);
         }
 
-        public static Task DispatchAsync(ICommand command) { return DispatchAsync(command, false); }
-        public static Task DispatchAwaitAsync(ICommand command) { return DispatchAsync(command, true); }
-        private static Task DispatchAsync(ICommand command, bool requireAffirmation)
+        public static Task DispatchAsync(ICommand command) { return _DispatchAsync(command, false, false); }
+        public static Task DispatchAwaitAsync(ICommand command) { return _DispatchAsync(command, true, false); }
+        public static Task DispatchAsync(IEvent @event) { return _DispatchAsync(@event, false); }
+
+        private static readonly ConcurrentFactoryDictionary<Type, Func<ICommand, Task>> commandCacheProviders = new();
+        private static Task _DispatchAsync(ICommand command, bool requireAffirmation, bool externallyReceived)
         {
             var messageType = command.GetType();
-            var messageTypeInfo = TypeAnalyzer.GetTypeDetail(messageType);
-            if (!commandProducers.IsEmpty)
+
+            var cacheProviderDispatchAsync = commandCacheProviders.GetOrAdd(messageType, (t) =>
             {
-                //Not a local call so apply cache layer at Bus level
                 var handlerType = TypeAnalyzer.GetGenericType(iCommandHandlerType, messageType);
-
                 var providerCacheType = Discovery.GetImplementationType(handlerType, iCacheProviderType, false);
-                if (providerCacheType != null)
+                if (providerCacheType == null)
+                    return null;
+
+                var methodSetNextProvider = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(BaseLayerProvider<IBaseProvider>.SetNextProvider));
+                if (methodSetNextProvider == null)
+                    return null;
+
+                var providerCache = Instantiator.GetSingle($"{providerCacheType.FullName}_Bus.DispatchAsync_Cache", () =>
                 {
-                    var methodSetNextProvider = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(BaseLayerProvider<IBaseProvider>.SetNextProvider));
-                    if (methodSetNextProvider != null)
-                    {
-                        var providerCache = Instantiator.GetSingle($"{providerCacheType.FullName}_Bus.DispatchAsync_Cache", () =>
-                        {
-                            var instance = Instantiator.Create(providerCacheType);
+                    var instance = Instantiator.Create(providerCacheType);
 
-                            var methodGetProviderInterfaceType = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(BaseLayerProvider<IBaseProvider>.GetProviderInterfaceType));
-                            var interfaceType = (Type)methodGetProviderInterfaceType.Caller(instance, null);
+                    var methodGetProviderInterfaceType = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(BaseLayerProvider<IBaseProvider>.GetProviderInterfaceType));
+                    var interfaceType = (Type)methodGetProviderInterfaceType.Caller(instance, null);
 
-                            var messageHandlerToDispatchProvider = BusRouters.GetCommandHandlerToDispatchInternalInstance(interfaceType);
-                            _ = methodSetNextProvider.Caller(instance, new object[] { messageHandlerToDispatchProvider });
+                    var messageHandlerToDispatchProvider = BusRouters.GetCommandHandlerToDispatchInternalInstance(interfaceType);
+                    _ = methodSetNextProvider.Caller(instance, new object[] { messageHandlerToDispatchProvider });
 
-                            return instance;
-                        });
+                    return instance;
+                });
 
-                        var method = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(ICommandHandler<ICommand>.Handle), new Type[] { messageType });
-                        _ = method.Caller(providerCache, new object[] { command });
+                var method = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(ICommandHandler<ICommand>.Handle), new Type[] { messageType });
+                Func<ICommand, Task> caller = (arg) =>
+                {
+                    var task = (Task)method.Caller(providerCache, new object[] { arg });
+                    return task;
+                };
 
-                        return Task.CompletedTask;
-                    }
-                }
-            }
+                return caller;
+            });
 
-            return _DispatchCommandInternalAsync(command, messageType, requireAffirmation);
+            if (cacheProviderDispatchAsync != null)
+                return cacheProviderDispatchAsync(command);
+
+            return _DispatchCommandInternalAsync(command, messageType, requireAffirmation, externallyReceived);
         }
 
-        public static Task DispatchAsync(IEvent message)
+        private static readonly ConcurrentFactoryDictionary<Type, Func<IEvent, Task>> eventCacheProviders = new();
+        private static Task _DispatchAsync(IEvent @event, bool externallyReceived)
         {
-            var messageType = message.GetType();
-            var messageTypeInfo = TypeAnalyzer.GetTypeDetail(messageType);
-            if (!commandProducers.IsEmpty)
+            var messageType = @event.GetType();
+
+            var cacheProviderDispatchAsync = eventCacheProviders.GetOrAdd(messageType, (t) =>
             {
-                //Not a local call so apply cache layer at Bus level
                 var handlerType = TypeAnalyzer.GetGenericType(iEventHandlerType, messageType);
-
                 var providerCacheType = Discovery.GetImplementationType(handlerType, iCacheProviderType, false);
-                if (providerCacheType != null)
+                if (providerCacheType == null)
+                    return null;
+
+                var methodSetNextProvider = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(BaseLayerProvider<IBaseProvider>.SetNextProvider));
+                if (methodSetNextProvider == null)
+                    return null;
+
+                var providerCache = Instantiator.GetSingle($"{providerCacheType.FullName}_Bus.DispatchAsync_Cache", () =>
                 {
-                    var methodSetNextProvider = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(BaseLayerProvider<IBaseProvider>.SetNextProvider));
-                    if (methodSetNextProvider != null)
-                    {
-                        var providerCache = Instantiator.GetSingle($"{providerCacheType.FullName}_Bus.DispatchAsync_Cache", () =>
-                        {
-                            var instance = Instantiator.Create(providerCacheType);
+                    var instance = Instantiator.Create(providerCacheType);
 
-                            var methodGetProviderInterfaceType = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(BaseLayerProvider<IBaseProvider>.GetProviderInterfaceType));
-                            var interfaceType = (Type)methodGetProviderInterfaceType.Caller(instance, null);
+                    var methodGetProviderInterfaceType = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(BaseLayerProvider<IBaseProvider>.GetProviderInterfaceType));
+                    var interfaceType = (Type)methodGetProviderInterfaceType.Caller(instance, null);
 
-                            var messageHandlerToDispatchProvider = BusRouters.GetEventHandlerToDispatchInternalInstance(interfaceType);
-                            _ = methodSetNextProvider.Caller(instance, new object[] { messageHandlerToDispatchProvider });
+                    var messageHandlerToDispatchProvider = BusRouters.GetEventHandlerToDispatchInternalInstance(interfaceType);
+                    _ = methodSetNextProvider.Caller(instance, new object[] { messageHandlerToDispatchProvider });
 
-                            return instance;
-                        });
+                    return instance;
+                });
 
-                        var method = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(IEventHandler<IEvent>.Handle), new Type[] { messageType });
-                        _ = method.Caller(providerCache, new object[] { message });
+                var method = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(IEventHandler<IEvent>.Handle), new Type[] { messageType });
+                Func<IEvent, Task> caller = (arg) =>
+                {
+                    var task = (Task)method.Caller(providerCache, new object[] { arg });
+                    return task;
+                };
 
-                        return Task.CompletedTask;
-                    }
-                }
-            }
+                return caller;
+            });
 
-            return _DispatchEventInternalAsync(message, messageType);
+            if (cacheProviderDispatchAsync != null)
+                return cacheProviderDispatchAsync(@event);
+
+            return _DispatchEventInternalAsync(@event, messageType, externallyReceived);
         }
 
-#pragma warning disable IDE1006 // Naming Styles
-        public static Task _DispatchCommandInternalAsync(ICommand message, Type messageType, bool requireAffirmation)
-#pragma warning restore IDE1006 // Naming Styles
+        public static Task _DispatchCommandInternalAsync(ICommand message, Type messageType, bool requireAffirmation, bool externallyReceived)
         {
-            ICommandProducer producer = null;
-            var messageBaseType = messageType;
-            while (producer == null && messageBaseType != null)
+            if (!externallyReceived)
             {
-                if (commandProducers.TryGetValue(messageBaseType, out producer))
+                ICommandProducer producer = null;
+                var messageBaseType = messageType;
+                while (producer == null && messageBaseType != null)
                 {
-                    if (requireAffirmation)
+                    if (commandProducers.TryGetValue(messageBaseType, out producer))
                     {
-                        return producer.DispatchAsyncAwait(message);
+                        if (requireAffirmation)
+                        {
+                            return producer.DispatchAsyncAwait(message);
+                        }
+                        else
+                        {
+                            return producer.DispatchAsync(message);
+                        }
                     }
-                    else
-                    {
-                        return producer.DispatchAsync(message);
-                    }
+                    messageBaseType = messageBaseType.BaseType;
                 }
-                messageBaseType = messageBaseType.BaseType;
             }
 
-            if (requireAffirmation)
+            if (requireAffirmation || externallyReceived)
             {
                 return HandleCommandAsync((ICommand)message, messageType, true);
             }
             else
             {
-                //Task.Run execues on shared principal which can mess things up
-                return TaskCopyPrincipal.Run(async () => { await HandleCommandAsync((ICommand)message, messageType, true); });
-            }
-        }
-#pragma warning disable IDE1006 // Naming Styles
-        public static async Task _DispatchEventInternalAsync(IEvent message, Type messageType)
-#pragma warning restore IDE1006 // Naming Styles
-        {
-            IEventProducer producer = null;
-            var messageBaseType = messageType;
-            while (producer == null && messageBaseType != null)
-            {
-                if (eventProducers.TryGetValue(messageBaseType, out producer))
+                var principal = Thread.CurrentPrincipal.CloneClaimsPrincipal();
+                return Task.Run(() =>
                 {
-                    await producer.DispatchAsync(message);
+                    Thread.CurrentPrincipal = principal;
+                    _ = HandleCommandAsync((ICommand)message, messageType, true);
+                });
+            }
+        }
+        public static Task _DispatchEventInternalAsync(IEvent message, Type messageType, bool externallyReceived)
+        {
+            if (!externallyReceived)
+            {
+                IEventProducer producer = null;
+                var messageBaseType = messageType;
+                while (producer == null && messageBaseType != null)
+                {
+                    if (eventProducers.TryGetValue(messageBaseType, out producer))
+                    {
+                        return producer.DispatchAsync(message);
+                    }
+                    messageBaseType = messageBaseType.BaseType;
                 }
-                messageBaseType = messageBaseType.BaseType;
             }
 
-            await HandleEventAsync((IEvent)message, messageType, true);
+            if (externallyReceived)
+            {
+                return HandleEventAsync((IEvent)message, messageType, true);
+            }
+            else
+            {
+                var principal = Thread.CurrentPrincipal.CloneClaimsPrincipal();
+                return Task.Run(() =>
+                {
+                    Thread.CurrentPrincipal = principal;
+                    _ = HandleEventAsync((IEvent)message, messageType, true);
+                });
+            }
         }
-
 
         private static Task HandleCommandAsync(ICommand command, Type commandType, bool throwError)
         {
@@ -303,9 +336,7 @@ namespace Zerra.CQRS
             return callerProvider;
         }
 
-#pragma warning disable IDE1006 // Naming Styles
         public static TReturn _CallInternal<TInterface, TReturn>(string methodName, object[] arguments) where TInterface : IBaseProvider
-#pragma warning restore IDE1006 // Naming Styles
         {
             var interfaceType = typeof(TInterface);
 
@@ -782,15 +813,15 @@ namespace Zerra.CQRS
                             }
                             else
                             {
-                                if (commandProducer == null)
-                                {
-                                    var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    var symmetricConfig = new SymmetricConfig(encryptionAlgoritm, encryptionKey);
-                                    commandProducer = serviceCreator.CreateCommandProducer(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, symmetricConfig);
-                                }
                                 var clientCommandTypes = commandTypes.Where(x => !serverTypes.Contains(x)).ToArray();
                                 if (clientCommandTypes.Length > 0)
                                 {
+                                    if (commandProducer == null)
+                                    {
+                                        var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
+                                        var symmetricConfig = new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                        commandProducer = serviceCreator.CreateCommandProducer(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, symmetricConfig);
+                                    }
                                     foreach (var commandType in clientCommandTypes)
                                     {
                                         if (commandConsumerTypes.Contains(commandType))
@@ -800,17 +831,13 @@ namespace Zerra.CQRS
                                         _ = commandProducers.TryAdd(commandType, commandProducer);
                                     }
                                 }
-                                else
-                                {
-                                    if (commandProducer is IDisposable disposable)
-                                        disposable.Dispose();
-                                }
                             }
                         }
 
                         var eventTypes = GetEventTypesFromInterface(type);
                         if (eventTypes.Count > 0)
                         {
+                            //events fan out so can have producer and consumer on same service
                             if (serviceSetting == serverSetting)
                             {
                                 if (eventConsumer == null)
@@ -824,40 +851,25 @@ namespace Zerra.CQRS
                                 }
                                 foreach (var eventType in eventTypes)
                                 {
-                                    if (eventProducers.ContainsKey(eventType))
-                                        throw new InvalidOperationException($"Event Client already registered for type {eventType.GetNiceName()}");
                                     if (eventConsumerTypes.Contains(eventType))
                                         throw new InvalidOperationException($"Event Server already registered for type {eventType.GetNiceName()}");
                                     _ = eventConsumerTypes.Add(eventType);
                                     eventConsumer.RegisterEventType(eventType);
                                 }
                             }
-                            else
+
+                            if (eventProducer == null)
                             {
-                                if (eventProducer == null)
-                                {
-                                    var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    var symmetricConfig = new SymmetricConfig(encryptionAlgoritm, encryptionKey);
-                                    eventProducer = serviceCreator.CreateEventProducer(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, symmetricConfig);
-                                }
-                                var clientEventTypes = eventTypes.Where(x => !serverTypes.Contains(x)).ToArray();
-                                if (clientEventTypes.Length > 0)
-                                {
-                                    foreach (var eventType in eventTypes)
-                                    {
-                                        if (eventConsumerTypes.Contains(eventType))
-                                            throw new InvalidOperationException($"Event Server already registered for type {eventType.GetNiceName()}");
-                                        if (!eventProducers.ContainsKey(eventType))
-                                        {
-                                            _ = eventProducers.TryAdd(eventType, eventProducer);
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    if (eventProducer is IDisposable disposable)
-                                        disposable.Dispose();
-                                }
+                                var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
+                                var symmetricConfig = new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                eventProducer = serviceCreator.CreateEventProducer(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, symmetricConfig);
+                            }
+
+                            foreach (var eventType in eventTypes)
+                            {
+                                if (eventProducers.ContainsKey(eventType))
+                                    throw new InvalidOperationException($"Event Client already registered for type {eventType.GetNiceName()}");
+                                _ = eventProducers.TryAdd(eventType, eventProducer);
                             }
                         }
 

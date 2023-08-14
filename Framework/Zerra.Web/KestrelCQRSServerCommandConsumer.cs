@@ -21,7 +21,7 @@ namespace Zerra.Web
 
         public void Close() { }
 
-        public ICollection<Type> GetCommandTypes()
+        public IEnumerable<Type> GetCommandTypes()
         {
             return settings.CommandTypes;
         }

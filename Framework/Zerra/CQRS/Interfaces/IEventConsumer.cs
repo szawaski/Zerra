@@ -12,7 +12,7 @@ namespace Zerra.CQRS
     {
         string ConnectionString { get; }
         void RegisterEventType(Type type);
-        ICollection<Type> GetEventTypes();
+        IEnumerable<Type> GetEventTypes();
         void SetHandler(Func<IEvent, Task> handlerAsync);
         void Open();
         void Close();

@@ -223,10 +223,11 @@ namespace Zerra.CQRS
                 il.Emit(OpCodes.Callvirt, getTypeMethod);
                 il.Emit(OpCodes.Stloc_0);
 
-                // Bus.DispatchInternal(command, commandType, false)
+                // Bus.DispatchInternal(command, commandType, requireAffirmation, externallyReceived)
                 il.Emit(OpCodes.Ldarg_1);
                 il.Emit(OpCodes.Ldloc_0);
-                il.Emit(OpCodes.Ldc_I4_0); //il.Emit(OpCodes.Ldc_I4_1); for true, 
+                il.Emit(OpCodes.Ldc_I4_0); //false; il.Emit(OpCodes.Ldc_I4_1); for true, 
+                il.Emit(OpCodes.Ldc_I4_0); //false; il.Emit(OpCodes.Ldc_I4_1); for true, 
                 il.Emit(OpCodes.Call, dispatchCommandInternalAsyncMethod);
                 il.Emit(OpCodes.Ret);
 
@@ -326,9 +327,10 @@ namespace Zerra.CQRS
                 il.Emit(OpCodes.Callvirt, getTypeMethod);
                 il.Emit(OpCodes.Stloc_0);
 
-                // Bus._DispatchEventInternalAsync(@event, eventType)
+                // Bus._DispatchEventInternalAsync(@event, eventType, externallyReceived)
                 il.Emit(OpCodes.Ldarg_1);
                 il.Emit(OpCodes.Ldloc_0);
+                il.Emit(OpCodes.Ldc_I4_0); //false; il.Emit(OpCodes.Ldc_I4_1); for true, 
                 il.Emit(OpCodes.Call, dispatchEventInternalAsyncMethod);
                 il.Emit(OpCodes.Ret);
 

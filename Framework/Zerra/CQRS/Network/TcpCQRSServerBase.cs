@@ -72,9 +72,9 @@ namespace Zerra.CQRS.Network
         {
             commandTypes.Add(type);
         }
-        ICollection<Type> ICommandConsumer.GetCommandTypes()
+        IEnumerable<Type> ICommandConsumer.GetCommandTypes()
         {
-            return commandTypes.ToArray();
+            return commandTypes;
         }
 
         void IQueryServer.Open()

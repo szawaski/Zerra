@@ -4,6 +4,7 @@
 
 using Azure.Messaging.ServiceBus;
 using System;
+using System.IO;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -105,10 +106,18 @@ namespace Zerra.CQRS.AzureServiceBus
                 try
                 {
                     var body = serviceBusMessage.Body.ToStream();
-                    if (symmetricConfig != null)
-                        body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
+                    AzureServiceBusEventMessage message;
+                    try
+                    {
+                        if (symmetricConfig != null)
+                            body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
 
-                    var message = await AzureServiceBusCommon.DeserializeAsync<AzureServiceBusEventMessage>(body);
+                        message = await AzureServiceBusCommon.DeserializeAsync<AzureServiceBusEventMessage>(body);
+                    }
+                    finally
+                    {
+                        body.Dispose();
+                    }                   
 
                     if (message.Claims != null)
                     {

@@ -34,19 +34,11 @@ public static class IPrincipalExtensions
         return false;
     }
 
-    public static IPrincipal CopyClaimsPrincipal(this IPrincipal it)
+    public static IPrincipal CloneClaimsPrincipal(this IPrincipal it)
     {
-        if (it is ClaimsPrincipal claimsPrincipal)
+        if (it is ClaimsPrincipal claimsPrincipal && claimsPrincipal.Identity is ClaimsIdentity)
         {
-            if (claimsPrincipal.Identity is ClaimsIdentity claimsIdentity)
-            {
-                var newClaimsIdentity = new ClaimsIdentity(claimsIdentity.Claims.ToArray(), claimsIdentity.AuthenticationType, claimsIdentity.NameClaimType, claimsIdentity.RoleClaimType);
-                newClaimsIdentity.Label = claimsIdentity.Label;
-                newClaimsIdentity.BootstrapContext = claimsIdentity.BootstrapContext;
-
-                var newClaimsPrincipal = new ClaimsPrincipal(newClaimsIdentity);
-                return newClaimsPrincipal;
-            }
+            return claimsPrincipal.Clone();
         }
         return null;
     }

@@ -12,7 +12,7 @@ namespace Zerra.CQRS
     {
         string ConnectionString { get; }
         void RegisterCommandType(Type type);
-        ICollection<Type> GetCommandTypes();
+        IEnumerable<Type> GetCommandTypes();
         void SetHandler(Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync);
         void Open();
         void Close();

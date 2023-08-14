@@ -4,6 +4,7 @@
 
 using Azure.Messaging.ServiceBus;
 using System;
+using System.IO;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -95,15 +96,23 @@ namespace Zerra.CQRS.AzureServiceBus
                 string ackKey = null;
                 try
                 {
+                    var body = serviceBusMessage.Body.ToStream();
+                    AzureServiceBusCommandMessage message;
+                    try
+                    {
+                        if (symmetricConfig != null)
+                            body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
+
+                        message = await AzureServiceBusCommon.DeserializeAsync<AzureServiceBusCommandMessage>(body);
+                    }
+                    finally
+                    {
+                        body.Dispose();
+                    }
+
                     awaitResponse = !String.IsNullOrWhiteSpace(serviceBusMessage.ReplyTo);
                     ackTopic = serviceBusMessage.ReplyTo;
                     ackKey = serviceBusMessage.ReplyToSessionId;
-
-                    var body = serviceBusMessage.Body.ToStream();
-                    if (symmetricConfig != null)
-                        body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
-
-                    var message = await AzureServiceBusCommon.DeserializeAsync<AzureServiceBusCommandMessage>(body);
 
                     if (message.Claims != null)
                     {

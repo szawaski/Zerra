@@ -122,7 +122,7 @@ namespace Zerra.CQRS.Kafka
                 OpenExchanges();
             }
         }
-        ICollection<Type> ICommandConsumer.GetCommandTypes()
+        IEnumerable<Type> ICommandConsumer.GetCommandTypes()
         {
             return commandExchanges.Select(x => x.Type).ToArray();
         }
@@ -135,9 +135,9 @@ namespace Zerra.CQRS.Kafka
                 OpenExchanges();
             }
         }
-        ICollection<Type> IEventConsumer.GetEventTypes()
+        IEnumerable<Type> IEventConsumer.GetEventTypes()
         {
-            return eventExchanges.Select(x => x.Type).ToArray();
+            return eventExchanges.Select(x => x.Type);
         }
     }
 }

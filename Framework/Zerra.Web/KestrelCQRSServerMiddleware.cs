@@ -107,10 +107,18 @@ namespace Zerra.Web
             try
             {
                 Stream body = context.Request.Body;
-                if (symmetricConfig != null)
-                    body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
+                CQRSRequestData data;
+                try
+                {
+                    if (symmetricConfig != null)
+                        body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
 
-                var data = await ContentTypeSerializer.DeserializeAsync<CQRSRequestData>(contentType.Value, body);
+                    data = await ContentTypeSerializer.DeserializeAsync<CQRSRequestData>(contentType.Value, body);
+                }
+                finally
+                {
+                    body.Dispose();
+                }
 
                 //Authorize
                 //------------------------------------------------------------------------------------------------------------
@@ -253,8 +261,6 @@ namespace Zerra.Web
 #else
                                 responseBodyCryptoStream.FlushFinalBlock();
 #endif
-
-                                responseBodyCryptoStream = null;
                                 return;
                             }
                             finally

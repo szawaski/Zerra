@@ -5,6 +5,11 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
+
+#if DEBUG
+using System.Linq;
+#endif
 
 namespace Zerra.IO
 {
@@ -76,16 +81,19 @@ namespace Zerra.IO
         }
 
 #if DEBUG
-        private static readonly HashSet<T[]> rented = new();
+        private static readonly Dictionary<T[], string> rented = new();
 #endif
         public static T[] Rent(int minimunLength)
         {
 #if DEBUG
             lock (rented)
             {
+                var lines = Regex.Split(Environment.StackTrace, "\r\n|\r|\n");
+                var stack = string.Join(Environment.NewLine, lines.Skip(2).Select(x => x.Trim()));
+
                 var buffer = pool.Rent(minimunLength);
-                rented.Add(buffer);
-                System.Diagnostics.Debug.WriteLine($"Memory<{typeof(T).Name}> Rented - {rented.Count}: Size {buffer.Length}");
+                rented.Add(buffer, stack);
+                System.Diagnostics.Debug.WriteLine($"Memory<{typeof(T).Name}> Rented - {rented.Count}: Size {buffer.Length} {lines[0]}");
                 return buffer;
             }
 #else
@@ -97,9 +105,11 @@ namespace Zerra.IO
 #if DEBUG
             lock (rented)
             {
-                if (!rented.Contains(buffer))
+                if (!rented.TryGetValue(buffer, out var stack))
                     throw new Exception($"Memory<{typeof(T).Name}> Returned That Was Not Rented: Size {buffer.Length}");
-                System.Diagnostics.Debug.WriteLine($"Memory<{typeof(T).Name}> Returned - {rented.Count}: Size {buffer.Length}");
+
+                var lines = Regex.Split(stack, "\r\n|\r|\n");
+                System.Diagnostics.Debug.WriteLine($"Memory<{typeof(T).Name}> Returned - {rented.Count}: Size {buffer.Length} {lines[0]}");
                 rented.Remove(buffer);
                 pool.Return(buffer);
             }

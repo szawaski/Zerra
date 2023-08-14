@@ -248,7 +248,7 @@ namespace Zerra.CQRS.AzureEventHub
         {
             commandTypes.Add(type);
         }
-        ICollection<Type> ICommandConsumer.GetCommandTypes()
+        IEnumerable<Type> ICommandConsumer.GetCommandTypes()
         {
             return commandTypes;
         }
@@ -257,7 +257,7 @@ namespace Zerra.CQRS.AzureEventHub
         {
             eventTypes.Add(type);
         }
-        ICollection<Type> IEventConsumer.GetEventTypes()
+        IEnumerable<Type> IEventConsumer.GetEventTypes()
         {
             return eventTypes;
         }

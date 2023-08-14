@@ -129,9 +129,9 @@ namespace Zerra.CQRS.AzureServiceBus
                 OpenExchanges();
             }
         }
-        ICollection<Type> ICommandConsumer.GetCommandTypes()
+        IEnumerable<Type> ICommandConsumer.GetCommandTypes()
         {
-            return commandExchanges.Select(x => x.Type).ToArray();
+            return commandExchanges.Select(x => x.Type);
         }
 
         void IEventConsumer.RegisterEventType(Type type)
@@ -142,9 +142,9 @@ namespace Zerra.CQRS.AzureServiceBus
                 OpenExchanges();
             }
         }
-        ICollection<Type> IEventConsumer.GetEventTypes()
+        IEnumerable<Type> IEventConsumer.GetEventTypes()
         {
-            return eventExchanges.Select(x => x.Type).ToArray();
+            return eventExchanges.Select(x => x.Type);
         }
     }
 }
