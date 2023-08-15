@@ -817,7 +817,7 @@ namespace Zerra.CQRS
                                 if (commandConsumer == null)
                                 {
                                     var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    var symmetricConfig = new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                    var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                     commandConsumer = serviceCreator.CreateCommandConsumer(serviceUrl, symmetricConfig);
                                     commandConsumer.SetHandler(HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync);
                                     if (!commandConsumers.Contains(commandConsumer))
@@ -843,7 +843,7 @@ namespace Zerra.CQRS
                                     if (commandProducer == null)
                                     {
                                         var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                        var symmetricConfig = new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                        var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                         commandProducer = serviceCreator.CreateCommandProducer(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, symmetricConfig);
                                     }
                                     foreach (var commandType in clientCommandTypes)
@@ -867,7 +867,7 @@ namespace Zerra.CQRS
                                 if (eventConsumer == null)
                                 {
                                     var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    var symmetricConfig = new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                    var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                     eventConsumer = serviceCreator.CreateEventConsumer(serviceUrl, symmetricConfig);
                                     eventConsumer.SetHandler(HandleRemoteEventDispatchAsync);
                                     if (!eventConsumers.Contains(eventConsumer))
@@ -885,7 +885,7 @@ namespace Zerra.CQRS
                             if (eventProducer == null)
                             {
                                 var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                var symmetricConfig = new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                 eventProducer = serviceCreator.CreateEventProducer(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, symmetricConfig);
                             }
 
@@ -906,7 +906,7 @@ namespace Zerra.CQRS
                                 if (queryServer == null)
                                 {
                                     var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    var symmetricConfig = new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                    var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                     queryServer = serviceCreator.CreateQueryServer(serviceUrl, symmetricConfig);
                                     queryServer.SetHandler(HandleRemoteQueryCallAsync);
                                     if (!queryServers.Contains(queryServer))
@@ -924,7 +924,7 @@ namespace Zerra.CQRS
                                 if (queryClient == null)
                                 {
                                     var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    var symmetricConfig = new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                    var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                     queryClient = serviceCreator.CreateQueryClient(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, symmetricConfig);
                                 }
                                 if (!serverTypes.Contains(interfaceType))
