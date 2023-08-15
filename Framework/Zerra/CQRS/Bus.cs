@@ -11,7 +11,6 @@ using Zerra.Collections;
 using Zerra.Logging;
 using Zerra.Providers;
 using Zerra.Reflection;
-using Zerra.Threading;
 using Zerra.Serialization;
 using System.IO;
 using System.Threading;
@@ -35,7 +34,7 @@ namespace Zerra.CQRS
 
         public static async Task<RemoteQueryCallResponse> HandleRemoteQueryCallAsync(Type interfaceType, string method, string[] arguments)
         {
-            var callerProvider = Call(interfaceType);
+            var callerProvider = _Call(interfaceType, true);
             var methodDetails = TypeAnalyzer.GetMethodDetail(interfaceType, method);
 
             if (methodDetails.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
@@ -99,11 +98,17 @@ namespace Zerra.CQRS
         private static readonly ConcurrentFactoryDictionary<Type, Func<ICommand, Task>> commandCacheProviders = new();
         private static Task _DispatchAsync(ICommand command, bool requireAffirmation, bool externallyReceived)
         {
-            var messageType = command.GetType();
-
-            var cacheProviderDispatchAsync = commandCacheProviders.GetOrAdd(messageType, (t) =>
+            var commandType = command.GetType();
+            if (externallyReceived)
             {
-                var handlerType = TypeAnalyzer.GetGenericType(iCommandHandlerType, messageType);
+                var exposed = commandType.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute attribute);
+                if (!exposed)
+                    throw new Exception($"Command {commandType.GetNiceName()} is not exposed");
+            }
+
+            var cacheProviderDispatchAsync = commandCacheProviders.GetOrAdd(commandType, (t) =>
+            {
+                var handlerType = TypeAnalyzer.GetGenericType(iCommandHandlerType, commandType);
                 var providerCacheType = Discovery.GetImplementationType(handlerType, iCacheProviderType, false);
                 if (providerCacheType == null)
                     return null;
@@ -125,7 +130,7 @@ namespace Zerra.CQRS
                     return instance;
                 });
 
-                var method = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(ICommandHandler<ICommand>.Handle), new Type[] { messageType });
+                var method = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(ICommandHandler<ICommand>.Handle), new Type[] { commandType });
                 Func<ICommand, Task> caller = (arg) =>
                 {
                     var task = (Task)method.Caller(providerCache, new object[] { arg });
@@ -138,17 +143,23 @@ namespace Zerra.CQRS
             if (cacheProviderDispatchAsync != null)
                 return cacheProviderDispatchAsync(command);
 
-            return _DispatchCommandInternalAsync(command, messageType, requireAffirmation, externallyReceived);
+            return _DispatchCommandInternalAsync(command, commandType, requireAffirmation, externallyReceived);
         }
 
         private static readonly ConcurrentFactoryDictionary<Type, Func<IEvent, Task>> eventCacheProviders = new();
         private static Task _DispatchAsync(IEvent @event, bool externallyReceived)
         {
-            var messageType = @event.GetType();
-
-            var cacheProviderDispatchAsync = eventCacheProviders.GetOrAdd(messageType, (t) =>
+            var eventType = @event.GetType();
+            if (externallyReceived)
             {
-                var handlerType = TypeAnalyzer.GetGenericType(iEventHandlerType, messageType);
+                var exposed = eventType.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute attribute);
+                if (!exposed)
+                    throw new Exception($"Event {eventType.GetNiceName()} is not exposed");
+            }
+
+            var cacheProviderDispatchAsync = eventCacheProviders.GetOrAdd(eventType, (t) =>
+            {
+                var handlerType = TypeAnalyzer.GetGenericType(iEventHandlerType, eventType);
                 var providerCacheType = Discovery.GetImplementationType(handlerType, iCacheProviderType, false);
                 if (providerCacheType == null)
                     return null;
@@ -170,7 +181,7 @@ namespace Zerra.CQRS
                     return instance;
                 });
 
-                var method = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(IEventHandler<IEvent>.Handle), new Type[] { messageType });
+                var method = TypeAnalyzer.GetMethodDetail(providerCacheType, nameof(IEventHandler<IEvent>.Handle), new Type[] { eventType });
                 Func<IEvent, Task> caller = (arg) =>
                 {
                     var task = (Task)method.Caller(providerCache, new object[] { arg });
@@ -183,7 +194,7 @@ namespace Zerra.CQRS
             if (cacheProviderDispatchAsync != null)
                 return cacheProviderDispatchAsync(@event);
 
-            return _DispatchEventInternalAsync(@event, messageType, externallyReceived);
+            return _DispatchEventInternalAsync(@event, eventType, externallyReceived);
         }
 
         public static Task _DispatchCommandInternalAsync(ICommand message, Type messageType, bool requireAffirmation, bool externallyReceived)
@@ -303,11 +314,23 @@ namespace Zerra.CQRS
         public static TInterface Call<TInterface>() where TInterface : IBaseProvider
         {
             var interfaceType = typeof(TInterface);
-            var callerProvider = Call(interfaceType);
+            var callerProvider = _Call(interfaceType, false);
             return (TInterface)callerProvider;
         }
         public static object Call(Type interfaceType)
         {
+            return _Call(interfaceType, false);
+        }
+
+        private static object _Call(Type interfaceType, bool externallyReceived)
+        {
+            if (externallyReceived)
+            {
+                var exposed = interfaceType.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute attribute);
+                if (!exposed)
+                    throw new Exception($"Interface {interfaceType.GetNiceName()} is not exposed");
+            }
+
             var callerProvider = BusRouters.GetProviderToCallInternalInstance(interfaceType);
 
             if (!queryClients.IsEmpty)
@@ -337,10 +360,8 @@ namespace Zerra.CQRS
             return callerProvider;
         }
 
-        public static TReturn _CallInternal<TInterface, TReturn>(string methodName, object[] arguments) where TInterface : IBaseProvider
+        public static TReturn _CallInternal<TInterface, TReturn>(Type interfaceType, string methodName, object[] arguments) where TInterface : IBaseProvider
         {
-            var interfaceType = typeof(TInterface);
-
             if (!queryClients.IsEmpty)
             {
                 if (queryClients.TryGetValue(interfaceType, out var methodCaller))
@@ -784,8 +805,8 @@ namespace Zerra.CQRS
                         var interfaceType = Discovery.GetTypeFromName(typeName);
                         if (!interfaceType.IsInterface)
                             throw new Exception($"{interfaceType.GetNiceName()} is not an interface");
-                        var typeDetails = TypeAnalyzer.GetTypeDetail(interfaceType);
-                        if (!typeDetails.Interfaces.Contains(typeof(IBaseProvider)))
+                        var interfaceTypeDetails = TypeAnalyzer.GetTypeDetail(interfaceType);
+                        if (!interfaceTypeDetails.Interfaces.Contains(typeof(IBaseProvider)))
                             throw new Exception($"{interfaceType.GetNiceName()} does not inherit {nameof(IBaseProvider)}");
 
                         var commandTypes = GetCommandTypesFromInterface(interfaceType);
@@ -804,6 +825,8 @@ namespace Zerra.CQRS
                                 }
                                 foreach (var commandType in commandTypes)
                                 {
+                                    if (!commandType.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute))
+                                        continue;
                                     if (commandProducers.ContainsKey(commandType))
                                         throw new InvalidOperationException($"Cannot add Command Consumer: Command Producer already registered for type {commandType.GetNiceName()}");
                                     if (commandConsumerTypes.Contains(commandType))
@@ -868,13 +891,15 @@ namespace Zerra.CQRS
 
                             foreach (var eventType in eventTypes)
                             {
+                                if (!eventType.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute))
+                                    continue;
                                 if (eventProducers.ContainsKey(eventType))
                                     throw new InvalidOperationException($"Cannot add Event Producer: Event Producer already registered for type {eventType.GetNiceName()}");
                                 _ = eventProducers.TryAdd(eventType, eventProducer);
                             }
                         }
 
-                        if (typeDetails.Attributes.Any(x => x is ServiceExposedAttribute))
+                        if (interfaceTypeDetails.Attributes.Any(x => x is ServiceExposedAttribute))
                         {
                             if (serviceSetting == serverSetting)
                             {

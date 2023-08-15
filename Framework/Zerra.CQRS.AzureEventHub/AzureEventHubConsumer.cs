@@ -67,12 +67,12 @@ namespace Zerra.CQRS.AzureEventHub
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Command Server Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Command Consumer Started Connected To {this.host}");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Event Server Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Event Consumer Started Connected To {this.host}");
         }
 
         private void Open()
@@ -221,12 +221,12 @@ namespace Zerra.CQRS.AzureEventHub
         void ICommandConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Command Server Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Command Consumer Closed On {this.host}");
         }
         void IEventConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Event Server Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Event Consumer Closed On {this.host}");
         }
         private void Close()
         {

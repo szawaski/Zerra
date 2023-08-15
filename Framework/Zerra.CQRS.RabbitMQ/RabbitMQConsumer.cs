@@ -55,12 +55,12 @@ namespace Zerra.CQRS.RabbitMQ
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Command Server Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Command Consumer Started Connected To {this.host}");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Event Server Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Event Consumer Started Connected To {this.host}");
         }
         private void Open()
         {
@@ -102,12 +102,12 @@ namespace Zerra.CQRS.RabbitMQ
         void ICommandConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Command Server Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Command Consumer Closed On {this.host}");
         }
         void IEventConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Event Server Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Event Consumer Closed On {this.host}");
         }
         private void Close()
         {

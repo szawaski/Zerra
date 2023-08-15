@@ -10,7 +10,7 @@ namespace Zerra.TestDev
 {
     public static class InlineTest
     {
-        public static  void Test()
+        public static void Test()
         {
             const int loops = 1000000000;
 

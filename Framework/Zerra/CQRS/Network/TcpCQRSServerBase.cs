@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Zerra.Collections;
 using Zerra.Logging;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Zerra.CQRS.Network
 {
@@ -85,7 +86,7 @@ namespace Zerra.CQRS.Network
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} Command Server Started On {this.serviceUrl}");
+            _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} Command Consumer Started On {this.serviceUrl}");
         }
         protected void Open()
         {
@@ -113,7 +114,7 @@ namespace Zerra.CQRS.Network
         void ICommandConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} Command Server Closed On {this.serviceUrl}");
+            _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} Command Consumer Closed On {this.serviceUrl}");
         }
         protected void Close()
         {

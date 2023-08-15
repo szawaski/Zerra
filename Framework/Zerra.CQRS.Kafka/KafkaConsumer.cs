@@ -53,12 +53,12 @@ namespace Zerra.CQRS.Kafka
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Command Server Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Command Consumer Started Connected To {this.host}");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Event Server Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Event Consumer Started Connected To {this.host}");
         }
         private void Open()
         {
@@ -88,12 +88,12 @@ namespace Zerra.CQRS.Kafka
         void ICommandConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Command Server Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Command Consumer Closed On {this.host}");
         }
         void IEventConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Event Server Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Event Consumer Closed On {this.host}");
         }
         private void Close()
         {

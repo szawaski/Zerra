@@ -152,10 +152,6 @@ namespace Zerra.CQRS.Network
                     if (!this.interfaceTypes.Contains(providerType))
                         throw new Exception($"Unhandled Provider Type {providerType.FullName}");
 
-                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute);
-                    if (!exposed)
-                        throw new Exception($"Provider {data.MessageType} is not exposed");
-
                     _ = Log.TraceAsync($"Received Call: {providerType.GetNiceName()}.{data.ProviderMethod}");
 
                     var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments);
@@ -214,10 +210,6 @@ namespace Zerra.CQRS.Network
 
                     if (!this.commandTypes.Contains(commandType))
                         throw new Exception($"Unhandled Command Type {commandType.FullName}");
-
-                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute);
-                    if (!exposed)
-                        throw new Exception($"Command {data.MessageType} is not exposed");
 
                     var command = (ICommand)JsonSerializer.Deserialize(data.MessageData, commandType);
 

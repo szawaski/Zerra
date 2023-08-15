@@ -8,6 +8,9 @@ using System.Diagnostics;
 using Zerra.Reflection;
 using System.Collections.Generic;
 using FastMember;
+using System.Threading.Tasks;
+using Zerra.CQRS;
+using Zerra.Providers;
 
 namespace Zerra.TestDev
 {
@@ -142,6 +145,20 @@ namespace Zerra.TestDev
             }
             timer6.Stop();
             Console.WriteLine($"TypeAccessor {timer6.ElapsedMilliseconds}ms");
+        }
+
+
+        public interface ICallThings : IBaseProvider
+        {
+            Task GetThings(int stuff);
+        }
+
+        public class CallThings : ICallThings
+        {
+            public Task GetThings(int stuff)
+            {
+                return Bus._CallInternal<ICallThings, Task>(typeof(ICallThings), "GetThings", new object[] { stuff });
+            }
         }
     }
 

@@ -18,9 +18,11 @@ namespace Zerra.CQRS
     {
         private static readonly Type taskType = typeof(Task);
         private static readonly ConstructorInfo notSupportedExceptionConstructor = typeof(NotSupportedException).GetConstructor(new Type[] { typeof(string) });
+        private static readonly MethodInfo getTypeMethod = typeof(object).GetMethod(nameof(Object.GetType));
+        private static readonly MethodInfo typeofMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle));
 
         private static readonly Type baseProviderType = typeof(IBaseProvider);
-        private static MethodInfo callInternalMethodNonGeneric = typeof(Bus).GetMethod(nameof(Bus._CallInternal), BindingFlags.Static | BindingFlags.Public);
+        private static readonly MethodInfo callInternalMethodNonGeneric = typeof(Bus).GetMethod(nameof(Bus._CallInternal), BindingFlags.Static | BindingFlags.Public);
         private static readonly ConcurrentFactoryDictionary<Type, Type> callerClasses = new();
         public static object GetProviderToCallInternalInstance(Type interfaceType)
         {
@@ -90,11 +92,15 @@ namespace Zerra.CQRS
                 _ = il.DeclareLocal(returnType);
 
                 il.Emit(OpCodes.Nop);
-                il.Emit(OpCodes.Ldstr, methodName);
+
+                //_CallInternal<TInterface, TReturn>(Type interfaceType, string methodName, object[] arguments)
+                il.Emit(OpCodes.Ldtoken, interfaceType);
+                il.Emit(OpCodes.Call, typeofMethod); //typeof(TInterface)
+
+                il.Emit(OpCodes.Ldstr, methodName); //methodName
 
                 il.Emit(OpCodes.Ldc_I4, parameterTypes.Length);
-                il.Emit(OpCodes.Newarr, typeof(object));
-
+                il.Emit(OpCodes.Newarr, typeof(object)); //new object[#]
                 for (var j = 0; j < parameterTypes.Length; j++)
                 {
                     il.Emit(OpCodes.Dup);
@@ -105,7 +111,7 @@ namespace Zerra.CQRS
                     il.Emit(OpCodes.Stelem_Ref);
                 }
 
-                il.Emit(OpCodes.Call, callMethod);   
+                il.Emit(OpCodes.Call, callMethod);
 
                 if (voidMethod)
                 {
@@ -154,8 +160,6 @@ namespace Zerra.CQRS
             Type objectType = typeBuilder.CreateTypeInfo();
             return objectType;
         }
-
-        private static readonly MethodInfo getTypeMethod = typeof(object).GetMethod(nameof(Object.GetType));
 
         private static readonly Type commandHandlerType = typeof(ICommandHandler<>);
         private static readonly MethodInfo dispatchCommandInternalAsyncMethod = typeof(Bus).GetMethod(nameof(Bus._DispatchCommandInternalAsync), BindingFlags.Static | BindingFlags.Public);

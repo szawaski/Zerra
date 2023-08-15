@@ -150,10 +150,6 @@ namespace Zerra.Web
                     if (!settings.InterfaceTypes.Contains(providerType))
                         throw new Exception($"Unhandled Provider Type {providerType.FullName}");
 
-                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute);
-                    if (!exposed)
-                        throw new Exception($"Provider {data.MessageType} is not exposed");
-
                     _ = Log.TraceAsync($"Received Call: {providerType.GetNiceName()}.{data.ProviderMethod}");
 
                     var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments);
@@ -298,10 +294,6 @@ namespace Zerra.Web
 
                     if (!settings.CommandTypes.Contains(messageType))
                         throw new Exception($"Unhandled Command Type {messageType.FullName}");
-
-                    var exposed = typeDetail.Attributes.Any(x => x is ServiceExposedAttribute);
-                    if (!exposed)
-                        throw new Exception($"Message {data.MessageType} is not exposed");
 
                     var command = (ICommand)JsonSerializer.Deserialize(data.MessageData, messageType);
 
