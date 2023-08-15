@@ -37,7 +37,7 @@ namespace Zerra.CQRS.AzureEventHub
         private bool isOpen;
         private CancellationTokenSource canceller = null;
 
-        public string ConnectionString => host;
+        public string ServiceUrl => host;
 
         public AzureEventHubConsumer(string host, string eventHubName, SymmetricConfig symmetricConfig, string environment)
         {
@@ -67,12 +67,12 @@ namespace Zerra.CQRS.AzureEventHub
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Command Consumer Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Command Consumer Started Connected");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Event Consumer Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Event Consumer Started Connected");
         }
 
         private void Open()
@@ -221,12 +221,12 @@ namespace Zerra.CQRS.AzureEventHub
         void ICommandConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Command Consumer Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Command Consumer Closed");
         }
         void IEventConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Event Consumer Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Event Consumer Closed");
         }
         private void Close()
         {

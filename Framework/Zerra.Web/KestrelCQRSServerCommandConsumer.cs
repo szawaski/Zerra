@@ -18,7 +18,7 @@ namespace Zerra.Web
             this.settings = settings;
         }
 
-        public string ConnectionString => throw new NotImplementedException();
+        public string ServiceUrl => throw new NotImplementedException();
 
         public void Close() { }
 

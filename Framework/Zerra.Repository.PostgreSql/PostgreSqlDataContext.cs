@@ -24,11 +24,11 @@ namespace Zerra.Repository.PostgreSql
                         try
                         {
                             var connectionForParsing = new NpgsqlConnectionStringBuilder(ConnectionString);
-                            _ = Log.InfoAsync($"{nameof(PostgreSqlDataContext)} connecting to {connectionForParsing.Host},{connectionForParsing.Port}");
+                            _ = Log.InfoAsync($"{nameof(PostgreSqlDataContext)} connecting");
                         }
                         catch
                         {
-                            _ = Log.InfoAsync($"{nameof(PostgreSqlDataContext)} failed to parse {ConnectionString}");
+                            _ = Log.InfoAsync($"{nameof(PostgreSqlDataContext)} failed to parse {nameof(ConnectionString)}");
                         }
                         engine = new PostgreSqlEngine(ConnectionString);
                     }

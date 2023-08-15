@@ -24,11 +24,11 @@ namespace Zerra.Repository.MsSql
                         try
                         {
                             var connectionForParsing = new SqlConnectionStringBuilder(ConnectionString);
-                            _ = Log.InfoAsync($"{nameof(MsSqlDataContext)} connecting to {connectionForParsing.DataSource}");
+                            _ = Log.InfoAsync($"{nameof(MsSqlDataContext)} connecting");
                         }
                         catch
                         {
-                            _ = Log.InfoAsync($"{nameof(MsSqlDataContext)} failed to parse {ConnectionString}");
+                            _ = Log.InfoAsync($"{nameof(MsSqlDataContext)} failed to parse {nameof(ConnectionString)}");
                         }
                         engine = new MsSqlEngine(ConnectionString);
                     }

@@ -25,7 +25,7 @@ namespace Zerra.CQRS.Kafka
         private Func<ICommand, Task> commandHandlerAwaitAsync = null;
         private Func<IEvent, Task> eventHandlerAsync = null;
 
-        public string ConnectionString => host;
+        public string ServiceUrl => host;
 
         public KafkaConsumer(string host, SymmetricConfig symmetricConfig, string environment)
         {
@@ -53,12 +53,12 @@ namespace Zerra.CQRS.Kafka
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Command Consumer Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Command Consumer Started Connected");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Event Consumer Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Event Consumer Started Connected");
         }
         private void Open()
         {
@@ -88,12 +88,12 @@ namespace Zerra.CQRS.Kafka
         void ICommandConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Command Consumer Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Command Consumer Closed");
         }
         void IEventConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Event Consumer Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Event Consumer Closed");
         }
         private void Close()
         {

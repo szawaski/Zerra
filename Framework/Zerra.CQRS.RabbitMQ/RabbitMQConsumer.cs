@@ -27,7 +27,7 @@ namespace Zerra.CQRS.RabbitMQ
         private Func<ICommand, Task> commandHandlerAwaitAsync = null;
         private Func<IEvent, Task> eventHandlerAsync = null;
 
-        public string ConnectionString => host;
+        public string ServiceUrl => host;
 
         public RabbitMQConsumer(string host, SymmetricConfig symmetricConfig, string environment)
         {
@@ -55,12 +55,12 @@ namespace Zerra.CQRS.RabbitMQ
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Command Consumer Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Command Consumer Started Connected");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Event Consumer Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Event Consumer Started Connected");
         }
         private void Open()
         {
@@ -102,12 +102,12 @@ namespace Zerra.CQRS.RabbitMQ
         void ICommandConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Command Consumer Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Command Consumer Closed");
         }
         void IEventConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Event Consumer Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Event Consumer Closed");
         }
         private void Close()
         {

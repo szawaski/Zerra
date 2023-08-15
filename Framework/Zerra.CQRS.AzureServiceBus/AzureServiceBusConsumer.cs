@@ -29,7 +29,7 @@ namespace Zerra.CQRS.AzureServiceBus
         private Func<ICommand, Task> commandHandlerAwaitAsync = null;
         private Func<IEvent, Task> eventHandlerAsync = null;
 
-        public string ConnectionString => host;
+        public string ServiceUrl => host;
 
         public AzureServiceBusConsumer(string host, SymmetricConfig symmetricConfig, string environment)
         {
@@ -59,12 +59,12 @@ namespace Zerra.CQRS.AzureServiceBus
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Command Consumer Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Command Consumer Started Connected");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Event Consumer Started Connected To {this.host}");
+            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Event Consumer Started Connected");
         }
         private void Open()
         {
@@ -94,12 +94,12 @@ namespace Zerra.CQRS.AzureServiceBus
         void ICommandConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Command Consumer Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Command Consumer Closed");
         }
         void IEventConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Event Consumer Closed On {this.host}");
+            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Event Consumer Closed");
         }
         private void Close()
         {

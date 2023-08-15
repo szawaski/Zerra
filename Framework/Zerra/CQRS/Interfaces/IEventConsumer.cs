@@ -10,7 +10,7 @@ namespace Zerra.CQRS
 {
     public interface IEventConsumer
     {
-        string ConnectionString { get; }
+        string ServiceUrl { get; }
         void RegisterEventType(Type type);
         IEnumerable<Type> GetEventTypes();
         void SetHandler(Func<IEvent, Task> handlerAsync);

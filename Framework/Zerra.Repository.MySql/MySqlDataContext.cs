@@ -24,11 +24,11 @@ namespace Zerra.Repository.MySql
                         try
                         {
                             var connectionForParsing = new MySqlConnectionStringBuilder(ConnectionString);
-                            _ = Log.InfoAsync($"{nameof(MySqlDataContext)} connecting to {connectionForParsing.Server}");
+                            _ = Log.InfoAsync($"{nameof(MySqlDataContext)} connecting");
                         }
                         catch
                         {
-                            _ = Log.InfoAsync($"{nameof(MySqlDataContext)} failed to parse {ConnectionString}");
+                            _ = Log.InfoAsync($"{nameof(MySqlDataContext)} failed to parse {nameof(ConnectionString)}");
                         }
                         engine = new MySqlEngine(ConnectionString);
                     }

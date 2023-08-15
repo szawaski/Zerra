@@ -35,7 +35,7 @@ namespace Zerra.CQRS.RabbitMQ
             {
                 var factory = new ConnectionFactory() { HostName = host };
                 this.connection = factory.CreateConnection();
-                _ = Log.TraceAsync($"{nameof(RabbitMQProducer)} Started For {this.host}");
+                _ = Log.TraceAsync($"{nameof(RabbitMQProducer)} Started");
             }
             catch (Exception ex)
             {
@@ -63,7 +63,7 @@ namespace Zerra.CQRS.RabbitMQ
                         {
                             var factory = new ConnectionFactory() { HostName = host };
                             this.connection = factory.CreateConnection();
-                            _ = Log.TraceAsync($"Sender Reconnected: {host}");
+                            _ = Log.TraceAsync($"Sender Reconnected");
                         }
                     }
                 }
@@ -184,7 +184,7 @@ namespace Zerra.CQRS.RabbitMQ
                         {
                             var factory = new ConnectionFactory() { HostName = host };
                             this.connection = factory.CreateConnection();
-                            _ = Log.TraceAsync($"Sender Reconnected: {host}");
+                            _ = Log.TraceAsync($"Sender Reconnected");
                         }
                     }
                 }

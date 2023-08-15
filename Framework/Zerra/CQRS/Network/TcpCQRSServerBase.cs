@@ -27,7 +27,7 @@ namespace Zerra.CQRS.Network
         private bool disposed = false;
 
         private readonly string serviceUrl;
-        public string ConnectionString => serviceUrl;
+        public string ServiceUrl => serviceUrl;
 
         public TcpCQRSServerBase(string serverUrl)
         {

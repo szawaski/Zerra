@@ -21,7 +21,7 @@ namespace Zerra.Repository.EventStoreDB
                 {
                     if (engine == null)
                     {
-                        _ = Log.InfoAsync($"{nameof(EventStoreDBDataContext)} connecting to {ConnectionString}");
+                        _ = Log.InfoAsync($"{nameof(EventStoreDBDataContext)} connecting");
                         var engine = new EventStoreDBEngine(ConnectionString, Insecure);
                         return engine;
                     }
