@@ -36,7 +36,7 @@ namespace Zerra.CQRS.AzureServiceBus
             this.environment = environment;
 
             this.ackTopic = $"ACK-{Guid.NewGuid().ToString("N")}";
-            this.ackSubscription = $"{ackTopic.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}-{applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}";
+            this.ackSubscription = applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength);
 
             client = new ServiceBusClient(host);
 

@@ -33,7 +33,8 @@ namespace Zerra.CQRS.AzureServiceBus
                     this.topic = $"{environment}_{type.GetNiceName()}".Truncate(AzureServiceBusCommon.TopicMaxLength);
                 else
                     this.topic = type.GetNiceName().Truncate(AzureServiceBusCommon.TopicMaxLength);
-                this.subscription = $"{topic.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}-{applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength / 2 - 1)}";
+
+                this.subscription = applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength);
                 this.symmetricConfig = symmetricConfig;
             }
 
