@@ -33,10 +33,10 @@ namespace Zerra
         public Graph(bool includeAllProperties, params Expression<Func<T, object>>[] properties) : this(null, includeAllProperties, (ICollection<Expression<Func<T, object>>>)properties) { }
         public Graph(string name, bool includeAllProperties, params Expression<Func<T, object>>[] properties) : this(name, includeAllProperties, (ICollection<Expression<Func<T, object>>>)properties) { }
 
-        public Graph(ICollection<Expression<Func<T, object>>> properties) : this(null, false, properties) { }
-        public Graph(string name, ICollection<Expression<Func<T, object>>> properties) : this(name, false, properties) { }
-        public Graph(bool includeAllProperties, ICollection<Expression<Func<T, object>>> properties) : this(null, includeAllProperties, properties) { }
-        public Graph(string name, bool includeAllProperties, ICollection<Expression<Func<T, object>>> properties)
+        public Graph(IEnumerable<Expression<Func<T, object>>> properties) : this(null, false, properties) { }
+        public Graph(string name, IEnumerable<Expression<Func<T, object>>> properties) : this(name, false, properties) { }
+        public Graph(bool includeAllProperties, IEnumerable<Expression<Func<T, object>>> properties) : this(null, includeAllProperties, properties) { }
+        public Graph(string name, bool includeAllProperties, IEnumerable<Expression<Func<T, object>>> properties)
             : base(name, includeAllProperties, (IReadOnlyCollection<string>)null, null)
         {
             this.type = GetModelType().FullName;
@@ -89,10 +89,10 @@ namespace Zerra
             }
         }
 
-        public void AddProperties(params Expression<Func<T, object>>[] properties) { AddProperties((ICollection<Expression<Func<T, object>>>)properties); }
-        public void AddProperties(ICollection<Expression<Func<T, object>>> properties)
+        public void AddProperties(params Expression<Func<T, object>>[] properties) { AddProperties((IEnumerable<Expression<Func<T, object>>>)properties); }
+        public void AddProperties(IEnumerable<Expression<Func<T, object>>> properties)
         {
-            if (properties == null || properties.Count == 0)
+            if (properties == null)
                 return;
 
             var members = new Stack<MemberInfo>();
@@ -104,10 +104,10 @@ namespace Zerra
             }
             this.signature = null;
         }
-        public void RemoveProperties(params Expression<Func<T, object>>[] properties) { RemoveProperties((ICollection<Expression<Func<T, object>>>)properties); }
-        public void RemoveProperties(ICollection<Expression<Func<T, object>>> properties)
+        public void RemoveProperties(params Expression<Func<T, object>>[] properties) { RemoveProperties((IEnumerable<Expression<Func<T, object>>>)properties); }
+        public void RemoveProperties(IEnumerable<Expression<Func<T, object>>> properties)
         {
-            if (properties == null || properties.Count == 0)
+            if (properties == null)
                 return;
 
             var members = new Stack<MemberInfo>();
