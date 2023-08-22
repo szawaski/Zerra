@@ -50,7 +50,9 @@ namespace Zerra.Reflection
                 if (property.GetIndexParameters().Length > 0)
                     continue;
 
-                var backingName = $"<{property.Name}>k__BackingField";
+                //<{property.Name}>k__BackingField
+                //<{property.Name}>i__Field
+                var backingName = $"<{property.Name}>";
                 var field = fields.FirstOrDefault(x => x.Name == backingName);
                 if (field != null)
                 {
@@ -63,7 +65,7 @@ namespace Zerra.Reflection
                 }
             }
 
-            foreach (var field in fields.Where(x => !x.Name.EndsWith("k__BackingField")))
+            foreach (var field in fields.Where(x => !members.Values.Any(y => y == x)))
             {
                 members.Add(field.Name, field);
             }

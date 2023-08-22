@@ -425,39 +425,44 @@ namespace Zerra.Reflection
 
             //if (!this.CoreType.HasValue)
             //{
-                var typeMembers = new List<MemberDetail>();
-                if (!type.IsGenericTypeDefinition)
+            var typeMembers = new List<MemberDetail>();
+            if (!type.IsGenericTypeDefinition)
+            {
+                var properties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (type.IsInterface)
                 {
-                    var properties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                    var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                    if (type.IsInterface)
+                    foreach (var i in Interfaces)
                     {
-                        foreach (var i in Interfaces)
-                        {
-                            var iProperties = i.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                            var iFields = i.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                            properties = properties.Concat(iProperties.Where(x => !properties.Select(y => y.Name).Contains(x.Name))).ToArray();
-                            fields = fields.Concat(iFields.Where(x => !fields.Select(y => y.Name).Contains(x.Name))).ToArray();
-                        }
-                    }
-                    foreach (var property in properties)
-                    {
-                        if (property.GetIndexParameters().Length > 0)
-                            continue;
-                        MemberDetail backingMember = null;
-                        var backingField = fields.FirstOrDefault(x => x.Name == $"<{property.Name}>k__BackingField");
-                        if (backingField != null)
-                            backingMember = new MemberDetail(backingField, null, locker);
-                        typeMembers.Add(new MemberDetail(property, backingMember, locker));
-                    }
-                    foreach (var field in fields.Where(x => !x.Name.EndsWith("k__BackingField")))
-                    {
-                        typeMembers.Add(new MemberDetail(field, null, locker));
+                        var iProperties = i.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                        var iFields = i.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                        properties = properties.Concat(iProperties.Where(x => !properties.Select(y => y.Name).Contains(x.Name))).ToArray();
+                        fields = fields.Concat(iFields.Where(x => !fields.Select(y => y.Name).Contains(x.Name))).ToArray();
                     }
                 }
+                foreach (var property in properties)
+                {
+                    if (property.GetIndexParameters().Length > 0)
+                        continue;
+                    MemberDetail backingMember = null;
 
-                this.MemberDetails = typeMembers.ToArray();
-                this.membersByName = this.MemberDetails.ToDictionary(x => x.Name);
+                    //<{property.Name}>k__BackingField
+                    //<{property.Name}>i__Field
+                    var backingName = $"<{property.Name}>";
+                    var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
+                    if (backingField != null)
+                        backingMember = new MemberDetail(backingField, null, locker);
+
+                    typeMembers.Add(new MemberDetail(property, backingMember, locker));
+                }
+                foreach (var field in fields.Where(x => !typeMembers.Any(y => y.BackingFieldDetail?.MemberInfo == x)))
+                {
+                    typeMembers.Add(new MemberDetail(field, null, locker));
+                }
+            }
+
+            this.MemberDetails = typeMembers.ToArray();
+            this.membersByName = this.MemberDetails.ToDictionary(x => x.Name);
             //}
             //else
             //{
