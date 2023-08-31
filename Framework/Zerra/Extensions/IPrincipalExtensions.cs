@@ -36,9 +36,9 @@ public static class IPrincipalExtensions
 
     public static IPrincipal CloneClaimsPrincipal(this IPrincipal it)
     {
-        if (it is ClaimsPrincipal claimsPrincipal && claimsPrincipal.Identity is ClaimsIdentity)
+        if (it is ClaimsPrincipal claimsPrincipal && claimsPrincipal.Identity is ClaimsIdentity claimsIdentity)
         {
-            return claimsPrincipal.Clone();
+            return new ClaimsPrincipal(claimsPrincipal.Identities.Select(x => x.Clone()));
         }
         return null;
     }
