@@ -457,7 +457,7 @@ namespace Zerra
         }
         private void ToString(ref CharWriter writer, int depth)
         {
-            foreach (var property in this.localProperties)
+            foreach (var property in this.LocalProperties)
             {
                 for (var i = 0; i < depth * 3; i++)
                     writer.Write(' ');
