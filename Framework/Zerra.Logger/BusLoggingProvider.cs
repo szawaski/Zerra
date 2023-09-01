@@ -36,7 +36,7 @@ namespace Zerra.Logger
         public async ValueTask LogCommandAsync(Type commandType, ICommand command, string source)
         {
             var typeName = commandType.GetNiceName();
-            var user = System.Threading.Thread.CurrentPrincipal.Identity.Name;
+            var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? "[Not Authenticated]";
 
             var message = $"{commandCategory}: {typeName} from {source} as {user}";
             Debug.WriteLine(message, commandCategory);
@@ -50,7 +50,7 @@ namespace Zerra.Logger
         public async ValueTask LogEventAsync(Type eventType, IEvent @event, string source)
         {
             var typeName = eventType.GetNiceName();
-            var user = System.Threading.Thread.CurrentPrincipal.Identity.Name;
+            var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? "[Not Authenticated]";
 
             var message = $"{eventCategory}: {typeName} from {source} as {user}";
             Debug.WriteLine(message, eventCategory);
@@ -64,7 +64,7 @@ namespace Zerra.Logger
         public async ValueTask LogCallAsync(Type interfaceType, string methodName, object[] arguments, string source)
         {
             var interfaceName = interfaceType.GetNiceName();
-            var user = System.Threading.Thread.CurrentPrincipal.Identity.Name;
+            var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? "[Not Authenticated]";
 
             var message = $"{callCategory}: {interfaceName}.{methodName} from {source} as {user}";
             Debug.WriteLine(message, callCategory);
