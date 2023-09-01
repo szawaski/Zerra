@@ -32,13 +32,17 @@ namespace Zerra.Logger
             file = $"{filePath}\\{fileName}";
         }
 
-
-        public async ValueTask LogCommandAsync(Type commandType, ICommand command, string source)
+        public async Task LogCommandAsync(Type commandType, ICommand command, string source, Exception ex)
         {
             var typeName = commandType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? "[Not Authenticated]";
 
-            var message = $"{commandCategory}: {typeName} from {source} as {user}";
+            string message;
+            if (ex != null)
+                message = $"{commandCategory} Failed: {typeName} from {source} as {user} error {ex.GetType().Name}:{ex.Message}";
+            else
+                message = $"{commandCategory}: {typeName} from {source} as {user}";
+
             Debug.WriteLine(message, commandCategory);
             Console.WriteLine(message);
             telemetryClient.TrackTrace(message);
@@ -47,12 +51,17 @@ namespace Zerra.Logger
                 await LogFile.Log(file, commandCategory, message);
         }
 
-        public async ValueTask LogEventAsync(Type eventType, IEvent @event, string source)
+        public async Task LogEventAsync(Type eventType, IEvent @event, string source, Exception ex)
         {
             var typeName = eventType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? "[Not Authenticated]";
 
-            var message = $"{eventCategory}: {typeName} from {source} as {user}";
+            string message;
+            if (ex != null)
+                message = $"{eventCategory} Failed: {typeName} from {source} as {user} error {ex.GetType().Name}:{ex.Message}";
+            else
+                message = $"{eventCategory}: {typeName} from {source} as {user}";
+
             Debug.WriteLine(message, eventCategory);
             Console.WriteLine(message);
             telemetryClient.TrackTrace(message);
@@ -61,12 +70,17 @@ namespace Zerra.Logger
                 await LogFile.Log(file, eventCategory, message);
         }
 
-        public async ValueTask LogCallAsync(Type interfaceType, string methodName, object[] arguments, string source)
+        public async Task LogCallAsync(Type interfaceType, string methodName, object[] arguments, string source, Exception ex)
         {
             var interfaceName = interfaceType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? "[Not Authenticated]";
 
-            var message = $"{callCategory}: {interfaceName}.{methodName} from {source} as {user}";
+            string message;
+            if (ex != null)
+                message = $"{callCategory} Failed: {interfaceName}.{methodName} from {source} as {user} error {ex.GetType().Name}:{ex.Message}";
+            else
+                message = $"{callCategory}: {interfaceName}.{methodName} from {source} as {user}";
+
             Debug.WriteLine(message, callCategory);
             Console.WriteLine(message);
             telemetryClient.TrackTrace(message);

@@ -5,19 +5,19 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Data;
+using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Collections;
+using Zerra.CQRS.Relay;
+using Zerra.CQRS.Settings;
+using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Providers;
 using Zerra.Reflection;
 using Zerra.Serialization;
-using System.IO;
-using System.Threading;
-using Zerra.CQRS.Settings;
-using Zerra.CQRS.Relay;
-using Zerra.Encryption;
-using System.Data;
 
 #pragma warning disable IDE1006 // Naming Styles
 
@@ -41,8 +41,6 @@ namespace Zerra.CQRS
             if (methodDetails.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
                 throw new ArgumentException("Invalid number of arguments for this method");
 
-            var returnTypeDetail = methodDetails.ReturnType;
-
             var args = new object[arguments != null ? arguments.Length : 0];
             if (arguments != null && arguments.Length > 0)
             {
@@ -57,20 +55,20 @@ namespace Zerra.CQRS
 
             bool isStream;
             object model;
-            if (returnTypeDetail.IsTask)
+            if (methodDetails.ReturnType.IsTask)
             {
-                isStream = returnTypeDetail.InnerTypeDetails[0].BaseTypes.Contains(streamType);
+                isStream = methodDetails.ReturnType.Type.IsGenericType && methodDetails.ReturnType.InnerTypeDetails[0].BaseTypes.Contains(streamType);
                 var result = (Task)methodDetails.Caller(callerProvider, args);
                 await result;
 
-                if (returnTypeDetail.Type.IsGenericType)
-                    model = returnTypeDetail.TaskResultGetter(result);
+                if (methodDetails.ReturnType.Type.IsGenericType)
+                    model = methodDetails.ReturnType.TaskResultGetter(result);
                 else
                     model = null;
             }
             else
             {
-                isStream = returnTypeDetail.BaseTypes.Contains(streamType);
+                isStream = methodDetails.ReturnType.BaseTypes.Contains(streamType);
                 model = methodDetails.Caller(callerProvider, args);
             }
 
@@ -223,7 +221,10 @@ namespace Zerra.CQRS
 
             if (requireAffirmation || externallyReceived)
             {
-                return HandleCommandAsync((ICommand)message, messageType, source);
+                if (busLogger != null)
+                    return HandleCommandLoggedAsync((ICommand)message, messageType, source);
+                else
+                    return HandleCommandAsync((ICommand)message, messageType, source);
             }
             else
             {
@@ -231,7 +232,10 @@ namespace Zerra.CQRS
                 return Task.Run(() =>
                 {
                     Thread.CurrentPrincipal = principal;
-                    _ = HandleCommandAsync((ICommand)message, messageType, source);
+                    if (busLogger != null)
+                        _ = HandleCommandAsync((ICommand)message, messageType, source);
+                    else
+                        _ = HandleCommandLoggedAsync((ICommand)message, messageType, source);
                 });
             }
         }
@@ -253,7 +257,10 @@ namespace Zerra.CQRS
 
             if (externallyReceived)
             {
-                return HandleEventAsync((IEvent)message, messageType, source);
+                if (busLogger != null)
+                    return HandleEventLoggedAsync((IEvent)message, messageType, source);
+                else
+                    return HandleEventAsync((IEvent)message, messageType, source);
             }
             else
             {
@@ -261,21 +268,16 @@ namespace Zerra.CQRS
                 return Task.Run(() =>
                 {
                     Thread.CurrentPrincipal = principal;
-                    _ = HandleEventAsync((IEvent)message, messageType, source);
+                    if (busLogger != null)
+                        _ = HandleEventAsync((IEvent)message, messageType, source);
+                    else
+                        _ = HandleEventLoggedAsync((IEvent)message, messageType, source);
                 });
             }
         }
 
         private static Task HandleCommandAsync(ICommand command, Type commandType, string source)
         {
-            if (busLoggers.Count > 0)
-            {
-                foreach (var logger in busLoggers)
-                {
-                    _ = logger.LogCommandAsync(commandType, command, source);
-                }
-            }
-
             var interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerType, commandType);
 
             var providerType = Discovery.GetImplementationType(interfaceType, ProviderLayers.GetProviderInterfaceStack(), 0, true);
@@ -285,20 +287,10 @@ namespace Zerra.CQRS
 
             var provider = Instantiator.GetSingle(providerType);
 
-            var task = (Task)method.Caller(provider, new object[] { command });
-
-            return task;
+            return (Task)method.Caller(provider, new object[] { command });
         }
         private static Task HandleEventAsync(IEvent @event, Type eventType, string source)
         {
-            if (busLoggers.Count > 0)
-            {
-                foreach (var logger in busLoggers)
-                {
-                    _ = logger.LogEventAsync(eventType, @event, source);
-                }
-            }
-
             var interfaceType = TypeAnalyzer.GetGenericType(iEventHandlerType, eventType);
 
             var providerType = Discovery.GetImplementationType(interfaceType, ProviderLayers.GetProviderInterfaceStack(), 0, true);
@@ -308,9 +300,54 @@ namespace Zerra.CQRS
 
             var provider = Instantiator.GetSingle(providerType);
 
-            var task = (Task)method.Caller(provider, new object[] { @event });
+            return (Task)method.Caller(provider, new object[] { @event });
+        }
 
-            return task;
+        private static async Task HandleCommandLoggedAsync(ICommand command, Type commandType, string source)
+        {
+            var interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerType, commandType);
+
+            var providerType = Discovery.GetImplementationType(interfaceType, ProviderLayers.GetProviderInterfaceStack(), 0, true);
+            if (providerType == null)
+                return;
+            var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand>.Handle), new Type[] { commandType });
+
+            var provider = Instantiator.GetSingle(providerType);
+
+            try
+            {
+                await (Task)method.Caller(provider, new object[] { command });
+            }
+            catch (Exception ex)
+            {
+                _ = busLogger?.LogCommandAsync(commandType, command, source, ex);
+                throw;
+            }
+
+            _ = busLogger?.LogCommandAsync(commandType, command, source, null);
+        }
+        private static async Task HandleEventLoggedAsync(IEvent @event, Type eventType, string source)
+        {
+            var interfaceType = TypeAnalyzer.GetGenericType(iEventHandlerType, eventType);
+
+            var providerType = Discovery.GetImplementationType(interfaceType, ProviderLayers.GetProviderInterfaceStack(), 0, true);
+            if (providerType == null)
+                return;
+            var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(IEventHandler<IEvent>.Handle), new Type[] { eventType });
+
+            var provider = Instantiator.GetSingle(providerType);
+
+            try
+            {
+                await (Task)method.Caller(provider, new object[] { @event });
+            }
+            catch (Exception ex)
+            {
+                _ = busLogger?.LogEventAsync(eventType, @event, source, ex);
+                throw;
+            }
+
+            _ = busLogger?.LogEventAsync(eventType, @event, source, null);
         }
 
         public static TInterface Call<TInterface>() where TInterface : IBaseProvider
@@ -373,22 +410,97 @@ namespace Zerra.CQRS
                 }
             }
 
-            if (busLoggers.Count > 0)
-            {
-                foreach (var logger in busLoggers)
-                {
-                    _ = logger.LogCallAsync(interfaceType, methodName, arguments, source);
-                }
-            }
-
             var provider = Resolver.GetSingle<TInterface>();
             var methodDetails = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
             if (methodDetails.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
                 throw new ArgumentException("Invalid number of arguments for this method");
 
-            var localresult = (TReturn)methodDetails.Caller(provider, arguments);
-            return localresult;
-        }     
+            object localresult;
+            if (busLogger == null)
+            {
+                localresult = methodDetails.Caller(provider, arguments);
+            }
+            else if (methodDetails.ReturnType.IsTask)
+            {
+                if (methodDetails.ReturnType.Type.IsGenericType)
+                {
+                    var innerType = methodDetails.ReturnType.InnerTypeDetails[0];
+                    var method = callInternalLoggedGenericMethod.GetGenericMethodDetail(interfaceType, innerType.Type);
+                    localresult = method.Caller(null, new object[] { interfaceType, methodName, arguments, source });
+                }
+                else
+                {
+                    var method = callInternalLoggedMethod.GetGenericMethodDetail(interfaceType);
+                    localresult = method.Caller(null, new object[] { interfaceType, methodName, arguments, source });
+                }
+            }
+            else
+            {
+                try
+                {
+                    localresult = methodDetails.Caller(provider, arguments);
+                }
+                catch (Exception ex)
+                {
+                    _ = busLogger?.LogCallAsync(interfaceType, methodName, arguments, source, ex);
+                    throw;
+                }
+
+                _ = busLogger?.LogCallAsync(interfaceType, methodName, arguments, source, null);
+            }
+
+            return (TReturn)localresult;
+        }
+
+        private static readonly MethodDetail callInternalLoggedGenericMethod = typeof(Bus).GetMethodDetail(nameof(_CallInternalLoggedGeneric));
+        public static async Task<TReturn> _CallInternalLoggedGeneric<TInterface, TReturn>(Type interfaceType, string methodName, object[] arguments, string source) where TInterface : IBaseProvider
+        {
+            var provider = Resolver.GetSingle<TInterface>();
+            var methodDetails = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
+            if (methodDetails.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
+                throw new ArgumentException("Invalid number of arguments for this method");
+
+            object taskresult;
+            try
+            {
+                var localresult = methodDetails.Caller(provider, arguments);
+                var task = (Task)localresult;
+                await task;
+                taskresult = methodDetails.ReturnType.TaskResultGetter(task);
+            }
+            catch (Exception ex)
+            {
+                _ = busLogger?.LogCallAsync(interfaceType, methodName, arguments, source, ex);
+                throw;
+            }
+
+            _ = busLogger?.LogCallAsync(interfaceType, methodName, arguments, source, null);
+
+            return (TReturn)taskresult;
+        }
+
+        private static readonly MethodDetail callInternalLoggedMethod = typeof(Bus).GetMethodDetail(nameof(_CallInternalLogged));
+        public static async Task _CallInternalLogged<TInterface>(Type interfaceType, string methodName, object[] arguments, string source) where TInterface : IBaseProvider
+        {
+            var provider = Resolver.GetSingle<TInterface>();
+            var methodDetails = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
+            if (methodDetails.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
+                throw new ArgumentException("Invalid number of arguments for this method");
+
+            try
+            {
+                var localresult = methodDetails.Caller(provider, arguments);
+                var task = (Task)localresult;
+                await task;
+            }
+            catch (Exception ex)
+            {
+                _ = busLogger?.LogCallAsync(interfaceType, methodName, arguments, source, ex);
+                throw;
+            }
+
+            _ = busLogger?.LogCallAsync(interfaceType, methodName, arguments, source, null);
+        }
 
         public static ICollection<Type> GetCommandTypesFromInterface(Type interfaceType)
         {
@@ -567,12 +679,14 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly ConcurrentReadWriteHashSet<IBusLogger> busLoggers = new();
-        public static void AddLogger(IBusLogger messageLogger)
+        private static IBusLogger busLogger = null;
+        public static void AddLogger(IBusLogger busLogger)
         {
             lock (serviceLock)
             {
-                _ = busLoggers.Add(messageLogger);
+                if (Bus.busLogger == null)
+                    throw new InvalidOperationException("Bus already has a logger");
+                Bus.busLogger = busLogger;
             }
         }
 
@@ -649,7 +763,7 @@ namespace Zerra.CQRS
                 }
                 commandConsumers.Clear();
 
-                foreach (var busLogger in busLoggers)
+                if (busLogger != null)
                 {
                     if (busLogger is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
                     {
@@ -662,7 +776,7 @@ namespace Zerra.CQRS
                         _ = disposed.Add(disposable);
                     }
                 }
-                busLoggers.Clear();
+                busLogger = null;
 
                 foreach (var client in queryClients.Select(x => x.Value))
                 {
