@@ -368,7 +368,7 @@ namespace Zerra.CQRS
             {
                 if (queryClients.TryGetValue(interfaceType, out var methodCaller))
                 {
-                    var result = methodCaller.Call<TReturn>(interfaceType, methodName, arguments, $"{source} - {Config.ApplicationIdentifier}");
+                    var result = methodCaller.Call<TReturn>(interfaceType, methodName, arguments, externallyReceived ? $"{source} - {Config.ApplicationIdentifier}" : source);
                     return result;
                 }
             }
