@@ -87,7 +87,7 @@ namespace Zerra.CQRS.Kafka
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync($"Error: {topic}", ex);
+                    _ = Log.ErrorAsync(topic, ex);
                     if (!canceller.IsCancellationRequested)
                     {
                         await Task.Delay(KafkaCommon.RetryDelay);
@@ -105,6 +105,7 @@ namespace Zerra.CQRS.Kafka
                 string ackTopic = null;
                 string ackKey = null;
 
+                var inHandlerContext = false;
                 try
                 {
                     awaitResponse = consumerResult.Message.Key == KafkaCommon.MessageWithAckKey;
@@ -128,10 +129,12 @@ namespace Zerra.CQRS.Kafka
                             Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
                         }
 
+                        inHandlerContext = true;
                         if (awaitResponse)
                             await handlerAwaitAsync(message.Message, message.Source);
                         else
                             await handlerAsync(message.Message, message.Source);
+                        inHandlerContext = false;
                     }
                     else
                     {
@@ -140,7 +143,8 @@ namespace Zerra.CQRS.Kafka
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync($"Error: {topic}", ex);
+                    if (!inHandlerContext)
+                    _ = Log.ErrorAsync(topic, ex);
                     error = ex;
                 }
                 if (awaitResponse)

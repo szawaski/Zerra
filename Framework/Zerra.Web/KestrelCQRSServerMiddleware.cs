@@ -104,6 +104,7 @@ namespace Zerra.Web
 
             _ = Log.TraceAsync($"{nameof(KestrelCQRSServerMiddleware)} Received {providerTypeRequestHeaderValue}");
 
+            var inHandlerContext = false;
             try
             {
                 Stream body = context.Request.Body;
@@ -152,7 +153,9 @@ namespace Zerra.Web
 
                     _ = Log.TraceAsync($"Received Call: {providerType.GetNiceName()}.{data.ProviderMethod}");
 
+                    inHandlerContext = true;
                     var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source);
+                    inHandlerContext = false;
 
                     //Response Header
                     context.Response.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
@@ -297,10 +300,12 @@ namespace Zerra.Web
 
                     var command = (ICommand)JsonSerializer.Deserialize(data.MessageData, messageType);
 
+                    inHandlerContext = true;
                     if (data.MessageAwait)
                         await settings.HandlerAwaitAsync(command, data.Source);
                     else
                         await settings.HandlerAsync(command, data.Source);
+                    inHandlerContext = false;
 
                     //Response Header
                     context.Response.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
@@ -332,7 +337,8 @@ namespace Zerra.Web
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync(null, ex);
+                if (!inHandlerContext)
+                    _ = Log.ErrorAsync(null, ex);
 
                 context.Response.StatusCode = 500;
 

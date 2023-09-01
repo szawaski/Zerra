@@ -39,6 +39,8 @@ namespace Zerra.CQRS.Network
             Stream requestBodyStream = null;
             Stream responseBodyStream = null;
             FinalBlockStream responseBodyCryptoStream = null;
+
+            var inHandlerContext = false;
             try
             {
                 stream = client.GetStream();
@@ -118,7 +120,9 @@ namespace Zerra.CQRS.Network
 
                     _ = Log.TraceAsync($"Received Call: {providerType.GetNiceName()}.{data.ProviderMethod}");
 
+                    inHandlerContext = true;
                     var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source);
+                    inHandlerContext = false;
 
                     //Response Header
                     var responseHeaderLength = TcpRawCommon.BufferHeader(buffer, requestHeader.ProviderType, requestHeader.ContentType.Value);
@@ -223,10 +227,12 @@ namespace Zerra.CQRS.Network
 
                     var command = (ICommand)JsonSerializer.Deserialize(data.MessageData, commandType);
 
+                    inHandlerContext = true;
                     if (data.MessageAwait)
                         await handlerAwaitAsync(command, data.Source);
                     else
                         await handlerAsync(command, data.Source);
+                    inHandlerContext = false;
 
                     //Response Header
                     var responseHeaderLength = TcpRawCommon.BufferHeader(buffer, requestHeader.ProviderType, requestHeader.ContentType.Value);
@@ -287,7 +293,8 @@ namespace Zerra.CQRS.Network
                     }
                 }
 
-                _ = Log.ErrorAsync(null, ex);
+                if (!inHandlerContext)
+                    _ = Log.ErrorAsync(null, ex);
 
                 if (client.Connected && !responseStarted && requestHeader != null && requestHeader.ContentType.HasValue)
                 {
@@ -306,7 +313,7 @@ namespace Zerra.CQRS.Network
                         if (symmetricConfig != null)
                         {
                             responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
-                            
+
                             await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, ex);
 #if NET5_0_OR_GREATER
                             await responseBodyCryptoStream.FlushFinalBlockAsync();

@@ -71,6 +71,7 @@ namespace Zerra.CQRS.RabbitMQ
                         var properties = e.BasicProperties;
                         var acknowledgment = new Acknowledgement();
 
+                        var inHandlerContext = false;
                         try
                         {
                             RabbitMQEventMessage rabbitMessage;
@@ -85,13 +86,16 @@ namespace Zerra.CQRS.RabbitMQ
                                 System.Threading.Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
                             }
 
+                            inHandlerContext = true;
                             await handlerAsync(rabbitMessage.Message, rabbitMessage.Source);
+                            inHandlerContext = false;
 
                             acknowledgment.Success = true;
                         }
                         catch (Exception ex)
                         {
-                            _ = Log.ErrorAsync($"Error: {topic}", ex);
+                            if (!inHandlerContext)
+                                _ = Log.ErrorAsync(topic, ex);
 
                             acknowledgment.Success = false;
                             acknowledgment.ErrorMessage = ex.Message;
@@ -102,7 +106,7 @@ namespace Zerra.CQRS.RabbitMQ
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync($"Error: {topic}", ex);
+                    _ = Log.ErrorAsync(topic, ex);
 
                     if (!canceller.IsCancellationRequested)
                     {

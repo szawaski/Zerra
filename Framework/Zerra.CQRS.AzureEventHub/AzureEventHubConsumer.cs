@@ -139,6 +139,8 @@ namespace Zerra.CQRS.AzureEventHub
             Type type = null;
             string ackKey = null;
             var awaitResponse = false;
+
+            var inHandlerContext = false;
             try
             {
                 type = Discovery.GetTypeFromName(typeName);
@@ -170,6 +172,7 @@ namespace Zerra.CQRS.AzureEventHub
                     Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
                 }
 
+                inHandlerContext = true;
                 if (isCommand)
                 {
                     if (awaitResponse)
@@ -181,10 +184,12 @@ namespace Zerra.CQRS.AzureEventHub
                 {
                     await eventHandlerAsync((IEvent)message.Message, message.Source);
                 }
+                inHandlerContext = false;
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync($"Error: {type?.Name}", ex);
+                if (!inHandlerContext)
+                    _ = Log.ErrorAsync(typeName, ex);
                 error = ex;
             }
 
@@ -210,10 +215,9 @@ namespace Zerra.CQRS.AzureEventHub
                         await producer.SendAsync(new EventData[] { eventData });
                     }
                 }
-
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync($"Error: {type?.Name}", ex);
+                    _ = Log.ErrorAsync(typeName, ex);
                 }
             }
         }

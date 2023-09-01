@@ -52,6 +52,7 @@ namespace Zerra.CQRS.RabbitMQ
 
             retry:
 
+                var inHandlerContext = false;
                 try
                 {
                     if (this.channel != null)
@@ -88,19 +89,22 @@ namespace Zerra.CQRS.RabbitMQ
                                 Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
                             }
 
+                            inHandlerContext = true;
                             if (awaitResponse)
                                 await handlerAwaitAsync(rabbitMessage.Message, nameof(RabbitMQConsumer));
                             else
                                 await handlerAsync(rabbitMessage.Message, nameof(RabbitMQConsumer));
+                            inHandlerContext = false;
 
                             acknowledgment.Success = true;
                         }
                         catch (Exception ex)
                         {
-                            _ = Log.ErrorAsync($"Error: {topic}", ex);
+                            if (!inHandlerContext)
+                                _ = Log.ErrorAsync(topic, ex);
 
                             acknowledgment.Success = false;
-                            acknowledgment.ErrorMessage = ex.Message;                          
+                            acknowledgment.ErrorMessage = ex.Message;
                         }
 
                         if (awaitResponse)
@@ -118,7 +122,7 @@ namespace Zerra.CQRS.RabbitMQ
                             }
                             catch (Exception ex)
                             {
-                                _ = Log.ErrorAsync($"Error: {topic}", ex);
+                                _ = Log.ErrorAsync(topic, ex);
                             }
                         }
                     };
@@ -127,7 +131,7 @@ namespace Zerra.CQRS.RabbitMQ
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync($"Error: {topic}", ex);
+                    _ = Log.ErrorAsync(topic, ex);
 
                     if (!canceller.IsCancellationRequested)
                     {

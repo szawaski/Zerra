@@ -43,6 +43,7 @@ namespace Zerra.CQRS.Network
             Stream requestBodyStream = null;
             Stream responseBodyStream = null;
 
+            var inHandlerContext = false;
             try
             {
                 stream = client.GetStream();
@@ -154,8 +155,9 @@ namespace Zerra.CQRS.Network
 
                     _ = Log.TraceAsync($"Received Call: {providerType.GetNiceName()}.{data.ProviderMethod}");
 
+                    inHandlerContext = true;
                     var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, client.Client.AddressFamily.ToString());
-
+                    inHandlerContext = false;
 
                     //Response Header
                     var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ProviderType, requestHeader.ContentType.Value, null);
@@ -213,10 +215,12 @@ namespace Zerra.CQRS.Network
 
                     var command = (ICommand)JsonSerializer.Deserialize(data.MessageData, commandType);
 
+                    inHandlerContext = true;
                     if (data.MessageAwait)
                         await handlerAwaitAsync(command, data.Source);
                     else
                         await handlerAsync(command, data.Source);
+                    inHandlerContext = false;
 
                     //Response Header
                     var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ProviderType, contentType, null);
@@ -251,7 +255,8 @@ namespace Zerra.CQRS.Network
                     }
                 }
 
-                _ = Log.ErrorAsync(null, ex);
+                if (!inHandlerContext)
+                    _ = Log.ErrorAsync(null, ex);
 
                 if (client.Connected && !responseStarted && requestHeader != null && requestHeader.ContentType.HasValue)
                 {

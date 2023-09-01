@@ -78,7 +78,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync($"Error: {topic}", ex);
+                    _ = Log.ErrorAsync(topic, ex);
                     if (!canceller.IsCancellationRequested)
                     {
                         await Task.Delay(AzureServiceBusCommon.RetryDelay);
@@ -102,6 +102,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
             private async Task HandleMessage(ServiceBusClient client, ServiceBusReceivedMessage serviceBusMessage, EventHandlerDelegate handlerAsync)
             {
+                var inHandlerContext = false;
                 try
                 {
                     var body = serviceBusMessage.Body.ToStream();
@@ -116,7 +117,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     finally
                     {
                         body.Dispose();
-                    }                   
+                    }
 
                     if (message.Claims != null)
                     {
@@ -124,11 +125,14 @@ namespace Zerra.CQRS.AzureServiceBus
                         Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
                     }
 
+                    inHandlerContext = true;
                     await handlerAsync(message.Message, message.Source);
+                    inHandlerContext = false;
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync($"Error: {topic}", ex);
+                    if (!inHandlerContext)
+                        _ = Log.ErrorAsync(topic, ex);
                 }
             }
 
