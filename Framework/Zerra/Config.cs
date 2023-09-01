@@ -96,7 +96,7 @@ namespace Zerra
             }
 
             Config.environmentName = environmentName;
-            Config.applicationIdentifier = $"{entryAssemblyName}:{environmentName}";
+            Config.applicationIdentifier = $"{entryAssemblyName}:{environmentName}:{Environment.MachineName}";
             Console.WriteLine(applicationIdentifier);
 
             if (settingsFiles != null && settingsFiles.Length > 0)
