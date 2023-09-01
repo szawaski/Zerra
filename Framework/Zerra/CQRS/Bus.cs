@@ -684,7 +684,7 @@ namespace Zerra.CQRS
         {
             lock (serviceLock)
             {
-                if (Bus.busLogger == null)
+                if (Bus.busLogger != null)
                     throw new InvalidOperationException("Bus already has a logger");
                 Bus.busLogger = busLogger;
             }
