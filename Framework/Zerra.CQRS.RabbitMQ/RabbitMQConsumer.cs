@@ -23,9 +23,9 @@ namespace Zerra.CQRS.RabbitMQ
         private readonly List<EventComsumer> eventExchanges;
 
         private IConnection connection = null;
-        private Func<ICommand, Task> commandHandlerAsync = null;
-        private Func<ICommand, Task> commandHandlerAwaitAsync = null;
-        private Func<IEvent, Task> eventHandlerAsync = null;
+        private CommandHandlerDelegate commandHandlerAsync = null;
+        private CommandHandlerDelegate commandHandlerAwaitAsync = null;
+        private EventHandlerDelegate eventHandlerAsync = null;
 
         public string ServiceUrl => host;
 
@@ -38,14 +38,14 @@ namespace Zerra.CQRS.RabbitMQ
             this.eventExchanges = new List<EventComsumer>();
         }
 
-        void ICommandConsumer.SetHandler(Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
+        void ICommandConsumer.SetHandler(CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
         {
             if (this.connection != null)
                 throw new InvalidOperationException("Connection already open");
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
         }
-        void IEventConsumer.SetHandler(Func<IEvent, Task> handlerAsync)
+        void IEventConsumer.SetHandler(EventHandlerDelegate handlerAsync)
         {
             if (this.connection != null)
                 throw new InvalidOperationException("Connection already open");

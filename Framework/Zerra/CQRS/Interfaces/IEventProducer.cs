@@ -9,6 +9,6 @@ namespace Zerra.CQRS
     public interface IEventProducer
     {
         string ConnectionString { get; }
-        Task DispatchAsync(IEvent @event);
+        Task DispatchAsync(IEvent @event, string source);
     }
 }

@@ -153,11 +153,19 @@ namespace Zerra.TestDev
             Task GetThings(int stuff);
         }
 
-        public class CallThings : ICallThings
+        public sealed class CallThings : ICallThings
         {
+            private readonly bool externallyReceived;
+            private readonly string source;
+            public CallThings(bool externallyReceived, string source)
+            {
+                this.externallyReceived = externallyReceived;
+                this.source = source;
+            }
+
             public Task GetThings(int stuff)
             {
-                return Bus._CallInternal<ICallThings, Task>(typeof(ICallThings), "GetThings", new object[] { stuff });
+                return Bus._CallInternal<ICallThings, Task>(typeof(ICallThings), "GetThings", new object[] { stuff }, externallyReceived, source);
             }
         }
     }

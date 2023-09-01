@@ -47,11 +47,11 @@ namespace Zerra.CQRS.Kafka
 
         public string ConnectionString => host;
 
-        Task ICommandProducer.DispatchAsync(ICommand command) { return SendAsync(command, false); }
-        Task ICommandProducer.DispatchAsyncAwait(ICommand command) { return SendAsync(command, true); }
-        Task IEventProducer.DispatchAsync(IEvent @event) { return SendAsync(@event); }
+        Task ICommandProducer.DispatchAsync(ICommand command, string source) { return SendAsync(command, false, source); }
+        Task ICommandProducer.DispatchAsyncAwait(ICommand command, string source) { return SendAsync(command, true, source); }
+        Task IEventProducer.DispatchAsync(IEvent @event, string source) { return SendAsync(@event, source); }
 
-        private async Task SendAsync(ICommand command, bool requireAcknowledgement)
+        private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
         {
             if (requireAcknowledgement)
             {
@@ -84,7 +84,8 @@ namespace Zerra.CQRS.Kafka
             var message = new KafkaCommandMessage()
             {
                 Message = command,
-                Claims = claims
+                Claims = claims,
+                Source = source
             };
 
             var body = KafkaCommon.Serialize(message);
@@ -137,7 +138,7 @@ namespace Zerra.CQRS.Kafka
             }
         }
 
-        private async Task SendAsync(IEvent @event)
+        private async Task SendAsync(IEvent @event, string source)
         {
             string topic;
             if (!String.IsNullOrWhiteSpace(environment))
@@ -152,7 +153,8 @@ namespace Zerra.CQRS.Kafka
             var message = new KafkaEventMessage()
             {
                 Message = @event,
-                Claims = claims
+                Claims = claims,
+                Source = source
             };
 
             var body = KafkaCommon.Serialize(message);

@@ -14,7 +14,7 @@ namespace ZerraDemo.Common
             if (settingsName == null)
                 throw new Exception($"Entry Assembly is null, {nameof(ServiceManager)} cannot identify which service is running");
 
-            Bus.AddMessageLogger(new MessageLoggingProvider());
+            Bus.AddLogger(new BusLoggingProvider());
 
             var serviceSettings = CQRSSettings.Get(settingsName);
 

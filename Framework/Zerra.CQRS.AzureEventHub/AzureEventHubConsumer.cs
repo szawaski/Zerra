@@ -30,9 +30,9 @@ namespace Zerra.CQRS.AzureEventHub
         private readonly ConcurrentReadWriteList<Type> commandTypes;
         private readonly ConcurrentReadWriteList<Type> eventTypes;
 
-        private Func<ICommand, Task> commandHandlerAsync = null;
-        private Func<ICommand, Task> commandHandlerAwaitAsync = null;
-        private Func<IEvent, Task> eventHandlerAsync = null;
+        private CommandHandlerDelegate commandHandlerAsync = null;
+        private CommandHandlerDelegate commandHandlerAwaitAsync = null;
+        private EventHandlerDelegate eventHandlerAsync = null;
 
         private bool isOpen;
         private CancellationTokenSource canceller = null;
@@ -50,14 +50,14 @@ namespace Zerra.CQRS.AzureEventHub
             this.eventTypes = new ConcurrentReadWriteList<Type>();
         }
 
-        void ICommandConsumer.SetHandler(Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
+        void ICommandConsumer.SetHandler(CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
         }
-        void IEventConsumer.SetHandler(Func<IEvent, Task> handlerAsync)
+        void IEventConsumer.SetHandler(EventHandlerDelegate handlerAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
@@ -173,13 +173,13 @@ namespace Zerra.CQRS.AzureEventHub
                 if (isCommand)
                 {
                     if (awaitResponse)
-                        await commandHandlerAwaitAsync((ICommand)message.Message);
+                        await commandHandlerAwaitAsync((ICommand)message.Message, message.Source);
                     else
-                        await commandHandlerAsync((ICommand)message.Message);
+                        await commandHandlerAsync((ICommand)message.Message, message.Source);
                 }
                 else if (isEvent)
                 {
-                    await eventHandlerAsync((IEvent)message.Message);
+                    await eventHandlerAsync((IEvent)message.Message, message.Source);
                 }
             }
             catch (Exception ex)

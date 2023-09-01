@@ -150,7 +150,8 @@ export class Bus {
             const postData = {
                 ProviderType: provider,
                 ProviderMethod: method,
-                ProviderArguments: args === null ? undefined : args
+                ProviderArguments: args === null ? undefined : args,
+                Source: "TypeScript"
             };
 
             if (postData.ProviderArguments !== undefined) {
@@ -247,7 +248,8 @@ export class Bus {
             const postData = {
                 MessageType: type,
                 MessageData: Bus._serializeJson(command),
-                MessageAwait: false
+                MessageAwait: false,
+                Source: "TypeScript"
             };
 
             const headers: HeadersInit = {};
@@ -308,7 +310,8 @@ export class Bus {
             const postData = {
                 MessageType: type,
                 MessageData: Bus._serializeJson(command),
-                MessageAwait: true
+                MessageAwait: true,
+                Source: "TypeScript"
             };
 
             const headers: HeadersInit = {};

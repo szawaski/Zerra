@@ -27,7 +27,7 @@ namespace Zerra.CQRS.Network
         private static readonly MethodInfo callRequestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(CQRSClientBase)).MethodDetails.First(x => x.MethodInfo.Name == nameof(CQRSClientBase.CallInternalAsync)).MethodInfo;
         private static readonly Type streamType = typeof(Stream);
 
-        TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments)
+        TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source)
         {
             try
             {
@@ -39,12 +39,12 @@ namespace Zerra.CQRS.Network
                 {
                     var isStream = returnTypeDetails.InnerTypeDetails[0].BaseTypes.Contains(streamType);
                     var callRequestMethodGeneric = TypeAnalyzer.GetGenericMethodDetail(callRequestAsyncMethod, returnTypeDetails.InnerTypes.ToArray());
-                    return (TReturn)callRequestMethodGeneric.Caller(this, new object[] { isStream, interfaceType, methodName, arguments });
+                    return (TReturn)callRequestMethodGeneric.Caller(this, new object[] { isStream, interfaceType, methodName, arguments, source });
                 }
                 else
                 {
                     var isStream = returnTypeDetails.BaseTypes.Contains(streamType);
-                    var model = CallInternal<TReturn>(isStream, interfaceType, methodName, arguments);
+                    var model = CallInternal<TReturn>(isStream, interfaceType, methodName, arguments, source);
                     return model;
                 }
             }
@@ -55,14 +55,14 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        protected abstract TReturn CallInternal<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments);
-        protected abstract Task<TReturn> CallInternalAsync<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments);
+        protected abstract TReturn CallInternal<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments, string source);
+        protected abstract Task<TReturn> CallInternalAsync<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments, string source);
 
-        Task ICommandProducer.DispatchAsync(ICommand command)
+        Task ICommandProducer.DispatchAsync(ICommand command, string source)
         {
             try
             {
-                return DispatchInternal(command, false);
+                return DispatchInternal(command, false, source);
             }
             catch (Exception ex)
             {
@@ -70,11 +70,11 @@ namespace Zerra.CQRS.Network
                 throw;
             }
         }
-        Task ICommandProducer.DispatchAsyncAwait(ICommand command)
+        Task ICommandProducer.DispatchAsyncAwait(ICommand command, string source)
         {
             try
             {
-                return DispatchInternal(command, true);
+                return DispatchInternal(command, true, source);
             }
             catch (Exception ex)
             {
@@ -83,6 +83,6 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        protected abstract Task DispatchInternal(ICommand command, bool messageAwait);
+        protected abstract Task DispatchInternal(ICommand command, bool messageAwait, string source);
     }
 }

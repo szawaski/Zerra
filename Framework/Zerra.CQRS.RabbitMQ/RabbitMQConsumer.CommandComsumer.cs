@@ -38,7 +38,7 @@ namespace Zerra.CQRS.RabbitMQ
                 this.symmetricConfig = symmetricConfig;
             }
 
-            public void Open(IConnection connection, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
+            public void Open(IConnection connection, CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
             {
                 if (IsOpen)
                     return;
@@ -46,7 +46,7 @@ namespace Zerra.CQRS.RabbitMQ
                 _ = Task.Run(() => ListeningThread(connection, handlerAsync, handlerAwaitAsync));
             }
 
-            private async Task ListeningThread(IConnection connection, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
+            private async Task ListeningThread(IConnection connection, CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
             {
                 canceller = new CancellationTokenSource();
 
@@ -89,9 +89,9 @@ namespace Zerra.CQRS.RabbitMQ
                             }
 
                             if (awaitResponse)
-                                await handlerAwaitAsync(rabbitMessage.Message);
+                                await handlerAwaitAsync(rabbitMessage.Message, nameof(RabbitMQConsumer));
                             else
-                                await handlerAsync(rabbitMessage.Message);
+                                await handlerAsync(rabbitMessage.Message, nameof(RabbitMQConsumer));
 
                             acknowledgment.Success = true;
                         }

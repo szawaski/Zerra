@@ -33,7 +33,7 @@ namespace Zerra.CQRS.Network
         private CookieCollection cookies = null;
 
         private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(ApiClient)).MethodDetails.First(x => x.MethodInfo.Name == nameof(ApiClient.RequestAsync)).MethodInfo;
-        TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments)
+        TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source)
         {
             var providerName = interfaceType.Name;
             var stringArguments = new string[arguments.Length];
@@ -42,10 +42,12 @@ namespace Zerra.CQRS.Network
 
             var returnType = typeof(TReturn);
 
-            var data = new CQRSRequestData()
+            var data = new ApiRequestData()
             {
                 ProviderType = providerName,
                 ProviderMethod = methodName,
+
+                Source = source
             };
             data.AddProviderArguments(arguments);
 
@@ -62,33 +64,37 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        Task ICommandProducer.DispatchAsync(ICommand message)
+        Task ICommandProducer.DispatchAsync(ICommand message, string source)
         {
             var commandType = message.GetType();
             var commendTypeName = commandType.GetNiceFullName();
             var commandData = JsonSerializer.Serialize(message, commandType);
 
-            var data = new CQRSRequestData()
+            var data = new ApiRequestData()
             {
                 MessageType = commendTypeName,
                 MessageData = commandData,
-                MessageAwait = false
+                MessageAwait = false,
+
+                Source = source
             };
 
             return RequestAsync<object>(endpointAddress, commendTypeName, requestContentType, data, false);
         }
 
-        Task ICommandProducer.DispatchAsyncAwait(ICommand message)
+        Task ICommandProducer.DispatchAsyncAwait(ICommand message, string source)
         {
             var commandType = message.GetType();
             var commendTypeName = commandType.GetNiceFullName();
             var commandData = JsonSerializer.Serialize(message, commandType);
 
-            var data = new CQRSRequestData()
+            var data = new ApiRequestData()
             {
                 MessageType = commendTypeName,
                 MessageData = commandData,
-                MessageAwait = true
+                MessageAwait = true,
+
+                Source = source
             };
 
             return RequestAsync<object>(endpointAddress, commendTypeName, requestContentType, data, false);

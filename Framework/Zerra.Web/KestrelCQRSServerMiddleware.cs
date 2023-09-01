@@ -131,7 +131,7 @@ namespace Zerra.Web
                 {
                     if (data.Claims != null)
                     {
-                        var claimsIdentity = new ClaimsIdentity(data.Claims.Select(x => new Claim(x.Type, x.Value)), "CQRS");
+                        var claimsIdentity = new ClaimsIdentity(data.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
                         Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
                     }
                     else
@@ -152,7 +152,7 @@ namespace Zerra.Web
 
                     _ = Log.TraceAsync($"Received Call: {providerType.GetNiceName()}.{data.ProviderMethod}");
 
-                    var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments);
+                    var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source);
 
                     //Response Header
                     context.Response.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
@@ -298,9 +298,9 @@ namespace Zerra.Web
                     var command = (ICommand)JsonSerializer.Deserialize(data.MessageData, messageType);
 
                     if (data.MessageAwait)
-                        await settings.HandlerAwaitAsync(command);
+                        await settings.HandlerAwaitAsync(command, data.Source);
                     else
-                        await settings.HandlerAsync(command);
+                        await settings.HandlerAsync(command, data.Source);
 
                     //Response Header
                     context.Response.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);

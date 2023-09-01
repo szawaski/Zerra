@@ -63,6 +63,7 @@ namespace Zerra
 
         private static IConfiguration configuration = null;
         private static string environmentName = null;
+        private static string applicationIdentifier = null;
         public static void LoadConfiguration() { LoadConfiguration(null, null, null, null); }
         public static void LoadConfiguration(string environmentName) { LoadConfiguration(null, environmentName, null, null); }
         public static void LoadConfiguration(string[] args) { LoadConfiguration(args, null, null, null); }
@@ -95,7 +96,8 @@ namespace Zerra
             }
 
             Config.environmentName = environmentName;
-            Console.WriteLine($"Environment: {environmentName}");
+            Config.applicationIdentifier = $"{entryAssemblyName}:{environmentName}";
+            Console.WriteLine(applicationIdentifier);
 
             if (settingsFiles != null && settingsFiles.Length > 0)
             {
@@ -193,6 +195,13 @@ namespace Zerra
             get
             {
                 return environmentName;
+            }
+        }
+        public static string ApplicationIdentifier
+        {
+            get
+            {
+                return applicationIdentifier;
             }
         }
 

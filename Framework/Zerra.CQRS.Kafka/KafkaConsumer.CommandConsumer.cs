@@ -38,7 +38,7 @@ namespace Zerra.CQRS.Kafka
                 this.symmetricConfig = symmetricConfig;
             }
 
-            public void Open(string host, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
+            public void Open(string host, CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
             {
                 if (IsOpen)
                     return;
@@ -46,7 +46,7 @@ namespace Zerra.CQRS.Kafka
                 _ = Task.Run(() => ListeningThread(host, handlerAsync, handlerAwaitAsync));
             }
 
-            private async Task ListeningThread(string host, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
+            private async Task ListeningThread(string host, CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
             {
                 canceller = new CancellationTokenSource();
 
@@ -98,7 +98,7 @@ namespace Zerra.CQRS.Kafka
                 IsOpen = false;
             }
 
-            private async Task HandleMessage(string host, ConsumeResult<string, byte[]> consumerResult, Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
+            private async Task HandleMessage(string host, ConsumeResult<string, byte[]> consumerResult, CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
             {
                 Exception error = null;
                 var awaitResponse = false;
@@ -129,9 +129,9 @@ namespace Zerra.CQRS.Kafka
                         }
 
                         if (awaitResponse)
-                            await handlerAwaitAsync(message.Message);
+                            await handlerAwaitAsync(message.Message, message.Source);
                         else
-                            await handlerAsync(message.Message);
+                            await handlerAsync(message.Message, message.Source);
                     }
                     else
                     {

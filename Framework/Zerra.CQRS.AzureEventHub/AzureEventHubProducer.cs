@@ -18,7 +18,7 @@ namespace Zerra.CQRS.AzureEventHub
 {
     public sealed class AzureEventHubProducer : ICommandProducer, IEventProducer, IDisposable
     {
-        private readonly object locker = new object();
+        private readonly object locker = new();
 
         private bool listenerStarted = false;
 
@@ -42,11 +42,11 @@ namespace Zerra.CQRS.AzureEventHub
 
         public string ConnectionString => host;
 
-        Task ICommandProducer.DispatchAsync(ICommand command) { return SendAsync(command, false); }
-        Task ICommandProducer.DispatchAsyncAwait(ICommand command) { return SendAsync(command, true); }
-        Task IEventProducer.DispatchAsync(IEvent @event) { return SendAsync(@event); }
+        Task ICommandProducer.DispatchAsync(ICommand command, string source) { return SendAsync(command, false, source); }
+        Task ICommandProducer.DispatchAsyncAwait(ICommand command, string source) { return SendAsync(command, true, source); }
+        Task IEventProducer.DispatchAsync(IEvent @event, string source) { return SendAsync(@event, source); }
 
-        private async Task SendAsync(ICommand command, bool requireAcknowledgement)
+        private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
         {
             if (requireAcknowledgement)
             {
@@ -70,7 +70,8 @@ namespace Zerra.CQRS.AzureEventHub
             var message = new AzureEventHubMessage()
             {
                 Message = command,
-                Claims = claims
+                Claims = claims,
+                Source = source
             };
 
             var body = AzureEventHubCommon.Serialize(message);
@@ -120,7 +121,7 @@ namespace Zerra.CQRS.AzureEventHub
             }
         }
 
-        private async Task SendAsync(IEvent @event)
+        private async Task SendAsync(IEvent @event, string source)
         {
             string[][] claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -129,7 +130,8 @@ namespace Zerra.CQRS.AzureEventHub
             var message = new AzureEventHubMessage()
             {
                 Message = @event,
-                Claims = claims
+                Claims = claims,
+                Source = source
             };
 
             var body = AzureEventHubCommon.Serialize(message);

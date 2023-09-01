@@ -11,7 +11,7 @@
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <LangVersion>10.0</LangVersion>
-        <Version>4.3.4</Version>
+        <Version>4.4.0</Version>
     </PropertyGroup>
 
     <ItemGroup>

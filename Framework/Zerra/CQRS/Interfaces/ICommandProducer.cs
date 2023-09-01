@@ -9,7 +9,7 @@ namespace Zerra.CQRS
     public interface ICommandProducer
     {
         string ConnectionString { get; }
-        Task DispatchAsync(ICommand command);
-        Task DispatchAsyncAwait(ICommand command);
+        Task DispatchAsync(ICommand command, string source);
+        Task DispatchAsyncAwait(ICommand command, string source);
     }
 }

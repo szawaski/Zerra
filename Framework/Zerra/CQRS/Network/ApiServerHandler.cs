@@ -13,7 +13,7 @@ namespace Zerra.CQRS.Network
 {
     public static class ApiServerHandler
     {
-        public static async Task<ApiResponseData> HandleRequestAsync(ContentType? contentType, CQRSRequestData data)
+        public static async Task<ApiResponseData> HandleRequestAsync(ContentType? contentType, ApiRequestData data)
         {
             if (!String.IsNullOrWhiteSpace(data.ProviderType))
             {
@@ -45,7 +45,7 @@ namespace Zerra.CQRS.Network
             return null;
         }
 
-        private static Task<RemoteQueryCallResponse> Call(CQRSRequestData data)
+        private static Task<RemoteQueryCallResponse> Call(ApiRequestData data)
         {
             var providerType = Discovery.GetTypeFromName(data.ProviderType);
             if (!providerType.IsInterface)
@@ -65,10 +65,10 @@ namespace Zerra.CQRS.Network
             if (method == null)
                 throw new Exception($"Method {data.ProviderType}.{data.ProviderMethod} does not exsist");
 
-            return Bus.HandleRemoteQueryCallAsync(providerType, data.ProviderMethod, data.ProviderArguments);
+            return Bus.HandleRemoteQueryCallAsync(providerType, data.ProviderMethod, data.ProviderArguments, data.Source);
         }
 
-        private static Task Dispatch(CQRSRequestData data)
+        private static Task Dispatch(ApiRequestData data)
         {
             var commandType = Discovery.GetTypeFromName(data.MessageType);
             var typeDetail = TypeAnalyzer.GetTypeDetail(commandType);
@@ -78,9 +78,9 @@ namespace Zerra.CQRS.Network
 
             var command = (ICommand)JsonSerializer.Deserialize(data.MessageData, commandType);
             if (data.MessageAwait)
-                return Bus.HandleRemoteCommandDispatchAwaitAsync(command);
+                return Bus.HandleRemoteCommandDispatchAwaitAsync(command, data.Source);
             else
-                return Bus.HandleRemoteCommandDispatchAsync(command);
+                return Bus.HandleRemoteCommandDispatchAsync(command, data.Source);
         }
     }
 }

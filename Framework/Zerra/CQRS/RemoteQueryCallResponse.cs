@@ -8,15 +8,21 @@ namespace Zerra.CQRS
 {
     public sealed class RemoteQueryCallResponse
     {
-        public object Model { get; private set; }
-        public Stream Stream { get; private set; }
+        private readonly object model;
+        private readonly Stream stream;
+
+        public object Model => model;
+        public Stream Stream => stream;
+
         public RemoteQueryCallResponse(object model)
         {
-            this.Model = model;
+            this.model = model;
+            this.stream = null;
         }
         public RemoteQueryCallResponse(Stream stream)
         {
-            this.Stream = stream;
+            this.model = null;
+            this.stream = stream;
         }
     }
 }

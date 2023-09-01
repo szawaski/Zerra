@@ -7,7 +7,7 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
-    public sealed class CQRSRequestData
+    public sealed class ApiRequestData
     {
         public string ProviderType { get; set; }
         public string ProviderMethod { get; set; }
@@ -17,7 +17,6 @@ namespace Zerra.CQRS.Network
         public string MessageData { get; set; }
         public bool MessageAwait { get; set; }
 
-        public string[][] Claims { get; set; }
         public string Source { get; set; }
 
         public void AddProviderArguments(object[] arguments)

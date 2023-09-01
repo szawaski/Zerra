@@ -30,7 +30,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Zerra.CQRS.RabbitMQ\Zerra.CQRS.RabbitMQ.csproj" />
     <ProjectReference Include="..\Zerra.Test\Zerra.Test.csproj" />
     <ProjectReference Include="..\Zerra\Zerra.csproj" />
     <ProjectReference Include="..\Zerra.Repository.EventStoreDB\Zerra.Repository.EventStoreDB.csproj" />

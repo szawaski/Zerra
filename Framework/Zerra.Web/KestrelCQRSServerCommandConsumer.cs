@@ -34,7 +34,7 @@ namespace Zerra.Web
             settings.CommandTypes.Add(type);
         }
 
-        public void SetHandler(Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
+        public void SetHandler(CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
         {
             settings.HandlerAsync = handlerAsync;
             settings.HandlerAwaitAsync = handlerAwaitAsync;

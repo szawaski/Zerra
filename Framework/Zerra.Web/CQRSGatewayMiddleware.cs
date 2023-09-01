@@ -72,7 +72,7 @@ namespace Zerra.Web
 
             try
             {
-                var data = await ContentTypeSerializer.DeserializeAsync<CQRSRequestData>(contentType, context.Request.Body);
+                var data = await ContentTypeSerializer.DeserializeAsync<ApiRequestData>(contentType, context.Request.Body);
 
                 var response = await ApiServerHandler.HandleRequestAsync(acceptContentType, data);
                 if (response == null)

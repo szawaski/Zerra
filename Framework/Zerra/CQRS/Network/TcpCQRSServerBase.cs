@@ -19,9 +19,9 @@ namespace Zerra.CQRS.Network
         protected readonly ConcurrentReadWriteList<Type> commandTypes;
 
         private readonly SocketListener[] listeners;
-        protected Func<Type, string, string[], Task<RemoteQueryCallResponse>> providerHandlerAsync = null;
-        protected Func<ICommand, Task> handlerAsync = null;
-        protected Func<ICommand, Task> handlerAwaitAsync = null;
+        protected QueryHandlerDelegate providerHandlerAsync = null;
+        protected CommandHandlerDelegate handlerAsync = null;
+        protected CommandHandlerDelegate handlerAwaitAsync = null;
 
         private bool started = false;
         private bool disposed = false;
@@ -49,7 +49,7 @@ namespace Zerra.CQRS.Network
             this.commandTypes = new ConcurrentReadWriteList<Type>();
         }
 
-        void IQueryServer.SetHandler(Func<Type, string, string[], Task<RemoteQueryCallResponse>> handlerAsync)
+        void IQueryServer.SetHandler(QueryHandlerDelegate handlerAsync)
         {
             this.providerHandlerAsync = handlerAsync;
         }
@@ -63,7 +63,7 @@ namespace Zerra.CQRS.Network
             return interfaceTypes.ToArray();
         }
 
-        void ICommandConsumer.SetHandler(Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync)
+        void ICommandConsumer.SetHandler(CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
         {
             this.handlerAsync = handlerAsync;
             this.handlerAwaitAsync = handlerAwaitAsync;

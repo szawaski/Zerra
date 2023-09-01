@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Zerra.CQRS;
 
 namespace Zerra.Web
@@ -33,7 +32,7 @@ namespace Zerra.Web
             settings.InterfaceTypes.Add(type);
         }
 
-        public void SetHandler(Func<Type, string, string[], Task<RemoteQueryCallResponse>> providerHandlerAsync)
+        public void SetHandler(QueryHandlerDelegate providerHandlerAsync)
         {
             settings.ProviderHandlerAsync = providerHandlerAsync;
         }

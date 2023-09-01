@@ -172,7 +172,8 @@ const Bus = {
         const postData = {
             ProviderType: provider,
             ProviderMethod: method,
-            ProviderArguments: args === null || args === "" ? undefined : args
+            ProviderArguments: args === null || args === "" ? undefined : args,
+            Source: "JavaScript"
         };
 
         if (postData.ProviderArguments !== undefined) {
@@ -245,7 +246,8 @@ const Bus = {
         const postData = {
             MessageType: type,
             MessageData: Bus._serializeJson(command),
-            MessageAwait: false
+            MessageAwait: false,
+            Source: "JavaScript"
         };
 
         const headers = {};
@@ -287,7 +289,8 @@ const Bus = {
         const postData = {
             MessageType: type,
             MessageData: Bus._serializeJson(command),
-            MessageAwait: true
+            MessageAwait: true,
+            Source: "JavaScript"
         };
 
         const headers = {};

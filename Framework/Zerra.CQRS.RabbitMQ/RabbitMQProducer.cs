@@ -44,11 +44,11 @@ namespace Zerra.CQRS.RabbitMQ
             }
         }
 
-        Task ICommandProducer.DispatchAsync(ICommand command) { return SendAsync(command, false); }
-        Task ICommandProducer.DispatchAsyncAwait(ICommand command) { return SendAsync(command, true); }
-        Task IEventProducer.DispatchAsync(IEvent @event) { return SendAsync(@event); }
+        Task ICommandProducer.DispatchAsync(ICommand command, string source) { return SendAsync(command, false, source); }
+        Task ICommandProducer.DispatchAsyncAwait(ICommand command, string source) { return SendAsync(command, true, source); }
+        Task IEventProducer.DispatchAsync(IEvent @event, string source) { return SendAsync(@event, source); }
 
-        private async Task SendAsync(ICommand command, bool requireAcknowledgement)
+        private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
         {
             try
             {
@@ -169,7 +169,7 @@ namespace Zerra.CQRS.RabbitMQ
             }
         }
 
-        private Task SendAsync(IEvent @event)
+        private Task SendAsync(IEvent @event, string source)
         {
             try
             {
@@ -198,7 +198,8 @@ namespace Zerra.CQRS.RabbitMQ
                 var rabbitMessage = new RabbitMQEventMessage()
                 {
                     Message = @event,
-                    Claims = claims
+                    Claims = claims,
+                    Source = source
                 };
 
                 var body = RabbitMQCommon.Serialize(rabbitMessage);

@@ -13,8 +13,10 @@ namespace Zerra.CQRS
         string ServiceUrl { get; }
         void RegisterInterfaceType(Type type);
         ICollection<Type> GetInterfaceTypes();
-        void SetHandler(Func<Type, string, string[], Task<RemoteQueryCallResponse>> providerHandlerAsync);
+        void SetHandler(QueryHandlerDelegate providerHandlerAsync);
         void Open();
         void Close();
     }
+
+    public delegate Task<RemoteQueryCallResponse> QueryHandlerDelegate(Type interfaceName, string methodName, string[] arguments, string source);
 }

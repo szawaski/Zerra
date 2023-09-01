@@ -13,8 +13,10 @@ namespace Zerra.CQRS
         string ServiceUrl { get; }
         void RegisterCommandType(Type type);
         IEnumerable<Type> GetCommandTypes();
-        void SetHandler(Func<ICommand, Task> handlerAsync, Func<ICommand, Task> handlerAwaitAsync);
+        void SetHandler(CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync);
         void Open();
         void Close();
     }
+
+    public delegate Task CommandHandlerDelegate(ICommand command, string source);
 }

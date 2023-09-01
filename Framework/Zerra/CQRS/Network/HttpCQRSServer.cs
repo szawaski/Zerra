@@ -129,7 +129,7 @@ namespace Zerra.CQRS.Network
                 {
                     if (data.Claims != null)
                     {
-                        var claimsIdentity = new ClaimsIdentity(data.Claims.Select(x => new Claim(x.Type, x.Value)), "CQRS");
+                        var claimsIdentity = new ClaimsIdentity(data.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
                         Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
                     }
                     else
@@ -154,7 +154,7 @@ namespace Zerra.CQRS.Network
 
                     _ = Log.TraceAsync($"Received Call: {providerType.GetNiceName()}.{data.ProviderMethod}");
 
-                    var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments);
+                    var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, client.Client.AddressFamily.ToString());
 
 
                     //Response Header
@@ -214,9 +214,9 @@ namespace Zerra.CQRS.Network
                     var command = (ICommand)JsonSerializer.Deserialize(data.MessageData, commandType);
 
                     if (data.MessageAwait)
-                        await handlerAwaitAsync(command);
+                        await handlerAwaitAsync(command, data.Source);
                     else
-                        await handlerAsync(command);
+                        await handlerAsync(command, data.Source);
 
                     //Response Header
                     var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ProviderType, contentType, null);

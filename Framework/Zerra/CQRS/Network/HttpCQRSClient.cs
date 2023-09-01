@@ -12,6 +12,9 @@ using Zerra.IO;
 using System.Collections.Generic;
 using System.Text;
 using Zerra.Serialization;
+using System.Security.Claims;
+using System.Threading;
+using System.Linq;
 
 namespace Zerra.CQRS.Network
 {
@@ -29,20 +32,25 @@ namespace Zerra.CQRS.Network
             _ = Log.TraceAsync($"{nameof(HttpCQRSClient)} Started For {this.contentType} {this.endpoint}");
         }
 
-        protected override TReturn CallInternal<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments)
+        protected override TReturn CallInternal<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
         {
+            string[][] claims = null;
+            if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
             var data = new CQRSRequestData()
             {
                 ProviderType = interfaceType.Name,
-                ProviderMethod = methodName
+                ProviderMethod = methodName,
+
+                Claims = claims,
+                Source = source
             };
             data.AddProviderArguments(arguments);
 
             IDictionary<string, IList<string>> authHeaders = null;
             if (authorizer != null)
                 authHeaders = authorizer.BuildAuthHeaders();
-            else
-                data.AddClaims();
 
             var stopwatch = Stopwatch.StartNew();
 
@@ -141,20 +149,25 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        protected override async Task<TReturn> CallInternalAsync<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments)
+        protected override async Task<TReturn> CallInternalAsync<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
         {
+            string[][] claims = null;
+            if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
             var data = new CQRSRequestData()
             {
                 ProviderType = interfaceType.Name,
-                ProviderMethod = methodName
+                ProviderMethod = methodName,
+
+                Claims = claims,
+                Source = source
             };
             data.AddProviderArguments(arguments);
 
             IDictionary<string, IList<string>> authHeaders = null;
             if (authorizer != null)
                 authHeaders = authorizer.BuildAuthHeaders();
-            else
-                data.AddClaims();
 
             var stopwatch = Stopwatch.StartNew();
 
@@ -284,25 +297,30 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        protected override async Task DispatchInternal(ICommand command, bool messageAwait)
+        protected override async Task DispatchInternal(ICommand command, bool messageAwait, string source)
         {
             var messageType = command.GetType();
             var messageTypeName = messageType.GetNiceName();
 
             var messageData = JsonSerializer.Serialize(command, messageType);
 
+            string[][] claims = null;
+            if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
             var data = new CQRSRequestData()
             {
                 MessageType = messageTypeName,
                 MessageData = messageData,
-                MessageAwait = messageAwait
+                MessageAwait = messageAwait,
+
+                Claims = claims,
+                Source = source
             };
 
             IDictionary<string, IList<string>> authHeaders = null;
             if (authorizer != null)
                 authHeaders = authorizer.BuildAuthHeaders();
-            else
-                data.AddClaims();
 
             var stopwatch = Stopwatch.StartNew();
 
