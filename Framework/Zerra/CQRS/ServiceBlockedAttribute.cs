@@ -6,11 +6,11 @@ using System;
 
 namespace Zerra.CQRS
 {
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
-    public sealed class ServiceExposedAttribute : Attribute
+    [AttributeUsage(AttributeTargets.Method)]
+    public sealed class ServiceBlockedAttribute : Attribute
     {
         public NetworkType NetworkType { get; private set; }
-        public ServiceExposedAttribute(NetworkType networkType = NetworkType.Api)
+        public ServiceBlockedAttribute(NetworkType networkType)
         {
             this.NetworkType = networkType;
         }

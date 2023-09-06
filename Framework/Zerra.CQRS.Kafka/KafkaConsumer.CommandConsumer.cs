@@ -38,7 +38,7 @@ namespace Zerra.CQRS.Kafka
                 this.symmetricConfig = symmetricConfig;
             }
 
-            public void Open(string host, CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
+            public void Open(string host, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
                 if (IsOpen)
                     return;
@@ -46,7 +46,7 @@ namespace Zerra.CQRS.Kafka
                 _ = Task.Run(() => ListeningThread(host, handlerAsync, handlerAwaitAsync));
             }
 
-            private async Task ListeningThread(string host, CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
+            private async Task ListeningThread(string host, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
                 canceller = new CancellationTokenSource();
 
@@ -98,7 +98,7 @@ namespace Zerra.CQRS.Kafka
                 IsOpen = false;
             }
 
-            private async Task HandleMessage(string host, ConsumeResult<string, byte[]> consumerResult, CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
+            private async Task HandleMessage(string host, ConsumeResult<string, byte[]> consumerResult, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
                 Exception error = null;
                 var awaitResponse = false;
@@ -131,9 +131,9 @@ namespace Zerra.CQRS.Kafka
 
                         inHandlerContext = true;
                         if (awaitResponse)
-                            await handlerAwaitAsync(message.Message, message.Source);
+                            await handlerAwaitAsync(message.Message, message.Source, false);
                         else
-                            await handlerAsync(message.Message, message.Source);
+                            await handlerAsync(message.Message, message.Source, false);
                         inHandlerContext = false;
                     }
                     else

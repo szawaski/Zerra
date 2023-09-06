@@ -23,18 +23,18 @@ namespace Zerra.CQRS
         private static readonly MethodInfo typeofMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle));
 
         private static readonly Type baseProviderType = typeof(IBaseProvider);
-        private static readonly MethodInfo callInternalMethodNonGeneric = typeof(Bus).GetMethod(nameof(Bus._CallInternal), BindingFlags.Static | BindingFlags.Public);
+        private static readonly MethodInfo callInternalMethodNonGeneric = typeof(Bus).GetMethod(nameof(Bus._CallMethod), BindingFlags.Static | BindingFlags.Public);
         private static readonly ConcurrentFactoryDictionary<Type, Type> callerClasses = new();
-        public static object GetProviderToCallInternalInstance(Type interfaceType, bool externallyReceived, string source)
+        public static object GetProviderToCallMethodInternalInstance(Type interfaceType, NetworkType networkType, string source)
         {
             var callerClassType = callerClasses.GetOrAdd(interfaceType, (t) =>
             {
-                return GenerateProviderToCallInternalClass(t);
+                return GenerateProviderToCallMethodInternalClass(t);
             });
-            var instance = Instantiator.GetSingle(interfaceType.Name + (externallyReceived ? 1 : 0) + source, () => Instantiator.Create(callerClassType, new Type[] { typeof(bool), typeof(string) }, externallyReceived, source));
+            var instance = Instantiator.GetSingle(interfaceType.Name + ((byte)networkType) + source, () => Instantiator.Create(callerClassType, new Type[] { typeof(NetworkType), typeof(string) }, networkType, source));
             return instance;
         }
-        private static Type GenerateProviderToCallInternalClass(Type interfaceType)
+        private static Type GenerateProviderToCallMethodInternalClass(Type interfaceType)
         {
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
@@ -64,12 +64,12 @@ namespace Zerra.CQRS
 
             typeBuilder.AddInterfaceImplementation(interfaceType);
 
-            var externallyReceivedField = typeBuilder.DefineField("externallyReceived", typeof(bool), FieldAttributes.Private | FieldAttributes.InitOnly);
+            var networkTypeField = typeBuilder.DefineField("networkType", typeof(NetworkType), FieldAttributes.Private | FieldAttributes.InitOnly);
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Any, new Type[] { typeof(bool), typeof(string) });
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Any, new Type[] { typeof(NetworkType), typeof(string) });
             {
-                constructorBuilder.DefineParameter(0, ParameterAttributes.None, "externallyReceived");
+                constructorBuilder.DefineParameter(0, ParameterAttributes.None, "networkType");
                 constructorBuilder.DefineParameter(1, ParameterAttributes.None, "source");
 
                 var il = constructorBuilder.GetILGenerator();
@@ -80,7 +80,7 @@ namespace Zerra.CQRS
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldarg_1);
-                il.Emit(OpCodes.Stfld, externallyReceivedField);
+                il.Emit(OpCodes.Stfld, networkTypeField);
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldarg_2);
@@ -137,7 +137,7 @@ namespace Zerra.CQRS
                 }
 
                 il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Ldfld, externallyReceivedField); //externallyReceived
+                il.Emit(OpCodes.Ldfld, networkTypeField); //externallyReceived
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldfld, sourceField); //source
@@ -195,13 +195,13 @@ namespace Zerra.CQRS
         private static readonly Type commandHandlerType = typeof(ICommandHandler<>);
         private static readonly MethodInfo dispatchCommandInternalAsyncMethod = typeof(Bus).GetMethod(nameof(Bus._DispatchCommandInternalAsync), BindingFlags.Static | BindingFlags.Public);
         private static readonly ConcurrentFactoryDictionary<Type, Type> commandDispatcherClasses = new();
-        public static object GetCommandHandlerToDispatchInternalInstance(Type interfaceType, bool requireAffirmation, bool externallyReceived, string source)
+        public static object GetCommandHandlerToDispatchInternalInstance(Type interfaceType, bool requireAffirmation, NetworkType networkType, string source)
         {
             var dispatcherClassType = commandDispatcherClasses.GetOrAdd(interfaceType, (t) =>
             {
                 return GenerateCommandHandlerToDispatchInternalClass(t);
             });
-            var instance = Instantiator.GetSingle(interfaceType.Name + ((requireAffirmation ? 1 : 0) + (externallyReceived ? 1 : 0)) + source, () => Instantiator.Create(dispatcherClassType, new Type[] { typeof(bool), typeof(bool), typeof(string) }, requireAffirmation, externallyReceived, source));
+            var instance = Instantiator.GetSingle(interfaceType.Name + (requireAffirmation ? 1 : 0) + (byte)networkType + source, () => Instantiator.Create(dispatcherClassType, new Type[] { typeof(bool), typeof(NetworkType), typeof(string) }, requireAffirmation, networkType, source));
             return instance;
         }
         private static Type GenerateCommandHandlerToDispatchInternalClass(Type interfaceType)
@@ -233,13 +233,13 @@ namespace Zerra.CQRS
             typeBuilder.AddInterfaceImplementation(interfaceType);
 
             var requireAffirmationField = typeBuilder.DefineField("requireAffirmation", typeof(bool), FieldAttributes.Private | FieldAttributes.InitOnly);
-            var externallyReceivedField = typeBuilder.DefineField("externallyReceived", typeof(bool), FieldAttributes.Private | FieldAttributes.InitOnly);
+            var networkTypeField = typeBuilder.DefineField("networkType", typeof(NetworkType), FieldAttributes.Private | FieldAttributes.InitOnly);
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Any, new Type[] { typeof(bool), typeof(string) });
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Any, new Type[] { typeof(bool), typeof(NetworkType) });
             {
                 constructorBuilder.DefineParameter(0, ParameterAttributes.None, "requireAffirmation");
-                constructorBuilder.DefineParameter(1, ParameterAttributes.None, "externallyReceived");
+                constructorBuilder.DefineParameter(1, ParameterAttributes.None, "networkType");
                 constructorBuilder.DefineParameter(2, ParameterAttributes.None, "source");
 
                 var il = constructorBuilder.GetILGenerator();
@@ -254,7 +254,7 @@ namespace Zerra.CQRS
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldarg_2);
-                il.Emit(OpCodes.Stfld, externallyReceivedField);
+                il.Emit(OpCodes.Stfld, networkTypeField);
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldarg_3);
@@ -292,10 +292,10 @@ namespace Zerra.CQRS
                 il.Emit(OpCodes.Ldloc_0); //eventType
 
                 il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Ldfld, externallyReceivedField); //requireAffirmation
+                il.Emit(OpCodes.Ldfld, networkTypeField); //requireAffirmation
 
                 il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Ldfld, externallyReceivedField); //externallyReceived
+                il.Emit(OpCodes.Ldfld, networkTypeField); //externallyReceived
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldfld, sourceField); //source
@@ -336,13 +336,13 @@ namespace Zerra.CQRS
         private static readonly Type eventHandlerType = typeof(IEventHandler<>);
         private static readonly MethodInfo dispatchEventInternalAsyncMethod = typeof(Bus).GetMethod(nameof(Bus._DispatchEventInternalAsync), BindingFlags.Static | BindingFlags.Public);
         private static readonly ConcurrentFactoryDictionary<Type, Type> eventDispatcherClasses = new();
-        public static object GetEventHandlerToDispatchInternalInstance(Type interfaceType, bool externallyReceived, string source)
+        public static object GetEventHandlerToDispatchInternalInstance(Type interfaceType, NetworkType networkType, string source)
         {
             var dispatcherClassType = eventDispatcherClasses.GetOrAdd(interfaceType, (t) =>
             {
                 return GenerateEventHandlerToDispatchInternalClass(t);
             });
-            var instance = Instantiator.GetSingle(interfaceType.Name + (externallyReceived ? 1 : 0) + source, () => Instantiator.Create(dispatcherClassType, new Type[] { typeof(bool), typeof(string) }, externallyReceived, source));
+            var instance = Instantiator.GetSingle(interfaceType.Name + (byte)networkType + source, () => Instantiator.Create(dispatcherClassType, new Type[] { typeof(NetworkType), typeof(string) }, networkType, source));
             return instance;
         }
         private static Type GenerateEventHandlerToDispatchInternalClass(Type interfaceType)
@@ -373,12 +373,12 @@ namespace Zerra.CQRS
 
             typeBuilder.AddInterfaceImplementation(interfaceType);
 
-            var externallyReceivedField = typeBuilder.DefineField("externallyReceived", typeof(bool), FieldAttributes.Private | FieldAttributes.InitOnly);
+            var networkTypeField = typeBuilder.DefineField("networkType", typeof(NetworkType), FieldAttributes.Private | FieldAttributes.InitOnly);
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Any, new Type[] { typeof(bool), typeof(string) });
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Any, new Type[] { typeof(NetworkType), typeof(string) });
             {
-                constructorBuilder.DefineParameter(0, ParameterAttributes.None, "externallyReceived");
+                constructorBuilder.DefineParameter(0, ParameterAttributes.None, "networkType");
                 constructorBuilder.DefineParameter(1, ParameterAttributes.None, "source");
 
                 var il = constructorBuilder.GetILGenerator();
@@ -389,7 +389,7 @@ namespace Zerra.CQRS
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldarg_1);
-                il.Emit(OpCodes.Stfld, externallyReceivedField);
+                il.Emit(OpCodes.Stfld, networkTypeField);
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldarg_2);
@@ -428,7 +428,7 @@ namespace Zerra.CQRS
                 il.Emit(OpCodes.Ldc_I4_0); //false; il.Emit(OpCodes.Ldc_I4_1); for true, 
 
                 il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Ldfld, externallyReceivedField); //externallyReceived
+                il.Emit(OpCodes.Ldfld, networkTypeField); //externallyReceived
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldfld, sourceField); //source

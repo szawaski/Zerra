@@ -20,8 +20,8 @@ namespace Zerra.CQRS.Network
 
         private readonly SocketListener[] listeners;
         protected QueryHandlerDelegate providerHandlerAsync = null;
-        protected CommandHandlerDelegate handlerAsync = null;
-        protected CommandHandlerDelegate handlerAwaitAsync = null;
+        protected HandleRemoteCommandDispatch handlerAsync = null;
+        protected HandleRemoteCommandDispatch handlerAwaitAsync = null;
 
         private bool started = false;
         private bool disposed = false;
@@ -63,7 +63,7 @@ namespace Zerra.CQRS.Network
             return interfaceTypes.ToArray();
         }
 
-        void ICommandConsumer.SetHandler(CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
+        void ICommandConsumer.SetHandler(HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
         {
             this.handlerAsync = handlerAsync;
             this.handlerAwaitAsync = handlerAwaitAsync;

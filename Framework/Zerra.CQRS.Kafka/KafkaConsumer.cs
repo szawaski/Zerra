@@ -21,9 +21,9 @@ namespace Zerra.CQRS.Kafka
         private readonly List<EventConsumer> eventExchanges;
 
         private bool isOpen;
-        private CommandHandlerDelegate commandHandlerAsync = null;
-        private CommandHandlerDelegate commandHandlerAwaitAsync = null;
-        private EventHandlerDelegate eventHandlerAsync = null;
+        private HandleRemoteCommandDispatch commandHandlerAsync = null;
+        private HandleRemoteCommandDispatch commandHandlerAwaitAsync = null;
+        private HandleRemoteEventDispatch eventHandlerAsync = null;
 
         public string ServiceUrl => host;
 
@@ -36,14 +36,14 @@ namespace Zerra.CQRS.Kafka
             this.eventExchanges = new List<EventConsumer>();
         }
 
-        void ICommandConsumer.SetHandler(CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
+        void ICommandConsumer.SetHandler(HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
         }
-        void IEventConsumer.SetHandler(EventHandlerDelegate handlerAsync)
+        void IEventConsumer.SetHandler(HandleRemoteEventDispatch handlerAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");

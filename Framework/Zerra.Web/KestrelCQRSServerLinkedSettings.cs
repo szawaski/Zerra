@@ -16,8 +16,8 @@ namespace Zerra.Web
         public List<Type> CommandTypes { get; private set; }
 
         public QueryHandlerDelegate ProviderHandlerAsync { get; set; }
-        public CommandHandlerDelegate HandlerAsync { get; set; }
-        public CommandHandlerDelegate HandlerAwaitAsync { get; set; }
+        public HandleRemoteCommandDispatch HandlerAsync { get; set; }
+        public HandleRemoteCommandDispatch HandlerAwaitAsync { get; set; }
 
         public string Route { get; set; }
         public ContentType ContentType { get; set; }

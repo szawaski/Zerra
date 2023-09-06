@@ -13,14 +13,17 @@ namespace Zerra.CQRS.Network
         public bool Void { get { return Bytes == null && Stream == null; } }
         public ApiResponseData()
         {
-
+            this.Bytes = null;
+            this.Stream = null;
         }
         public ApiResponseData(byte[] bytes)
         {
             this.Bytes = bytes;
+            this.Stream = null;
         }
         public ApiResponseData(Stream stream)
         {
+            this.Bytes = null;
             this.Stream = stream;
         }
     }

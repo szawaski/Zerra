@@ -38,7 +38,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 this.symmetricConfig = symmetricConfig;
             }
 
-            public void Open(string host, ServiceBusClient client, CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
+            public void Open(string host, ServiceBusClient client, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
                 if (IsOpen)
                     return;
@@ -46,7 +46,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 _ = Task.Run(() => ListeningThread(host, client, handlerAsync, handlerAwaitAsync));
             }
 
-            private async Task ListeningThread(string host, ServiceBusClient client, CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
+            private async Task ListeningThread(string host, ServiceBusClient client, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
                 canceller = new CancellationTokenSource();
 
@@ -88,7 +88,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 IsOpen = false;
             }
 
-            private async Task HandleMessage(ServiceBusClient client, ServiceBusReceivedMessage serviceBusMessage, CommandHandlerDelegate handlerAsync, CommandHandlerDelegate handlerAwaitAsync)
+            private async Task HandleMessage(ServiceBusClient client, ServiceBusReceivedMessage serviceBusMessage, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
                 Exception error = null;
                 var awaitResponse = false;
@@ -124,9 +124,9 @@ namespace Zerra.CQRS.AzureServiceBus
 
                     inHandlerContext = true;
                     if (awaitResponse)
-                        await handlerAwaitAsync(message.Message, message.Source);
+                        await handlerAwaitAsync(message.Message, message.Source, false);
                     else
-                        await handlerAsync(message.Message, message.Source);
+                        await handlerAsync(message.Message, message.Source, false);
                     inHandlerContext = false;
                 }
                 catch (Exception ex)

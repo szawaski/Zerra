@@ -38,7 +38,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 this.symmetricConfig = symmetricConfig;
             }
 
-            public void Open(string host, ServiceBusClient client, EventHandlerDelegate handlerAsync)
+            public void Open(string host, ServiceBusClient client, HandleRemoteEventDispatch handlerAsync)
             {
                 if (IsOpen)
                     return;
@@ -46,7 +46,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 _ = Task.Run(() => ListeningThread(host, client, handlerAsync));
             }
 
-            public async Task ListeningThread(string host, ServiceBusClient client, EventHandlerDelegate handlerAsync)
+            public async Task ListeningThread(string host, ServiceBusClient client, HandleRemoteEventDispatch handlerAsync)
             {
                 canceller = new CancellationTokenSource();
 
@@ -100,7 +100,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
             }
 
-            private async Task HandleMessage(ServiceBusClient client, ServiceBusReceivedMessage serviceBusMessage, EventHandlerDelegate handlerAsync)
+            private async Task HandleMessage(ServiceBusClient client, ServiceBusReceivedMessage serviceBusMessage, HandleRemoteEventDispatch handlerAsync)
             {
                 var inHandlerContext = false;
                 try
@@ -126,7 +126,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     }
 
                     inHandlerContext = true;
-                    await handlerAsync(message.Message, message.Source);
+                    await handlerAsync(message.Message, message.Source, false);
                     inHandlerContext = false;
                 }
                 catch (Exception ex)

@@ -13,10 +13,10 @@ namespace Zerra.CQRS
         string ServiceUrl { get; }
         void RegisterEventType(Type type);
         IEnumerable<Type> GetEventTypes();
-        void SetHandler(EventHandlerDelegate handlerAsync);
+        void SetHandler(HandleRemoteEventDispatch handlerAsync);
         void Open();
         void Close();
     }
 
-    public delegate Task EventHandlerDelegate(IEvent @event, string source);
+    public delegate Task HandleRemoteEventDispatch(IEvent @event, string source, bool isApi);
 }

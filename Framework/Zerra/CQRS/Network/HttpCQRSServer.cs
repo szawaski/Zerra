@@ -156,7 +156,7 @@ namespace Zerra.CQRS.Network
                     _ = Log.TraceAsync($"Received Call: {providerType.GetNiceName()}.{data.ProviderMethod}");
 
                     inHandlerContext = true;
-                    var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, client.Client.AddressFamily.ToString());
+                    var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, client.Client.AddressFamily.ToString(), false);
                     inHandlerContext = false;
 
                     //Response Header
@@ -217,9 +217,9 @@ namespace Zerra.CQRS.Network
 
                     inHandlerContext = true;
                     if (data.MessageAwait)
-                        await handlerAwaitAsync(command, data.Source);
+                        await handlerAwaitAsync(command, data.Source, false);
                     else
-                        await handlerAsync(command, data.Source);
+                        await handlerAsync(command, data.Source, false);
                     inHandlerContext = false;
 
                     //Response Header

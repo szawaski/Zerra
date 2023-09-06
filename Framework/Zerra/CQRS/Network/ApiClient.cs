@@ -222,7 +222,7 @@ namespace Zerra.CQRS.Network
 
         private static readonly Func<object, object> cookieContainerGetter = TypeAnalyzer.GetTypeDetail(typeof(CookieContainer)).GetMember("m_domainTable").Getter;
         private static readonly Func<object, object> pathListGetter = TypeAnalyzer.GetTypeDetail(Discovery.GetTypeFromName("System.Net.PathList, System.Net.Primitives, Version=4.1.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")).GetMember("m_list").Getter;
-        public static CookieCollection GetCookiesFromContainer(CookieContainer cookieJar)
+        private static CookieCollection GetCookiesFromContainer(CookieContainer cookieJar)
         {
             var cookieCollection = new CookieCollection();
 

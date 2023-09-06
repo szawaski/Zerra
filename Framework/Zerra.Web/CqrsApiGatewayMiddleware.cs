@@ -11,12 +11,12 @@ using Zerra.CQRS.Network;
 
 namespace Zerra.Web
 {
-    public sealed class CQRSGatewayMiddleware
+    public sealed class CqrsApiGatewayMiddleware
     {
         private readonly RequestDelegate requestDelegate;
         private readonly string route;
 
-        public CQRSGatewayMiddleware(RequestDelegate requestDelegate, string route)
+        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, string route)
         {
             this.requestDelegate = requestDelegate;
             this.route = route;

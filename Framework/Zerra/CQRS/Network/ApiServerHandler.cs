@@ -50,37 +50,62 @@ namespace Zerra.CQRS.Network
             var providerType = Discovery.GetTypeFromName(data.ProviderType);
             if (!providerType.IsInterface)
                 throw new ArgumentException($"Provider {data.ProviderType} is not an interface type");
-
             var typeDetail = TypeAnalyzer.GetTypeDetail(providerType);
 
-            MethodBase method = null;
-            foreach (var methodInfo in typeDetail.MethodDetails)
+            var exposed = false;
+            foreach (var attribute in typeDetail.Attributes)
             {
-                if (methodInfo.MethodInfo.Name == data.ProviderMethod && methodInfo.ParametersInfo.Count == (data.ProviderArguments != null ? data.ProviderArguments.Length : 0))
+                if (attribute is ServiceExposedAttribute item && item.NetworkType >= NetworkType.Api)
+                    exposed = true;
+            }
+            if (!exposed)
+                throw new Exception($"Interface {typeDetail.Type.GetNiceName()} is not exposed");
+
+            MethodDetail methodDetail = null;
+            foreach (var method in typeDetail.MethodDetails)
+            {
+                if (method.MethodInfo.Name == data.ProviderMethod && method.ParametersInfo.Count == (data.ProviderArguments != null ? data.ProviderArguments.Length : 0))
                 {
-                    method = methodInfo.MethodInfo;
+                    methodDetail = method;
                     break;
                 }
             }
-            if (method == null)
+            if (methodDetail == null)
                 throw new Exception($"Method {data.ProviderType}.{data.ProviderMethod} does not exsist");
 
-            return Bus.HandleRemoteQueryCallAsync(providerType, data.ProviderMethod, data.ProviderArguments, data.Source);
+            var blockedMethod = false;
+            foreach (var attribute in methodDetail.Attributes)
+            {
+                if (attribute is ServiceBlockedAttribute item && item.NetworkType >= NetworkType.Api)
+                    blockedMethod = true;
+            }
+            if (blockedMethod)
+                throw new Exception($"Method {typeDetail.Type.GetNiceName()}.{methodDetail.Name} is blocked for {nameof(NetworkType)}.{nameof(NetworkType.Api)}");
+
+            return Bus.HandleRemoteQueryCallAsync(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, true);
         }
 
         private static Task Dispatch(ApiRequestData data)
         {
             var commandType = Discovery.GetTypeFromName(data.MessageType);
             var typeDetail = TypeAnalyzer.GetTypeDetail(commandType);
-
             if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
                 throw new Exception($"Type {data.MessageType} is not a command");
 
+            var exposed = false;
+            foreach (var attribute in typeDetail.Attributes)
+            {
+                if (attribute is ServiceExposedAttribute item && item.NetworkType >= NetworkType.Api)
+                    exposed = true;
+            }
+            if (!exposed)
+                throw new Exception($"{typeDetail.Type.GetNiceName()} is not exposed");
+
             var command = (ICommand)JsonSerializer.Deserialize(data.MessageData, commandType);
             if (data.MessageAwait)
-                return Bus.HandleRemoteCommandDispatchAwaitAsync(command, data.Source);
+                return Bus.HandleRemoteCommandDispatchAwaitAsync(command, data.Source, true);
             else
-                return Bus.HandleRemoteCommandDispatchAsync(command, data.Source);
+                return Bus.HandleRemoteCommandDispatchAsync(command, data.Source, true);
         }
     }
 }
