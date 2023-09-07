@@ -123,7 +123,7 @@ namespace Zerra.Web
 
                 if (isStream)
                 {
-                    return (TReturn)(object)responseBodyStream;
+                    return (TReturn)(object)responseBodyStream; //TODO better way to convert type???
                 }
                 else
                 {
@@ -240,7 +240,7 @@ namespace Zerra.Web
 
                 if (isStream)
                 {
-                    return (TReturn)(object)responseBodyStream;
+                    return (TReturn)(object)responseBodyStream; //TODO better way to convert type???
                 }
                 else
                 {

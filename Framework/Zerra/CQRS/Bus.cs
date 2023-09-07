@@ -40,9 +40,9 @@ namespace Zerra.CQRS
             var networkType = isApi ? NetworkType.Api : NetworkType.Internal;
             var callerProvider = CallInternal(interfaceType, networkType, source);
 
-            var methodDetails = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
+            var methodDetail = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
 
-            if (methodDetails.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
+            if (methodDetail.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
                 throw new ArgumentException("Invalid number of arguments for this method");
 
             var args = new object[arguments != null ? arguments.Length : 0];
@@ -51,7 +51,7 @@ namespace Zerra.CQRS
                 var i = 0;
                 foreach (var argument in arguments)
                 {
-                    var parameter = JsonSerializer.Deserialize(methodDetails.ParametersInfo[i].ParameterType, argument);
+                    var parameter = JsonSerializer.Deserialize(methodDetail.ParametersInfo[i].ParameterType, argument);
                     args[i] = parameter;
                     i++;
                 }
@@ -59,21 +59,21 @@ namespace Zerra.CQRS
 
             bool isStream;
             object model;
-            if (methodDetails.ReturnType.IsTask)
+            if (methodDetail.ReturnType.IsTask)
             {
-                isStream = methodDetails.ReturnType.Type.IsGenericType && methodDetails.ReturnType.InnerTypeDetails[0].BaseTypes.Contains(streamType);
-                var result = (Task)methodDetails.Caller(callerProvider, args);
+                isStream = methodDetail.ReturnType.Type.IsGenericType && methodDetail.ReturnType.InnerTypeDetails[0].BaseTypes.Contains(streamType);
+                var result = (Task)methodDetail.Caller(callerProvider, args);
                 await result;
 
-                if (methodDetails.ReturnType.Type.IsGenericType)
-                    model = methodDetails.ReturnType.TaskResultGetter(result);
+                if (methodDetail.ReturnType.Type.IsGenericType)
+                    model = methodDetail.ReturnType.TaskResultGetter(result);
                 else
                     model = null;
             }
             else
             {
-                isStream = methodDetails.ReturnType.BaseTypes.Contains(streamType);
-                model = methodDetails.Caller(callerProvider, args);
+                isStream = methodDetail.ReturnType.BaseTypes.Contains(streamType);
+                model = methodDetail.Caller(callerProvider, args);
             }
 
             if (isStream)
@@ -598,7 +598,7 @@ namespace Zerra.CQRS
             try
             {
                 var localresult = methodCaller.Call<Task<TReturn>>(interfaceType, methodName, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
-                var task = (Task)(object)localresult;
+                var task = localresult;
                 await task;
                 taskresult = methodDetail.ReturnType.TaskResultGetter(task);
             }
@@ -620,8 +620,8 @@ namespace Zerra.CQRS
             var timer = Stopwatch.StartNew();
             try
             {
-                var localresult = methodCaller.Call<TReturn>(interfaceType, methodName, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
-                var task = (Task)(object)localresult;
+                var localresult = methodCaller.Call<Task>(interfaceType, methodName, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
+                var task = localresult;
                 await task;
             }
             catch (Exception ex)
@@ -639,18 +639,18 @@ namespace Zerra.CQRS
         private static async Task<TReturn> CallMethodInternalLoggedGenericAsync<TReturn>(Type interfaceType, string methodName, object[] arguments, string source)
         {
             var provider = Resolver.GetSingle(interfaceType);
-            var methodDetails = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
-            if (methodDetails.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
+            var methodDetail = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
+            if (methodDetail.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
                 throw new ArgumentException("Invalid number of arguments for this method");
 
             object taskresult;
             var timer = Stopwatch.StartNew();
             try
             {
-                var localresult = methodDetails.Caller(provider, arguments);
+                var localresult = methodDetail.Caller(provider, arguments);
                 var task = (Task)localresult;
                 await task;
-                taskresult = methodDetails.ReturnType.TaskResultGetter(localresult);
+                taskresult = methodDetail.ReturnType.TaskResultGetter(localresult);
             }
             catch (Exception ex)
             {
@@ -668,14 +668,14 @@ namespace Zerra.CQRS
         private static async Task CallMethodInternalLoggedAsync(Type interfaceType, string methodName, object[] arguments, string source)
         {
             var provider = Resolver.GetSingle(interfaceType);
-            var methodDetails = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
-            if (methodDetails.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
+            var methodDetail = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
+            if (methodDetail.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
                 throw new ArgumentException("Invalid number of arguments for this method");
 
             var timer = Stopwatch.StartNew();
             try
             {
-                var localresult = methodDetails.Caller(provider, arguments);
+                var localresult = methodDetail.Caller(provider, arguments);
                 var task = (Task)localresult;
                 await task;
             }
@@ -693,11 +693,11 @@ namespace Zerra.CQRS
         public static ICollection<Type> GetCommandTypesFromInterface(Type interfaceType)
         {
             var messageTypes = new HashSet<Type>();
-            var typeDetails = TypeAnalyzer.GetTypeDetail(interfaceType);
-            foreach (var item in typeDetails.Interfaces.Where(x => x.Name == iCommandHandlerType.Name))
+            var typeDetail = TypeAnalyzer.GetTypeDetail(interfaceType);
+            foreach (var item in typeDetail.Interfaces.Where(x => x.Name == iCommandHandlerType.Name))
             {
-                var itemDetails = TypeAnalyzer.GetTypeDetail(item);
-                var messageType = itemDetails.InnerTypes[0];
+                var itemDetail = TypeAnalyzer.GetTypeDetail(item);
+                var messageType = itemDetail.InnerTypes[0];
                 _ = messageTypes.Add(messageType);
             }
             return messageTypes;
@@ -705,11 +705,11 @@ namespace Zerra.CQRS
         public static ICollection<Type> GetEventTypesFromInterface(Type interfaceType)
         {
             var messageTypes = new HashSet<Type>();
-            var typeDetails = TypeAnalyzer.GetTypeDetail(interfaceType);
-            foreach (var item in typeDetails.Interfaces.Where(x => x.Name == iEventHandlerType.Name))
+            var typeDetail = TypeAnalyzer.GetTypeDetail(interfaceType);
+            foreach (var item in typeDetail.Interfaces.Where(x => x.Name == iEventHandlerType.Name))
             {
-                var itemDetails = TypeAnalyzer.GetTypeDetail(item);
-                var messageType = itemDetails.InnerTypes[0];
+                var itemDetail = TypeAnalyzer.GetTypeDetail(item);
+                var messageType = itemDetail.InnerTypes[0];
                 _ = messageTypes.Add(messageType);
             }
             return messageTypes;
@@ -1086,8 +1086,8 @@ namespace Zerra.CQRS
                         var type = Discovery.GetTypeFromName(typeName);
                         if (!type.IsInterface)
                             throw new Exception($"{type.GetNiceName()} is not an interface");
-                        var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-                        if (!typeDetails.Interfaces.Contains(typeof(IBaseProvider)))
+                        var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+                        if (!typeDetail.Interfaces.Contains(typeof(IBaseProvider)))
                             throw new Exception($"{type.GetNiceName()} does not inherit {nameof(IBaseProvider)}");
 
                         var commandTypes = GetCommandTypesFromInterface(type);
@@ -1098,7 +1098,7 @@ namespace Zerra.CQRS
                         foreach (var eventType in eventTypes)
                             _ = serverTypes.Add(eventType);
 
-                        if (typeDetails.Attributes.Any(x => x is ServiceExposedAttribute))
+                        if (typeDetail.Attributes.Any(x => x is ServiceExposedAttribute))
                             _ = serverTypes.Add(type);
                     }
                 }
@@ -1117,8 +1117,8 @@ namespace Zerra.CQRS
                         var interfaceType = Discovery.GetTypeFromName(typeName);
                         if (!interfaceType.IsInterface)
                             throw new Exception($"{interfaceType.GetNiceName()} is not an interface");
-                        var interfaceTypeDetails = TypeAnalyzer.GetTypeDetail(interfaceType);
-                        if (!interfaceTypeDetails.Interfaces.Contains(typeof(IBaseProvider)))
+                        var interfaceTypeDetail = TypeAnalyzer.GetTypeDetail(interfaceType);
+                        if (!interfaceTypeDetail.Interfaces.Contains(typeof(IBaseProvider)))
                             throw new Exception($"{interfaceType.GetNiceName()} does not inherit {nameof(IBaseProvider)}");
 
                         var commandTypes = GetCommandTypesFromInterface(interfaceType);
@@ -1211,7 +1211,7 @@ namespace Zerra.CQRS
                             }
                         }
 
-                        if (interfaceTypeDetails.Attributes.Any(x => x is ServiceExposedAttribute))
+                        if (interfaceTypeDetail.Attributes.Any(x => x is ServiceExposedAttribute))
                         {
                             if (serviceSetting == serverSetting)
                             {

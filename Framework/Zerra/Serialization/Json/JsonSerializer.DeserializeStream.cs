@@ -223,7 +223,7 @@ namespace Zerra.Serialization
                 if (position == 0)
                 {
                     if (typeDetail.CoreType == CoreType.String)
-                        return (T)(object)String.Empty;
+                        return (T)(object)String.Empty; //TODO better way to convert type???
                     return default;
                 }
 
@@ -562,7 +562,7 @@ namespace Zerra.Serialization
                 if (position == 0)
                 {
                     if (typeDetail.CoreType == CoreType.String)
-                        return (T)(object)String.Empty;
+                        return (T)(object)String.Empty; //TODO better way to convert type???
                     return default;
                 }
 
