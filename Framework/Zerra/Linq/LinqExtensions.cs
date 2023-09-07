@@ -18,8 +18,15 @@ namespace System.Linq
             {
                 foreach (var itemPredicate in predicate)
                 {
-                    if (itemIt.Equals(itemPredicate))
+                    if (itemIt == null)
+                    {
+                        if (itemPredicate == null)
+                            return true;
+                    }
+                    else if (itemPredicate != null && itemIt.Equals(itemPredicate))
+                    {
                         return true;
+                    }
                 }
             }
 
