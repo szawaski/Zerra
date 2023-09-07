@@ -189,10 +189,14 @@ namespace Zerra.T4
                 var apiExposed = false;
                 foreach (var attribute in csInterface.Attributes)
                 {
-                    if (attribute.Name == "ServiceExposed")
+                    if (attribute.Name == "ServiceBlocked" && (attribute.Arguments.Count == 0 || attribute.Arguments.Any(x => x.EndsWith("NetworkType.Api"))))
+                    {
+                        apiExposed = false;
+                        break;
+                    }
+                    if (attribute.Name == "ServiceExposed" && (attribute.Arguments.Count == 0 || attribute.Arguments.Any(x => x.EndsWith("NetworkType.Api"))))
                     {
                         apiExposed = true;
-                        break;
                     }
                 }
                 if (apiExposed)
@@ -207,10 +211,14 @@ namespace Zerra.T4
                     var apiExposed = false;
                     foreach (var attribute in csClass.Attributes)
                     {
-                        if (attribute.Name == "ServiceExposed")
+                        if (attribute.Name == "ServiceBlocked" && (attribute.Arguments.Count == 0 || attribute.Arguments.Any(x => x.EndsWith("NetworkType.Api"))))
+                        {
+                            apiExposed = false;
+                            break;
+                        }
+                        if (attribute.Name == "ServiceExposed" && (attribute.Arguments.Count == 0 || attribute.Arguments.Any(x => x.EndsWith("NetworkType.Api"))))
                         {
                             apiExposed = true;
-                            break;
                         }
                     }
                     if (apiExposed)

@@ -13,7 +13,7 @@
     <Description>Tools for T4 files to use to generate code and client side libraries for CQRS.</Description>
     <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, T4, Code Generation</PackageTags>
     <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-	<Version>3.6.0</Version>
+	<Version>4.6.0</Version>
 	<LangVersion>10.0</LangVersion>
   </PropertyGroup>
 
