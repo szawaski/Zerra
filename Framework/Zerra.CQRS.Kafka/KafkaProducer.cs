@@ -200,7 +200,6 @@ namespace Zerra.CQRS.Kafka
                             }
                             catch (Exception ex)
                             {
-                                _ = Log.ErrorAsync(ex);
                                 ack = new Acknowledgement()
                                 {
                                     Success = false,

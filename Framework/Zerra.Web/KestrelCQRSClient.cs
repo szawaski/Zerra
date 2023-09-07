@@ -35,7 +35,7 @@ namespace Zerra.Web
             this.authorizer = authorizer;
             this.client = new HttpClient();
 
-            _ = Log.TraceAsync($"{nameof(CQRS.Network.HttpCQRSClient)} Started For {this.contentType} {this.serviceUrl}");
+            _ = Log.InfoAsync($"{nameof(CQRS.Network.HttpCQRSClient)} Started For {this.contentType} {this.serviceUrl}");
         }
 
         protected override TReturn CallInternal<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
@@ -57,8 +57,6 @@ namespace Zerra.Web
             IDictionary<string, IList<string>> authHeaders = null;
             if (authorizer != null)
                 authHeaders = authorizer.BuildAuthHeaders();
-
-            var stopwatch = Stopwatch.StartNew();
 
             var request = new HttpRequestMessage(HttpMethod.Post, serviceUrl);
             HttpResponseMessage response = null;
@@ -123,9 +121,6 @@ namespace Zerra.Web
                     throw responseException;
                 }
 
-                stopwatch.Stop();
-                _ = Log.TraceAsync($"{nameof(KestrelCQRSClient)} Query: {interfaceType.GetNiceName()}.{data.ProviderMethod} {stopwatch.ElapsedMilliseconds}");
-
                 if (isStream)
                 {
                     return (TReturn)(object)responseBodyStream;
@@ -168,9 +163,7 @@ namespace Zerra.Web
             if (authorizer != null)
                 authHeaders = authorizer.BuildAuthHeaders();
 
-            var stopwatch = Stopwatch.StartNew();
-
-        var request = new HttpRequestMessage(HttpMethod.Post, serviceUrl);
+            var request = new HttpRequestMessage(HttpMethod.Post, serviceUrl);
             HttpResponseMessage response = null;
             Stream responseBodyStream = null;
             try
@@ -245,9 +238,6 @@ namespace Zerra.Web
                     throw responseException;
                 }
 
-                stopwatch.Stop();
-                _ = Log.TraceAsync($"{nameof(KestrelCQRSClient)} Query: {interfaceType.GetNiceName()}.{data.ProviderMethod} {stopwatch.ElapsedMilliseconds}");
-
                 if (isStream)
                 {
                     return (TReturn)(object)responseBodyStream;
@@ -304,8 +294,6 @@ namespace Zerra.Web
             IDictionary<string, IList<string>> authHeaders = null;
             if (authorizer != null)
                 authHeaders = authorizer.BuildAuthHeaders();
-
-            var stopwatch = Stopwatch.StartNew();
 
             var request = new HttpRequestMessage(HttpMethod.Post, serviceUrl);
             HttpResponseMessage response = null;
@@ -384,8 +372,6 @@ namespace Zerra.Web
 #else
                 await responseBodyStream.DisposeAsync();
 #endif
-                stopwatch.Stop();
-                _ = Log.TraceAsync($"{nameof(KestrelCQRSClient)} Sent: {messageTypeName} {stopwatch.ElapsedMilliseconds}");
             }
             catch
             {

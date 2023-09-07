@@ -101,7 +101,7 @@ namespace Zerra.CQRS.Network
             if (!exposed)
                 throw new Exception($"{typeDetail.Type.GetNiceName()} is not exposed");
 
-            var command = (ICommand)JsonSerializer.Deserialize(data.MessageData, commandType);
+            var command = (ICommand)JsonSerializer.Deserialize(commandType, data.MessageData);
             if (data.MessageAwait)
                 return Bus.HandleRemoteCommandDispatchAwaitAsync(command, data.Source, true);
             else

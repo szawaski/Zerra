@@ -69,8 +69,6 @@ namespace Zerra.CQRS.Kafka
                                 var consumerResult = consumer.Consume(canceller.Token);
                                 consumer.Commit(consumerResult);
 
-                                _ = Log.TraceAsync($"Received: {topic}");
-
                                 _ = HandleMessage(host, consumerResult, handlerAsync);
 
                                 if (canceller.IsCancellationRequested)

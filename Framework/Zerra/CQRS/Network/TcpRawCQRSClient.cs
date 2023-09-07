@@ -28,7 +28,7 @@ namespace Zerra.CQRS.Network
             this.contentType = contentType;
             this.symmetricConfig = symmetricConfig;
 
-            _ = Log.TraceAsync($"{nameof(TcpRawCQRSClient)} Started For {this.contentType} {this.endpoint}");
+            _ = Log.InfoAsync($"{nameof(TcpRawCQRSClient)} Started For {this.contentType} {this.endpoint}");
         }
 
         protected override TReturn CallInternal<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
@@ -46,8 +46,6 @@ namespace Zerra.CQRS.Network
                 Source = source
             };
             data.AddProviderArguments(arguments);
-
-            var stopwatch = Stopwatch.StartNew();
 
             var client = new TcpClient(endpoint.AddressFamily);
 
@@ -124,9 +122,6 @@ namespace Zerra.CQRS.Network
                     throw responseException;
                 }
 
-                stopwatch.Stop();
-                _ = Log.TraceAsync($"{nameof(TcpRawCQRSClient)} Query: {interfaceType.GetNiceName()}.{data.ProviderMethod} {stopwatch.ElapsedMilliseconds}");
-
                 if (isStream)
                 {
                     return (TReturn)(object)responseBodyStream; //TODO better way to convert type???
@@ -178,8 +173,6 @@ namespace Zerra.CQRS.Network
                 Source = source
             };
             data.AddProviderArguments(arguments);
-
-            var stopwatch = Stopwatch.StartNew();
 
             var client = new TcpClient(endpoint.AddressFamily);
             client.NoDelay = true;
@@ -270,9 +263,6 @@ namespace Zerra.CQRS.Network
                     throw responseException;
                 }
 
-                stopwatch.Stop();
-                _ = Log.TraceAsync($"{nameof(TcpRawCQRSClient)} Query: {interfaceType.GetNiceName()}.{data.ProviderMethod} {stopwatch.ElapsedMilliseconds}");
-
                 if (isStream)
                 {
                     //TODO better way to convert type???
@@ -362,8 +352,6 @@ namespace Zerra.CQRS.Network
                 Claims = claims,
                 Source = source
             };
-
-            var stopwatch = Stopwatch.StartNew();
 
             var client = new TcpClient(endpoint.AddressFamily);
             client.NoDelay = true;
@@ -464,9 +452,6 @@ namespace Zerra.CQRS.Network
 #endif
                 }
                 client.Dispose();
-
-                stopwatch.Stop();
-                _ = Log.TraceAsync($"{nameof(TcpRawCQRSClient)}Sent: {messageTypeName} {stopwatch.ElapsedMilliseconds}");
             }
             catch
             {

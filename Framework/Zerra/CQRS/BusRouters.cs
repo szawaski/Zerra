@@ -102,7 +102,7 @@ namespace Zerra.CQRS
                     voidMethod = true;
                 }
 
-                var callMethod = callInternalMethodNonGeneric.MakeGenericMethod(interfaceType, returnType);
+                var callMethod = callInternalMethodNonGeneric.MakeGenericMethod(returnType);
 
                 var methodBuilder = typeBuilder.DefineMethod(
                     methodName,
@@ -118,7 +118,8 @@ namespace Zerra.CQRS
 
                 il.Emit(OpCodes.Nop);
 
-                //_CallInternal<TInterface, TReturn>(Type interfaceType, string methodName, object[] arguments, string externallyReceived, string source)
+                //_CallInternal<TReturn>(Type interfaceType, string methodName, object[] arguments, string externallyReceived, string source)
+
                 il.Emit(OpCodes.Ldtoken, interfaceType);
                 il.Emit(OpCodes.Call, typeofMethod); //typeof(TInterface)
 

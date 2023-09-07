@@ -99,7 +99,6 @@ namespace Zerra.CQRS.Network
                     throw new Exception("Invalid Content Type");
                 }
 
-                _ = Log.TraceAsync($"{nameof(HttpCQRSServer)} Received On {client.Client.LocalEndPoint} From {client.Client.RemoteEndPoint} {requestHeader.ProviderType}");
                 if (allowOrigins != null && allowOrigins.Length > 0)
                 {
                     if (allowOrigins.Contains(requestHeader.Origin))
@@ -152,8 +151,6 @@ namespace Zerra.CQRS.Network
 
                     if (!this.interfaceTypes.Contains(providerType))
                         throw new Exception($"Unhandled Provider Type {providerType.FullName}");
-
-                    _ = Log.TraceAsync($"Received Call: {providerType.GetNiceName()}.{data.ProviderMethod}");
 
                     inHandlerContext = true;
                     var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, client.Client.AddressFamily.ToString(), false);
@@ -213,7 +210,7 @@ namespace Zerra.CQRS.Network
                     if (!this.commandTypes.Contains(commandType))
                         throw new Exception($"Unhandled Command Type {commandType.FullName}");
 
-                    var command = (ICommand)JsonSerializer.Deserialize(data.MessageData, commandType);
+                    var command = (ICommand)JsonSerializer.Deserialize(commandType, data.MessageData);
 
                     inHandlerContext = true;
                     if (data.MessageAwait)

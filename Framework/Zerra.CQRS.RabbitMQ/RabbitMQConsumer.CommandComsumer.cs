@@ -68,8 +68,6 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.Received += async (sender, e) =>
                     {
-                        _ = Log.TraceAsync($"Received: {topic}");
-
                         var properties = e.BasicProperties;
                         var acknowledgment = new Acknowledgement();
 

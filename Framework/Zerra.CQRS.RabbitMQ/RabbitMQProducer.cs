@@ -35,7 +35,7 @@ namespace Zerra.CQRS.RabbitMQ
             {
                 var factory = new ConnectionFactory() { HostName = host };
                 this.connection = factory.CreateConnection();
-                _ = Log.TraceAsync($"{nameof(RabbitMQProducer)} Started");
+                _ = Log.InfoAsync($"{nameof(RabbitMQProducer)} Started");
             }
             catch (Exception ex)
             {
@@ -52,9 +52,6 @@ namespace Zerra.CQRS.RabbitMQ
         {
             try
             {
-                var stopwatch = new Stopwatch();
-                stopwatch.Start();
-
                 if (connection.IsOpen == false)
                 {
                     lock (locker)
@@ -63,7 +60,7 @@ namespace Zerra.CQRS.RabbitMQ
                         {
                             var factory = new ConnectionFactory() { HostName = host };
                             this.connection = factory.CreateConnection();
-                            _ = Log.TraceAsync($"Sender Reconnected");
+                            _ = Log.InfoAsync($"Sender Reconnected");
                         }
                     }
                 }
@@ -108,8 +105,6 @@ namespace Zerra.CQRS.RabbitMQ
 
                 channel.BasicPublish(topic, String.Empty, properties, body);
 
-                _ = Log.TraceAsync($"Sent{(requireAcknowledgement ? " Await" : null)}: {topic}");
-
                 if (requireAcknowledgement)
                 {
                     Exception exception = null;
@@ -129,13 +124,6 @@ namespace Zerra.CQRS.RabbitMQ
                                 acknowledgementBody = SymmetricEncryptor.Decrypt(symmetricConfig, acknowledgementBody);
                             
                             var affirmation = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
-
-                            stopwatch.Stop();
-
-                            if (!affirmation.Success)
-                                _ = Log.TraceAsync($"Await Failed: {topic}: {affirmation.ErrorMessage} {stopwatch.ElapsedMilliseconds}");
-                            else
-                                _ = Log.TraceAsync($"Await Success: {topic} {stopwatch.ElapsedMilliseconds}");
 
                             if (!affirmation.Success)
                                 exception = new AcknowledgementException(affirmation, topic);
@@ -184,7 +172,7 @@ namespace Zerra.CQRS.RabbitMQ
                         {
                             var factory = new ConnectionFactory() { HostName = host };
                             this.connection = factory.CreateConnection();
-                            _ = Log.TraceAsync($"Sender Reconnected");
+                            _ = Log.InfoAsync($"Sender Reconnected");
                         }
                     }
                 }
@@ -217,8 +205,6 @@ namespace Zerra.CQRS.RabbitMQ
                 var properties = channel.CreateBasicProperties();
 
                 channel.BasicPublish(topic, String.Empty, properties, body);
-
-                _ = Log.TraceAsync($"Sent: {topic}");
 
                 channel.Close();
                 channel.Dispose();

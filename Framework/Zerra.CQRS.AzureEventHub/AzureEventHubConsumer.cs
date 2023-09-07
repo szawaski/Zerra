@@ -112,8 +112,6 @@ namespace Zerra.CQRS.AzureEventHub
                         if (typeNameObject is not string typeName)
                             continue;
 
-                        _ = Log.TraceAsync($"Received Await: {typeName}");
-
                         _ = HandleEvent(typeName, partitionEvent);
                     }
                 }

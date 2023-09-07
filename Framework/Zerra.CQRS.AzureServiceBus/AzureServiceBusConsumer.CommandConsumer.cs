@@ -66,8 +66,6 @@ namespace Zerra.CQRS.AzureServiceBus
                                 continue;
                             await receiver.CompleteMessageAsync(serviceBusMessage);
 
-                            _ = Log.TraceAsync($"Received: {topic}");
-
                             _ = HandleMessage(client, serviceBusMessage, handlerAsync, handlerAwaitAsync);
 
                             if (canceller.IsCancellationRequested)

@@ -190,7 +190,6 @@ namespace Zerra.CQRS.AzureEventHub
                         }
                         catch (Exception ex)
                         {
-                            _ = Log.ErrorAsync(ex);
                             ack = new Acknowledgement()
                             {
                                 Success = false,

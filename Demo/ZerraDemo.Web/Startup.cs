@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Zerra;
 using Zerra.CQRS;
 using Zerra.CQRS.Settings;
+using Zerra.Logger;
 using Zerra.Web;
 using ZerraDemo.Web.Components;
 
@@ -41,6 +42,7 @@ namespace ZerraDemo.Web
 
             var serviceSettings = CQRSSettings.Get(Config.EntryAssemblyName);
             var serviceCreator = new TcpServiceCreator();
+            Bus.AddLogger(new BusLoggingProvider());
             Bus.StartServices(serviceSettings, serviceCreator);
 
             _ = app.UseCQRSGateway();

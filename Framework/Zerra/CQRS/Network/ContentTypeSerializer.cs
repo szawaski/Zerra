@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using System.IO.Pipes;
 using System.Threading.Tasks;
 using Zerra.Serialization;
 
@@ -48,6 +49,27 @@ namespace Zerra.CQRS.Network
                 case ContentType.JsonNameless:
                     {
                         return JsonSerializer.DeserializeNameless<T>(bytes);
+                    }
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+        public static object Deserialize<T>(ContentType contentType, Type type, byte[] bytes)
+        {
+            switch (contentType)
+            {
+                case ContentType.Bytes:
+                    {
+                        var serializer = new ByteSerializer(true, false, true);
+                        return serializer.Deserialize(type, bytes);
+                    }
+                case ContentType.Json:
+                    {
+                        return JsonSerializer.Deserialize(type, bytes);
+                    }
+                case ContentType.JsonNameless:
+                    {
+                        return JsonSerializer.DeserializeNameless(type, bytes);
                     }
                 default:
                     throw new NotImplementedException();
@@ -99,6 +121,27 @@ namespace Zerra.CQRS.Network
                     throw new NotImplementedException();
             }
         }
+        public static object Deserialize(ContentType contentType, Type type, Stream stream)
+        {
+            switch (contentType)
+            {
+                case ContentType.Bytes:
+                    {
+                        var serializer = new ByteSerializer(true, false, true);
+                        return serializer.Deserialize(type, stream);
+                    }
+                case ContentType.Json:
+                    {
+                        return JsonSerializer.Deserialize(type, stream);
+                    }
+                case ContentType.JsonNameless:
+                    {
+                        return JsonSerializer.DeserializeNameless(type, stream);
+                    }
+                default:
+                    throw new NotImplementedException();
+            }
+        }
 
         public static Task SerializeAsync(ContentType contentType, Stream stream, object obj)
         {
@@ -138,6 +181,28 @@ namespace Zerra.CQRS.Network
                     {
 
                         return JsonSerializer.DeserializeNamelessAsync<T>(stream);
+                    }
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+        public static Task<object> DeserializeAsync(ContentType contentType, Type type, Stream stream)
+        {
+            switch (contentType)
+            {
+                case ContentType.Bytes:
+                    {
+                        var serializer = new ByteSerializer(true, false, true);
+                        return serializer.DeserializeAsync(type, stream);
+                    }
+                case ContentType.Json:
+                    {
+                        return JsonSerializer.DeserializeAsync(type, stream);
+                    }
+                case ContentType.JsonNameless:
+                    {
+
+                        return JsonSerializer.DeserializeNamelessAsync(type, stream);
                     }
                 default:
                     throw new NotImplementedException();

@@ -182,7 +182,7 @@ namespace Zerra.CQRS.Relay
 
                 if (outgoingClient == null)
                 {
-                    _ = Log.TraceAsync($"Destination not found {providerType}");
+                    _ = Log.WarnAsync($"Destination not found {providerType}");
                     switch (protocolType.Value)
                     {
                         case CQRSProtocolType.TcpRaw:

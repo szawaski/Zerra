@@ -29,7 +29,7 @@ namespace Zerra.CQRS.Network
             this.contentType = contentType;
             this.authorizer = authorizer;
 
-            _ = Log.TraceAsync($"{nameof(HttpCQRSClient)} Started For {this.contentType} {this.endpoint}");
+            _ = Log.InfoAsync($"{nameof(HttpCQRSClient)} Started For {this.contentType} {this.endpoint}");
         }
 
         protected override TReturn CallInternal<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
@@ -51,8 +51,6 @@ namespace Zerra.CQRS.Network
             IDictionary<string, IList<string>> authHeaders = null;
             if (authorizer != null)
                 authHeaders = authorizer.BuildAuthHeaders();
-
-            var stopwatch = Stopwatch.StartNew();
 
             var client = new TcpClient(endpoint.AddressFamily);
             client.NoDelay = true;
@@ -117,9 +115,6 @@ namespace Zerra.CQRS.Network
                     throw responseException;
                 }
 
-                stopwatch.Stop();
-                _ = Log.TraceAsync($"{nameof(HttpCQRSClient)} Query: {interfaceType.GetNiceName()}.{data.ProviderMethod} {stopwatch.ElapsedMilliseconds}");
-
                 if (isStream)
                 {
                     return (TReturn)(object)responseBodyStream;
@@ -168,8 +163,6 @@ namespace Zerra.CQRS.Network
             IDictionary<string, IList<string>> authHeaders = null;
             if (authorizer != null)
                 authHeaders = authorizer.BuildAuthHeaders();
-
-            var stopwatch = Stopwatch.StartNew();
 
             var client = new TcpClient(endpoint.AddressFamily);
             client.NoDelay = true;
@@ -242,9 +235,6 @@ namespace Zerra.CQRS.Network
                     var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream);
                     throw responseException;
                 }
-
-                stopwatch.Stop();
-                _ = Log.TraceAsync($"{nameof(HttpCQRSClient)} Query: {interfaceType.GetNiceName()}.{data.ProviderMethod} {stopwatch.ElapsedMilliseconds}");
 
                 if (isStream)
                 {
@@ -322,8 +312,6 @@ namespace Zerra.CQRS.Network
             if (authorizer != null)
                 authHeaders = authorizer.BuildAuthHeaders();
 
-            var stopwatch = Stopwatch.StartNew();
-
             var client = new TcpClient(endpoint.AddressFamily);
             client.NoDelay = true;
 
@@ -396,9 +384,6 @@ namespace Zerra.CQRS.Network
                 await responseBodyStream.DisposeAsync();
 #endif
                 client.Dispose();
-
-                stopwatch.Stop();
-                _ = Log.TraceAsync($"{nameof(HttpCQRSClient)}Sent: {messageTypeName} {stopwatch.ElapsedMilliseconds}");
             }
             catch
             {

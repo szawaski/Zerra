@@ -32,16 +32,16 @@ namespace Zerra.Logger
             file = $"{filePath}\\{fileName}";
         }
 
-        public async Task LogCommandAsync(Type commandType, ICommand command, string source, bool handledInternal, long milliseconds, Exception ex)
+        public async Task LogCommandAsync(Type commandType, ICommand command, string source, bool handled, long milliseconds, Exception ex)
         {
             var typeName = commandType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? "[Not Authenticated]";
 
             string message;
             if (ex != null)
-                message = $"{commandCategory} Failed: {typeName} from {source} as {user} error {ex.GetType().Name}:{ex.Message} for {milliseconds}ms";
+                message = $"{(handled ? "Handled " : "Sent ")}{commandCategory} Failed: {typeName} from {source} as {user} error {ex.GetType().Name}:{ex.Message} for {milliseconds}ms";
             else
-                message = $"{commandCategory}: {typeName} from {source} as {user} for {milliseconds}ms";
+                message = $"{(handled ? "Handled " : "Sent ")}{commandCategory}: {typeName} from {source} as {user} for {milliseconds}ms";
 
             Debug.WriteLine(message, commandCategory);
             Console.WriteLine(message);
@@ -51,16 +51,16 @@ namespace Zerra.Logger
                 await LogFile.Log(file, commandCategory, message);
         }
 
-        public async Task LogEventAsync(Type eventType, IEvent @event, string source, bool handledInternal, long milliseconds, Exception ex)
+        public async Task LogEventAsync(Type eventType, IEvent @event, string source, bool handled, long milliseconds, Exception ex)
         {
             var typeName = eventType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? "[Not Authenticated]";
 
             string message;
             if (ex != null)
-                message = $"{eventCategory} Failed: {typeName} from {source} as {user} error {ex.GetType().Name}:{ex.Message} for {milliseconds}ms";
+                message = $"{(handled ? "Handled " : "Sent ")}{eventCategory} Failed: {typeName} from {source} as {user} error {ex.GetType().Name}:{ex.Message} for {milliseconds}ms";
             else
-                message = $"{eventCategory}: {typeName} from {source} as {user} for {milliseconds}ms";
+                message = $"{(handled ? "Handled " : "Sent ")}{eventCategory}: {typeName} from {source} as {user} for {milliseconds}ms";
 
             Debug.WriteLine(message, eventCategory);
             Console.WriteLine(message);
@@ -70,16 +70,16 @@ namespace Zerra.Logger
                 await LogFile.Log(file, eventCategory, message);
         }
 
-        public async Task LogCallAsync(Type interfaceType, string methodName, object[] arguments, string source, bool handledInternal, long milliseconds, Exception ex)
+        public async Task LogCallAsync(Type interfaceType, string methodName, object[] arguments, object result, string source, bool handled, long milliseconds, Exception ex)
         {
             var interfaceName = interfaceType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? "[Not Authenticated]";
 
             string message;
             if (ex != null)
-                message = $"{callCategory} Failed: {interfaceName}.{methodName} from {source} as {user} error {ex.GetType().Name}:{ex.Message} for {milliseconds}ms";
+                message = $"{(handled ? "Handled " : "Sent ")}{callCategory} Failed: {interfaceName}.{methodName} from {source} as {user} error {ex.GetType().Name}:{ex.Message} for {milliseconds}ms";
             else
-                message = $"{callCategory}: {interfaceName}.{methodName} from {source} as {user} for {milliseconds}ms";
+                message = $"{(handled ? "Handled " : "Sent ")}{callCategory}: {interfaceName}.{methodName} from {source} as {user} for {milliseconds}ms";
 
             Debug.WriteLine(message, callCategory);
             Console.WriteLine(message);

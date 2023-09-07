@@ -92,7 +92,7 @@ namespace Zerra.Web
 
                 if (settings.AllowOrigins.Contains(originRequestHeader))
                 {
-                    _ = Log.TraceAsync($"{nameof(KestrelCQRSServerMiddleware)} Origin Not Allowed {originRequestHeader}");
+                    _ = Log.WarnAsync($"{nameof(KestrelCQRSServerMiddleware)} Origin Not Allowed {originRequestHeader}");
                     context.Response.StatusCode = 401;
                     return;
                 }
@@ -101,8 +101,6 @@ namespace Zerra.Web
             {
                 originRequestHeader = "*";
             }
-
-            _ = Log.TraceAsync($"{nameof(KestrelCQRSServerMiddleware)} Received {providerTypeRequestHeaderValue}");
 
             var inHandlerContext = false;
             try
@@ -150,8 +148,6 @@ namespace Zerra.Web
 
                     if (!settings.InterfaceTypes.Contains(providerType))
                         throw new Exception($"Unhandled Provider Type {providerType.FullName}");
-
-                    _ = Log.TraceAsync($"Received Call: {providerType.GetNiceName()}.{data.ProviderMethod}");
 
                     inHandlerContext = true;
                     var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, false);
@@ -298,7 +294,7 @@ namespace Zerra.Web
                     if (!settings.CommandTypes.Contains(messageType))
                         throw new Exception($"Unhandled Command Type {messageType.FullName}");
 
-                    var command = (ICommand)JsonSerializer.Deserialize(data.MessageData, messageType);
+                    var command = (ICommand)JsonSerializer.Deserialize(messageType, data.MessageData);
 
                     inHandlerContext = true;
                     if (data.MessageAwait)

@@ -15,7 +15,7 @@ namespace Zerra.Serialization
     public static partial class JsonSerializer
     {
         public static T Deserialize<T>(string json, Graph graph = null) { return Deserialize<T>(json.AsSpan(), graph); }
-        public static object Deserialize(string json, Type type, Graph graph = null) { return Deserialize(json.AsSpan(), type, graph); }
+        public static object Deserialize(Type type, string json, Graph graph = null) { return Deserialize(type, json.AsSpan(), graph); }
 
         public static T Deserialize<T>(ReadOnlySpan<char> json, Graph graph = null)
         {
@@ -45,7 +45,7 @@ namespace Zerra.Serialization
                 decodeBuffer.Dispose();
             }
         }
-        public static object Deserialize(ReadOnlySpan<char> json, Type type, Graph graph = null)
+        public static object Deserialize(Type type, ReadOnlySpan<char> json, Graph graph = null)
         {
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
@@ -75,16 +75,16 @@ namespace Zerra.Serialization
         }
 
         public static T Deserialize<T>(byte[] bytes, Graph graph = null) { return Deserialize<T>(bytes.AsSpan(), graph); }
-        public static object Deserialize(byte[] bytes, Type type, Graph graph = null) { return Deserialize(bytes.AsSpan(), type, graph); }
+        public static object Deserialize(Type type, byte[] bytes, Graph graph = null) { return Deserialize(type, bytes.AsSpan(),graph); }
 
         public static T Deserialize<T>(ReadOnlySpan<byte> bytes, Graph graph = null)
         {
-            var obj = Deserialize(bytes, typeof(T), graph);
+            var obj = Deserialize(typeof(T), bytes,  graph);
             if (obj == null)
                 return default;
             return (T)obj;
         }
-        public static object Deserialize(ReadOnlySpan<byte> bytes, Type type, Graph graph = null)
+        public static object Deserialize(Type type, ReadOnlySpan<byte> bytes, Graph graph = null)
         {
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
@@ -122,7 +122,7 @@ namespace Zerra.Serialization
         }
 
         public static T DeserializeNameless<T>(string json, Graph graph = null) { return DeserializeNameless<T>(json.AsSpan(), graph); }
-        public static object DeserializeNameless(string json, Type type, Graph graph) { return DeserializeNameless(json.AsSpan(), type, graph); }
+        public static object DeserializeNameless(Type type, string json, Graph graph) { return DeserializeNameless(json.AsSpan(), type, graph); }
 
         public static T DeserializeNameless<T>(ReadOnlySpan<char> json, Graph graph = null)
         {
@@ -131,7 +131,7 @@ namespace Zerra.Serialization
                 return default;
             return (T)obj;
         }
-        public static object DeserializeNameless(ReadOnlySpan<char> json, Type type, Graph graph)
+        public static object DeserializeNameless(ReadOnlySpan<char> json, Type type, Graph graph = null)
         {
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
@@ -160,7 +160,7 @@ namespace Zerra.Serialization
         }
 
         public static T DeserializeNameless<T>(byte[] bytes, Graph graph = null) { return DeserializeNameless<T>(bytes.AsSpan(), graph); }
-        public static object DeserializeNameless(byte[] bytes, Type type, Graph graph) { return DeserializeNameless(bytes.AsSpan(), type, graph); }
+        public static object DeserializeNameless(Type type, byte[] bytes, Graph graph = null) { return DeserializeNameless(bytes.AsSpan(), type, graph); }
 
         public static T DeserializeNameless<T>(ReadOnlySpan<byte> bytes, Graph graph = null)
         {
@@ -169,7 +169,7 @@ namespace Zerra.Serialization
                 return default;
             return (T)obj;
         }
-        public static object DeserializeNameless(ReadOnlySpan<byte> bytes, Type type, Graph graph)
+        public static object DeserializeNameless(ReadOnlySpan<byte> bytes, Type type, Graph graph = null)
         {
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
@@ -526,7 +526,7 @@ namespace Zerra.Serialization
                                 else
                                 {
                                     if (value != null)
-                                    {            
+                                    {
                                         //special case nullable enum
                                         if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
                                             value = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetails[0].Type, value);

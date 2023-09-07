@@ -9,8 +9,8 @@ namespace Zerra.CQRS
 {
     public interface IBusLogger
     {
-        Task LogCommandAsync(Type commandType, ICommand command, string source, bool handledInternal, long milliseconds, Exception ex);
-        Task LogEventAsync(Type eventType, IEvent @event, string source, bool handledInternal, long milliseconds, Exception ex);
-        Task LogCallAsync(Type interfaceType, string methodName, object[] arguments, string source, bool handledInternal, long milliseconds, Exception ex);
+        Task LogCommandAsync(Type commandType, ICommand command, string source, bool handled, long milliseconds, Exception ex);
+        Task LogEventAsync(Type eventType, IEvent @event, string source, bool handled, long milliseconds, Exception ex);
+        Task LogCallAsync(Type interfaceType, string methodName, object[] arguments, object result, string source, bool handled, long milliseconds, Exception ex);
     }
 }
