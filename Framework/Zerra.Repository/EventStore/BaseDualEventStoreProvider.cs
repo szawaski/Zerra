@@ -8,7 +8,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Repository
 {
-    public abstract class BaseDualEventStoreProvider<TThisProviderInterface, TNextProviderInterface, TModel> : BaseLayerProvider<TNextProviderInterface>, IDualBaseProvider, ITransactStoreProvider<TModel>
+    public abstract class BaseDualEventStoreProvider<TThisProviderInterface, TNextProviderInterface, TModel> : LayerProvider<TNextProviderInterface>, IDualBaseProvider, ITransactStoreProvider<TModel>
         where TThisProviderInterface : ITransactStoreProvider<TModel>
         where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()

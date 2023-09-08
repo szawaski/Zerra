@@ -6,7 +6,7 @@ using Zerra.CQRS;
 
 namespace ZerraDemo.Domain.WeatherCached
 {
-    public class WeatherCachedQueryProviderCache : BaseLayerProvider<IWeatherCachedQueryProvider>, IWeatherCachedQueryProvider, IBusCache
+    public class WeatherCachedQueryProviderCache : LayerProvider<IWeatherCachedQueryProvider>, IWeatherCachedQueryProvider, IBusCache
     {
         public async Task<WeatherCachedModel> GetWeather()
         {

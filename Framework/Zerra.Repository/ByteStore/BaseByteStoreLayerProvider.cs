@@ -8,7 +8,7 @@ using Zerra.Providers;
 
 namespace Zerra.Repository
 {
-    public abstract class BaseByteStoreLayerProvider<TNextProviderInterface> : BaseLayerProvider<TNextProviderInterface>, IByteStoreProvider
+    public abstract class BaseByteStoreLayerProvider<TNextProviderInterface> : LayerProvider<TNextProviderInterface>, IByteStoreProvider
         where TNextProviderInterface : IByteStoreProvider
     {
         public bool Exists(string name)

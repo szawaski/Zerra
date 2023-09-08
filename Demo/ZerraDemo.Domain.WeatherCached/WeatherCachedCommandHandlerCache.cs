@@ -5,7 +5,7 @@ using ZerraDemo.Domain.WeatherCached.Commands;
 
 namespace ZerraDemo.Domain.WeatherCached
 {
-    public class WeatherCachedCommandHandlerCache : BaseLayerProvider<IWeatherCachedCommandHandler>, IWeatherCachedCommandHandler, IBusCache
+    public class WeatherCachedCommandHandlerCache : LayerProvider<IWeatherCachedCommandHandler>, IWeatherCachedCommandHandler, IBusCache
     {
         public async Task Handle(SetWeatherCachedCommand command)
         {

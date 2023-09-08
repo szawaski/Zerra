@@ -7,14 +7,14 @@ using Zerra.Reflection;
 
 namespace Zerra.Providers
 {
-    public abstract class BaseLayerProvider<TProvider>
+    public abstract class LayerProvider<TProvider>
     {
         private static readonly Type InterfaceType;
-        static BaseLayerProvider()
+        static LayerProvider()
         {
             InterfaceType = typeof(TProvider);
             if (!InterfaceType.IsInterface)
-                throw new Exception($"{nameof(BaseLayerProvider<TProvider>)} must have a generic argument that is an interface, {InterfaceType.Name} is not an interface");
+                throw new Exception($"{nameof(LayerProvider<TProvider>)} must have a generic argument that is an interface, {InterfaceType.Name} is not an interface");
         }
 
         private readonly object locker = new();
