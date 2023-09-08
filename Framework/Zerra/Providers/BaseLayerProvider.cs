@@ -9,10 +9,10 @@ namespace Zerra.Providers
 {
     public abstract class BaseLayerProvider<TProvider>
     {
-        private static readonly Type InterfaceType = typeof(TProvider);
-
+        private static readonly Type InterfaceType;
         static BaseLayerProvider()
         {
+            InterfaceType = typeof(TProvider);
             if (!InterfaceType.IsInterface)
                 throw new Exception($"{nameof(BaseLayerProvider<TProvider>)} must have a generic argument that is an interface, {InterfaceType.Name} is not an interface");
         }
@@ -39,7 +39,7 @@ namespace Zerra.Providers
             }
         }
 
-        public void SetNextProvider(TProvider provider)
+        internal void SetNextProvider(TProvider provider)
         {
             lock (locker)
             {
@@ -49,7 +49,7 @@ namespace Zerra.Providers
             }
         }
 
-        public Type GetProviderInterfaceType() { return InterfaceType; }
+        internal Type GetProviderInterfaceType() { return InterfaceType; }
 
         public override sealed string ToString() { return base.ToString(); }
         public override sealed bool Equals(object obj) { return base.Equals(obj); }
