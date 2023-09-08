@@ -53,8 +53,8 @@ namespace Zerra.Repository.Test
 
             _ = context.InitializeEngine<ITransactStoreEngine>(true);
 
-            var provider = ProviderResolver.Get<ITransactStoreProvider<MySqlTestTypesModel>>();
-            var relationProvider = ProviderResolver.Get<ITransactStoreProvider<MySqlTestRelationsModel>>();
+            var provider = ProviderResolver.GetFirst<ITransactStoreProvider<MySqlTestTypesModel>>();
+            var relationProvider = ProviderResolver.GetFirst<ITransactStoreProvider<MySqlTestRelationsModel>>();
 
             TestModelMethods.TestSequence(provider, relationProvider);
 

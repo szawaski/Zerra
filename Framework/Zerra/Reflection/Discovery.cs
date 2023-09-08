@@ -206,7 +206,7 @@ namespace Zerra.Reflection
 
             return false;
         }
-        public static unsafe bool HasImplementationType(Type interfaceType, IReadOnlyList<Type> secondaryInterfaces, int secondaryInterfaceStartIndex)
+        public static unsafe bool HasImplementationType(Type interfaceType, IReadOnlyList<Type> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
@@ -239,13 +239,52 @@ namespace Zerra.Reflection
 
                 for (var i = 0; i < secondaryInterfaces.Count; i++)
                 {
-                    var isNull = secondaryInterfaces[i] == null;
-                    if ((!isNull && interfaceList.Contains(secondaryInterfaces[i])) || (isNull && !secondaryInterfaces.Contains(interfaceList)))
+                    if (secondaryInterfaces[i] != null)
                     {
-                        levels[j] = (short)i;
-                        if (i >= secondaryInterfaceStartIndex && (i <= firstLevelFound || firstLevelFound == -1))
-                            firstLevelFound = i;
-                        break;
+                        var found = false;
+                        for (var k = 0; k < interfaceList.Count; k++)
+                        {
+                            if (interfaceList[k] == secondaryInterfaces[i])
+                            {
+                                found = true;
+                            }
+                            if (ignoreInterface != null && ignoreInterface == interfaceList[k])
+                            {
+                                found = false;
+                                break;
+                            }
+                        }
+                        if (found)
+                        {
+                            levels[j] = (short)i;
+                            if (i >= secondaryInterfaceStartIndex && (i <= firstLevelFound || firstLevelFound == -1))
+                                firstLevelFound = i;
+                            break;
+                        }
+                    }
+                    else //base provider
+                    {
+                        var found = false;
+                        for (var k = 0; k < interfaceList.Count; k++)
+                        {
+                            if (ignoreInterface != null && ignoreInterface == interfaceList[k])
+                            {
+                                found = true;
+                                break;
+                            }
+                            if (secondaryInterfaces.Contains(interfaceList[k]))
+                            {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found)
+                        {
+                            levels[j] = (short)i;
+                            if (i >= secondaryInterfaceStartIndex && (i <= firstLevelFound || firstLevelFound == -1))
+                                firstLevelFound = i;
+                            break;
+                        }
                     }
                 }
             }
@@ -291,7 +330,7 @@ namespace Zerra.Reflection
 
             return classList[0];
         }
-        public static unsafe Type GetImplementationType(Type interfaceType, Type secondaryInterface, bool throwException = true)
+        public static Type GetImplementationType(Type interfaceType, Type secondaryInterface, bool throwException = true)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
@@ -308,11 +347,7 @@ namespace Zerra.Reflection
                     return null;
             }
 
-            var flags = stackalloc short[classList.Count];
-
-            for (var j = 0; j < classList.Count; j++)
-                flags[j] = -2;
-
+            Type found = null;
             for (var j = 0; j < classList.Count; j++)
             {
                 var classType = classList[j];
@@ -322,17 +357,10 @@ namespace Zerra.Reflection
                 var isNull = secondaryInterface == null;
                 var contains = interfaceList.Contains(secondaryInterface);
                 if ((!isNull && contains) || isNull)
-                    flags[j] = (short)j;
-            }
-
-            var index = -1;
-            for (var j = 0; j < classList.Count; j++)
-            {
-                if (flags[j] >= 0)
                 {
-                    if (index == -1)
+                    if (found == null)
                     {
-                        index = j;
+                        found = classType;
                     }
                     else
                     {
@@ -343,15 +371,18 @@ namespace Zerra.Reflection
                     }
                 }
             }
-            if (index != -1)
-                return classList[index];
 
-            if (throwException)
-                throw new Exception($"No classes found for {interfaceType.GetNiceName()} with secondary interface type {secondaryInterface.GetNiceName()}");
-            else
-                return null;
+            if (found == null)
+            {
+                if (throwException)
+                    throw new Exception($"No classes found for {interfaceType.GetNiceName()} with secondary interface type {secondaryInterface.GetNiceName()}");
+                else
+                    return null;
+            }
+
+            return found;
         }
-        public static unsafe Type GetImplementationType(Type interfaceType, IReadOnlyList<Type> secondaryInterfaces, int secondaryInterfaceStartIndex, bool throwException = true)
+        public static unsafe Type GetImplementationType(Type interfaceType, IReadOnlyList<Type> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface, bool throwException = true)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
@@ -389,13 +420,52 @@ namespace Zerra.Reflection
 
                 for (var i = 0; i < secondaryInterfaces.Count; i++)
                 {
-                    var isNull = secondaryInterfaces[i] == null;
-                    if ((!isNull && interfaceList.Contains(secondaryInterfaces[i])) || (isNull && !secondaryInterfaces.Contains(interfaceList)))
+                    if (secondaryInterfaces[i] != null)
                     {
-                        levels[j] = (short)i;
-                        if (i >= secondaryInterfaceStartIndex && (i <= firstLevelFound || firstLevelFound == -1))
-                            firstLevelFound = i;
-                        break;
+                        var found = false;
+                        for (var k = 0; k < interfaceList.Count; k++)
+                        {
+                            if (interfaceList[k] == secondaryInterfaces[i])
+                            {
+                                found = true;
+                            }
+                            if (ignoreInterface != null && ignoreInterface == interfaceList[k])
+                            {
+                                found = false;
+                                break;
+                            }
+                        }
+                        if (found)
+                        {
+                            levels[j] = (short)i;
+                            if (i >= secondaryInterfaceStartIndex && (i <= firstLevelFound || firstLevelFound == -1))
+                                firstLevelFound = i;
+                            break;
+                        }
+                    }
+                    else //base provider
+                    {
+                        var found = false;
+                        for (var k = 0; k < interfaceList.Count; k++)
+                        {
+                            if (ignoreInterface != null && ignoreInterface == interfaceList[k])
+                            {
+                                found = true;
+                                break;
+                            }
+                            if (secondaryInterfaces.Contains(interfaceList[k]))
+                            {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found)
+                        {
+                            levels[j] = (short)i;
+                            if (i >= secondaryInterfaceStartIndex && (i <= firstLevelFound || firstLevelFound == -1))
+                                firstLevelFound = i;
+                            break;
+                        }
                     }
                 }
             }
@@ -430,7 +500,7 @@ namespace Zerra.Reflection
             return classList[index];
         }
 
-        public static ICollection<Type> GetImplementationTypes(Type interfaceType)
+        public static IReadOnlyCollection<Type> GetImplementationTypes(Type interfaceType)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
@@ -442,7 +512,7 @@ namespace Zerra.Reflection
 
             return classList;
         }
-        public static unsafe ICollection<Type> GetImplementationTypes(Type interfaceType, Type secondaryInterface)
+        public static IReadOnlyCollection<Type> GetImplementationTypes(Type interfaceType, Type secondaryInterface)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
@@ -454,11 +524,7 @@ namespace Zerra.Reflection
             if (!classByInterface.TryGetValue(interfaceType, out var classList))
                 return Type.EmptyTypes;
 
-            var flags = stackalloc short[classList.Count];
-
-            for (var j = 0; j < classList.Count; j++)
-                flags[j] = -2;
-
+            var list = new List<Type>();
             for (var j = 0; j < classList.Count; j++)
             {
                 var classType = classList[j];
@@ -467,19 +533,14 @@ namespace Zerra.Reflection
 
                 var isNull = secondaryInterface == null;
                 if ((!isNull && interfaceList.Contains(secondaryInterface)) || isNull)
-                    flags[j] = (short)j;
-            }
-
-            var list = new List<Type>();
-            for (var j = 0; j < classList.Count; j++)
-            {
-                if (flags[j] >= 0)
-                    list.Add(classList[j]);
+                {
+                    list.Add(classType);
+                }
             }
 
             return list;
         }
-        public static unsafe ICollection<Type> GetImplementationTypes(Type interfaceType, IReadOnlyList<Type> secondaryInterfaces, int secondaryInterfaceStartIndex)
+        public static unsafe IReadOnlyCollection<Type> GetImplementationTypes(Type interfaceType, IReadOnlyList<Type> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
@@ -512,13 +573,52 @@ namespace Zerra.Reflection
 
                 for (var i = 0; i < secondaryInterfaces.Count; i++)
                 {
-                    var isNull = secondaryInterfaces[i] == null;
-                    if ((!isNull && interfaceList.Contains(secondaryInterfaces[i])) || (isNull && !secondaryInterfaces.Contains(interfaceList)))
+                    if (secondaryInterfaces[i] != null)
                     {
-                        levels[j] = (short)i;
-                        if (i >= secondaryInterfaceStartIndex && (i <= firstLevelFound || firstLevelFound == -1))
-                            firstLevelFound = i;
-                        break;
+                        var found = false;
+                        for (var k = 0; k < interfaceList.Count; k++)
+                        {
+                            if (interfaceList[k] == secondaryInterfaces[i])
+                            {
+                                found = true;
+                            }
+                            if (ignoreInterface != null && ignoreInterface == interfaceList[k])
+                            {
+                                found = false;
+                                break;
+                            }
+                        }
+                        if (found)
+                        {
+                            levels[j] = (short)i;
+                            if (i >= secondaryInterfaceStartIndex && (i <= firstLevelFound || firstLevelFound == -1))
+                                firstLevelFound = i;
+                            break;
+                        }
+                    }
+                    else //base provider
+                    {
+                        var found = false;
+                        for (var k = 0; k < interfaceList.Count; k++)
+                        {
+                            if (ignoreInterface != null && ignoreInterface == interfaceList[k])
+                            {
+                                found = true;
+                                break;
+                            }
+                            if (secondaryInterfaces.Contains(interfaceList[k]))
+                            {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found)
+                        {
+                            levels[j] = (short)i;
+                            if (i >= secondaryInterfaceStartIndex && (i <= firstLevelFound || firstLevelFound == -1))
+                                firstLevelFound = i;
+                            break;
+                        }
                     }
                 }
             }

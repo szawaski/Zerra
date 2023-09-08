@@ -217,7 +217,7 @@ namespace Zerra.CQRS
             var networkTypeField = typeBuilder.DefineField("networkType", typeof(NetworkType), FieldAttributes.Private | FieldAttributes.InitOnly);
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Any, new Type[] { typeof(bool), typeof(NetworkType) });
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Any, new Type[] { typeof(bool), typeof(NetworkType), typeof(string) });
             {
                 constructorBuilder.DefineParameter(0, ParameterAttributes.None, "requireAffirmation");
                 constructorBuilder.DefineParameter(1, ParameterAttributes.None, "networkType");

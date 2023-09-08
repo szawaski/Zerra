@@ -12,6 +12,8 @@ public static class TypeExtensions
     private static readonly ConcurrentFactoryDictionary<Type, string> niceNames = new();
     public static string GetNiceName(this Type it)
     {
+        if (it == null)
+            return "null";
         var niceName = niceNames.GetOrAdd(it, (t) =>
         {
             return GenerateNiceName(t, false);
@@ -22,6 +24,8 @@ public static class TypeExtensions
     private static readonly ConcurrentFactoryDictionary<Type, string> niceFullNames = new();
     public static string GetNiceFullName(this Type it)
     {
+        if (it == null)
+            return "null";
         var niceFullName = niceFullNames.GetOrAdd(it, (t) =>
         {
             return GenerateNiceName(t, true);

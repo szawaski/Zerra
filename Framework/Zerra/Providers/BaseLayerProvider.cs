@@ -29,10 +29,9 @@ namespace Zerra.Providers
                     {
                         if (this.nextProvider == null)
                         {
-                            if (!ProviderResolver.TryGetNext(this.GetType(), out nextProvider))
-                            {
+                            nextProvider = ProviderResolver.GetNext<TProvider>(this.GetType());
+                            if (nextProvider == null)
                                 this.nextProvider = EmptyImplementations.GetEmptyImplementation<TProvider>();
-                            }
                         }
                     }
                 }

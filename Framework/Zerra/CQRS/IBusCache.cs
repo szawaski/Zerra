@@ -5,9 +5,11 @@
 
 #pragma warning disable IDE1006 // Naming Styles
 
+using Zerra.Providers;
+
 namespace Zerra.CQRS
 {
-    public interface IBusCache
+    public interface IBusCache : IIgnoreProviderResolver
     {
 
     }

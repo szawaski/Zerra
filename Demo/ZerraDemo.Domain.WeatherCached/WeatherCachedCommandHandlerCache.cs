@@ -9,8 +9,8 @@ namespace ZerraDemo.Domain.WeatherCached
     {
         public async Task Handle(SetWeatherCachedCommand command)
         {
-            WeatherCachedServerCache.Model = null;
             await NextProvider.Handle(command);
+            WeatherCachedServerCache.Model = null;
         }
     }
 }
