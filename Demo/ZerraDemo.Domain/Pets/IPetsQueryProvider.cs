@@ -8,7 +8,7 @@ using ZerraDemo.Domain.Pets.Models;
 namespace ZerraDemo.Domain.Pets
 {
     [ServiceExposed]
-    public interface IPetsQueryProvider : IBaseProvider
+    public interface IPetsQueryProvider
     {
         Task<ICollection<SpeciesModel>> GetSpecies();
         Task<ICollection<BreedModel>> GetBreeds(Guid speciesID);

@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "ZerraDemo.Service.Weather": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Dev"
+      }
+    }
+  }
+}

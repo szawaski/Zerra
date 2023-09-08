@@ -22,7 +22,6 @@ namespace Zerra.CQRS
         private static readonly MethodInfo getTypeMethod = typeof(object).GetMethod(nameof(Object.GetType));
         private static readonly MethodInfo typeofMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle));
 
-        private static readonly Type baseProviderType = typeof(IBaseProvider);
         private static readonly MethodInfo callInternalMethodNonGeneric = typeof(Bus).GetMethod(nameof(Bus._CallMethod), BindingFlags.Static | BindingFlags.Public);
         private static readonly ConcurrentFactoryDictionary<Type, Type> callerClasses = new();
         public static object GetProviderToCallMethodInternalInstance(Type interfaceType, NetworkType networkType, string source)
@@ -39,28 +38,18 @@ namespace Zerra.CQRS
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
 
-            var inheritsBaseProvider = false;
             var methods = new List<MethodInfo>();
-            var notSupportedMethods = new List<MethodInfo>();
+            //var notSupportedMethods = new List<MethodInfo>();
             methods.AddRange(interfaceType.GetMethods());
             foreach (var @interface in interfaceType.GetInterfaces())
             {
-                if (!inheritsBaseProvider && @interface == baseProviderType)
-                    inheritsBaseProvider = true;
-                if (@interface.GetInterfaces().Contains(baseProviderType))
-                    methods.AddRange(@interface.GetMethods());
-                else
-                    notSupportedMethods.AddRange(@interface.GetMethods());
+                methods.AddRange(@interface.GetMethods());
             }
-
-            if (!inheritsBaseProvider)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} does not inherit {baseProviderType.GetNiceName()}");
 
             var typeSignature = interfaceType.Name + "_Caller";
 
             var moduleBuilder = GeneratedAssembly.GetModuleBuilder();
             var typeBuilder = moduleBuilder.DefineType(typeSignature, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AutoLayout | TypeAttributes.Sealed, null);
-
 
             typeBuilder.AddInterfaceImplementation(interfaceType);
 
@@ -158,36 +147,36 @@ namespace Zerra.CQRS
                 typeBuilder.DefineMethodOverride(methodBuilder, method);
             }
 
-            foreach (var method in notSupportedMethods)
-            {
-                var methodName = method.Name;
-                var returnType = method.ReturnType;
-                var parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
+            //foreach (var method in notSupportedMethods)
+            //{
+            //    var methodName = method.Name;
+            //    var returnType = method.ReturnType;
+            //    var parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
 
-                var voidMethod = false;
-                if (returnType.Name == "Void")
-                {
-                    returnType = typeof(object);
-                    voidMethod = true;
-                }
+            //    var voidMethod = false;
+            //    if (returnType.Name == "Void")
+            //    {
+            //        returnType = typeof(object);
+            //        voidMethod = true;
+            //    }
 
-                var methodBuilder = typeBuilder.DefineMethod(
-                    methodName,
-                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
-                    CallingConventions.HasThis,
-                    voidMethod ? null : returnType,
-                    parameterTypes);
-                methodBuilder.SetImplementationFlags(MethodImplAttributes.Managed);
+            //    var methodBuilder = typeBuilder.DefineMethod(
+            //        methodName,
+            //        MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
+            //        CallingConventions.HasThis,
+            //        voidMethod ? null : returnType,
+            //        parameterTypes);
+            //    methodBuilder.SetImplementationFlags(MethodImplAttributes.Managed);
 
-                var il = methodBuilder.GetILGenerator();
+            //    var il = methodBuilder.GetILGenerator();
 
-                il.Emit(OpCodes.Nop);
-                il.Emit(OpCodes.Ldstr, $"Interface method does not inherit {baseProviderType.Name}");
-                il.Emit(OpCodes.Newobj, notSupportedExceptionConstructor);
-                il.Emit(OpCodes.Throw);
+            //    il.Emit(OpCodes.Nop);
+            //    il.Emit(OpCodes.Ldstr, $"Interface method does not inherit {baseProviderType.Name}");
+            //    il.Emit(OpCodes.Newobj, notSupportedExceptionConstructor);
+            //    il.Emit(OpCodes.Throw);
 
-                typeBuilder.DefineMethodOverride(methodBuilder, method);
-            }
+            //    typeBuilder.DefineMethodOverride(methodBuilder, method);
+            //}
 
             Type objectType = typeBuilder.CreateTypeInfo();
             return objectType;
@@ -210,21 +199,12 @@ namespace Zerra.CQRS
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
 
-            var inheritsBaseProvider = false;
             var methods = new List<MethodInfo>();
-            var notSupportedMethods = new List<MethodInfo>();
+            //var notSupportedMethods = new List<MethodInfo>();
             foreach (var @interface in interfaceType.GetInterfaces())
             {
-                if (!inheritsBaseProvider && @interface == baseProviderType)
-                    inheritsBaseProvider = true;
-                if (@interface.Name == commandHandlerType.Name)
-                    methods.AddRange(@interface.GetMethods());
-                else
-                    notSupportedMethods.AddRange(@interface.GetMethods());
+                methods.AddRange(@interface.GetMethods());
             }
-
-            if (!inheritsBaseProvider)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} does not inherit {baseProviderType.GetNiceName()}");
 
             var typeSignature = interfaceType.Name + "_CommandDispatcher";
 
@@ -307,28 +287,28 @@ namespace Zerra.CQRS
                 typeBuilder.DefineMethodOverride(methodBuilder, method);
             }
 
-            foreach (var method in notSupportedMethods)
-            {
-                var methodName = method.Name;
-                var parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
+            //foreach (var method in notSupportedMethods)
+            //{
+            //    var methodName = method.Name;
+            //    var parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
 
-                var methodBuilder = typeBuilder.DefineMethod(
-                    methodName,
-                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
-                    CallingConventions.HasThis,
-                    taskType,
-                    parameterTypes);
-                methodBuilder.SetImplementationFlags(MethodImplAttributes.Managed);
+            //    var methodBuilder = typeBuilder.DefineMethod(
+            //        methodName,
+            //        MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
+            //        CallingConventions.HasThis,
+            //        taskType,
+            //        parameterTypes);
+            //    methodBuilder.SetImplementationFlags(MethodImplAttributes.Managed);
 
-                var il = methodBuilder.GetILGenerator();
+            //    var il = methodBuilder.GetILGenerator();
 
-                il.Emit(OpCodes.Nop);
-                il.Emit(OpCodes.Ldstr, $"Interface method does not inherit {commandHandlerType.Name}");
-                il.Emit(OpCodes.Newobj, notSupportedExceptionConstructor);
-                il.Emit(OpCodes.Throw);
+            //    il.Emit(OpCodes.Nop);
+            //    il.Emit(OpCodes.Ldstr, $"Interface method does not inherit {commandHandlerType.Name}");
+            //    il.Emit(OpCodes.Newobj, notSupportedExceptionConstructor);
+            //    il.Emit(OpCodes.Throw);
 
-                typeBuilder.DefineMethodOverride(methodBuilder, method);
-            }
+            //    typeBuilder.DefineMethodOverride(methodBuilder, method);
+            //}
 
             Type objectType = typeBuilder.CreateTypeInfo();
             return objectType;
@@ -353,19 +333,11 @@ namespace Zerra.CQRS
 
             var inheritsBaseProvider = false;
             var methods = new List<MethodInfo>();
-            var notSupportedMethods = new List<MethodInfo>();
+            //var notSupportedMethods = new List<MethodInfo>();
             foreach (var @interface in interfaceType.GetInterfaces())
             {
-                if (!inheritsBaseProvider && @interface == baseProviderType)
-                    inheritsBaseProvider = true;
-                if (@interface.Name == eventHandlerType.Name)
-                    methods.AddRange(@interface.GetMethods());
-                else
-                    notSupportedMethods.AddRange(@interface.GetMethods());
+                methods.AddRange(@interface.GetMethods());
             }
-
-            if (!inheritsBaseProvider)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} does not inherit {baseProviderType.GetNiceName()}");
 
             var typeSignature = interfaceType.Name + "_EventDispatcher";
 
@@ -440,28 +412,28 @@ namespace Zerra.CQRS
                 typeBuilder.DefineMethodOverride(methodBuilder, method);
             }
 
-            foreach (var method in notSupportedMethods)
-            {
-                var methodName = method.Name;
-                var parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
+            //foreach (var method in notSupportedMethods)
+            //{
+            //    var methodName = method.Name;
+            //    var parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
 
-                var methodBuilder = typeBuilder.DefineMethod(
-                    methodName,
-                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
-                    CallingConventions.HasThis,
-                    taskType,
-                    parameterTypes);
-                methodBuilder.SetImplementationFlags(MethodImplAttributes.Managed);
+            //    var methodBuilder = typeBuilder.DefineMethod(
+            //        methodName,
+            //        MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
+            //        CallingConventions.HasThis,
+            //        taskType,
+            //        parameterTypes);
+            //    methodBuilder.SetImplementationFlags(MethodImplAttributes.Managed);
 
-                var il = methodBuilder.GetILGenerator();
+            //    var il = methodBuilder.GetILGenerator();
 
-                il.Emit(OpCodes.Nop);
-                il.Emit(OpCodes.Ldstr, $"Interface method does not inherit {eventHandlerType.Name}");
-                il.Emit(OpCodes.Newobj, notSupportedExceptionConstructor);
-                il.Emit(OpCodes.Throw);
+            //    il.Emit(OpCodes.Nop);
+            //    il.Emit(OpCodes.Ldstr, $"Interface method does not inherit {eventHandlerType.Name}");
+            //    il.Emit(OpCodes.Newobj, notSupportedExceptionConstructor);
+            //    il.Emit(OpCodes.Throw);
 
-                typeBuilder.DefineMethodOverride(methodBuilder, method);
-            }
+            //    typeBuilder.DefineMethodOverride(methodBuilder, method);
+            //}
 
             Type objectType = typeBuilder.CreateTypeInfo();
             return objectType;

@@ -63,6 +63,12 @@ const WeatherModelType =
     WeatherType: "string",
 }
 
+const WeatherCachedModelType =
+{
+    Date: "Date",
+    WeatherType: "string",
+}
+
 const ModelTypeDictionary =
 {
     Balance1Model: Balance1ModelType,
@@ -73,6 +79,7 @@ const ModelTypeDictionary =
     BreedModel: BreedModelType,
     PetModel: PetModelType,
     WeatherModel: WeatherModelType,
+    WeatherCachedModel: WeatherCachedModelType,
 }
 
 const ILedger1QueryProvider = {
@@ -126,6 +133,15 @@ const IWeatherQueryProvider = {
     },
     TestStreams: function(onComplete, onFail) {
         Bus.Call("IWeatherQueryProvider", "TestStreams", [], null, false, onComplete, onFail);
+    },
+}
+
+const IWeatherCachedQueryProvider = {
+    GetWeather: function(onComplete, onFail) {
+        Bus.Call("IWeatherCachedQueryProvider", "GetWeather", [], WeatherCachedModelType, false, onComplete, onFail);
+    },
+    TestStreams: function(onComplete, onFail) {
+        Bus.Call("IWeatherCachedQueryProvider", "TestStreams", [], null, false, onComplete, onFail);
     },
 }
 
@@ -194,5 +210,10 @@ const LetPetOutToPoopCommand = function(properties) {
 const SetWeatherCommand = function(properties) {
     this.WeatherType = (properties === undefined || properties.WeatherType === undefined) ? null : properties.WeatherType;
     this.CommandType = "SetWeatherCommand";
+}
+
+const SetWeatherCachedCommand = function(properties) {
+    this.WeatherType = (properties === undefined || properties.WeatherType === undefined) ? null : properties.WeatherType;
+    this.CommandType = "SetWeatherCachedCommand";
 }
 

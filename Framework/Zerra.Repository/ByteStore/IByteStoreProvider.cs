@@ -8,7 +8,7 @@ using Zerra.Providers;
 
 namespace Zerra.Repository
 {
-    public interface IByteStoreProvider : IBaseProvider
+    public interface IByteStoreProvider
     {
         Stream Get(string name);
         void Save(string name, Stream stream);

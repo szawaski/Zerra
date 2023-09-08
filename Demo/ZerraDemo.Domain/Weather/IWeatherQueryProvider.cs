@@ -7,7 +7,7 @@ using ZerraDemo.Domain.Weather.Models;
 namespace ZerraDemo.Domain.Weather
 {
     [ServiceExposed]
-    public interface IWeatherQueryProvider : IBaseProvider
+    public interface IWeatherQueryProvider
     {
         Task<WeatherModel> GetWeather();
         Task<Stream> TestStreams();

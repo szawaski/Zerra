@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
-using ZerraDemo.Domain.Weather.Commands;
 using ZerraDemo.Common;
+using ZerraDemo.Domain.Weather.Commands;
 
 namespace ZerraDemo.Domain.Weather
 {

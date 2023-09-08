@@ -2,10 +2,13 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-namespace Zerra.Providers
+
+#pragma warning disable IDE1006 // Naming Styles
+
+namespace Zerra.CQRS
 {
-    public interface IBaseProvider
+    public interface IBusCache
     {
-        
+
     }
 }

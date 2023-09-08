@@ -9,7 +9,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Repository
 {
-    public sealed class ByteStoreProvider<TContext> : IBaseProvider, IByteStoreProvider
+    public sealed class ByteStoreProvider<TContext> : IByteStoreProvider
         where TContext : DataContext
     {
         private readonly IByteStoreEngine Engine;

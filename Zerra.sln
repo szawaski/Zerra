@@ -83,6 +83,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.CQRS.AzureEventHub", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.CQRS.AzureServiceBus", "Framework\Zerra.CQRS.AzureServiceBus\Zerra.CQRS.AzureServiceBus.csproj", "{65050FBF-3B26-4E3B-806B-5B3972542088}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "WeatherCached", "WeatherCached", "{A48F5A43-E155-4F4B-8B0E-F869F7C956D4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZerraDemo.Service.WeatherCached", "Demo\ZerraDemo.Service.WeatherCached\ZerraDemo.Service.WeatherCached.csproj", "{AE597B16-0DDC-4C1A-83E0-D58A06AACC57}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZerraDemo.Domain.WeatherCached", "Demo\ZerraDemo.Domain.WeatherCached\ZerraDemo.Domain.WeatherCached.csproj", "{DBD1D4A4-4F47-4891-B781-29B05FD240C6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -221,6 +227,14 @@ Global
 		{65050FBF-3B26-4E3B-806B-5B3972542088}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{65050FBF-3B26-4E3B-806B-5B3972542088}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{65050FBF-3B26-4E3B-806B-5B3972542088}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE597B16-0DDC-4C1A-83E0-D58A06AACC57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE597B16-0DDC-4C1A-83E0-D58A06AACC57}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE597B16-0DDC-4C1A-83E0-D58A06AACC57}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE597B16-0DDC-4C1A-83E0-D58A06AACC57}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DBD1D4A4-4F47-4891-B781-29B05FD240C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBD1D4A4-4F47-4891-B781-29B05FD240C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBD1D4A4-4F47-4891-B781-29B05FD240C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBD1D4A4-4F47-4891-B781-29B05FD240C6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -264,6 +278,9 @@ Global
 		{1685E021-CBB1-4852-B692-C61C0FD7198F} = {B461985F-1828-471F-AD8D-3EFC282A2F57}
 		{2063D27C-4092-4539-AB48-2CB57793DD05} = {B461985F-1828-471F-AD8D-3EFC282A2F57}
 		{65050FBF-3B26-4E3B-806B-5B3972542088} = {B461985F-1828-471F-AD8D-3EFC282A2F57}
+		{A48F5A43-E155-4F4B-8B0E-F869F7C956D4} = {7C2A81E7-3627-44C9-A145-DBAE3512D0C2}
+		{AE597B16-0DDC-4C1A-83E0-D58A06AACC57} = {A48F5A43-E155-4F4B-8B0E-F869F7C956D4}
+		{DBD1D4A4-4F47-4891-B781-29B05FD240C6} = {A48F5A43-E155-4F4B-8B0E-F869F7C956D4}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1918A883-4E9E-4435-9C14-C86EBD3A3ACE}

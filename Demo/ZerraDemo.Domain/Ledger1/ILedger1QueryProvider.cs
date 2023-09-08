@@ -8,7 +8,7 @@ using ZerraDemo.Domain.Ledger1.Models;
 namespace ZerraDemo.Domain.Ledger1
 {
     [ServiceExposed]
-    public interface ILedger1QueryProvider : IBaseProvider
+    public interface ILedger1QueryProvider
     {
         Task<bool> HasBalance(Guid accountID);
         Task<Balance1Model> GetBalance(Guid accountID);

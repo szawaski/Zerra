@@ -16,7 +16,7 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
-    public abstract partial class RootTransactStoreProvider<TModel> : IBaseProvider, ITransactStoreProvider<TModel>, IProviderRelation<TModel>
+    public abstract partial class RootTransactStoreProvider<TModel> : ITransactStoreProvider<TModel>, IProviderRelation<TModel>
         where TModel : class, new()
     {
         protected static readonly Type modelType = typeof(TModel);

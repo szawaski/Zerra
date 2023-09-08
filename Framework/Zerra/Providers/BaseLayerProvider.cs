@@ -7,14 +7,19 @@ using Zerra.Reflection;
 
 namespace Zerra.Providers
 {
-    public abstract class BaseLayerProvider<TNextProviderInterface> : IBaseProvider
-        where TNextProviderInterface : IBaseProvider
+    public abstract class BaseLayerProvider<TProvider>
     {
-        private static readonly Type InterfaceType = typeof(TNextProviderInterface);
+        private static readonly Type InterfaceType = typeof(TProvider);
+
+        static BaseLayerProvider()
+        {
+            if (!InterfaceType.IsInterface)
+                throw new Exception($"{nameof(BaseLayerProvider<TProvider>)} must have a generic argument that is an interface, {InterfaceType.Name} is not an interface");
+        }
 
         private readonly object locker = new();
-        private TNextProviderInterface nextProvider;
-        protected TNextProviderInterface NextProvider
+        private TProvider nextProvider;
+        protected TProvider NextProvider
         {
             get
             {
@@ -24,11 +29,9 @@ namespace Zerra.Providers
                     {
                         if (this.nextProvider == null)
                         {
-                            var highestStackInterface = ProviderLayers.GetHighestProviderInterface(this.GetType());
-                            var nextInterfaceType = ProviderLayers.GetProviderInterfaceLayerAfter(highestStackInterface);
-                            if (!ProviderResolver.TryGet(nextInterfaceType, out nextProvider))
+                            if (!ProviderResolver.TryGetNext(this.GetType(), out nextProvider))
                             {
-                                this.nextProvider = EmptyImplementations.GetEmptyImplementation<TNextProviderInterface>();
+                                this.nextProvider = EmptyImplementations.GetEmptyImplementation<TProvider>();
                             }
                         }
                     }
@@ -37,7 +40,7 @@ namespace Zerra.Providers
             }
         }
 
-        public void SetNextProvider(TNextProviderInterface provider)
+        public void SetNextProvider(TProvider provider)
         {
             lock (locker)
             {

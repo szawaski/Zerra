@@ -1,0 +1,52 @@
+﻿@{
+    ViewData["Title"] = "Weather Cached";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Weather Cached</h1>
+</div>
+<div id="weather">
+    <div class="form-group">
+        <select class="form-control" v-model="weatherType">
+            <option>Sunny</option>
+            <option>OhioGraySkies</option>
+            <option>Cloudy</option>
+            <option>Windy</option>
+            <option>Rain</option>
+            <option>Snow</option>
+            <option>Hail</option>
+            <option>Tornado</option>
+            <option>Hurricane</option>
+            <option>Asteroid</option>
+            <option>Sharks</option>
+        </select>
+    </div>
+    <button class="btn btn-primary" v-on:click="setWeather">Set Weather</button>
+</div>
+
+@section Scripts{
+    <script type="text/javascript">
+        $(function () {
+            const weatherVue = new Vue({
+                el: "#weather",
+                data: {
+                    weatherType: null
+                },
+                methods: {
+                    setWeather: function () {
+                        const command = new SetWeatherCachedCommand({
+                            WeatherType: this.weatherType
+                        });
+                       Bus.Dispatch(command, function () {
+                            window.location = "/";
+                        });
+                    }
+                }
+            })
+
+            IWeatherCachedQueryProvider.GetWeather(function (models) {
+                weatherVue.weatherType = models.WeatherType;
+            });
+        });
+    </script>
+}

@@ -148,7 +148,7 @@ namespace Zerra.TestDev
         }
 
 
-        public interface ICallThings : IBaseProvider
+        public interface ICallThings
         {
             Task GetThings(int stuff);
         }
@@ -165,7 +165,7 @@ namespace Zerra.TestDev
 
             public Task GetThings(int stuff)
             {
-                return Bus._CallMethod<ICallThings, Task>(typeof(ICallThings), "GetThings", new object[] { stuff }, networkType, source);
+                return Bus._CallMethod<Task>(typeof(ICallThings), "GetThings", new object[] { stuff }, networkType, source);
             }
         }
     }

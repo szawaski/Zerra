@@ -7,7 +7,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Repository
 {
-    public abstract class BaseEventStoreContextProvider<TContext, TModel> : IBaseProvider, IAggregateRootContextProvider<TModel>
+    public abstract class BaseEventStoreContextProvider<TContext, TModel> : IAggregateRootContextProvider<TModel>
         where TContext : DataContext
         where TModel : AggregateRoot
     {
