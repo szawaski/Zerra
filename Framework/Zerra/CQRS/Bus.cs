@@ -1165,8 +1165,10 @@ namespace Zerra.CQRS
                             {
                                 if (!eventType.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute))
                                     continue;
-                                if (eventProducers.ContainsKey(eventType))
-                                    throw new InvalidOperationException($"Cannot add Event Producer: Event Producer already registered for type {eventType.GetNiceName()}");
+                                //multiple services handle events
+                                //TODO do we need different encryption keys for events, commands, and queries??
+                                //if (eventProducers.ContainsKey(eventType))
+                                //    throw new InvalidOperationException($"Cannot add Event Producer: Event Producer already registered for type {eventType.GetNiceName()}");
                                 _ = eventProducers.TryAdd(eventType, eventProducer);
                             }
                         }
