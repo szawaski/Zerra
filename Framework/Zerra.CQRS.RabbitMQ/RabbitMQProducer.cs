@@ -122,7 +122,7 @@ namespace Zerra.CQRS.RabbitMQ
                             var acknowledgementBody = e.Body.Span;
                             if (symmetricConfig != null)
                                 acknowledgementBody = SymmetricEncryptor.Decrypt(symmetricConfig, acknowledgementBody);
-                            
+
                             var affirmation = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
 
                             if (!affirmation.Success)

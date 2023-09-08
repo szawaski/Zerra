@@ -1,6 +1,8 @@
 ﻿using System;
 using Zerra;
 using Zerra.CQRS;
+using Zerra.CQRS.Kafka;
+using Zerra.CQRS.RabbitMQ;
 using Zerra.CQRS.Settings;
 using Zerra.Logger;
 
@@ -18,29 +20,27 @@ namespace ZerraDemo.Common
 
             var serviceSettings = CQRSSettings.Get(settingsName);
 
-            serviceSettings.SetMessageHost(Config.GetSetting("MessageHost"));
-
             //Enable one of the following service options
             //----------------------------------------------------------
 
             //Option1A: Enable this for Tcp for backend only services
-            var serviceCreator = new TcpServiceCreator();
+            IServiceCreator serviceCreator = new TcpServiceCreator();
 
             //Option1B: Enable this for Http which can be access directly from a front end
             //var authorizer = new DemoCookieApiAuthorizer();
             //var serviceCreator = new HttpServiceCreator(authorizer, null);
 
             //Option1C: Enable this using RabbitMQ for event streaming commands/events
-            //var serviceCreator = new RabbitMQServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal);
+            serviceCreator = new RabbitMQServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
 
             //Option1D: Enable this using Kafka for event streaming commands/events
-            //var serviceCreator = new KafkaServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal);
+            //serviceCreator = new KafkaServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
 
             //Option1E: Enable this using Azure Event Hub for event streaming commands/events
-            //var serviceCreator = new AzureEventHubServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal);
+            //serviceCreator = new AzureEventHubServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
 
             //Option1F: Enable this using Azure Service Bus for event streaming commands/events
-            //var serviceCreator = new AzureServiceBusServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal, Config.EnvironmentName);
+            //serviceCreator = new AzureServiceBusServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
 
             //Enable one of the following routing options
             //----------------------------------------------------------

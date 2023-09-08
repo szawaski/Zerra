@@ -8,6 +8,7 @@ using Zerra.CQRS;
 using Zerra.CQRS.Settings;
 using Zerra.Logger;
 using Zerra.Web;
+using ZerraDemo.Common;
 using ZerraDemo.Web.Components;
 
 namespace ZerraDemo.Web
@@ -40,10 +41,7 @@ namespace ZerraDemo.Web
 
             _ = app.UseCustomAuthentication();
 
-            var serviceSettings = CQRSSettings.Get(Config.EntryAssemblyName);
-            var serviceCreator = new TcpServiceCreator();
-            Bus.AddLogger(new BusLoggingProvider());
-            Bus.StartServices(serviceSettings, serviceCreator);
+            ServiceManager.StartServices();
 
             _ = app.UseCQRSGateway();
 
