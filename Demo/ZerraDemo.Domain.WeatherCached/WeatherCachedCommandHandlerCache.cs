@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Zerra.Providers;
+using Zerra.CQRS;
 using ZerraDemo.Domain.WeatherCached.Commands;
 
 namespace ZerraDemo.Domain.WeatherCached

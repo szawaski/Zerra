@@ -34,7 +34,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 else
                     this.topic = type.GetNiceName().Truncate(AzureServiceBusCommon.TopicMaxLength);
 
-                this.subscription = $"EVENT-{Guid.NewGuid().ToString("N")}";
+                this.subscription = $"EVENT-{Guid.NewGuid():N}";
                 this.symmetricConfig = symmetricConfig;
                 this.canceller = new CancellationTokenSource();
             }

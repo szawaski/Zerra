@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using ZerraDemo.Domain.WeatherCached.Models;
 using Zerra.Providers;
+using Zerra.CQRS;
 
 namespace ZerraDemo.Domain.WeatherCached
 {

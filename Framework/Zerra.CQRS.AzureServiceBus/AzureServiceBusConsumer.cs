@@ -31,7 +31,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
         public string ServiceUrl => host;
 
-        private static readonly ServiceBusReceiverOptions receiverOptions = new ServiceBusReceiverOptions()
+        private static readonly ServiceBusReceiverOptions receiverOptions = new()
         {
             ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete,
         };

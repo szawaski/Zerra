@@ -9,7 +9,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading.Tasks;
 using Zerra.Collections;
-using Zerra.Providers;
 using Zerra.Reflection;
 
 namespace Zerra.CQRS
@@ -18,7 +17,7 @@ namespace Zerra.CQRS
     {
         private static readonly Type taskType = typeof(Task);
         private static readonly ConstructorInfo notSupportedExceptionConstructor = typeof(NotSupportedException).GetConstructor(new Type[] { typeof(string) });
-        private static readonly ConstructorInfo objectConstructor = typeof(object).GetConstructor(new Type[0]);
+        private static readonly ConstructorInfo objectConstructor = typeof(object).GetConstructor(Array.Empty<Type>());
         private static readonly MethodInfo getTypeMethod = typeof(object).GetMethod(nameof(Object.GetType));
         private static readonly MethodInfo typeofMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle));
 
@@ -331,7 +330,6 @@ namespace Zerra.CQRS
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
 
-            var inheritsBaseProvider = false;
             var methods = new List<MethodInfo>();
             //var notSupportedMethods = new List<MethodInfo>();
             foreach (var @interface in interfaceType.GetInterfaces())
