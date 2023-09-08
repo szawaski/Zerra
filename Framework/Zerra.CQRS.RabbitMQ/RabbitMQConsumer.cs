@@ -19,8 +19,8 @@ namespace Zerra.CQRS.RabbitMQ
         private readonly string host;
         private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
-        private readonly List<CommandComsumer> commandExchanges;
-        private readonly List<EventComsumer> eventExchanges;
+        private readonly List<CommandConsumer> commandExchanges;
+        private readonly List<EventConsumer> eventExchanges;
 
         private IConnection connection = null;
         private HandleRemoteCommandDispatch commandHandlerAsync = null;
@@ -34,8 +34,8 @@ namespace Zerra.CQRS.RabbitMQ
             this.host = host;
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
-            this.commandExchanges = new List<CommandComsumer>();
-            this.eventExchanges = new List<EventComsumer>();
+            this.commandExchanges = new List<CommandConsumer>();
+            this.eventExchanges = new List<EventConsumer>();
         }
 
         void ICommandConsumer.SetHandler(HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
@@ -135,7 +135,7 @@ namespace Zerra.CQRS.RabbitMQ
         {
             lock (commandExchanges)
             {
-                commandExchanges.Add(new CommandComsumer(type, symmetricConfig, environment));
+                commandExchanges.Add(new CommandConsumer(type, symmetricConfig, environment));
                 OpenExchanges();
             }
         }
@@ -148,7 +148,7 @@ namespace Zerra.CQRS.RabbitMQ
         {
             lock (eventExchanges)
             {
-                eventExchanges.Add(new EventComsumer(type, symmetricConfig, environment));
+                eventExchanges.Add(new EventConsumer(type, symmetricConfig, environment));
                 OpenExchanges();
             }
         }

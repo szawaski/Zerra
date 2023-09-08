@@ -16,7 +16,7 @@ namespace Zerra.CQRS.RabbitMQ
 {
     public sealed partial class RabbitMQConsumer
     {
-        private sealed class EventComsumer : IDisposable
+        private sealed class EventConsumer : IDisposable
         {
             public Type Type { get; private set; }
             public bool IsOpen { get; private set; }
@@ -27,7 +27,7 @@ namespace Zerra.CQRS.RabbitMQ
             private IModel channel = null;
             private readonly CancellationTokenSource canceller;
 
-            public EventComsumer(Type type, SymmetricConfig symmetricConfig, string environment)
+            public EventConsumer(Type type, SymmetricConfig symmetricConfig, string environment)
             {
                 this.Type = type;
                 if (!String.IsNullOrWhiteSpace(environment))
@@ -35,6 +35,7 @@ namespace Zerra.CQRS.RabbitMQ
                 else
                     this.topic = type.GetNiceName().Truncate(RabbitMQCommon.TopicMaxLength);
                 this.symmetricConfig = symmetricConfig;
+                this.canceller = new CancellationTokenSource();
             }
 
             public void Open(IConnection connection, HandleRemoteEventDispatch handlerAsync)

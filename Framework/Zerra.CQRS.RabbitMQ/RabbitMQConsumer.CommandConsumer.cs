@@ -16,7 +16,7 @@ namespace Zerra.CQRS.RabbitMQ
 {
     public sealed partial class RabbitMQConsumer
     {
-        private sealed class CommandComsumer : IDisposable
+        private sealed class CommandConsumer : IDisposable
         {
             public Type Type { get; private set; }
             public bool IsOpen { get; private set; }
@@ -27,7 +27,7 @@ namespace Zerra.CQRS.RabbitMQ
             private IModel channel = null;
             private readonly CancellationTokenSource canceller;
 
-            public CommandComsumer(Type type, SymmetricConfig symmetricConfig, string environment)
+            public CommandConsumer(Type type, SymmetricConfig symmetricConfig, string environment)
             {
                 this.Type = type;
                 this.Type = type;

@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFrameworks>net5.0;net6.0;net7.0</TargetFrameworks>
+        <CheckEolTargetFramework>false</CheckEolTargetFramework>
         <Authors>Steven Zawaski</Authors>
         <Copyright>KaKush LLC</Copyright>
         <Product>Zerra Framework CQRS Rabbit Message</Product>
@@ -21,7 +22,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="RabbitMQ.Client" Version="6.5.0" />
+        <PackageReference Include="RabbitMQ.Client" Version="6.4.0" />
     </ItemGroup>
 
     <ItemGroup>
