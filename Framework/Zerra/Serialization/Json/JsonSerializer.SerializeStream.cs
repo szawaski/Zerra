@@ -349,7 +349,7 @@ namespace Zerra.Serialization
             }
         }
 
-        private static WriteFrame CreateWriteFrame(TypeDetail typeDetail, object obj, Graph? graph = null)
+        private static WriteFrame CreateWriteFrame(TypeDetail typeDetail, object obj, Graph graph = null)
         {
             if (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable && obj != null)
             {
