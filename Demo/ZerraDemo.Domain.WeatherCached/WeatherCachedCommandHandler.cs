@@ -1,6 +1,8 @@
 ﻿using System.Threading.Tasks;
+using Zerra.CQRS;
 using ZerraDemo.Common;
 using ZerraDemo.Domain.WeatherCached.Commands;
+using ZerraDemo.Domain.WeatherCached.Events;
 
 namespace ZerraDemo.Domain.WeatherCached
 {
@@ -11,6 +13,8 @@ namespace ZerraDemo.Domain.WeatherCached
             Access.CheckRole("Admin");
 
             await WeatherCachedServer.SetWeather(command.WeatherType);
+
+            await Bus.DispatchAsync(new WeatherChangedEvent() { WeatherType = command.WeatherType });
         }
     }
 }

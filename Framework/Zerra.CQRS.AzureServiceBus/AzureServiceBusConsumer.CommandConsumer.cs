@@ -24,7 +24,7 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly string subscription;
             private readonly SymmetricConfig symmetricConfig;
 
-            private CancellationTokenSource canceller = null;
+            private readonly CancellationTokenSource canceller = null;
 
             public CommandConsumer(Type type, SymmetricConfig symmetricConfig, string environment)
             {
@@ -36,6 +36,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 this.subscription = applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength);
                 this.symmetricConfig = symmetricConfig;
+                this.canceller = new CancellationTokenSource();
             }
 
             public void Open(string host, ServiceBusClient client, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
@@ -48,8 +49,6 @@ namespace Zerra.CQRS.AzureServiceBus
 
             private async Task ListeningThread(string host, ServiceBusClient client, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
-                canceller = new CancellationTokenSource();
-
             retry:
 
                 try
@@ -57,14 +56,13 @@ namespace Zerra.CQRS.AzureServiceBus
                     await AzureServiceBusCommon.EnsureTopic(host, topic, false);
                     await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription, false);
 
-                    await using (var receiver = client.CreateReceiver(topic, subscription))
+                    await using (var receiver = client.CreateReceiver(topic, subscription, receiverOptions))
                     {
                         for (; ; )
                         {
                             var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
                             if (serviceBusMessage == null)
                                 continue;
-                            await receiver.CompleteMessageAsync(serviceBusMessage);
 
                             _ = HandleMessage(client, serviceBusMessage, handlerAsync, handlerAwaitAsync);
 
@@ -82,8 +80,6 @@ namespace Zerra.CQRS.AzureServiceBus
                         goto retry;
                     }
                 }
-                canceller.Dispose();
-                IsOpen = false;
             }
 
             private async Task HandleMessage(ServiceBusClient client, ServiceBusReceivedMessage serviceBusMessage, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
@@ -162,8 +158,8 @@ namespace Zerra.CQRS.AzureServiceBus
 
             public void Dispose()
             {
-                if (canceller != null)
-                    canceller.Cancel();
+                canceller.Cancel();
+                canceller.Dispose();
             }
         }
     }

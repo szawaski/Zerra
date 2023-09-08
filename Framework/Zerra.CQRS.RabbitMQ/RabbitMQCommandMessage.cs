@@ -8,5 +8,6 @@ namespace Zerra.CQRS.RabbitMQ
     {
         public ICommand Message { get; set; }
         public string[][] Claims { get; set; }
+        public string Source { get; set; }
     }
 }

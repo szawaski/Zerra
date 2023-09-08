@@ -21,11 +21,11 @@ namespace Zerra.CQRS.RabbitMQ
             public Type Type { get; private set; }
             public bool IsOpen { get; private set; }
 
-            public readonly string topic;
+            private readonly string topic;
             private readonly SymmetricConfig symmetricConfig;
 
             private IModel channel = null;
-            private CancellationTokenSource canceller;
+            private readonly CancellationTokenSource canceller;
 
             public EventComsumer(Type type, SymmetricConfig symmetricConfig, string environment)
             {
@@ -47,8 +47,6 @@ namespace Zerra.CQRS.RabbitMQ
 
             private async Task ListeningThread(IConnection connection, HandleRemoteEventDispatch handlerAsync)
             {
-                canceller = new CancellationTokenSource();
-
             retry:
 
                 try
@@ -57,7 +55,7 @@ namespace Zerra.CQRS.RabbitMQ
                         throw new Exception("Exchange already open");
 
                     this.channel = connection.CreateModel();
-                    this.channel.ExchangeDeclare(this.topic, "fanout");
+                    this.channel.ExchangeDeclare(this.topic, ExchangeType.Fanout);
 
                     var queueName = this.channel.QueueDeclare().QueueName;
                     this.channel.QueueBind(queueName, this.topic, String.Empty);
@@ -72,20 +70,20 @@ namespace Zerra.CQRS.RabbitMQ
                         var inHandlerContext = false;
                         try
                         {
-                            RabbitMQEventMessage rabbitMessage;
+                            RabbitMQEventMessage message;
                             if (symmetricConfig != null)
-                                rabbitMessage = RabbitMQCommon.Deserialize<RabbitMQEventMessage>(SymmetricEncryptor.Decrypt(symmetricConfig, e.Body.Span));
+                                message = RabbitMQCommon.Deserialize<RabbitMQEventMessage>(SymmetricEncryptor.Decrypt(symmetricConfig, e.Body.Span));
                             else
-                                rabbitMessage = RabbitMQCommon.Deserialize<RabbitMQEventMessage>(e.Body.Span);
+                                message = RabbitMQCommon.Deserialize<RabbitMQEventMessage>(e.Body.Span);
 
-                            if (rabbitMessage.Claims != null)
+                            if (message.Claims != null)
                             {
-                                var claimsIdentity = new ClaimsIdentity(rabbitMessage.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
-                                System.Threading.Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
+                                var claimsIdentity = new ClaimsIdentity(message.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
+                                Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
                             }
 
                             inHandlerContext = true;
-                            await handlerAsync(rabbitMessage.Message, rabbitMessage.Source, false);
+                            await handlerAsync(message.Message, message.Source, false);
                             inHandlerContext = false;
 
                             acknowledgment.Success = true;
@@ -100,7 +98,7 @@ namespace Zerra.CQRS.RabbitMQ
                         }
                     };
 
-                    _ = this.channel.BasicConsume(queueName, false, consumer);
+                    _ = this.channel.BasicConsume(queueName, true, consumer);
                 }
                 catch (Exception ex)
                 {
@@ -118,24 +116,12 @@ namespace Zerra.CQRS.RabbitMQ
                         goto retry;
                     }
                 }
-
-                canceller.Dispose();
-                canceller = null;
-
-                if (channel != null)
-                {
-                    channel.Close();
-                    channel.Dispose();
-                    channel = null;
-                }
-
-                IsOpen = false;
             }
 
             public void Dispose()
             {
-                if (canceller != null)
-                    canceller.Cancel();
+                canceller.Cancel();
+                canceller.Dispose();
 
                 if (channel != null)
                 {
@@ -143,6 +129,7 @@ namespace Zerra.CQRS.RabbitMQ
                     channel.Dispose();
                     channel = null;
                 }
+
                 GC.SuppressFinalize(this);
             }
         }

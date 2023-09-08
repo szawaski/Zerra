@@ -18,24 +18,26 @@
             "InstantiateTypes": []
         },
         {
-            "Name": "ZerraDemo.Service.WeatherCached",
-            "InternalUrl": "localhost:9005",
-            "ExternalUrl": "localhost:9005",
-            "EncryptionKey": "SecretTransportKey",
-            "Types": [
-                "IWeatherCachedQueryProvider",
-                "IWeatherCachedCommandHandler"
-            ],
-            "InstantiateTypes": []
-        },
-        {
             "Name": "ZerraDemo.Service.Weather",
             "InternalUrl": "localhost:9002",
             "ExternalUrl": "localhost:9002",
             "EncryptionKey": "SecretTransportKey",
             "Types": [
                 "IWeatherQueryProvider",
-                "IWeatherCommandHandler"
+                "IWeatherCommandHandler",
+                "IWeatherEventHandler"
+            ],
+            "InstantiateTypes": []
+        },
+        {
+            "Name": "ZerraDemo.Service.WeatherCached",
+            "InternalUrl": "localhost:9005",
+            "ExternalUrl": "localhost:9005",
+            "EncryptionKey": "SecretTransportKey",
+            "Types": [
+                "IWeatherCachedQueryProvider",
+                "IWeatherCachedCommandHandler",
+                "IWeatherEventHandler"
             ],
             "InstantiateTypes": []
         },

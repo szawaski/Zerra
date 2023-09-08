@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -65,7 +64,7 @@ namespace Zerra.CQRS.RabbitMQ
                     }
                 }
 
-                var channel = connection.CreateModel();
+                using var channel = connection.CreateModel();
 
                 string[][] claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -74,7 +73,8 @@ namespace Zerra.CQRS.RabbitMQ
                 var rabbitMessage = new RabbitMQCommandMessage()
                 {
                     Message = command,
-                    Claims = claims
+                    Claims = claims,
+                    Source = source
                 };
 
                 var body = RabbitMQCommon.Serialize(rabbitMessage);
@@ -96,7 +96,7 @@ namespace Zerra.CQRS.RabbitMQ
                 {
                     var replyQueueName = channel.QueueDeclare().QueueName;
                     consumer = new EventingBasicConsumer(channel);
-                    consumerTag = channel.BasicConsume(replyQueueName, false, consumer);
+                    consumerTag = channel.BasicConsume(replyQueueName, true, consumer);
 
                     correlationId = Guid.NewGuid().ToString("N");
                     properties.ReplyTo = replyQueueName;
@@ -108,7 +108,7 @@ namespace Zerra.CQRS.RabbitMQ
                 if (requireAcknowledgement)
                 {
                     Exception exception = null;
-                    var waiter = new SemaphoreSlim(0, 1);
+                    using var waiter = new SemaphoreSlim(0, 1);
 
                     consumer.Received += (sender, e) =>
                     {
@@ -139,7 +139,6 @@ namespace Zerra.CQRS.RabbitMQ
                     };
 
                     await waiter.WaitAsync();
-                    waiter.Dispose();
 
                     if (exception != null)
                     {
@@ -148,7 +147,6 @@ namespace Zerra.CQRS.RabbitMQ
                 }
 
                 channel.Close();
-                channel.Dispose();
             }
             catch (Exception ex)
             {
@@ -161,9 +159,6 @@ namespace Zerra.CQRS.RabbitMQ
         {
             try
             {
-                var stopwatch = new Stopwatch();
-                stopwatch.Start();
-
                 if (connection.IsOpen == false)
                 {
                     lock (locker)
@@ -177,7 +172,7 @@ namespace Zerra.CQRS.RabbitMQ
                     }
                 }
 
-                var channel = connection.CreateModel();
+                using var channel = connection.CreateModel();
 
                 string[][] claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -200,22 +195,19 @@ namespace Zerra.CQRS.RabbitMQ
                 else
                     topic = @event.GetType().GetNiceName().Truncate(RabbitMQCommon.TopicMaxLength);
 
-                channel.ExchangeDeclare(topic, "fanout");
-
                 var properties = channel.CreateBasicProperties();
 
                 channel.BasicPublish(topic, String.Empty, properties, body);
 
                 channel.Close();
-                channel.Dispose();
-
-                return Task.CompletedTask;
             }
             catch (Exception ex)
             {
                 _ = Log.ErrorAsync(null, ex);
                 throw;
             }
+
+            return Task.CompletedTask;
         }
 
         public void Dispose()

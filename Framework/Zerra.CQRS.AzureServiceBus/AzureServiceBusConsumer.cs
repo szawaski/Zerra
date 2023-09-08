@@ -31,6 +31,11 @@ namespace Zerra.CQRS.AzureServiceBus
 
         public string ServiceUrl => host;
 
+        private static readonly ServiceBusReceiverOptions receiverOptions = new ServiceBusReceiverOptions()
+        {
+            ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete,
+        };
+
         public AzureServiceBusConsumer(string host, SymmetricConfig symmetricConfig, string environment)
         {
             this.host = host;

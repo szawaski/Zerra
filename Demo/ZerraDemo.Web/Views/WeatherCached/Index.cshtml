@@ -22,6 +22,10 @@
         </select>
     </div>
     <button class="btn btn-primary" v-on:click="setWeather">Set Weather</button>
+    <br />
+    <i>*This sends an event to update the regular weather page. (Producer/Consumer that supports Events must be configured)</i>
+    <br />
+    <i>*Queries are cached in Bus cache memory after first call, commands clear the cache.</i>
 </div>
 
 @section Scripts{

@@ -24,7 +24,7 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly string topic;
             private readonly string subscription;
             private readonly SymmetricConfig symmetricConfig;
-            private CancellationTokenSource canceller;
+            private readonly CancellationTokenSource canceller;
 
             public EventConsumer(Type type, SymmetricConfig symmetricConfig, string environment)
             {
@@ -36,6 +36,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 this.subscription = $"EVENT-{Guid.NewGuid().ToString("N")}";
                 this.symmetricConfig = symmetricConfig;
+                this.canceller = new CancellationTokenSource();
             }
 
             public void Open(string host, ServiceBusClient client, HandleRemoteEventDispatch handlerAsync)
@@ -48,8 +49,6 @@ namespace Zerra.CQRS.AzureServiceBus
 
             public async Task ListeningThread(string host, ServiceBusClient client, HandleRemoteEventDispatch handlerAsync)
             {
-                canceller = new CancellationTokenSource();
-
             retry:
 
                 try
@@ -57,15 +56,13 @@ namespace Zerra.CQRS.AzureServiceBus
                     await AzureServiceBusCommon.EnsureTopic(host, topic, false);
                     await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription, true);
 
-                    await using (var receiver = client.CreateReceiver(topic, subscription))
+                    await using (var receiver = client.CreateReceiver(topic, subscription, receiverOptions))
                     {
                         for (; ; )
                         {
-
                             var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
                             if (serviceBusMessage == null)
                                 continue;
-                            await receiver.CompleteMessageAsync(serviceBusMessage);
 
                             _ = HandleMessage(client, serviceBusMessage, handlerAsync);
 
@@ -93,8 +90,6 @@ namespace Zerra.CQRS.AzureServiceBus
                     {
                         _ = Log.ErrorAsync(ex);
                     }
-                    canceller.Dispose();
-                    IsOpen = false;
                 }
             }
 
@@ -136,8 +131,8 @@ namespace Zerra.CQRS.AzureServiceBus
 
             public void Dispose()
             {
-                if (canceller != null)
-                    canceller.Cancel();
+                canceller.Cancel();
+                canceller.Dispose();
             }
         }
     }

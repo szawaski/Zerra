@@ -24,8 +24,7 @@ namespace Zerra.CQRS.Kafka
             private readonly string topic;
             private readonly string clientID;
             private readonly SymmetricConfig symmetricConfig;
-
-            private CancellationTokenSource canceller = null;
+            private readonly CancellationTokenSource canceller = null;
 
             public CommandConsumer(Type type, SymmetricConfig symmetricConfig, string environment)
             {
@@ -36,6 +35,7 @@ namespace Zerra.CQRS.Kafka
                     this.topic = type.GetNiceName().Truncate(KafkaCommon.TopicMaxLength);
                 this.clientID = Guid.NewGuid().ToString("N");
                 this.symmetricConfig = symmetricConfig;
+                this.canceller = new CancellationTokenSource();
             }
 
             public void Open(string host, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
@@ -48,8 +48,6 @@ namespace Zerra.CQRS.Kafka
 
             private async Task ListeningThread(string host, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
-                canceller = new CancellationTokenSource();
-
             retry:
 
                 try
@@ -92,8 +90,8 @@ namespace Zerra.CQRS.Kafka
                         goto retry;
                     }
                 }
+
                 canceller.Dispose();
-                IsOpen = false;
             }
 
             private async Task HandleMessage(string host, ConsumeResult<string, byte[]> consumerResult, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
@@ -142,9 +140,10 @@ namespace Zerra.CQRS.Kafka
                 catch (Exception ex)
                 {
                     if (!inHandlerContext)
-                    _ = Log.ErrorAsync(topic, ex);
+                        _ = Log.ErrorAsync(topic, ex);
                     error = ex;
                 }
+
                 if (awaitResponse)
                 {
                     try
@@ -180,8 +179,8 @@ namespace Zerra.CQRS.Kafka
 
             public void Dispose()
             {
-                if (canceller != null)
-                    canceller.Cancel();
+                canceller.Cancel();
+                canceller.Dispose();
             }
         }
     }

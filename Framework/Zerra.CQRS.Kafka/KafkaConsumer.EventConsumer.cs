@@ -22,7 +22,7 @@ namespace Zerra.CQRS.Kafka
 
             private readonly string topic;
             private readonly SymmetricConfig symmetricConfig;
-            private CancellationTokenSource canceller;
+            private readonly CancellationTokenSource canceller;
 
             public EventConsumer(Type type, SymmetricConfig symmetricConfig, string environment)
             {
@@ -33,6 +33,7 @@ namespace Zerra.CQRS.Kafka
                 else
                     this.topic = type.GetNiceName().Truncate(KafkaCommon.TopicMaxLength);
                 this.symmetricConfig = symmetricConfig;
+                this.canceller = new CancellationTokenSource();
             }
 
             public void Open(string host, HandleRemoteEventDispatch handlerAsync)
@@ -45,8 +46,6 @@ namespace Zerra.CQRS.Kafka
 
             public async Task ListeningThread(string host, HandleRemoteEventDispatch handlerAsync)
             {
-                canceller = new CancellationTokenSource();
-
             retry:
 
                 try
@@ -90,8 +89,6 @@ namespace Zerra.CQRS.Kafka
                         goto retry;
                     }
                 }
-                canceller.Dispose();
-                IsOpen = false;
             }
 
             private async Task HandleMessage(string host, ConsumeResult<string, byte[]> consumerResult, HandleRemoteEventDispatch handlerAsync)
@@ -131,8 +128,8 @@ namespace Zerra.CQRS.Kafka
 
             public void Dispose()
             {
-                if (canceller != null)
-                    canceller.Cancel();
+                canceller.Cancel();
+                canceller.Dispose();
             }
         }
     }
