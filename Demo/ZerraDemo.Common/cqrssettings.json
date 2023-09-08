@@ -1,5 +1,5 @@
 {
-    "MessageHost": "localhost:9092",
+    "MessageHost": "localhost",
     "RelayUrl": "",
     "RelayKey": "",
     "Services": [
