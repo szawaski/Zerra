@@ -50,7 +50,7 @@ namespace Zerra.CQRS.Relay
             }
             if (saveState)
             {
-                _ = Task.Run(async () => { await SaveState(); });
+                _ = SaveState();
             }
         }
         public static void AddOrUpdate(ServiceInfo info) { AddOrUpdate(info, true); }
@@ -70,7 +70,7 @@ namespace Zerra.CQRS.Relay
                     _ = Log.InfoAsync($"Service Removed {service.Url}");
                 }
             }
-            _ = Task.Run(async () => { await SaveState(); });
+            _ = SaveState();
         }
 
         public static RelayConnectedService GetBestService(string providerType)

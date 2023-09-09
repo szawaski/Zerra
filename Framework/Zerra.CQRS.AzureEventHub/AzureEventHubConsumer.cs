@@ -81,7 +81,7 @@ namespace Zerra.CQRS.AzureEventHub
                 return;
 
             isOpen = true;
-            _ = Task.Run(() => ListeningThread());
+            _ ListeningThread();
         }
 
         private async Task ListeningThread()

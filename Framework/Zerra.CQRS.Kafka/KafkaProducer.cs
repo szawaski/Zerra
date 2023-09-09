@@ -61,7 +61,7 @@ namespace Zerra.CQRS.Kafka
                     if (!listenerStarted)
                     {
                         await KafkaCommon.EnsureTopic(host, ackTopic);
-                        _ = Task.Run(AckListeningThread);
+                        _ = AckListeningThread();
                         listenerStarted = true;
                     }
                 }

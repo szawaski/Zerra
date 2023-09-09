@@ -54,7 +54,7 @@ namespace Zerra.CQRS.AzureEventHub
                 {
                     if (!listenerStarted)
                     {
-                        _ = Task.Run(AckListeningThread);
+                        _ = AckListeningThread();
                         listenerStarted = true;
                     }
                 }
