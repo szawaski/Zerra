@@ -44,7 +44,7 @@ namespace Zerra.CQRS.RabbitMQ
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                _ = Task.Run(() => ListeningThread(connection, handlerAsync, handlerAwaitAsync));
+                _ = ListeningThread(connection, handlerAsync, handlerAwaitAsync);
             }
 
             private async Task ListeningThread(IConnection connection, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
@@ -66,10 +66,13 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.Received += async (sender, e) =>
                     {
-                        var properties = e.BasicProperties;
-                        var acknowledgment = new Acknowledgement();
+                        var awaitResponse = !String.IsNullOrWhiteSpace(e.BasicProperties.ReplyTo);
 
-                        var awaitResponse = !String.IsNullOrWhiteSpace(properties.ReplyTo);
+                        Acknowledgement acknowledgment;
+                        if (awaitResponse)
+                            acknowledgment = new Acknowledgement();
+                        else
+                            acknowledgment = null;
 
                         var inHandlerContext = false;
                         try
@@ -93,29 +96,35 @@ namespace Zerra.CQRS.RabbitMQ
                                 await handlerAsync(message.Message, message.Source, false);
                             inHandlerContext = false;
 
-                            acknowledgment.Success = true;
+                            if (acknowledgment != null)
+                            {
+                                acknowledgment.Success = true;
+                            }
                         }
                         catch (Exception ex)
                         {
                             if (!inHandlerContext)
                                 _ = Log.ErrorAsync(topic, ex);
 
-                            acknowledgment.Success = false;
-                            acknowledgment.ErrorMessage = ex.Message;
+                            if (acknowledgment != null)
+                            {
+                                acknowledgment.Success = false;
+                                acknowledgment.ErrorMessage = ex.Message;
+                            }
                         }
 
-                        if (awaitResponse)
+                        if (acknowledgment != null)
                         {
                             try
                             {
                                 var replyProperties = this.channel.CreateBasicProperties();
-                                replyProperties.CorrelationId = properties.CorrelationId;
+                                replyProperties.CorrelationId = e.BasicProperties.CorrelationId;
 
                                 var acknowledgmentBody = RabbitMQCommon.Serialize(acknowledgment);
                                 if (symmetricConfig != null)
                                     acknowledgmentBody = SymmetricEncryptor.Encrypt(symmetricConfig, acknowledgmentBody);
 
-                                this.channel.BasicPublish(String.Empty, properties.ReplyTo, replyProperties, acknowledgmentBody);
+                                this.channel.BasicPublish(String.Empty, e.BasicProperties.ReplyTo, replyProperties, acknowledgmentBody);
                             }
                             catch (Exception ex)
                             {

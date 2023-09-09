@@ -111,14 +111,15 @@ namespace Zerra.CQRS.RabbitMQ
         }
         private void Close()
         {
+            foreach (var exchange in commandExchanges.Where(x => x.IsOpen))
+                exchange.Dispose();
+            foreach (var exchange in eventExchanges.Where(x => x.IsOpen))
+                exchange.Dispose();
+            this.commandExchanges.Clear();
+            this.eventExchanges.Clear();
+
             if (this.connection != null)
             {
-                foreach (var exchange in commandExchanges.Where(x => x.IsOpen))
-                    exchange.Dispose();
-                foreach (var exchange in eventExchanges.Where(x => x.IsOpen))
-                    exchange.Dispose();
-                this.commandExchanges.Clear();
-                this.eventExchanges.Clear();
                 this.connection.Close();
                 this.connection.Dispose();
                 this.connection = null;

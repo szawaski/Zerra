@@ -43,7 +43,7 @@ namespace Zerra.CQRS.RabbitMQ
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                _ = Task.Run(() => ListeningThread(connection, handlerAsync));
+                _ = ListeningThread(connection, handlerAsync);
             }
 
             private async Task ListeningThread(IConnection connection, HandleRemoteEventDispatch handlerAsync)
@@ -65,9 +65,6 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.Received += async (sender, e) =>
                     {
-                        var properties = e.BasicProperties;
-                        var acknowledgment = new Acknowledgement();
-
                         var inHandlerContext = false;
                         try
                         {
@@ -86,16 +83,11 @@ namespace Zerra.CQRS.RabbitMQ
                             inHandlerContext = true;
                             await handlerAsync(message.Message, message.Source, false);
                             inHandlerContext = false;
-
-                            acknowledgment.Success = true;
                         }
                         catch (Exception ex)
                         {
                             if (!inHandlerContext)
                                 _ = Log.ErrorAsync(topic, ex);
-
-                            acknowledgment.Success = false;
-                            acknowledgment.ErrorMessage = ex.Message;
                         }
                     };
 
