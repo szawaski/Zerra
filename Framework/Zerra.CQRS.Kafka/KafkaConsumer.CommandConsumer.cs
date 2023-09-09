@@ -43,7 +43,7 @@ namespace Zerra.CQRS.Kafka
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                _ = Task.Run(() => ListeningThread(host, handlerAsync, handlerAwaitAsync));
+                _ = ListeningThread(host, handlerAsync, handlerAwaitAsync);
             }
 
             private async Task ListeningThread(string host, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)

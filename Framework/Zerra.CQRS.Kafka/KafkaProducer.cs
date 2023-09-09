@@ -212,7 +212,6 @@ namespace Zerra.CQRS.Kafka
                             if (canceller.IsCancellationRequested)
                                 break;
                         }
-
                     }
                     finally
                     {
