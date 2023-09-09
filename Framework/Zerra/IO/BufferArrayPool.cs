@@ -7,7 +7,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-#if DEBUG
+#if DEBUGMEMORY
 using System.Linq;
 #endif
 
@@ -65,7 +65,7 @@ namespace Zerra.IO
             else if (newBufferLength < minSize)
                 newBufferLength = minSize;
 
-#if DEBUG
+#if DEBUGMEMORY
             var newBuffer = Rent(newBufferLength);
             Buffer.BlockCopy(buffer, 0, newBuffer, 0, buffer.Length * elementSize);
             Array.Clear(buffer, 0, buffer.Length);
@@ -80,12 +80,12 @@ namespace Zerra.IO
             buffer = newBuffer;
         }
 
-#if DEBUG
+#if DEBUGMEMORY
         private static readonly Dictionary<T[], string> rented = new();
 #endif
         public static T[] Rent(int minimunLength)
         {
-#if DEBUG
+#if DEBUGMEMORY
             lock (rented)
             {
                 var lines = Regex.Split(Environment.StackTrace, "\r\n|\r|\n");
@@ -102,7 +102,7 @@ namespace Zerra.IO
         }
         public static void Return(T[] buffer)
         {
-#if DEBUG
+#if DEBUGMEMORY
             lock (rented)
             {
                 if (!rented.TryGetValue(buffer, out var stack))
