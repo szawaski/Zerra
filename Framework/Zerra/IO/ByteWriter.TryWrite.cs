@@ -2479,7 +2479,7 @@ namespace Zerra.IO
         {
             sizeNeeded = 0;
             foreach (var value in values)
-                sizeNeeded += encoding.GetMaxByteCount(value.Length) + 5;
+                sizeNeeded += value == null ? 1 :encoding.GetMaxByteCount(value.Length) + 5;
             if (length - position < sizeNeeded)
                 return false;
 

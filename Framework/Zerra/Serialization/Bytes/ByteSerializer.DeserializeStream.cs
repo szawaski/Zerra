@@ -1665,6 +1665,8 @@ namespace Zerra.Serialization
                                     {
                                         _ = state.CurrentFrame.EnumerableList.Add(null);
                                         state.CurrentFrame.EnumerablePosition++;
+                                        if (state.CurrentFrame.EnumerablePosition == length)
+                                            break;
                                         continue;
                                     }
                                     state.CurrentFrame.StringLength = stringLength;
@@ -1676,21 +1678,16 @@ namespace Zerra.Serialization
 #pragma warning disable IDE0059 // Unnecessary assignment of a value WARNING BUG
                                     str = String.Empty;
 #pragma warning restore IDE0059 // Unnecessary assignment of a value WARNING BUG
-                                    break;
                                 }
-                                else
+                                else if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out str, out sizeNeeded))
                                 {
-                                    if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out str, out sizeNeeded))
-                                    {
-                                        state.BytesNeeded = sizeNeeded;
-                                        return;
-                                    }
-                                    state.CurrentFrame.StringLength = null;
+                                    state.BytesNeeded = sizeNeeded;
+                                    return;
                                 }
+                                state.CurrentFrame.StringLength = null;
 
                                 _ = state.CurrentFrame.EnumerableList.Add(str);
                                 state.CurrentFrame.EnumerablePosition++;
-
                                 if (state.CurrentFrame.EnumerablePosition == length)
                                     break;
                             }
@@ -2069,6 +2066,8 @@ namespace Zerra.Serialization
                                     if (!stringLength.HasValue)
                                     {
                                         state.CurrentFrame.EnumerablePosition++;
+                                        if (state.CurrentFrame.EnumerablePosition == length)
+                                            break;
                                         continue;
                                     }
                                     state.CurrentFrame.StringLength = stringLength;
@@ -2080,22 +2079,16 @@ namespace Zerra.Serialization
 #pragma warning disable IDE0059 // Unnecessary assignment of a value - it is necessary
                                     str = String.Empty;
 #pragma warning restore IDE0059 // Unnecessary assignment of a value - it is necessary
-                                    break;
                                 }
-
-                                else
+                                else if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out str, out sizeNeeded))
                                 {
-                                    if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out str, out sizeNeeded))
-                                    {
-                                        state.BytesNeeded = sizeNeeded;
-                                        return;
-                                    }
-                                    state.CurrentFrame.StringLength = null;
+                                    state.BytesNeeded = sizeNeeded;
+                                    return;
                                 }
+                                state.CurrentFrame.StringLength = null;
 
                                 state.CurrentFrame.EnumerableArray.SetValue(str, state.CurrentFrame.EnumerablePosition);
                                 state.CurrentFrame.EnumerablePosition++;
-
                                 if (state.CurrentFrame.EnumerablePosition == length)
                                     break;
                             }

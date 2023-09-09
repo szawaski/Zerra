@@ -1217,8 +1217,13 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static void ToStringJsonString(string value, ref CharWriter writer)
         {
+            if (value == null)
+            {
+                writer.Write("null");
+                return;
+            }
             writer.Write('\"');
-            if (value == null || value.Length == 0)
+            if (value.Length == 0)
             {
                 writer.Write('\"');
                 return;

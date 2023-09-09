@@ -188,7 +188,7 @@ namespace Zerra.Test
         public void ManySecondaryInterface()
         {
             var providers = Discovery.GetImplementationTypes(typeof(ITestProvider));
-            Assert.AreEqual(5, providers.Count);
+            Assert.AreEqual(6, providers.Count);
             Assert.IsTrue(providers.Contains(typeof(TestRuleProvider)));
             Assert.IsTrue(providers.Contains(typeof(TestCacheProvider)));
             Assert.IsTrue(providers.Contains(typeof(TestCompressionProvider)));
@@ -236,7 +236,7 @@ namespace Zerra.Test
         public void ManySingleInterface()
         {
             var providers = Discovery.GetImplementationTypes(typeof(ITestProvider));
-            Assert.AreEqual(5, providers.Count);
+            Assert.AreEqual(6, providers.Count);
             Assert.IsTrue(providers.Contains(typeof(TestRuleProvider)));
             Assert.IsTrue(providers.Contains(typeof(TestCacheProvider)));
             Assert.IsTrue(providers.Contains(typeof(TestCompressionProvider)));

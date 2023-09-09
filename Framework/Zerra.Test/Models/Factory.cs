@@ -321,7 +321,7 @@ namespace Zerra.Test
                 TimeSpanArrayNullable = new TimeSpan?[] { DateTime.Now.AddHours(1).TimeOfDay, null, DateTime.Now.AddHours(3).TimeOfDay },
                 GuidArrayNullable = new Guid?[] { Guid.NewGuid(), null, Guid.NewGuid() },
 
-                StringArray = new string[] { "Hello", "World", "People" },
+                StringArray = new string[] { "Hello", "World", "People", "", null },
                 StringEmptyArray = new string[0],
 
                 EnumArray = new EnumModel[] { EnumModel.Item1, EnumModel.Item2, EnumModel.Item3 },
@@ -375,7 +375,7 @@ namespace Zerra.Test
                 ClassList = new List<BasicModel>() { new BasicModel { Value1 = 14, Value2 = "S-14" }, new BasicModel { Value1 = 15, Value2 = "S-15" } },
 
                 DictionaryThing = new Dictionary<int, string>() { { 1, "A" }, { 2, "B" }, { 3, "C" }, { 4, null } },
-                StringArrayOfArrayThing = new string[][] { new string[] { "a", "b", "c" }, null, new string[] { "d", "e", "f" } }
+                StringArrayOfArrayThing = new string[][] { new string[] { "a", "b", "c" }, null, new string[] { "d", "e", "f" }, new string[] { "", null, "" } }
             };
             return model;
         }

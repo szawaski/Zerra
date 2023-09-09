@@ -2013,7 +2013,7 @@ namespace Zerra.IO
         {
             var sizeNeeded = 0;
             foreach (var value in values)
-                sizeNeeded += encoding.GetMaxByteCount(value.Length) + 5;
+                sizeNeeded += value == null ? 1 : encoding.GetMaxByteCount(value.Length) + 5;
             EnsureBufferSize(sizeNeeded);
 
             foreach (var value in values)

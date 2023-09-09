@@ -470,7 +470,7 @@ namespace Zerra.CQRS
 
                 foreach (var attribute in methodDetail.Attributes)
                 {
-                    if (attribute is ServiceBlockedAttribute item && item.NetworkType >= networkType)
+                    if (attribute is ServiceBlockedAttribute item && item.NetworkType < networkType)
                     {
                         blockedMethod = true;
                         break;
