@@ -42,13 +42,10 @@ namespace Zerra.Logger
 
         public async Task TraceAsync(string message)
         {
-            await Task.Run(() =>
-            {
-                var msg = $"{traceCategory}: {message}";
-                Debug.WriteLine(msg, traceCategory);
-                Console.WriteLine(msg);
-                telemetryClient.TrackTrace(message);
-            });
+            var msg = $"{traceCategory}: {message}";
+            Debug.WriteLine(msg, traceCategory);
+            Console.WriteLine(msg);
+            telemetryClient.TrackTrace(message);
 
             if (!String.IsNullOrWhiteSpace(tracefile))
                 await LogFile.Log(tracefile, traceCategory, message);
@@ -56,13 +53,10 @@ namespace Zerra.Logger
 
         public async Task DebugAsync(string message)
         {
-            await Task.Run(() =>
-            {
-                var msg = $"{debugCategory}: {message}";
-                Debug.WriteLine(msg, debugCategory);
-                Console.WriteLine(msg);
-                telemetryClient.TrackTrace(message);
-            });
+            var msg = $"{debugCategory}: {message}";
+            Debug.WriteLine(msg, debugCategory);
+            Console.WriteLine(msg);
+            telemetryClient.TrackTrace(message);
 
             if (!String.IsNullOrWhiteSpace(tracefile))
                 await LogFile.Log(tracefile, debugCategory, message);
@@ -70,13 +64,10 @@ namespace Zerra.Logger
 
         public async Task InfoAsync(string message)
         {
-            await Task.Run(() =>
-            {
-                var msg = $"{infoCategory}: {message}";
-                Debug.WriteLine(msg, infoCategory);
-                Console.WriteLine(msg);
-                telemetryClient.TrackEvent(message);
-            });
+            var msg = $"{infoCategory}: {message}";
+            Debug.WriteLine(msg, infoCategory);
+            Console.WriteLine(msg);
+            telemetryClient.TrackEvent(message);
 
             if (!String.IsNullOrWhiteSpace(tracefile))
                 await LogFile.Log(tracefile, infoCategory, message);
@@ -84,13 +75,10 @@ namespace Zerra.Logger
 
         public async Task WarnAsync(string message)
         {
-            await Task.Run(() =>
-            {
-                var msg = $"{warnCategory}: {message}";
-                Debug.WriteLine(msg);
-                Console.WriteLine(msg);
-                telemetryClient.TrackEvent(message);
-            });
+            var msg = $"{warnCategory}: {message}";
+            Debug.WriteLine(msg);
+            Console.WriteLine(msg);
+            telemetryClient.TrackEvent(message);
 
             if (!String.IsNullOrWhiteSpace(infoFile))
                 await LogFile.Log(infoFile, warnCategory, message);
@@ -114,15 +102,12 @@ namespace Zerra.Logger
 
             var msg = sb.ToString();
 
-            await Task.Run(() =>
-            {
-                Debug.WriteLine(msg, errorCategory);
-                Console.WriteLine(msg);
-                if (exception != null)
-                    telemetryClient.TrackException(exception);
-                else
-                    telemetryClient.TrackEvent(msg);
-            });
+            Debug.WriteLine(msg, errorCategory);
+            Console.WriteLine(msg);
+            if (exception != null)
+                telemetryClient.TrackException(exception);
+            else
+                telemetryClient.TrackEvent(msg);
 
             if (!String.IsNullOrWhiteSpace(infoFile))
                 await LogFile.Log(infoFile, errorCategory, msg);
@@ -146,15 +131,12 @@ namespace Zerra.Logger
 
             var msg = sb.ToString();
 
-            await Task.Run(() =>
-            {
-                Debug.WriteLine(msg, criticalCategory);
-                Console.WriteLine(msg);
-                if (exception != null)
-                    telemetryClient.TrackException(exception);
-                else
-                    telemetryClient.TrackEvent(msg);
-            });
+            Debug.WriteLine(msg, criticalCategory);
+            Console.WriteLine(msg);
+            if (exception != null)
+                telemetryClient.TrackException(exception);
+            else
+                telemetryClient.TrackEvent(msg);
 
             if (!String.IsNullOrWhiteSpace(infoFile))
                 await LogFile.Log(infoFile, criticalCategory, msg);
