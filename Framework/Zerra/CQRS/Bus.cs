@@ -103,15 +103,20 @@ namespace Zerra.CQRS
         private static Task DispatchCommandInternalAsync(ICommand command, bool requireAffirmation, NetworkType networkType, string source)
         {
             var commandType = command.GetType();
+            var busLogging = BusLogging.Logged;
             if (networkType != NetworkType.Local)
             {
                 var exposed = false;
                 foreach (var attribute in commandType.GetTypeDetail().Attributes)
                 {
-                    if (attribute is ServiceExposedAttribute item && item.NetworkType >= networkType)
+                    if (attribute is ServiceExposedAttribute serviceExposedAttribute && serviceExposedAttribute.NetworkType >= networkType)
                     {
                         exposed = true;
                         break;
+                    }
+                    else if (attribute is BusLoggedAttribute busLoggedAttribute)
+                    {
+                        busLogging = busLoggedAttribute.BusLogging;
                     }
                 }
                 if (!exposed)
@@ -135,7 +140,7 @@ namespace Zerra.CQRS
                 var methodGetProviderInterfaceType = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(LayerProvider<object>.GetProviderInterfaceType));
                 var interfaceType = (Type)methodGetProviderInterfaceType.Caller(cacheInstance, null);
 
-                var messageHandlerToDispatchProvider = BusRouters.GetCommandHandlerToDispatchInternalInstance(interfaceType, requireAffirmation, networkType, source);
+                var messageHandlerToDispatchProvider = BusRouters.GetCommandHandlerToDispatchInternalInstance(interfaceType, requireAffirmation, networkType, source, busLogging);
                 _ = methodSetNextProvider.Caller(cacheInstance, new object[] { messageHandlerToDispatchProvider });
 
                 var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand>.Handle), new Type[] { commandType });
@@ -151,22 +156,27 @@ namespace Zerra.CQRS
             if (cacheProviderDispatchAsync != null)
                 return cacheProviderDispatchAsync(command);
 
-            return _DispatchCommandInternalAsync(command, commandType, requireAffirmation, networkType, source);
+            return _DispatchCommandInternalAsync(command, commandType, requireAffirmation, networkType, source, busLogging);
         }
 
         private static readonly ConcurrentFactoryDictionary<Type, Func<IEvent, Task>> eventCacheProviders = new();
         private static Task DispatchEventInternalAsync(IEvent @event, NetworkType networkType, string source)
         {
             var eventType = @event.GetType();
+            var busLogging = BusLogging.Logged;
             if (networkType != NetworkType.Local)
             {
                 var exposed = false;
                 foreach (var attribute in eventType.GetTypeDetail().Attributes)
                 {
-                    if (attribute is ServiceExposedAttribute item && item.NetworkType >= networkType)
+                    if (attribute is ServiceExposedAttribute serviceExposedAttribute && serviceExposedAttribute.NetworkType >= networkType)
                     {
                         exposed = true;
                         break;
+                    }
+                    else if (attribute is BusLoggedAttribute busLoggedAttribute)
+                    {
+                        busLogging = busLoggedAttribute.BusLogging;
                     }
                 }
                 if (!exposed)
@@ -190,7 +200,7 @@ namespace Zerra.CQRS
                 var methodGetProviderInterfaceType = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(LayerProvider<object>.GetProviderInterfaceType));
                 var interfaceType = (Type)methodGetProviderInterfaceType.Caller(cacheInstance, null);
 
-                var messageHandlerToDispatchProvider = BusRouters.GetEventHandlerToDispatchInternalInstance(interfaceType, networkType, source);
+                var messageHandlerToDispatchProvider = BusRouters.GetEventHandlerToDispatchInternalInstance(interfaceType, networkType, source, busLogging);
                 _ = methodSetNextProvider.Caller(cacheInstance, new object[] { messageHandlerToDispatchProvider });
 
                 var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(IEventHandler<IEvent>.Handle), new Type[] { eventType });
@@ -206,10 +216,10 @@ namespace Zerra.CQRS
             if (cacheProviderDispatchAsync != null)
                 return cacheProviderDispatchAsync(@event);
 
-            return _DispatchEventInternalAsync(@event, eventType, networkType, source);
+            return _DispatchEventInternalAsync(@event, eventType, networkType, source, busLogging);
         }
 
-        public static Task _DispatchCommandInternalAsync(ICommand command, Type commandType, bool requireAffirmation, NetworkType networkType, string source)
+        public static Task _DispatchCommandInternalAsync(ICommand command, Type commandType, bool requireAffirmation, NetworkType networkType, string source, BusLogging busLogging)
         {
             if (networkType == NetworkType.Local || !commandConsumerTypes.Contains(commandType))
             {
@@ -237,10 +247,10 @@ namespace Zerra.CQRS
 
             if (requireAffirmation || networkType != NetworkType.Local)
             {
-                if (busLogger != null)
-                    return HandleCommandLoggedAsync((ICommand)command, commandType, source);
-                else
+                if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                     return HandleCommandAsync((ICommand)command, commandType, source);
+                else
+                    return HandleCommandLoggedAsync((ICommand)command, commandType, source);
             }
             else
             {
@@ -248,14 +258,14 @@ namespace Zerra.CQRS
                 return Task.Run(() =>
                 {
                     Thread.CurrentPrincipal = principal;
-                    if (busLogger != null)
-                        _ = HandleCommandLoggedAsync((ICommand)command, commandType, source);
-                    else
+                    if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                         _ = HandleCommandAsync((ICommand)command, commandType, source);
+                    else
+                        _ = HandleCommandLoggedAsync((ICommand)command, commandType, source);
                 });
             }
         }
-        public static Task _DispatchEventInternalAsync(IEvent @event, Type eventType, NetworkType networkType, string source)
+        public static Task _DispatchEventInternalAsync(IEvent @event, Type eventType, NetworkType networkType, string source, BusLogging busLogging)
         {
             if (networkType == NetworkType.Local || !eventConsumerTypes.Contains(eventType))
             {
@@ -276,10 +286,10 @@ namespace Zerra.CQRS
 
             if (networkType != NetworkType.Local)
             {
-                if (busLogger != null)
-                    return HandleEventLoggedAsync((IEvent)@event, eventType, source);
-                else
+                if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                     return HandleEventAsync((IEvent)@event, eventType, source);
+                else
+                    return HandleEventLoggedAsync((IEvent)@event, eventType, source);
             }
             else
             {
@@ -287,10 +297,11 @@ namespace Zerra.CQRS
                 return Task.Run(() =>
                 {
                     Thread.CurrentPrincipal = principal;
-                    if (busLogger != null)
-                        _ = HandleEventLoggedAsync((IEvent)@event, eventType, source);
-                    else
+                    if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                         _ = HandleEventAsync((IEvent)@event, eventType, source);
+                    else
+                        _ = HandleEventLoggedAsync((IEvent)@event, eventType, source);
+
                 });
             }
         }
@@ -453,16 +464,21 @@ namespace Zerra.CQRS
             if (methodDetail.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
                 throw new ArgumentException("Invalid number of arguments for this method");
 
+            var busLogging = BusLogging.Logged;
             if (networkType != NetworkType.Local)
             {
                 var exposed = false;
                 var blockedMethod = false;
                 foreach (var attribute in interfaceType.GetTypeDetail().Attributes)
                 {
-                    if (attribute is ServiceExposedAttribute item && item.NetworkType >= networkType)
+                    if (attribute is ServiceExposedAttribute serviceExposedAttribute && serviceExposedAttribute.NetworkType >= networkType)
                     {
                         exposed = true;
                         break;
+                    }
+                    else if (attribute is BusLoggedAttribute busLoggedAttribute)
+                    {
+                        busLogging = busLoggedAttribute.BusLogging;
                     }
                 }
                 if (!exposed)
@@ -470,10 +486,14 @@ namespace Zerra.CQRS
 
                 foreach (var attribute in methodDetail.Attributes)
                 {
-                    if (attribute is ServiceBlockedAttribute item && item.NetworkType < networkType)
+                    if (attribute is ServiceBlockedAttribute serviceBlockedAttribute && serviceBlockedAttribute.NetworkType < networkType)
                     {
                         blockedMethod = true;
                         break;
+                    }
+                    else if (attribute is BusLoggedAttribute busLoggedAttribute)
+                    {
+                        busLogging = busLoggedAttribute.BusLogging;
                     }
                 }
                 if (blockedMethod)
@@ -484,7 +504,7 @@ namespace Zerra.CQRS
 
             if (!queryClients.IsEmpty && queryClients.TryGetValue(interfaceType, out var methodCaller))
             {
-                if (busLogger == null)
+                if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                 {
                     result = methodCaller.Call<TReturn>(interfaceType, methodName, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
                 }
@@ -522,7 +542,7 @@ namespace Zerra.CQRS
             }
             else
             {
-                if (busLogger == null)
+                if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                 {
                     var provider = ProviderResolver.GetFirst(interfaceType);
 

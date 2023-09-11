@@ -184,16 +184,16 @@ namespace Zerra.CQRS
         private static readonly Type commandHandlerType = typeof(ICommandHandler<>);
         private static readonly MethodInfo dispatchCommandInternalAsyncMethod = typeof(Bus).GetMethod(nameof(Bus._DispatchCommandInternalAsync), BindingFlags.Static | BindingFlags.Public);
         private static readonly ConcurrentFactoryDictionary<Type, Type> commandDispatcherClasses = new();
-        public static object GetCommandHandlerToDispatchInternalInstance(Type interfaceType, bool requireAffirmation, NetworkType networkType, string source)
+        public static object GetCommandHandlerToDispatchInternalInstance(Type interfaceType, bool requireAffirmation, NetworkType networkType, string source, BusLogging busLogging)
         {
             var dispatcherClassType = commandDispatcherClasses.GetOrAdd(interfaceType, (t) =>
             {
-                return GenerateCommandHandlerToDispatchInternalClass(t);
+                return GenerateCommandHandlerToDispatchInternalClass(t, busLogging);
             });
-            var instance = Instantiator.GetSingle(interfaceType.Name + (requireAffirmation ? 1 : 0) + (byte)networkType + source, () => Instantiator.Create(dispatcherClassType, new Type[] { typeof(bool), typeof(NetworkType), typeof(string) }, requireAffirmation, networkType, source));
+            var instance = Instantiator.GetSingle(interfaceType.Name + (requireAffirmation ? 1 : 0) + (byte)networkType + source, () => Instantiator.Create(dispatcherClassType, new Type[] { typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging) }, requireAffirmation, networkType, source, busLogging));
             return instance;
         }
-        private static Type GenerateCommandHandlerToDispatchInternalClass(Type interfaceType)
+        private static Type GenerateCommandHandlerToDispatchInternalClass(Type interfaceType, BusLogging busLogging)
         {
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
@@ -215,12 +215,14 @@ namespace Zerra.CQRS
             var requireAffirmationField = typeBuilder.DefineField("requireAffirmation", typeof(bool), FieldAttributes.Private | FieldAttributes.InitOnly);
             var networkTypeField = typeBuilder.DefineField("networkType", typeof(NetworkType), FieldAttributes.Private | FieldAttributes.InitOnly);
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
+            var busLoggingField = typeBuilder.DefineField("busLogging", typeof(BusLogging), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Any, new Type[] { typeof(bool), typeof(NetworkType), typeof(string) });
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Any, new Type[] { typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging) });
             {
                 constructorBuilder.DefineParameter(0, ParameterAttributes.None, "requireAffirmation");
                 constructorBuilder.DefineParameter(1, ParameterAttributes.None, "networkType");
                 constructorBuilder.DefineParameter(2, ParameterAttributes.None, "source");
+                constructorBuilder.DefineParameter(2, ParameterAttributes.None, "busLogging");
 
                 var il = constructorBuilder.GetILGenerator();
                 il.Emit(OpCodes.Ldarg_0);
@@ -267,7 +269,7 @@ namespace Zerra.CQRS
                 il.Emit(OpCodes.Callvirt, getTypeMethod);
                 il.Emit(OpCodes.Stloc_0);
 
-                // Bus.DispatchInternal(command, commandType, requireAffirmation, externallyReceived, source)
+                // Bus.DispatchInternal(command, commandType, requireAffirmation, externallyReceived, source, busLogging)
                 il.Emit(OpCodes.Ldarg_1); //@event
                 il.Emit(OpCodes.Ldloc_0); //eventType
 
@@ -279,6 +281,9 @@ namespace Zerra.CQRS
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldfld, sourceField); //source
+
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldfld, busLoggingField); //busLogging
 
                 il.Emit(OpCodes.Call, dispatchCommandInternalAsyncMethod);
                 il.Emit(OpCodes.Ret);
@@ -316,16 +321,16 @@ namespace Zerra.CQRS
         private static readonly Type eventHandlerType = typeof(IEventHandler<>);
         private static readonly MethodInfo dispatchEventInternalAsyncMethod = typeof(Bus).GetMethod(nameof(Bus._DispatchEventInternalAsync), BindingFlags.Static | BindingFlags.Public);
         private static readonly ConcurrentFactoryDictionary<Type, Type> eventDispatcherClasses = new();
-        public static object GetEventHandlerToDispatchInternalInstance(Type interfaceType, NetworkType networkType, string source)
+        public static object GetEventHandlerToDispatchInternalInstance(Type interfaceType, NetworkType networkType, string source, BusLogging busLogging)
         {
             var dispatcherClassType = eventDispatcherClasses.GetOrAdd(interfaceType, (t) =>
             {
-                return GenerateEventHandlerToDispatchInternalClass(t);
+                return GenerateEventHandlerToDispatchInternalClass(t, busLogging);
             });
-            var instance = Instantiator.GetSingle(interfaceType.Name + (byte)networkType + source, () => Instantiator.Create(dispatcherClassType, new Type[] { typeof(NetworkType), typeof(string) }, networkType, source));
+            var instance = Instantiator.GetSingle(interfaceType.Name + (byte)networkType + source, () => Instantiator.Create(dispatcherClassType, new Type[] { typeof(NetworkType), typeof(string), typeof(BusLogging) }, networkType, source, busLogging));
             return instance;
         }
-        private static Type GenerateEventHandlerToDispatchInternalClass(Type interfaceType)
+        private static Type GenerateEventHandlerToDispatchInternalClass(Type interfaceType, BusLogging busLogging)
         {
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
@@ -346,11 +351,13 @@ namespace Zerra.CQRS
 
             var networkTypeField = typeBuilder.DefineField("networkType", typeof(NetworkType), FieldAttributes.Private | FieldAttributes.InitOnly);
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
+            var busLoggingField = typeBuilder.DefineField("busLogging", typeof(BusLogging), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Any, new Type[] { typeof(NetworkType), typeof(string) });
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Any, new Type[] { typeof(NetworkType), typeof(string), typeof(BusLogging) });
             {
                 constructorBuilder.DefineParameter(0, ParameterAttributes.None, "networkType");
                 constructorBuilder.DefineParameter(1, ParameterAttributes.None, "source");
+                constructorBuilder.DefineParameter(2, ParameterAttributes.None, "busLogging");
 
                 var il = constructorBuilder.GetILGenerator();
                 il.Emit(OpCodes.Ldarg_0);
@@ -365,6 +372,10 @@ namespace Zerra.CQRS
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldarg_2);
                 il.Emit(OpCodes.Stfld, sourceField);
+
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldarg_3);
+                il.Emit(OpCodes.Stfld, busLoggingField);
 
                 il.Emit(OpCodes.Ret);
             }
@@ -393,7 +404,7 @@ namespace Zerra.CQRS
                 il.Emit(OpCodes.Callvirt, getTypeMethod);
                 il.Emit(OpCodes.Stloc_0);
 
-                // Bus._DispatchEventInternalAsync(@event, eventType, externallyReceived, source)
+                // Bus._DispatchEventInternalAsync(@event, eventType, externallyReceived, source, busLogging)
                 il.Emit(OpCodes.Ldarg_1); //@event
                 il.Emit(OpCodes.Ldloc_0); //eventType
                 il.Emit(OpCodes.Ldc_I4_0); //false; il.Emit(OpCodes.Ldc_I4_1); for true, 
@@ -403,6 +414,9 @@ namespace Zerra.CQRS
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldfld, sourceField); //source
+
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldfld, busLoggingField); //busLogging
 
                 il.Emit(OpCodes.Call, dispatchEventInternalAsyncMethod);
                 il.Emit(OpCodes.Ret);
