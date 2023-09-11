@@ -114,7 +114,7 @@ namespace Zerra.CQRS
                         exposed = true;
                         break;
                     }
-                    else if (attribute is BusLoggedAttribute busLoggedAttribute)
+                    else if (attribute is ServiceLogAttribute busLoggedAttribute)
                     {
                         busLogging = busLoggedAttribute.BusLogging;
                     }
@@ -174,7 +174,7 @@ namespace Zerra.CQRS
                         exposed = true;
                         break;
                     }
-                    else if (attribute is BusLoggedAttribute busLoggedAttribute)
+                    else if (attribute is ServiceLogAttribute busLoggedAttribute)
                     {
                         busLogging = busLoggedAttribute.BusLogging;
                     }
@@ -476,7 +476,7 @@ namespace Zerra.CQRS
                         exposed = true;
                         break;
                     }
-                    else if (attribute is BusLoggedAttribute busLoggedAttribute)
+                    else if (attribute is ServiceLogAttribute busLoggedAttribute)
                     {
                         busLogging = busLoggedAttribute.BusLogging;
                     }
@@ -491,7 +491,7 @@ namespace Zerra.CQRS
                         blockedMethod = true;
                         break;
                     }
-                    else if (attribute is BusLoggedAttribute busLoggedAttribute)
+                    else if (attribute is ServiceLogAttribute busLoggedAttribute)
                     {
                         busLogging = busLoggedAttribute.BusLogging;
                     }

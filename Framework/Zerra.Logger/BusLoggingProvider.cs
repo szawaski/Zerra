@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.Extensibility;
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
@@ -20,12 +18,8 @@ namespace Zerra.Logger
         private const string callCategory = "Call";
 
         private readonly string file;
-        private readonly TelemetryClient telemetryClient;
         public BusLoggingProvider()
         {
-            var config = TelemetryConfiguration.CreateDefault();
-            telemetryClient = new TelemetryClient(config);
-
             var filePath = Config.GetSetting("LogFileDirectory");
             if (String.IsNullOrWhiteSpace(filePath))
                 filePath = System.IO.Path.GetDirectoryName(Environment.CurrentDirectory);
@@ -45,7 +39,6 @@ namespace Zerra.Logger
 
             Debug.WriteLine(message, commandCategory);
             Console.WriteLine(message);
-            telemetryClient.TrackTrace(message);
 
             if (!String.IsNullOrWhiteSpace(file))
                 await LogFile.Log(file, commandCategory, message);
@@ -64,7 +57,6 @@ namespace Zerra.Logger
 
             Debug.WriteLine(message, eventCategory);
             Console.WriteLine(message);
-            telemetryClient.TrackTrace(message);
 
             if (!String.IsNullOrWhiteSpace(file))
                 await LogFile.Log(file, eventCategory, message);
@@ -83,7 +75,6 @@ namespace Zerra.Logger
 
             Debug.WriteLine(message, callCategory);
             Console.WriteLine(message);
-            telemetryClient.TrackTrace(message);
 
             if (!String.IsNullOrWhiteSpace(file))
                 await LogFile.Log(file, callCategory, message);

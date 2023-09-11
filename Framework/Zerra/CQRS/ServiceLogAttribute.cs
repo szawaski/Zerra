@@ -7,10 +7,10 @@ using System;
 namespace Zerra.CQRS
 {
     [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Method)]
-    public sealed class BusLoggedAttribute : Attribute
+    public sealed class ServiceLogAttribute : Attribute
     {
         public BusLogging BusLogging { get; private set; }
-        public BusLoggedAttribute(BusLogging busLogging)
+        public ServiceLogAttribute(BusLogging busLogging)
         {
             BusLogging = busLogging;
         }

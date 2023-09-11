@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.Extensibility;
 using System;
 using System.Diagnostics;
 using System.Text;
@@ -26,12 +24,9 @@ namespace Zerra.Logger
 
         private readonly string infoFile;
         private readonly string tracefile;
-        private readonly TelemetryClient telemetryClient;
+
         public LoggingProvider()
         {
-            var config = TelemetryConfiguration.CreateDefault();
-            telemetryClient = new TelemetryClient(config);
-
             var filePath = Config.GetSetting("LogFileDirectory");
             if (String.IsNullOrWhiteSpace(filePath))
                 filePath = System.IO.Path.GetDirectoryName(Environment.CurrentDirectory);
@@ -45,7 +40,6 @@ namespace Zerra.Logger
             var msg = $"{traceCategory}: {message}";
             Debug.WriteLine(msg, traceCategory);
             Console.WriteLine(msg);
-            telemetryClient.TrackTrace(message);
 
             if (!String.IsNullOrWhiteSpace(tracefile))
                 await LogFile.Log(tracefile, traceCategory, message);
@@ -56,7 +50,6 @@ namespace Zerra.Logger
             var msg = $"{debugCategory}: {message}";
             Debug.WriteLine(msg, debugCategory);
             Console.WriteLine(msg);
-            telemetryClient.TrackTrace(message);
 
             if (!String.IsNullOrWhiteSpace(tracefile))
                 await LogFile.Log(tracefile, debugCategory, message);
@@ -67,7 +60,6 @@ namespace Zerra.Logger
             var msg = $"{infoCategory}: {message}";
             Debug.WriteLine(msg, infoCategory);
             Console.WriteLine(msg);
-            telemetryClient.TrackEvent(message);
 
             if (!String.IsNullOrWhiteSpace(tracefile))
                 await LogFile.Log(tracefile, infoCategory, message);
@@ -78,7 +70,6 @@ namespace Zerra.Logger
             var msg = $"{warnCategory}: {message}";
             Debug.WriteLine(msg);
             Console.WriteLine(msg);
-            telemetryClient.TrackEvent(message);
 
             if (!String.IsNullOrWhiteSpace(infoFile))
                 await LogFile.Log(infoFile, warnCategory, message);
@@ -104,10 +95,6 @@ namespace Zerra.Logger
 
             Debug.WriteLine(msg, errorCategory);
             Console.WriteLine(msg);
-            if (exception != null)
-                telemetryClient.TrackException(exception);
-            else
-                telemetryClient.TrackEvent(msg);
 
             if (!String.IsNullOrWhiteSpace(infoFile))
                 await LogFile.Log(infoFile, errorCategory, msg);
@@ -133,10 +120,6 @@ namespace Zerra.Logger
 
             Debug.WriteLine(msg, criticalCategory);
             Console.WriteLine(msg);
-            if (exception != null)
-                telemetryClient.TrackException(exception);
-            else
-                telemetryClient.TrackEvent(msg);
 
             if (!String.IsNullOrWhiteSpace(infoFile))
                 await LogFile.Log(infoFile, criticalCategory, msg);
