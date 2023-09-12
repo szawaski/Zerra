@@ -10,7 +10,7 @@ using Zerra.IO;
 
 namespace Zerra.Encryption
 {
-    public class FinalBlockStream : StreamWrapper
+    public sealed class FinalBlockStream : StreamWrapper
     {
         private readonly CryptoStream cryptoStream;
         private readonly CryptoShiftStream cryptoShiftStream;

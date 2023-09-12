@@ -25,6 +25,9 @@ namespace Zerra
 
         public override int GetHashCode()
         {
+#if !NETSTANDARD2_0
+            return HashCode.Combine(source, target);
+#else
             unchecked
             {
                 var hash = (int)2166136261;
@@ -32,6 +35,7 @@ namespace Zerra
                 hash = (hash * 16777619) ^ target.GetHashCode();
                 return hash;
             }
+#endif
         }
     }
 }

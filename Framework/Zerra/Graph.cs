@@ -111,7 +111,7 @@ namespace Zerra
 
         public override bool Equals(object obj)
         {
-            if (!(obj is Graph objCasted))
+            if (obj is not Graph objCasted)
                 return false;
             return this.Signature == objCasted.Signature;
         }

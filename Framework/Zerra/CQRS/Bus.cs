@@ -280,15 +280,11 @@ namespace Zerra.CQRS
             }
             else
             {
-                var principal = Thread.CurrentPrincipal.CloneClaimsPrincipal();
-                return Task.Run(() =>
-                {
-                    Thread.CurrentPrincipal = principal;
-                    if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
-                        _ = HandleCommandAsync((ICommand)command, commandType, source);
-                    else
-                        _ = HandleCommandLoggedAsync((ICommand)command, commandType, source);
-                });
+                if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
+                    _ = HandleCommandAsync((ICommand)command, commandType, source);
+                else
+                    _ = HandleCommandLoggedAsync((ICommand)command, commandType, source);
+                return Task.CompletedTask;
             }
         }
         public static Task _DispatchEventInternalAsync(IEvent @event, Type eventType, NetworkType networkType, string source, BusLogging busLogging)
@@ -319,16 +315,11 @@ namespace Zerra.CQRS
             }
             else
             {
-                var principal = Thread.CurrentPrincipal.CloneClaimsPrincipal();
-                return Task.Run(() =>
-                {
-                    Thread.CurrentPrincipal = principal;
-                    if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
-                        _ = HandleEventAsync((IEvent)@event, eventType, source);
-                    else
-                        _ = HandleEventLoggedAsync((IEvent)@event, eventType, source);
-
-                });
+                if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
+                    _ = HandleEventAsync((IEvent)@event, eventType, source);
+                else
+                    _ = HandleEventLoggedAsync((IEvent)@event, eventType, source);
+                return Task.CompletedTask;
             }
         }
 
@@ -947,11 +938,12 @@ namespace Zerra.CQRS
                 throw new SecurityException(message());
             if (roles != null && roles.Count > 0)
             {
-                var isInRole = false;
                 foreach (var role in roles)
-                    isInRole |= principal.IsInRole(role);
-                if (!isInRole)
-                    throw new SecurityException(message());
+                {
+                    if (principal.IsInRole(role))
+                        return;
+                }
+                throw new SecurityException(message());
             }
         }
 

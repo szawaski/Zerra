@@ -64,8 +64,6 @@ namespace Zerra.Threading
             if (disposed)
                 throw new ObjectDisposedException("Thread pool has been disposed.");
 
-            principal ??= Thread.CurrentPrincipal.CloneClaimsPrincipal();
-
             lock (workItems)
             {
                 workItems.Enqueue(new WorkItem(work, null, principal));

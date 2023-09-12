@@ -216,8 +216,7 @@ namespace Zerra.Encryption
 
         public override int GetHashCode()
         {
-            var secret = GetSecret();
-            return secret == null ? default : secret.GetHashCode();
+            return secretEncrypted.GetHashCode();
         }
 
         public override string ToString()

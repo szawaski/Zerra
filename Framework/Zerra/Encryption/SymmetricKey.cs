@@ -35,6 +35,9 @@ namespace Zerra.Encryption
 
         public override int GetHashCode()
         {
+#if !NETSTANDARD2_0
+            return HashCode.Combine(Key, IV, KeySize, BlockSize);
+#else
             unchecked
             {
                 var hash = (int)2166136261;
@@ -42,6 +45,7 @@ namespace Zerra.Encryption
                 hash = (hash * 16777619) ^ IV.GetHashCode();
                 return hash;
             }
+#endif
         }
     }
 }
