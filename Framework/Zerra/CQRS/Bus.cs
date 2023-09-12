@@ -9,6 +9,8 @@ using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security;
+using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Collections;
@@ -24,7 +26,7 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS
 {
-    public static class Bus
+    public static partial class Bus
     {
         private static readonly Type iCommandType = typeof(ICommand);
         private static readonly Type iEventType = typeof(IEvent);
@@ -99,29 +101,41 @@ namespace Zerra.CQRS
         public static Task DispatchAwaitAsync(ICommand command) => DispatchCommandInternalAsync(command, true, NetworkType.Local, Config.ApplicationIdentifier);
         public static Task DispatchAsync(IEvent @event) => DispatchEventInternalAsync(@event, NetworkType.Local, Config.ApplicationIdentifier);
 
+        private static readonly ConcurrentFactoryDictionary<Type, MessageMetadata> commandMetadata = new();
         private static readonly ConcurrentFactoryDictionary<Type, Func<ICommand, Task>> commandCacheProviders = new();
         private static Task DispatchCommandInternalAsync(ICommand command, bool requireAffirmation, NetworkType networkType, string source)
         {
             var commandType = command.GetType();
-            var busLogging = BusLogging.Logged;
-            if (networkType != NetworkType.Local)
+
+            var metadata = commandMetadata.GetOrAdd(commandType, (commandType) =>
             {
                 var exposed = false;
+                var busLogging = BusLogging.Logged;
+                var authenticate = false;
+                IReadOnlyCollection<string> roles = null;
                 foreach (var attribute in commandType.GetTypeDetail().Attributes)
                 {
                     if (attribute is ServiceExposedAttribute serviceExposedAttribute && serviceExposedAttribute.NetworkType >= networkType)
                     {
                         exposed = true;
-                        break;
                     }
                     else if (attribute is ServiceLogAttribute busLoggedAttribute)
                     {
                         busLogging = busLoggedAttribute.BusLogging;
                     }
+                    else if (attribute is ServiceSecureAttribute serviceSecureAttribute)
+                    {
+                        authenticate = true;
+                        roles = serviceSecureAttribute.Roles;
+                    }
                 }
-                if (!exposed)
-                    throw new Exception($"Command {commandType.GetNiceName()} is not exposed for {nameof(NetworkType)}.{networkType.EnumName()}");
-            }
+                return new MessageMetadata(exposed, busLogging, authenticate, roles);
+            });
+
+            if (networkType != NetworkType.Local && !metadata.Exposed)
+                throw new SecurityException($"Not Exposed Command {commandType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
+            if (metadata.Authenticate)
+                Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Command {commandType.GetNiceName()}");
 
             var cacheProviderDispatchAsync = commandCacheProviders.GetOrAdd(commandType, (t) =>
             {
@@ -140,7 +154,7 @@ namespace Zerra.CQRS
                 var methodGetProviderInterfaceType = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(LayerProvider<object>.GetProviderInterfaceType));
                 var interfaceType = (Type)methodGetProviderInterfaceType.Caller(cacheInstance, null);
 
-                var messageHandlerToDispatchProvider = BusRouters.GetCommandHandlerToDispatchInternalInstance(interfaceType, requireAffirmation, networkType, source, busLogging);
+                var messageHandlerToDispatchProvider = BusRouters.GetCommandHandlerToDispatchInternalInstance(interfaceType, requireAffirmation, networkType, source, metadata.BusLogging);
                 _ = methodSetNextProvider.Caller(cacheInstance, new object[] { messageHandlerToDispatchProvider });
 
                 var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand>.Handle), new Type[] { commandType });
@@ -156,32 +170,44 @@ namespace Zerra.CQRS
             if (cacheProviderDispatchAsync != null)
                 return cacheProviderDispatchAsync(command);
 
-            return _DispatchCommandInternalAsync(command, commandType, requireAffirmation, networkType, source, busLogging);
+            return _DispatchCommandInternalAsync(command, commandType, requireAffirmation, networkType, source, metadata.BusLogging);
         }
 
+        private static readonly ConcurrentFactoryDictionary<Type, MessageMetadata> eventMetadata = new();
         private static readonly ConcurrentFactoryDictionary<Type, Func<IEvent, Task>> eventCacheProviders = new();
         private static Task DispatchEventInternalAsync(IEvent @event, NetworkType networkType, string source)
         {
             var eventType = @event.GetType();
-            var busLogging = BusLogging.Logged;
-            if (networkType != NetworkType.Local)
+
+            var metadata = eventMetadata.GetOrAdd(eventType, (eventType) =>
             {
                 var exposed = false;
+                var busLogging = BusLogging.Logged;
+                var authenticate = false;
+                IReadOnlyCollection<string> roles = null;
                 foreach (var attribute in eventType.GetTypeDetail().Attributes)
                 {
                     if (attribute is ServiceExposedAttribute serviceExposedAttribute && serviceExposedAttribute.NetworkType >= networkType)
                     {
                         exposed = true;
-                        break;
                     }
                     else if (attribute is ServiceLogAttribute busLoggedAttribute)
                     {
                         busLogging = busLoggedAttribute.BusLogging;
                     }
+                    else if (attribute is ServiceSecureAttribute serviceSecureAttribute)
+                    {
+                        authenticate = true;
+                        roles = serviceSecureAttribute.Roles;
+                    }
                 }
-                if (!exposed)
-                    throw new Exception($"Event {eventType.GetNiceName()} is not exposed for {nameof(NetworkType)}.{networkType.EnumName()}");
-            }
+                return new MessageMetadata(exposed, busLogging, authenticate, roles);
+            });
+
+            if (networkType != NetworkType.Local && !metadata.Exposed)
+                throw new SecurityException($"Not Exposed Event {eventType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
+            if (metadata.Authenticate)
+                Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Event {eventType.GetNiceName()}");
 
             var cacheProviderDispatchAsync = eventCacheProviders.GetOrAdd(eventType, (t) =>
             {
@@ -200,7 +226,7 @@ namespace Zerra.CQRS
                 var methodGetProviderInterfaceType = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(LayerProvider<object>.GetProviderInterfaceType));
                 var interfaceType = (Type)methodGetProviderInterfaceType.Caller(cacheInstance, null);
 
-                var messageHandlerToDispatchProvider = BusRouters.GetEventHandlerToDispatchInternalInstance(interfaceType, networkType, source, busLogging);
+                var messageHandlerToDispatchProvider = BusRouters.GetEventHandlerToDispatchInternalInstance(interfaceType, networkType, source, metadata.BusLogging);
                 _ = methodSetNextProvider.Caller(cacheInstance, new object[] { messageHandlerToDispatchProvider });
 
                 var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(IEventHandler<IEvent>.Handle), new Type[] { eventType });
@@ -216,7 +242,7 @@ namespace Zerra.CQRS
             if (cacheProviderDispatchAsync != null)
                 return cacheProviderDispatchAsync(@event);
 
-            return _DispatchEventInternalAsync(@event, eventType, networkType, source, busLogging);
+            return _DispatchEventInternalAsync(@event, eventType, networkType, source, metadata.BusLogging);
         }
 
         public static Task _DispatchCommandInternalAsync(ICommand command, Type commandType, bool requireAffirmation, NetworkType networkType, string source, BusLogging busLogging)
@@ -424,15 +450,39 @@ namespace Zerra.CQRS
         public static TInterface Call<TInterface>() => (TInterface)CallInternal(typeof(TInterface), NetworkType.Local, Config.ApplicationIdentifier);
         public static object Call(Type interfaceType) => CallInternal(interfaceType, NetworkType.Local, Config.ApplicationIdentifier);
 
+        private static readonly ConcurrentFactoryDictionary<Type, CallMetadata> callMetadata = new();
         private static readonly ConcurrentFactoryDictionary<Type, object> callCacheProviders = new();
         private static object CallInternal(Type interfaceType, NetworkType networkType, string source)
         {
-            if (networkType != NetworkType.Local)
+            var metadata = callMetadata.GetOrAdd(interfaceType, (interfaceType) =>
             {
-                var exposed = interfaceType.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute);
-                if (!exposed)
-                    throw new Exception($"Interface {interfaceType.GetNiceName()} is not exposed");
-            }
+                var exposed = false;
+                var busLogging = BusLogging.Logged;
+                var authenticate = false;
+                IReadOnlyCollection<string> roles = null;
+                foreach (var attribute in interfaceType.GetTypeDetail().Attributes)
+                {
+                    if (attribute is ServiceExposedAttribute serviceExposedAttribute && serviceExposedAttribute.NetworkType >= networkType)
+                    {
+                        exposed = true;
+                    }
+                    else if (attribute is ServiceLogAttribute busLoggedAttribute)
+                    {
+                        busLogging = busLoggedAttribute.BusLogging;
+                    }
+                    else if (attribute is ServiceSecureAttribute serviceSecureAttribute)
+                    {
+                        authenticate = true;
+                        roles = serviceSecureAttribute.Roles;
+                    }
+                }
+                return new CallMetadata(exposed, busLogging, authenticate, roles);
+            });
+
+            if (networkType != NetworkType.Local && !metadata.Exposed)
+                throw new Exception($"Not Exposed Interface {interfaceType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
+            if (metadata.Authenticate)
+                Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Interface {interfaceType.GetNiceName()}");
 
             var callerProvider = BusRouters.GetProviderToCallMethodInternalInstance(interfaceType, networkType, source);
 
@@ -464,11 +514,12 @@ namespace Zerra.CQRS
             if (methodDetail.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
                 throw new ArgumentException("Invalid number of arguments for this method");
 
-            var busLogging = BusLogging.Logged;
-            if (networkType != NetworkType.Local)
+            var metadata = callMetadata.GetOrAdd(interfaceType, (interfaceType) =>
             {
                 var exposed = false;
-                var blockedMethod = false;
+                var busLogging = BusLogging.Logged;
+                var authenticate = false;
+                IReadOnlyCollection<string> roles = null;
                 foreach (var attribute in interfaceType.GetTypeDetail().Attributes)
                 {
                     if (attribute is ServiceExposedAttribute serviceExposedAttribute && serviceExposedAttribute.NetworkType >= networkType)
@@ -480,31 +531,58 @@ namespace Zerra.CQRS
                     {
                         busLogging = busLoggedAttribute.BusLogging;
                     }
+                    else if (attribute is ServiceSecureAttribute serviceSecureAttribute)
+                    {
+                        authenticate = true;
+                        roles = serviceSecureAttribute.Roles;
+                    }
                 }
-                if (!exposed)
-                    throw new Exception($"Interface {interfaceType.GetNiceName()} is not exposed for {nameof(NetworkType)}.{networkType.EnumName()}");
+                return new CallMetadata(exposed, busLogging, authenticate, roles);
+            });
 
+            var methodMetadata = metadata.MethodMetadata.GetOrAdd(methodDetail, (methodDetail) =>
+            {
+                var blocked = false;
+                var busLogging = metadata.BusLogging;
+                var authenticate = false;
+                IReadOnlyCollection<string> roles = null;
                 foreach (var attribute in methodDetail.Attributes)
                 {
                     if (attribute is ServiceBlockedAttribute serviceBlockedAttribute && serviceBlockedAttribute.NetworkType < networkType)
                     {
-                        blockedMethod = true;
-                        break;
+                        blocked = true;
                     }
-                    else if (attribute is ServiceLogAttribute busLoggedAttribute)
+                    else if (attribute is ServiceLogAttribute busLoggedAttribute && busLoggedAttribute.BusLogging < busLogging)
                     {
                         busLogging = busLoggedAttribute.BusLogging;
                     }
+                    else if (attribute is ServiceSecureAttribute serviceSecureAttribute)
+                    {
+                        authenticate = true;
+                        roles = serviceSecureAttribute.Roles;
+                    }
                 }
-                if (blockedMethod)
-                    throw new Exception($"Method {interfaceType.GetNiceName()}.{methodDetail.Name} is blocked for {nameof(NetworkType)}.{networkType.EnumName()}");
+                return new MethodMetadata(blocked, busLogging, authenticate, roles);
+            });
+
+            if (networkType != NetworkType.Local)
+            {
+                if (!metadata.Exposed)
+                    throw new Exception($"Not Exposed Interface {interfaceType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
+                if (methodMetadata.Blocked)
+                    throw new Exception($"Blocked Method {interfaceType.GetNiceName()}.{methodDetail.Name} for {nameof(NetworkType)}.{networkType.EnumName()}");
             }
+
+            if (metadata.Authenticate)
+                Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Interface {interfaceType.GetNiceName()}");
+            if (methodMetadata.Authenticate)
+                Authenticate(Thread.CurrentPrincipal, methodMetadata.Roles, () => $"Access Denied for Method {interfaceType.GetNiceName()}.{methodDetail.Name}");
 
             object result;
 
             if (!queryClients.IsEmpty && queryClients.TryGetValue(interfaceType, out var methodCaller))
             {
-                if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
+                if (busLogger == null || methodMetadata.BusLogging == BusLogging.None || (methodMetadata.BusLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                 {
                     result = methodCaller.Call<TReturn>(interfaceType, methodName, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
                 }
@@ -542,7 +620,7 @@ namespace Zerra.CQRS
             }
             else
             {
-                if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
+                if (busLogger == null || methodMetadata.BusLogging == BusLogging.None || (methodMetadata.BusLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                 {
                     var provider = ProviderResolver.GetFirst(interfaceType);
 
@@ -863,7 +941,21 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly HashSet<object> instanciations = new();
+        private static void Authenticate(IPrincipal principal, IReadOnlyCollection<string> roles, Func<string> message)
+        {
+            if (!principal.Identity.IsAuthenticated)
+                throw new SecurityException(message());
+            if (roles != null && roles.Count > 0)
+            {
+                var isInRole = false;
+                foreach (var role in roles)
+                    isInRole |= principal.IsInRole(role);
+                if (!isInRole)
+                    throw new SecurityException(message());
+            }
+        }
+
+        private static readonly HashSet<object> instantiations = new();
 
         public static async Task DisposeServices()
         {
@@ -982,7 +1074,7 @@ namespace Zerra.CQRS
                 }
                 queryClients.Clear();
 
-                foreach (var instance in instanciations)
+                foreach (var instance in instantiations)
                 {
                     if (instance is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
                     {
@@ -995,7 +1087,7 @@ namespace Zerra.CQRS
                         _ = disposed.Add(disposable);
                     }
                 }
-                instanciations.Clear();
+                instantiations.Clear();
             }
             finally
             {
@@ -1306,7 +1398,7 @@ namespace Zerra.CQRS
                         {
                             var type = Discovery.GetTypeFromName(instantiation);
                             var instance = Activator.CreateInstance(type);
-                            _ = instanciations.Add(instance);
+                            _ = instantiations.Add(instance);
                         }
                         catch (Exception ex)
                         {
