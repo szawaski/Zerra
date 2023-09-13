@@ -51,10 +51,13 @@ namespace Zerra.CQRS.Settings
                     service.InternalUrl = Config.GetInternalUrl(service.InternalUrl);
                 service.ExternalUrl = Config.GetExternalUrl(service.Name, service.ExternalUrl);
 
-                if (service.Name == serviceName)
-                    _ = Log.InfoAsync($"Set {service.Name} at {(String.IsNullOrWhiteSpace(service.ExternalUrl) ? "?" : service.ExternalUrl)} (Internal {service.InternalUrl})");
-                else
-                    _ = Log.InfoAsync($"Set {service.Name} at {(String.IsNullOrWhiteSpace(service.ExternalUrl) ? "?" : service.ExternalUrl)}");
+                if (!String.IsNullOrWhiteSpace(service.ExternalUrl))
+                {
+                    if (service.Name == serviceName)
+                        _ = Log.InfoAsync($"Set {service.Name} at {service.ExternalUrl} (Internal {service.InternalUrl})");
+                    else
+                        _ = Log.InfoAsync($"Set {service.Name} at {service.ExternalUrl}");
+                }
             }
 
             settings.ThisServiceName = serviceName;
