@@ -64,16 +64,13 @@ namespace Zerra
         private static IConfiguration configuration = null;
         private static string environmentName = null;
         private static string applicationIdentifier = null;
-        public static void LoadConfiguration() { LoadConfiguration(null, null, null, null); }
-        public static void LoadConfiguration(string environmentName) { LoadConfiguration(null, environmentName, null, null); }
-        public static void LoadConfiguration(string[] args) { LoadConfiguration(args, null, null, null); }
-        public static void LoadConfiguration(string[] args, string environmentName) { LoadConfiguration(args, environmentName, null, null); }
-        public static void LoadConfiguration(string[] args, Action<ConfigurationBuilder> build) { LoadConfiguration(args, null, null, build); }
-        public static void LoadConfiguration(Action<ConfigurationBuilder> build) { LoadConfiguration(null, null, null, build); }
-        public static void LoadConfiguration(string[] args, string environmentName, Action<ConfigurationBuilder> build) { LoadConfiguration(args, environmentName, null, build); }
-        public static void LoadConfiguration(string[] args, string[] settingsFiles) { LoadConfiguration(args, null, settingsFiles, null); }
-        public static void LoadConfiguration(string[] args, string environmentName, string[] settingsFiles) { LoadConfiguration(args, environmentName, settingsFiles, null); }
-        public static void LoadConfiguration(string[] args, string environmentName, string[] settingsFiles, Action<ConfigurationBuilder> build)
+        public static void LoadConfiguration() { LoadConfiguration(null, null, null); }
+        public static void LoadConfiguration(string environmentName) { LoadConfiguration(null, environmentName, null); }
+        public static void LoadConfiguration(string[] args) { LoadConfiguration(args, null, null); }
+        public static void LoadConfiguration(string[] args, string environmentName) { LoadConfiguration(args, environmentName, null); }
+        public static void LoadConfiguration(string[] args, Action<ConfigurationBuilder> build) { LoadConfiguration(args, null, build); }
+        public static void LoadConfiguration(Action<ConfigurationBuilder> build) { LoadConfiguration(null, null, build); }
+        public static void LoadConfiguration(string[] args, string environmentName, Action<ConfigurationBuilder> build)
         {
             var builder = new ConfigurationBuilder();
 
@@ -100,17 +97,6 @@ namespace Zerra
                 var environmentSettingsFileNames = GetEnvironmentFilesBySuffix(String.Format(genericSettingsFileName, environmentName));
                 foreach (var environmentSettingsFileName in environmentSettingsFileNames)
                     AddSettingsFile(builder, environmentSettingsFileName);
-            }
-
-            if (settingsFiles != null && settingsFiles.Length > 0)
-            {
-                foreach (var settingsFile in settingsFiles)
-                {
-                    var file = settingsFile;
-                    while (file.StartsWith("/") || file.StartsWith("\\"))
-                        file = settingsFile.Substring(1);
-                    AddSettingsFile(builder, file);
-                }
             }
 
             _ = builder.AddEnvironmentVariables();
