@@ -54,7 +54,7 @@ namespace Zerra.CQRS.Settings
                 if (!String.IsNullOrWhiteSpace(service.ExternalUrl))
                 {
                     if (service.Name == serviceName)
-                        _ = Log.InfoAsync($"Set {service.Name} at {service.ExternalUrl} (Internal {service.InternalUrl})");
+                        _ = Log.InfoAsync($"Hosting {service.Name} at {service.ExternalUrl} (Internal {service.InternalUrl})");
                     else
                         _ = Log.InfoAsync($"Set {service.Name} at {service.ExternalUrl}");
                 }
