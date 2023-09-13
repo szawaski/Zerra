@@ -38,6 +38,8 @@ namespace Zerra.CQRS.AzureServiceBus
 
         public AzureServiceBusConsumer(string host, SymmetricConfig symmetricConfig, string environment)
         {
+            if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
+
             this.host = host;
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;

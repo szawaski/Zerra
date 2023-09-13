@@ -29,6 +29,8 @@ namespace Zerra.CQRS.Kafka
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
         public KafkaProducer(string host, SymmetricConfig symmetricConfig, string environment)
         {
+            if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
+
             this.host = host;
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;

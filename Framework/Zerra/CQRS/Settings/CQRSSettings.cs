@@ -15,12 +15,11 @@ namespace Zerra.CQRS.Settings
         private const string settingsFileName = "cqrssettings.json";
         private const string genericSettingsFileName = "cqrssettings.{0}.json";
 
-        public static ServiceSettings Get(string serviceName, string environmentName = null)
+        public static ServiceSettings Get(string serviceName)
         {
             string filePath = null;
 
-            if (String.IsNullOrWhiteSpace(environmentName))
-                environmentName = Config.EnvironmentName;
+            var environmentName = Config.EnvironmentName;
 
             if (!String.IsNullOrWhiteSpace(environmentName))
                 filePath = Config.GetEnvironmentFilePath(String.Format(genericSettingsFileName, environmentName));
@@ -43,7 +42,8 @@ namespace Zerra.CQRS.Settings
                 Log.InfoAsync($"Invalid {filePath}").GetAwaiter().GetResult();
                 throw new Exception($"Invalid {filePath}", ex);
             }
-            _ = Log.InfoAsync($"Loaded {filePath}");
+
+            _ = Log.InfoAsync($"{nameof(CQRSSettings)} Loaded {filePath}");
 
             foreach (var service in settings.Services)
             {

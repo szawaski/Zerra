@@ -31,6 +31,8 @@ namespace Zerra.CQRS.RabbitMQ
 
         public RabbitMQConsumer(string host, SymmetricConfig symmetricConfig, string environment)
         {
+            if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
+
             this.host = host;
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;

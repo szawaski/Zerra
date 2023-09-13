@@ -77,10 +77,6 @@ namespace Zerra
         {
             var builder = new ConfigurationBuilder();
 
-            var settingsFileNames = GetEnvironmentFilesBySuffix(settingsFileName);
-            foreach (var settingsFileName in settingsFileNames)
-                AddSettingsFile(builder, settingsFileName);
-
             if (String.IsNullOrWhiteSpace(environmentName))
                 environmentName = Environment.GetEnvironmentVariable(environmentNameVariable1);
             if (String.IsNullOrWhiteSpace(environmentName))
@@ -88,16 +84,23 @@ namespace Zerra
             if (String.IsNullOrWhiteSpace(environmentName))
                 environmentName = Environment.GetEnvironmentVariable(environmentNameVariable3);
 
+            Console.WriteLine($"Assembly: {entryAssemblyName}");
+            Console.WriteLine($"Environment: {environmentName}");
+            Console.WriteLine($"Machine: {Environment.MachineName}");
+
+            Config.environmentName = environmentName;
+            Config.applicationIdentifier = $"{entryAssemblyName}:{environmentName}:{Environment.MachineName}";
+
+            var settingsFileNames = GetEnvironmentFilesBySuffix(settingsFileName);
+            foreach (var settingsFileName in settingsFileNames)
+                AddSettingsFile(builder, settingsFileName);
+
             if (!String.IsNullOrWhiteSpace(environmentName))
             {
                 var environmentSettingsFileNames = GetEnvironmentFilesBySuffix(String.Format(genericSettingsFileName, environmentName));
                 foreach (var environmentSettingsFileName in environmentSettingsFileNames)
                     AddSettingsFile(builder, environmentSettingsFileName);
             }
-
-            Config.environmentName = environmentName;
-            Config.applicationIdentifier = $"{entryAssemblyName}:{environmentName}:{Environment.MachineName}";
-            Console.WriteLine(applicationIdentifier);
 
             if (settingsFiles != null && settingsFiles.Length > 0)
             {

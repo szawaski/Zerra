@@ -41,6 +41,9 @@ namespace Zerra.CQRS.AzureEventHub
 
         public AzureEventHubConsumer(string host, string eventHubName, SymmetricConfig symmetricConfig, string environment)
         {
+            if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
+            if (String.IsNullOrWhiteSpace(eventHubName)) throw new ArgumentNullException(nameof(eventHubName));
+
             this.host = host;
             this.eventHubName = eventHubName;
             this.symmetricConfig = symmetricConfig;
