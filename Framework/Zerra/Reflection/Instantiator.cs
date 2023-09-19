@@ -49,7 +49,7 @@ namespace Zerra.Reflection
                 {
                     if (typeDetail.Creator == null)
                         return null;
-                    Func<object[], object> c = (a) => { return typeDetail.Creator(); };
+                    object c(object[] a) { return typeDetail.Creator(); }
                     return c;
                 }
                 foreach (var constructorDetail in typeDetail.ConstructorDetails)
