@@ -8,6 +8,7 @@ using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using Zerra.CQRS.Network;
+using Zerra.Logging;
 
 namespace Zerra.Web
 {
@@ -70,11 +71,15 @@ namespace Zerra.Web
             else
                 acceptContentType = null;
 
+            var inHandlerContext = false;
             try
             {
                 var data = await ContentTypeSerializer.DeserializeAsync<ApiRequestData>(contentType, context.Request.Body);
 
+                inHandlerContext = true;
                 var response = await ApiServerHandler.HandleRequestAsync(acceptContentType, data);
+                inHandlerContext = false;
+
                 if (response == null)
                 {
                     context.Response.StatusCode = 400;
@@ -117,6 +122,9 @@ namespace Zerra.Web
             }
             catch (Exception ex)
             {
+                if (!inHandlerContext)
+                    _ = Log.ErrorAsync(ex);
+
                 ex = ex.GetBaseException();
 
                 if (ex is SecurityException)
