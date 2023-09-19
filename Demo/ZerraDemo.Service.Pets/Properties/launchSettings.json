@@ -5,6 +5,9 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Dev"
       }
+    },
+    "Docker": {
+      "commandName": "Docker"
     }
   }
 }
