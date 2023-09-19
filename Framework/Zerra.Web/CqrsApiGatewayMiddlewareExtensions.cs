@@ -8,7 +8,7 @@ namespace Zerra.Web
 {
     public static class CqrsApiGatewayMiddlewareExtensions
     {
-        public static IApplicationBuilder UseCQRSGateway(this IApplicationBuilder builder, string route = "/CQRS")
+        public static IApplicationBuilder UseCqrsApiGateway(this IApplicationBuilder builder, string route = "/CQRS")
         {
             return builder.UseMiddleware<CqrsApiGatewayMiddleware>(route);
         }

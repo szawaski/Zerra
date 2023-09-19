@@ -43,7 +43,7 @@ namespace ZerraDemo.Web
 
             ServiceManager.StartServices();
 
-            _ = app.UseCQRSGateway();
+            _ = app.UseCqrsApiGateway();
 
             _ = app.UseRouting();
 
