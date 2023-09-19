@@ -5,7 +5,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Framework\Zerra.Repository\Zerra.Repository.csproj" />
         <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
     </ItemGroup>
 

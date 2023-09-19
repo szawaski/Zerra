@@ -17,7 +17,6 @@ COPY ["Framework/Zerra.CQRS.Kafka/Zerra.CQRS.Kafka.csproj", "Framework/Zerra.CQR
 COPY ["Framework/Zerra.CQRS.RabbitMQ/Zerra.CQRS.RabbitMQ.csproj", "Framework/Zerra.CQRS.RabbitMQ/"]
 COPY ["Framework/Zerra.Logger/Zerra.Logger.csproj", "Framework/Zerra.Logger/"]
 COPY ["Demo/ZerraDemo.Domain/ZerraDemo.Domain.csproj", "Demo/ZerraDemo.Domain/"]
-COPY ["Framework/Zerra.Repository/Zerra.Repository.csproj", "Framework/Zerra.Repository/"]
 RUN dotnet restore "Demo/ZerraDemo.Web/ZerraDemo.Web.csproj"
 COPY . .
 WORKDIR "/src/Demo/ZerraDemo.Web"
