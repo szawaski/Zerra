@@ -297,11 +297,13 @@ namespace Zerra.Reflection
 
             il.Emit(OpCodes.Ldarg, loadArgsIndex);
             il.Emit(OpCodes.Brfalse_S, argsNull);
+
+            //Set argument count as length of argument object[]
             il.Emit(OpCodes.Ldarg, loadArgsIndex);
             il.Emit(OpCodes.Ldlen);
             il.Emit(OpCodes.Br_S, argsLengthCheck);
 
-            //Set argument count as 0 if the argument object[] is null
+            //Set argument count as 0 because argument object[] is null
             il.MarkLabel(argsNull);
             il.Emit(OpCodes.Ldc_I4_0);
 

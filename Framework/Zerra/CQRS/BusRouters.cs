@@ -55,7 +55,7 @@ namespace Zerra.CQRS
             var networkTypeField = typeBuilder.DefineField("networkType", typeof(NetworkType), FieldAttributes.Private | FieldAttributes.InitOnly);
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Any, new Type[] { typeof(NetworkType), typeof(string) });
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, new Type[] { typeof(NetworkType), typeof(string) });
             {
                 constructorBuilder.DefineParameter(0, ParameterAttributes.None, "networkType");
                 constructorBuilder.DefineParameter(1, ParameterAttributes.None, "source");
@@ -95,7 +95,7 @@ namespace Zerra.CQRS
                 var methodBuilder = typeBuilder.DefineMethod(
                     methodName,
                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
-                    CallingConventions.HasThis,
+                    CallingConventions.Standard | CallingConventions.HasThis,
                     voidMethod ? null : returnType,
                     parameterTypes);
                 methodBuilder.SetImplementationFlags(MethodImplAttributes.Managed);
@@ -162,7 +162,7 @@ namespace Zerra.CQRS
             //    var methodBuilder = typeBuilder.DefineMethod(
             //        methodName,
             //        MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
-            //        CallingConventions.HasThis,
+            //        CallingConventions.Standard | CallingConventions.HasThis,
             //        voidMethod ? null : returnType,
             //        parameterTypes);
             //    methodBuilder.SetImplementationFlags(MethodImplAttributes.Managed);
@@ -217,7 +217,7 @@ namespace Zerra.CQRS
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
             var busLoggingField = typeBuilder.DefineField("busLogging", typeof(BusLogging), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Any, new Type[] { typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging) });
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, new Type[] { typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging) });
             {
                 constructorBuilder.DefineParameter(0, ParameterAttributes.None, "requireAffirmation");
                 constructorBuilder.DefineParameter(1, ParameterAttributes.None, "networkType");
@@ -253,7 +253,7 @@ namespace Zerra.CQRS
                 var methodBuilder = typeBuilder.DefineMethod(
                     methodName,
                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
-                    CallingConventions.HasThis,
+                    CallingConventions.Standard | CallingConventions.HasThis,
                     taskType,
                     parameterTypes);
                 methodBuilder.SetImplementationFlags(MethodImplAttributes.Managed);
@@ -299,7 +299,7 @@ namespace Zerra.CQRS
             //    var methodBuilder = typeBuilder.DefineMethod(
             //        methodName,
             //        MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
-            //        CallingConventions.HasThis,
+            //        CallingConventions.Standard | CallingConventions.HasThis,
             //        taskType,
             //        parameterTypes);
             //    methodBuilder.SetImplementationFlags(MethodImplAttributes.Managed);
@@ -353,7 +353,7 @@ namespace Zerra.CQRS
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
             var busLoggingField = typeBuilder.DefineField("busLogging", typeof(BusLogging), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Any, new Type[] { typeof(NetworkType), typeof(string), typeof(BusLogging) });
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, new Type[] { typeof(NetworkType), typeof(string), typeof(BusLogging) });
             {
                 constructorBuilder.DefineParameter(0, ParameterAttributes.None, "networkType");
                 constructorBuilder.DefineParameter(1, ParameterAttributes.None, "source");
@@ -388,7 +388,7 @@ namespace Zerra.CQRS
                 var methodBuilder = typeBuilder.DefineMethod(
                     methodName,
                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
-                    CallingConventions.HasThis,
+                    CallingConventions.Standard | CallingConventions.HasThis,
                     taskType,
                     parameterTypes);
                 methodBuilder.SetImplementationFlags(MethodImplAttributes.Managed);
@@ -432,7 +432,7 @@ namespace Zerra.CQRS
             //    var methodBuilder = typeBuilder.DefineMethod(
             //        methodName,
             //        MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
-            //        CallingConventions.HasThis,
+            //        CallingConventions.Standard | CallingConventions.HasThis,
             //        taskType,
             //        parameterTypes);
             //    methodBuilder.SetImplementationFlags(MethodImplAttributes.Managed);
