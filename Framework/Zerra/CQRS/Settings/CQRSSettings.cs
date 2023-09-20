@@ -62,7 +62,7 @@ namespace Zerra.CQRS.Settings
                 throw new Exception($"Invalid {filePath}", ex);
             }
 
-            _ = Log.InfoAsync($"{serviceName} Loaded {filePath}");
+            _ = Log.InfoAsync($"{serviceName} Loaded {fileName}");
 
             foreach (var service in settings.Services)
             {
