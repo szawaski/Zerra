@@ -1,6 +1,7 @@
 ﻿using System;
 using Zerra;
 using Zerra.CQRS;
+using Zerra.CQRS.RabbitMQ;
 using Zerra.CQRS.Settings;
 using Zerra.Logger;
 
@@ -29,7 +30,7 @@ namespace ZerraDemo.Common
             //serviceCreator = new HttpServiceCreator(authorizer, null);
 
             //Option1C: Enable this using RabbitMQ for event streaming commands/events
-            //serviceCreator = new RabbitMQServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
+            serviceCreator = new RabbitMQServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
 
             //Option1D: Enable this using Kafka for event streaming commands/events
             //serviceCreator = new KafkaServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);

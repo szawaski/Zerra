@@ -255,16 +255,16 @@ namespace Zerra.CQRS
                 {
                     if (commandProducers.TryGetValue(messageBaseType, out producer))
                     {
-                        if (busLogger != null)
-                        {
-                            return SendCommandLoggedAsync(command, commandType, requireAffirmation, networkType, source, producer);
-                        }
-                        else
+                        if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                         {
                             if (requireAffirmation)
                                 return producer.DispatchAsyncAwait(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
                             else
                                 return producer.DispatchAsync(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
+                        }
+                        else
+                        {
+                            return SendCommandLoggedAsync(command, commandType, requireAffirmation, networkType, source, producer);
                         }
                     }
                     messageBaseType = messageBaseType.BaseType;
@@ -297,10 +297,11 @@ namespace Zerra.CQRS
                 {
                     if (eventProducers.TryGetValue(messageBaseType, out producer))
                     {
-                        if (busLogger != null)
-                            return SendEventLoggedAsync(@event, eventType, networkType, source, producer);
-                        else
+                        if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                             return producer.DispatchAsync(@event, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
+                        else
+                            return SendEventLoggedAsync(@event, eventType, networkType, source, producer);
+
                     }
                     messageBaseType = messageBaseType.BaseType;
                 }
