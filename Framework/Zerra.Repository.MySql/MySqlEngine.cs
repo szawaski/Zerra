@@ -17,6 +17,7 @@ using Zerra.IO;
 using System.Collections;
 using MySql.Data.MySqlClient;
 using System.Data.Common;
+using Zerra.Logging;
 
 namespace Zerra.Repository.MySql
 {
@@ -1722,10 +1723,16 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
                         var version = (string)command.ExecuteScalar();
                         if (version.Length > 0 && Char.IsNumber(version[0]))
                             return true;
+
+                        _ = Log.ErrorAsync($"{nameof(MySqlEngine)} failed to validate: Invalid version {version}");
+                        return false;
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _ = Log.ErrorAsync($"{nameof(MySqlEngine)} failed to validate", ex);
+            }
             return false;
         }
     }

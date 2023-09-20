@@ -16,6 +16,7 @@ using System.Data;
 using System.Runtime.CompilerServices;
 using System.Collections;
 using Zerra.IO;
+using Zerra.Logging;
 
 namespace Zerra.Repository.MsSql
 {
@@ -1722,10 +1723,16 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName}'";
                         var version = (string)command.ExecuteScalar();
                         if (version.Contains("Microsoft SQL"))
                             return true;
+
+                        _ = Log.ErrorAsync($"{nameof(MsSqlEngine)} failed to validate: Invalid version {version}");
+                        return false;
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _ = Log.ErrorAsync($"{nameof(MsSqlEngine)} failed to validate", ex);
+            }
             return false;
         }
     }

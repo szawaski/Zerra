@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Zerra.Repository.Reflection;
+using Zerra.Logging;
 
 namespace Zerra.Repository.EventStoreDB
 {
@@ -272,7 +273,10 @@ namespace Zerra.Repository.EventStoreDB
 
                 return true;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _ = Log.ErrorAsync($"{nameof(EventStoreDBEngine)} failed to validate", ex);
+            }
             return false;
         }
 

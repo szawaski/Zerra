@@ -16,6 +16,7 @@ using System.Runtime.CompilerServices;
 using Npgsql;
 using Zerra.IO;
 using System.Collections;
+using Zerra.Logging;
 
 namespace Zerra.Repository.PostgreSql
 {
@@ -1749,10 +1750,16 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
                         var version = (string)command.ExecuteScalar();
                         if (version.Contains("PostgreSQL"))
                             return true;
+
+                        _ = Log.ErrorAsync($"{nameof(PostgreSqlEngine)} failed to validate: Invalid version {version}");
+                        return false;
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _ = Log.ErrorAsync($"{nameof(PostgreSqlEngine)} failed to validate", ex);
+            }
             return false;
         }
     }
