@@ -1138,7 +1138,7 @@ namespace Zerra.CQRS
                 if (thisServerSetting == null)
                     throw new Exception($"Service {serviceSettings.ThisServiceName} not found in CQRS settings file");
 
-                var serviceUrl = thisServerSetting.InternalUrl;
+                var serviceUrl = thisServerSetting.BindingUrl;
 
                 ICommandConsumer commandConsumer = null;
                 IEventConsumer eventConsumer = null;

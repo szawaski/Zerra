@@ -17,37 +17,45 @@ namespace ZerraDemo.Common
 
             Bus.AddLogger(new BusLoggingProvider());
 
-            var serviceSettings = CQRSSettings.Get(settingsName);
+            var serviceSettings = CQRSSettings.Get(settingsName, false);
 
-            //Enable one of the following service options
+            IServiceCreator serviceCreator;
+
+            //Option1: Enable one of the following service options
             //----------------------------------------------------------
 
-            //Option1A: Enable this for Tcp for backend only services
-            IServiceCreator serviceCreator = new TcpServiceCreator();
+            //Option1A: Enable this for Tcp (backend only services)
+            serviceCreator = new TcpServiceCreator();
 
-            //Option1B: Enable this for Http which can be access directly from a front end
+            //Option1B: Enable this for Http
             //var authorizer = new DemoCookieApiAuthorizer();
             //serviceCreator = new HttpServiceCreator(authorizer, null);
 
-            //Option1C: Enable this using RabbitMQ for event streaming commands/events
-            serviceCreator = new RabbitMQServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
+            //Option1C: Enable this using Kestrel Http (Required for Azure Apps)
+            //var kestrelServiceCreator = new KestrelServiceCreator(app, null, ContentType.Bytes);
 
-            //Option1D: Enable this using Kafka for event streaming commands/events
-            //serviceCreator = new KafkaServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
-
-            //Option1E: Enable this using Azure Event Hub for event streaming commands/events
-            //serviceCreator = new AzureEventHubServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
-
-            //Option1F: Enable this using Azure Service Bus for event streaming commands/events
-            //serviceCreator = new AzureServiceBusServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
-
-            //Enable one of the following routing options
+            //Option2: Enable one of the following message services
             //----------------------------------------------------------
 
-            //Option2A: Enable this for direct service communication, no custom relay/loadbalancer (can still use container balancers)
+            //Option2A: Enable this using RabbitMQ for commands/events
+            serviceCreator = new RabbitMQServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
+
+            //Option2B: Enable this using Kafka for commands/events
+            //serviceCreator = new KafkaServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
+
+            //Option2C: Enable this using Azure Event Hub for commands/events
+            //serviceCreator = new AzureEventHubServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
+
+            //Option2D: Enable this using Azure Service Bus for commands/events
+            //serviceCreator = new AzureServiceBusServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
+
+            //Option3: Enable one of the following routing options
+            //----------------------------------------------------------
+
+            //Option3A: Enable this for direct service communication, no custom relay/loadbalancer (can still use container balancers)
             Bus.StartServices(serviceSettings, serviceCreator);
 
-            //Option2B: Enable this to use the relay/loadbalancer
+            //Option3B: Enable this to use the relay/loadbalancer
             //var relayRegister = new RelayRegister(serviceSettings.RelayUrl, serviceSettings.RelayKey);
             //Bus.StartServices(settingsName, serviceSettings, serviceCreator, relayRegister);
         }

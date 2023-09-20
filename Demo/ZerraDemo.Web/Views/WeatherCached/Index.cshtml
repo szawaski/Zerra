@@ -8,6 +8,7 @@
 <div id="weather">
     <div class="form-group">
         <select class="form-control" v-model="weatherType">
+            <option></option>
             <option>Sunny</option>
             <option>OhioGraySkies</option>
             <option>Cloudy</option>
@@ -41,8 +42,8 @@
                         const command = new SetWeatherCachedCommand({
                             WeatherType: this.weatherType
                         });
-                       Bus.Dispatch(command, function () {
-                            window.location = "/";
+                        Bus.Dispatch(command, function () {
+                            window.location.reload();
                         });
                     }
                 }

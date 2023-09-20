@@ -15,8 +15,10 @@ namespace Zerra.CQRS.Settings
         private const string settingsFileName = "cqrssettings.json";
         private const string genericSettingsFileName = "cqrssettings.{0}.json";
 
-        public static ServiceSettings Get(string serviceName)
+        public static ServiceSettings Get(string serviceName, bool bindingUrlFromConfig)
         {
+            _ = Log.InfoAsync($"Configuring {serviceName}");
+
             string filePath = null;
 
             var environmentName = Config.EnvironmentName;
@@ -27,8 +29,9 @@ namespace Zerra.CQRS.Settings
 
             if (filePath == null)
             {
-                Log.InfoAsync($"{settingsFileName} not found").GetAwaiter().GetResult();
-                throw new Exception($"{settingsFileName} not found");
+                var notFound = $"{serviceName} did not find {settingsFileName}";
+                Log.InfoAsync(notFound).GetAwaiter().GetResult();
+                throw new Exception(notFound);
             }
 
             ServiceSettings settings;
@@ -42,21 +45,36 @@ namespace Zerra.CQRS.Settings
                 Log.InfoAsync($"Invalid {filePath}").GetAwaiter().GetResult();
                 throw new Exception($"Invalid {filePath}", ex);
             }
-
-            _ = Log.InfoAsync($"{nameof(CQRSSettings)} Loaded {filePath}");
+         
+            _ = Log.InfoAsync($"{serviceName} Loaded {filePath}");
 
             foreach (var service in settings.Services)
             {
-                if (service.Name == serviceName)
-                    service.InternalUrl = Config.GetInternalUrl(service.InternalUrl);
-                service.ExternalUrl = Config.GetExternalUrl(service.Name, service.ExternalUrl);
+                var loadedBindingUrl = false;
+                if (bindingUrlFromConfig && service.Name == serviceName)
+                {
+                    var newBindinglUrl = Config.GetBindingUrl(service.BindingUrl);
+                    if (newBindinglUrl != service.BindingUrl)
+                    {
+                        loadedBindingUrl = true;
+                        service.BindingUrl = newBindinglUrl;
+                    }
+                }
+
+                var loadedExternalUrl = false;
+                var newExternalUrl = Config.GetExternalUrl(service.Name, service.ExternalUrl);
+                if (newExternalUrl != service.ExternalUrl)
+                {
+                    service.ExternalUrl = newExternalUrl;
+                    loadedExternalUrl = true;
+                }
 
                 if (!String.IsNullOrWhiteSpace(service.ExternalUrl))
                 {
                     if (service.Name == serviceName)
-                        _ = Log.InfoAsync($"Hosting {service.Name} at {service.ExternalUrl} (Internal {service.InternalUrl})");
+                        _ = Log.InfoAsync($"Hosting {service.Name} at {service.ExternalUrl}{(loadedExternalUrl ? " (from Config)" : null)} Binding {service.BindingUrl}{(loadedBindingUrl ? " (from Config)" : null)}");
                     else
-                        _ = Log.InfoAsync($"Set {service.Name} at {service.ExternalUrl}");
+                        _ = Log.InfoAsync($"Set {service.Name} at {service.ExternalUrl}{(loadedExternalUrl ? " (from Config)" : null)}");
                 }
             }
 
