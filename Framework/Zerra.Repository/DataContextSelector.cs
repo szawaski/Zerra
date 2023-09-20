@@ -24,7 +24,7 @@ namespace Zerra.Repository
                     Log.InfoAsync($"{nameof(DataContextSelector)} could not validate {contextName}");
                     continue;
                 }
-                Log.InfoAsync($"{contextName} connected");
+                Log.InfoAsync($"{nameof(DataContextSelector)} found {contextName}");
                 return (engine, dataStoreGenerationType);
             }
             return (null, default);
