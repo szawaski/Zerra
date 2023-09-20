@@ -1,6 +1,7 @@
 ﻿using Zerra;
 using Zerra.Repository;
 using Zerra.Repository.PostgreSql;
+using Zerra.Logging;
 
 namespace ZerraDemo.Domain.Pets.Sql
 {
@@ -12,6 +13,7 @@ namespace ZerraDemo.Domain.Pets.Sql
         public PetsPostgreSqlDataContext()
         {
             this.connectionString = Config.GetSetting("PetsSqlConnectionStringPOSTGRESQL");
+            _ = Log.InfoAsync($"PetsSqlConnectionStringPOSTGRESQL {this.connectionString}");
         }
     }
 }
