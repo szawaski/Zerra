@@ -31,6 +31,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Zerra.Test\Zerra.Test.csproj" />
+    <ProjectReference Include="..\Zerra.Tools\Zerra.Tools.csproj" />
     <ProjectReference Include="..\Zerra\Zerra.csproj" />
     <ProjectReference Include="..\Zerra.Repository.EventStoreDB\Zerra.Repository.EventStoreDB.csproj" />
     <ProjectReference Include="..\Zerra.Repository.MsSql\Zerra.Repository.MsSql.csproj" />

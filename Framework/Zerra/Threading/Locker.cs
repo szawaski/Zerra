@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Collections;
@@ -17,16 +18,16 @@ namespace Zerra.Threading
             public int Checkouts = 0;
         }
 
-        private static readonly ConcurrentFactoryDictionary<string, ConcurrentFactoryDictionary<T, ItemLocker>> lockerPools = new();
+        private static readonly ConcurrentFactoryDictionary<string, ConcurrentDictionary<T, ItemLocker>> lockerPools = new();
 
-        private readonly ConcurrentFactoryDictionary<T, ItemLocker> itemLockers;
+        private readonly ConcurrentDictionary<T, ItemLocker> itemLockers;
         private readonly T key;
 
         private ItemLocker itemLocker;
 
         private Locker(string purpose, T key)
         {
-            this.itemLockers = lockerPools.GetOrAdd(purpose, (k) => { return new ConcurrentFactoryDictionary<T, ItemLocker>(); });
+            this.itemLockers = lockerPools.GetOrAdd(purpose, (k) => { return new ConcurrentDictionary<T, ItemLocker>(); });
             this.key = key;
         }
 

@@ -39,20 +39,6 @@ namespace System.Linq
                 predicate(item);
         }
 
-        public static IEnumerable<TResult> Distinct<TResult, TProperty>(this IEnumerable<TResult> it, Func<TResult, TProperty> predicate)
-        {
-            var usedProperties = new List<TProperty>();
-            foreach (var item in it)
-            {
-                var property = predicate.Invoke(item);
-                if (!usedProperties.Contains(property))
-                {
-                    usedProperties.Add(property);
-                    yield return item;
-                }
-            }
-        }
-
         public static string ToLinqString(this Expression expression) { return LinqStringConverter.Convert(expression); }
 
         public static Expression<Func<T, bool>> AppendAnd<T>(this Expression<Func<T, bool>> it, params Expression<Func<T, bool>>[] expressions) { return LinqAppender.AppendAnd(it, expressions); }
