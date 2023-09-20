@@ -21,16 +21,6 @@ namespace Zerra
         private const string environmentNameVariable2 = "Hosting:Environment";
         private const string environmentNameVariable3 = "ASPNET_ENV";
 
-        private const string bindingUrl1 = "urls";
-        private const string bindingUrl2 = "ASPNETCORE_URLS";
-        private const string bindingUrl3 = "ASPNETCORE_SERVER.URLS";
-        private const string bindingUrl4 = "DOTNET_URLS"; //docker
-
-        private const string bindingUrl5_azureSiteName = "WEBSITE_SITE_NAME";
-        private const string bindingUrl5_azureSiteUrls = "http://{0}:80;https://{0}:443";
-
-        private const string bindingUrlDefault = "http://localhost:5000;https://localhost:5001";
-
         private static readonly object discoveryLock = new();
         private static bool discoveryStarted;
         internal static void SetDiscoveryStarted()
@@ -140,36 +130,6 @@ namespace Zerra
             return value;
         }
 
-        public static string GetBindingUrl(string defaultUrl)
-        {
-            var url = GetSetting(bindingUrl1);
-            if (String.IsNullOrWhiteSpace(url))
-                url = GetSetting(bindingUrl2);
-            if (String.IsNullOrWhiteSpace(url))
-                url = GetSetting(bindingUrl3);
-            if (String.IsNullOrWhiteSpace(url))
-                url = GetSetting(bindingUrl4);
-            if (String.IsNullOrWhiteSpace(url))
-                url = defaultUrl;
-            if (String.IsNullOrWhiteSpace(url))
-            {
-                var siteName = GetSetting(bindingUrl5_azureSiteName);
-                if (!String.IsNullOrWhiteSpace(siteName))
-                    url = String.Format(bindingUrl5_azureSiteUrls, siteName);
-            }
-            if (String.IsNullOrWhiteSpace(url))
-                url = bindingUrlDefault;
-            return url;
-        }
-        public static string GetExternalUrl(string settingName, string defaultUrl)
-        {
-            var url = GetSetting(settingName);
-            if (String.IsNullOrWhiteSpace(url))
-                url = defaultUrl;
-            if (String.IsNullOrWhiteSpace(url))
-                url = null;
-            return url;
-        }
 
         public static IConfiguration Configuration
         {

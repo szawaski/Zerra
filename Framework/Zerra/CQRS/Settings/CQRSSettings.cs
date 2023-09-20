@@ -15,19 +15,35 @@ namespace Zerra.CQRS.Settings
         private const string settingsFileName = "cqrssettings.json";
         private const string genericSettingsFileName = "cqrssettings.{0}.json";
 
-        public static ServiceSettings Get(string serviceName, bool bindingUrlFromConfig)
+        private const string bindingUrl1 = "urls";
+        private const string bindingUrl2 = "ASPNETCORE_URLS";
+        private const string bindingUrl3 = "ASPNETCORE_SERVER.URLS";
+        private const string bindingUrl4 = "DOTNET_URLS"; //docker
+
+        private const string bindingUrl5_azureSiteName = "WEBSITE_SITE_NAME";
+        private const string bindingUrl5_azureSiteUrls = "http://{0}:80;https://{0}:443";
+
+        private const string bindingUrlDefault = "http://localhost:5000;https://localhost:5001";
+
+        public static ServiceSettings Get(string serviceName, bool bindingUrlFromStandardVariables)
         {
             _ = Log.InfoAsync($"Configuring {serviceName}");
 
-            string filePath = null;
-
             var environmentName = Config.EnvironmentName;
 
+            string filePath = null;
+            string fileName = null;
             if (!String.IsNullOrWhiteSpace(environmentName))
-                filePath = Config.GetEnvironmentFilePath(String.Format(genericSettingsFileName, environmentName));
-            filePath ??= Config.GetEnvironmentFilePath(settingsFileName);
-
+            {
+                fileName = String.Format(genericSettingsFileName, environmentName);
+                filePath = Config.GetEnvironmentFilePath(fileName);
+            }
             if (filePath == null)
+            {
+                fileName = settingsFileName;
+                filePath = Config.GetEnvironmentFilePath(fileName);
+            }
+            if (filePath == null || fileName == null)
             {
                 var notFound = $"{serviceName} did not find {settingsFileName}";
                 Log.InfoAsync(notFound).GetAwaiter().GetResult();
@@ -45,42 +61,108 @@ namespace Zerra.CQRS.Settings
                 Log.InfoAsync($"Invalid {filePath}").GetAwaiter().GetResult();
                 throw new Exception($"Invalid {filePath}", ex);
             }
-         
+
             _ = Log.InfoAsync($"{serviceName} Loaded {filePath}");
 
             foreach (var service in settings.Services)
             {
-                var loadedBindingUrl = false;
-                if (bindingUrlFromConfig && service.Name == serviceName)
+                if (service.Name == serviceName)
                 {
-                    var newBindinglUrl = Config.GetBindingUrl(service.BindingUrl);
-                    if (newBindinglUrl != service.BindingUrl)
+                    if (GetBindingUrl(service.Name, service.BindingUrl, bindingUrlFromStandardVariables, out var newUrl, out var urlSource))
                     {
-                        loadedBindingUrl = true;
-                        service.BindingUrl = newBindinglUrl;
+                        service.BindingUrl = newUrl;
+                        _ = Log.InfoAsync($"Hosting {service.Name} at {service.BindingUrl} (from {urlSource})");
+                    }
+                    else
+                    {
+                        _ = Log.InfoAsync($"Hosting {service.Name} at {service.BindingUrl} (from {fileName})");
                     }
                 }
-
-                var loadedExternalUrl = false;
-                var newExternalUrl = Config.GetExternalUrl(service.Name, service.ExternalUrl);
-                if (newExternalUrl != service.ExternalUrl)
+                else
                 {
-                    service.ExternalUrl = newExternalUrl;
-                    loadedExternalUrl = true;
-                }
-
-                if (!String.IsNullOrWhiteSpace(service.ExternalUrl))
-                {
-                    if (service.Name == serviceName)
-                        _ = Log.InfoAsync($"Hosting {service.Name} at {service.ExternalUrl}{(loadedExternalUrl ? " (from Config)" : null)} Binding {service.BindingUrl}{(loadedBindingUrl ? " (from Config)" : null)}");
+                    if (GetExternalUrl(service.Name, service.ExternalUrl, out var newUrl, out var urlSource))
+                    {
+                        service.ExternalUrl = newUrl;
+                        _ = Log.InfoAsync($"Set {service.Name} at {service.ExternalUrl} (from {urlSource})");
+                    }
                     else
-                        _ = Log.InfoAsync($"Set {service.Name} at {service.ExternalUrl}{(loadedExternalUrl ? " (from Config)" : null)}");
+                    {
+                        if (!String.IsNullOrWhiteSpace(service.ExternalUrl))
+                            _ = Log.InfoAsync($"Set {service.Name} at {service.ExternalUrl} (from {fileName})");
+                    }
                 }
             }
 
             settings.ThisServiceName = serviceName;
 
             return settings;
+        }
+
+        public static bool GetBindingUrl(string settingName, string defaultUrl, bool useStandardVariables, out string url, out string urlSource)
+        {
+            urlSource = settingName;
+            url = Config.GetSetting(settingName);
+            if (!String.IsNullOrWhiteSpace(url))
+                return true;
+
+            if (useStandardVariables)
+            {
+                urlSource = bindingUrl1;
+                url = Config.GetSetting(bindingUrl1);
+                if (!String.IsNullOrWhiteSpace(url))
+                    return true;
+
+                urlSource = bindingUrl2;
+                url = Config.GetSetting(bindingUrl2);
+                if (!String.IsNullOrWhiteSpace(url))
+                    return true;
+
+                urlSource = bindingUrl3;
+                url = Config.GetSetting(bindingUrl3);
+                if (!String.IsNullOrWhiteSpace(url))
+                    return true;
+
+                urlSource = bindingUrl4;
+                url = Config.GetSetting(bindingUrl4);
+                if (!String.IsNullOrWhiteSpace(url))
+                    return true;
+            }
+
+            urlSource = null;
+            url = defaultUrl;
+            if (!String.IsNullOrWhiteSpace(url))
+                return false;
+
+            if (useStandardVariables)
+            {
+                urlSource = bindingUrl5_azureSiteName;
+                var siteName = Config.GetSetting(bindingUrl5_azureSiteName);
+                if (!String.IsNullOrWhiteSpace(siteName))
+                    url = String.Format(bindingUrl5_azureSiteUrls, siteName);
+                if (!String.IsNullOrWhiteSpace(url))
+                    return true;
+            }
+
+            urlSource = null;
+            url = bindingUrlDefault;
+            return false;
+        }
+
+        public static bool GetExternalUrl(string settingName, string defaultUrl, out string url, out string urlSource)
+        {
+            urlSource = settingName;
+            url = Config.GetSetting(settingName);
+            if (!String.IsNullOrWhiteSpace(url))
+                return true;
+
+            urlSource = null;
+            url = defaultUrl;
+            if (!String.IsNullOrWhiteSpace(url))
+                return false;
+
+            urlSource = null;
+            url = null;
+            return false;
         }
     }
 }
