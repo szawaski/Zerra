@@ -24,7 +24,6 @@ namespace Zerra.Repository.PostgreSql
                         try
                         {
                             var connectionForParsing = new NpgsqlConnectionStringBuilder(ConnectionString);
-                            _ = Log.InfoAsync($"{nameof(PostgreSqlDataContext)} connecting");
                         }
                         catch
                         {

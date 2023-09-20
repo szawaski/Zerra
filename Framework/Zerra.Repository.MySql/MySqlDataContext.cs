@@ -24,7 +24,6 @@ namespace Zerra.Repository.MySql
                         try
                         {
                             var connectionForParsing = new MySqlConnectionStringBuilder(ConnectionString);
-                            _ = Log.InfoAsync($"{nameof(MySqlDataContext)} connecting");
                         }
                         catch
                         {

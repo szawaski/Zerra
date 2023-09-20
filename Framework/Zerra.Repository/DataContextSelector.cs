@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using Zerra.Logging;
 
 namespace Zerra.Repository
 {
@@ -16,8 +17,14 @@ namespace Zerra.Repository
             var contexts = GetDataContexts();
             foreach (var context in contexts)
             {
+                var contextName = context.GetType().GetNiceName();
+                Log.InfoAsync($"{nameof(DataContextSelector)} trying {contextName}");
                 if (!context.TryGetEngine(out T engine, out var dataStoreGenerationType))
+                {
+                    Log.InfoAsync($"{nameof(DataContextSelector)} could not validate {contextName}");
                     continue;
+                }
+                Log.InfoAsync($"{contextName} connected");
                 return (engine, dataStoreGenerationType);
             }
             return (null, default);

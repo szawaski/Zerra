@@ -24,7 +24,6 @@ namespace Zerra.Repository.MsSql
                         try
                         {
                             var connectionForParsing = new SqlConnectionStringBuilder(ConnectionString);
-                            _ = Log.InfoAsync($"{nameof(MsSqlDataContext)} connecting");
                         }
                         catch
                         {

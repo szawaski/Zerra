@@ -48,7 +48,7 @@ namespace Zerra.Repository
         {
             var (engine, dataStoreGenerationType) = GetEngine<T>();
             if (engine == null)
-                throw new Exception($"{this.GetType().Name} could not produce an engine of {typeof(T).Name}");
+                throw new Exception($"{this.GetType().GetNiceName()} could not produce an engine of {typeof(T).Name}");
 
             lock (validatedLock)
             {
@@ -58,8 +58,10 @@ namespace Zerra.Repository
                     isValid = engine.ValidateDataSource();
                 }
                 if (!isValid)
-                    throw new Exception($"{this.GetType().Name} failed to validate data source");
+                    throw new Exception($"{this.GetType().GetNiceName()} could not validate");
             }
+
+            Log.InfoAsync($"{this.GetType().GetNiceName()} connected");
 
             lock (initializedLock)
             {
