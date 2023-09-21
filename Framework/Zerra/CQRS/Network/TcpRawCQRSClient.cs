@@ -28,7 +28,7 @@ namespace Zerra.CQRS.Network
             this.contentType = contentType;
             this.symmetricConfig = symmetricConfig;
 
-            _ = Log.InfoAsync($"{nameof(TcpRawCQRSClient)} Started For {this.contentType} {this.endpoint}");
+            _ = Log.InfoAsync($"{nameof(TcpRawCQRSClient)} started for {this.contentType} at {serviceUrl} as {this.endpoint}");
         }
 
         protected override TReturn CallInternal<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments, string source)

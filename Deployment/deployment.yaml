@@ -119,77 +119,77 @@ spec:
 
 ---
 
-apiVersion: apps/v1
-kind: Deployment
-metadata:
- name: zerrademo-petsdomain-mssql
-spec:
- selector:
-   matchLabels:
-     app: zerrademo-petsdomain-mssql-pod
- template:
-   metadata:
-     labels:
-       app: zerrademo-petsdomain-mssql-pod
-   spec:
-     terminationGracePeriodSeconds: 30
-     containers:
-     - name: zerrademo-petsdomain-mssql-container
-       image: mcr.microsoft.com/mssql/server:2022-latest
-       ports:
-          - containerPort: 1433
-       env:
-         - name: MSSQL_PID
-           value: "Developer"
-         - name: ACCEPT_EULA
-           value: "Y"
-         - name: MSSQL_SA_PASSWORD
-           value: "Ld#dP22@uK4b"
-       volumeMounts:
-         - name: zerrademo-pets-mssql-volume
-           mountPath: /var/opt/mssql/data
-     volumes:
-        - name: zerrademo-pets-mssql-volume
-          persistentVolumeClaim:
-            claimName: zerrademo-pets-mssql-volumeclaim
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+ # name: zerrademo-petsdomain-mssql
+# spec:
+ # selector:
+   # matchLabels:
+     # app: zerrademo-petsdomain-mssql-pod
+ # template:
+   # metadata:
+     # labels:
+       # app: zerrademo-petsdomain-mssql-pod
+   # spec:
+     # terminationGracePeriodSeconds: 30
+     # containers:
+     # - name: zerrademo-petsdomain-mssql-container
+       # image: mcr.microsoft.com/mssql/server:2022-latest
+       # ports:
+          # - containerPort: 1433
+       # env:
+         # - name: MSSQL_PID
+           # value: "Developer"
+         # - name: ACCEPT_EULA
+           # value: "Y"
+         # - name: MSSQL_SA_PASSWORD
+           # value: "Ld#dP22@uK4b"
+       # volumeMounts:
+         # - name: zerrademo-pets-mssql-volume
+           # mountPath: /var/opt/mssql/data
+     # volumes:
+        # - name: zerrademo-pets-mssql-volume
+          # persistentVolumeClaim:
+            # claimName: zerrademo-pets-mssql-volumeclaim
 
----
+# ---
 
-apiVersion: apps/v1
-kind: Deployment
-metadata:
- name: zerrademo-ledger1domain-mssql
-spec:
- selector:
-   matchLabels:
-     app: zerrademo-ledger1domain-mssql-pod
- template:
-   metadata:
-     labels:
-       app: zerrademo-ledger1domain-mssql-pod
-   spec:
-     terminationGracePeriodSeconds: 30
-     containers:
-     - name: zerrademo-ledger1domain-mssql-container
-       image: mcr.microsoft.com/mssql/server:2019-latest
-       ports:
-          - containerPort: 1433
-       env:
-         - name: MSSQL_PID
-           value: "Developer"
-         - name: ACCEPT_EULA
-           value: "Y"
-         - name: SA_PASSWORD
-           value: "Ld#dP22@uK4b"
-       volumeMounts:
-         - name: zerrademo-ledger1-mssql-volume
-           mountPath: /var/opt/mssql/data
-     volumes:
-        - name: zerrademo-ledger1-mssql-volume
-          persistentVolumeClaim:
-            claimName: zerrademo-ledger1-mssql-volumeclaim
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+ # name: zerrademo-ledger1domain-mssql
+# spec:
+ # selector:
+   # matchLabels:
+     # app: zerrademo-ledger1domain-mssql-pod
+ # template:
+   # metadata:
+     # labels:
+       # app: zerrademo-ledger1domain-mssql-pod
+   # spec:
+     # terminationGracePeriodSeconds: 30
+     # containers:
+     # - name: zerrademo-ledger1domain-mssql-container
+       # image: mcr.microsoft.com/mssql/server:2019-latest
+       # ports:
+          # - containerPort: 1433
+       # env:
+         # - name: MSSQL_PID
+           # value: "Developer"
+         # - name: ACCEPT_EULA
+           # value: "Y"
+         # - name: SA_PASSWORD
+           # value: "Ld#dP22@uK4b"
+       # volumeMounts:
+         # - name: zerrademo-ledger1-mssql-volume
+           # mountPath: /var/opt/mssql/data
+     # volumes:
+        # - name: zerrademo-ledger1-mssql-volume
+          # persistentVolumeClaim:
+            # claimName: zerrademo-ledger1-mssql-volumeclaim
 
----
+# ---
 
 apiVersion: apps/v1
 kind: Deployment
@@ -367,8 +367,10 @@ spec:
         image: szawaski/zerrademo-petsdomain
         imagePullPolicy: IfNotPresent
         env:
+          - name: BindingUrl
+            value: "tcp://+:80"
           - name: ZerraDemo.Service.Weather
-            value: "http://zerrademo-weatherdomain-service"
+            value: "zerrademo-weatherdomain-service:80"
           - name: PetsSqlConnectionStringMSSQL
             value: "Data Source=zerrademo-petsdomain-mssql-service,1433;Initial Catalog=ZerraDemoPets;User Id=sa;Password=Ld#dP22@uK4b;"
           - name: PetsSqlConnectionStringPOSTGRESQL
@@ -383,6 +385,7 @@ spec:
             cpu: "500m"
         ports:
         - containerPort: 80
+          name: mainport
 
 ---
 
@@ -404,6 +407,8 @@ spec:
         image: szawaski/zerrademo-weatherdomain
         imagePullPolicy: IfNotPresent
         env:
+          - name: BindingUrl
+            value: "tcp://+:80"
           - name: MessageHost
             value: my-cluster-kafka-external-bootstrap.kafka:31340
           - name: LogFileDirectory
@@ -414,6 +419,7 @@ spec:
             cpu: "500m"
         ports:
         - containerPort: 80
+          name: mainport
         
 ---
 
@@ -435,6 +441,8 @@ spec:
         image: szawaski/zerrademo-weathercacheddomain
         imagePullPolicy: IfNotPresent
         env:
+          - name: BindingUrl
+            value: "tcp://+:80"
           - name: MessageHost
             value: my-cluster-kafka-external-bootstrap.kafka:31340
           - name: LogFileDirectory
@@ -445,6 +453,7 @@ spec:
             cpu: "500m"
         ports:
         - containerPort: 80
+          name: mainport
 
 ---
 
@@ -466,6 +475,8 @@ spec:
         image: szawaski/zerrademo-ledger1domain
         imagePullPolicy: IfNotPresent
         env:
+          - name: BindingUrl
+            value: "tcp://+:80"
           - name: Ledger1SqlConnectionStringMSSQL
             value: "Data Source=zerrademo-ledger1domain-mssql-service,1433;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
           - name: Ledger1SqlConnectionStringPOSTGRESQL
@@ -482,7 +493,7 @@ spec:
             cpu: "500m"
         ports:
         - containerPort: 80
-
+          name: mainport
 ---
 
 apiVersion: apps/v1
@@ -503,6 +514,8 @@ spec:
         image: szawaski/zerrademo-ledger2domain
         imagePullPolicy: IfNotPresent
         env:
+          - name: BindingUrl
+            value: "tcp://+:80"
           - name: Ledger2EventStoreServer
             value: "tcp://zerrademo-ledger2domain-eventstore-service:2114"
           - name: MessageHost
@@ -515,6 +528,7 @@ spec:
             cpu: "500m"
         ports:
         - containerPort: 80
+          name: mainport
 
 ---
 
@@ -537,15 +551,15 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
           - name: ZerraDemo.Service.Pets
-            value: "http://zerrademo-petsdomain-service"
+            value: "zerrademo-petsdomain-service:80"
           - name: ZerraDemo.Service.Weather
-            value: "http://zerrademo-weatherdomain-service"
+            value: "zerrademo-weatherdomain-service:80"
           - name: ZerraDemo.Service.WeatherCached
-            value: "http://zerrademo-weathercacheddomain-service"
+            value: "zerrademo-weathercacheddomain-service:80"
           - name: ZerraDemo.Service.Ledger1
-            value: "http://zerrademo-ledger1domain-service"
+            value: "zerrademo-ledger1domain-service:80"
           - name: ZerraDemo.Service.Ledger2
-            value: "http://zerrademo-ledger2domain-service"
+            value: "zerrademo-ledger2domain-service:80"
           - name: MessageHost
             value: my-cluster-kafka-external-bootstrap.kafka:31340
           - name: LogFileDirectory
@@ -556,7 +570,7 @@ spec:
             cpu: "500m"
         ports:
         - containerPort: 80
-
+          name: mainport
 ---
 
 apiVersion: v1
@@ -573,8 +587,7 @@ spec:
   - port: 2113
     targetPort: 2113
     name: "http"
-  type: NodePort
-  
+    
 ---
 
 apiVersion: v1
@@ -591,7 +604,6 @@ spec:
   - port: 2114
     targetPort: 2114
     name: "http"
-  type: NodePort
   
 ---
 
@@ -605,7 +617,6 @@ spec:
  # ports:
  # - port: 1433
    # targetPort: 1433
- # type: NodePort
  
 # ---
 
@@ -619,7 +630,6 @@ spec:
  # ports:
  # - port: 1433
    # targetPort: 1433
- # type: NodePort
  
 # ---
 
@@ -633,7 +643,6 @@ spec:
   ports:
   - port: 5432
     targetPort: 5432
-  type: NodePort
   
 ---
 
@@ -647,7 +656,6 @@ spec:
   ports:
   - port: 5432
     targetPort: 5432
-  type: NodePort
   
 ---
 
@@ -660,9 +668,8 @@ spec:
     app: zerrademo-petsdomain-pod
   ports:
   - port: 80
-    targetPort: 80
-  type: NodePort
-  
+    targetPort: mainport
+
 ---
 
 apiVersion: v1
@@ -674,8 +681,7 @@ spec:
     app: zerrademo-weatherdomain-pod
   ports:
   - port: 80
-    targetPort: 80
-  type: NodePort
+    targetPort: mainport
 
 ---
 
@@ -688,8 +694,7 @@ spec:
     app: zerrademo-weathercacheddomain-pod
   ports:
   - port: 80
-    targetPort: 80
-  type: NodePort
+    targetPort: mainport
 
 ---
 
@@ -702,8 +707,7 @@ spec:
     app: zerrademo-ledger1domain-pod
   ports:
   - port: 80
-    targetPort: 80
-  type: NodePort
+    targetPort: mainport
   
 ---
 
@@ -716,8 +720,7 @@ spec:
     app: zerrademo-ledger2domain-pod
   ports:
   - port: 80
-    targetPort: 80
-  type: NodePort
+    targetPort: mainport  
 
 ---
 

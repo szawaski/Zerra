@@ -29,7 +29,7 @@ namespace Zerra.CQRS.Network
             this.contentType = contentType;
             this.authorizer = authorizer;
 
-            _ = Log.InfoAsync($"{nameof(HttpCQRSClient)} Started For {this.contentType} {this.endpoint}");
+            _ = Log.InfoAsync($"{nameof(HttpCQRSClient)} started for {this.contentType} at {serviceUrl} as {this.endpoint}");
         }
 
         protected override TReturn CallInternal<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments, string source)

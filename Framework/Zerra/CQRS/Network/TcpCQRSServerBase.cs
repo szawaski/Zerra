@@ -38,12 +38,15 @@ namespace Zerra.CQRS.Network
             this.listeners = new SocketListener[endpoints.Count];
             for (var i = 0; i < endpoints.Count; i++)
             {
-                var socket = new Socket(endpoints[i].AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                var endpoint = endpoints[i];
+                var socket = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                 socket.NoDelay = true;
-                socket.Bind(endpoints[i]);
+                socket.Bind(endpoint);
                 var listener = new SocketListener(socket, Handle);
                 this.listeners[i] = listener;
             }
+
+            _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} started for {serviceUrl} resolved {String.Join(", ", endpoints.Select(x => x.ToString()))}");
 
             this.interfaceTypes = new ConcurrentReadWriteList<Type>();
             this.commandTypes = new ConcurrentReadWriteList<Type>();

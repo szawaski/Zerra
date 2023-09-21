@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using Zerra.Logging;
@@ -35,7 +34,7 @@ namespace Zerra.Web
             this.authorizer = authorizer;
             this.client = new HttpClient();
 
-            _ = Log.InfoAsync($"{nameof(CQRS.Network.HttpCQRSClient)} Started For {this.contentType} {this.serviceUrl}");
+            _ = Log.InfoAsync($"{nameof(KestrelCQRSClient)} started for {this.contentType} at {this.serviceUrl}");
         }
 
         protected override TReturn CallInternal<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments, string source)

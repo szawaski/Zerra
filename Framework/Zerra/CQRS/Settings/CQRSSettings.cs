@@ -15,6 +15,7 @@ namespace Zerra.CQRS.Settings
         private const string settingsFileName = "cqrssettings.json";
         private const string genericSettingsFileName = "cqrssettings.{0}.json";
 
+        private const string bindingUrl0 = nameof(ServiceSetting.BindingUrl);
         private const string bindingUrl1 = "urls";
         private const string bindingUrl2 = "ASPNETCORE_URLS";
         private const string bindingUrl3 = "ASPNETCORE_SERVER.URLS";
@@ -71,11 +72,13 @@ namespace Zerra.CQRS.Settings
                     if (GetBindingUrl(service.Name, service.BindingUrl, bindingUrlFromStandardVariables, out var newUrl, out var urlSource))
                     {
                         service.BindingUrl = newUrl;
-                        _ = Log.InfoAsync($"Hosting {service.Name} at {service.BindingUrl} (from {urlSource})");
+                        if (!String.IsNullOrWhiteSpace(service.BindingUrl))
+                            _ = Log.InfoAsync($"Hosting {service.Name} at {service.BindingUrl} (from {urlSource})");
                     }
                     else
                     {
-                        _ = Log.InfoAsync($"Hosting {service.Name} at {service.BindingUrl} (from {fileName})");
+                        if (!String.IsNullOrWhiteSpace(service.BindingUrl))
+                            _ = Log.InfoAsync($"Hosting {service.Name} at {service.BindingUrl} (from {fileName})");
                     }
                 }
                 else
@@ -83,7 +86,8 @@ namespace Zerra.CQRS.Settings
                     if (GetExternalUrl(service.Name, service.ExternalUrl, out var newUrl, out var urlSource))
                     {
                         service.ExternalUrl = newUrl;
-                        _ = Log.InfoAsync($"Set {service.Name} at {service.ExternalUrl} (from {urlSource})");
+                        if (!String.IsNullOrWhiteSpace(service.ExternalUrl))
+                            _ = Log.InfoAsync($"Set {service.Name} at {service.ExternalUrl} (from {urlSource})");
                     }
                     else
                     {
@@ -100,6 +104,11 @@ namespace Zerra.CQRS.Settings
 
         public static bool GetBindingUrl(string settingName, string defaultUrl, bool useStandardVariables, out string url, out string urlSource)
         {
+            urlSource = bindingUrl0;
+            url = Config.GetSetting(bindingUrl0);
+            if (!String.IsNullOrWhiteSpace(url))
+                return true;
+
             urlSource = settingName;
             url = Config.GetSetting(settingName);
             if (!String.IsNullOrWhiteSpace(url))
