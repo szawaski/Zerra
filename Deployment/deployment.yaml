@@ -368,7 +368,7 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
           - name: BindingUrl
-            value: "tcp://+:80"
+            value: "+:80"
           - name: ZerraDemo.Service.Weather
             value: "zerrademo-weatherdomain-service:80"
           - name: PetsSqlConnectionStringMSSQL
@@ -408,7 +408,7 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
           - name: BindingUrl
-            value: "tcp://+:80"
+            value: "+:80"
           - name: MessageHost
             value: my-cluster-kafka-external-bootstrap.kafka:31340
           - name: LogFileDirectory
@@ -442,7 +442,7 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
           - name: BindingUrl
-            value: "tcp://+:80"
+            value: "+:80"
           - name: MessageHost
             value: my-cluster-kafka-external-bootstrap.kafka:31340
           - name: LogFileDirectory
@@ -476,7 +476,7 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
           - name: BindingUrl
-            value: "tcp://+:80"
+            value: "+:80"
           - name: Ledger1SqlConnectionStringMSSQL
             value: "Data Source=zerrademo-ledger1domain-mssql-service,1433;Initial Catalog=ZerraDemoLedger;User Id=sa;Password=Ld#dP22@uK4b;"
           - name: Ledger1SqlConnectionStringPOSTGRESQL
@@ -515,7 +515,7 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
           - name: BindingUrl
-            value: "tcp://+:80"
+            value: "+:80"
           - name: Ledger2EventStoreServer
             value: "tcp://zerrademo-ledger2domain-eventstore-service:2114"
           - name: MessageHost
