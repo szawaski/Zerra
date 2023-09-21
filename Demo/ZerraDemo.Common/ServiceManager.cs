@@ -17,9 +17,9 @@ namespace ZerraDemo.Common
 
             Bus.AddLogger(new BusLoggingProvider());
 
-            //bindingUrlFromStandardVariables = false
-            //means environmental varibles such as ASPNETCORE_URLS are not read into the BindingUrl
-            //this is helpful if running AspNetCore in addition which will fight for the port
+            //bindingUrlFromStandardVariables = false means that
+            //environmental varibles such as ASPNETCORE_URLS are not read into the BindingUrl
+            //this is helpful if running AspNetCore in addition to a TcpService Server which will fight for the port
             //in Kubernetes the BindingUrl needs to be 0.0.0.0 which can be replaced with "+" such as "+:80"
             var serviceSettings = CQRSSettings.Get(settingsName, false);
 
