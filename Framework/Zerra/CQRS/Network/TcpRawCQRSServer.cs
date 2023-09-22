@@ -120,6 +120,8 @@ namespace Zerra.CQRS.Network
                     var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, false);
                     inHandlerContext = false;
 
+                    responseStarted = true;
+
                     //Response Header
                     var responseHeaderLength = TcpRawCommon.BufferHeader(buffer, requestHeader.ProviderType, requestHeader.ContentType.Value);
 #if NETSTANDARD2_0
@@ -150,12 +152,7 @@ namespace Zerra.CQRS.Network
 #else
                             responseBodyCryptoStream.FlushFinalBlock();
 #endif
-#if NETSTANDARD2_0
-                            responseBodyCryptoStream.Dispose();
-#else
-                            await responseBodyCryptoStream.DisposeAsync();
-#endif
-                            responseBodyCryptoStream = null;
+                            return;
                         }
                         else
                         {
@@ -167,15 +164,8 @@ namespace Zerra.CQRS.Network
                                 await responseBodyStream.WriteAsync(buffer.Slice(0, bytesRead), cancellationToken);
 #endif
                             await responseBodyStream.FlushAsync(cancellationToken);
-#if NETSTANDARD2_0
-                            responseBodyStream.Dispose();
-#else
-                            await responseBodyStream.DisposeAsync();
-#endif
+                            return;
                         }
-
-                        client.Dispose();
-                        return;
                     }
                     else
                     {
@@ -189,23 +179,12 @@ namespace Zerra.CQRS.Network
 #else
                             responseBodyCryptoStream.FlushFinalBlock();
 #endif
-#if NETSTANDARD2_0
-                            responseBodyCryptoStream.Dispose();
-#else
-                            await responseBodyCryptoStream.DisposeAsync();
-#endif
-                            responseBodyCryptoStream = null;
                             return;
                         }
                         else
                         {
                             await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyStream, result.Model);
                             await responseBodyStream.FlushAsync(cancellationToken);
-#if NETSTANDARD2_0
-                            responseBodyStream.Dispose();
-#else
-                            await responseBodyStream.DisposeAsync();
-#endif
                             return;
                         }
                     }
@@ -230,6 +209,8 @@ namespace Zerra.CQRS.Network
                         await handlerAsync(command, data.Source, false);
                     inHandlerContext = false;
 
+                    responseStarted = true;
+
                     //Response Header
                     var responseHeaderLength = TcpRawCommon.BufferHeader(buffer, requestHeader.ProviderType, requestHeader.ContentType.Value);
 #if NETSTANDARD2_0
@@ -241,12 +222,7 @@ namespace Zerra.CQRS.Network
                     //Response Body Empty
                     responseBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
                     await responseBodyStream.FlushAsync(cancellationToken);
-#if NETSTANDARD2_0
-                    responseBodyStream.Dispose();
-#else
-                    await responseBodyStream.DisposeAsync();
-#endif
-                    client.Dispose();
+
                     return;
                 }
 
@@ -254,39 +230,10 @@ namespace Zerra.CQRS.Network
             }
             catch (Exception ex)
             {
-                if (ex is IOException ioException)
+                if (ex is IOException ioException && ioException.InnerException != null && ioException.InnerException is SocketException socketException && socketException.SocketErrorCode == SocketError.ConnectionAborted)
                 {
-                    if (ioException.InnerException != null && ioException.InnerException is SocketException socketException)
-                    {
-                        if (socketException.SocketErrorCode == SocketError.ConnectionAborted)
-                        {
-                            if (responseBodyStream != null)
-                            {
-#if NETSTANDARD2_0
-                                responseBodyStream.Dispose();
-#else
-                                await responseBodyStream.DisposeAsync();
-#endif
-                            }
-                            if (requestBodyStream != null)
-                            {
-#if NETSTANDARD2_0
-                                requestBodyStream.Dispose();
-#else
-                                await requestBodyStream.DisposeAsync();
-#endif
-                            }
-                            if (stream != null)
-                            {
-#if NETSTANDARD2_0
-                                stream.Dispose();
-#else
-                                await stream.DisposeAsync();
-#endif
-                            }
-                            return;
-                        }
-                    }
+                    //aborted
+                    return;
                 }
 
                 if (!inHandlerContext)
@@ -316,47 +263,28 @@ namespace Zerra.CQRS.Network
 #else
                             responseBodyCryptoStream.FlushFinalBlock();
 #endif
-#if NETSTANDARD2_0
-                            responseBodyCryptoStream.Dispose();
-#else
-                            await responseBodyCryptoStream.DisposeAsync();
-#endif
                         }
                         else
                         {
                             await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, responseBodyStream, ex);
-#if NETSTANDARD2_0
-                            responseBodyStream.Dispose();
-#else
-                            await responseBodyStream.DisposeAsync();
-#endif
                         }
-                        client.Dispose();
                     }
                     catch (Exception ex2)
                     {
-                        if (responseBodyStream != null)
-                        {
-#if NETSTANDARD2_0
-                            responseBodyStream.Dispose();
-#else
-                            await responseBodyStream.DisposeAsync();
-#endif
-                        }
-                        if (stream != null)
-                        {
-#if NETSTANDARD2_0
-                            stream.Dispose();
-#else
-                            await stream.DisposeAsync();
-#endif
-                        }
-                        client.Dispose();
                         _ = Log.ErrorAsync($"{nameof(TcpRawCQRSServer)} Error {client.Client.RemoteEndPoint}", ex2);
                     }
-                    return;
                 }
-
+            }
+            finally
+            {
+                if (responseBodyCryptoStream != null)
+                {
+#if NETSTANDARD2_0
+                    responseBodyCryptoStream.Dispose();
+#else
+                    await responseBodyCryptoStream.DisposeAsync();
+#endif
+                }
                 if (responseBodyStream != null)
                 {
 #if NETSTANDARD2_0
@@ -382,9 +310,6 @@ namespace Zerra.CQRS.Network
 #endif
                 }
                 client.Dispose();
-            }
-            finally
-            {
                 BufferArrayPool<byte>.Return(bufferOwner);
             }
         }

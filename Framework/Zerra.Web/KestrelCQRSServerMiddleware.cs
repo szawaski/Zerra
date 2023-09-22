@@ -230,7 +230,6 @@ namespace Zerra.Web
                                     await responseBodyStream.WriteAsync(buffer.Slice(0, bytesRead));
 #endif
                                 await responseBodyStream.FlushAsync();
-
                             }
                         }
                         finally
@@ -327,9 +326,10 @@ namespace Zerra.Web
 
                     return;
                 }
-
-                context.Response.StatusCode = 400;
-                return;
+                else
+                {
+                    context.Response.StatusCode = 400;
+                }
             }
             catch (Exception ex)
             {
