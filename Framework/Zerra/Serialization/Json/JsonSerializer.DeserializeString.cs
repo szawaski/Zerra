@@ -14,11 +14,13 @@ namespace Zerra.Serialization
 {
     public static partial class JsonSerializer
     {
-        public static T Deserialize<T>(string json, Graph graph = null) { return Deserialize<T>(json.AsSpan(), graph); }
-        public static object Deserialize(Type type, string json, Graph graph = null) { return Deserialize(type, json.AsSpan(), graph); }
+        public static T Deserialize<T>(string json, JsonSerializerOptions options = null, Graph graph = null) { return Deserialize<T>(json.AsSpan(), options, graph); }
+        public static object Deserialize(Type type, string json, JsonSerializerOptions options = null, Graph graph = null) { return Deserialize(type, json.AsSpan(), options, graph); }
 
-        public static T Deserialize<T>(ReadOnlySpan<char> json, Graph graph = null)
+        public static T Deserialize<T>(ReadOnlySpan<char> json, JsonSerializerOptions options = null, Graph graph = null)
         {
+            options ??= defaultOptions;
+
             var type = typeof(T);
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
@@ -32,7 +34,7 @@ namespace Zerra.Serialization
                 if (!reader.TryReadSkipWhiteSpace(out var c))
                     throw reader.CreateException("Json ended prematurely");
 
-                var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetails, graph, false);
+                var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetails, graph, options);
                 if (reader.HasMoreChars())
                 {
                     if (reader.TryReadSkipWhiteSpace(out _))
@@ -45,8 +47,10 @@ namespace Zerra.Serialization
                 decodeBuffer.Dispose();
             }
         }
-        public static object Deserialize(Type type, ReadOnlySpan<char> json, Graph graph = null)
+        public static object Deserialize(Type type, ReadOnlySpan<char> json, JsonSerializerOptions options = null, Graph graph = null)
         {
+            options ??= defaultOptions;
+
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
             if (json == null || json.Length == 0)
@@ -59,7 +63,7 @@ namespace Zerra.Serialization
                 if (!reader.TryReadSkipWhiteSpace(out var c))
                     throw reader.CreateException("Json ended prematurely");
 
-                var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetails, graph, false);
+                var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetails, graph, options);
                 if (reader.HasMoreChars())
                 {
                     if (reader.TryReadSkipWhiteSpace(out _))
@@ -74,17 +78,17 @@ namespace Zerra.Serialization
             }
         }
 
-        public static T Deserialize<T>(byte[] bytes, Graph graph = null) { return Deserialize<T>(bytes.AsSpan(), graph); }
-        public static object Deserialize(Type type, byte[] bytes, Graph graph = null) { return Deserialize(type, bytes.AsSpan(),graph); }
+        public static T Deserialize<T>(byte[] bytes, JsonSerializerOptions options = null, Graph graph = null) { return Deserialize<T>(bytes.AsSpan(), options, graph); }
+        public static object Deserialize(Type type, byte[] bytes, JsonSerializerOptions options = null, Graph graph = null) { return Deserialize(type, bytes.AsSpan(), options, graph); }
 
-        public static T Deserialize<T>(ReadOnlySpan<byte> bytes, Graph graph = null)
+        public static T Deserialize<T>(ReadOnlySpan<byte> bytes, JsonSerializerOptions options = null, Graph graph = null)
         {
-            var obj = Deserialize(typeof(T), bytes,  graph);
+            var obj = Deserialize(typeof(T), bytes, options, graph);
             if (obj == null)
                 return default;
             return (T)obj;
         }
-        public static object Deserialize(Type type, ReadOnlySpan<byte> bytes, Graph graph = null)
+        public static object Deserialize(Type type, ReadOnlySpan<byte> bytes, JsonSerializerOptions options = null, Graph graph = null)
         {
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
@@ -107,94 +111,7 @@ namespace Zerra.Serialization
                 if (!reader.TryReadSkipWhiteSpace(out var c))
                     throw reader.CreateException("Json ended prematurely");
 
-                var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetails, graph, false);
-                if (reader.HasMoreChars())
-                {
-                    if (reader.TryReadSkipWhiteSpace(out _))
-                        throw reader.CreateException("Unexpected character and end of json");
-                }
-                return value;
-            }
-            finally
-            {
-                decodeBuffer.Dispose();
-            }
-        }
-
-        public static T DeserializeNameless<T>(string json, Graph graph = null) { return DeserializeNameless<T>(json.AsSpan(), graph); }
-        public static object DeserializeNameless(Type type, string json, Graph graph) { return DeserializeNameless(json.AsSpan(), type, graph); }
-
-        public static T DeserializeNameless<T>(ReadOnlySpan<char> json, Graph graph = null)
-        {
-            var obj = DeserializeNameless(json, typeof(T), graph);
-            if (obj == null)
-                return default;
-            return (T)obj;
-        }
-        public static object DeserializeNameless(ReadOnlySpan<char> json, Type type, Graph graph = null)
-        {
-            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-
-            if (json == null || json.Length == 0)
-                return ConvertStringToType(String.Empty, typeDetails);
-
-            var reader = new CharReader(json);
-            var decodeBuffer = new CharWriter();
-            try
-            {
-                if (!reader.TryReadSkipWhiteSpace(out var c))
-                    throw reader.CreateException("Json ended prematurely");
-
-                var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetails, graph, true);
-                if (reader.HasMoreChars())
-                {
-                    if (reader.TryReadSkipWhiteSpace(out _))
-                        throw reader.CreateException("Unexpected character and end of json");
-                }
-                return value;
-            }
-            finally
-            {
-                decodeBuffer.Dispose();
-            }
-        }
-
-        public static T DeserializeNameless<T>(byte[] bytes, Graph graph = null) { return DeserializeNameless<T>(bytes.AsSpan(), graph); }
-        public static object DeserializeNameless(Type type, byte[] bytes, Graph graph = null) { return DeserializeNameless(bytes.AsSpan(), type, graph); }
-
-        public static T DeserializeNameless<T>(ReadOnlySpan<byte> bytes, Graph graph = null)
-        {
-            var obj = DeserializeNameless(bytes, typeof(T), graph);
-            if (obj == null)
-                return default;
-            return (T)obj;
-        }
-        public static object DeserializeNameless(ReadOnlySpan<byte> bytes, Type type, Graph graph = null)
-        {
-            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-
-            if (bytes.Length == 0)
-                return ConvertStringToType(String.Empty, typeDetails);
-
-            if (bytes == null || bytes.Length == 0)
-                return ConvertStringToType(String.Empty, typeDetails);
-
-#if NETSTANDARD2_0
-            var chars = Encoding.UTF8.GetChars(bytes.ToArray(), 0, bytes.Length).AsSpan();
-#else
-            Span<char> chars = new char[Encoding.UTF8.GetMaxCharCount(bytes.Length)];
-            var count = Encoding.UTF8.GetChars(bytes, chars);
-            chars = chars.Slice(0, count);
-#endif
-
-            var reader = new CharReader(chars);
-            var decodeBuffer = new CharWriter();
-            try
-            {
-                if (!reader.TryReadSkipWhiteSpace(out var c))
-                    throw reader.CreateException("Json ended prematurely");
-
-                var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetails, graph, true);
+                var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetails, graph, options);
                 if (reader.HasMoreChars())
                 {
                     if (reader.TryReadSkipWhiteSpace(out _))
@@ -234,7 +151,7 @@ namespace Zerra.Serialization
             }
         }
 
-        private static object FromStringJson(char c, ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph graph, bool nameless)
+        private static object FromStringJson(char c, ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph graph, JsonSerializerOptions options)
         {
             if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable)
             {
@@ -249,20 +166,20 @@ namespace Zerra.Serialization
                     return ConvertStringToType(value, typeDetail);
                 case '{':
                     if (typeDetail != null && typeDetail.SpecialType == SpecialType.Dictionary)
-                        return FromStringJsonDictionary(ref reader, ref decodeBuffer, typeDetail, graph, nameless);
+                        return FromStringJsonDictionary(ref reader, ref decodeBuffer, typeDetail, graph, options);
                     else
-                        return FromStringJsonObject(ref reader, ref decodeBuffer, typeDetail, graph, nameless);
+                        return FromStringJsonObject(ref reader, ref decodeBuffer, typeDetail, graph, options);
                 case '[':
-                    if (!nameless || (typeDetail != null && typeDetail.IsIEnumerableGeneric))
-                        return FromStringJsonArray(ref reader, ref decodeBuffer, typeDetail, graph, nameless);
+                    if (!options.Nameless || (typeDetail != null && typeDetail.IsIEnumerableGeneric))
+                        return FromStringJsonArray(ref reader, ref decodeBuffer, typeDetail, graph, options);
                     else
-                        return FromStringJsonArrayNameless(ref reader, ref decodeBuffer, typeDetail, graph);
+                        return FromStringJsonArrayNameless(ref reader, ref decodeBuffer, typeDetail, graph, options);
                 default:
                     return FromStringLiteral(c, ref reader, ref decodeBuffer, typeDetail);
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromStringJsonObject(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph graph, bool nameless)
+        private static object FromStringJsonObject(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph graph, JsonSerializerOptions options)
         {
             var obj = typeDetail != null && typeDetail.Creator != null ? typeDetail.Creator() : null;
             var canExpectComma = false;
@@ -285,7 +202,7 @@ namespace Zerra.Serialization
                             if (typeDetail.TryGetSerializableMemberDetails(propertyName, out var memberDetail))
                             {
                                 var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
-                                var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail.TypeDetail, propertyGraph, nameless);
+                                var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail.TypeDetail, propertyGraph, options);
                                 if (value != null && memberDetail.Setter != null)
                                 {
                                     //special case nullable enum
@@ -313,12 +230,12 @@ namespace Zerra.Serialization
                             }
                             else
                             {
-                                _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, nameless);
+                                _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, options);
                             }
                         }
                         else
                         {
-                            _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, nameless);
+                            _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, options);
                         }
                         canExpectComma = true;
                         break;
@@ -337,7 +254,7 @@ namespace Zerra.Serialization
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromStringJsonDictionary(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph graph, bool nameless)
+        private static object FromStringJsonDictionary(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph graph, JsonSerializerOptions options)
         {
             var obj = typeDetail != null && typeDetail.Creator != null ? typeDetail.Creator() : null;
             object[] addMethodArgs = new object[2];
@@ -350,7 +267,7 @@ namespace Zerra.Serialization
                     case '"':
                         if (canExpectComma)
                             throw reader.CreateException("Unexpected character");
-                        var dictionaryKey = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail.InnerTypeDetails[0].InnerTypeDetails[0], null, nameless);
+                        var dictionaryKey = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail.InnerTypeDetails[0].InnerTypeDetails[0], null, options);
 
                         FromStringPropertySeperator(ref reader);
 
@@ -361,7 +278,7 @@ namespace Zerra.Serialization
                         {
 
                             //Dictionary Special Case
-                            var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail.InnerTypeDetails[0].InnerTypeDetails[1], null, nameless);
+                            var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail.InnerTypeDetails[0].InnerTypeDetails[1], null, options);
                             if (typeDetail.InnerTypeDetails[0].InnerTypeDetails[0].CoreType.HasValue)
                             {
                                 addMethodArgs[0] = dictionaryKey;
@@ -371,7 +288,7 @@ namespace Zerra.Serialization
                         }
                         else
                         {
-                            _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, nameless);
+                            _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, options);
                         }
                         canExpectComma = true;
                         break;
@@ -390,7 +307,7 @@ namespace Zerra.Serialization
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromStringJsonArray(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph graph, bool nameless)
+        private static object FromStringJsonArray(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph graph, JsonSerializerOptions options)
         {
             object collection = null;
             MethodDetail addMethod = null;
@@ -467,7 +384,7 @@ namespace Zerra.Serialization
                     default:
                         if (canExpectComma)
                             throw reader.CreateException("Unexpected character");
-                        var value = FromStringJson(c, ref reader, ref decodeBuffer, arrayElementType, graph, nameless);
+                        var value = FromStringJson(c, ref reader, ref decodeBuffer, arrayElementType, graph, options);
                         if (collection != null)
                         {
                             addMethodArgs[0] = value;
@@ -480,7 +397,7 @@ namespace Zerra.Serialization
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromStringJsonArrayNameless(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph graph)
+        private static object FromStringJsonArrayNameless(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph graph, JsonSerializerOptions options)
         {
             var obj = typeDetail != null && typeDetail.Creator != null ? typeDetail.Creator() : null;
             var canExpectComma = false;
@@ -508,7 +425,7 @@ namespace Zerra.Serialization
                             if (memberDetail != null && memberDetail.Setter != null)
                             {
                                 var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
-                                var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail?.TypeDetail, propertyGraph, true);
+                                var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail?.TypeDetail, propertyGraph, options);
                                 if (memberDetail.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)
                                 {
                                     var dictionary = memberDetail.TypeDetail.Creator();
@@ -553,12 +470,12 @@ namespace Zerra.Serialization
                             }
                             else
                             {
-                                _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, true);
+                                _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, options);
                             }
                         }
                         else
                         {
-                            _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, true);
+                            _ = FromStringJson(c, ref reader, ref decodeBuffer, null, null, options);
                         }
                         canExpectComma = true;
                         break;

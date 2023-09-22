@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Zerra.IO;
@@ -360,6 +361,7 @@ namespace Zerra.Serialization
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Read(ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding)
         {
             var reader = new ByteReader(buffer, encoding);
@@ -388,6 +390,7 @@ namespace Zerra.Serialization
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ReadFrame ReadFrameFromType(ref ReadState state, SerializerTypeDetail typeDetail, bool hasReadPropertyType, bool nullFlags)
         {
             var frame = new ReadFrame();
@@ -451,8 +454,9 @@ namespace Zerra.Serialization
 
             frame.FrameType = ReadFrameType.ObjectEnumerable;
             return frame;
-        } 
+        }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadPropertyType(ref ByteReader reader, ref ReadState state)
         {
             if (state.CurrentFrame.HasReadPropertyType)
@@ -897,6 +901,7 @@ namespace Zerra.Serialization
 
             state.EndFrame();
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadEnumType(ref ByteReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
@@ -1080,6 +1085,7 @@ namespace Zerra.Serialization
 
             state.EndFrame();
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadSpecialType(ref ByteReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
@@ -1163,6 +1169,7 @@ namespace Zerra.Serialization
                     throw new NotImplementedException();
             }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadObject(ref ByteReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
@@ -1308,6 +1315,7 @@ namespace Zerra.Serialization
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadCoreTypeEnumerable(ref ByteReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
@@ -2132,6 +2140,7 @@ namespace Zerra.Serialization
             }
             state.EndFrame();
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadEnumTypeEnumerable(ref ByteReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
@@ -2365,10 +2374,12 @@ namespace Zerra.Serialization
                 }
             }
         }
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         //private static void ReadSpecialTypeEnumerable(ref ByteReader reader, ref ReadState state)
         //{
         //    throw new NotImplementedException();
         //}
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadObjectEnumerable(ref ByteReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;

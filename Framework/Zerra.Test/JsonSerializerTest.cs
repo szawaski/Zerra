@@ -271,9 +271,28 @@ namespace Zerra.Test
         [TestMethod]
         public void StringNameless()
         {
+            var options = new JsonSerializerOptions()
+            {
+                Nameless = true
+            };
+
             var baseModel = Factory.GetAllTypesModel();
-            var json = JsonSerializer.SerializeNameless(baseModel);
-            var model = JsonSerializer.DeserializeNameless<AllTypesModel>(json);
+            var json = JsonSerializer.Serialize(baseModel, options);
+            var model = JsonSerializer.Deserialize<AllTypesModel>(json, options);
+            Factory.AssertAreEqual(baseModel, model);
+        }
+
+        [TestMethod]
+        public void StringDoNotWriteNullProperties()
+        {
+            var options = new JsonSerializerOptions()
+            {
+                DoNotWriteNullProperties = true
+            };
+
+            var baseModel = Factory.GetAllTypesModel();
+            var json = JsonSerializer.Serialize(baseModel, options);
+            var model = JsonSerializer.Deserialize<AllTypesModel>(json, options);
             Factory.AssertAreEqual(baseModel, model);
         }
 
@@ -1030,13 +1049,36 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamNameless()
         {
+            var options = new JsonSerializerOptions()
+            {
+                Nameless = true
+            };
+
             var baseModel = Factory.GetAllTypesModel();
 
             using var stream = new MemoryStream();
-            await JsonSerializer.SerializeNamelessAsync(stream, baseModel);
+            await JsonSerializer.SerializeAsync(stream, baseModel, options);
 
             stream.Position = 0;
-            var model = await JsonSerializer.DeserializeNamelessAsync<AllTypesModel>(stream);
+            var model = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream, options);
+            Factory.AssertAreEqual(baseModel, model);
+        }
+
+        [TestMethod]
+        public async Task StreamDoNotWriteNullProperties()
+        {
+            var options = new JsonSerializerOptions()
+            {
+                DoNotWriteNullProperties = true
+            };
+
+            var baseModel = Factory.GetAllTypesModel();
+
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, baseModel, options);
+
+            stream.Position = 0;
+            var model = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream, options);
             Factory.AssertAreEqual(baseModel, model);
         }
 

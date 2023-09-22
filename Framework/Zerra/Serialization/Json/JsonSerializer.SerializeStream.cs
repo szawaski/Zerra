@@ -14,30 +14,32 @@ namespace Zerra.Serialization
 {
     public static partial class JsonSerializer
     {
-        public static void Serialize(Stream stream, object obj, Graph graph = null)
+        public static void Serialize(Stream stream, object obj, JsonSerializerOptions options = null, Graph graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
 
             var type = obj.GetType();
 
-            Serialize(stream, obj, type, graph);
+            Serialize(stream, obj, type, options, graph);
         }
-        public static void Serialize<T>(Stream stream, T obj, Graph graph = null)
+        public static void Serialize<T>(Stream stream, T obj, JsonSerializerOptions options = null, Graph graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
 
             var type = typeof(T);
 
-            Serialize(stream, obj, type, graph);
+            Serialize(stream, obj, type, options, graph);
         }
-        public static void Serialize(Stream stream, object obj, Type type, Graph graph = null)
+        public static void Serialize(Stream stream, object obj, Type type, JsonSerializerOptions options = null, Graph graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
+
+            options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 #if DEBUG
@@ -49,8 +51,13 @@ namespace Zerra.Serialization
 
             try
             {
-                var state = new WriteState();
-                state.CurrentFrame = CreateWriteFrame(typeDetail, obj, graph);
+                var state = new WriteState()
+                {
+                    Nameless = options.Nameless,
+                    DoNotWriteNull = options.DoNotWriteNullProperties,
+
+                    CurrentFrame = CreateWriteFrame(typeDetail, obj, graph)
+                };
 
                 for (; ; )
                 {
@@ -81,30 +88,32 @@ namespace Zerra.Serialization
             }
         }
 
-        public static Task SerializeAsync(Stream stream, object obj, Graph graph = null)
+        public static Task SerializeAsync(Stream stream, object obj, JsonSerializerOptions options = null, Graph graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
 
             var type = obj.GetType();
 
-            return SerializeAsync(stream, obj, type, graph);
+            return SerializeAsync(stream, obj, type, options, graph);
         }
-        public static Task SerializeAsync<T>(Stream stream, T obj, Graph graph = null)
+        public static Task SerializeAsync<T>(Stream stream, T obj, JsonSerializerOptions options = null, Graph graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
 
             var type = typeof(T);
 
-            return SerializeAsync(stream, obj, type, graph);
+            return SerializeAsync(stream, obj, type, options, graph);
         }
-        public static async Task SerializeAsync(Stream stream, object obj, Type type, Graph graph = null)
+        public static async Task SerializeAsync(Stream stream, object obj, Type type, JsonSerializerOptions options = null, Graph graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
+
+            options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 #if DEBUG
@@ -115,8 +124,13 @@ namespace Zerra.Serialization
 
             try
             {
-                var state = new WriteState();
-                state.CurrentFrame = CreateWriteFrame(typeDetail, obj, graph);
+                var state = new WriteState()
+                {
+                    Nameless = options.Nameless,
+                    DoNotWriteNull = options.DoNotWriteNullProperties,
+
+                    CurrentFrame = CreateWriteFrame(typeDetail, obj, graph)
+                };
 
                 for (; ; )
                 {
@@ -203,152 +217,7 @@ namespace Zerra.Serialization
             }
         }
 
-        public static void SerializeNameless(Stream stream, object obj, Graph graph = null)
-        {
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
-                return;
-
-            var type = obj.GetType();
-
-            SerializeNameless(stream, obj, type, graph);
-        }
-        public static void SerializeNameless<T>(Stream stream, T obj, Graph graph = null)
-        {
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
-                return;
-
-            var type = typeof(T);
-
-            SerializeNameless(stream, obj, type, graph);
-        }
-        public static void SerializeNameless(Stream stream, object obj, Type type, Graph graph = null)
-        {
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
-            if (type == null)
-                throw new ArgumentNullException(nameof(type));
-            if (obj == null)
-                return;
-
-            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
-#if DEBUG
-            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
-#else
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
-#endif
-
-            try
-            {
-                var state = new WriteState();
-                state.Nameless = true;
-                state.CurrentFrame = CreateWriteFrame(typeDetail, obj, graph);
-
-                for (; ; )
-                {
-                    var usedBytes = WriteConvertBytes(buffer, ref state);
-
-#if NETSTANDARD2_0
-                    stream.Write(buffer, 0, usedBytes);
-#else
-                    stream.Write(buffer.AsSpan(0, usedBytes));
-#endif
-
-                    if (state.Ended)
-                        break;
-
-                    if (state.CharsNeeded > 0)
-                    {
-                        if (state.CharsNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
-
-                        state.CharsNeeded = 0;
-                    }
-                }
-            }
-            finally
-            {
-                Array.Clear(buffer, 0, buffer.Length);
-                BufferArrayPool<byte>.Return(buffer);
-            }
-        }
-
-        public static Task SerializeNamelessAsync(Stream stream, object obj, Graph graph = null)
-        {
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
-                return Task.CompletedTask;
-
-            var type = obj.GetType();
-
-            return SerializeNamelessAsync(stream, obj, type, graph);
-        }
-        public static Task SerializeNamelessAsync<T>(Stream stream, T obj, Graph graph = null)
-        {
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
-                return Task.CompletedTask;
-
-            var type = typeof(T);
-
-            return SerializeNamelessAsync(stream, obj, type, graph);
-        }
-        public static async Task SerializeNamelessAsync(Stream stream, object obj, Type type, Graph graph = null)
-        {
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
-            if (type == null)
-                throw new ArgumentNullException(nameof(type));
-            if (obj == null)
-                return;
-
-            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
-#if DEBUG
-            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
-#else
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
-#endif
-
-            try
-            {
-                var state = new WriteState();
-                state.Nameless = true;
-                state.CurrentFrame = CreateWriteFrame(typeDetail, obj, graph);
-
-                for (; ; )
-                {
-                    var usedBytes = WriteConvertBytes(buffer, ref state);
-
-#if NETSTANDARD2_0
-                    await stream.WriteAsync(buffer, 0, usedBytes);
-#else
-                    await stream.WriteAsync(buffer.AsMemory(0, usedBytes));
-#endif
-
-                    if (state.Ended)
-                        break;
-
-                    if (state.CharsNeeded > 0)
-                    {
-                        if (state.CharsNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
-
-                        state.CharsNeeded = 0;
-                    }
-                }
-            }
-            finally
-            {
-                Array.Clear(buffer, 0, buffer.Length);
-                BufferArrayPool<byte>.Return(buffer);
-            }
-        }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static WriteFrame CreateWriteFrame(TypeDetail typeDetail, object obj, Graph graph = null)
         {
             if (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable && obj != null)
@@ -418,6 +287,7 @@ namespace Zerra.Serialization
             }
             state.EndFrame();
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteJsonCoreType(ref CharWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
@@ -664,6 +534,7 @@ namespace Zerra.Serialization
                     throw new NotImplementedException();
             }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteJsonEnumType(ref CharWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
@@ -709,6 +580,7 @@ namespace Zerra.Serialization
                 state.EndFrame();
             }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteJsonSpecialType(ref CharWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
@@ -896,6 +768,7 @@ namespace Zerra.Serialization
                     throw new NotImplementedException();
             }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteJsonByteArray(ref CharWriter writer, ref WriteState state)
         {
             if (state.CurrentFrame.State == 0)
@@ -937,6 +810,7 @@ namespace Zerra.Serialization
             }
             state.EndFrame();
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteJsonObject(ref CharWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
@@ -977,6 +851,11 @@ namespace Zerra.Serialization
                         }
                         if (state.CurrentFrame.MemberEnumerator.Current.Getter == null)
                             break;
+
+                        state.CurrentFrame.ObjectPropertyValue = state.CurrentFrame.MemberEnumerator.Current.Getter(state.CurrentFrame.Object);
+                        if (state.DoNotWriteNull && state.CurrentFrame.ObjectPropertyValue == null)
+                            break;
+
                         if (state.CurrentFrame.EnumeratorPassedFirstProperty)
                         {
                             state.CurrentFrame.State = 2;
@@ -1032,11 +911,10 @@ namespace Zerra.Serialization
 
                     case 6: //Member Value
                         member = state.CurrentFrame.MemberEnumerator.Current;
-                        var propertyValue = member.Getter(state.CurrentFrame.Object);
                         var childGraph = graph?.GetChildGraph(member.Name);
 
                         state.CurrentFrame.State = 1;
-                        state.PushFrame(CreateWriteFrame(member.TypeDetail, propertyValue, childGraph));
+                        state.PushFrame(CreateWriteFrame(member.TypeDetail, state.CurrentFrame.ObjectPropertyValue, childGraph));
                         return;
 
                     case 7: //End Object
@@ -1797,6 +1675,7 @@ namespace Zerra.Serialization
                 }
             }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteJsonEnumEnumerable(ref CharWriter writer, ref WriteState state)
         {
             int sizeNeeded;
@@ -1916,6 +1795,7 @@ namespace Zerra.Serialization
                 }
             }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteJsonEnumerable(ref CharWriter writer, ref WriteState state)
         {
             int sizeNeeded;
@@ -1980,6 +1860,7 @@ namespace Zerra.Serialization
                 }
             }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteJsonObjectEnumerable(ref CharWriter writer, ref WriteState state)
         {
             int sizeNeeded;
@@ -2108,6 +1989,10 @@ namespace Zerra.Serialization
                         if (state.CurrentFrame.MemberEnumerator.Current.Getter == null)
                             goto nextprop;
 
+                        state.CurrentFrame.ObjectPropertyValue = state.CurrentFrame.MemberEnumerator.Current.Getter(state.CurrentFrame.Enumerator.Current);
+                        if (state.DoNotWriteNull && state.CurrentFrame.ObjectPropertyValue == null)
+                            goto nextprop;
+
                         var graph = state.CurrentFrame.Graph;
                         var member = state.CurrentFrame.MemberEnumerator.Current;
                         if (graph != null)
@@ -2193,10 +2078,10 @@ namespace Zerra.Serialization
                 {
                     var graph = state.CurrentFrame.Graph;
                     var member = state.CurrentFrame.MemberEnumerator.Current;
-                    var propertyValue = member.Getter(state.CurrentFrame.Enumerator.Current);
+                    
                     var childGraph = graph?.GetChildGraph(member.Name);
                     state.CurrentFrame.State = 6;
-                    state.PushFrame(CreateWriteFrame(member.TypeDetail, propertyValue, childGraph));
+                    state.PushFrame(CreateWriteFrame(member.TypeDetail, state.CurrentFrame.ObjectPropertyValue, childGraph));
                     return;
                 }
 

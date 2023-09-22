@@ -25,6 +25,8 @@ namespace Zerra.Serialization
         private static readonly Type genericListType = typeof(List<>);
         private static readonly Type genericHashSetType = typeof(HashSet<>);
 
+        private static readonly JsonSerializerOptions defaultOptions = new();
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object ConvertStringToType(string s, TypeDetail typeDetail)
         {

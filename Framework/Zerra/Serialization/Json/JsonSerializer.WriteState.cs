@@ -11,10 +11,12 @@ namespace Zerra.Serialization
     {
         private struct WriteState
         {
+            public bool Nameless;
+            public bool DoNotWriteNull;
+
             private Stack<WriteFrame> stack;
             public WriteFrame CurrentFrame;
             public bool Ended;
-            public bool Nameless;
 
             public int Count => stack.Count;
 

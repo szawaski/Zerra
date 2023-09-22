@@ -14,13 +14,15 @@ namespace Zerra.Serialization
 {
     public static partial class JsonSerializer
     {
-        public static T DeserializeStackBased<T>(Memory<byte> bytes, Graph graph = null)
+        public static T DeserializeStackBased<T>(Memory<byte> bytes, JsonSerializerOptions options = null, Graph graph = null)
         {
-            return (T)DeserializeStackBased(typeof(T), bytes, graph);
+            return (T)DeserializeStackBased(typeof(T), bytes, options, graph);
         }
-        public static object DeserializeStackBased(Type type, Memory<byte> bytes, Graph graph = null)
+        public static object DeserializeStackBased(Type type, Memory<byte> bytes, JsonSerializerOptions options = null, Graph graph = null)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
+
+            options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
@@ -29,8 +31,12 @@ namespace Zerra.Serialization
 
             try
             {
-                var state = new ReadState();
-                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
+                var state = new ReadState()
+                {
+                    Nameless = options.Nameless,
+
+                    CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value }
+                };
 
                 ReadConvertBytes(bytes.Span, ref state, ref decodeBuffer, ref decodeBufferPosition);
 
@@ -45,13 +51,15 @@ namespace Zerra.Serialization
             }
         }
 
-        public static T DeserializeStackBased<T>(Memory<char> json, Graph graph = null)
+        public static T DeserializeStackBased<T>(Memory<char> json, JsonSerializerOptions options = null, Graph graph = null)
         {
-            return (T)DeserializeStackBased(typeof(T), json, graph);
+            return (T)DeserializeStackBased(typeof(T), json, options, graph);
         }
-        public static object DeserializeStackBased(Type type, Memory<char> json, Graph graph = null)
+        public static object DeserializeStackBased(Type type, Memory<char> json, JsonSerializerOptions options = null, Graph graph = null)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
+
+            options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
@@ -60,8 +68,12 @@ namespace Zerra.Serialization
 
             try
             {
-                var state = new ReadState();
-                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
+                var state = new ReadState()
+                {
+                    Nameless = options.Nameless,
+
+                    CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value }
+                };
 
                 Read(json.Span, ref state, ref decodeBuffer, ref decodeBufferPosition);
 
@@ -76,16 +88,18 @@ namespace Zerra.Serialization
             }
         }
 
-        public static T Deserialize<T>(Stream stream, Graph graph = null)
+        public static T Deserialize<T>(Stream stream, JsonSerializerOptions options = null, Graph graph = null)
         {
-            return (T)Deserialize(typeof(T), stream, graph);
+            return (T)Deserialize(typeof(T), stream, options, graph);
         }
-        public static object Deserialize(Type type, Stream stream, Graph graph = null)
+        public static object Deserialize(Type type, Stream stream, JsonSerializerOptions options = null, Graph graph = null)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
+
+            options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
@@ -126,9 +140,13 @@ namespace Zerra.Serialization
                     return default;
                 }
 
-                var state = new ReadState();
-                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
-                state.IsFinalBlock = isFinalBlock;
+                var state = new ReadState()
+                {
+                    Nameless = options.Nameless,
+
+                    IsFinalBlock = isFinalBlock,
+                    CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph }
+                };
 
                 for (; ; )
                 {
@@ -181,10 +199,12 @@ namespace Zerra.Serialization
             }
         }
 
-        public static async Task<T> DeserializeAsync<T>(Stream stream, Graph graph = null)
+        public static async Task<T> DeserializeAsync<T>(Stream stream, JsonSerializerOptions options = null, Graph graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
+
+            options ??= defaultOptions;
 
             var type = typeof(T);
 
@@ -227,9 +247,13 @@ namespace Zerra.Serialization
                     return default;
                 }
 
-                var state = new ReadState();
-                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
-                state.IsFinalBlock = isFinalBlock;
+                var state = new ReadState()
+                {
+                    Nameless = options.Nameless,
+
+                    IsFinalBlock = isFinalBlock,
+                    CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph }
+                };
 
                 for (; ; )
                 {
@@ -281,12 +305,14 @@ namespace Zerra.Serialization
                 BufferArrayPool<char>.Return(decodeBuffer);
             }
         }
-        public static async Task<object> DeserializeAsync(Type type, Stream stream, Graph graph = null)
+        public static async Task<object> DeserializeAsync(Type type, Stream stream, JsonSerializerOptions options = null, Graph graph = null)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
+
+            options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
@@ -327,350 +353,13 @@ namespace Zerra.Serialization
                     return default;
                 }
 
-                var state = new ReadState();
-                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
-                state.IsFinalBlock = isFinalBlock;
-
-                for (; ; )
+                var state = new ReadState()
                 {
-                    var usedBytes = ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
+                    Nameless = options.Nameless,
 
-                    if (state.Ended)
-                        break;
-
-                    if (state.CharsNeeded > 0)
-                    {
-                        if (state.IsFinalBlock)
-                            throw new EndOfStreamException();
-
-                        Buffer.BlockCopy(buffer, usedBytes, buffer, 0, length - usedBytes);
-                        position = length - usedBytes;
-
-                        if (position + state.CharsNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, position + state.CharsNeeded);
-
-                        while (position < buffer.Length)
-                        {
-#if NETSTANDARD2_0
-                            read = await stream.ReadAsync(buffer, position, buffer.Length - position);
-#else
-                            read = await stream.ReadAsync(buffer.AsMemory(position));
-#endif
-                            if (read == 0)
-                            {
-                                state.IsFinalBlock = true;
-                                break;
-                            }
-                            position += read;
-                            length = position;
-                        }
-
-                        if (position < state.CharsNeeded)
-                            throw new EndOfStreamException();
-
-                        state.CharsNeeded = 0;
-                    }
-                }
-
-                return state.LastFrameResultObject;
-            }
-            finally
-            {
-                Array.Clear(buffer, 0, buffer.Length);
-                BufferArrayPool<byte>.Return(buffer);
-                BufferArrayPool<char>.Return(decodeBuffer);
-            }
-        }
-
-        public static T DeserializeNamelessStackBased<T>(byte[] bytes, Graph graph = null)
-        {
-            return (T)DeserializeNamelessStackBased(typeof(T), bytes, graph);
-        }
-        public static object DeserializeNamelessStackBased(Type type, byte[] bytes, Graph graph = null)
-        {
-            if (type == null) throw new ArgumentNullException(nameof(type));
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-
-            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
-
-            var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
-            var decodeBufferPosition = 0;
-
-            try
-            {
-                var state = new ReadState() { Nameless = true };
-                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value };
-
-                ReadConvertBytes(bytes, ref state, ref decodeBuffer, ref decodeBufferPosition);
-
-                if (!state.Ended || state.CharsNeeded > 0)
-                    throw new EndOfStreamException();
-
-                return state.LastFrameResultObject;
-            }
-            finally
-            {
-                BufferArrayPool<char>.Return(decodeBuffer);
-            }
-        }
-
-        public static T DeserializeNameless<T>(Stream stream, Graph graph = null)
-        {
-            return (T)DeserializeNameless(typeof(T), stream, graph);
-        }
-        public static object DeserializeNameless(Type type, Stream stream, Graph graph = null)
-        {
-            if (type == null)
-                throw new ArgumentNullException(nameof(type));
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
-
-            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
-
-#if DEBUG
-            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
-#else
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
-#endif
-            var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
-            var decodeBufferPosition = 0;
-
-            try
-            {
-                var position = 0;
-                var length = 0;
-                var read = -1;
-                var isFinalBlock = false;
-                while (position < buffer.Length)
-                {
-#if NETSTANDARD2_0
-                    read = stream.Read(buffer, position, buffer.Length - position);
-#else
-                    read = stream.Read(buffer.AsSpan(position));
-#endif
-                    if (read == 0)
-                    {
-                        isFinalBlock = true;
-                        break;
-                    }
-                    position += read;
-                    length = position;
-                }
-
-                if (position == 0)
-                {
-                    if (typeDetail.CoreType == CoreType.String)
-                        return (object)String.Empty;
-                    return default;
-                }
-
-                var state = new ReadState();
-                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
-                state.IsFinalBlock = isFinalBlock;
-                state.Nameless = true;
-
-                for (; ; )
-                {
-                    var usedBytes = ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
-
-                    if (state.Ended)
-                        break;
-
-                    if (state.CharsNeeded > 0)
-                    {
-                        if (state.IsFinalBlock)
-                            throw new EndOfStreamException();
-
-                        Buffer.BlockCopy(buffer, usedBytes, buffer, 0, length - usedBytes);
-                        position = length - usedBytes;
-
-                        if (position + state.CharsNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, position + state.CharsNeeded);
-
-                        while (position < buffer.Length)
-                        {
-#if NETSTANDARD2_0
-                            read = stream.Read(buffer, position, buffer.Length - position);
-#else
-                            read = stream.Read(buffer.AsSpan(position));
-#endif
-                            if (read == 0)
-                            {
-                                state.IsFinalBlock = true;
-                                break;
-                            }
-                            position += read;
-                            length = position;
-                        }
-
-                        if (position < state.CharsNeeded)
-                            throw new EndOfStreamException();
-
-                        state.CharsNeeded = 0;
-                    }
-                }
-
-                return state.LastFrameResultObject;
-            }
-            finally
-            {
-                Array.Clear(buffer, 0, buffer.Length);
-                BufferArrayPool<byte>.Return(buffer);
-                BufferArrayPool<char>.Return(decodeBuffer);
-            }
-        }
-
-        public static async Task<T> DeserializeNamelessAsync<T>(Stream stream, Graph graph = null)
-        {
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
-
-            var type = typeof(T);
-
-            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
-
-#if DEBUG
-            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
-#else
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
-#endif
-            var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
-            var decodeBufferPosition = 0;
-
-            try
-            {
-                var position = 0;
-                var length = 0;
-                var read = -1;
-                var isFinalBlock = false;
-                while (position < buffer.Length)
-                {
-#if NETSTANDARD2_0
-                    read = await stream.ReadAsync(buffer, position, buffer.Length - position);
-#else
-                    read = await stream.ReadAsync(buffer.AsMemory(position));
-#endif
-                    if (read == 0)
-                    {
-                        isFinalBlock = true;
-                        break;
-                    }
-                    position += read;
-                    length = position;
-                }
-
-                if (position == 0)
-                {
-                    if (typeDetail.CoreType == CoreType.String)
-                        return (T)(object)String.Empty; //TODO better way to convert type???
-                    return default;
-                }
-
-                var state = new ReadState();
-                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
-                state.IsFinalBlock = isFinalBlock;
-                state.Nameless = true;
-
-                for (; ; )
-                {
-                    var usedBytes = ReadConvertBytes(buffer.AsSpan().Slice(0, length), ref state, ref decodeBuffer, ref decodeBufferPosition);
-
-                    if (state.Ended)
-                        break;
-
-                    if (state.CharsNeeded > 0)
-                    {
-                        if (state.IsFinalBlock)
-                            throw new EndOfStreamException();
-
-                        Buffer.BlockCopy(buffer, usedBytes, buffer, 0, length - usedBytes);
-                        position = length - usedBytes;
-
-                        if (position + state.CharsNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, position + state.CharsNeeded);
-
-                        while (position < buffer.Length)
-                        {
-#if NETSTANDARD2_0
-                            read = await stream.ReadAsync(buffer, position, buffer.Length - position);
-#else
-                            read = await stream.ReadAsync(buffer.AsMemory(position));
-#endif
-                            if (read == 0)
-                            {
-                                state.IsFinalBlock = true;
-                                break;
-                            }
-                            position += read;
-                            length = position;
-                        }
-
-                        if (position < state.CharsNeeded)
-                            throw new EndOfStreamException();
-
-                        state.CharsNeeded = 0;
-                    }
-                }
-
-                return (T)state.LastFrameResultObject;
-            }
-            finally
-            {
-                Array.Clear(buffer, 0, buffer.Length);
-                BufferArrayPool<byte>.Return(buffer);
-                BufferArrayPool<char>.Return(decodeBuffer);
-            }
-        }
-        public static async Task<object> DeserializeNamelessAsync(Type type, Stream stream, Graph graph = null)
-        {
-            if (type == null)
-                throw new ArgumentNullException(nameof(type));
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
-
-            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
-
-#if DEBUG
-            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
-#else
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
-#endif
-            var decodeBuffer = BufferArrayPool<char>.Rent(defaultDecodeBufferSize);
-            var decodeBufferPosition = 0;
-
-            try
-            {
-                var position = 0;
-                var length = 0;
-                var read = -1;
-                var isFinalBlock = false;
-                while (position < buffer.Length)
-                {
-#if NETSTANDARD2_0
-                    read = await stream.ReadAsync(buffer, position, buffer.Length - position);
-#else
-                    read = await stream.ReadAsync(buffer.AsMemory(position));
-#endif
-                    if (read == 0)
-                    {
-                        isFinalBlock = true;
-                        break;
-                    }
-                    position += read;
-                    length = position;
-                }
-
-                if (position == 0)
-                {
-                    if (typeDetail.CoreType == CoreType.String)
-                        return (object)String.Empty;
-                    return default;
-                }
-
-                var state = new ReadState();
-                state.CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph };
-                state.IsFinalBlock = isFinalBlock;
-                state.Nameless = true;
+                    IsFinalBlock = isFinalBlock,
+                    CurrentFrame = new ReadFrame() { TypeDetail = typeDetail, FrameType = ReadFrameType.Value, Graph = graph }
+                };
 
                 for (; ; )
                 {

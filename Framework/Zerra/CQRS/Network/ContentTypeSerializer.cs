@@ -11,10 +11,15 @@ namespace Zerra.CQRS.Network
 {
     public static class ContentTypeSerializer
     {
-        private static readonly ByteSerializerOptions byteSerializerOptions = new ByteSerializerOptions()
+        private static readonly ByteSerializerOptions byteSerializerOptions = new()
         {
             UsePropertyNames = true,
             IgnoreIndexAttribute = true
+        };
+
+        private static readonly JsonSerializerOptions jsonSerializerNamelessOptions = new()
+        {
+            Nameless = true
         };
 
         public static byte[] Serialize(ContentType contentType, object obj)
@@ -31,7 +36,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.JsonNameless:
                     {
-                        return JsonSerializer.SerializeNamelessBytes(obj);
+                        return JsonSerializer.SerializeBytes(obj, jsonSerializerNamelessOptions);
                     }
                 default:
                     throw new NotImplementedException();
@@ -51,7 +56,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.JsonNameless:
                     {
-                        return JsonSerializer.DeserializeNameless<T>(bytes);
+                        return JsonSerializer.Deserialize<T>(bytes, jsonSerializerNamelessOptions);
                     }
                 default:
                     throw new NotImplementedException();
@@ -71,7 +76,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.JsonNameless:
                     {
-                        return JsonSerializer.DeserializeNameless(type, bytes);
+                        return JsonSerializer.Deserialize(type, bytes, jsonSerializerNamelessOptions);
                     }
                 default:
                     throw new NotImplementedException();
@@ -94,7 +99,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.JsonNameless:
                     {
-                        JsonSerializer.SerializeNameless(stream, obj);
+                        JsonSerializer.Serialize(stream, obj, jsonSerializerNamelessOptions);
                         return;
                     }
                 default:
@@ -115,7 +120,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.JsonNameless:
                     {
-                        return JsonSerializer.DeserializeNameless<T>(stream);
+                        return JsonSerializer.Deserialize<T>(stream, jsonSerializerNamelessOptions);
                     }
                 default:
                     throw new NotImplementedException();
@@ -135,7 +140,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.JsonNameless:
                     {
-                        return JsonSerializer.DeserializeNameless(type, stream);
+                        return JsonSerializer.Deserialize(type, stream, jsonSerializerNamelessOptions);
                     }
                 default:
                     throw new NotImplementedException();
@@ -156,7 +161,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.JsonNameless:
                     {
-                        return JsonSerializer.SerializeNamelessAsync(stream, obj);
+                        return JsonSerializer.SerializeAsync(stream, obj, jsonSerializerNamelessOptions);
                     }
                 default:
                     throw new NotImplementedException();
@@ -177,7 +182,7 @@ namespace Zerra.CQRS.Network
                 case ContentType.JsonNameless:
                     {
 
-                        return JsonSerializer.DeserializeNamelessAsync<T>(stream);
+                        return JsonSerializer.DeserializeAsync<T>(stream, jsonSerializerNamelessOptions);
                     }
                 default:
                     throw new NotImplementedException();
@@ -198,7 +203,7 @@ namespace Zerra.CQRS.Network
                 case ContentType.JsonNameless:
                     {
 
-                        return JsonSerializer.DeserializeNamelessAsync(type, stream);
+                        return JsonSerializer.DeserializeAsync(type, stream, jsonSerializerNamelessOptions);
                     }
                 default:
                     throw new NotImplementedException();
@@ -226,7 +231,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.JsonNameless:
                     {
-                        JsonSerializer.SerializeNameless(stream, model);
+                        JsonSerializer.Serialize(stream, model, jsonSerializerNamelessOptions);
                         return;
                     }
                 default:
@@ -249,7 +254,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.JsonNameless:
                     {
-                        var model = JsonSerializer.DeserializeNameless<ExceptionModel>(stream);
+                        var model = JsonSerializer.Deserialize<ExceptionModel>(stream, jsonSerializerNamelessOptions);
                         return new Exception(model.Message);
                     }
                 default:
@@ -276,7 +281,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.JsonNameless:
                     {
-                        return JsonSerializer.SerializeNamelessAsync(stream, model);
+                        return JsonSerializer.SerializeAsync(stream, model, jsonSerializerNamelessOptions);
                     }
                 default:
                     throw new NotImplementedException();
@@ -298,7 +303,7 @@ namespace Zerra.CQRS.Network
                     }
                 case ContentType.JsonNameless:
                     {
-                        var model = await JsonSerializer.DeserializeNamelessAsync<ExceptionModel>(stream);
+                        var model = await JsonSerializer.DeserializeAsync<ExceptionModel>(stream, jsonSerializerNamelessOptions);
                         return new Exception(model.Message);
                     }
                 default:

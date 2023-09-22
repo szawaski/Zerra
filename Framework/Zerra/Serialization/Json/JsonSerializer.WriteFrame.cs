@@ -22,6 +22,7 @@ namespace Zerra.Serialization
             public byte State;
 
             public MemberDetail ObjectProperty;
+            public object ObjectPropertyValue;
 
             public int PropertyIndexForNameless;
 
