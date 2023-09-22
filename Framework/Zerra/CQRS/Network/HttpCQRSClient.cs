@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;

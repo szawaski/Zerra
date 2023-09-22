@@ -6,28 +6,31 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using Zerra.IO;
 using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
-    public sealed partial class ByteSerializer
+    public static partial class ByteSerializer
     {
-        public byte[] NewSerializeStackBased(object obj)
+        public static byte[] NewSerializeStackBased(object obj, ByteSerializerOptions options = null)
         {
             if (obj == null) throw new ArgumentNullException(nameof(obj));
-            return SerializeStackBased(obj, obj.GetType());
+            return SerializeStackBased(obj, obj.GetType(), options);
         }
-        public byte[] SerializeStackBased<T>(T obj)
+        public static byte[] SerializeStackBased<T>(T obj, ByteSerializerOptions options = null)
         {
-            return SerializeStackBased(obj, typeof(T));
+            return SerializeStackBased(obj, typeof(T), options);
         }
-        public byte[] SerializeStackBased(object obj, Type type)
+        public static byte[] SerializeStackBased(object obj, Type type, ByteSerializerOptions options = null)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
 
-            var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
+            options ??= defaultOptions;
+
+            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
 #if DEBUG
             var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
@@ -37,12 +40,18 @@ namespace Zerra.Serialization
 
             try
             {
-                var state = new WriteState();
-                state.CurrentFrame = WriteFrameFromType(obj, typeDetail, false, true);
+                var state = new WriteState()
+                {
+                    UsePropertyNames = options.UsePropertyNames,
+                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSize = options.IndexSize
+                };
+                state.CurrentFrame = WriteFrameFromType(ref state, obj, typeDetail, false, true);
 
                 for (; ; )
                 {
-                    var usedBytes = Write(buffer.AsSpan().Slice(position), ref state);
+                    var usedBytes = Write(buffer.AsSpan().Slice(position), ref state, options.Encoding);
 
                     position += usedBytes;
 
@@ -68,7 +77,7 @@ namespace Zerra.Serialization
             return result;
         }
 
-        public void Serialize(Stream stream, object obj)
+        public static void Serialize(Stream stream, object obj, ByteSerializerOptions options = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -76,18 +85,20 @@ namespace Zerra.Serialization
                 throw new ArgumentNullException(nameof(obj));
             Serialize(stream, obj, obj.GetType());
         }
-        public void Serialize<T>(Stream stream, T obj)
+        public static void Serialize<T>(Stream stream, T obj, ByteSerializerOptions options = null)
         {
-            Serialize(stream, obj, typeof(T));
+            Serialize(stream, obj, typeof(T), options);
         }
-        public void Serialize(Stream stream, object obj, Type type)
+        public static void Serialize(Stream stream, object obj, Type type, ByteSerializerOptions options = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
 
-            var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
+            options ??= defaultOptions;
+
+            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
 #if DEBUG
             var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
@@ -96,12 +107,18 @@ namespace Zerra.Serialization
 
             try
             {
-                var state = new WriteState();
-                state.CurrentFrame = WriteFrameFromType(obj, typeDetail, false, true);
+                var state = new WriteState()
+                {
+                    UsePropertyNames = options.UsePropertyNames,
+                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSize = options.IndexSize
+                };
+                state.CurrentFrame = WriteFrameFromType(ref state, obj, typeDetail, false, true);
 
                 for (; ; )
                 {
-                    var usedBytes = Write(buffer, ref state);
+                    var usedBytes = Write(buffer, ref state, options.Encoding);
 
 #if NETSTANDARD2_0
                     stream.Write(buffer, 0, usedBytes);
@@ -128,7 +145,7 @@ namespace Zerra.Serialization
             }
         }
 
-        public Task SerializeAsync(Stream stream, object obj)
+        public static Task SerializeAsync(Stream stream, object obj, ByteSerializerOptions options = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -137,9 +154,9 @@ namespace Zerra.Serialization
 
             var type = obj.GetType();
 
-            return SerializeAsync(stream, obj, type);
+            return SerializeAsync(stream, obj, type, options);
         }
-        public Task SerializeAsync<T>(Stream stream, T obj)
+        public static Task SerializeAsync<T>(Stream stream, T obj, ByteSerializerOptions options = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -148,9 +165,9 @@ namespace Zerra.Serialization
 
             var type = typeof(T);
 
-            return SerializeAsync(stream, obj, type);
+            return SerializeAsync(stream, obj, type, options);
         }
-        public async Task SerializeAsync(Stream stream, object obj, Type type)
+        public static async Task SerializeAsync(Stream stream, object obj, Type type, ByteSerializerOptions options = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -159,7 +176,9 @@ namespace Zerra.Serialization
             if (obj == null)
                 return;
 
-            var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
+            options ??= defaultOptions;
+
+            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
 #if DEBUG
             var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
@@ -168,12 +187,18 @@ namespace Zerra.Serialization
 
             try
             {
-                var state = new WriteState();
-                state.CurrentFrame = WriteFrameFromType(obj, typeDetail, false, true);
+                var state = new WriteState()
+                {
+                    UsePropertyNames = options.UsePropertyNames,
+                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSize = options.IndexSize
+                };
+                state.CurrentFrame = WriteFrameFromType(ref state, obj, typeDetail, false, true);
 
                 for (; ; )
                 {
-                    var usedBytes = Write(buffer, ref state);
+                    var usedBytes = Write(buffer, ref state, options.Encoding);
 
 #if NETSTANDARD2_0
                     await stream.WriteAsync(buffer, 0, usedBytes);
@@ -200,14 +225,42 @@ namespace Zerra.Serialization
             }
         }
 
-        private WriteFrame WriteFrameFromType(object obj, SerializerTypeDetail typeDetail, bool hasWrittenPropertyType, bool nullFlags)
+        private static int Write(Span<byte> buffer, ref WriteState state, Encoding encoding)
+        {
+            var writer = new ByteWriter(buffer, encoding);
+            for (; ; )
+            {
+                switch (state.CurrentFrame.FrameType)
+                {
+                    case WriteFrameType.PropertyType: WritePropertyType(ref writer, ref state); break;
+                    case WriteFrameType.CoreType: WriteCoreType(ref writer, ref state); break;
+                    case WriteFrameType.EnumType: WriteEnumType(ref writer, ref state); break;
+                    case WriteFrameType.SpecialType: WriteSpecialType(ref writer, ref state); break;
+                    case WriteFrameType.Object: WriteObject(ref writer, ref state); break;
+                    case WriteFrameType.CoreTypeEnumerable: WriteCoreTypeEnumerable(ref writer, ref state); break;
+                    case WriteFrameType.EnumTypeEnumerable: WriteEnumTypeEnumerable(ref writer, ref state); break;
+                    //case WriteFrameType.SpecialTypeEnumerable: WriteSpecialTypeEnumerable(ref reader, ref state); break;
+                    case WriteFrameType.ObjectEnumerable: WriteObjectEnumerable(ref writer, ref state); break;
+                }
+                if (state.Ended)
+                {
+                    return writer.Length;
+                }
+                if (state.BytesNeeded > 0)
+                {
+                    return writer.Length;
+                }
+            }
+        }
+
+        private static WriteFrame WriteFrameFromType(ref WriteState state, object obj, SerializerTypeDetail typeDetail, bool hasWrittenPropertyType, bool nullFlags)
         {
             var frame = new WriteFrame();
             frame.TypeDetail = typeDetail;
             frame.NullFlags = nullFlags;
             frame.Object = obj;
 
-            if (includePropertyTypes && !hasWrittenPropertyType)
+            if (state.IncludePropertyTypes && !hasWrittenPropertyType)
             {
                 frame.FrameType = WriteFrameType.PropertyType;
                 return frame;
@@ -262,35 +315,7 @@ namespace Zerra.Serialization
             return frame;
         }
 
-        private int Write(Span<byte> buffer, ref WriteState state)
-        {
-            var writer = new ByteWriter(buffer, encoding);
-            for (; ; )
-            {
-                switch (state.CurrentFrame.FrameType)
-                {
-                    case WriteFrameType.PropertyType: WritePropertyType(ref writer, ref state); break;
-                    case WriteFrameType.CoreType: WriteCoreType(ref writer, ref state); break;
-                    case WriteFrameType.EnumType: WriteEnumType(ref writer, ref state); break;
-                    case WriteFrameType.SpecialType: WriteSpecialType(ref writer, ref state); break;
-                    case WriteFrameType.Object: WriteObject(ref writer, ref state); break;
-                    case WriteFrameType.CoreTypeEnumerable: WriteCoreTypeEnumerable(ref writer, ref state); break;
-                    case WriteFrameType.EnumTypeEnumerable: WriteEnumTypeEnumerable(ref writer, ref state); break;
-                    //case WriteFrameType.SpecialTypeEnumerable: WriteSpecialTypeEnumerable(ref reader, ref state); break;
-                    case WriteFrameType.ObjectEnumerable: WriteObjectEnumerable(ref writer, ref state); break;
-                }
-                if (state.Ended)
-                {
-                    return writer.Length;
-                }
-                if (state.BytesNeeded > 0)
-                {
-                    return writer.Length;
-                }
-            }
-        }
-
-        private void WritePropertyType(ref ByteWriter writer, ref WriteState state)
+        private static void WritePropertyType(ref ByteWriter writer, ref WriteState state)
         {
             if (state.CurrentFrame.HasWrittenPropertyType)
             {
@@ -300,7 +325,7 @@ namespace Zerra.Serialization
 
             var typeDetail = state.CurrentFrame.TypeDetail;
 
-            if (includePropertyTypes)
+            if (state.IncludePropertyTypes)
             {
                 var typeFromValue = state.CurrentFrame.Object.GetType();
                 var typeName = typeFromValue.FullName;
@@ -312,21 +337,21 @@ namespace Zerra.Serialization
                     return;
                 }
 
-                typeDetail = GetTypeInformation(typeFromValue, this.indexSize, this.ignoreIndexAttribute);
+                typeDetail = GetTypeInformation(typeFromValue, state.IndexSize, state.IgnoreIndexAttribute);
             }
             else if (typeDetail.Type.IsInterface && !typeDetail.TypeDetail.IsIEnumerableGeneric)
             {
                 var objectType = state.CurrentFrame.Object.GetType();
-                typeDetail = GetTypeInformation(objectType, this.indexSize, this.ignoreIndexAttribute);
+                typeDetail = GetTypeInformation(objectType, state.IndexSize, state.IgnoreIndexAttribute);
             }
 
             state.CurrentFrame.HasWrittenPropertyType = true;
 
-            var frame = WriteFrameFromType(state.CurrentFrame.Object, typeDetail, true, state.CurrentFrame.NullFlags);
+            var frame = WriteFrameFromType(ref state, state.CurrentFrame.Object, typeDetail, true, state.CurrentFrame.NullFlags);
             state.PushFrame(frame);
         }
 
-        private void WriteCoreType(ref ByteWriter writer, ref WriteState state)
+        private static void WriteCoreType(ref ByteWriter writer, ref WriteState state)
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
             int sizeNeeded;
@@ -586,7 +611,7 @@ namespace Zerra.Serialization
 
             state.EndFrame();
         }
-        private void WriteEnumType(ref ByteWriter writer, ref WriteState state)
+        private static void WriteEnumType(ref ByteWriter writer, ref WriteState state)
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
             int sizeNeeded;
@@ -711,7 +736,7 @@ namespace Zerra.Serialization
 
             state.EndFrame();
         }
-        private void WriteSpecialType(ref ByteWriter writer, ref WriteState state)
+        private static void WriteSpecialType(ref ByteWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType.Value : typeDetail.TypeDetail.SpecialType.Value;
@@ -775,7 +800,7 @@ namespace Zerra.Serialization
             }
             state.EndFrame();
         }
-        private void WriteObject(ref ByteWriter writer, ref WriteState state)
+        private static void WriteObject(ref ByteWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             var nullFlags = state.CurrentFrame.NullFlags;
@@ -820,7 +845,7 @@ namespace Zerra.Serialization
                     continue;
                 }
 
-                if (usePropertyNames)
+                if (state.UsePropertyNames)
                 {
                     if (!writer.TryWrite(indexProperty.Value.Name, false, out sizeNeeded))
                     {
@@ -830,7 +855,7 @@ namespace Zerra.Serialization
                 }
                 else
                 {
-                    switch (this.indexSize)
+                    switch (state.IndexSize)
                     {
                         case ByteSerializerIndexSize.Byte:
                             if (!writer.TryWrite((byte)indexProperty.Key, out sizeNeeded))
@@ -852,12 +877,12 @@ namespace Zerra.Serialization
                 }
 
                 state.CurrentFrame.EnumeratorObjectInProgress = false;
-                var frame = WriteFrameFromType(propertyValue, indexProperty.Value.SerailzierTypeDetails, false, false);
+                var frame = WriteFrameFromType(ref state, propertyValue, indexProperty.Value.SerailzierTypeDetails, false, false);
                 state.PushFrame(frame);
                 return;
             }
 
-            if (usePropertyNames)
+            if (state.UsePropertyNames)
             {
                 if (!writer.TryWrite(0, out sizeNeeded))
                 {
@@ -867,7 +892,7 @@ namespace Zerra.Serialization
             }
             else
             {
-                switch (this.indexSize)
+                switch (state.IndexSize)
                 {
                     case ByteSerializerIndexSize.Byte:
                         if (!writer.TryWrite(endObjectFlagByte, out sizeNeeded))
@@ -891,7 +916,7 @@ namespace Zerra.Serialization
             state.EndFrame();
         }
 
-        private void WriteCoreTypeEnumerable(ref ByteWriter writer, ref WriteState state)
+        private static void WriteCoreTypeEnumerable(ref ByteWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             typeDetail = typeDetail.InnerTypeDetail;
@@ -1189,7 +1214,7 @@ namespace Zerra.Serialization
 
             state.EndFrame();
         }
-        private void WriteEnumTypeEnumerable(ref ByteWriter writer, ref WriteState state)
+        private static void WriteEnumTypeEnumerable(ref ByteWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             typeDetail = typeDetail.InnerTypeDetail;
@@ -1352,11 +1377,11 @@ namespace Zerra.Serialization
 
             state.EndFrame();
         }
-        //private void WriteSpecialTypeEnumerable(ref ByteWriter writer, ref WriteState state)
+        //private static void WriteSpecialTypeEnumerable(ref ByteWriter writer, ref WriteState state)
         //{
         //    throw new NotImplementedException();
         //}
-        private void WriteObjectEnumerable(ref ByteWriter writer, ref WriteState state)
+        private static void WriteObjectEnumerable(ref ByteWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
 
@@ -1423,7 +1448,7 @@ namespace Zerra.Serialization
                 }
 
                 state.CurrentFrame.EnumeratorObjectInProgress = false;
-                var frame = WriteFrameFromType(value, typeDetail, false, false);
+                var frame = WriteFrameFromType(ref state, value, typeDetail, false, false);
                 state.PushFrame(frame);
                 return;
             }

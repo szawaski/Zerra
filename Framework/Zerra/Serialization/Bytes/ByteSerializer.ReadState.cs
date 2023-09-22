@@ -6,10 +6,15 @@ using System.Collections.Generic;
 
 namespace Zerra.Serialization
 {
-    public sealed partial class ByteSerializer
+    public static partial class ByteSerializer
     {
         private struct ReadState
         {
+            public bool UsePropertyNames;
+            public bool IncludePropertyTypes;
+            public bool IgnoreIndexAttribute;
+            public ByteSerializerIndexSize IndexSize;
+
             private Stack<ReadFrame> stack;
             public ReadFrame CurrentFrame;
             public object LastFrameResultObject;

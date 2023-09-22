@@ -62,22 +62,36 @@ namespace Zerra.TestDev
         {
             Console.WriteLine("Note: Run in Release Mode!");
 
+            var option1 = new ByteSerializerOptions()
+            {
+                UsePropertyNames = true
+            };
+            var option2 = new ByteSerializerOptions()
+            {
+                IncludePropertyTypes = true
+            };
+            var option3 = new ByteSerializerOptions()
+            {
+                UsePropertyNames = true,
+                IncludePropertyTypes = true
+            };
+
             var items = GetTestStuff();
 
             var timer0 = Stopwatch.StartNew();
             foreach (var item in items)
             {
-                var w1 = new ByteSerializer().Serialize(item);
-                var w2 = new ByteSerializer(true, false).Serialize(item);
-                var w3 = new ByteSerializer(false, true).Serialize(item);
-                var w4 = new ByteSerializer(true, true).Serialize(item);
+                var w1 = ByteSerializer.Serialize(item);
+                var w2 = ByteSerializer.Serialize(item, option1);
+                var w3 = ByteSerializer.Serialize(item, option2);
+                var w4 = ByteSerializer.Serialize(item, option3);
                 var w5 = Serialize(item);
                 var w6 = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item));
 
-                var v1 = new ByteSerializer().Deserialize<Test>(w1);
-                var v2 = new ByteSerializer(true, false).Deserialize<Test>(w2);
-                var v3 = new ByteSerializer(false, true).Deserialize<Test>(w3);
-                var v4 = new ByteSerializer(true, true).Deserialize<Test>(w4);
+                var v1 = ByteSerializer.Deserialize<Test>(w1);
+                var v2 = ByteSerializer.Deserialize<Test>(w2, option1);
+                var v3 = ByteSerializer.Deserialize<Test>(w3, option2);
+                var v4 = ByteSerializer.Deserialize<Test>(w4, option3);
                 var v5 = Deserialize(w5);
                 var v6 = JsonConvert.DeserializeObject<Test>(Encoding.UTF8.GetString(w6));
             }
@@ -92,8 +106,7 @@ namespace Zerra.TestDev
             long totalSize1 = 0;
             foreach (var item in items)
             {
-                var s = new ByteSerializer();
-                var lapDataBytes = s.Serialize(item);
+                var lapDataBytes = ByteSerializer.Serialize(item);
                 totalSize1 += lapDataBytes.Length;
                 s1.Add(lapDataBytes);
             }
@@ -106,8 +119,7 @@ namespace Zerra.TestDev
             long totalSize1a = 0;
             foreach (var item in items)
             {
-                var s = new ByteSerializer(true, false);
-                var lapDataBytes = s.Serialize(item);
+                var lapDataBytes = ByteSerializer.Serialize(item, option1);
                 totalSize1a += lapDataBytes.Length;
                 s1a.Add(lapDataBytes);
             }
@@ -120,8 +132,7 @@ namespace Zerra.TestDev
             long totalSize1b = 0;
             foreach (var item in items)
             {
-                var s = new ByteSerializer(false, true);
-                var lapDataBytes = s.Serialize(item);
+                var lapDataBytes = ByteSerializer.Serialize(item, option2);
                 totalSize1b += lapDataBytes.Length;
                 s1b.Add(lapDataBytes);
             }
@@ -134,8 +145,7 @@ namespace Zerra.TestDev
             long totalSize1c = 0;
             foreach (var item in items)
             {
-                var s = new ByteSerializer(true, true);
-                var lapDataBytes = s.Serialize(item);
+                var lapDataBytes = ByteSerializer.Serialize(item, option3);
                 totalSize1c += lapDataBytes.Length;
                 s1c.Add(lapDataBytes);
             }
@@ -176,8 +186,7 @@ namespace Zerra.TestDev
             var timer4 = Stopwatch.StartNew();
             foreach (var lapDataBytes in s1)
             {
-                var s = new ByteSerializer();
-                var item = s.Deserialize<Test>(lapDataBytes);
+                var item = ByteSerializer.Deserialize<Test>(lapDataBytes);
             }
             timer4.Stop();
             Console.WriteLine($"ByteSerializer {timer4.ElapsedMilliseconds:n0}ms");
@@ -186,8 +195,7 @@ namespace Zerra.TestDev
             //var timerz = Stopwatch.StartNew();
             //foreach (var lapDataBytes in s1)
             //{
-            //    var s = new ByteSerializer();
-            //    var item = s.NewDeserialize<Test>(lapDataBytes);
+            //    var item = ByteSerializer.NewDeserialize<Test>(lapDataBytes);
             //}
             //timerz.Stop();
             //Console.WriteLine($"ByteSerializerNew {timerz.ElapsedMilliseconds:n0}ms");
@@ -197,8 +205,7 @@ namespace Zerra.TestDev
             var timer4a = Stopwatch.StartNew();
             foreach (var lapDataBytes in s1a)
             {
-                var s = new ByteSerializer(true, false);
-                var item = s.Deserialize<Test>(lapDataBytes);
+                var item = ByteSerializer.Deserialize<Test>(lapDataBytes, option1);
             }
             timer4a.Stop();
             Console.WriteLine($"ByteSerializerNames {timer4a.ElapsedMilliseconds:n0}ms");
@@ -207,8 +214,7 @@ namespace Zerra.TestDev
             var timer4b = Stopwatch.StartNew();
             foreach (var lapDataBytes in s1b)
             {
-                var s = new ByteSerializer(false, true);
-                var item = s.Deserialize<Test>(lapDataBytes);
+                var item = ByteSerializer.Deserialize<Test>(lapDataBytes, option2);
             }
             timer4b.Stop();
             Console.WriteLine($"ByteSerializerTypes {timer4b.ElapsedMilliseconds:n0}ms");
@@ -217,8 +223,7 @@ namespace Zerra.TestDev
             var timer4c = Stopwatch.StartNew();
             foreach (var lapDataBytes in s1c)
             {
-                var s = new ByteSerializer(true, true);
-                var item = s.Deserialize<Test>(lapDataBytes);
+                var item = ByteSerializer.Deserialize<Test>(lapDataBytes, option3);
             }
             timer4c.Stop();
             Console.WriteLine($"ByteSerializerNamesTypes {timer4c.ElapsedMilliseconds:n0}ms");
@@ -227,8 +232,7 @@ namespace Zerra.TestDev
             //var timerz4 = Stopwatch.StartNew();
             //foreach (var lapDataBytes in s1c)
             //{
-            //    var s = new ByteSerializer(true, true);
-            //    var item = s.NewDeserialize<Test>(lapDataBytes);
+            //    var item = ByteSerializer.NewDeserialize<Test>(lapDataBytes);
             //}
             //timerz4.Stop();
             //Console.WriteLine($"ByteSerializerNamesTypesNew {timerz4.ElapsedMilliseconds:n0}ms");

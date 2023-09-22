@@ -6,29 +6,38 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Zerra.IO;
 using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
-    public sealed partial class ByteSerializer
+    public static partial class ByteSerializer
     {
-        public T DeserializeStackBased<T>(byte[] bytes)
+        public static T DeserializeStackBased<T>(byte[] bytes, ByteSerializerOptions options = null)
         {
-            return (T)DeserializeStackBased(typeof(T), bytes);
+            return (T)DeserializeStackBased(typeof(T), bytes, options);
         }
-        public object DeserializeStackBased(Type type, byte[] bytes)
+        public static object DeserializeStackBased(Type type, byte[] bytes, ByteSerializerOptions options = null)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 
-            var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
+            options ??= defaultOptions;
 
-            var state = new ReadState();
-            state.CurrentFrame = ReadFrameFromType(typeDetail, false, true);
+            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
 
-            Read(bytes, ref state);
+            var state = new ReadState()
+            {
+                UsePropertyNames = options.UsePropertyNames,
+                IncludePropertyTypes = options.IncludePropertyTypes,
+                IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                IndexSize = options.IndexSize
+            };
+            state.CurrentFrame = ReadFrameFromType(ref state, typeDetail, false, true);
+
+            Read(bytes, ref state, options.Encoding);
 
             if (!state.Ended || state.BytesNeeded > 0)
                 throw new EndOfStreamException();
@@ -36,18 +45,20 @@ namespace Zerra.Serialization
             return state.LastFrameResultObject;
         }
 
-        public T Deserialize<T>(Stream stream)
+        public static T Deserialize<T>(Stream stream, ByteSerializerOptions options = null)
         {
-            return (T)Deserialize(typeof(T), stream);
+            return (T)Deserialize(typeof(T), stream, options);
         }
-        public object Deserialize(Type type, Stream stream)
+        public static object Deserialize(Type type, Stream stream, ByteSerializerOptions options = null)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
 
-            var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
+            options ??= defaultOptions;
+
+            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
 
             var isFinalBlock = false;
 #if DEBUG
@@ -82,12 +93,18 @@ namespace Zerra.Serialization
                     return default;
                 }
 
-                var state = new ReadState();
-                state.CurrentFrame = ReadFrameFromType(typeDetail, false, true);
+                var state = new ReadState()
+                {
+                    UsePropertyNames = options.UsePropertyNames,
+                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSize = options.IndexSize
+                };
+                state.CurrentFrame = ReadFrameFromType(ref state, typeDetail, false, true);
 
                 for (; ; )
                 {
-                    var bytesUsed = Read(buffer.AsSpan().Slice(0, read), ref state);
+                    var bytesUsed = Read(buffer.AsSpan().Slice(0, read), ref state, options.Encoding);
 
                     if (state.Ended)
                         break;
@@ -136,14 +153,16 @@ namespace Zerra.Serialization
             }
         }
 
-        public async Task<T> DeserializeAsync<T>(Stream stream)
+        public static async Task<T> DeserializeAsync<T>(Stream stream, ByteSerializerOptions options = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
 
+            options ??= defaultOptions;
+
             var type = typeof(T);
 
-            var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
+            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
 
             var isFinalBlock = false;
 #if DEBUG
@@ -178,12 +197,18 @@ namespace Zerra.Serialization
                     return default;
                 }
 
-                var state = new ReadState();
-                state.CurrentFrame = ReadFrameFromType(typeDetail, false, true);
+                var state = new ReadState()
+                {
+                    UsePropertyNames = options.UsePropertyNames,
+                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSize = options.IndexSize
+                };
+                state.CurrentFrame = ReadFrameFromType(ref state, typeDetail, false, true);
 
                 for (; ; )
                 {
-                    var usedBytes = Read(buffer.AsSpan().Slice(0, length), ref state);
+                    var usedBytes = Read(buffer.AsSpan().Slice(0, length), ref state, options.Encoding);
 
                     if (state.Ended)
                         break;
@@ -231,14 +256,16 @@ namespace Zerra.Serialization
                 BufferArrayPool<byte>.Return(buffer);
             }
         }
-        public async Task<object> DeserializeAsync(Type type, Stream stream)
+        public static async Task<object> DeserializeAsync(Type type, Stream stream, ByteSerializerOptions options = null)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
 
-            var typeDetail = GetTypeInformation(type, this.indexSize, this.ignoreIndexAttribute);
+            options ??= defaultOptions;
+
+            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
 
             var isFinalBlock = false;
 #if DEBUG
@@ -273,12 +300,18 @@ namespace Zerra.Serialization
                     return default;
                 }
 
-                var state = new ReadState();
-                state.CurrentFrame = ReadFrameFromType(typeDetail, false, true);
+                var state = new ReadState()
+                {
+                    UsePropertyNames = options.UsePropertyNames,
+                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSize = options.IndexSize
+                };
+                state.CurrentFrame = ReadFrameFromType(ref state, typeDetail, false, true);
 
                 for (; ; )
                 {
-                    var bytesUsed = Read(buffer.AsSpan().Slice(0, read), ref state);
+                    var bytesUsed = Read(buffer.AsSpan().Slice(0, read), ref state, options.Encoding);
 
                     if (state.Ended)
                         break;
@@ -327,13 +360,41 @@ namespace Zerra.Serialization
             }
         }
 
-        private ReadFrame ReadFrameFromType(SerializerTypeDetail typeDetail, bool hasReadPropertyType, bool nullFlags)
+        private static int Read(ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding)
+        {
+            var reader = new ByteReader(buffer, encoding);
+            for (; ; )
+            {
+                switch (state.CurrentFrame.FrameType)
+                {
+                    case ReadFrameType.PropertyType: ReadPropertyType(ref reader, ref state); break;
+                    case ReadFrameType.CoreType: ReadCoreType(ref reader, ref state); break;
+                    case ReadFrameType.EnumType: ReadEnumType(ref reader, ref state); break;
+                    case ReadFrameType.SpecialType: ReadSpecialType(ref reader, ref state); break;
+                    case ReadFrameType.Object: ReadObject(ref reader, ref state); break;
+                    case ReadFrameType.CoreTypeEnumerable: ReadCoreTypeEnumerable(ref reader, ref state); break;
+                    case ReadFrameType.EnumTypeEnumerable: ReadEnumTypeEnumerable(ref reader, ref state); break;
+                    //case ReadFrameType.SpecialTypeEnumerable: ReadSpecialTypeEnumerable(ref reader, ref state); break;
+                    case ReadFrameType.ObjectEnumerable: ReadObjectEnumerable(ref reader, ref state); break;
+                }
+                if (state.Ended)
+                {
+                    return -1;
+                }
+                if (state.BytesNeeded > 0)
+                {
+                    return reader.Position;
+                }
+            }
+        }
+
+        private static ReadFrame ReadFrameFromType(ref ReadState state, SerializerTypeDetail typeDetail, bool hasReadPropertyType, bool nullFlags)
         {
             var frame = new ReadFrame();
             frame.TypeDetail = typeDetail;
             frame.NullFlags = nullFlags;
 
-            if (includePropertyTypes && !hasReadPropertyType)
+            if (state.IncludePropertyTypes && !hasReadPropertyType)
             {
                 frame.FrameType = ReadFrameType.PropertyType;
                 return frame;
@@ -390,37 +451,9 @@ namespace Zerra.Serialization
 
             frame.FrameType = ReadFrameType.ObjectEnumerable;
             return frame;
-        }
+        } 
 
-        private int Read(ReadOnlySpan<byte> buffer, ref ReadState state)
-        {
-            var reader = new ByteReader(buffer, encoding);
-            for (; ; )
-            {
-                switch (state.CurrentFrame.FrameType)
-                {
-                    case ReadFrameType.PropertyType: ReadPropertyType(ref reader, ref state); break;
-                    case ReadFrameType.CoreType: ReadCoreType(ref reader, ref state); break;
-                    case ReadFrameType.EnumType: ReadEnumType(ref reader, ref state); break;
-                    case ReadFrameType.SpecialType: ReadSpecialType(ref reader, ref state); break;
-                    case ReadFrameType.Object: ReadObject(ref reader, ref state); break;
-                    case ReadFrameType.CoreTypeEnumerable: ReadCoreTypeEnumerable(ref reader, ref state); break;
-                    case ReadFrameType.EnumTypeEnumerable: ReadEnumTypeEnumerable(ref reader, ref state); break;
-                    //case ReadFrameType.SpecialTypeEnumerable: ReadSpecialTypeEnumerable(ref reader, ref state); break;
-                    case ReadFrameType.ObjectEnumerable: ReadObjectEnumerable(ref reader, ref state); break;
-                }
-                if (state.Ended)
-                {
-                    return -1;
-                }
-                if (state.BytesNeeded > 0)
-                {
-                    return reader.Position;
-                }
-            }
-        }
-
-        private void ReadPropertyType(ref ByteReader reader, ref ReadState state)
+        private static void ReadPropertyType(ref ByteReader reader, ref ReadState state)
         {
             if (state.CurrentFrame.HasReadPropertyType)
             {
@@ -433,7 +466,7 @@ namespace Zerra.Serialization
 
             if (!state.CurrentFrame.DrainBytes && typeDetail == null)
                 throw new NotSupportedException("Cannot deserialize without type information");
-            if (includePropertyTypes)
+            if (state.IncludePropertyTypes)
             {
                 int sizeNeeded;
                 if (!state.CurrentFrame.StringLength.HasValue)
@@ -457,7 +490,7 @@ namespace Zerra.Serialization
                 //overrides potentially boxed type with actual type if exists in assembly
                 if (typeFromBytes != null)
                 {
-                    var newTypeDetail = GetTypeInformation(typeFromBytes, this.indexSize, this.ignoreIndexAttribute);
+                    var newTypeDetail = GetTypeInformation(typeFromBytes, state.IndexSize, state.IgnoreIndexAttribute);
 
                     var typeDetailCheck = typeDetail.TypeDetail;
                     if (typeDetailCheck.IsNullable)
@@ -474,16 +507,16 @@ namespace Zerra.Serialization
             else if (typeDetail.Type.IsInterface && !typeDetail.TypeDetail.IsIEnumerableGeneric)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
-                typeDetail = GetTypeInformation(emptyImplementationType, this.indexSize, this.ignoreIndexAttribute);
+                typeDetail = GetTypeInformation(emptyImplementationType, state.IndexSize, state.IgnoreIndexAttribute);
             }
 
             state.CurrentFrame.HasReadPropertyType = true;
 
-            var frame = ReadFrameFromType(typeDetail, true, state.CurrentFrame.NullFlags);
+            var frame = ReadFrameFromType(ref state, typeDetail, true, state.CurrentFrame.NullFlags);
             state.PushFrame(frame);
         }
 
-        private void ReadCoreType(ref ByteReader reader, ref ReadState state)
+        private static void ReadCoreType(ref ByteReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             var nullFlags = state.CurrentFrame.NullFlags;
@@ -864,7 +897,7 @@ namespace Zerra.Serialization
 
             state.EndFrame();
         }
-        private void ReadEnumType(ref ByteReader reader, ref ReadState state)
+        private static void ReadEnumType(ref ByteReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             var nullFlags = state.CurrentFrame.NullFlags;
@@ -1047,7 +1080,7 @@ namespace Zerra.Serialization
 
             state.EndFrame();
         }
-        private void ReadSpecialType(ref ByteReader reader, ref ReadState state)
+        private static void ReadSpecialType(ref ByteReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             var nullFlags = state.CurrentFrame.NullFlags;
@@ -1130,7 +1163,7 @@ namespace Zerra.Serialization
                     throw new NotImplementedException();
             }
         }
-        private void ReadObject(ref ByteReader reader, ref ReadState state)
+        private static void ReadObject(ref ByteReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             var nullFlags = state.CurrentFrame.NullFlags;
@@ -1170,7 +1203,7 @@ namespace Zerra.Serialization
 
                 SerializerMemberDetail property = null;
 
-                if (usePropertyNames)
+                if (state.UsePropertyNames)
                 {
                     int sizeNeeded;
                     if (!state.CurrentFrame.StringLength.HasValue)
@@ -1200,18 +1233,18 @@ namespace Zerra.Serialization
 
                     if (property == null)
                     {
-                        if (!usePropertyNames && !includePropertyTypes)
+                        if (!state.UsePropertyNames && !state.IncludePropertyTypes)
                             throw new Exception($"Cannot deserialize with property {name} undefined and no types.");
 
                         //consume bytes but object does not have property
-                        var frame = ReadFrameFromType(null, false, false);
+                        var frame = ReadFrameFromType(ref state, null, false, false);
                         state.PushFrame(frame);
                         state.CurrentFrame.DrainBytes = true;
                         return;
                     }
                     else
                     {
-                        var frame = ReadFrameFromType(property.SerailzierTypeDetails, false, false);
+                        var frame = ReadFrameFromType(ref state, property.SerailzierTypeDetails, false, false);
                         state.PushFrame(frame);
                         return;
                     }
@@ -1219,7 +1252,7 @@ namespace Zerra.Serialization
                 else
                 {
                     ushort propertyIndex;
-                    switch (this.indexSize)
+                    switch (state.IndexSize)
                     {
                         case ByteSerializerIndexSize.Byte:
                             {
@@ -1256,18 +1289,18 @@ namespace Zerra.Serialization
 
                     if (property == null)
                     {
-                        if (!usePropertyNames && !includePropertyTypes)
+                        if (!state.UsePropertyNames && !state.IncludePropertyTypes)
                             throw new Exception($"Cannot deserialize with property {propertyIndex} undefined and no types.");
 
                         //consume bytes but object does not have property
-                        var frame = ReadFrameFromType(null, false, false);
+                        var frame = ReadFrameFromType(ref state, null, false, false);
                         state.PushFrame(frame);
                         state.CurrentFrame.DrainBytes = true;
                         return;
                     }
                     else
                     {
-                        var frame = ReadFrameFromType(property.SerailzierTypeDetails, false, false);
+                        var frame = ReadFrameFromType(ref state, property.SerailzierTypeDetails, false, false);
                         state.PushFrame(frame);
                         return;
                     }
@@ -1275,7 +1308,7 @@ namespace Zerra.Serialization
             }
         }
 
-        private void ReadCoreTypeEnumerable(ref ByteReader reader, ref ReadState state)
+        private static void ReadCoreTypeEnumerable(ref ByteReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList;
@@ -2099,7 +2132,7 @@ namespace Zerra.Serialization
             }
             state.EndFrame();
         }
-        private void ReadEnumTypeEnumerable(ref ByteReader reader, ref ReadState state)
+        private static void ReadEnumTypeEnumerable(ref ByteReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             var nullFlags = true;
@@ -2332,11 +2365,11 @@ namespace Zerra.Serialization
                 }
             }
         }
-        //private void ReadSpecialTypeEnumerable(ref ByteReader reader, ref ReadState state)
+        //private static void ReadSpecialTypeEnumerable(ref ByteReader reader, ref ReadState state)
         //{
         //    throw new NotImplementedException();
         //}
-        private void ReadObjectEnumerable(ref ByteReader reader, ref ReadState state)
+        private static void ReadObjectEnumerable(ref ByteReader reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
 
@@ -2405,7 +2438,7 @@ namespace Zerra.Serialization
                 if (!state.CurrentFrame.HasObjectStarted)
                 {
                     state.CurrentFrame.HasObjectStarted = true;
-                    var frame = ReadFrameFromType(typeDetail, false, false);
+                    var frame = ReadFrameFromType(ref state, typeDetail, false, false);
                     state.PushFrame(frame);
                     return;
                 }

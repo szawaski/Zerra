@@ -9,7 +9,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
-    public sealed partial class ByteSerializer
+    public static partial class ByteSerializer
     {
         private sealed class SerializerTypeDetail
         {
@@ -71,17 +71,17 @@ namespace Zerra.Serialization
                                 switch (indexSize)
                                 {
                                     case ByteSerializerIndexSize.Byte:
-                                        if (member.Item2.Index > Byte.MaxValue - IndexOffset)
+                                        if (member.Item2.Index > Byte.MaxValue - indexOffset)
                                             throw new Exception("Index attribute too large for the index size");
                                         break;
                                     case ByteSerializerIndexSize.UInt16:
-                                        if (member.Item2.Index > UInt16.MaxValue - IndexOffset)
+                                        if (member.Item2.Index > UInt16.MaxValue - indexOffset)
                                             throw new Exception("Index attribute too large for the index size");
                                         break;
                                     default:
                                         throw new NotImplementedException();
                                 }
-                                var index = (ushort)(member.Item2.Index + IndexOffset);
+                                var index = (ushort)(member.Item2.Index + indexOffset);
 
                                 indexProperties.Add(index, new SerializerMemberDetail(indexSize, ignoreIndexAttribute, member.Item1));
                             }
@@ -96,17 +96,17 @@ namespace Zerra.Serialization
                             switch (indexSize)
                             {
                                 case ByteSerializerIndexSize.Byte:
-                                    if (orderIndex > Byte.MaxValue - IndexOffset)
+                                    if (orderIndex > Byte.MaxValue - indexOffset)
                                         throw new Exception("Index attribute too large for the index size");
                                     break;
                                 case ByteSerializerIndexSize.UInt16:
-                                    if (orderIndex > UInt16.MaxValue - IndexOffset)
+                                    if (orderIndex > UInt16.MaxValue - indexOffset)
                                         throw new Exception("Index attribute too large for the index size");
                                     break;
                                 default:
                                     throw new NotImplementedException();
                             }
-                            var index = (ushort)(orderIndex + IndexOffset);
+                            var index = (ushort)(orderIndex + indexOffset);
 
                             indexProperties.Add(index, new SerializerMemberDetail(indexSize, ignoreIndexAttribute, member.Item1));
                             orderIndex++;

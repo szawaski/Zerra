@@ -12,7 +12,7 @@ namespace Zerra.Test
         public int Value1 { get; set; }
         [SerializerIndex(22334)]
         public int Value2 { get; set; }
-        [SerializerIndex(System.UInt16.MaxValue - ByteSerializer.IndexOffset)]
+        [SerializerIndex(System.UInt16.MaxValue - 1)] //minus 1 index offset
         public int Value3 { get; set; }
     }
 }

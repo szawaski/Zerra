@@ -120,8 +120,7 @@ namespace Zerra.CQRS.Relay
                 {
                     using (var file = File.Create(path))
                     {
-                        var serializer = new ByteSerializer();
-                        await serializer.SerializeAsync(file, infoArray);
+                        await ByteSerializer.SerializeAsync(file, infoArray);
                     }
                 }
                 catch { }
@@ -145,8 +144,7 @@ namespace Zerra.CQRS.Relay
                     {
                         using (var file = File.OpenRead(path))
                         {
-                            var serializer = new ByteSerializer();
-                            infoArray = await serializer.DeserializeAsync<ServiceInfo[]>(file);
+                            infoArray = await ByteSerializer.DeserializeAsync<ServiceInfo[]>(file);
                         }
                     }
                     catch

@@ -56,7 +56,7 @@ namespace ZerraDemo.Common
             //Option3: Enable one of the following routing options
             //----------------------------------------------------------
 
-            //Option3A: Enable this for direct service communication, no custom relay/loadbalancer (can still use container balancers)
+            //Option3A: Enable this to start regular services
             Bus.StartServices(serviceSettings, serviceCreator);
 
             //Option3B: Enable this to use the relay/loadbalancer

@@ -13,6 +13,13 @@ namespace Zerra.CQRS.AzureServiceBus
 {
     internal static class AzureServiceBusCommon
     {
+        private static readonly ByteSerializerOptions byteSerializerOptions = new ByteSerializerOptions()
+        {
+            UsePropertyNames = true,
+            IncludePropertyTypes = true,
+            IgnoreIndexAttribute = true
+        };
+
         private static readonly SemaphoreSlim locker = new(1, 1);
         private static readonly TimeSpan deleteWhenIdleTimeout = new(24, 0, 0);
 
@@ -23,14 +30,12 @@ namespace Zerra.CQRS.AzureServiceBus
 
         public static byte[] Serialize(object obj)
         {
-            var serializer = new ByteSerializer(true, true, true);
-            return serializer.Serialize(obj);
+            return ByteSerializer.Serialize(obj, byteSerializerOptions);
         }
 
         public static Task<T> DeserializeAsync<T>(Stream stream)
         {
-            var serializer = new ByteSerializer(true, true, true);
-            return serializer.DeserializeAsync<T>(stream);
+            return ByteSerializer.DeserializeAsync<T>(stream, byteSerializerOptions);
         }
 
         public static async Task EnsureTopic(string host, string topic, bool deleteWhenIdle)
@@ -101,7 +106,7 @@ namespace Zerra.CQRS.AzureServiceBus
             try
             {
                 if (await client.SubscriptionExistsAsync(topic, subscription))
-                _ = await client.DeleteSubscriptionAsync(topic, subscription);
+                    _ = await client.DeleteSubscriptionAsync(topic, subscription);
             }
             finally
             {

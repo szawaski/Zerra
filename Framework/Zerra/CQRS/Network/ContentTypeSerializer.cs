@@ -11,14 +11,19 @@ namespace Zerra.CQRS.Network
 {
     public static class ContentTypeSerializer
     {
+        private static readonly ByteSerializerOptions byteSerializerOptions = new ByteSerializerOptions()
+        {
+            UsePropertyNames = true,
+            IgnoreIndexAttribute = true
+        };
+
         public static byte[] Serialize(ContentType contentType, object obj)
         {
             switch (contentType)
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer(true, false, true);
-                        return serializer.Serialize(obj);
+                        return ByteSerializer.Serialize(obj, byteSerializerOptions);
                     }
                 case ContentType.Json:
                     {
@@ -38,8 +43,7 @@ namespace Zerra.CQRS.Network
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer(true, false, true);
-                        return serializer.Deserialize<T>(bytes);
+                        return ByteSerializer.Deserialize<T>(bytes, byteSerializerOptions);
                     }
                 case ContentType.Json:
                     {
@@ -59,8 +63,7 @@ namespace Zerra.CQRS.Network
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer(true, false, true);
-                        return serializer.Deserialize(type, bytes);
+                        return ByteSerializer.Deserialize(type, bytes, byteSerializerOptions);
                     }
                 case ContentType.Json:
                     {
@@ -81,8 +84,7 @@ namespace Zerra.CQRS.Network
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer(true, false, true);
-                        serializer.Serialize(stream, obj);
+                        ByteSerializer.Serialize(stream, obj, byteSerializerOptions);
                         return;
                     }
                 case ContentType.Json:
@@ -105,8 +107,7 @@ namespace Zerra.CQRS.Network
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer(true, false, true);
-                        return serializer.Deserialize<T>(stream);
+                        return ByteSerializer.Deserialize<T>(stream, byteSerializerOptions);
                     }
                 case ContentType.Json:
                     {
@@ -126,8 +127,7 @@ namespace Zerra.CQRS.Network
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer(true, false, true);
-                        return serializer.Deserialize(type, stream);
+                        return ByteSerializer.Deserialize(type, stream, byteSerializerOptions);
                     }
                 case ContentType.Json:
                     {
@@ -148,8 +148,7 @@ namespace Zerra.CQRS.Network
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer(true, false, true);
-                        return serializer.SerializeAsync(stream, obj);
+                        return ByteSerializer.SerializeAsync(stream, obj, byteSerializerOptions);
                     }
                 case ContentType.Json:
                     {
@@ -169,8 +168,7 @@ namespace Zerra.CQRS.Network
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer(true, false, true);
-                        return serializer.DeserializeAsync<T>(stream);
+                        return ByteSerializer.DeserializeAsync<T>(stream, byteSerializerOptions);
                     }
                 case ContentType.Json:
                     {
@@ -191,8 +189,7 @@ namespace Zerra.CQRS.Network
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer(true, false, true);
-                        return serializer.DeserializeAsync(type, stream);
+                        return ByteSerializer.DeserializeAsync(type, stream, byteSerializerOptions);
                     }
                 case ContentType.Json:
                     {
@@ -219,8 +216,7 @@ namespace Zerra.CQRS.Network
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer();
-                        serializer.Serialize(stream, model);
+                        ByteSerializer.Serialize(stream, model);
                         return;
                     }
                 case ContentType.Json:
@@ -243,8 +239,7 @@ namespace Zerra.CQRS.Network
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer();
-                        var model = serializer.Deserialize<ExceptionModel>(stream);
+                        var model = ByteSerializer.Deserialize<ExceptionModel>(stream);
                         return new Exception(model.Message);
                     }
                 case ContentType.Json:
@@ -273,8 +268,7 @@ namespace Zerra.CQRS.Network
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer();
-                        return serializer.SerializeAsync(stream, model);
+                        return ByteSerializer.SerializeAsync(stream, model);
                     }
                 case ContentType.Json:
                     {
@@ -294,8 +288,7 @@ namespace Zerra.CQRS.Network
             {
                 case ContentType.Bytes:
                     {
-                        var serializer = new ByteSerializer();
-                        var model = await serializer.DeserializeAsync<ExceptionModel>(stream);
+                        var model = await ByteSerializer.DeserializeAsync<ExceptionModel>(stream);
                         return new Exception(model.Message);
                     }
                 case ContentType.Json:

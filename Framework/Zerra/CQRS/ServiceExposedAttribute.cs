@@ -3,9 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Zerra.CQRS
 {

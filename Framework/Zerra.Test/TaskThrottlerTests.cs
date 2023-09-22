@@ -24,7 +24,7 @@ namespace Zerra.Test
                 {
                     throttler.Run(async () =>
                     {
-                        await Task.Delay(1000);
+                        await Task.Delay(100);
                         list.Add(DateTime.Now.ToString("ss:fff"));
                     });
                 }
@@ -35,7 +35,7 @@ namespace Zerra.Test
                 {
                     throttler.Run(async () =>
                     {
-                        await Task.Delay(1000);
+                        await Task.Delay(100);
                         list.Add(DateTime.Now.ToString("ss:fff"));
                     });
                 }
@@ -54,7 +54,7 @@ namespace Zerra.Test
 
             await TaskThrottler.ForEachAsync(items, async (item, cancellationToken) =>
             {
-                await Task.Delay(1000);
+                await Task.Delay(100);
                 list.Add(DateTime.Now.ToString("ss:fff"));
             });
         }

@@ -8,19 +8,18 @@ namespace Zerra.Encryption
 {
     public sealed class Secret<T>
     {
-        private static readonly ByteSerializer byteSerializer = new();
         private static readonly SymmetricKey key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AES);
         private readonly byte[] secretEncrypted;
         public Secret(T secret)
         {
-            var bytes = byteSerializer.Serialize(secret);
+            var bytes = ByteSerializer.Serialize(secret);
             this.secretEncrypted = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AESwithShift, key, bytes);
         }
 
         private T GetSecret()
         {
             var encryptedBytes = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESwithShift, key, secretEncrypted);
-            var secret = byteSerializer.Deserialize<T>(encryptedBytes);
+            var secret = ByteSerializer.Deserialize<T>(encryptedBytes);
             return secret;
         }
 

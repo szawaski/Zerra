@@ -183,18 +183,17 @@ namespace Zerra.Test
         {
             var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AESwithShift);
 
-            var serializer = new ByteSerializer();
             var model1 = Factory.GetAllTypesModel();
             using (var ms = new MemoryStream())
             using (var cryptoStreamWriter = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AES, key, ms, true))
             using (var cryptoStreamReader = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AES, key, ms, false))
             {
-                var expected = serializer.Serialize(model1);
-                serializer.SerializeAsync(cryptoStreamWriter, model1).GetAwaiter().GetResult();
+                var expected = ByteSerializer.Serialize(model1);
+                ByteSerializer.SerializeAsync(cryptoStreamWriter, model1).GetAwaiter().GetResult();
                 cryptoStreamWriter.FlushFinalBlock();
                 ms.Position = 0;
                 var bytes = ms.ToArray();
-                var model2 = serializer.DeserializeAsync<AllTypesModel>(cryptoStreamReader).GetAwaiter().GetResult();
+                var model2 = ByteSerializer.DeserializeAsync<AllTypesModel>(cryptoStreamReader).GetAwaiter().GetResult();
                 Factory.AssertAreEqual(model1, model2);
             }
         }
@@ -204,18 +203,17 @@ namespace Zerra.Test
         {
             var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AESwithShift);
 
-            var serializer = new ByteSerializer();
             var model1 = Factory.GetAllTypesModel();
             using (var ms = new MemoryStream())
             using (var cryptoStreamWriter = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AESwithShift, key, ms, true))
             using (var cryptoStreamReader = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESwithShift, key, ms, false))
             {
-                var expected = serializer.Serialize(model1);
-                serializer.SerializeAsync(cryptoStreamWriter, model1).GetAwaiter().GetResult();
+                var expected = ByteSerializer.Serialize(model1);
+                ByteSerializer.SerializeAsync(cryptoStreamWriter, model1).GetAwaiter().GetResult();
                 cryptoStreamWriter.FlushFinalBlock();
                 ms.Position = 0;
                 var bytes = ms.ToArray();
-                var model2 = serializer.DeserializeAsync<AllTypesModel>(cryptoStreamReader).GetAwaiter().GetResult();
+                var model2 = ByteSerializer.DeserializeAsync<AllTypesModel>(cryptoStreamReader).GetAwaiter().GetResult();
                 Factory.AssertAreEqual(model1, model2);
             }
         }
@@ -226,8 +224,6 @@ namespace Zerra.Test
             var result = Array.Empty<byte>();
 
             var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AESwithShift);
-
-            var serializer = new ByteSerializer();
 
             using (var ms = new MemoryStream(result))
             using (var cryptoStreamReader = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AES, key, ms, false))

@@ -25,7 +25,7 @@ namespace Zerra.Serialization
         TypeInfo: {int-length}{string-typename} - Excluded by default
         PropertyName: {int-length}{string-propertyname} - Excluded by default
         ObjectData: {bool-notNull}foreachproperty:[({byte||ushort-propertyIndex}||{PropertyName}){Object}]({byte||ushort-endObjectFlag}||{0})
-    
+
     Object:
         CoreType: {TypeInfo?}{TypeData}
         String: {TypeInfo?}{int-length}{encodedbytes}
@@ -36,7 +36,7 @@ namespace Zerra.Serialization
     /// <summary>
     /// Converts objects to bytes and back with minimal size and maximum speed.
     /// </summary>
-    public sealed partial class ByteSerializer
+    public static partial class ByteSerializer
     {
         private const int defaultBufferSize = 8 * 1024;
 #if DEBUG
@@ -50,38 +50,14 @@ namespace Zerra.Serialization
         private static readonly Encoding defaultEncoding = Encoding.UTF8;
 
         //In byte array, object properties start with index values from SerializerIndexAttribute or property order
-        public const ushort IndexOffset = 1; //offset index values to reseve for Flag: 0
+        private const ushort indexOffset = 1; //offset index values to reseve for Flag: 0
 
         //Flag: 0 indicating the end of an object
         private const ushort endObjectFlagUShort = 0;
         private const byte endObjectFlagByte = 0;
         private static readonly byte[] endObjectFlagUInt16 = new byte[2] { 0, 0 };
 
-        private readonly bool usePropertyNames;
-        private readonly bool includePropertyTypes;
-        private readonly bool ignoreIndexAttribute;
-        private readonly ByteSerializerIndexSize indexSize;
-        private readonly Encoding encoding;
-
-        /// <summary>
-        /// Create serializer to convert objects to bytes and back.  Collections must be arrays or convertible from a List.  The deserializing instance must match the the specifications used to serialize.  When inlcuding type information, type safety is enforced so the deserialized types must be the same or inherit from the origional.
-        /// </summary>
-        /// <param name="propertyNames">Include property names in the serialization. Default false.</param>
-        /// <param name="propertyTypes">Include type information for non-coretypes in the serialization. This allows the data to be deserialized without knowing the type beforehand and needed for properties that are boxed or an interface. Default false.</param>
-        /// <param name="ignoreIndexAttribute">Ignore the index attribute marked on properties. Default false.</param>
-        /// <param name="indexSize">Size of the property indexes. Use Byte unless the number of properties in an object exceeds 255. Default Byte.</param>
-        /// <param name="encoding">The text encoder used for char and string.  Default System.Text.Encoding.Unicode.</param>
-        public ByteSerializer(bool propertyNames = false, bool propertyTypes = false, bool ignoreIndexAttribute = false, ByteSerializerIndexSize indexSize = ByteSerializerIndexSize.Byte, Encoding encoding = null)
-        {
-            this.usePropertyNames = propertyNames;
-            this.includePropertyTypes = propertyTypes;
-            this.ignoreIndexAttribute = ignoreIndexAttribute;
-            this.indexSize = indexSize;
-            if (encoding != null)
-                this.encoding = encoding;
-            else
-                this.encoding = defaultEncoding;
-        }
+        private static readonly ByteSerializerOptions defaultOptions = new();
 
         private static readonly ConcurrentFactoryDictionary<int, ConcurrentFactoryDictionary<Type, SerializerTypeDetail>> typeInfoCache = new();
         private static SerializerTypeDetail GetTypeInformation(Type type, ByteSerializerIndexSize indexSize, bool ignoreIndexAttribute)
