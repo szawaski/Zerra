@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Zerra.IO;
@@ -225,6 +226,7 @@ namespace Zerra.Serialization
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Write(Span<byte> buffer, ref WriteState state, Encoding encoding)
         {
             var writer = new ByteWriter(buffer, encoding);
@@ -253,6 +255,7 @@ namespace Zerra.Serialization
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static WriteFrame WriteFrameFromType(ref WriteState state, object obj, SerializerTypeDetail typeDetail, bool hasWrittenPropertyType, bool nullFlags)
         {
             var frame = new WriteFrame();
@@ -315,6 +318,7 @@ namespace Zerra.Serialization
             return frame;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WritePropertyType(ref ByteWriter writer, ref WriteState state)
         {
             if (state.CurrentFrame.HasWrittenPropertyType)
@@ -351,6 +355,7 @@ namespace Zerra.Serialization
             state.PushFrame(frame);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteCoreType(ref ByteWriter writer, ref WriteState state)
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
@@ -611,6 +616,7 @@ namespace Zerra.Serialization
 
             state.EndFrame();
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteEnumType(ref ByteWriter writer, ref WriteState state)
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
@@ -736,6 +742,7 @@ namespace Zerra.Serialization
 
             state.EndFrame();
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteSpecialType(ref ByteWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
@@ -800,6 +807,7 @@ namespace Zerra.Serialization
             }
             state.EndFrame();
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteObject(ref ByteWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
@@ -916,6 +924,7 @@ namespace Zerra.Serialization
             state.EndFrame();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteCoreTypeEnumerable(ref ByteWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
@@ -1214,6 +1223,7 @@ namespace Zerra.Serialization
 
             state.EndFrame();
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteEnumTypeEnumerable(ref ByteWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
@@ -1377,10 +1387,12 @@ namespace Zerra.Serialization
 
             state.EndFrame();
         }
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         //private static void WriteSpecialTypeEnumerable(ref ByteWriter writer, ref WriteState state)
         //{
         //    throw new NotImplementedException();
         //}
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteObjectEnumerable(ref ByteWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;

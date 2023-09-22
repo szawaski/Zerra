@@ -35,6 +35,7 @@ namespace Zerra.Serialization
             return obj;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object FromBytes(ref ByteReader reader, SerializerTypeDetail typeDetail, bool nullFlags, bool drainBytes, ByteSerializerOptions options)
         {
             if (!drainBytes && typeDetail == null)
@@ -168,6 +169,7 @@ namespace Zerra.Serialization
 
             throw new Exception("Expected end of object marker");
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object FromBytesEnumerable(ref ByteReader reader, SerializerTypeDetail typeDetail, bool asList, ByteSerializerOptions options)
         {
             var length = reader.ReadInt32();

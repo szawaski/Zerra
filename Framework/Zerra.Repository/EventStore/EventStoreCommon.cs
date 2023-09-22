@@ -10,7 +10,7 @@ namespace Zerra.Repository
 {
     internal static class EventStoreCommon
     {
-        private static readonly ByteSerializerOptions byteSerializerOptions = new ByteSerializerOptions()
+        private static readonly ByteSerializerOptions byteSerializerOptions = new()
         {
             UsePropertyNames = true,
             IncludePropertyTypes = true,

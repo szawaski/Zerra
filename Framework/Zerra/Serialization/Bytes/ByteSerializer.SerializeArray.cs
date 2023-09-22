@@ -56,6 +56,7 @@ namespace Zerra.Serialization
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ToBytes(object value, SerializerTypeDetail typeDetail, bool nullFlags, ref ByteWriter writer, ByteSerializerOptions options)
         {
             if (options.IncludePropertyTypes)
@@ -172,6 +173,7 @@ namespace Zerra.Serialization
                 }
             }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ToBytesEnumerable(IEnumerable values, int length, SerializerTypeDetail typeDetail, ref ByteWriter writer, ByteSerializerOptions options)
         {
             writer.Write(length); //object count

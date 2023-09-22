@@ -15,7 +15,7 @@ namespace Zerra.CQRS.AzureEventHub
 {
     internal static class AzureEventHubCommon
     {
-        private static readonly ByteSerializerOptions byteSerializerOptions = new ByteSerializerOptions()
+        private static readonly ByteSerializerOptions byteSerializerOptions = new()
         {
             UsePropertyNames = true,
             IncludePropertyTypes = true,

@@ -9,7 +9,7 @@ namespace Zerra.CQRS.RabbitMQ
 {
     internal static class RabbitMQCommon
     {
-        private static readonly ByteSerializerOptions byteSerializerOptions = new ByteSerializerOptions()
+        private static readonly ByteSerializerOptions byteSerializerOptions = new()
         {
             UsePropertyNames = true,
             IncludePropertyTypes = true,

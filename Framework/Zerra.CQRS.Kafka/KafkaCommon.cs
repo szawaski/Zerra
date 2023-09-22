@@ -14,7 +14,7 @@ namespace Zerra.CQRS.Kafka
 {
     internal static class KafkaCommon
     {
-        private static readonly ByteSerializerOptions byteSerializerOptions = new ByteSerializerOptions()
+        private static readonly ByteSerializerOptions byteSerializerOptions = new()
         {
             UsePropertyNames = true,
             IncludePropertyTypes = true,
