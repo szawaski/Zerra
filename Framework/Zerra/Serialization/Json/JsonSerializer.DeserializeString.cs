@@ -280,7 +280,6 @@ namespace Zerra.Serialization
 
                         if (obj != null)
                         {
-
                             //Dictionary Special Case
                             var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail.InnerTypeDetails[0].InnerTypeDetails[1], null, ref options);
                             if (typeDetail.InnerTypeDetails[0].InnerTypeDetails[0].CoreType.HasValue)
@@ -390,7 +389,11 @@ namespace Zerra.Serialization
                             throw reader.CreateException("Unexpected character");
                         var value = FromStringJson(c, ref reader, ref decodeBuffer, arrayElementType, graph, ref options);
                         if (collection != null)
-                        {
+                        {                                    
+                            //special case nullable enum
+                            if (arrayElementType.IsNullable && arrayElementType.InnerTypeDetails[0].EnumUnderlyingType.HasValue && value != null)
+                                value = Enum.ToObject(arrayElementType.InnerTypeDetails[0].Type, value);
+
                             addMethodArgs[0] = value;
                             _ = addMethod.Caller(collection, addMethodArgs);
                         }

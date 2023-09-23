@@ -10,11 +10,13 @@ namespace Zerra.Serialization
         {
             public readonly bool Nameless;
             public readonly bool DoNotWriteNullProperties;
+            public readonly bool EnumAsNumber;
 
             public OptionsStruct(JsonSerializerOptions options)
             {
                 this.Nameless = options.Nameless;
                 this.DoNotWriteNullProperties = options.DoNotWriteNullProperties;
+                this.EnumAsNumber = options.EnumAsNumber;
             }
         }
     }

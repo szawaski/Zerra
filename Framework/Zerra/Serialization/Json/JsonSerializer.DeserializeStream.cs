@@ -860,6 +860,10 @@ namespace Zerra.Serialization
                     case 2: //array value
                         if (state.CurrentFrame.ResultObject != null)
                         {
+                            //special case nullable enum
+                            if (state.CurrentFrame.ArrayElementType.IsNullable && state.CurrentFrame.ArrayElementType.InnerTypeDetails[0].EnumUnderlyingType.HasValue && state.LastFrameResultObject != null)
+                                state.LastFrameResultObject = Enum.ToObject(state.CurrentFrame.ArrayElementType.InnerTypeDetails[0].Type, state.LastFrameResultObject);
+
                             state.CurrentFrame.AddMethodArgs[0] = state.LastFrameResultObject;
                             _ = state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
                         }

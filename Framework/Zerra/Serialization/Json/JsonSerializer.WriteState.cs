@@ -13,6 +13,7 @@ namespace Zerra.Serialization
         {
             public bool Nameless;
             public bool DoNotWriteNull;
+            public bool EnumAsNumber;
 
             private Stack<WriteFrame> stack;
             public WriteFrame CurrentFrame;

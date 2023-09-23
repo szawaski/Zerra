@@ -116,16 +116,30 @@ namespace Zerra.Serialization
 
             if (typeDetail.Type.IsEnum)
             {
-                writer.Write('\"');
-                writer.Write(EnumName.GetName(typeDetail.Type, value));
-                writer.Write('\"');
+                if (options.EnumAsNumber)
+                {
+                    ToStringJsonCoreType(value, typeDetail.EnumUnderlyingType.Value, ref writer);
+                }
+                else
+                {
+                    writer.Write('\"');
+                    writer.Write(EnumName.GetName(typeDetail.Type, value));
+                    writer.Write('\"');
+                }
                 return;
             }
             if (typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
             {
-                writer.Write('\"');
-                writer.Write(EnumName.GetName(typeDetail.InnerTypes[0], value));
-                writer.Write('\"');
+                if (options.EnumAsNumber)
+                {
+                    ToStringJsonCoreType(value, typeDetail.InnerTypeDetails[0].EnumUnderlyingType.Value, ref writer);
+                }
+                else
+                {
+                    writer.Write('\"');
+                    writer.Write(EnumName.GetName(typeDetail.InnerTypes[0], value));
+                    writer.Write('\"');
+                }
                 return;
             }
 
@@ -228,9 +242,16 @@ namespace Zerra.Serialization
                         writer.Write(',');
                     if (value != null)
                     {
-                        writer.Write('\"');
-                        writer.Write(EnumName.GetName(typeDetail.Type, value));
-                        writer.Write('\"');
+                        if (options.EnumAsNumber)
+                        {
+                            ToStringJsonCoreType(value, typeDetail.EnumUnderlyingType.Value, ref writer);
+                        }
+                        else
+                        {
+                            writer.Write('\"');
+                            writer.Write(EnumName.GetName(typeDetail.Type, value));
+                            writer.Write('\"');
+                        }
                     }
                     else
                     {
@@ -250,9 +271,16 @@ namespace Zerra.Serialization
                         writer.Write(',');
                     if (value != null)
                     {
-                        writer.Write('\"');
-                        writer.Write(EnumName.GetName(typeDetail.InnerTypes[0], (Enum)value));
-                        writer.Write('\"');
+                        if (options.EnumAsNumber)
+                        {
+                            ToStringJsonCoreType(value, typeDetail.InnerTypeDetails[0].EnumUnderlyingType.Value, ref writer);
+                        }
+                        else
+                        {
+                            writer.Write('\"');
+                            writer.Write(EnumName.GetName(typeDetail.InnerTypes[0], (Enum)value));
+                            writer.Write('\"');
+                        }
                     }
                     else
                     {

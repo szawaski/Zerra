@@ -64,6 +64,24 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void StringEnumAsNumbers()
+        {
+            var options = new JsonSerializerOptions()
+            {
+                EnumAsNumber = true
+            };
+
+            var baseModel = Factory.GetAllTypesModel();
+            var json = JsonSerializer.Serialize(baseModel, options);
+            Assert.IsFalse(json.Contains(EnumModel.EnumItem0.EnumName()));
+            Assert.IsFalse(json.Contains(EnumModel.EnumItem1.EnumName()));
+            Assert.IsFalse(json.Contains(EnumModel.EnumItem2.EnumName()));
+            Assert.IsFalse(json.Contains(EnumModel.EnumItem3.EnumName()));
+            var model = JsonSerializer.Deserialize<AllTypesModel>(json, options);
+            Factory.AssertAreEqual(baseModel, model);
+        }
+
+        [TestMethod]
         public void StringConvertNullables()
         {
             var baseModel = Factory.GetBasicTypesNotNullableModel();
@@ -439,7 +457,7 @@ namespace Zerra.Test
 
             model1.EnumThing = (EnumModel)Enum.Parse(typeof(EnumModel), (string)jsonObject[nameof(AllTypesModel.EnumThing)]);
             model1.EnumThingNullable = (EnumModel)Enum.Parse(typeof(EnumModel), (string)jsonObject[nameof(AllTypesModel.EnumThingNullable)]);
-            model1.EnumThingNullableNull = ((string)jsonObject[nameof(AllTypesModel.EnumThingNullableNull)]) == null ? (EnumModel?)null : EnumModel.Item1;
+            model1.EnumThingNullableNull = ((string)jsonObject[nameof(AllTypesModel.EnumThingNullableNull)]) == null ? (EnumModel?)null : EnumModel.EnumItem1;
 
             model1.BooleanArray = (bool[])jsonObject[nameof(AllTypesModel.BooleanArray)];
             model1.ByteArray = (byte[])jsonObject[nameof(AllTypesModel.ByteArray)];
@@ -778,6 +796,32 @@ namespace Zerra.Test
 
             stream.Position = 0;
             var model = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream);
+            Factory.AssertAreEqual(baseModel, model);
+        }
+
+        [TestMethod]
+        public async Task StreamEnumAsNumber()
+        {
+            var options = new JsonSerializerOptions()
+            {
+                EnumAsNumber = true
+            };
+
+            var baseModel = Factory.GetAllTypesModel();
+
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, baseModel, options);
+            stream.Position = 0;
+            using var sr = new StreamReader(stream);
+            var json = sr.ReadToEnd();
+
+            Assert.IsFalse(json.Contains(EnumModel.EnumItem0.EnumName()));
+            Assert.IsFalse(json.Contains(EnumModel.EnumItem1.EnumName()));
+            Assert.IsFalse(json.Contains(EnumModel.EnumItem2.EnumName()));
+            Assert.IsFalse(json.Contains(EnumModel.EnumItem3.EnumName()));
+
+            stream.Position = 0;
+            var model = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream, options);
             Factory.AssertAreEqual(baseModel, model);
         }
 

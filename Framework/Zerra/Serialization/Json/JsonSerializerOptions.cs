@@ -8,5 +8,6 @@ namespace Zerra.Serialization
     {
         public bool Nameless { get; set; }
         public bool DoNotWriteNullProperties { get; set; }
+        public bool EnumAsNumber { get; set; }
     }
 }

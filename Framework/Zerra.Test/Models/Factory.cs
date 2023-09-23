@@ -281,8 +281,8 @@ namespace Zerra.Test
                 StringThingNull = null,
                 StringThingEmpty = String.Empty,
 
-                EnumThing = EnumModel.Item1,
-                EnumThingNullable = EnumModel.Item2,
+                EnumThing = EnumModel.EnumItem1,
+                EnumThingNullable = EnumModel.EnumItem2,
                 EnumThingNullableNull = null,
 
                 BooleanArray = new bool[] { true, false, true },
@@ -324,8 +324,8 @@ namespace Zerra.Test
                 StringArray = new string[] { "Hello", "World", "People", "", null },
                 StringEmptyArray = new string[0],
 
-                EnumArray = new EnumModel[] { EnumModel.Item1, EnumModel.Item2, EnumModel.Item3 },
-                EnumArrayNullable = new EnumModel?[] { EnumModel.Item1, null, EnumModel.Item3 },
+                EnumArray = new EnumModel[] { EnumModel.EnumItem1, EnumModel.EnumItem2, EnumModel.EnumItem3 },
+                EnumArrayNullable = new EnumModel?[] { EnumModel.EnumItem1, null, EnumModel.EnumItem3 },
 
                 BooleanList = new List<bool> { true, false, true },
                 ByteList = new List<byte> { 1, 2, 3 },
@@ -365,8 +365,8 @@ namespace Zerra.Test
 
                 StringList = new List<string> { "Hello", "World", "People" },
 
-                EnumList = new List<EnumModel> { EnumModel.Item1, EnumModel.Item2, EnumModel.Item3 },
-                EnumListNullable = new List<EnumModel?> { EnumModel.Item1, null, EnumModel.Item3 },
+                EnumList = new List<EnumModel> { EnumModel.EnumItem1, EnumModel.EnumItem2, EnumModel.EnumItem3 },
+                EnumListNullable = new List<EnumModel?> { EnumModel.EnumItem1, null, EnumModel.EnumItem3 },
 
                 ClassThing = new BasicModel { Value1 = 1234, Value2 = "S-1234" },
                 ClassThingNull = null,
@@ -1048,7 +1048,7 @@ namespace Zerra.Test
                 TimeSpanThing = DateTime.Now.TimeOfDay,
                 GuidThing = Guid.NewGuid(),
 
-                EnumThing = EnumModel.Item1,
+                EnumThing = EnumModel.EnumItem1,
             };
             return model;
         }
