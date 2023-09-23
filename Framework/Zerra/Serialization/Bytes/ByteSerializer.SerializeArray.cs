@@ -35,6 +35,7 @@ namespace Zerra.Serialization
                 return null;
 
             options ??= defaultOptions;
+            var optionsStruct = new OptionsStruct(options);
 
             var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
 
@@ -46,7 +47,7 @@ namespace Zerra.Serialization
 
             try
             {
-                ToBytes(obj, typeDetail, true, ref writer, options);
+                ToBytes(obj, typeDetail, true, ref writer, ref optionsStruct);
                 var result = writer.ToArray();
                 return result;
             }
@@ -57,7 +58,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytes(object value, SerializerTypeDetail typeDetail, bool nullFlags, ref ByteWriter writer, ByteSerializerOptions options)
+        private static void ToBytes(object value, SerializerTypeDetail typeDetail, bool nullFlags, ref ByteWriter writer, ref OptionsStruct options)
         {
             if (options.IncludePropertyTypes)
             {
@@ -90,7 +91,7 @@ namespace Zerra.Serialization
 
             if (typeDetail.TypeDetail.SpecialType.HasValue || typeDetail.TypeDetail.IsNullable && typeDetail.InnerTypeDetail.TypeDetail.SpecialType.HasValue)
             {
-                ToBytesSpecialType(value, typeDetail, nullFlags, ref writer, options);
+                ToBytesSpecialType(value, typeDetail, nullFlags, ref writer, ref options);
                 return;
             }
 
@@ -100,12 +101,12 @@ namespace Zerra.Serialization
                 {
                     var collection = (ICollection)value;
                     var count = collection.Count;
-                    ToBytesEnumerable(collection, count, typeDetail.InnerTypeDetail, ref writer, options);
+                    ToBytesEnumerable(collection, count, typeDetail.InnerTypeDetail, ref writer, ref options);
                 }
                 else if (typeDetail.TypeDetail.IsICollectionGeneric)
                 {
                     var count = (int)typeDetail.TypeDetail.GetMember("Count").Getter(value);
-                    ToBytesEnumerable((IEnumerable)value, count, typeDetail.InnerTypeDetail, ref writer, options);
+                    ToBytesEnumerable((IEnumerable)value, count, typeDetail.InnerTypeDetail, ref writer, ref options);
                 }
                 else
                 {
@@ -113,7 +114,7 @@ namespace Zerra.Serialization
                     var count = 0;
                     foreach (var item in enumerable)
                         count++;
-                    ToBytesEnumerable(enumerable, count, typeDetail.InnerTypeDetail, ref writer, options);
+                    ToBytesEnumerable(enumerable, count, typeDetail.InnerTypeDetail, ref writer, ref options);
                 }
                 return;
             }
@@ -150,7 +151,7 @@ namespace Zerra.Serialization
                                 throw new NotImplementedException();
                         }
                     }
-                    ToBytes(propertyValue, indexProperty.Value.SerailzierTypeDetails, false, ref writer, options);
+                    ToBytes(propertyValue, indexProperty.Value.SerailzierTypeDetails, false, ref writer, ref options);
                 }
             }
 
@@ -174,7 +175,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytesEnumerable(IEnumerable values, int length, SerializerTypeDetail typeDetail, ref ByteWriter writer, ByteSerializerOptions options)
+        private static void ToBytesEnumerable(IEnumerable values, int length, SerializerTypeDetail typeDetail, ref ByteWriter writer, ref OptionsStruct options)
         {
             writer.Write(length); //object count
 
@@ -192,7 +193,7 @@ namespace Zerra.Serialization
 
             if (typeDetail.TypeDetail.SpecialType.HasValue || typeDetail.TypeDetail.IsNullable && typeDetail.InnerTypeDetail.TypeDetail.SpecialType.HasValue)
             {
-                ToBytesSpecialTypeEnumerable(values, length, typeDetail, ref writer, options);
+                ToBytesSpecialTypeEnumerable(values, length, typeDetail, ref writer, ref options);
                 return;
             }
 
@@ -205,7 +206,7 @@ namespace Zerra.Serialization
                 }
                 writer.Write(true); //has object
 
-                ToBytes(value, typeDetail, false, ref writer, options);
+                ToBytes(value, typeDetail, false, ref writer, ref options);
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -563,7 +564,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytesSpecialType(object value, SerializerTypeDetail typeDetail, bool nullFlags, ref ByteWriter writer, ByteSerializerOptions options)
+        private static void ToBytesSpecialType(object value, SerializerTypeDetail typeDetail, bool nullFlags, ref ByteWriter writer, ref OptionsStruct options)
         {
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType.Value : typeDetail.TypeDetail.SpecialType.Value;
             switch (specialType)
@@ -583,7 +584,7 @@ namespace Zerra.Serialization
                             var method = TypeAnalyzer.GetGenericMethodDetail(enumerableToArrayMethod, typeDetail.TypeDetail.IEnumerableGenericInnerType);
                             var innerValue = (ICollection)method.Caller(null, new object[] { value });
                             var count = innerValue.Count;
-                            ToBytesEnumerable(innerValue, count, typeDetail.InnerTypeDetail, ref writer, options);
+                            ToBytesEnumerable(innerValue, count, typeDetail.InnerTypeDetail, ref writer, ref options);
                         }
                         else if (nullFlags)
                         {
@@ -596,7 +597,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytesSpecialTypeEnumerable(IEnumerable values, int length, SerializerTypeDetail typeDetail, ref ByteWriter writer, ByteSerializerOptions options)
+        private static void ToBytesSpecialTypeEnumerable(IEnumerable values, int length, SerializerTypeDetail typeDetail, ref ByteWriter writer, ref OptionsStruct options)
         {
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType.Value : typeDetail.TypeDetail.SpecialType.Value;
             switch (specialType)
@@ -619,7 +620,7 @@ namespace Zerra.Serialization
                                 var method = TypeAnalyzer.GetGenericMethodDetail(enumerableToArrayMethod, typeDetail.TypeDetail.IEnumerableGenericInnerType);
                                 var innerValue = (ICollection)method.Caller(null, new object[] { value });
                                 var count = innerValue.Count;
-                                ToBytesEnumerable(innerValue, count, typeDetail.InnerTypeDetail, ref writer, options);
+                                ToBytesEnumerable(innerValue, count, typeDetail.InnerTypeDetail, ref writer, ref options);
                             }
                             else
                             {

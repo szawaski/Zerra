@@ -27,16 +27,17 @@ namespace Zerra.Serialization
                 return null;
 
             options ??= defaultOptions;
+            var optionsStruct = new OptionsStruct(options);
 
             var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
 
             var reader = new ByteReader(bytes, options.Encoding);
-            var obj = FromBytes(ref reader, typeDetail, true, false, options);
+            var obj = FromBytes(ref reader, typeDetail, true, false, ref optionsStruct);
             return obj;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromBytes(ref ByteReader reader, SerializerTypeDetail typeDetail, bool nullFlags, bool drainBytes, ByteSerializerOptions options)
+        private static object FromBytes(ref ByteReader reader, SerializerTypeDetail typeDetail, bool nullFlags, bool drainBytes, ref OptionsStruct options)
         {
             if (!drainBytes && typeDetail == null)
                 throw new NotSupportedException("Cannot deserialize without type information");
@@ -86,12 +87,12 @@ namespace Zerra.Serialization
 
             if (typeDetail.TypeDetail.SpecialType.HasValue || typeDetail.TypeDetail.IsNullable && typeDetail.InnerTypeDetail.TypeDetail.SpecialType.HasValue)
             {
-                return FromBytesSpecialType(ref reader, typeDetail, nullFlags, options);
+                return FromBytesSpecialType(ref reader, typeDetail, nullFlags, ref options);
             }
 
             if (typeDetail.TypeDetail.IsIEnumerableGeneric)
             {
-                var enumerable = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList, options);
+                var enumerable = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList, ref options);
                 return enumerable;
             }
 
@@ -126,12 +127,12 @@ namespace Zerra.Serialization
                             throw new Exception($"Cannot deserialize with property {name} undefined and no types.");
 
                         //consume bytes but object does not have property
-                        var value = FromBytes(ref reader, null, false, true, options);
+                        var value = FromBytes(ref reader, null, false, true, ref options);
                         indexProperty.Setter(obj, value);
                     }
                     else
                     {
-                        var value = FromBytes(ref reader, indexProperty.SerailzierTypeDetails, false, false, options);
+                        var value = FromBytes(ref reader, indexProperty.SerailzierTypeDetails, false, false, ref options);
                         indexProperty.Setter(obj, value);
                     }
                 }
@@ -156,12 +157,12 @@ namespace Zerra.Serialization
                             throw new Exception($"Cannot deserialize with property {propertyIndex} undefined and no types.");
 
                         //consume bytes but object does not have property
-                        var value = FromBytes(ref reader, null, false, true, options);
+                        var value = FromBytes(ref reader, null, false, true, ref options);
                         indexProperty.Setter(obj, value);
                     }
                     else
                     {
-                        var value = FromBytes(ref reader, indexProperty.SerailzierTypeDetails, false, false, options);
+                        var value = FromBytes(ref reader, indexProperty.SerailzierTypeDetails, false, false, ref options);
                         indexProperty.Setter(obj, value);
                     }
                 }
@@ -170,7 +171,7 @@ namespace Zerra.Serialization
             throw new Exception("Expected end of object marker");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromBytesEnumerable(ref ByteReader reader, SerializerTypeDetail typeDetail, bool asList, ByteSerializerOptions options)
+        private static object FromBytesEnumerable(ref ByteReader reader, SerializerTypeDetail typeDetail, bool asList, ref OptionsStruct options)
         {
             var length = reader.ReadInt32();
 
@@ -227,7 +228,7 @@ namespace Zerra.Serialization
 
             if (typeDetail.TypeDetail.SpecialType.HasValue || typeDetail.TypeDetail.IsNullable && typeDetail.InnerTypeDetail.TypeDetail.SpecialType.HasValue)
             {
-                return FromBytesSpecialTypeEnumerable(ref reader, length, typeDetail, asList, options);
+                return FromBytesSpecialTypeEnumerable(ref reader, length, typeDetail, asList, ref options);
             }
 
             object obj = null;
@@ -250,7 +251,7 @@ namespace Zerra.Serialization
                         continue;
                     }
 
-                    obj = FromBytes(ref reader, typeDetail, false, false, options);
+                    obj = FromBytes(ref reader, typeDetail, false, false, ref options);
                     array.SetValue(obj, count);
                     count++;
                     if (count == length)
@@ -278,7 +279,7 @@ namespace Zerra.Serialization
                         continue;
                     }
 
-                    obj = FromBytes(ref reader, typeDetail, false, false, options);
+                    obj = FromBytes(ref reader, typeDetail, false, false, ref options);
                     _ = list.Add(obj);
                     count++;
                     if (count == length)
@@ -522,7 +523,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromBytesSpecialType(ref ByteReader reader, SerializerTypeDetail typeDetail, bool nullFlags, ByteSerializerOptions options)
+        private static object FromBytesSpecialType(ref ByteReader reader, SerializerTypeDetail typeDetail, bool nullFlags, ref OptionsStruct options)
         {
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType.Value : typeDetail.TypeDetail.SpecialType.Value;
             switch (specialType)
@@ -539,7 +540,7 @@ namespace Zerra.Serialization
                     {
                         if (nullFlags && reader.ReadIsNull())
                             return null;
-                        var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, options);
+                        var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, ref options);
                         var innerItemEnumerable = TypeAnalyzer.GetGenericType(enumerableType, typeDetail.TypeDetail.IEnumerableGenericInnerType);
                         var value = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
                         return value;
@@ -549,7 +550,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromBytesSpecialTypeEnumerable(ref ByteReader reader, int length, SerializerTypeDetail typeDetail, bool asList, ByteSerializerOptions options)
+        private static object FromBytesSpecialTypeEnumerable(ref ByteReader reader, int length, SerializerTypeDetail typeDetail, bool asList, ref OptionsStruct options)
         {
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType.Value : typeDetail.TypeDetail.SpecialType.Value;
             switch (specialType)
@@ -599,7 +600,7 @@ namespace Zerra.Serialization
                             {
                                 if (!reader.ReadIsNull())
                                 {
-                                    var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, options);
+                                    var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, ref options);
                                     var item = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
                                     array.SetValue(item, i);
                                 }
@@ -613,7 +614,7 @@ namespace Zerra.Serialization
                             {
                                 if (!reader.ReadIsNull())
                                 {
-                                    var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, options);
+                                    var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, ref options);
                                     var item = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
                                     _ = list.Add(item);
                                 }

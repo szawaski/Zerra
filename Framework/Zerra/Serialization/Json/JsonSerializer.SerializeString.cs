@@ -66,12 +66,13 @@ namespace Zerra.Serialization
         private static string ToStringJson(Type type, object obj, JsonSerializerOptions options, Graph graph)
         {
             options ??= defaultOptions;
+            var optionsStruct = new OptionsStruct(options);
 
             var writer = new CharWriter();
             try
             {
                 var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-                ToStringJson(obj, typeDetails, graph, ref writer, options);
+                ToStringJson(obj, typeDetails, graph, ref writer, ref optionsStruct);
                 return writer.ToString();
             }
             finally
@@ -82,16 +83,18 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ToStringJson(Stream stream, Type type, object obj, JsonSerializerOptions options, Graph graph)
         {
-            //Until Stack based Serializer
+            options ??= defaultOptions;
+            var optionsStruct = new OptionsStruct(options);
+
             using var sr = new StreamReader(stream, new UTF8Encoding(false));
             var writer = new CharWriter(sr.ReadToEnd().ToCharArray());
 
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-            ToStringJson(obj, typeDetails, graph, ref writer, options);
+            ToStringJson(obj, typeDetails, graph, ref writer, ref optionsStruct);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToStringJson(object value, TypeDetail typeDetail, Graph graph, ref CharWriter writer, JsonSerializerOptions options)
+        private static void ToStringJson(object value, TypeDetail typeDetail, Graph graph, ref CharWriter writer, ref OptionsStruct options)
         {
             if (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable && value != null)
             {
@@ -128,7 +131,7 @@ namespace Zerra.Serialization
 
             if (typeDetail.SpecialType.HasValue || typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].SpecialType.HasValue)
             {
-                ToStringJsonSpecialType(value, typeDetail, ref writer, options);
+                ToStringJsonSpecialType(value, typeDetail, ref writer, ref options);
                 return;
             }
 
@@ -147,7 +150,7 @@ namespace Zerra.Serialization
                 {
                     var enumerable = value as IEnumerable;
                     writer.Write('[');
-                    ToStringJsonEnumerable(enumerable, innerTypeDetails, graph, ref writer, options);
+                    ToStringJsonEnumerable(enumerable, innerTypeDetails, graph, ref writer, ref options);
                     writer.Write(']');
                     return;
                 }
@@ -197,7 +200,7 @@ namespace Zerra.Serialization
                 }
 
                 var childGraph = graph?.GetChildGraph(member.Name);
-                ToStringJson(propertyValue, member.TypeDetail, childGraph, ref writer, options);
+                ToStringJson(propertyValue, member.TypeDetail, childGraph, ref writer, ref options);
             }
 
             if (!options.Nameless)
@@ -206,7 +209,7 @@ namespace Zerra.Serialization
                 writer.Write(']');
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToStringJsonEnumerable(IEnumerable values, TypeDetail typeDetail, Graph graph, ref CharWriter writer, JsonSerializerOptions options)
+        private static void ToStringJsonEnumerable(IEnumerable values, TypeDetail typeDetail, Graph graph, ref CharWriter writer, ref OptionsStruct options)
         {
             if (typeDetail.CoreType.HasValue)
             {
@@ -261,7 +264,7 @@ namespace Zerra.Serialization
 
             if (typeDetail.SpecialType.HasValue || typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].SpecialType.HasValue)
             {
-                ToStringJsonSpecialTypeEnumerable(values, typeDetail, ref writer, options);
+                ToStringJsonSpecialTypeEnumerable(values, typeDetail, ref writer, ref options);
                 return;
             }
 
@@ -278,7 +281,7 @@ namespace Zerra.Serialization
                     {
                         var enumerable = value as IEnumerable;
                         writer.Write('[');
-                        ToStringJsonEnumerable(enumerable, typeDetail.IEnumerableGenericInnerTypeDetails, graph, ref writer, options);
+                        ToStringJsonEnumerable(enumerable, typeDetail.IEnumerableGenericInnerTypeDetails, graph, ref writer, ref options);
                         writer.Write(']');
                     }
                     else
@@ -344,7 +347,7 @@ namespace Zerra.Serialization
 
 
                             var childGraph = graph?.GetChildGraph(member.Name);
-                            ToStringJson(propertyValue, member.TypeDetail, childGraph, ref writer, options);
+                            ToStringJson(propertyValue, member.TypeDetail, childGraph, ref writer, ref options);
                         }
 
                         if (!options.Nameless)
@@ -1005,7 +1008,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToStringJsonSpecialType(object value, TypeDetail typeDetail, ref CharWriter writer, JsonSerializerOptions options)
+        private static void ToStringJsonSpecialType(object value, TypeDetail typeDetail, ref CharWriter writer, ref OptionsStruct options)
         {
             var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType.Value : typeDetail.SpecialType.Value;
             switch (specialType)
@@ -1047,14 +1050,14 @@ namespace Zerra.Serialization
                                 {
                                     ToStringJsonString(kvpKey.ToString(), ref writer);
                                     writer.Write(':');
-                                    ToStringJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, options);
+                                    ToStringJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, ref options);
                                 }
                                 else
                                 {
                                     writer.Write('[');
-                                    ToStringJson(kvpKey, innerTypeDetail.InnerTypeDetails[0], null, ref writer, options);
+                                    ToStringJson(kvpKey, innerTypeDetail.InnerTypeDetails[0], null, ref writer, ref options);
                                     writer.Write(',');
-                                    ToStringJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, options);
+                                    ToStringJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, ref options);
                                     writer.Write(']');
                                 }
                             }
@@ -1074,7 +1077,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToStringJsonSpecialTypeEnumerable(IEnumerable values, TypeDetail typeDetail, ref CharWriter writer, JsonSerializerOptions options)
+        private static void ToStringJsonSpecialTypeEnumerable(IEnumerable values, TypeDetail typeDetail, ref CharWriter writer, ref OptionsStruct options)
         {
             var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType.Value : typeDetail.SpecialType.Value;
             switch (specialType)
@@ -1131,14 +1134,14 @@ namespace Zerra.Serialization
                                     {
                                         ToStringJsonString(kvpKey.ToString(), ref writer);
                                         writer.Write(':');
-                                        ToStringJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, options);
+                                        ToStringJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, ref options);
                                     }
                                     else
                                     {
                                         writer.Write('[');
-                                        ToStringJson(kvpKey, innerTypeDetail.InnerTypeDetails[0], null, ref writer, options);
+                                        ToStringJson(kvpKey, innerTypeDetail.InnerTypeDetails[0], null, ref writer, ref options);
                                         writer.Write(',');
-                                        ToStringJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, options);
+                                        ToStringJson(kvpValue, innerTypeDetail.InnerTypeDetails[1], null, ref writer, ref options);
                                         writer.Write(']');
                                     }
                                 }
