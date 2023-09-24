@@ -27,13 +27,12 @@ namespace Zerra.CQRS.RabbitMQ
             private IModel channel = null;
             private readonly CancellationTokenSource canceller;
 
-            public EventConsumer(Type type, SymmetricConfig symmetricConfig, string environment)
+            public EventConsumer(string topic, SymmetricConfig symmetricConfig, string environment)
             {
-                this.Type = type;
                 if (!String.IsNullOrWhiteSpace(environment))
-                    this.topic = $"{environment}_{type.GetNiceName()}".Truncate(RabbitMQCommon.TopicMaxLength);
+                    this.topic = $"{environment}_{topic}".Truncate(RabbitMQCommon.TopicMaxLength);
                 else
-                    this.topic = type.GetNiceName().Truncate(RabbitMQCommon.TopicMaxLength);
+                    this.topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
                 this.symmetricConfig = symmetricConfig;
                 this.canceller = new CancellationTokenSource();
             }

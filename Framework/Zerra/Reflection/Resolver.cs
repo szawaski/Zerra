@@ -67,7 +67,7 @@ namespace Zerra.Reflection
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Generic parameter must be an interface");
 
-            var providerType = Discovery.GetImplementationType(interfaceType, throwException);
+            var providerType = Discovery.GetImplementationClass(interfaceType, throwException);
 
             if (providerType == null)
                 return default;
@@ -86,7 +86,7 @@ namespace Zerra.Reflection
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Generic parameter must be an interface");
 
-            var providerType = Discovery.GetImplementationType(interfaceType, throwException);
+            var providerType = Discovery.GetImplementationClass(interfaceType, throwException);
 
             if (providerType == null)
                 return default;

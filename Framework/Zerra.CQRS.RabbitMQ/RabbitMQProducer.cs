@@ -3,6 +3,9 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -21,6 +24,8 @@ namespace Zerra.CQRS.RabbitMQ
         private readonly string host;
         private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
+        private ConcurrentDictionary<Type, string> commandTypes;
+        private ConcurrentDictionary<Type, string> eventTypes;
         private IConnection connection = null;
 
         public string ConnectionString => host;
@@ -32,6 +37,8 @@ namespace Zerra.CQRS.RabbitMQ
             this.host = host;
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
+            this.commandTypes = new();
+            this.eventTypes = new();
             try
             {
                 var factory = new ConnectionFactory() { HostName = host };
@@ -51,6 +58,15 @@ namespace Zerra.CQRS.RabbitMQ
 
         private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
         {
+            var commandType = command.GetType();
+            if (!commandTypes.TryGetValue(commandType, out var topic))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(RabbitMQProducer)}");
+
+            if (!String.IsNullOrWhiteSpace(environment))
+                topic = $"{environment}_{topic}".Truncate(RabbitMQCommon.TopicMaxLength);
+            else
+                topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
+
             try
             {
                 if (connection.IsOpen == false)
@@ -82,12 +98,6 @@ namespace Zerra.CQRS.RabbitMQ
                 var body = RabbitMQCommon.Serialize(rabbitMessage);
                 if (symmetricConfig != null)
                     body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
-
-                string topic;
-                if (!String.IsNullOrWhiteSpace(environment))
-                    topic = $"{environment}_{command.GetType().GetNiceName()}".Truncate(RabbitMQCommon.TopicMaxLength);
-                else
-                    topic = command.GetType().GetNiceName().Truncate(RabbitMQCommon.TopicMaxLength);
 
                 var properties = channel.CreateBasicProperties();
 
@@ -159,6 +169,15 @@ namespace Zerra.CQRS.RabbitMQ
 
         private Task SendAsync(IEvent @event, string source)
         {
+            var eventType = @event.GetType();
+            if (!eventTypes.TryGetValue(eventType, out var topic))
+                throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(RabbitMQProducer)}");
+
+            if (!String.IsNullOrWhiteSpace(environment))
+                topic = $"{environment}_{topic}".Truncate(RabbitMQCommon.TopicMaxLength);
+            else
+                topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
+
             try
             {
                 if (connection.IsOpen == false)
@@ -191,12 +210,6 @@ namespace Zerra.CQRS.RabbitMQ
                 if (symmetricConfig != null)
                     body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
-                string topic;
-                if (!String.IsNullOrWhiteSpace(environment))
-                    topic = $"{environment}_{@event.GetType().GetNiceName()}".Truncate(RabbitMQCommon.TopicMaxLength);
-                else
-                    topic = @event.GetType().GetNiceName().Truncate(RabbitMQCommon.TopicMaxLength);
-
                 var properties = channel.CreateBasicProperties();
 
                 channel.BasicPublish(topic, String.Empty, properties, body);
@@ -217,6 +230,30 @@ namespace Zerra.CQRS.RabbitMQ
             this.connection.Close();
             this.connection.Dispose();
             GC.SuppressFinalize(this);
+        }
+
+        void ICommandProducer.RegisterCommandType(Type type)
+        {
+            if (commandTypes.ContainsKey(type))
+                return;
+            var topic = Bus.GetCommandTopic(type);
+            commandTypes.TryAdd(type, topic);
+        }
+        IEnumerable<Type> ICommandProducer.GetCommandTypes()
+        {
+            return commandTypes.Keys;
+        }
+
+        void IEventProducer.RegisterEventType(Type type)
+        {
+            if (eventTypes.ContainsKey(type))
+                return;
+            var topic = Bus.GetEventTopic(type);
+            eventTypes.TryAdd(type, topic);
+        }
+        IEnumerable<Type> IEventProducer.GetEventTypes()
+        {
+            return eventTypes.Keys;
         }
     }
 }

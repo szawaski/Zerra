@@ -57,33 +57,33 @@ namespace Zerra.Test
         [TestMethod]
         public void Duplicates()
         {
-            var topLayerProvider = Discovery.GetImplementationType(typeof(ITestDuplicateProvider), ProviderResolver.InterfaceStack, 0, ProviderResolver.IgnoreInterface, false);
+            var topLayerProvider = Discovery.GetImplementationClass(typeof(ITestDuplicateProvider), ProviderResolver.InterfaceStack, 0, ProviderResolver.IgnoreInterface, false);
             Assert.IsNull(topLayerProvider);
         }
 
         [TestMethod]
         public void Layers()
         {
-            var topLayerProvider = Discovery.GetImplementationType(typeof(ITestProvider), ProviderResolver.InterfaceStack, 0, ProviderResolver.IgnoreInterface);
+            var topLayerProvider = Discovery.GetImplementationClass(typeof(ITestProvider), ProviderResolver.InterfaceStack, 0, ProviderResolver.IgnoreInterface);
             Assert.AreEqual(typeof(TestRuleProvider), topLayerProvider);
 
-            var ruleProvider = Discovery.GetImplementationType(typeof(ITestProvider), ProviderResolver.InterfaceStack,
+            var ruleProvider = Discovery.GetImplementationClass(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(IRuleProvider)), ProviderResolver.IgnoreInterface);
             Assert.AreEqual(typeof(TestRuleProvider), ruleProvider);
 
-            var cacheProvider = Discovery.GetImplementationType(typeof(ITestProvider), ProviderResolver.InterfaceStack,
+            var cacheProvider = Discovery.GetImplementationClass(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(ICacheProvider)), ProviderResolver.IgnoreInterface);
             Assert.AreEqual(typeof(TestCacheProvider), cacheProvider);
 
-            var compressionProvider = Discovery.GetImplementationType(typeof(ITestProvider), ProviderResolver.InterfaceStack,
+            var compressionProvider = Discovery.GetImplementationClass(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(ICompressionProvider)), ProviderResolver.IgnoreInterface, false);
             Assert.AreEqual(typeof(TestDualBaseProvider), compressionProvider); //Compression Provider has IIgnoreProviderResolver
 
-            var dualbaseProvider = Discovery.GetImplementationType(typeof(ITestProvider), ProviderResolver.InterfaceStack,
+            var dualbaseProvider = Discovery.GetImplementationClass(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(IDualBaseProvider)), ProviderResolver.IgnoreInterface);
             Assert.AreEqual(typeof(TestDualBaseProvider), dualbaseProvider);
 
-            var provider = Discovery.GetImplementationType(typeof(ITestProvider), ProviderResolver.InterfaceStack,
+            var provider = Discovery.GetImplementationClass(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(null), ProviderResolver.IgnoreInterface);
             Assert.AreEqual(typeof(TestProvider), provider);
         }
@@ -91,30 +91,30 @@ namespace Zerra.Test
         [TestMethod]
         public void HasLayers()
         {
-            var topLayerProvider = Discovery.HasImplementationType(typeof(ITestProvider), ProviderResolver.InterfaceStack, 0, ProviderResolver.IgnoreInterface);
+            var topLayerProvider = Discovery.HasImplementationClass(typeof(ITestProvider), ProviderResolver.InterfaceStack, 0, ProviderResolver.IgnoreInterface);
             Assert.IsTrue(topLayerProvider);
 
-            var ruleProvider = Discovery.HasImplementationType(typeof(ITestProvider), ProviderResolver.InterfaceStack,
+            var ruleProvider = Discovery.HasImplementationClass(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(IRuleProvider)), ProviderResolver.IgnoreInterface);
             Assert.IsTrue(ruleProvider);
 
-            var cacheProvider = Discovery.HasImplementationType(typeof(ITestProvider), ProviderResolver.InterfaceStack,
+            var cacheProvider = Discovery.HasImplementationClass(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(ICacheProvider)), ProviderResolver.IgnoreInterface);
             Assert.IsTrue(cacheProvider);
 
-            var encryptionProvider = Discovery.HasImplementationType(typeof(ITestProvider), ProviderResolver.InterfaceStack,
+            var encryptionProvider = Discovery.HasImplementationClass(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(IEncryptionProvider)), ProviderResolver.IgnoreInterface);
             Assert.IsTrue(encryptionProvider);
 
-            var compressionProvider = Discovery.HasImplementationType(typeof(ITestProvider), ProviderResolver.InterfaceStack,
+            var compressionProvider = Discovery.HasImplementationClass(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(ICompressionProvider)), ProviderResolver.IgnoreInterface);
             Assert.IsTrue(compressionProvider);
 
-            var dualbaseProvider = Discovery.HasImplementationType(typeof(ITestProvider), ProviderResolver.InterfaceStack,
+            var dualbaseProvider = Discovery.HasImplementationClass(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(IDualBaseProvider)), ProviderResolver.IgnoreInterface);
             Assert.IsTrue(dualbaseProvider);
 
-            var provider = Discovery.HasImplementationType(typeof(ITestProvider), ProviderResolver.InterfaceStack,
+            var provider = Discovery.HasImplementationClass(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(null), ProviderResolver.IgnoreInterface);
             Assert.IsTrue(provider);
         }
@@ -122,31 +122,31 @@ namespace Zerra.Test
         [TestMethod]
         public void ManyLayers()
         {
-            var topLayerProvider = Discovery.GetImplementationTypes(typeof(ITestProvider), ProviderResolver.InterfaceStack, 0, ProviderResolver.IgnoreInterface);
+            var topLayerProvider = Discovery.GetImplementationClasses(typeof(ITestProvider), ProviderResolver.InterfaceStack, 0, ProviderResolver.IgnoreInterface);
             Assert.AreEqual(1, topLayerProvider.Count);
             Assert.IsTrue(topLayerProvider.Contains(typeof(TestRuleProvider)));
 
-            var ruleProvider = Discovery.GetImplementationTypes(typeof(ITestProvider), ProviderResolver.InterfaceStack,
+            var ruleProvider = Discovery.GetImplementationClasses(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(IRuleProvider)), ProviderResolver.IgnoreInterface);
             Assert.AreEqual(1, ruleProvider.Count);
             Assert.IsTrue(ruleProvider.Contains(typeof(TestRuleProvider)));
 
-            var cacheProvider = Discovery.GetImplementationTypes(typeof(ITestProvider), ProviderResolver.InterfaceStack,
+            var cacheProvider = Discovery.GetImplementationClasses(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(ICacheProvider)), ProviderResolver.IgnoreInterface);
             Assert.AreEqual(1, cacheProvider.Count);
             Assert.IsTrue(cacheProvider.Contains(typeof(TestCacheProvider)));
 
-            var compressionProvider = Discovery.GetImplementationTypes(typeof(ITestProvider), ProviderResolver.InterfaceStack,
+            var compressionProvider = Discovery.GetImplementationClasses(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(ICompressionProvider)), ProviderResolver.IgnoreInterface);
             Assert.AreEqual(1, compressionProvider.Count);  //Compression Provider has IIgnoreProviderResolver
             Assert.IsTrue(compressionProvider.Contains(typeof(TestDualBaseProvider))); //Compression Provider has IIgnoreProviderResolver
 
-            var dualbaseProvider = Discovery.GetImplementationTypes(typeof(ITestProvider), ProviderResolver.InterfaceStack,
+            var dualbaseProvider = Discovery.GetImplementationClasses(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(IDualBaseProvider)), ProviderResolver.IgnoreInterface);
             Assert.AreEqual(1, dualbaseProvider.Count);
             Assert.IsTrue(dualbaseProvider.Contains(typeof(TestDualBaseProvider)));
 
-            var provider = Discovery.GetImplementationTypes(typeof(ITestProvider), ProviderResolver.InterfaceStack,
+            var provider = Discovery.GetImplementationClasses(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(null), ProviderResolver.IgnoreInterface);
             Assert.AreEqual(1, provider.Count);
             Assert.IsTrue(provider.Contains(typeof(TestProvider)));
@@ -155,39 +155,39 @@ namespace Zerra.Test
         [TestMethod]
         public void SecondaryInterface()
         {
-            var ruleProvider = Discovery.GetImplementationType(typeof(ITestProvider), typeof(IRuleProvider));
+            var ruleProvider = Discovery.GetImplementationClass(typeof(ITestProvider), typeof(IRuleProvider));
             Assert.AreEqual(typeof(TestRuleProvider), ruleProvider);
 
-            var cacheProvider = Discovery.GetImplementationType(typeof(ITestProvider), typeof(ICacheProvider));
+            var cacheProvider = Discovery.GetImplementationClass(typeof(ITestProvider), typeof(ICacheProvider));
             Assert.AreEqual(typeof(TestCacheProvider), cacheProvider);
 
-            var compressionProvider = Discovery.GetImplementationType(typeof(ITestProvider), typeof(ICompressionProvider));
+            var compressionProvider = Discovery.GetImplementationClass(typeof(ITestProvider), typeof(ICompressionProvider));
             Assert.AreEqual(typeof(TestCompressionProvider), compressionProvider);
 
-            var dualbaseProvider = Discovery.GetImplementationType(typeof(ITestProvider), typeof(IDualBaseProvider));
+            var dualbaseProvider = Discovery.GetImplementationClass(typeof(ITestProvider), typeof(IDualBaseProvider));
             Assert.AreEqual(typeof(TestDualBaseProvider), dualbaseProvider);
         }
 
         [TestMethod]
         public void HasSecondaryInterface()
         {
-            var ruleProvider = Discovery.HasImplementationType(typeof(ITestProvider), typeof(IRuleProvider));
+            var ruleProvider = Discovery.HasImplementationClass(typeof(ITestProvider), typeof(IRuleProvider));
             Assert.IsTrue(ruleProvider);
 
-            var cacheProvider = Discovery.HasImplementationType(typeof(ITestProvider), typeof(ICacheProvider));
+            var cacheProvider = Discovery.HasImplementationClass(typeof(ITestProvider), typeof(ICacheProvider));
             Assert.IsTrue(cacheProvider);
 
-            var compressionProvider = Discovery.HasImplementationType(typeof(ITestProvider), typeof(ICompressionProvider));
+            var compressionProvider = Discovery.HasImplementationClass(typeof(ITestProvider), typeof(ICompressionProvider));
             Assert.IsTrue(compressionProvider);
 
-            var dualbaseProvider = Discovery.HasImplementationType(typeof(ITestProvider), typeof(IDualBaseProvider));
+            var dualbaseProvider = Discovery.HasImplementationClass(typeof(ITestProvider), typeof(IDualBaseProvider));
             Assert.IsTrue(dualbaseProvider);
         }
 
         [TestMethod]
         public void ManySecondaryInterface()
         {
-            var providers = Discovery.GetImplementationTypes(typeof(ITestProvider));
+            var providers = Discovery.GetImplementationClasses(typeof(ITestProvider));
             Assert.AreEqual(6, providers.Count);
             Assert.IsTrue(providers.Contains(typeof(TestRuleProvider)));
             Assert.IsTrue(providers.Contains(typeof(TestCacheProvider)));
@@ -195,7 +195,7 @@ namespace Zerra.Test
             Assert.IsTrue(providers.Contains(typeof(TestDualBaseProvider)));
             Assert.IsTrue(providers.Contains(typeof(TestProvider)));
 
-            var ruleProviders = Discovery.GetImplementationTypes(typeof(ITestProvider), typeof(IRuleProvider));
+            var ruleProviders = Discovery.GetImplementationClasses(typeof(ITestProvider), typeof(IRuleProvider));
             Assert.AreEqual(1, ruleProviders.Count);
             Assert.IsTrue(providers.Contains(typeof(TestRuleProvider)));
         }
@@ -203,39 +203,39 @@ namespace Zerra.Test
         [TestMethod]
         public void SingleInterface()
         {
-            var ruleProvider = Discovery.GetImplementationType(typeof(IRuleProvider));
+            var ruleProvider = Discovery.GetImplementationClass(typeof(IRuleProvider));
             Assert.AreEqual(typeof(TestRuleProvider), ruleProvider);
 
-            var cacheProvider = Discovery.GetImplementationType(typeof(ICacheProvider));
+            var cacheProvider = Discovery.GetImplementationClass(typeof(ICacheProvider));
             Assert.AreEqual(typeof(TestCacheProvider), cacheProvider);
 
-            var compressionProvider = Discovery.GetImplementationType(typeof(ICompressionProvider));
+            var compressionProvider = Discovery.GetImplementationClass(typeof(ICompressionProvider));
             Assert.AreEqual(typeof(TestCompressionProvider), compressionProvider);
 
-            var dualbaseProvider = Discovery.GetImplementationType(typeof(IDualBaseProvider));
+            var dualbaseProvider = Discovery.GetImplementationClass(typeof(IDualBaseProvider));
             Assert.AreEqual(typeof(TestDualBaseProvider), dualbaseProvider);
         }
 
         [TestMethod]
         public void HasSingleInterface()
         {
-            var ruleProvider = Discovery.HasImplementationType(typeof(IRuleProvider));
+            var ruleProvider = Discovery.HasImplementationClass(typeof(IRuleProvider));
             Assert.IsTrue(ruleProvider);
 
-            var cacheProvider = Discovery.HasImplementationType(typeof(ICacheProvider));
+            var cacheProvider = Discovery.HasImplementationClass(typeof(ICacheProvider));
             Assert.IsTrue(cacheProvider);
 
-            var compressionProvider = Discovery.HasImplementationType(typeof(ICompressionProvider));
+            var compressionProvider = Discovery.HasImplementationClass(typeof(ICompressionProvider));
             Assert.IsTrue(compressionProvider);
 
-            var dualbaseProvider = Discovery.HasImplementationType(typeof(IDualBaseProvider));
+            var dualbaseProvider = Discovery.HasImplementationClass(typeof(IDualBaseProvider));
             Assert.IsTrue(dualbaseProvider);
         }
 
         [TestMethod]
         public void ManySingleInterface()
         {
-            var providers = Discovery.GetImplementationTypes(typeof(ITestProvider));
+            var providers = Discovery.GetImplementationClasses(typeof(ITestProvider));
             Assert.AreEqual(6, providers.Count);
             Assert.IsTrue(providers.Contains(typeof(TestRuleProvider)));
             Assert.IsTrue(providers.Contains(typeof(TestCacheProvider)));
@@ -243,7 +243,7 @@ namespace Zerra.Test
             Assert.IsTrue(providers.Contains(typeof(TestDualBaseProvider)));
             Assert.IsTrue(providers.Contains(typeof(TestProvider)));
 
-            var ruleProviders = Discovery.GetImplementationTypes(typeof(IRuleProvider));
+            var ruleProviders = Discovery.GetImplementationClasses(typeof(IRuleProvider));
             Assert.AreEqual(1, ruleProviders.Count);
             Assert.IsTrue(providers.Contains(typeof(TestRuleProvider)));
         }

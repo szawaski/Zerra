@@ -11,7 +11,6 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
-using Zerra.Collections;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Reflection;
@@ -27,8 +26,8 @@ namespace Zerra.CQRS.AzureEventHub
         private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
 
-        private readonly ConcurrentReadWriteList<Type> commandTypes;
-        private readonly ConcurrentReadWriteList<Type> eventTypes;
+        private readonly HashSet<Type> commandTypes;
+        private readonly HashSet<Type> eventTypes;
 
         private HandleRemoteCommandDispatch commandHandlerAsync = null;
         private HandleRemoteCommandDispatch commandHandlerAwaitAsync = null;
@@ -49,8 +48,8 @@ namespace Zerra.CQRS.AzureEventHub
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
 
-            this.commandTypes = new ConcurrentReadWriteList<Type>();
-            this.eventTypes = new ConcurrentReadWriteList<Type>();
+            this.commandTypes = new();
+            this.eventTypes = new();
         }
 
         void ICommandConsumer.SetHandler(HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
@@ -245,8 +244,6 @@ namespace Zerra.CQRS.AzureEventHub
         public void Dispose()
         {
             this.Close();
-            commandTypes.Dispose();
-            eventTypes.Dispose();
         }
 
         void ICommandConsumer.RegisterCommandType(Type type)

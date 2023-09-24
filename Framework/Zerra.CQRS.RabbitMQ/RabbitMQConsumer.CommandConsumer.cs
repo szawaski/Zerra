@@ -18,7 +18,6 @@ namespace Zerra.CQRS.RabbitMQ
     {
         private sealed class CommandConsumer : IDisposable
         {
-            public Type Type { get; private set; }
             public bool IsOpen { get; private set; }
 
             private readonly string topic;
@@ -27,14 +26,12 @@ namespace Zerra.CQRS.RabbitMQ
             private IModel channel = null;
             private readonly CancellationTokenSource canceller;
 
-            public CommandConsumer(Type type, SymmetricConfig symmetricConfig, string environment)
+            public CommandConsumer(string topic, SymmetricConfig symmetricConfig, string environment)
             {
-                this.Type = type;
-                this.Type = type;
                 if (!String.IsNullOrWhiteSpace(environment))
-                    this.topic = $"{environment}_{type.GetNiceName()}".Truncate(RabbitMQCommon.TopicMaxLength);
+                    this.topic = $"{environment}_{topic}".Truncate(RabbitMQCommon.TopicMaxLength);
                 else
-                    this.topic = type.GetNiceName().Truncate(RabbitMQCommon.TopicMaxLength);
+                    this.topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
                 this.symmetricConfig = symmetricConfig;
                 this.canceller = new CancellationTokenSource();
             }

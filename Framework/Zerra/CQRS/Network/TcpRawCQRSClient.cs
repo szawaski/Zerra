@@ -330,12 +330,11 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        protected override async Task DispatchInternal(ICommand command, bool messageAwait, string source)
+        protected override async Task DispatchInternal(Type commandType, ICommand command, bool messageAwait, string source)
         {
-            var messageType = command.GetType();
-            var messageTypeName = messageType.GetNiceName();
+            var messageTypeName = commandType.GetNiceName();
 
-            var messageData = JsonSerializer.Serialize(command, messageType);
+            var messageData = JsonSerializer.Serialize(command, commandType);
 
             string[][] claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)

@@ -8,7 +8,6 @@ namespace Zerra.CQRS
 {
     public interface IQueryClient
     {
-        string ConnectionString { get; }
         TReturn Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source);
     }
 }

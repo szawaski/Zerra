@@ -4,6 +4,8 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -21,16 +23,32 @@ namespace Zerra.CQRS.Network
     {
         private readonly string endpointAddress;
         private readonly ContentType requestContentType;
+        private readonly HashSet<Type> commandTypes;
 
         public string ConnectionString => endpointAddress;
+
+        private CookieCollection cookies = null;
 
         public ApiClient(string endpointAddress, ContentType contentType)
         {
             this.endpointAddress = endpointAddress;
             this.requestContentType = contentType;
+            this.commandTypes = new();
         }
 
-        private CookieCollection cookies = null;
+        void ICommandProducer.RegisterCommandType(Type type)
+        {
+            lock (commandTypes)
+            {
+                if (commandTypes.Contains(type))
+                    return;
+                commandTypes.Add(type);
+            }
+        }
+        IEnumerable<Type> ICommandProducer.GetCommandTypes()
+        {
+            return commandTypes;
+        }
 
         private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(ApiClient)).MethodDetails.First(x => x.MethodInfo.Name == nameof(ApiClient.RequestAsync)).MethodInfo;
         TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source)
@@ -67,6 +85,9 @@ namespace Zerra.CQRS.Network
         Task ICommandProducer.DispatchAsync(ICommand message, string source)
         {
             var commandType = message.GetType();
+            if (!commandTypes.Contains(commandType))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(ApiClient)}");
+
             var commendTypeName = commandType.GetNiceFullName();
             var commandData = JsonSerializer.Serialize(message, commandType);
 
@@ -85,6 +106,9 @@ namespace Zerra.CQRS.Network
         Task ICommandProducer.DispatchAsyncAwait(ICommand message, string source)
         {
             var commandType = message.GetType();
+            if (!commandTypes.Contains(commandType))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(ApiClient)}");
+
             var commendTypeName = commandType.GetNiceFullName();
             var commandData = JsonSerializer.Serialize(message, commandType);
 

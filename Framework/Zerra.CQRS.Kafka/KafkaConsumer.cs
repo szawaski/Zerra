@@ -17,8 +17,10 @@ namespace Zerra.CQRS.Kafka
         private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
 
-        private readonly List<CommandConsumer> commandExchanges;
-        private readonly List<EventConsumer> eventExchanges;
+        private readonly Dictionary<string, CommandConsumer> commandExchanges;
+        private readonly Dictionary<string, EventConsumer> eventExchanges;
+        private HashSet<Type> commandTypes;
+        private HashSet<Type> eventTypes;
 
         private bool isOpen;
         private HandleRemoteCommandDispatch commandHandlerAsync = null;
@@ -34,8 +36,10 @@ namespace Zerra.CQRS.Kafka
             this.host = host;
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
-            this.commandExchanges = new List<CommandConsumer>();
-            this.eventExchanges = new List<EventConsumer>();
+            this.commandExchanges = new();
+            this.eventExchanges = new();
+            this.commandTypes = new();
+            this.eventTypes = new();
         }
 
         void ICommandConsumer.SetHandler(HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
@@ -80,10 +84,10 @@ namespace Zerra.CQRS.Kafka
             if (!isOpen)
                 return;
 
-            foreach (var exchange in commandExchanges.Where(x => !x.IsOpen))
+            foreach (var exchange in commandExchanges.Values.Where(x => !x.IsOpen))
                 exchange.Open(this.host, this.commandHandlerAsync, this.commandHandlerAwaitAsync);
 
-            foreach (var exchange in eventExchanges.Where(x => !x.IsOpen))
+            foreach (var exchange in eventExchanges.Values.Where(x => !x.IsOpen))
                 exchange.Open(this.host, this.eventHandlerAsync);
         }
 
@@ -101,9 +105,9 @@ namespace Zerra.CQRS.Kafka
         {
             if (isOpen)
             {
-                foreach (var exchange in commandExchanges.Where(x => x.IsOpen))
+                foreach (var exchange in commandExchanges.Values.Where(x => x.IsOpen))
                     exchange.Dispose();
-                foreach (var exchange in eventExchanges.Where(x => x.IsOpen))
+                foreach (var exchange in eventExchanges.Values.Where(x => x.IsOpen))
                     exchange.Dispose();
                 this.commandExchanges.Clear();
                 this.eventExchanges.Clear();
@@ -118,28 +122,40 @@ namespace Zerra.CQRS.Kafka
 
         void ICommandConsumer.RegisterCommandType(Type type)
         {
+            var topic = Bus.GetCommandTopic(type);
             lock (commandExchanges)
             {
-                commandExchanges.Add(new CommandConsumer(type, symmetricConfig, environment));
+                if (commandTypes.Contains(type))
+                    return;
+                if (commandExchanges.ContainsKey(topic))
+                    return;
+                commandTypes.Add(type);
+                commandExchanges.Add(topic, new CommandConsumer(topic, symmetricConfig, environment));
                 OpenExchanges();
             }
         }
         IEnumerable<Type> ICommandConsumer.GetCommandTypes()
         {
-            return commandExchanges.Select(x => x.Type).ToArray();
+            return commandTypes;
         }
 
         void IEventConsumer.RegisterEventType(Type type)
         {
+            var topic = Bus.GetEventTopic(type);
             lock (eventExchanges)
             {
-                eventExchanges.Add(new EventConsumer(type, symmetricConfig, environment));
+                if (eventTypes.Contains(type))
+                    return;
+                if (eventExchanges.ContainsKey(topic))
+                    return;
+                eventTypes.Add(type);
+                eventExchanges.Add(topic, new EventConsumer(topic, symmetricConfig, environment));
                 OpenExchanges();
             }
         }
         IEnumerable<Type> IEventConsumer.GetEventTypes()
         {
-            return eventExchanges.Select(x => x.Type);
+            return eventTypes;
         }
     }
 }

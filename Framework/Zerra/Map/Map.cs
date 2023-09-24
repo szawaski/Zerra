@@ -284,7 +284,7 @@ namespace Zerra
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void RunInitializers()
         {
-            var instanceTypes = Discovery.GetImplementationTypes(mapDefinitionsType);
+            var instanceTypes = Discovery.GetImplementationClasses(mapDefinitionsType);
             foreach (var instanceType in instanceTypes)
             {
                 var instance = (IMapDefinition<TSource, TTarget>)Instantiator.Create(instanceType);

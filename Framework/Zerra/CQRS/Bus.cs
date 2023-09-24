@@ -141,7 +141,7 @@ namespace Zerra.CQRS
             {
                 var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iCommandHandlerType, commandType);
 
-                var busCacheType = Discovery.GetImplementationType(handlerTypeDetail.Type, iBusCacheType, false);
+                var busCacheType = Discovery.GetImplementationClass(handlerTypeDetail.Type, iBusCacheType, false);
                 if (busCacheType == null)
                     return null;
 
@@ -213,7 +213,7 @@ namespace Zerra.CQRS
             {
                 var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iEventHandlerType, eventType);
 
-                var busCacheType = Discovery.GetImplementationType(handlerTypeDetail.Type, iBusCacheType, false);
+                var busCacheType = Discovery.GetImplementationClass(handlerTypeDetail.Type, iBusCacheType, false);
                 if (busCacheType == null)
                     return null;
 
@@ -480,7 +480,7 @@ namespace Zerra.CQRS
 
             var cacheCallProvider = callCacheProviders.GetOrAdd(interfaceType, (t) =>
             {
-                var busCacheType = Discovery.GetImplementationType(interfaceType, iBusCacheType, false);
+                var busCacheType = Discovery.GetImplementationClass(interfaceType, iBusCacheType, false);
                 if (busCacheType == null)
                     return null;
 
@@ -773,6 +773,36 @@ namespace Zerra.CQRS
             return messageTypes;
         }
 
+        //don't need to cache these here, the message services should do that
+        public static string GetCommandTopic(Type commandType)
+        {
+            var interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerType, commandType);
+            for (; ; )
+            {
+                var implementationTypes = Discovery.GetImplementationTypes(interfaceType).Where(x => x.IsInterface).ToArray();
+                if (implementationTypes.Length == 0)
+                    return interfaceType.GetNiceName();
+                else if (implementationTypes.Length == 1)
+                    interfaceType = implementationTypes[0];
+                else
+                    throw new Exception($"More than one interface inherits {interfaceType.GetNiceName()} so cannot determine the topic for {commandType.GetNiceName()}");
+            }
+        }
+        public static string GetEventTopic(Type eventType)
+        {
+            var interfaceType = TypeAnalyzer.GetGenericType(iEventHandlerType, eventType);
+            for (; ; )
+            {
+                var implementationTypes = Discovery.GetImplementationTypes(interfaceType).Where(x => x.IsInterface).ToArray();
+                if (implementationTypes.Length == 0)
+                    return interfaceType.GetNiceName();
+                else if (implementationTypes.Length == 1)
+                    interfaceType = implementationTypes[0];
+                else
+                    throw new Exception($"More than one interface inherits {interfaceType.GetNiceName()} so cannot determine the topic for {eventType.GetNiceName()}");
+            }
+        }
+
         private static readonly object serviceLock = new();
         private static readonly SemaphoreSlim asyncServiceLock = new(1, 1);
 
@@ -789,6 +819,7 @@ namespace Zerra.CQRS
                         throw new InvalidOperationException($"Cannot add Command Producer: Command Consumer already registered for type {commandType.GetNiceName()}");
                     if (commandProducers.ContainsKey(commandType))
                         throw new InvalidOperationException($"Cannot add Command Producer: Command Producer already registered for type {commandType.GetNiceName()}");
+                    commandProducer.RegisterCommandType(commandType);
                     _ = commandProducers.TryAdd(commandType, commandProducer);
                     _ = Log.InfoAsync($"{nameof(Bus)} Added Command Producer For {commandType.GetNiceName()}");
                 }
@@ -815,8 +846,8 @@ namespace Zerra.CQRS
                                     throw new InvalidOperationException($"Cannot add Command Consumer: Command Producer already registered for type {commandType.GetNiceName()}");
                                 if (!commandConsumerTypes.Contains(commandType))
                                     throw new InvalidOperationException($"Cannot add Command Consumer: Command Consumer already registered for type {commandType.GetNiceName()}");
-                                _ = commandConsumerTypes.Add(commandType);
                                 commandConsumer.RegisterCommandType(commandType);
+                                _ = commandConsumerTypes.Add(commandType);
                                 _ = Log.InfoAsync($"{nameof(Bus)} Added Command Consumer For {commandType.GetNiceName()}");
                             }
                         }
@@ -840,6 +871,7 @@ namespace Zerra.CQRS
                 {
                     if (eventProducers.ContainsKey(eventType))
                         throw new InvalidOperationException($"Cannot add Event Producer: Event Producer already registered for type {eventType.GetNiceName()}");
+                    eventProducer.RegisterEventType(eventType);
                     _ = eventProducers.TryAdd(eventType, eventProducer);
                     _ = Log.InfoAsync($"{nameof(Bus)} Added Event Producer For {eventType.GetNiceName()}");
                 }
@@ -864,8 +896,8 @@ namespace Zerra.CQRS
                             {
                                 if (!eventConsumerTypes.Contains(eventType))
                                     throw new InvalidOperationException($"Cannot add Event Consumer: Event Consumer already registered for type {eventType.GetNiceName()}");
-                                _ = eventConsumerTypes.Add(eventType);
                                 eventConsumer.RegisterEventType(eventType);
+                                _ = eventConsumerTypes.Add(eventType);
                             }
                         }
                     }
@@ -1219,8 +1251,8 @@ namespace Zerra.CQRS
                                             _ = Log.ErrorAsync($"Cannot add Command Consumer: Command Consumer already registered for type {commandType.GetNiceName()}");
                                             continue;
                                         }
-                                        _ = commandConsumerTypes.Add(commandType);
                                         commandConsumer.RegisterCommandType(commandType);
+                                        _ = commandConsumerTypes.Add(commandType);
                                     }
                                 }
                                 catch (Exception ex)
@@ -1253,6 +1285,7 @@ namespace Zerra.CQRS
                                                 _ = Log.ErrorAsync($"Cannot add Command Producer: Command Producer already registered for type {commandType.GetNiceName()}");
                                                 continue;
                                             }
+                                            commandProducer.RegisterCommandType(commandType);
                                             _ = commandProducers.TryAdd(commandType, commandProducer);
                                         }
                                     }
@@ -1288,8 +1321,8 @@ namespace Zerra.CQRS
                                             _ = Log.ErrorAsync($"Cannot add Event Consumer: Event Consumer already registered for type {eventType.GetNiceName()}");
                                             continue;
                                         }
-                                        _ = eventConsumerTypes.Add(eventType);
                                         eventConsumer.RegisterEventType(eventType);
+                                        _ = eventConsumerTypes.Add(eventType);
                                     }
                                 }
                                 catch (Exception ex)
@@ -1313,8 +1346,7 @@ namespace Zerra.CQRS
                                         continue;
                                     //multiple services handle events
                                     //TODO do we need different encryption keys for events, commands, and queries??
-                                    //if (eventProducers.ContainsKey(eventType))
-                                    //    throw new InvalidOperationException($"Cannot add Event Producer: Event Producer already registered for type {eventType.GetNiceName()}");
+                                    eventProducer.RegisterEventType(eventType);
                                     _ = eventProducers.TryAdd(eventType, eventProducer);
                                 }
                             }

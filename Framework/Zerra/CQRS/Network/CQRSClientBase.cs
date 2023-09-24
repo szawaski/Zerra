@@ -3,6 +3,8 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -15,17 +17,30 @@ namespace Zerra.CQRS.Network
     public abstract class CQRSClientBase : IQueryClient, ICommandProducer
     {
         protected readonly Uri serviceUrl;
-
-        string IQueryClient.ConnectionString => serviceUrl.OriginalString;
-        string ICommandProducer.ConnectionString => serviceUrl.OriginalString;
+        private readonly HashSet<Type> commandTypes;
 
         public CQRSClientBase(string serviceUrl)
         {
             this.serviceUrl = new Uri(serviceUrl);
+            this.commandTypes = new();
         }
 
         private static readonly MethodInfo callRequestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(CQRSClientBase)).MethodDetails.First(x => x.MethodInfo.Name == nameof(CQRSClientBase.CallInternalAsync)).MethodInfo;
         private static readonly Type streamType = typeof(Stream);
+
+        void ICommandProducer.RegisterCommandType(Type type)
+        {
+            lock (commandTypes)
+            {
+                if (commandTypes.Contains(type))
+                    return;
+                commandTypes.Add(type);
+            }
+        }
+        IEnumerable<Type> ICommandProducer.GetCommandTypes()
+        {
+            return commandTypes;
+        }
 
         TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source)
         {
@@ -60,9 +75,13 @@ namespace Zerra.CQRS.Network
 
         Task ICommandProducer.DispatchAsync(ICommand command, string source)
         {
+            var commandType = command.GetType();
+            if (!commandTypes.Contains(commandType))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
+
             try
             {
-                return DispatchInternal(command, false, source);
+                return DispatchInternal(commandType, command, false, source);
             }
             catch (Exception ex)
             {
@@ -72,9 +91,13 @@ namespace Zerra.CQRS.Network
         }
         Task ICommandProducer.DispatchAsyncAwait(ICommand command, string source)
         {
+            var commandType = command.GetType();
+            if (!commandTypes.Contains(commandType))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
+
             try
             {
-                return DispatchInternal(command, true, source);
+                return DispatchInternal(commandType, command, true, source);
             }
             catch (Exception ex)
             {
@@ -83,6 +106,6 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        protected abstract Task DispatchInternal(ICommand command, bool messageAwait, string source);
+        protected abstract Task DispatchInternal(Type commandType, ICommand command, bool messageAwait, string source);
     }
 }

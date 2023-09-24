@@ -78,7 +78,7 @@ namespace Zerra.Providers
                 }
             }
 
-            var nextProviderType = Discovery.GetImplementationType(interfaceType, interfaceStack, nextInterfaceIndex, ignoreInterface, false);
+            var nextProviderType = Discovery.GetImplementationClass(interfaceType, interfaceStack, nextInterfaceIndex, ignoreInterface, false);
             return nextProviderType;
         }
         public static TInterface GetNext<TInterface>(Type providerType)
@@ -97,7 +97,7 @@ namespace Zerra.Providers
             if (!interfaceType.IsInterface)
                 throw new ArgumentException("Generic parameter must be an interface");
 
-            var providerType = Discovery.GetImplementationType(interfaceType, interfaceStack, 0, ignoreInterface, throwException);
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, 0, ignoreInterface, throwException);
 
             if (providerType == null)
                 return default;
@@ -113,7 +113,7 @@ namespace Zerra.Providers
             if (!interfaceType.IsInterface)
                 throw new ArgumentException("Generic parameter must be an interface");
 
-            var providerType = Discovery.GetImplementationType(interfaceType, interfaceStack, 0, ignoreInterface, throwException);
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, 0, ignoreInterface, throwException);
             return providerType;
         }
 
@@ -123,7 +123,7 @@ namespace Zerra.Providers
             if (!interfaceType.IsInterface)
                 throw new ArgumentException("Generic parameter must be an interface");
 
-            var providerType = Discovery.GetImplementationType(interfaceType, interfaceStack, interfaceStack.Length - 1, ignoreInterface, throwException);
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, interfaceStack.Length - 1, ignoreInterface, throwException);
 
             if (providerType == null)
                 return default;
@@ -139,7 +139,7 @@ namespace Zerra.Providers
             if (!interfaceType.IsInterface)
                 throw new ArgumentException("Generic parameter must be an interface");
 
-            var providerType = Discovery.GetImplementationType(interfaceType, interfaceStack, interfaceStack.Length - 1, ignoreInterface, throwException);
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, interfaceStack.Length - 1, ignoreInterface, throwException);
 
             return providerType;
         }
@@ -151,7 +151,7 @@ namespace Zerra.Providers
                 throw new ArgumentException("Generic parameter must be an interface");
 
             var index = GetInterfaceIndex(secondaryInterfaceType);
-            var providerType = Discovery.GetImplementationType(interfaceType, interfaceStack, index, ignoreInterface, throwException);
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, index, ignoreInterface, throwException);
 
             if (providerType == null)
                 return default;
@@ -168,7 +168,7 @@ namespace Zerra.Providers
                 throw new ArgumentException("Generic parameter must be an interface");
 
             var index = GetInterfaceIndex(secondaryInterfaceType);
-            var providerType = Discovery.GetImplementationType(interfaceType, interfaceStack, index, ignoreInterface, throwException);
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, index, ignoreInterface, throwException);
             return providerType;
         }
 
@@ -178,7 +178,7 @@ namespace Zerra.Providers
             if (!interfaceType.IsInterface)
                 throw new ArgumentException("Generic parameter must be an interface");
 
-            var has = Discovery.HasImplementationType(interfaceType, interfaceStack, 0, ignoreInterface);
+            var has = Discovery.HasImplementationClass(interfaceType, interfaceStack, 0, ignoreInterface);
 
             return has;
         }
@@ -190,7 +190,7 @@ namespace Zerra.Providers
                 throw new ArgumentException("Generic parameter must be an interface");
 
             var index = GetInterfaceIndex(secondaryInterfaceType);
-            var has = Discovery.HasImplementationType(interfaceType, interfaceStack, index, ignoreInterface);
+            var has = Discovery.HasImplementationClass(interfaceType, interfaceStack, index, ignoreInterface);
 
             return has;
         }
@@ -201,7 +201,7 @@ namespace Zerra.Providers
             if (!interfaceType.IsInterface)
                 throw new ArgumentException("Generic parameter must be an interface");
 
-            var has = Discovery.HasImplementationType(interfaceType, interfaceStack, interfaceStack.Length - 1, ignoreInterface);
+            var has = Discovery.HasImplementationClass(interfaceType, interfaceStack, interfaceStack.Length - 1, ignoreInterface);
 
             return has;
         }

@@ -18,7 +18,6 @@ namespace Zerra.CQRS.AzureServiceBus
     {
         public sealed class EventConsumer : IDisposable
         {
-            public Type Type { get; private set; }
             public bool IsOpen { get; private set; }
 
             private readonly string topic;
@@ -26,13 +25,12 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly SymmetricConfig symmetricConfig;
             private readonly CancellationTokenSource canceller;
 
-            public EventConsumer(Type type, SymmetricConfig symmetricConfig, string environment)
+            public EventConsumer(string topic, SymmetricConfig symmetricConfig, string environment)
             {
-                this.Type = type;
                 if (!String.IsNullOrWhiteSpace(environment))
-                    this.topic = $"{environment}_{type.GetNiceName()}".Truncate(AzureServiceBusCommon.TopicMaxLength);
+                    this.topic = $"{environment}_{topic}".Truncate(AzureServiceBusCommon.TopicMaxLength);
                 else
-                    this.topic = type.GetNiceName().Truncate(AzureServiceBusCommon.TopicMaxLength);
+                    this.topic = topic.Truncate(AzureServiceBusCommon.TopicMaxLength);
 
                 this.subscription = $"EVENT-{Guid.NewGuid():N}";
                 this.symmetricConfig = symmetricConfig;

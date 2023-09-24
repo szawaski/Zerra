@@ -5,6 +5,7 @@
 using Azure.Messaging.ServiceBus;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -26,6 +27,8 @@ namespace Zerra.CQRS.AzureServiceBus
         private readonly string environment;
         private readonly string ackTopic;
         private readonly string ackSubscription;
+        private ConcurrentDictionary<Type, string> commandTypes;
+        private ConcurrentDictionary<Type, string> eventTypes;
         private readonly ServiceBusClient client;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
@@ -40,7 +43,9 @@ namespace Zerra.CQRS.AzureServiceBus
             this.ackTopic = $"ACK-{Guid.NewGuid().ToString("N")}";
             this.ackSubscription = applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength);
 
-            client = new ServiceBusClient(host);
+            this.commandTypes = new();
+            this.eventTypes = new();
+            this.client = new ServiceBusClient(host);
 
             this.canceller = new CancellationTokenSource();
             this.ackCallbacks = new ConcurrentDictionary<string, Action<Acknowledgement>>();
@@ -54,6 +59,15 @@ namespace Zerra.CQRS.AzureServiceBus
 
         private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
         {
+            var commandType = command.GetType();
+            if (!commandTypes.TryGetValue(commandType, out var topic))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
+
+            if (!String.IsNullOrWhiteSpace(environment))
+                topic = $"{environment}_{topic}".Truncate(AzureServiceBusCommon.TopicMaxLength);
+            else
+                topic = topic.Truncate(AzureServiceBusCommon.TopicMaxLength);
+
             if (requireAcknowledgement)
             {
                 await listenerStartedLock.WaitAsync();
@@ -73,12 +87,6 @@ namespace Zerra.CQRS.AzureServiceBus
                     _ = listenerStartedLock.Release();
                 }
             }
-
-            string topic;
-            if (!String.IsNullOrWhiteSpace(environment))
-                topic = $"{environment}_{command.GetType().GetNiceName()}".Truncate(AzureServiceBusCommon.TopicMaxLength);
-            else
-                topic = command.GetType().GetNiceName().Truncate(AzureServiceBusCommon.TopicMaxLength);
 
             string[][] claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -142,11 +150,14 @@ namespace Zerra.CQRS.AzureServiceBus
 
         private async Task SendAsync(IEvent @event, string source)
         {
-            string topic;
+            var eventType = @event.GetType();
+            if (!eventTypes.TryGetValue(eventType, out var topic))
+                throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
+
             if (!String.IsNullOrWhiteSpace(environment))
-                topic = $"{environment}_{@event.GetType().GetNiceName()}".Truncate(AzureServiceBusCommon.TopicMaxLength);
+                topic = $"{environment}_{topic}".Truncate(AzureServiceBusCommon.TopicMaxLength);
             else
-                topic = @event.GetType().GetNiceName().Truncate(AzureServiceBusCommon.TopicMaxLength);
+                topic = topic.Truncate(AzureServiceBusCommon.TopicMaxLength);
 
             string[][] claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -241,6 +252,30 @@ namespace Zerra.CQRS.AzureServiceBus
             canceller.Cancel();
             await client.DisposeAsync();
             listenerStartedLock.Dispose();
+        }
+
+        void ICommandProducer.RegisterCommandType(Type type)
+        {
+            if (commandTypes.ContainsKey(type))
+                return;
+            var topic = Bus.GetCommandTopic(type);
+            commandTypes.TryAdd(type, topic);
+        }
+        IEnumerable<Type> ICommandProducer.GetCommandTypes()
+        {
+            return commandTypes.Keys;
+        }
+
+        void IEventProducer.RegisterEventType(Type type)
+        {
+            if (eventTypes.ContainsKey(type))
+                return;
+            var topic = Bus.GetEventTopic(type);
+            eventTypes.TryAdd(type, topic);
+        }
+        IEnumerable<Type> IEventProducer.GetEventTypes()
+        {
+            return eventTypes.Keys;
         }
     }
 }

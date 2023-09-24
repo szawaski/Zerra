@@ -7,6 +7,8 @@ using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Producer;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -28,6 +30,8 @@ namespace Zerra.CQRS.AzureEventHub
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
         private readonly string environment;
+        private HashSet<Type> commandTypes;
+        private HashSet<Type> eventTypes;
         public AzureEventHubProducer(string host, string eventHubName, SymmetricConfig symmetricConfig, string environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
@@ -38,9 +42,11 @@ namespace Zerra.CQRS.AzureEventHub
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
 
-            this.canceller = new CancellationTokenSource();
-            this.ackCallbacks = new ConcurrentDictionary<string, Action<Acknowledgement>>();
+            this.canceller = new();
+            this.ackCallbacks = new();
             this.environment = environment;
+            this.commandTypes = new();
+            this.eventTypes = new();
         }
 
         public string ConnectionString => host;
@@ -51,6 +57,10 @@ namespace Zerra.CQRS.AzureEventHub
 
         private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
         {
+            var commandType = command.GetType();
+            if (!commandTypes.Contains(commandType))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureEventHubProducer)}");
+
             if (requireAcknowledgement)
             {
                 lock (locker)
@@ -126,6 +136,10 @@ namespace Zerra.CQRS.AzureEventHub
 
         private async Task SendAsync(IEvent @event, string source)
         {
+            var eventType = @event.GetType();
+            if (!eventTypes.Contains(eventType))
+                throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(AzureEventHubProducer)}");
+
             string[][] claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                 claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
@@ -226,6 +240,28 @@ namespace Zerra.CQRS.AzureEventHub
         {
             canceller.Cancel();
             GC.SuppressFinalize(this);
+        }
+
+        void ICommandProducer.RegisterCommandType(Type type)
+        {
+            if (commandTypes.Contains(type))
+                return;
+            commandTypes.Add(type);
+        }
+        IEnumerable<Type> ICommandProducer.GetCommandTypes()
+        {
+            return commandTypes;
+        }
+
+        void IEventProducer.RegisterEventType(Type type)
+        {
+            if (eventTypes.Contains(type))
+                return;
+            eventTypes.Add(type);
+        }
+        IEnumerable<Type> IEventProducer.GetEventTypes()
+        {
+            return eventTypes;
         }
     }
 }

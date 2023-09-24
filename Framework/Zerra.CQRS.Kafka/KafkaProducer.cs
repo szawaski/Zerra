@@ -5,6 +5,8 @@
 using Confluent.Kafka;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
@@ -24,6 +26,8 @@ namespace Zerra.CQRS.Kafka
         private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
         private readonly string ackTopic;
+        private ConcurrentDictionary<Type, string> commandTypes;
+        private ConcurrentDictionary<Type, string> eventTypes;
         private readonly IProducer<string, byte[]> producer;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
@@ -37,6 +41,8 @@ namespace Zerra.CQRS.Kafka
 
             var clientID = Guid.NewGuid().ToString("N");
             this.ackTopic = $"ACK-{clientID}";
+            this.commandTypes = new();
+            this.eventTypes = new();
 
             var producerConfig = new ProducerConfig();
             producerConfig.BootstrapServers = host;
@@ -55,6 +61,15 @@ namespace Zerra.CQRS.Kafka
 
         private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
         {
+            var commandType = command.GetType();
+            if (!commandTypes.TryGetValue(commandType, out var topic))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
+
+            if (!String.IsNullOrWhiteSpace(environment))
+                topic = $"{environment}_{topic}".Truncate(KafkaCommon.TopicMaxLength);
+            else
+                topic = topic.Truncate(KafkaCommon.TopicMaxLength);
+
             if (requireAcknowledgement)
             {
                 await listenerStartedLock.WaitAsync();
@@ -72,12 +87,6 @@ namespace Zerra.CQRS.Kafka
                     _ = listenerStartedLock.Release();
                 }
             }
-
-            string topic;
-            if (!String.IsNullOrWhiteSpace(environment))
-                topic = $"{environment}_{command.GetType().GetNiceName()}".Truncate(KafkaCommon.TopicMaxLength);
-            else
-                topic = command.GetType().GetNiceName().Truncate(KafkaCommon.TopicMaxLength);
 
             string[][] claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -142,11 +151,14 @@ namespace Zerra.CQRS.Kafka
 
         private async Task SendAsync(IEvent @event, string source)
         {
-            string topic;
+            var eventType = @event.GetType();
+            if (!eventTypes.TryGetValue(eventType, out var topic))
+                throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
+
             if (!String.IsNullOrWhiteSpace(environment))
-                topic = $"{environment}_{@event.GetType().GetNiceName()}".Truncate(KafkaCommon.TopicMaxLength);
+                topic = $"{environment}_{topic}".Truncate(KafkaCommon.TopicMaxLength);
             else
-                topic = @event.GetType().GetNiceName().Truncate(KafkaCommon.TopicMaxLength);
+                topic = topic.Truncate(KafkaCommon.TopicMaxLength);
 
             string[][] claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -249,6 +261,30 @@ namespace Zerra.CQRS.Kafka
             canceller.Cancel();
             producer.Dispose();
             listenerStartedLock.Dispose();
+        }
+
+        void ICommandProducer.RegisterCommandType(Type type)
+        {
+            if (commandTypes.ContainsKey(type))
+                return;
+            var topic = Bus.GetCommandTopic(type);
+            commandTypes.TryAdd(type, topic);
+        }
+        IEnumerable<Type> ICommandProducer.GetCommandTypes()
+        {
+            return commandTypes.Keys;
+        }
+
+        void IEventProducer.RegisterEventType(Type type)
+        {
+            if (eventTypes.ContainsKey(type))
+                return;
+            var topic = Bus.GetEventTopic(type);
+            eventTypes.TryAdd(type, topic);
+        }
+        IEnumerable<Type> IEventProducer.GetEventTypes()
+        {
+            return eventTypes.Keys;
         }
     }
 }
