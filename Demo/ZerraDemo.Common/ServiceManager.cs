@@ -1,5 +1,4 @@
-﻿using System;
-using Zerra;
+﻿using Zerra;
 using Zerra.CQRS;
 using Zerra.CQRS.RabbitMQ;
 using Zerra.CQRS.Settings;
@@ -9,7 +8,7 @@ namespace ZerraDemo.Common
 {
     public static class ServiceManager
     {
-        public static void StartServices(int? receiveCountBeforeExit)
+        public static void StartServices(int? receiveCountBeforeExit = null)
         {
             Bus.ReceiveCountBeforeExit = receiveCountBeforeExit;
 

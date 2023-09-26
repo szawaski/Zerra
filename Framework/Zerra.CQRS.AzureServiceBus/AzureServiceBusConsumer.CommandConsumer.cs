@@ -5,7 +5,6 @@
 using Azure.Messaging.ServiceBus;
 using System;
 using System.Linq;
-using System.Net.Sockets;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;

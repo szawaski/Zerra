@@ -6,3 +6,4 @@
 using System.Diagnostics.CodeAnalysis;
 
 [assembly: SuppressMessage("Style", "IDE0059:Unnecessary assignment of a value", Justification = "<Pending>")]
+[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Need lower case classes for testing")]

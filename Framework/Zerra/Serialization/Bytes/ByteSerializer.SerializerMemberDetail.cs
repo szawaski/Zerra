@@ -32,7 +32,6 @@ namespace Zerra.Serialization
                     }
                     return serializerTypeDetails;
                 }
-
             }
 
             public Func<object, object> Getter { get; private set; }

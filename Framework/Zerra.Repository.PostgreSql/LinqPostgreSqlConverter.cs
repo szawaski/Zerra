@@ -557,7 +557,6 @@ namespace Zerra.Repository.PostgreSql
                                     sb.Write('\'');
                                     return true;
                             }
-
                         }
                         sb.Write('\'');
                         sb.Write((DateTime)value, DateTimeFormat.PostgreSql);

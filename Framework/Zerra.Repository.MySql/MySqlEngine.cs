@@ -17,7 +17,6 @@ using Zerra.IO;
 using System.Collections;
 using MySql.Data.MySqlClient;
 using System.Data.Common;
-using Zerra.Logging;
 
 namespace Zerra.Repository.MySql
 {
@@ -235,7 +234,6 @@ namespace Zerra.Repository.MySql
                             default:
                                 throw new NotSupportedException($"{nameof(MySqlEngine)} Cannot map to type {columnProperty.CoreType.Value} in {modelDetail.Type.GetNiceName()}");
                         }
-
                     }
                     else if (columnProperty.IsByteArray)
                     {

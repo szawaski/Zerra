@@ -100,7 +100,5 @@ namespace Zerra.Identity.Saml2.Bindings
         {
             throw new NotSupportedException();
         }
-
-
     }
 }

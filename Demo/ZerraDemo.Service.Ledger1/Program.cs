@@ -9,7 +9,7 @@ namespace ZerraDemo.Service.Ledger
         static void Main(string[] args)
         {
             Config.LoadConfiguration(args);
-            ServiceManager.StartServices(null);
+            ServiceManager.StartServices();
             Bus.WaitUntilExit();
         }
     }

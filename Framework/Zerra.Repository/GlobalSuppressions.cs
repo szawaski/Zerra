@@ -6,3 +6,5 @@
 using System.Diagnostics.CodeAnalysis;
 
 [assembly: SuppressMessage("Style", "IDE0017:Simplify object initialization", Justification = "<Pending>")]
+[assembly: SuppressMessage("Style", "IDE0057:Use range operator", Justification = "NetStandard2.0 does not support")]
+[assembly: SuppressMessage("Style", "IDE0057:Use range operator", Justification = "NetStandard2.0 does not support")]

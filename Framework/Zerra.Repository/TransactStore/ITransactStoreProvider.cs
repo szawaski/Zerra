@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System.Threading.Tasks;
-using Zerra.Providers;
 
 namespace Zerra.Repository
 {

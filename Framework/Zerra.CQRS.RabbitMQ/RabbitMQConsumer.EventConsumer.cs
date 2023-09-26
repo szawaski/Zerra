@@ -27,10 +27,6 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
 
-            private readonly object countLocker = new();
-            private int receivedCount;
-            private int completedCount;
-
             private IModel channel = null;
             private SemaphoreSlim throttle = null;
 

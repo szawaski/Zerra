@@ -28,10 +28,6 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
             private readonly CancellationTokenSource canceller;
 
-            private readonly object countLocker = new();
-            private int receivedCount;
-            private int completedCount;
-
             private IModel channel = null;
             private SemaphoreSlim throttle = null;
 
@@ -165,7 +161,6 @@ namespace Zerra.CQRS.RabbitMQ
                         {
                             receiveCounter.CompleteReceive(throttle);
                         }
-
                     };
 
                     _ = this.channel.BasicConsume(queueName, false, consumer);

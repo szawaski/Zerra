@@ -562,7 +562,6 @@ namespace Zerra.Repository.MsSql
                                     sb.Write('\'');
                                     return true;
                             }
-
                         }
                         sb.Write('\'');
                         sb.Write((DateTime)value, DateTimeFormat.MsSql);

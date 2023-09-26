@@ -45,6 +45,5 @@ namespace Zerra.Web
             settings.ReceiveCounter = receiveCounter;
             settings.ProviderHandlerAsync = providerHandlerAsync;
         }
-
     }
 }

@@ -27,7 +27,6 @@ namespace Zerra.Test
         {
             log.Add($"New {type} On {target}");
         }
-
     }
 
     [TestClass]

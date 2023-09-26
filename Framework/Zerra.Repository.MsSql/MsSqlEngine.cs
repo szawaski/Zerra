@@ -16,7 +16,6 @@ using System.Data;
 using System.Runtime.CompilerServices;
 using System.Collections;
 using Zerra.IO;
-using Zerra.Logging;
 
 namespace Zerra.Repository.MsSql
 {
@@ -235,7 +234,6 @@ namespace Zerra.Repository.MsSql
                             default:
                                 throw new NotSupportedException($"{nameof(MsSqlEngine)} Cannot map to type {columnProperty.CoreType.Value} in {modelDetail.Type.GetNiceName()}");
                         }
-
                     }
                     else if (columnProperty.IsByteArray)
                     {

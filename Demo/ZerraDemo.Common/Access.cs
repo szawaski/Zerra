@@ -9,7 +9,7 @@ namespace ZerraDemo.Common
     {
         public static void Authorize()
         {
-            if (!(Thread.CurrentPrincipal is ClaimsPrincipal principal))
+            if (Thread.CurrentPrincipal is not ClaimsPrincipal principal)
                 throw new SecurityException();
             if (!principal.Identity.IsAuthenticated)
                 throw new SecurityException();
@@ -17,7 +17,7 @@ namespace ZerraDemo.Common
 
         public static string GetUserName()
         {
-            if (!(Thread.CurrentPrincipal is ClaimsPrincipal principal))
+            if (Thread.CurrentPrincipal is not ClaimsPrincipal principal)
                 throw new SecurityException();
             if (!principal.Identity.IsAuthenticated)
                 throw new SecurityException();
@@ -34,7 +34,7 @@ namespace ZerraDemo.Common
         }
         public static bool IsInRole(params string[] roles)
         {
-            if (!(Thread.CurrentPrincipal is ClaimsPrincipal principal))
+            if (Thread.CurrentPrincipal is not ClaimsPrincipal principal)
                 return false;
             if (!principal.Identity.IsAuthenticated)
                 return false;

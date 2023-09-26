@@ -115,7 +115,7 @@ namespace Zerra.Collections
         {
             get
             {
-                if (!(key is TKey keycasted))
+                if (key is not TKey keycasted)
                     throw new ArgumentException("Key is not the correct type");
 
                 lock (locker)
@@ -130,9 +130,9 @@ namespace Zerra.Collections
             }
             set
             {
-                if (!(key is TKey keycasted))
+                if (key is not TKey keycasted)
                     throw new ArgumentException("Key is not the correct type");
-                if (!(value is TValue valuecasted))
+                if (value is not TValue valuecasted)
                     throw new ArgumentException("Value is not the correct type");
 
                 lock (locker)
@@ -143,9 +143,9 @@ namespace Zerra.Collections
         }
         void IDictionary.Add(object key, object value)
         {
-            if (!(key is TKey keycasted))
+            if (key is not TKey keycasted)
                 throw new ArgumentException("Key is not the correct type");
-            if (!(value is TValue valuecasted))
+            if (value is not TValue valuecasted)
                 throw new ArgumentException("Value is not the correct type");
 
             lock (locker)
@@ -166,7 +166,7 @@ namespace Zerra.Collections
         }
         bool IDictionary.Contains(object key)
         {
-            if (!(key is TKey casted))
+            if (key is not TKey casted)
                 return false;
             lock (locker)
             {
@@ -184,7 +184,7 @@ namespace Zerra.Collections
         }
         void IDictionary.Remove(object key)
         {
-            if (!(key is TKey casted))
+            if (key is not TKey casted)
                 throw new KeyNotFoundException();
             lock (locker)
             {
@@ -302,7 +302,7 @@ namespace Zerra.Collections
         }
         public bool ContainsKey(TKey key)
         {
-            if (!(key is TKey casted))
+            if (key is not TKey casted)
                 return false;
             lock (locker)
             {

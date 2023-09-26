@@ -130,7 +130,7 @@ namespace Zerra.CQRS.Network
                         if (segmentLengthBufferPosition < segmentLengthBufferLength)
                         {
                             segmentLengthBuffer.Slice(segmentLengthBufferPosition, segmentLengthBufferLength - segmentLengthBufferPosition).CopyTo(segmentLengthBuffer);
-                            segmentLengthBufferLength = segmentLengthBufferLength - segmentLengthBufferPosition;
+                            segmentLengthBufferLength -= segmentLengthBufferPosition;
                             segmentLengthBufferPosition = 0;
                         }
                         else
@@ -280,7 +280,7 @@ namespace Zerra.CQRS.Network
                         if (segmentLengthBufferPosition < segmentLengthBufferLength)
                         {
                             segmentLengthBuffer.Slice(segmentLengthBufferPosition, segmentLengthBufferLength - segmentLengthBufferPosition).CopyTo(segmentLengthBuffer);
-                            segmentLengthBufferLength = segmentLengthBufferLength - segmentLengthBufferPosition;
+                            segmentLengthBufferLength -= segmentLengthBufferPosition;
                             segmentLengthBufferPosition = 0;
                         }
                         else

@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using FastMember;
 using System.Threading.Tasks;
 using Zerra.CQRS;
-using Zerra.Providers;
 
 namespace Zerra.TestDev
 {
@@ -169,5 +168,4 @@ namespace Zerra.TestDev
             }
         }
     }
-
 }

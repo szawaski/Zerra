@@ -12,3 +12,5 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("Style", "IDE0032:Use auto property", Justification = "Accessor Optimizations")]
 [assembly: SuppressMessage("Style", "IDE0017:Simplify object initialization", Justification = "<Pending>")]
 [assembly: SuppressMessage("Design", "CA1050:Declare types in namespaces", Justification = "<Pending>")]
+[assembly: SuppressMessage("Style", "IDE0057:Use range operator", Justification = "NetStandard2.0 does not support")]
+[assembly: SuppressMessage("Style", "IDE0056:Use index operator", Justification = "NetStandard2.0 does not support")]

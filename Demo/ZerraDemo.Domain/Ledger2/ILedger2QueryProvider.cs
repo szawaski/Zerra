@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Zerra.CQRS;
-using Zerra.Providers;
 using ZerraDemo.Domain.Ledger2.Models;
 
 namespace ZerraDemo.Domain.Ledger2

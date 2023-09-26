@@ -414,8 +414,9 @@ namespace Zerra.Web
             }
         }
 
-        public void Dispose()
+        public new void Dispose()
         {
+            base.Dispose();
             client.Dispose();
         }
     }

@@ -1,5 +1,4 @@
 ﻿using Zerra.CQRS;
-using Zerra.Providers;
 using ZerraDemo.Domain.Ledger2.Events;
 
 namespace ZerraDemo.Domain.Ledger2

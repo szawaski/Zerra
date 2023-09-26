@@ -16,7 +16,6 @@ using System.Runtime.CompilerServices;
 using Npgsql;
 using Zerra.IO;
 using System.Collections;
-using Zerra.Logging;
 
 namespace Zerra.Repository.PostgreSql
 {
@@ -234,7 +233,6 @@ namespace Zerra.Repository.PostgreSql
                             default:
                                 throw new NotSupportedException($"{nameof(PostgreSqlEngine)} Cannot map to type {columnProperty.CoreType.Value} in {modelDetail.Type.GetNiceName()}");
                         }
-
                     }
                     else if (columnProperty.IsByteArray)
                     {

@@ -322,7 +322,7 @@ namespace Zerra.Test
                 GuidArrayNullable = new Guid?[] { Guid.NewGuid(), null, Guid.NewGuid() },
 
                 StringArray = new string[] { "Hello", "World", "People", "", null },
-                StringEmptyArray = new string[0],
+                StringEmptyArray = Array.Empty<string>(),
 
                 EnumArray = new EnumModel[] { EnumModel.EnumItem1, EnumModel.EnumItem2, EnumModel.EnumItem3 },
                 EnumArrayNullable = new EnumModel?[] { EnumModel.EnumItem1, null, EnumModel.EnumItem3 },

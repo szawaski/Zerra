@@ -1145,7 +1145,6 @@ namespace Zerra.Serialization
                                     state.EndFrame();
                                     return;
                                 }
-
                             }
                             state.CurrentFrame.HasObjectStarted = true;
 
@@ -1716,9 +1715,7 @@ namespace Zerra.Serialization
                                 string str;
                                 if (state.CurrentFrame.StringLength.Value == 0)
                                 {
-#pragma warning disable IDE0059 // Unnecessary assignment of a value WARNING BUG
                                     str = String.Empty;
-#pragma warning restore IDE0059 // Unnecessary assignment of a value WARNING BUG
                                 }
                                 else if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out str, out sizeNeeded))
                                 {
@@ -2117,9 +2114,7 @@ namespace Zerra.Serialization
                                 string str;
                                 if (state.CurrentFrame.StringLength.Value == 0)
                                 {
-#pragma warning disable IDE0059 // Unnecessary assignment of a value - it is necessary
                                     str = String.Empty;
-#pragma warning restore IDE0059 // Unnecessary assignment of a value - it is necessary
                                 }
                                 else if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out str, out sizeNeeded))
                                 {

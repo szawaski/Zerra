@@ -162,6 +162,5 @@ namespace Zerra.Test
         public Dictionary<string, string> DictionaryThing { get; set; }
 
         public string[][] StringArrayOfArrayThing { get; set; }
-
     }
 }

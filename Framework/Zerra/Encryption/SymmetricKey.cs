@@ -22,7 +22,7 @@ namespace Zerra.Encryption
 
         public override bool Equals(object obj)
         {
-            if (!(obj is SymmetricKey casted))
+            if (obj is not SymmetricKey casted)
                 return false;
             if (this.KeySize != casted.KeySize || this.BlockSize != casted.BlockSize)
                 return false;

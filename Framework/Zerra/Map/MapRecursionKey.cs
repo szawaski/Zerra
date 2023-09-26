@@ -18,7 +18,7 @@ namespace Zerra
 
         public override bool Equals(object obj)
         {
-            if (!(obj is MapRecursionKey objCasted))
+            if (obj is not MapRecursionKey objCasted)
                 return false;
             return objCasted.source == source && objCasted.target == target;
         }

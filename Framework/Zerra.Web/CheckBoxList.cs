@@ -62,7 +62,7 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
 
         private static IEnumerable<SelectListItem> GetCheckboxListWithDefaultValues(object defaultValues, IEnumerable<SelectListItem> selectList)
         {
-            if (!(defaultValues is IEnumerable defaultValuesList))
+            if (defaultValues is not IEnumerable defaultValuesList)
                 return selectList;
 
             var values = from object value in defaultValuesList

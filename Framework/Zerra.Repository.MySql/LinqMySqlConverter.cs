@@ -563,7 +563,6 @@ namespace Zerra.Repository.MySql
                                     sb.Write('\'');
                                     return true;
                             }
-
                         }
                         sb.Write('\'');
                         sb.Write((DateTime)value, DateTimeFormat.MySql);

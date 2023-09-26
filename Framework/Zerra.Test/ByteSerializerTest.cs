@@ -77,7 +77,7 @@ namespace Zerra.Test
             var model8 = ByteSerializer.Deserialize<NoPropertiesModel[]>(bytes8);
             Assert.IsNull(model8);
 
-            var model9 = new NoPropertiesModel[0];
+            var model9 = Array.Empty<NoPropertiesModel>();
             var bytes9 = ByteSerializer.Serialize(model9);
             var model10 = ByteSerializer.Deserialize<IEnumerable<NoPropertiesModel>>(bytes9);
             Assert.AreEqual(model9.GetType(), model10?.GetType());

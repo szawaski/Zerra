@@ -257,7 +257,7 @@ namespace Zerra.Repository.Reflection
             if (identityProperties.Count == 0)
                 return null;
 
-            if (!(identity is object[] ids))
+            if (identity is not object[] ids)
                 ids = new object[] { identity };
 
             Expression where = null;

@@ -9,7 +9,7 @@ namespace ZerraDemo.Service.Weather
         static void Main(string[] args)
         {
             Config.LoadConfiguration(args);
-            ServiceManager.StartServices(1);
+            ServiceManager.StartServices();
             Bus.WaitUntilExit();
         }
     }

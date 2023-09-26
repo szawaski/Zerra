@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.Logging;
-
 namespace Zerra.Repository.EventStoreDB
 {
     public abstract class EventStoreDBDataContext : DataContext

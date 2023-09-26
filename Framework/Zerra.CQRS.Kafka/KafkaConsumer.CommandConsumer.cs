@@ -29,10 +29,6 @@ namespace Zerra.CQRS.Kafka
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
             private readonly CancellationTokenSource canceller;
 
-            private readonly object countLocker = new();
-            private int receivedCount;
-            private int completedCount;
-
             public CommandConsumer(int maxConcurrent, ReceiveCounter receiveCounter, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
