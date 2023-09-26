@@ -8,6 +8,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using Zerra.Collections;
 
 namespace Zerra.Reflection
@@ -37,6 +38,7 @@ namespace Zerra.Reflection
             Generate();
         }
 
+        private static readonly string[] pathSplits = new string[] { "\\", "/" };
         private static void LoadAssemblies()
         {
             var loadedAssemblies = new HashSet<string>();
@@ -45,16 +47,18 @@ namespace Zerra.Reflection
                 _ = loadedAssemblies.Add(currentAssembly.FullName);
 
             var assemblyPath = AppDomain.CurrentDomain.BaseDirectory;
-            var assemblyFileNames = System.IO.Directory.GetFiles(assemblyPath, "*.dll");
 
-            foreach (var assemblyFileName in assemblyFileNames)
+            var assemblyFilePaths = System.IO.Directory.GetFiles(assemblyPath, "*.dll");
+
+            foreach (var assemblyFilePath in assemblyFilePaths)
             {
                 try
                 {
-                    var assemblyName = AssemblyName.GetAssemblyName(assemblyFileName);
-
-                    if (Config.DiscoveryAssemblyNameStartsWiths.Length > 0 && !Config.DiscoveryAssemblyNameStartsWiths.Any(x => assemblyName.Name.StartsWith(x)))
+                    var assemblyFileName = assemblyFilePath.Split(pathSplits, StringSplitOptions.RemoveEmptyEntries).Last();
+                    if (Config.DiscoveryAssemblyNameStartsWiths.Length > 0 && !Config.DiscoveryAssemblyNameStartsWiths.Any(x => assemblyFileName.StartsWith(x)))
                         continue;
+
+                    var assemblyName = AssemblyName.GetAssemblyName(assemblyFilePath);
 
                     if (loadedAssemblies.Contains(assemblyName.FullName))
                         continue;

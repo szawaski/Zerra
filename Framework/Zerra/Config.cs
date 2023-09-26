@@ -34,19 +34,20 @@ namespace Zerra
         internal static string[] DiscoveryAssemblyNameStartsWiths;
 
         private static readonly Assembly entryAssembly;
-        private static readonly Assembly executingAssembly;
         private static readonly string entryAssemblyName;
         private static readonly string entryNameSpace;
         private static readonly string frameworkNameSpace;
+        private static readonly string executingAssemblyPath;
         static Config()
         {
             entryAssembly = Assembly.GetEntryAssembly();
-            executingAssembly = Assembly.GetExecutingAssembly();
+            var executingAssembly = Assembly.GetExecutingAssembly();
 
             entryAssemblyName = entryAssembly?.GetName().Name;
 
             entryNameSpace = entryAssemblyName?.Split('.')[0] + '.';
             frameworkNameSpace = executingAssembly.GetName().Name.Split('.')[0] + '.';
+            executingAssemblyPath = Path.GetDirectoryName(executingAssembly.Location);
 
             DiscoveryAssemblyNameStartsWiths = entryNameSpace != null ? (new string[] { entryNameSpace, frameworkNameSpace }) : (new string[] { frameworkNameSpace });
             discoveryStarted = false;
@@ -176,43 +177,47 @@ namespace Zerra
 
         public static string GetEnvironmentFilePath(string fileName)
         {
-            var executingAssemblyPath = Path.GetDirectoryName(executingAssembly.Location);
-            var filePath = $"{executingAssemblyPath}/{fileName}";
+            var filePath = $"{executingAssemblyPath}{Path.DirectorySeparatorChar}{fileName}";
             if (File.Exists(filePath))
                 return filePath;
 
-            filePath = $"{Environment.CurrentDirectory}/{fileName}";
+            filePath = $"{Environment.CurrentDirectory}{Path.DirectorySeparatorChar}{fileName}";
             if (Directory.Exists(filePath))
                 return filePath;
             return null;
         }
-        public static IReadOnlyCollection<string> GetEnvironmentFilesBySuffix(string fileSuffix)
+        public static IEnumerable<string> GetEnvironmentFilesBySuffix(string fileSuffix)
         {
-            var files = new List<string>();
-
             var searchPattern = $"*{fileSuffix}";
-
-            var executingAssemblyPath = Path.GetDirectoryName(executingAssembly.Location);
-            var executingAssemblyPathFiles = Directory.GetFiles(executingAssemblyPath, searchPattern);
-            files.AddRange(executingAssemblyPathFiles);
 
             if (Environment.CurrentDirectory != executingAssemblyPath)
             {
-                var currentDirectoryFiles = Directory.GetFiles(Environment.CurrentDirectory, searchPattern);
-                files.AddRange(currentDirectoryFiles);
-            }
+                var files = new List<string>();
+                var executingAssemblyPathFiles = Directory.GetFiles(executingAssemblyPath, searchPattern);
+                files.AddRange(executingAssemblyPathFiles);
 
-            return files;
+                if (Environment.CurrentDirectory != executingAssemblyPath)
+                {
+                    var currentDirectoryFiles = Directory.GetFiles(Environment.CurrentDirectory, searchPattern);
+                    files.AddRange(currentDirectoryFiles);
+                }
+
+                return files;
+            }
+            else
+            {
+                var executingAssemblyPathFiles = Directory.GetFiles(executingAssemblyPath, searchPattern);
+                return executingAssemblyPathFiles;
+            }
         }
 
         public static string GetEnvironmentDirectory(string directoryName)
         {
-            var executingAssemblyPath = Path.GetDirectoryName(executingAssembly.Location);
-            var directoryPath = $"{executingAssemblyPath}/{directoryName}";
+            var directoryPath = $"{executingAssemblyPath}{Path.DirectorySeparatorChar}{directoryName}";
             if (Directory.Exists(directoryPath))
                 return directoryPath;
 
-            directoryPath = $"{Environment.CurrentDirectory}/{directoryPath}";
+            directoryPath = $"{Environment.CurrentDirectory}{Path.DirectorySeparatorChar}{directoryPath}";
             if (Directory.Exists(directoryPath))
                 return directoryPath;
             return null;

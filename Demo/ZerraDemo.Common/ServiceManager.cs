@@ -1,7 +1,9 @@
-﻿using Zerra;
+﻿using System.Diagnostics;
+using Zerra;
 using Zerra.CQRS;
 using Zerra.CQRS.RabbitMQ;
 using Zerra.CQRS.Settings;
+using Zerra.Logging;
 using Zerra.Logger;
 
 namespace ZerraDemo.Common
@@ -10,6 +12,7 @@ namespace ZerraDemo.Common
     {
         public static void StartServices(int? receiveCountBeforeExit = null)
         {
+            var timer = Stopwatch.StartNew();
             Bus.ReceiveCountBeforeExit = receiveCountBeforeExit;
 
             Bus.AddLogger(new BusLoggingProvider());
@@ -59,6 +62,9 @@ namespace ZerraDemo.Common
             //Option3B: Enable this to use the relay/loadbalancer
             //var relayRegister = new RelayRegister(serviceSettings.RelayUrl, serviceSettings.RelayKey);
             //Bus.StartServices(settingsName, serviceSettings, serviceCreator, relayRegister);
+
+            timer.Stop();
+            _ = Log.InfoAsync($"Startup Time {timer.ElapsedMilliseconds}ms");
         }
     }
 }
