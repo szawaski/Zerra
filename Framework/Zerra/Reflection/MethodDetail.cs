@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace Zerra.Reflection
@@ -13,7 +14,7 @@ namespace Zerra.Reflection
     public sealed class MethodDetail
     {
         public MethodInfo MethodInfo { get; private set; }
-        public string Name { get; private set; }
+        public string Name => MethodInfo.Name;
 
         private ParameterInfo[] parameterInfos = null;
         public IReadOnlyList<ParameterInfo> ParametersInfo
@@ -60,8 +61,8 @@ namespace Zerra.Reflection
                     {
                         if (!callerLoaded)
                         {
-                            LoadCaller();
                             callerLoaded = true;
+                            LoadCaller();
                         }
                     }
                 }
@@ -78,44 +79,16 @@ namespace Zerra.Reflection
                     {
                         if (!callerLoaded)
                         {
-                            LoadCaller();
                             callerLoaded = true;
+                            LoadCaller();
+                         
                         }
                     }
                 }
                 return this.callerAsync;
             }
         }
-
-        private TypeDetail returnType = null;
-        public TypeDetail ReturnType
-        {
-            get
-            {
-                if (returnType == null)
-                {
-                    lock (locker)
-                    {
-                        returnType ??= TypeAnalyzer.GetTypeDetail(MethodInfo.ReturnType);
-                    }
-                }
-                return returnType;
-            }
-        }
-
-        public override string ToString()
-        {
-            return $"{Name}({(String.Join(", ", ParametersInfo.Select(x => $"{x.ParameterType.Name} {x.Name}").ToArray()))})";
-        }
-
-        private readonly object locker;
-        internal MethodDetail(MethodInfo method, object locker)
-        {
-            this.locker = locker;
-            this.MethodInfo = method;
-            this.Name = method.Name;
-        }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LoadCaller()
         {
 #if NETSTANDARD2_0
@@ -145,6 +118,34 @@ namespace Zerra.Reflection
                     }
                 };
             }
+        }
+
+        private TypeDetail returnType = null;
+        public TypeDetail ReturnType
+        {
+            get
+            {
+                if (returnType == null)
+                {
+                    lock (locker)
+                    {
+                        returnType ??= TypeAnalyzer.GetTypeDetail(MethodInfo.ReturnType);
+                    }
+                }
+                return returnType;
+            }
+        }
+
+        public override string ToString()
+        {
+            return $"{Name}({(String.Join(", ", ParametersInfo.Select(x => $"{x.ParameterType.Name} {x.Name}").ToArray()))})";
+        }
+
+        private readonly object locker;
+        internal MethodDetail(MethodInfo method, object locker)
+        {
+            this.locker = locker;
+            this.MethodInfo = method;
         }
     }
 }

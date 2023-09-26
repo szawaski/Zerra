@@ -12,7 +12,7 @@ namespace Zerra.Reflection
     public sealed class ConstructorDetail
     {
         public ConstructorInfo ConstructorInfo { get; private set; }
-        public string Name { get; private set; }
+        public string Name => ConstructorInfo.Name;
 
         private ParameterInfo[] parameterInfos = null;
         public IReadOnlyList<ParameterInfo> ParametersInfo
@@ -80,7 +80,6 @@ namespace Zerra.Reflection
         {
             this.locker = locker;
             this.ConstructorInfo = constructor;
-            this.Name = constructor.Name;
         }
     }
 }

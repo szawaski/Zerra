@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Zerra.Collections;
 
 namespace Zerra.Reflection
@@ -27,36 +28,398 @@ namespace Zerra.Reflection
         private static readonly Type keyValuePairType = typeof(KeyValuePair<,>);
 
         public Type Type { get; private set; }
+        public bool IsNullable { get; private set; }
         public CoreType? CoreType { get; private set; }
         public SpecialType? SpecialType { get; private set; }
-        public IReadOnlyList<Type> InnerTypes { get; private set; }
-        public bool IsIEnumerable { get; private set; }
-        public bool IsIEnumerableGeneric { get; private set; }
-        public Type IEnumerableGenericInnerType { get; private set; }
-        public bool IsICollection { get; private set; }
-        public bool IsICollectionGeneric { get; private set; }
-        public bool IsIList { get; private set; }
-        public bool IsISet { get; private set; }
-        public bool IsNullable { get; private set; }
-        public bool IsTask { get; private set; }
-        public bool IsGraphLocalProperty { get; private set; }
-        public CoreType? EnumUnderlyingType { get; private set; }
-        public IReadOnlyList<Type> Interfaces { get; private set; }
-        public IReadOnlyList<Type> BaseTypes { get; private set; }
-        public IReadOnlyList<MemberDetail> MemberDetails { get; private set; }
-        public IReadOnlyList<MethodDetail> MethodDetails { get; private set; }
-        public IReadOnlyList<ConstructorDetail> ConstructorDetails { get; private set; }
-        public IReadOnlyList<Attribute> Attributes { get; private set; }
 
-        private IDictionary<string, MemberDetail> membersByName;
+        private Type[] innerTypes;
+        public IReadOnlyList<Type> InnerTypes
+        {
+            get
+            {
+                if (innerTypes == null)
+                {
+                    lock (locker)
+                    {
+                        if (innerTypes == null)
+                        {
+                            if (Type.IsGenericType)
+                                innerTypes = Type.GetGenericArguments();
+                            else if (Type.IsArray)
+                                innerTypes = new Type[] { Type.GetElementType() };
+                            else
+                                innerTypes = Type.EmptyTypes;
+
+                            if (TypeLookup.SpecialTypeLookup(Type, out var specialTypeLookup))
+                            {
+                                if (specialTypeLookup == Reflection.SpecialType.Dictionary)
+                                {
+                                    var innerType = TypeAnalyzer.GetGenericType(keyValuePairType, (Type[])this.InnerTypes);
+                                    innerTypes = new Type[] { innerType };
+                                }
+                            }
+                        }
+                    }
+                }
+                return innerTypes;
+            }
+        }
+
+        private bool? isTask;
+        public bool IsTask
+        {
+            get
+            {
+                if (!isTask.HasValue)
+                {
+                    lock (locker)
+                    {
+                        if (!isTask.HasValue)
+                        {
+                            if (TypeLookup.SpecialTypeLookup(Type, out var specialTypeLookup))
+                                isTask = specialTypeLookup == Reflection.SpecialType.Task;
+                            else
+                                isTask = false;
+                        }
+                    }
+                }
+                return isTask.Value;
+            }
+        }
+
+        private bool enumUnderlyingTypeLoaded = false;
+        private CoreType? enumUnderlyingType;
+        public CoreType? EnumUnderlyingType
+        {
+            get
+            {
+                if (!enumUnderlyingTypeLoaded)
+                {
+                    lock (locker)
+                    {
+                        if (!enumUnderlyingTypeLoaded)
+                        {
+                            enumUnderlyingTypeLoaded = true;
+                            if (Type.IsEnum)
+                            {
+                                var enumEnderlyingType = Enum.GetUnderlyingType(this.Type);
+                                if (!TypeLookup.CoreTypeLookup(enumEnderlyingType, out var enumCoreTypeLookup))
+                                    throw new NotImplementedException("Should not happen");
+                                enumUnderlyingType = enumCoreTypeLookup;
+                            }
+                            else if (this.IsNullable && this.InnerTypes[0].IsEnum)
+                            {
+                                var enumEnderlyingType = Enum.GetUnderlyingType(this.InnerTypes[0]);
+                                if (!TypeLookup.CoreTypeLookup(enumEnderlyingType, out var enumCoreTypeLookup))
+                                    throw new NotImplementedException("Should not happen");
+                                enumCoreTypeLookup = enumCoreTypeLookup switch
+                                {
+                                    Reflection.CoreType.Byte => Reflection.CoreType.ByteNullable,
+                                    Reflection.CoreType.SByte => Reflection.CoreType.SByteNullable,
+                                    Reflection.CoreType.Int16 => Reflection.CoreType.Int16Nullable,
+                                    Reflection.CoreType.UInt16 => Reflection.CoreType.UInt16Nullable,
+                                    Reflection.CoreType.Int32 => Reflection.CoreType.Int32Nullable,
+                                    Reflection.CoreType.UInt32 => Reflection.CoreType.UInt32Nullable,
+                                    Reflection.CoreType.Int64 => Reflection.CoreType.Int64Nullable,
+                                    Reflection.CoreType.UInt64 => Reflection.CoreType.UInt64Nullable,
+                                    _ => throw new NotImplementedException(),
+                                };
+                                enumUnderlyingType = enumCoreTypeLookup;
+                            }
+                        }
+                    }
+                }
+                return enumUnderlyingType;
+            }
+        }
+
+        private bool? isGraphLocalProperty;
+        public bool IsGraphLocalProperty
+        {
+            get
+            {
+                if (!isGraphLocalProperty.HasValue)
+                {
+                    lock (locker)
+                    {
+                        if (!isGraphLocalProperty.HasValue)
+                        {
+                            isGraphLocalProperty = this.CoreType.HasValue || this.EnumUnderlyingType.HasValue || this.SpecialType.HasValue || this.Type.IsArray || (this.IsNullable && this.InnerTypes[0].IsArray);
+                        }
+                    }
+                }
+                return isGraphLocalProperty.Value;
+            }
+        }
+
+        private Type[] baseTypes = null;
+        public IReadOnlyList<Type> BaseTypes
+        {
+            get
+            {
+                if (baseTypes == null)
+                {
+                    lock (locker)
+                    {
+                        if (baseTypes == null)
+                        {
+                            var baseType = Type;
+                            var items = new List<Type>();
+                            while (baseType != null)
+                            {
+                                items.Add(baseType);
+                                baseType = baseType.BaseType;
+                            }
+                            baseTypes = items.ToArray();
+                        }
+                    }
+                }
+                return baseTypes;
+            }
+        }
+
+        private Type[] interfaces = null;
+        public IReadOnlyList<Type> Interfaces
+        {
+            get
+            {
+                if (interfaces == null)
+                {
+                    lock (locker)
+                    {
+                        interfaces ??= Type.GetInterfaces();
+                    }
+                }
+                return interfaces;
+            }
+        }
+
+        private bool isIEnumerable;
+        private bool isICollection;
+        private bool isICollectionGeneric;
+        private bool isIList;
+        private bool isISet;
+        public bool IsIEnumerable
+        {
+            get
+            {
+                LoadIsInterface();
+                return isIEnumerable;
+            }
+        }
+        public bool IsICollection
+        {
+            get
+            {
+                LoadIsInterface();
+                return isICollection;
+            }
+        }
+        public bool IsICollectionGeneric
+        {
+            get
+            {
+                LoadIsInterface();
+                return isICollectionGeneric;
+            }
+        }
+        public bool IsIList
+        {
+            get
+            {
+                LoadIsInterface();
+                return isIList;
+            }
+        }
+        public bool IsISet
+        {
+            get
+            {
+                LoadIsInterface();
+                return isISet;
+            }
+        }
+        private bool isInterfaceLoaded = false;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void LoadIsInterface()
+        {
+            if (!isInterfaceLoaded)
+            {
+                lock (locker)
+                {
+                    if (!isInterfaceLoaded)
+                    {
+                        isInterfaceLoaded = true;
+                        var isCoreType = TypeLookup.CoreTypes.Contains(Type);
+                        isIEnumerable = !isCoreType && (Type.IsArray || Type.Name == enumberableTypeName || Interfaces.Select(x => x.Name).Contains(enumberableTypeName));
+                        isICollection = !isCoreType && (Type.Name == collectionTypeName || Interfaces.Select(x => x.Name).Contains(collectionTypeName));
+                        isICollectionGeneric = !isCoreType && (Type.Name == collectionGenericTypeName || Interfaces.Select(x => x.Name).Contains(collectionGenericTypeName));
+                        isIList = !isCoreType && (Type.Name == listTypeName || Type.Name == listGenericTypeName || Interfaces.Select(x => x.Name).Contains(listTypeName) || Interfaces.Select(x => x.Name).Contains(listGenericTypeName));
+                        isISet = !isCoreType && (Type.Name == setGenericTypeName || Interfaces.Select(x => x.Name).Contains(setGenericTypeName));
+                    }
+                }
+            }
+        }
+
+        private MemberDetail[] memberDetails = null;
+        public IReadOnlyList<MemberDetail> MemberDetails
+        {
+            get
+            {
+                if (memberDetails == null)
+                {
+                    lock (locker)
+                    {
+                        if (memberDetails == null)
+                        {
+                            var items = new List<MemberDetail>();
+                            if (!Type.IsGenericTypeDefinition)
+                            {
+                                var properties = Type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                                var fields = Type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                                if (Type.IsInterface)
+                                {
+                                    foreach (var i in Interfaces)
+                                    {
+                                        var iProperties = i.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                                        var iFields = i.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                                        properties = properties.Concat(iProperties.Where(x => !properties.Select(y => y.Name).Contains(x.Name))).ToArray();
+                                        fields = fields.Concat(iFields.Where(x => !fields.Select(y => y.Name).Contains(x.Name))).ToArray();
+                                    }
+                                }
+                                foreach (var property in properties)
+                                {
+                                    if (property.GetIndexParameters().Length > 0)
+                                        continue;
+                                    MemberDetail backingMember = null;
+
+                                    //<{property.Name}>k__BackingField
+                                    //<{property.Name}>i__Field
+                                    var backingName = $"<{property.Name}>";
+                                    var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
+                                    if (backingField != null)
+                                        backingMember = new MemberDetail(backingField, null, locker);
+
+                                    items.Add(new MemberDetail(property, backingMember, locker));
+                                }
+                                foreach (var field in fields.Where(x => !items.Any(y => y.BackingFieldDetail?.MemberInfo == x)))
+                                {
+                                    items.Add(new MemberDetail(field, null, locker));
+                                }
+                            }
+
+                            memberDetails = items.ToArray();
+                        }
+                    }
+                }
+                return memberDetails;
+            }
+        }
+
+        private MethodDetail[] methodDetails = null;
+        public IReadOnlyList<MethodDetail> MethodDetails
+        {
+            get
+            {
+                if (methodDetails == null)
+                {
+                    lock (locker)
+                    {
+                        if (methodDetails == null)
+                        {
+                            var items = new List<MethodDetail>();
+                            if (!Type.IsGenericTypeDefinition)
+                            {
+                                var methods = Type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                                foreach (var method in methods)
+                                    items.Add(new MethodDetail(method, locker));
+                                if (Type.IsInterface)
+                                {
+                                    foreach (var i in Interfaces)
+                                    {
+                                        var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                                        foreach (var method in iMethods)
+                                            items.Add(new MethodDetail(method, locker));
+                                    }
+                                }
+                            }
+                            methodDetails = items.ToArray();
+                        }
+                    }
+                }
+                return methodDetails;
+            }
+        }
+
+        private ConstructorDetail[] constructorDetails = null;
+        public IReadOnlyList<ConstructorDetail> ConstructorDetails
+        {
+            get
+            {
+                if (constructorDetails == null)
+                {
+                    lock (locker)
+                    {
+                        if (constructorDetails == null)
+                        {
+                            if (!Type.IsGenericTypeDefinition)
+                            {
+                                var constructors = Type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                                var items = new ConstructorDetail[constructors.Length];
+                                for (var i = 0; i < items.Length; i++)
+                                    items[i] = new ConstructorDetail(constructors[i], locker);
+                                constructorDetails = items;
+                            }
+                            else
+                            {
+                                constructorDetails = Array.Empty<ConstructorDetail>();
+                            }
+                        }
+                    }
+                }
+                return constructorDetails;
+            }
+        }
+
+        private Attribute[] attributes = null;
+        public IReadOnlyList<Attribute> Attributes
+        {
+            get
+            {
+                if (attributes == null)
+                {
+                    lock (locker)
+                    {
+                        attributes ??= Type.GetCustomAttributes().ToArray();
+                    }
+                }
+                return attributes;
+            }
+        }
+
+        private IDictionary<string, MemberDetail> membersByName = null;
         public MemberDetail GetMember(string name)
         {
+            if (membersByName == null)
+            {
+                lock (locker)
+                {
+                    membersByName ??= this.MemberDetails.ToDictionary(x => x.Name);
+                }
+            }
             if (!this.membersByName.TryGetValue(name, out var member))
                 throw new Exception($"{Type.Name} does not contain member {name}");
             return member;
         }
         public bool TryGetMember(string name, out MemberDetail member)
         {
+            if (membersByName == null)
+            {
+                lock (locker)
+                {
+                    membersByName ??= this.MemberDetails.ToDictionary(x => x.Name);
+                }
+            }
             return this.membersByName.TryGetValue(name, out member);
         }
 
@@ -67,8 +430,7 @@ namespace Zerra.Reflection
             {
                 lock (locker)
                 {
-                    if (membersByNameLower != null)
-                        this.membersByNameLower = this.MemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First());
+                    membersByNameLower ??= this.MemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First());
                 }
             }
             if (!this.membersByNameLower.TryGetValue(name.ToLower(), out var member))
@@ -81,8 +443,7 @@ namespace Zerra.Reflection
             {
                 lock (locker)
                 {
-                    if (membersByNameLower == null)
-                        this.membersByNameLower = this.MemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First());
+                    membersByNameLower ??= this.MemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First());
                 }
             }
             return this.membersByNameLower.TryGetValue(name.ToLower(), out member);
@@ -252,6 +613,56 @@ namespace Zerra.Reflection
             }
         }
 
+        private bool isIEnumerableGeneric;
+        private Type iEnumerableGenericInnerType = null;
+        public bool IsIEnumerableGeneric
+        {
+            get
+            {
+                if (!IsIEnumerable)
+                    return false;
+                LoadIEnumerableGeneric();
+                return isIEnumerableGeneric;
+            }
+        }
+        public Type IEnumerableGenericInnerType
+        {
+            get
+            {
+                if (!IsIEnumerable)
+                    return null;
+                LoadIEnumerableGeneric();
+                return iEnumerableGenericInnerType;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void LoadIEnumerableGeneric()
+        {
+            if (iEnumerableGenericInnerType == null)
+            {
+                lock (locker)
+                {
+                    if (iEnumerableGenericInnerType == null)
+                    {
+                        if (Type.Name == enumberableGenericTypeName)
+                        {
+                            isIEnumerableGeneric = true;
+                            iEnumerableGenericInnerType = Type.GetGenericArguments()[0];
+                        }
+                        else
+                        {
+                            var enumerableGeneric = Interfaces.Where(x => x.Name == enumberableGenericTypeName).ToArray();
+                            if (enumerableGeneric.Length == 1)
+                            {
+                                isIEnumerableGeneric = true;
+                                iEnumerableGenericInnerType = enumerableGeneric[0].GetGenericArguments()[0];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         private TypeDetail iEnumerableGenericInnerTypeDetails = null;
         public TypeDetail IEnumerableGenericInnerTypeDetails
         {
@@ -270,9 +681,63 @@ namespace Zerra.Reflection
             }
         }
 
-        public Func<object, object> TaskResultGetter { get; private set; }
+        Func<object, object> taskResultGetter = null;
+        public Func<object, object> TaskResultGetter
+        {
+            get
+            {
+                if (this.IsTask && this.Type.IsGenericType)
+                {
+                    if (taskResultGetter == null)
+                    {
+                        lock (locker)
+                        {
+                            taskResultGetter ??= GetMember("Result").Getter;
+                        }
+                    }
+                    return taskResultGetter;
+                }
+                return null;
+            }
+        }
 
-        public Func<object> Creator { get; private set; }
+        private bool creatorLoaded = false;
+        private Func<object> creator = null;
+        public Func<object> Creator
+        {
+            get
+            {
+                if (!creatorLoaded)
+                {
+                    lock (locker)
+                    {
+                        if (!creatorLoaded)
+                        {
+                            creatorLoaded = true;
+                            if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
+                            {
+                                var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParametersInfo.Count == 0);
+                                if (emptyConstructor != null)
+                                {
+                                    creator = () => { return emptyConstructor.Creator(null); };
+                                }
+                                else if (Type.IsValueType && Type.Name != "Void")
+                                {
+                                    var constantExpression = Expression.Convert(Expression.Default(Type), typeof(object));
+                                    var lambda = Expression.Lambda<Func<object>>(constantExpression).Compile();
+                                    creator = lambda;
+                                }
+                                else if (Type == typeof(string))
+                                {
+                                    creator = () => { return String.Empty; };
+                                }
+                            }
+                        }
+                    }
+                }
+                return creator;
+            }
+        }
 
         public override string ToString()
         {
@@ -283,199 +748,13 @@ namespace Zerra.Reflection
         {
             this.Type = type;
 
-            this.Interfaces = type.GetInterfaces();
-
-            var baseType = type;
-            var baseTypes = new List<Type>();
-            while (baseType != null)
-            {
-                baseTypes.Add(baseType);
-                baseType = baseType.BaseType;
-            }
-            this.BaseTypes = baseTypes;
-
             this.IsNullable = type.Name == nullaleTypeName;
-
-            this.IsIEnumerable = !TypeLookup.CoreTypes.Contains(type) && (type.IsArray || type.Name == enumberableTypeName || Interfaces.Select(x => x.Name).Contains(enumberableTypeName));
-            this.IsICollection = !TypeLookup.CoreTypes.Contains(type) && (type.Name == collectionTypeName || Interfaces.Select(x => x.Name).Contains(collectionTypeName));
-            this.IsICollectionGeneric = !TypeLookup.CoreTypes.Contains(type) && (type.Name == collectionGenericTypeName || Interfaces.Select(x => x.Name).Contains(collectionGenericTypeName));
-            this.IsIList = !TypeLookup.CoreTypes.Contains(type) && (type.Name == listTypeName || type.Name == listGenericTypeName || Interfaces.Select(x => x.Name).Contains(listTypeName) || Interfaces.Select(x => x.Name).Contains(listGenericTypeName));
-            this.IsISet = !TypeLookup.CoreTypes.Contains(type) && (type.Name == setGenericTypeName || Interfaces.Select(x => x.Name).Contains(setGenericTypeName));
-
-            if (this.IsIEnumerable)
-            {
-                if (type.Name == enumberableGenericTypeName)
-                {
-                    this.IsIEnumerableGeneric = true;
-                    this.IEnumerableGenericInnerType = type.GetGenericArguments()[0];
-                }
-                else
-                {
-                    var enumerableGeneric = Interfaces.Where(x => x.Name == enumberableGenericTypeName).ToArray();
-                    if (enumerableGeneric.Length == 1)
-                    {
-                        this.IsIEnumerableGeneric = true;
-                        this.IEnumerableGenericInnerType = enumerableGeneric[0].GetGenericArguments()[0];
-                    }
-                }
-            }
-
-            if (type.IsGenericType)
-                this.InnerTypes = type.GetGenericArguments();
-            else if (type.IsArray)
-                this.InnerTypes = new Type[] { type.GetElementType() };
-            else
-                this.InnerTypes = Type.EmptyTypes;
 
             if (TypeLookup.CoreTypeLookup(type, out var coreTypeLookup))
                 this.CoreType = coreTypeLookup;
 
-            if (TypeLookup.SpecialTypeLookup(type, out var specialTypeLookup))
-            {
+            if (TypeLookup.SpecialTypeLookup(Type, out var specialTypeLookup))
                 this.SpecialType = specialTypeLookup;
-                switch (specialTypeLookup)
-                {
-                    case Reflection.SpecialType.Task:
-                        this.IsTask = true;
-                        break;
-                    case Reflection.SpecialType.Dictionary:
-                        var innerType = TypeAnalyzer.GetGenericType(keyValuePairType, (Type[])this.InnerTypes);
-                        this.InnerTypes = new Type[] { innerType };
-                        break;
-                }
-            }
-
-            if (type.IsEnum)
-            {
-                var enumEnderlyingType = Enum.GetUnderlyingType(this.Type);
-                if (!TypeLookup.CoreTypeLookup(enumEnderlyingType, out var enumCoreTypeLookup))
-                    throw new NotImplementedException("Should not happen");
-                this.EnumUnderlyingType = enumCoreTypeLookup;
-            }
-            else if (this.IsNullable && this.InnerTypes[0].IsEnum)
-            {
-                var enumEnderlyingType = Enum.GetUnderlyingType(this.InnerTypes[0]);
-                if (!TypeLookup.CoreTypeLookup(enumEnderlyingType, out var enumCoreTypeLookup))
-                    throw new NotImplementedException("Should not happen");
-                enumCoreTypeLookup = enumCoreTypeLookup switch
-                {
-                    Reflection.CoreType.Byte => Reflection.CoreType.ByteNullable,
-                    Reflection.CoreType.SByte => Reflection.CoreType.SByteNullable,
-                    Reflection.CoreType.Int16 => Reflection.CoreType.Int16Nullable,
-                    Reflection.CoreType.UInt16 => Reflection.CoreType.UInt16Nullable,
-                    Reflection.CoreType.Int32 => Reflection.CoreType.Int32Nullable,
-                    Reflection.CoreType.UInt32 => Reflection.CoreType.UInt32Nullable,
-                    Reflection.CoreType.Int64 => Reflection.CoreType.Int64Nullable,
-                    Reflection.CoreType.UInt64 => Reflection.CoreType.UInt64Nullable,
-                    _ => throw new NotImplementedException(),
-                };
-                this.EnumUnderlyingType = enumCoreTypeLookup;
-            }
-
-            this.IsGraphLocalProperty = this.CoreType.HasValue || this.EnumUnderlyingType.HasValue || this.SpecialType.HasValue || this.Type.IsArray || (this.IsNullable && this.InnerTypes[0].IsArray);
-
-            var methodDetails = new List<MethodDetail>();
-            if (!type.IsGenericTypeDefinition)
-            {
-                var methods = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                foreach (var method in methods)
-                    methodDetails.Add(new MethodDetail(method, locker));
-                if (type.IsInterface)
-                {
-                    foreach (var i in Interfaces)
-                    {
-                        var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                        foreach (var method in iMethods)
-                            methodDetails.Add(new MethodDetail(method, locker));
-                    }
-                }
-            }
-            this.MethodDetails = methodDetails.ToArray();
-
-            var constructorDetails = new List<ConstructorDetail>();
-            if (!type.IsGenericTypeDefinition)
-            {
-                var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                foreach (var constructor in constructors)
-                    constructorDetails.Add(new ConstructorDetail(constructor, locker));
-            }
-            this.ConstructorDetails = constructorDetails.ToArray();
-
-            if (!type.IsAbstract && !type.IsGenericTypeDefinition)
-            {
-                var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParametersInfo.Count == 0);
-                if (emptyConstructor != null)
-                {
-                    this.Creator = () => { return emptyConstructor.Creator(null); };
-                }
-                else if (type.IsValueType && type.Name != "Void")
-                {
-                    var constantExpression = Expression.Convert(Expression.Default(type), typeof(object));
-                    var lambda = Expression.Lambda<Func<object>>(constantExpression).Compile();
-                    this.Creator = lambda;
-                }
-                else if (type == typeof(string))
-                {
-                    this.Creator = () => { return String.Empty; };
-                }
-            }
-
-            var test = type.Name;
-            this.Attributes = type.GetCustomAttributes().ToArray();
-
-            //if (!this.CoreType.HasValue)
-            //{
-            var typeMembers = new List<MemberDetail>();
-            if (!type.IsGenericTypeDefinition)
-            {
-                var properties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                if (type.IsInterface)
-                {
-                    foreach (var i in Interfaces)
-                    {
-                        var iProperties = i.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                        var iFields = i.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                        properties = properties.Concat(iProperties.Where(x => !properties.Select(y => y.Name).Contains(x.Name))).ToArray();
-                        fields = fields.Concat(iFields.Where(x => !fields.Select(y => y.Name).Contains(x.Name))).ToArray();
-                    }
-                }
-                foreach (var property in properties)
-                {
-                    if (property.GetIndexParameters().Length > 0)
-                        continue;
-                    MemberDetail backingMember = null;
-
-                    //<{property.Name}>k__BackingField
-                    //<{property.Name}>i__Field
-                    var backingName = $"<{property.Name}>";
-                    var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
-                    if (backingField != null)
-                        backingMember = new MemberDetail(backingField, null, locker);
-
-                    typeMembers.Add(new MemberDetail(property, backingMember, locker));
-                }
-                foreach (var field in fields.Where(x => !typeMembers.Any(y => y.BackingFieldDetail?.MemberInfo == x)))
-                {
-                    typeMembers.Add(new MemberDetail(field, null, locker));
-                }
-            }
-
-            this.MemberDetails = typeMembers.ToArray();
-            this.membersByName = this.MemberDetails.ToDictionary(x => x.Name);
-            //}
-            //else
-            //{
-            //    var typeMembers = Array.Empty<MemberDetail>();
-            //    this.MemberDetails = typeMembers;
-            //    this.membersByName = this.MemberDetails.ToDictionary(x => x.Name);
-            //}
-
-            if (this.IsTask && this.Type.IsGenericType)
-            {
-                if (this.membersByName.TryGetValue("Result", out var resultMember))
-                    this.TaskResultGetter = resultMember.Getter;
-            }
         }
 
         private static bool IsSerializableType(TypeDetail typeDetail)
