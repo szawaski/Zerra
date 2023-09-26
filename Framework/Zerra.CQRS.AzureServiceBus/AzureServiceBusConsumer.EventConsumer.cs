@@ -71,8 +71,8 @@ namespace Zerra.CQRS.AzureServiceBus
                         {
                             await throttle.WaitAsync();
 
-                            if (!receiveCounter.BeginReceived())
-                                continue; //fill throttle, don't receive anymore, externally will be shutdown
+                            if (!receiveCounter.BeginReceive())
+                                continue; //don't receive anymore, externally will be shutdown, fill throttle
 
                             var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
                             if (serviceBusMessage == null)

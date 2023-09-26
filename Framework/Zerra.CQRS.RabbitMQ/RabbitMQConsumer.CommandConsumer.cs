@@ -72,6 +72,7 @@ namespace Zerra.CQRS.RabbitMQ
                         throw new Exception("Exchange already open");
 
                     this.channel = connection.CreateModel();
+                    this.channel.BasicQos(0, (ushort)maxConcurrent, false);
                     this.channel.ExchangeDeclare(this.topic, ExchangeType.Direct);
 
                     var queueName = this.channel.QueueDeclare().QueueName;
@@ -83,7 +84,10 @@ namespace Zerra.CQRS.RabbitMQ
                     {
                         await throttle.WaitAsync();
 
-                        _ = receiveCounter.BeginReceived();
+                        if (!receiveCounter.BeginReceive())
+                            return; //don't receive anymore, externally will be shutdown
+
+                        this.channel.BasicAck(e.DeliveryTag, false);
 
                         var awaitResponse = !String.IsNullOrWhiteSpace(e.BasicProperties.ReplyTo);
 
@@ -164,7 +168,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                     };
 
-                    _ = this.channel.BasicConsume(queueName, true, consumer);
+                    _ = this.channel.BasicConsume(queueName, false, consumer);
                 }
                 catch (Exception ex)
                 {

@@ -79,8 +79,8 @@ namespace Zerra.CQRS.Kafka
                             {
                                 await throttle.WaitAsync();
 
-                                if (!receiveCounter.BeginReceived())
-                                    continue; //fill throttle, don't receive anymore, externally will be shutdown
+                                if (!receiveCounter.BeginReceive())
+                                    continue; //don't receive anymore, externally will be shutdown, fill throttle
 
                                 var consumerResult = consumer.Consume(canceller.Token);
                                 consumer.Commit(consumerResult);

@@ -124,7 +124,7 @@ namespace Zerra.CQRS.AzureEventHub
 
                         await throttle.WaitAsync();
 
-                        _ = receiveCounter.BeginReceived();
+                        _ = receiveCounter.BeginReceive();
 
                         _ = HandleEvent(throttle, typeName, partitionEvent);
                     }

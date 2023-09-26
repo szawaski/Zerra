@@ -31,7 +31,7 @@ namespace Zerra.CQRS
 
         public int? MaxReceive => maxReceive;
 
-        public bool BeginReceived()
+        public bool BeginReceive()
         {
             if (!maxReceive.HasValue)
                 return true;
@@ -39,7 +39,7 @@ namespace Zerra.CQRS
             lock (locker)
             {
                 if (started == maxReceive.Value)
-                    return false; //fill throttle, don't receive anymore, externally will be shutdown (shouldn't hit this line)
+                    return false; //do not receive any more
                 started++;
             }
             return true;
@@ -59,7 +59,7 @@ namespace Zerra.CQRS
                 if (completed == maxReceive.Value)
                     processExit?.Invoke();
                 else if (throttle.CurrentCount < maxReceive.Value - started)
-                    _ = throttle.Release(); //don't release more than needed to reach maxReceive
+                    _ = throttle.Release(); //do not release more than needed to reach maxReceive
             }
         }
     }

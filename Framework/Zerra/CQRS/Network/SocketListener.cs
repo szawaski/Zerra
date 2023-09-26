@@ -66,8 +66,8 @@ namespace Zerra.CQRS.Network
                 {
                     await throttle.WaitAsync(canceller.Token);
 
-                    if (!receiveCounter.BeginReceived())
-                        continue; //fill throttle, don't receive anymore, externally will be shutdown
+                    if (!receiveCounter.BeginReceive())
+                        continue; //don't receive anymore, externally will be shutdown, fill throttle
 
                     _ = socket.BeginAccept(BeginAcceptCallback, null);
 
