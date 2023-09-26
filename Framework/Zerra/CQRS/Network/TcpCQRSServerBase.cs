@@ -27,7 +27,7 @@ namespace Zerra.CQRS.Network
         private bool disposed = false;
 
         private ReceiveCounter counter;
-        private int maxConcurrent = Environment.ProcessorCount * 8;
+        private int? maxConcurrent = null;
 
         private readonly string serviceUrl;
         public string ServiceUrl => serviceUrl;
@@ -70,7 +70,7 @@ namespace Zerra.CQRS.Network
         {
             if (interfaceTypes.Count > 0)
                 throw new Exception($"Cannot register command because this instance of {this.GetType().GetNiceName()} is already being used for queries");
-            if (maxConcurrent < this.maxConcurrent)
+            if (!this.maxConcurrent.HasValue || maxConcurrent < this.maxConcurrent.Value)
                 this.maxConcurrent = maxConcurrent;
             commandTypes.Add(type);
         }
@@ -106,7 +106,7 @@ namespace Zerra.CQRS.Network
                     var socket = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                     socket.NoDelay = true;
                     socket.Bind(endpoint);
-                    var listener = new SocketListener(socket, maxConcurrent, counter, Handle);
+                    var listener = new SocketListener(socket, maxConcurrent.Value, counter, Handle);
                     this.listeners[i] = listener;
                 }
 

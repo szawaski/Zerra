@@ -40,7 +40,7 @@ namespace Zerra.CQRS.AzureEventHub
         public string ServiceUrl => host;
 
         private ReceiveCounter receiveCounter = null;
-        private int maxConcurrent = Environment.ProcessorCount * 8;
+        private int? maxConcurrent = null;
 
         public AzureEventHubConsumer(string host, string eventHubName, SymmetricConfig symmetricConfig, string environment)
         {
@@ -95,7 +95,7 @@ namespace Zerra.CQRS.AzureEventHub
         private async Task ListeningThread()
         {
             canceller = new CancellationTokenSource();
-            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            var throttle = new SemaphoreSlim(maxConcurrent.Value, maxConcurrent.Value);
 
         retry:
 
@@ -268,7 +268,7 @@ namespace Zerra.CQRS.AzureEventHub
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
-            if (maxConcurrent < this.maxConcurrent)
+            if (!this.maxConcurrent.HasValue || maxConcurrent < this.maxConcurrent.Value)
                 this.maxConcurrent = maxConcurrent;
             commandTypes.Add(type);
         }
