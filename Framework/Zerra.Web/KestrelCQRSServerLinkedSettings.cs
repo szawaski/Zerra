@@ -15,8 +15,7 @@ namespace Zerra.Web
         public ConcurrentDictionary<Type, SemaphoreSlim> InterfaceTypes { get; private set; }
         public ConcurrentDictionary<Type, SemaphoreSlim> CommandTypes { get; private set; }
 
-        public int? MaxReceived { get; set; }
-        public Action ProcessExit { get; set; }
+        public ReceiveCounter ReceiveCounter { get; set; }
 
         public QueryHandlerDelegate ProviderHandlerAsync { get; set; }
         public HandleRemoteCommandDispatch HandlerAsync { get; set; }

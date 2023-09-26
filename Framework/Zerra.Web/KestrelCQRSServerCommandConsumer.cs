@@ -28,8 +28,9 @@ namespace Zerra.Web
 
         public void Open() { }
 
-        void ICommandConsumer.Setup(int? maxReceived, Action processExit, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(ReceiveCounter receiveCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
         {
+            settings.ReceiveCounter = receiveCounter;
             settings.HandlerAsync = handlerAsync;
             settings.HandlerAwaitAsync = handlerAwaitAsync;
         }

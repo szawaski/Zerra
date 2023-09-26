@@ -40,8 +40,7 @@ namespace Zerra.CQRS.AzureEventHub
 
         public string ServiceUrl => host;
 
-        private int? maxReceived = null;
-        private Action processExit = null;
+        private ReceiveCounter receiveCounter = null;
         private int maxConcurrent = Environment.ProcessorCount * 8;
 
         public AzureEventHubConsumer(string host, string eventHubName, SymmetricConfig symmetricConfig, string environment)
@@ -58,21 +57,19 @@ namespace Zerra.CQRS.AzureEventHub
             this.eventTypes = new();
         }
 
-        void ICommandConsumer.Setup(int? maxReceived, Action processExit, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(ReceiveCounter receiveCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
-            this.maxReceived = maxReceived;
-            this.processExit = processExit;
+            this.receiveCounter = receiveCounter;
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
         }
-        void IEventConsumer.Setup(int? maxReceived, Action processExit, HandleRemoteEventDispatch handlerAsync)
+        void IEventConsumer.Setup(ReceiveCounter receiveCounter, HandleRemoteEventDispatch handlerAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
-            this.maxReceived = maxReceived;
-            this.processExit = processExit;
+            this.receiveCounter = receiveCounter;
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -126,6 +123,9 @@ namespace Zerra.CQRS.AzureEventHub
                             continue;
 
                         await throttle.WaitAsync();
+
+                        _ = receiveCounter.BeginReceived();
+
                         _ = HandleEvent(throttle, typeName, partitionEvent);
                     }
                 }
@@ -200,14 +200,14 @@ namespace Zerra.CQRS.AzureEventHub
             }
             catch (Exception ex)
             {
+                error = ex;
                 if (!inHandlerContext)
                     _ = Log.ErrorAsync(typeName, ex);
-                error = ex;
             }
             finally
             {
                 if (!awaitResponse)
-                    throttle.Release();
+                    receiveCounter.CompleteReceive(throttle);
             }
 
             if (!awaitResponse)
@@ -239,7 +239,7 @@ namespace Zerra.CQRS.AzureEventHub
             }
             finally
             {
-                throttle.Release();
+                receiveCounter.CompleteReceive(throttle);
             }
         }
 

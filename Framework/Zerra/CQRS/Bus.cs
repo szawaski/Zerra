@@ -46,7 +46,7 @@ namespace Zerra.CQRS
         private static int maxConcurrentQueries = Environment.ProcessorCount * 8;
         private static int maxConcurrentCommands = Environment.ProcessorCount;
         private static int maxConcurrentEvents = Environment.ProcessorCount * 2;
-        private static int? receiveCountBeforeExit = null;
+        private static ReceiveCounter receiveCounter = new();
 
         public static async Task<RemoteQueryCallResponse> HandleRemoteQueryCallAsync(Type interfaceType, string methodName, string[] arguments, string source, bool isApi)
         {
@@ -872,7 +872,7 @@ namespace Zerra.CQRS
                     }
                 }
 
-                commandConsumer.Setup(receiveCountBeforeExit, ProcessExit, HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync);
+                commandConsumer.Setup(receiveCounter, HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync);
                 _ = commandConsumers.Add(commandConsumer);
                 commandConsumer.Open();
             }
@@ -933,7 +933,7 @@ namespace Zerra.CQRS
                     }
                 }
 
-                eventConsumer.Setup(receiveCountBeforeExit, ProcessExit, HandleRemoteEventDispatchAsync);
+                eventConsumer.Setup(receiveCounter, HandleRemoteEventDispatchAsync);
                 _ = eventConsumers.Add(eventConsumer);
                 eventConsumer.Open();
             }
@@ -989,7 +989,7 @@ namespace Zerra.CQRS
                     }
                 }
 
-                queryServer.Setup(receiveCountBeforeExit, ProcessExit, HandleRemoteQueryCallAsync);
+                queryServer.Setup(receiveCounter, HandleRemoteQueryCallAsync);
                 _ = queryServers.Add(queryServer);
                 queryServer.Open();
             }
@@ -1305,7 +1305,7 @@ namespace Zerra.CQRS
         }
         public static int? ReceiveCountBeforeExit
         {
-            get => receiveCountBeforeExit;
+            get => receiveCounter.MaxReceive;
             set
             {
                 setupLock.Wait();
@@ -1313,7 +1313,7 @@ namespace Zerra.CQRS
                 {
                     if (HasServices)
                         throw new InvalidOperationException($"Cannot set {nameof(ReceiveCountBeforeExit)} after services added");
-                    receiveCountBeforeExit = value;
+                    receiveCounter = new ReceiveCounter(value, ProcessExit);
                 }
                 finally
                 {
@@ -1409,7 +1409,7 @@ namespace Zerra.CQRS
                                         var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
                                         var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                         commandConsumer = serviceCreator.CreateCommandConsumer(serviceUrl, symmetricConfig);
-                                        commandConsumer.Setup(receiveCountBeforeExit, ProcessExit, HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync);
+                                        commandConsumer.Setup(receiveCounter, HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync);
                                         if (!commandConsumers.Contains(commandConsumer))
                                             _ = commandConsumers.Add(commandConsumer);
                                     }
@@ -1488,7 +1488,7 @@ namespace Zerra.CQRS
                                         var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
                                         var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                         eventConsumer = serviceCreator.CreateEventConsumer(serviceUrl, symmetricConfig);
-                                        eventConsumer.Setup(receiveCountBeforeExit, ProcessExit, HandleRemoteEventDispatchAsync);
+                                        eventConsumer.Setup(receiveCounter, HandleRemoteEventDispatchAsync);
                                         if (!eventConsumers.Contains(eventConsumer))
                                             _ = eventConsumers.Add(eventConsumer);
                                     }
@@ -1558,7 +1558,7 @@ namespace Zerra.CQRS
                                             var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
                                             var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                             queryServer = serviceCreator.CreateQueryServer(serviceUrl, symmetricConfig);
-                                            queryServer.Setup(receiveCountBeforeExit, ProcessExit, HandleRemoteQueryCallAsync);
+                                            queryServer.Setup(receiveCounter, HandleRemoteQueryCallAsync);
                                             if (!queryServers.Contains(queryServer))
                                                 _ = queryServers.Add(queryServer);
                                         }

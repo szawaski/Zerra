@@ -29,8 +29,7 @@ namespace Zerra.CQRS.Kafka
 
         public string ServiceUrl => host;
 
-        private int? maxReceived = null;
-        private Action processExit = null;
+        private ReceiveCounter receiveCounter = null;
 
         public KafkaConsumer(string host, SymmetricConfig symmetricConfig, string environment)
         {
@@ -45,21 +44,19 @@ namespace Zerra.CQRS.Kafka
             this.eventTypes = new();
         }
 
-        void ICommandConsumer.Setup(int? maxReceived, Action processExit, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(ReceiveCounter receiveCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
-            this.maxReceived = maxReceived;
-            this.processExit = processExit;
+            this.receiveCounter = receiveCounter;
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
         }
-        void IEventConsumer.Setup(int? maxReceived, Action processExit, HandleRemoteEventDispatch handlerAsync)
+        void IEventConsumer.Setup(ReceiveCounter receiveCounter, HandleRemoteEventDispatch handlerAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
-            this.maxReceived = maxReceived;
-            this.processExit = processExit;
+            this.receiveCounter = receiveCounter;
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -136,7 +133,7 @@ namespace Zerra.CQRS.Kafka
                 if (commandExchanges.ContainsKey(topic))
                     return;
                 commandTypes.Add(type);
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, maxReceived, processExit, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync));
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, receiveCounter, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync));
                 OpenExchanges();
             }
         }
@@ -154,7 +151,7 @@ namespace Zerra.CQRS.Kafka
                 if (eventExchanges.ContainsKey(topic))
                     return;
                 eventTypes.Add(type);
-                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, maxReceived, processExit, topic, symmetricConfig, environment, eventHandlerAsync));
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, receiveCounter, topic, symmetricConfig, environment, eventHandlerAsync));
                 OpenExchanges();
             }
         }

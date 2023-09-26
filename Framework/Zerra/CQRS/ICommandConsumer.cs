@@ -13,7 +13,7 @@ namespace Zerra.CQRS
         string ServiceUrl { get; }
         void RegisterCommandType(int maxConcurrent, string topic, Type type);
         IEnumerable<Type> GetCommandTypes();
-        void Setup(int? maxReceived, Action processExit, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync);
+        void Setup(ReceiveCounter receiveCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync);
         void Open();
         void Close();
     }

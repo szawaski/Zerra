@@ -20,8 +20,7 @@ namespace Zerra.CQRS.Kafka
             public bool IsOpen { get; private set; }
 
             private readonly int maxConcurrent;
-            private readonly int? maxReceive;
-            private readonly Action processExit;
+            private readonly ReceiveCounter receiveCounter;
             private readonly string topic;
             private readonly SymmetricConfig symmetricConfig;
             private readonly HandleRemoteEventDispatch handlerAsync;
@@ -31,14 +30,12 @@ namespace Zerra.CQRS.Kafka
             private int receivedCount;
             private int completedCount;
 
-            public EventConsumer(int maxConcurrent, int? maxReceive, Action processExit, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, ReceiveCounter receiveCounter, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
-                if (maxReceive.HasValue && maxReceive.Value < 1) throw new ArgumentException("cannot be less than 1", nameof(maxReceive));
 
-                this.maxConcurrent = maxReceive.HasValue ? Math.Min(maxReceive.Value, maxConcurrent) : maxConcurrent;
-                this.maxReceive = maxReceive;
-                this.processExit = processExit;
+                this.maxConcurrent = receiveCounter.MaxReceive.HasValue ? Math.Min(receiveCounter.MaxReceive.Value, maxConcurrent) : maxConcurrent;
+                this.receiveCounter = receiveCounter;
 
                 if (!String.IsNullOrWhiteSpace(environment))
                     this.topic = $"{environment}_{topic}".Truncate(KafkaCommon.TopicMaxLength);
@@ -82,15 +79,8 @@ namespace Zerra.CQRS.Kafka
                             {
                                 await throttle.WaitAsync();
 
-                                if (maxReceive.HasValue)
-                                {
-                                    lock (countLocker)
-                                    {
-                                        if (receivedCount == maxReceive.Value)
-                                            continue; //fill throttle, don't receive anymore, externally will be shutdown (shouldn't hit this line)
-                                        receivedCount++;
-                                    }
-                                }
+                                if (!receiveCounter.BeginReceived())
+                                    continue; //fill throttle, don't receive anymore, externally will be shutdown
 
                                 var consumerResult = consumer.Consume(canceller.Token);
                                 consumer.Commit(consumerResult);
@@ -153,21 +143,7 @@ namespace Zerra.CQRS.Kafka
                 }
                 finally
                 {
-                    if (maxReceive.HasValue)
-                    {
-                        lock (countLocker)
-                        {
-                            completedCount++;
-                            if (completedCount == maxReceive.Value)
-                                processExit?.Invoke();
-                            else if (throttle.CurrentCount < maxReceive.Value - receivedCount)
-                                _ = throttle.Release(); //don't release more than needed to reach maxReceive
-                        }
-                    }
-                    else
-                    {
-                        _ = throttle.Release();
-                    }
+                    receiveCounter.CompleteReceive(throttle);
                 }
             }
 

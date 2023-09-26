@@ -21,8 +21,7 @@ namespace Zerra.CQRS.RabbitMQ
             public bool IsOpen { get; private set; }
 
             private readonly int maxConcurrent;
-            private readonly int? maxReceive;
-            private readonly Action processExit;
+            private readonly ReceiveCounter receiveCounter;
             private readonly string topic;
             private readonly SymmetricConfig symmetricConfig;
             private readonly HandleRemoteCommandDispatch handlerAsync;
@@ -36,14 +35,12 @@ namespace Zerra.CQRS.RabbitMQ
             private IModel channel = null;
             private SemaphoreSlim throttle = null;
 
-            public CommandConsumer(int maxConcurrent, int? maxReceive, Action processExit, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            public CommandConsumer(int maxConcurrent, ReceiveCounter receiveCounter, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
-                if (maxReceive.HasValue && maxReceive.Value < 1) throw new ArgumentException("cannot be less than 1", nameof(maxReceive));
 
-                this.maxConcurrent = maxReceive.HasValue ? Math.Min(maxReceive.Value, maxConcurrent) : maxConcurrent;
-                this.maxReceive = maxReceive;
-                this.processExit = processExit;
+                this.maxConcurrent = receiveCounter.MaxReceive.HasValue ? Math.Min(receiveCounter.MaxReceive.Value, maxConcurrent) : maxConcurrent;
+                this.receiveCounter = receiveCounter;
 
                 if (!String.IsNullOrWhiteSpace(environment))
                     this.topic = $"{environment}_{topic}".Truncate(RabbitMQCommon.TopicMaxLength);
@@ -86,13 +83,7 @@ namespace Zerra.CQRS.RabbitMQ
                     {
                         await throttle.WaitAsync();
 
-                        if (maxReceive.HasValue)
-                        {
-                            lock (countLocker)
-                            {
-                                receivedCount++;
-                            }
-                        }
+                        _ = receiveCounter.BeginReceived();
 
                         var awaitResponse = !String.IsNullOrWhiteSpace(e.BasicProperties.ReplyTo);
 
@@ -143,7 +134,9 @@ namespace Zerra.CQRS.RabbitMQ
                         finally
                         {
                             if (acknowledgment == null)
-                                throttle.Release();
+                            {
+                                receiveCounter.CompleteReceive(throttle);
+                            }
                         }
 
                         if (acknowledgment == null)
@@ -166,21 +159,7 @@ namespace Zerra.CQRS.RabbitMQ
                         }
                         finally
                         {
-                            if (maxReceive.HasValue)
-                            {
-                                lock (countLocker)
-                                {
-                                    completedCount++;
-                                    if (completedCount == maxReceive.Value)
-                                        processExit?.Invoke();
-                                    else if (throttle.CurrentCount < maxReceive.Value - receivedCount)
-                                        _ = throttle.Release(); //don't release more than needed to reach maxReceive
-                                }
-                            }
-                            else
-                            {
-                                _ = throttle.Release();
-                            }
+                            receiveCounter.CompleteReceive(throttle);
                         }
 
                     };

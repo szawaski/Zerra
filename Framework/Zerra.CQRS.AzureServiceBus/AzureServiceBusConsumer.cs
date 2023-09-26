@@ -31,8 +31,7 @@ namespace Zerra.CQRS.AzureServiceBus
         private HandleRemoteCommandDispatch commandHandlerAwaitAsync = null;
         private HandleRemoteEventDispatch eventHandlerAsync = null;
 
-        private int? maxReceive = null;
-        private Action processExit = null;
+        private ReceiveCounter receiveCounter = null;
 
         public string ServiceUrl => host;
 
@@ -56,21 +55,19 @@ namespace Zerra.CQRS.AzureServiceBus
             this.client = new ServiceBusClient(host);
         }
 
-        void ICommandConsumer.Setup(int? maxReceived, Action processExit, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(ReceiveCounter receiveCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
-            this.maxReceive = maxReceived;
-            this.processExit = processExit;
+            this.receiveCounter = receiveCounter;
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
         }
-        void IEventConsumer.Setup(int? maxReceived, Action processExit, HandleRemoteEventDispatch handlerAsync)
+        void IEventConsumer.Setup(ReceiveCounter receiveCounter, HandleRemoteEventDispatch handlerAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
-            this.maxReceive = maxReceived;
-            this.processExit = processExit;
+            this.receiveCounter = receiveCounter;
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -148,7 +145,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 if (commandExchanges.ContainsKey(topic))
                     return;
                 commandTypes.Add(type);
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, maxReceive, processExit, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync));
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, receiveCounter, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync));
                 OpenExchanges();
             }
         }
@@ -166,7 +163,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 if (eventExchanges.ContainsKey(topic))
                     return;
                 eventTypes.Add(type);
-                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, maxReceive, processExit, topic, symmetricConfig, environment, eventHandlerAsync));
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, receiveCounter, topic, symmetricConfig, environment, eventHandlerAsync));
                 OpenExchanges();
             }
         }

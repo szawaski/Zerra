@@ -40,10 +40,9 @@ namespace Zerra.Web
             }
         }
 
-        void IQueryServer.Setup(int? maxReceived, Action processExit, QueryHandlerDelegate providerHandlerAsync)
+        void IQueryServer.Setup(ReceiveCounter receiveCounter, QueryHandlerDelegate providerHandlerAsync)
         {
-            settings.MaxReceived = maxReceived;
-            settings.ProcessExit = processExit;
+            settings.ReceiveCounter = receiveCounter;
             settings.ProviderHandlerAsync = providerHandlerAsync;
         }
 

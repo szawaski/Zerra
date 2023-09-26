@@ -12,8 +12,7 @@ namespace Zerra.CQRS.Network
 
         private readonly Socket socket;
         private readonly int maxConcurrent;
-        private readonly int? maxReceive;
-        private readonly Action processExit;
+        private readonly ReceiveCounter receiveCounter;
         private readonly Func<TcpClient, CancellationToken, Task> handler;
         private readonly SemaphoreSlim beginAcceptWaiter;
 
@@ -23,18 +22,12 @@ namespace Zerra.CQRS.Network
         private SemaphoreSlim throttle;
         private CancellationTokenSource canceller;
 
-        private readonly object countLocker = new();
-        private int receivedCount;
-        private int completedCount;
-
-        public SocketListener(Socket socket, int maxConcurrent, int? maxReceive, Action processExit, Func<TcpClient, CancellationToken, Task> handler)
+        public SocketListener(Socket socket, int maxConcurrent, ReceiveCounter receiveCounter, Func<TcpClient, CancellationToken, Task> handler)
         {
             if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
-            if (maxReceive.HasValue && maxReceive.Value < 1) throw new ArgumentException("cannot be less than 1", nameof(maxReceive));
 
-            this.maxConcurrent = maxReceive.HasValue ? Math.Min(maxReceive.Value, maxConcurrent) : maxConcurrent;
-            this.maxReceive = maxReceive;
-            this.processExit = processExit;
+            this.maxConcurrent = receiveCounter.MaxReceive.HasValue ? Math.Min(receiveCounter.MaxReceive.Value, maxConcurrent) : maxConcurrent;
+            this.receiveCounter = receiveCounter;
 
             this.socket = socket;
             this.handler = handler;
@@ -53,8 +46,6 @@ namespace Zerra.CQRS.Network
                     return;
 
                 this.throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
-                this.receivedCount = 0;
-                this.completedCount = 0;
 
                 socket.Listen(backlog);
 
@@ -75,15 +66,8 @@ namespace Zerra.CQRS.Network
                 {
                     await throttle.WaitAsync(canceller.Token);
 
-                    if (maxReceive.HasValue)
-                    {
-                        lock (countLocker)
-                        {
-                            if (receivedCount == maxReceive.Value)
-                                continue; //fill throttle, don't receive anymore, externally will be shutdown (shouldn't hit this line)
-                            receivedCount++;
-                        }
-                    }
+                    if (!receiveCounter.BeginReceived())
+                        continue; //fill throttle, don't receive anymore, externally will be shutdown
 
                     _ = socket.BeginAccept(BeginAcceptCallback, null);
 
@@ -123,35 +107,16 @@ namespace Zerra.CQRS.Network
 
             _ = beginAcceptWaiter.Release();
 
-            try
+            var incommingSocket = socket.EndAccept(result);
+
+            var client = new TcpClient(socket.AddressFamily);
+            client.NoDelay = true;
+            client.Client = incommingSocket;
+
+            _ = handler(client, canceller.Token).ContinueWith((task) =>
             {
-                var incommingSocket = socket.EndAccept(result);
-
-                var client = new TcpClient(socket.AddressFamily);
-                client.NoDelay = true;
-                client.Client = incommingSocket;
-
-                _ = handler(client, canceller.Token);
-            }
-            finally
-            {
-                if (maxReceive.HasValue)
-                {
-                    lock (countLocker)
-                    {
-                        completedCount++;
-
-                        if (completedCount == maxReceive.Value)
-                            processExit?.Invoke();
-                        else if (throttle.CurrentCount < maxReceive.Value - receivedCount)
-                            _ = throttle.Release(); //don't release more than needed to reach maxReceive
-                    }
-                }
-                else
-                {
-                    _ = throttle.Release();
-                }
-            }
+                receiveCounter.CompleteReceive(throttle);
+            });
         }
 
         ~SocketListener()

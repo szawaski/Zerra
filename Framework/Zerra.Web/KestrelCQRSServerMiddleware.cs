@@ -156,6 +156,8 @@ namespace Zerra.Web
 
                     await throttle.WaitAsync();
 
+                    _ = settings.ReceiveCounter.BeginReceived();
+
                     inHandlerContext = true;
                     var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, false);
                     inHandlerContext = false;
@@ -298,6 +300,8 @@ namespace Zerra.Web
 
                     await throttle.WaitAsync();
 
+                    _ = settings.ReceiveCounter.BeginReceived();
+
                     var command = (ICommand)JsonSerializer.Deserialize(messageType, data.MessageData);
 
                     inHandlerContext = true;
@@ -386,8 +390,7 @@ namespace Zerra.Web
             }
             finally
             {
-                if (throttle != null)
-                    throttle.Release();
+                settings.ReceiveCounter.CompleteReceive(throttle);
             }
         }
     }

@@ -31,8 +31,7 @@ namespace Zerra.CQRS.RabbitMQ
 
         public string ServiceUrl => host;
 
-        private int? maxReceive = null;
-        private Action processExit = null;
+        private ReceiveCounter receiveCounter = null;
 
         public RabbitMQConsumer(string host, SymmetricConfig symmetricConfig, string environment)
         {
@@ -47,21 +46,19 @@ namespace Zerra.CQRS.RabbitMQ
             this.eventTypes = new();
         }
 
-        void ICommandConsumer.Setup(int? maxReceive, Action processExit, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(ReceiveCounter receiveCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
         {
             if (this.connection != null)
                 throw new InvalidOperationException("Connection already open");
-            this.maxReceive = maxReceive;
-            this.processExit = processExit;
+            this.receiveCounter = receiveCounter;
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
         }
-        void IEventConsumer.Setup(int? maxReceived, Action processExit, HandleRemoteEventDispatch handlerAsync)
+        void IEventConsumer.Setup(ReceiveCounter receiveCounter, HandleRemoteEventDispatch handlerAsync)
         {
             if (this.connection != null)
                 throw new InvalidOperationException("Connection already open");
-            this.maxReceive = maxReceived;
-            this.processExit = processExit;
+            this.receiveCounter = receiveCounter;
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -154,7 +151,7 @@ namespace Zerra.CQRS.RabbitMQ
                 if (commandExchanges.ContainsKey(topic))
                     return;
                 commandTypes.Add(type);
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, maxReceive, processExit, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync));
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, receiveCounter, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync));
                 OpenExchanges();
             }
         }
@@ -172,7 +169,7 @@ namespace Zerra.CQRS.RabbitMQ
                 if (eventExchanges.ContainsKey(topic))
                     return;
                 eventTypes.Add(type);
-                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, maxReceive, processExit, topic, symmetricConfig, environment, eventHandlerAsync));
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, receiveCounter, topic, symmetricConfig, environment, eventHandlerAsync));
                 OpenExchanges();
             }
         }

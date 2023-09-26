@@ -26,8 +26,7 @@ namespace Zerra.CQRS.Network
         private bool started = false;
         private bool disposed = false;
 
-        private int? maxReceived = null;
-        private Action processExit = null;
+        private ReceiveCounter counter;
         private int maxConcurrent = Environment.ProcessorCount * 8;
 
         private readonly string serviceUrl;
@@ -40,10 +39,9 @@ namespace Zerra.CQRS.Network
             this.commandTypes = new();
         }
 
-        void IQueryServer.Setup(int? maxReceived, Action processExit, QueryHandlerDelegate handlerAsync)
+        void IQueryServer.Setup(ReceiveCounter receiveCounter, QueryHandlerDelegate handlerAsync)
         {
-            this.maxReceived = maxReceived;
-            this.processExit = processExit;
+            this.counter = receiveCounter;
             this.providerHandlerAsync = handlerAsync;
         }
 
@@ -61,10 +59,9 @@ namespace Zerra.CQRS.Network
             return interfaceTypes.ToArray();
         }
 
-        void ICommandConsumer.Setup(int? maxReceived, Action processExit, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(ReceiveCounter receiveCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
         {
-            this.maxReceived = maxReceived;
-            this.processExit = processExit;
+            this.counter = receiveCounter;
             this.handlerAsync = handlerAsync;
             this.handlerAwaitAsync = handlerAwaitAsync;
         }
@@ -109,7 +106,7 @@ namespace Zerra.CQRS.Network
                     var socket = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                     socket.NoDelay = true;
                     socket.Bind(endpoint);
-                    var listener = new SocketListener(socket, maxConcurrent, maxReceived, processExit, Handle);
+                    var listener = new SocketListener(socket, maxConcurrent, counter, Handle);
                     this.listeners[i] = listener;
                 }
 

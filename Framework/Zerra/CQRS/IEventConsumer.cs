@@ -13,7 +13,7 @@ namespace Zerra.CQRS
         string ServiceUrl { get; }
         void RegisterEventType(int maxConcurrent, string topic, Type type);
         IEnumerable<Type> GetEventTypes();
-        void Setup(int? maxReceived, Action processExit, HandleRemoteEventDispatch handlerAsync);
+        void Setup(ReceiveCounter receiveCounter, HandleRemoteEventDispatch handlerAsync);
         void Open();
         void Close();
     }
