@@ -43,9 +43,9 @@ namespace Zerra.CQRS
         private static readonly SemaphoreSlim setupLock = new(1, 1);
 
         private static SemaphoreSlim processWaiter = null;
-        private static int maxConcurrentQueries = Environment.ProcessorCount * 8;
-        private static int maxConcurrentCommands = Environment.ProcessorCount;
-        private static int maxConcurrentEvents = Environment.ProcessorCount * 2;
+        private static int maxConcurrentQueries = Environment.ProcessorCount * 16;
+        private static int maxConcurrentCommandsPerTopic = Environment.ProcessorCount * 2;
+        private static int maxConcurrentEventsPerTopic = Environment.ProcessorCount * 4;
         private static ReceiveCounter receiveCounter = new();
 
         public static async Task<RemoteQueryCallResponse> HandleRemoteQueryCallAsync(Type interfaceType, string methodName, string[] arguments, string source, bool isApi)
@@ -831,7 +831,7 @@ namespace Zerra.CQRS
                     if (commandProducers.ContainsKey(commandType))
                         throw new InvalidOperationException($"Cannot add Command Producer: Command Producer already registered for type {commandType.GetNiceName()}");
                     var topic = GetCommandTopic(commandType);
-                    commandProducer.RegisterCommandType(maxConcurrentCommands, topic, commandType);
+                    commandProducer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
                     _ = commandProducers.TryAdd(commandType, commandProducer);
                     _ = Log.InfoAsync($"{nameof(Bus)} Added Command Producer For {commandType.GetNiceName()}");
                 }
@@ -864,7 +864,7 @@ namespace Zerra.CQRS
                                 if (!handledCommandTypes.Contains(commandType))
                                     throw new InvalidOperationException($"Cannot add Command Consumer: Command Consumer already registered for type {commandType.GetNiceName()}");
                                 var topic = GetCommandTopic(commandType);
-                                commandConsumer.RegisterCommandType(maxConcurrentCommands, topic, commandType);
+                                commandConsumer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
                                 _ = handledCommandTypes.Add(commandType);
                                 _ = Log.InfoAsync($"{nameof(Bus)} Added Command Consumer For {commandType.GetNiceName()}");
                             }
@@ -895,7 +895,7 @@ namespace Zerra.CQRS
                     if (eventProducers.ContainsKey(eventType))
                         throw new InvalidOperationException($"Cannot add Event Producer: Event Producer already registered for type {eventType.GetNiceName()}");
                     var topic = GetEventTopic(eventType);
-                    eventProducer.RegisterEventType(maxConcurrentEvents, topic, eventType);
+                    eventProducer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
                     _ = eventProducers.TryAdd(eventType, eventProducer);
                     _ = Log.InfoAsync($"{nameof(Bus)} Added Event Producer For {eventType.GetNiceName()}");
                 }
@@ -926,7 +926,7 @@ namespace Zerra.CQRS
                                 if (!handledEventTypes.Contains(eventType))
                                     throw new InvalidOperationException($"Cannot add Event Consumer: Event Consumer already registered for type {eventType.GetNiceName()}");
                                 var topic = GetEventTopic(eventType);
-                                eventConsumer.RegisterEventType(maxConcurrentEvents, topic, eventType);
+                                eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
                                 _ = handledEventTypes.Add(eventType);
                             }
                         }
@@ -1267,17 +1267,17 @@ namespace Zerra.CQRS
                 }
             }
         }
-        public static int MaxConcurrentCommands
+        public static int MaxConcurrentCommandsPerTopic
         {
-            get => maxConcurrentCommands;
+            get => maxConcurrentCommandsPerTopic;
             set
             {
                 setupLock.Wait();
                 try
                 {
                     if (HasServices)
-                        throw new InvalidOperationException($"Cannot set {nameof(MaxConcurrentCommands)} after services added");
-                    maxConcurrentCommands = value;
+                        throw new InvalidOperationException($"Cannot set {nameof(MaxConcurrentCommandsPerTopic)} after services added");
+                    maxConcurrentCommandsPerTopic = value;
                 }
                 finally
                 {
@@ -1285,17 +1285,17 @@ namespace Zerra.CQRS
                 }
             }
         }
-        public static int MaxConcurrentEvents
+        public static int MaxConcurrentEventsPerTopic
         {
-            get => maxConcurrentEvents;
+            get => maxConcurrentEventsPerTopic;
             set
             {
                 setupLock.Wait();
                 try
                 {
                     if (HasServices)
-                        throw new InvalidOperationException($"Cannot set {nameof(MaxConcurrentEvents)} after services added");
-                    maxConcurrentEvents = value;
+                        throw new InvalidOperationException($"Cannot set {nameof(MaxConcurrentEventsPerTopic)} after services added");
+                    maxConcurrentEventsPerTopic = value;
                 }
                 finally
                 {
@@ -1305,7 +1305,7 @@ namespace Zerra.CQRS
         }
         public static int? ReceiveCountBeforeExit
         {
-            get => receiveCounter.MaxReceive;
+            get => receiveCounter.ReceiveCountBeforeExit;
             set
             {
                 setupLock.Wait();
@@ -1428,7 +1428,7 @@ namespace Zerra.CQRS
                                             continue;
                                         }
                                         var topic = GetCommandTopic(commandType);
-                                        commandConsumer.RegisterCommandType(maxConcurrentCommands, topic, commandType);
+                                        commandConsumer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
                                         _ = handledCommandTypes.Add(commandType);
                                     }
                                 }
@@ -1463,7 +1463,7 @@ namespace Zerra.CQRS
                                                 continue;
                                             }
                                             var topic = GetCommandTopic(commandType);
-                                            commandProducer.RegisterCommandType(maxConcurrentCommands, topic, commandType);
+                                            commandProducer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
                                             _ = commandProducers.TryAdd(commandType, commandProducer);
                                         }
                                     }
@@ -1500,7 +1500,7 @@ namespace Zerra.CQRS
                                             continue;
                                         }
                                         var topic = GetEventTopic(eventType);
-                                        eventConsumer.RegisterEventType(maxConcurrentEvents, topic, eventType);
+                                        eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
                                         _ = handledEventTypes.Add(eventType);
                                     }
                                 }
@@ -1526,7 +1526,7 @@ namespace Zerra.CQRS
                                     //multiple services handle events
                                     //TODO do we need different encryption keys for events, commands, and queries??
                                     var topic = GetEventTopic(eventType);
-                                    eventProducer.RegisterEventType(maxConcurrentEvents, topic, eventType);
+                                    eventProducer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
                                     _ = eventProducers.TryAdd(eventType, eventProducer);
                                 }
                             }

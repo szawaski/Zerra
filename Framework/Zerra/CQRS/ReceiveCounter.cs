@@ -14,31 +14,31 @@ namespace Zerra.CQRS
         private int started = 0;
         private int completed = 0;
 
-        private readonly int? maxReceive;
+        private readonly int? receiveCountBeforeExit;
         private readonly Action processExit;
         public ReceiveCounter()
         {
-            this.maxReceive = null;
+            this.receiveCountBeforeExit = null;
             this.processExit = null;
         }
-        public ReceiveCounter(int? maxReceive, Action processExit)
+        public ReceiveCounter(int? receiveCountBeforeExit, Action processExit)
         {
-            if (maxReceive.HasValue && maxReceive.Value < 1) throw new ArgumentException("cannot be less than 1", nameof(maxReceive));
+            if (receiveCountBeforeExit.HasValue && receiveCountBeforeExit.Value < 1) throw new ArgumentException("cannot be less than 1", nameof(receiveCountBeforeExit));
 
-            this.maxReceive = maxReceive;
+            this.receiveCountBeforeExit = receiveCountBeforeExit;
             this.processExit = processExit;
         }
 
-        public int? MaxReceive => maxReceive;
+        public int? ReceiveCountBeforeExit => receiveCountBeforeExit;
 
         public bool BeginReceive()
         {
-            if (!maxReceive.HasValue)
+            if (!receiveCountBeforeExit.HasValue)
                 return true;
 
             lock (locker)
             {
-                if (started == maxReceive.Value)
+                if (started == receiveCountBeforeExit.Value)
                     return false; //do not receive any more
                 started++;
             }
@@ -47,7 +47,7 @@ namespace Zerra.CQRS
 
         public void CompleteReceive(SemaphoreSlim throttle)
         {
-            if (!maxReceive.HasValue)
+            if (!receiveCountBeforeExit.HasValue)
             {
                 throttle.Release();
                 return;
@@ -56,9 +56,9 @@ namespace Zerra.CQRS
             lock (locker)
             {
                 completed++;
-                if (completed == maxReceive.Value)
+                if (completed == receiveCountBeforeExit.Value)
                     processExit?.Invoke();
-                else if (throttle.CurrentCount < maxReceive.Value - started)
+                else if (throttle.CurrentCount < receiveCountBeforeExit.Value - started)
                     _ = throttle.Release(); //do not release more than needed to reach maxReceive
             }
         }
