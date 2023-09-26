@@ -37,7 +37,7 @@ namespace ZerraDemo.Web
 
             _ = app.UseCustomAuthentication();
 
-            ServiceManager.StartServices();
+            ServiceManager.StartServices(null);
 
             _ = app.UseCqrsApiGateway();
 

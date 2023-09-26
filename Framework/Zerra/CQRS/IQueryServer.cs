@@ -11,9 +11,9 @@ namespace Zerra.CQRS
     public interface IQueryServer
     {
         string ServiceUrl { get; }
-        void RegisterInterfaceType(Type type);
+        void RegisterInterfaceType(int maxConcurrent, Type type);
         ICollection<Type> GetInterfaceTypes();
-        void SetHandler(QueryHandlerDelegate providerHandlerAsync);
+        void Setup(int? maxReceived, Action processExit, QueryHandlerDelegate providerHandlerAsync);
         void Open();
         void Close();
     }

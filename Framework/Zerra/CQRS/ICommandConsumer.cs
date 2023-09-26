@@ -11,9 +11,9 @@ namespace Zerra.CQRS
     public interface ICommandConsumer
     {
         string ServiceUrl { get; }
-        void RegisterCommandType(Type type);
+        void RegisterCommandType(int maxConcurrent, string topic, Type type);
         IEnumerable<Type> GetCommandTypes();
-        void SetHandler(HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync);
+        void Setup(int? maxReceived, Action processExit, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync);
         void Open();
         void Close();
     }

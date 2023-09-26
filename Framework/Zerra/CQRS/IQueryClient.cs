@@ -8,6 +8,7 @@ namespace Zerra.CQRS
 {
     public interface IQueryClient
     {
+        void RegisterInterfaceType(int maxConcurrent, Type type);
         TReturn Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source);
     }
 }

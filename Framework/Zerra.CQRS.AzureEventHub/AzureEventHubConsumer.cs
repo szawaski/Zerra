@@ -6,11 +6,13 @@ using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Producer;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using Zerra.Collections;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Reflection;
@@ -26,8 +28,8 @@ namespace Zerra.CQRS.AzureEventHub
         private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
 
-        private readonly HashSet<Type> commandTypes;
-        private readonly HashSet<Type> eventTypes;
+        private readonly ConcurrentHashSet<Type> commandTypes;
+        private readonly ConcurrentHashSet<Type> eventTypes;
 
         private HandleRemoteCommandDispatch commandHandlerAsync = null;
         private HandleRemoteCommandDispatch commandHandlerAwaitAsync = null;
@@ -37,6 +39,10 @@ namespace Zerra.CQRS.AzureEventHub
         private CancellationTokenSource canceller = null;
 
         public string ServiceUrl => host;
+
+        private int? maxReceived = null;
+        private Action processExit = null;
+        private int maxConcurrent = Environment.ProcessorCount * 8;
 
         public AzureEventHubConsumer(string host, string eventHubName, SymmetricConfig symmetricConfig, string environment)
         {
@@ -52,17 +58,21 @@ namespace Zerra.CQRS.AzureEventHub
             this.eventTypes = new();
         }
 
-        void ICommandConsumer.SetHandler(HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(int? maxReceived, Action processExit, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
+            this.maxReceived = maxReceived;
+            this.processExit = processExit;
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
         }
-        void IEventConsumer.SetHandler(HandleRemoteEventDispatch handlerAsync)
+        void IEventConsumer.Setup(int? maxReceived, Action processExit, HandleRemoteEventDispatch handlerAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
+            this.maxReceived = maxReceived;
+            this.processExit = processExit;
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -89,6 +99,7 @@ namespace Zerra.CQRS.AzureEventHub
         private async Task ListeningThread()
         {
             canceller = new CancellationTokenSource();
+            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
         retry:
 
@@ -114,7 +125,8 @@ namespace Zerra.CQRS.AzureEventHub
                         if (typeNameObject is not string typeName)
                             continue;
 
-                        _ = HandleEvent(typeName, partitionEvent);
+                        await throttle.WaitAsync();
+                        _ = HandleEvent(throttle, typeName, partitionEvent);
                     }
                 }
             }
@@ -133,7 +145,7 @@ namespace Zerra.CQRS.AzureEventHub
             isOpen = false;
         }
 
-        private async Task HandleEvent(string typeName, PartitionEvent partitionEvent)
+        private async Task HandleEvent(SemaphoreSlim throttle, string typeName, PartitionEvent partitionEvent)
         {
             Exception error = null;
             Type type = null;
@@ -192,33 +204,42 @@ namespace Zerra.CQRS.AzureEventHub
                     _ = Log.ErrorAsync(typeName, ex);
                 error = ex;
             }
-
-            if (awaitResponse)
+            finally
             {
-                try
-                {
-                    var ack = new Acknowledgement()
-                    {
-                        Success = error == null,
-                        ErrorMessage = error?.Message
-                    };
-                    var ackBody = AzureEventHubCommon.Serialize(ack);
-                    if (symmetricConfig != null)
-                        ackBody = SymmetricEncryptor.Encrypt(symmetricConfig, ackBody);
+                if (!awaitResponse)
+                    throttle.Release();
+            }
 
-                    await using (var producer = new EventHubProducerClient(host, eventHubName))
-                    {
-                        var eventData = new EventData(ackBody);
-                        eventData.Properties[AzureEventHubCommon.AckProperty] = Boolean.TrueString;
-                        eventData.Properties[AzureEventHubCommon.AckKeyProperty] = ackKey;
+            if (!awaitResponse)
+                return;
 
-                        await producer.SendAsync(new EventData[] { eventData });
-                    }
-                }
-                catch (Exception ex)
+            try
+            {
+                var ack = new Acknowledgement()
                 {
-                    _ = Log.ErrorAsync(typeName, ex);
+                    Success = error == null,
+                    ErrorMessage = error?.Message
+                };
+                var ackBody = AzureEventHubCommon.Serialize(ack);
+                if (symmetricConfig != null)
+                    ackBody = SymmetricEncryptor.Encrypt(symmetricConfig, ackBody);
+
+                await using (var producer = new EventHubProducerClient(host, eventHubName))
+                {
+                    var eventData = new EventData(ackBody);
+                    eventData.Properties[AzureEventHubCommon.AckProperty] = Boolean.TrueString;
+                    eventData.Properties[AzureEventHubCommon.AckKeyProperty] = ackKey;
+
+                    await producer.SendAsync(new EventData[] { eventData });
                 }
+            }
+            catch (Exception ex)
+            {
+                _ = Log.ErrorAsync(typeName, ex);
+            }
+            finally
+            {
+                throttle.Release();
             }
         }
 
@@ -246,8 +267,10 @@ namespace Zerra.CQRS.AzureEventHub
             this.Close();
         }
 
-        void ICommandConsumer.RegisterCommandType(Type type)
+        void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
+            if (maxConcurrent < this.maxConcurrent)
+                this.maxConcurrent = maxConcurrent;
             commandTypes.Add(type);
         }
         IEnumerable<Type> ICommandConsumer.GetCommandTypes()
@@ -255,8 +278,10 @@ namespace Zerra.CQRS.AzureEventHub
             return commandTypes;
         }
 
-        void IEventConsumer.RegisterEventType(Type type)
+        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
+            if (maxConcurrent < this.maxConcurrent)
+                this.maxConcurrent = maxConcurrent;
             eventTypes.Add(type);
         }
         IEnumerable<Type> IEventConsumer.GetEventTypes()

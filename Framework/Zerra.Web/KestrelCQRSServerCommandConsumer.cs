@@ -4,8 +4,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Threading;
 using Zerra.CQRS;
 
 namespace Zerra.Web
@@ -24,20 +23,24 @@ namespace Zerra.Web
 
         public IEnumerable<Type> GetCommandTypes()
         {
-            return settings.CommandTypes;
+            return settings.CommandTypes.Keys;
         }
 
         public void Open() { }
 
-        public void RegisterCommandType(Type type)
-        {
-            settings.CommandTypes.Add(type);
-        }
-
-        public void SetHandler(HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(int? maxReceived, Action processExit, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
         {
             settings.HandlerAsync = handlerAsync;
             settings.HandlerAwaitAsync = handlerAwaitAsync;
+        }
+
+        void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
+        {
+            if (settings.CommandTypes.ContainsKey(type))
+                return;
+            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            if (!settings.CommandTypes.TryAdd(type, throttle))
+                throttle.Dispose();
         }
     }
 }

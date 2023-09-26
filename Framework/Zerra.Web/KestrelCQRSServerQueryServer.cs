@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Zerra.CQRS;
 
 namespace Zerra.Web
@@ -22,19 +23,29 @@ namespace Zerra.Web
 
         public ICollection<Type> GetInterfaceTypes()
         {
-            return settings.InterfaceTypes;
+            return settings.InterfaceTypes.Keys;
         }
 
         public void Open() { }
 
-        public void RegisterInterfaceType(Type type)
+        public void RegisterInterfaceType(int maxConcurrent, Type type)
         {
-            settings.InterfaceTypes.Add(type);
+            lock (settings.InterfaceTypes)
+            {
+                if (settings.InterfaceTypes.ContainsKey(type))
+                    return;
+                var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+                if (!settings.InterfaceTypes.TryAdd(type, throttle))
+                    throttle.Dispose();
+            }
         }
 
-        public void SetHandler(QueryHandlerDelegate providerHandlerAsync)
+        void IQueryServer.Setup(int? maxReceived, Action processExit, QueryHandlerDelegate providerHandlerAsync)
         {
+            settings.MaxReceived = maxReceived;
+            settings.ProcessExit = processExit;
             settings.ProviderHandlerAsync = providerHandlerAsync;
         }
+
     }
 }

@@ -30,8 +30,9 @@ namespace Zerra.CQRS.AzureEventHub
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
         private readonly string environment;
-        private HashSet<Type> commandTypes;
-        private HashSet<Type> eventTypes;
+        private readonly ConcurrentDictionary<Type, string> topicsByCommandType;
+        private readonly ConcurrentDictionary<Type, string> topicsByEventType;
+        private readonly ConcurrentDictionary<string, SemaphoreSlim> throttleByTopic;
         public AzureEventHubProducer(string host, string eventHubName, SymmetricConfig symmetricConfig, string environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
@@ -45,8 +46,9 @@ namespace Zerra.CQRS.AzureEventHub
             this.canceller = new();
             this.ackCallbacks = new();
             this.environment = environment;
-            this.commandTypes = new();
-            this.eventTypes = new();
+            this.topicsByCommandType = new();
+            this.topicsByEventType = new();
+            this.throttleByTopic = new();
         }
 
         public string ConnectionString => host;
@@ -58,115 +60,137 @@ namespace Zerra.CQRS.AzureEventHub
         private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
         {
             var commandType = command.GetType();
-            if (!commandTypes.Contains(commandType))
+            if (!topicsByCommandType.TryGetValue(commandType, out var topic))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureEventHubProducer)}");
+            if (!throttleByTopic.TryGetValue(topic, out var throttle))
                 throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureEventHubProducer)}");
 
-            if (requireAcknowledgement)
+            await throttle.WaitAsync();
+
+            try
             {
-                lock (locker)
+                if (requireAcknowledgement)
                 {
-                    if (!listenerStarted)
+                    lock (locker)
                     {
-                        _ = AckListeningThread();
-                        listenerStarted = true;
+                        if (!listenerStarted)
+                        {
+                            _ = AckListeningThread();
+                            listenerStarted = true;
+                        }
+                    }
+                }
+
+                string ackKey = null;
+                var type = command.GetType().GetNiceName();
+
+                string[][] claims = null;
+                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+                var message = new AzureEventHubMessage()
+                {
+                    Message = command,
+                    Claims = claims,
+                    Source = source
+                };
+
+                var body = AzureEventHubCommon.Serialize(message);
+                if (symmetricConfig != null)
+                    body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+
+                await using (var producer = new EventHubProducerClient(host, eventHubName))
+                {
+                    if (requireAcknowledgement)
+                        ackKey = Guid.NewGuid().ToString("N");
+
+                    var eventData = new EventData(body);
+                    eventData.Properties[AzureEventHubCommon.TypeProperty] = type;
+                    if (!String.IsNullOrWhiteSpace(environment))
+                        eventData.Properties[AzureEventHubCommon.EnvironmentProperty] = environment;
+                    if (requireAcknowledgement)
+                        eventData.Properties[AzureEventHubCommon.AckProperty] = ackKey;
+
+                    if (requireAcknowledgement)
+                    {
+                        var waiter = new SemaphoreSlim(0, 1);
+
+                        try
+                        {
+                            Acknowledgement ack = null;
+                            _ = ackCallbacks.TryAdd(ackKey, (ackFromCallback) =>
+                            {
+                                ack = ackFromCallback;
+                                _ = waiter.Release();
+                            });
+
+                            await producer.SendAsync(new EventData[] { eventData });
+
+                            await waiter.WaitAsync();
+                            if (!ack.Success)
+                                throw new AcknowledgementException(ack, type);
+                        }
+                        finally
+                        {
+                            waiter.Dispose();
+                        }
+                    }
+                    else
+                    {
+                        await producer.SendAsync(new EventData[] { eventData });
                     }
                 }
             }
-
-            string ackKey = null;
-            var type = command.GetType().GetNiceName();
-
-            string[][] claims = null;
-            if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
-                claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
-
-            var message = new AzureEventHubMessage()
+            finally
             {
-                Message = command,
-                Claims = claims,
-                Source = source
-            };
-
-            var body = AzureEventHubCommon.Serialize(message);
-            if (symmetricConfig != null)
-                body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
-
-            await using (var producer = new EventHubProducerClient(host, eventHubName))
-            {
-                if (requireAcknowledgement)
-                    ackKey = Guid.NewGuid().ToString("N");
-
-                var eventData = new EventData(body);
-                eventData.Properties[AzureEventHubCommon.TypeProperty] = type;
-                if (!String.IsNullOrWhiteSpace(environment))
-                    eventData.Properties[AzureEventHubCommon.EnvironmentProperty] = environment;
-                if (requireAcknowledgement)
-                    eventData.Properties[AzureEventHubCommon.AckProperty] = ackKey;
-
-                if (requireAcknowledgement)
-                {
-                    var waiter = new SemaphoreSlim(0, 1);
-
-                    try
-                    {
-                        Acknowledgement ack = null;
-                        _ = ackCallbacks.TryAdd(ackKey, (ackFromCallback) =>
-                        {
-                            ack = ackFromCallback;
-                            _ = waiter.Release();
-                        });
-
-                        await producer.SendAsync(new EventData[] { eventData });
-
-                        await waiter.WaitAsync();
-                        if (!ack.Success)
-                            throw new AcknowledgementException(ack, type);
-                    }
-                    finally
-                    {
-                        waiter.Dispose();
-                    }
-                }
-                else
-                {
-                    await producer.SendAsync(new EventData[] { eventData });
-                }
+                throttle.Release();
             }
         }
 
         private async Task SendAsync(IEvent @event, string source)
         {
             var eventType = @event.GetType();
-            if (!eventTypes.Contains(eventType))
-                throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(AzureEventHubProducer)}");
+            if (!topicsByEventType.TryGetValue(eventType, out var topic))
+                throw new Exception($"{eventType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
+            if (!throttleByTopic.TryGetValue(topic, out var throttle))
+                throw new Exception($"{eventType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
 
-            string[][] claims = null;
-            if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
-                claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+            await throttle.WaitAsync();
 
-            var message = new AzureEventHubMessage()
+            try
             {
-                Message = @event,
-                Claims = claims,
-                Source = source
-            };
+                string[][] claims = null;
+                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
-            var body = AzureEventHubCommon.Serialize(message);
-            if (symmetricConfig != null)
-                body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
-
-            await using (var producer = new EventHubProducerClient(host, eventHubName))
-            {
-                using (var eventBatch = await producer.CreateBatchAsync())
+                var message = new AzureEventHubMessage()
                 {
-                    var eventData = new EventData(body);
-                    if (!String.IsNullOrWhiteSpace(environment))
-                        eventData.Properties[AzureEventHubCommon.EnvironmentProperty] = environment;
+                    Message = @event,
+                    Claims = claims,
+                    Source = source
+                };
 
-                    await producer.SendAsync(new EventData[] { eventData });
+                var body = AzureEventHubCommon.Serialize(message);
+                if (symmetricConfig != null)
+                    body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+
+                await using (var producer = new EventHubProducerClient(host, eventHubName))
+                {
+                    using (var eventBatch = await producer.CreateBatchAsync())
+                    {
+                        var eventData = new EventData(body);
+                        if (!String.IsNullOrWhiteSpace(environment))
+                            eventData.Properties[AzureEventHubCommon.EnvironmentProperty] = environment;
+
+                        await producer.SendAsync(new EventData[] { eventData });
+                    }
+
+                    await producer.CloseAsync();
                 }
-
-                await producer.CloseAsync();
+            }
+            finally
+            {
+                throttle.Release();
             }
         }
 
@@ -242,26 +266,36 @@ namespace Zerra.CQRS.AzureEventHub
             GC.SuppressFinalize(this);
         }
 
-        void ICommandProducer.RegisterCommandType(Type type)
+        void ICommandProducer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
-            if (commandTypes.Contains(type))
+            if (topicsByCommandType.ContainsKey(type))
                 return;
-            commandTypes.Add(type);
+            topicsByCommandType.TryAdd(type, topic);
+            if (throttleByTopic.ContainsKey(topic))
+                return;
+            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            if (!throttleByTopic.TryAdd(topic, throttle))
+                throttle.Dispose();
         }
         IEnumerable<Type> ICommandProducer.GetCommandTypes()
         {
-            return commandTypes;
+            return topicsByCommandType.Keys;
         }
 
-        void IEventProducer.RegisterEventType(Type type)
+        void IEventProducer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
-            if (eventTypes.Contains(type))
+            if (topicsByEventType.ContainsKey(type))
                 return;
-            eventTypes.Add(type);
+            topicsByEventType.TryAdd(type, topic);
+            if (throttleByTopic.ContainsKey(topic))
+                return;
+            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            if (!throttleByTopic.TryAdd(topic, throttle))
+                throttle.Dispose();
         }
         IEnumerable<Type> IEventProducer.GetEventTypes()
         {
-            return eventTypes;
+            return topicsByEventType.Keys;
         }
     }
 }

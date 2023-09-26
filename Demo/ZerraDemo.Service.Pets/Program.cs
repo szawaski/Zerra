@@ -9,7 +9,7 @@ namespace ZerraDemo.Service.Pets
         static void Main(string[] args)
         {
             Config.LoadConfiguration(args);
-            ServiceManager.StartServices();
+            ServiceManager.StartServices(1);
             Bus.WaitUntilExit();
         }
     }

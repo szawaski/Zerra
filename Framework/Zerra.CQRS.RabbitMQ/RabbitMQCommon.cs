@@ -18,6 +18,8 @@ namespace Zerra.CQRS.RabbitMQ
 
         public const int TopicMaxLength = 255;
 
+        public const int RetryDelay = 5000;
+
         public static byte[] Serialize(object obj)
         {
             return ByteSerializer.Serialize(obj, byteSerializerOptions);

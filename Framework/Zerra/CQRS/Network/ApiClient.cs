@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
@@ -13,52 +12,29 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Reflection;
 using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
-    public sealed class ApiClient : IQueryClient, ICommandProducer
+    public sealed class ApiClient : CQRSClientBase
     {
-        private readonly string endpointAddress;
         private readonly ContentType requestContentType;
-        private readonly HashSet<Type> commandTypes;
-
-        public string ConnectionString => endpointAddress;
-
         private CookieCollection cookies = null;
 
-        public ApiClient(string endpointAddress, ContentType contentType)
+        public ApiClient(string endpoint, ContentType contentType) : base(endpoint)
         {
-            this.endpointAddress = endpointAddress;
             this.requestContentType = contentType;
-            this.commandTypes = new();
         }
 
-        void ICommandProducer.RegisterCommandType(Type type)
-        {
-            lock (commandTypes)
-            {
-                if (commandTypes.Contains(type))
-                    return;
-                commandTypes.Add(type);
-            }
-        }
-        IEnumerable<Type> ICommandProducer.GetCommandTypes()
-        {
-            return commandTypes;
-        }
-
-        private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(ApiClient)).MethodDetails.First(x => x.MethodInfo.Name == nameof(ApiClient.RequestAsync)).MethodInfo;
-        TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source)
+        protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
         {
             var providerName = interfaceType.Name;
             var stringArguments = new string[arguments.Length];
             for (var i = 0; i < arguments.Length; i++)
                 stringArguments[i] = JsonSerializer.Serialize(arguments);
-
-            var returnType = typeof(TReturn);
 
             var data = new ApiRequestData()
             {
@@ -69,48 +45,34 @@ namespace Zerra.CQRS.Network
             };
             data.AddProviderArguments(arguments);
 
-            var returnTypeDetails = TypeAnalyzer.GetTypeDetail(returnType);
-            if (returnTypeDetails.IsTask)
-            {
-                var callRequestAsyncMethodGeneric = TypeAnalyzer.GetGenericMethodDetail(requestAsyncMethod, returnTypeDetails.InnerTypes.ToArray());
-                return (TReturn)callRequestAsyncMethodGeneric.Caller(this, new object[] { endpointAddress, providerName, requestContentType, data, true });
-            }
-            else
-            {
-                var model = Request<TReturn>(endpointAddress, providerName, requestContentType, data, true);
-                return model;
-            }
+            var model = Request<TReturn>(throttle, isStream, serviceUrl.OriginalString, providerName, requestContentType, data, true);
+            return model;
         }
 
-        Task ICommandProducer.DispatchAsync(ICommand message, string source)
+        protected override Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
         {
-            var commandType = message.GetType();
-            if (!commandTypes.Contains(commandType))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(ApiClient)}");
-
-            var commendTypeName = commandType.GetNiceFullName();
-            var commandData = JsonSerializer.Serialize(message, commandType);
+            var providerName = interfaceType.Name;
+            var stringArguments = new string[arguments.Length];
+            for (var i = 0; i < arguments.Length; i++)
+                stringArguments[i] = JsonSerializer.Serialize(arguments);
 
             var data = new ApiRequestData()
             {
-                MessageType = commendTypeName,
-                MessageData = commandData,
-                MessageAwait = false,
+                ProviderType = providerName,
+                ProviderMethod = methodName,
 
                 Source = source
             };
+            data.AddProviderArguments(arguments);
 
-            return RequestAsync<object>(endpointAddress, commendTypeName, requestContentType, data, false);
+            var model = RequestAsync<TReturn>(throttle, isStream, serviceUrl.OriginalString, providerName, requestContentType, data, true);
+            return model;
         }
 
-        Task ICommandProducer.DispatchAsyncAwait(ICommand message, string source)
+        protected override Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source)
         {
-            var commandType = message.GetType();
-            if (!commandTypes.Contains(commandType))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(ApiClient)}");
-
             var commendTypeName = commandType.GetNiceFullName();
-            var commandData = JsonSerializer.Serialize(message, commandType);
+            var commandData = JsonSerializer.Serialize(command, commandType);
 
             var data = new ApiRequestData()
             {
@@ -121,109 +83,193 @@ namespace Zerra.CQRS.Network
                 Source = source
             };
 
-            return RequestAsync<object>(endpointAddress, commendTypeName, requestContentType, data, false);
+            return RequestAsync<object>(throttle, false, serviceUrl.OriginalString, commendTypeName, requestContentType, data, false);
         }
 
-        private TReturn Request<TReturn>(string address, string providerType, ContentType contentType, object data, bool getResponseData)
+        private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(ApiClient)).MethodDetails.First(x => x.MethodInfo.Name == nameof(ApiClient.RequestAsync)).MethodInfo;
+        private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, string address, string providerType, ContentType contentType, object data, bool getResponseData)
         {
-            var cookieContainer = new CookieContainer();
-            if (cookies != null)
-                cookieContainer.Add(cookies);
+            throttle.Wait();
 
-            using var handler = new HttpClientHandler() { CookieContainer = cookieContainer };
-            using var client = new HttpClient(handler);
-
-            using var request = new HttpRequestMessage(HttpMethod.Post, address);
-
-            request.Content = new WriteStreamContent((postStream) =>
+            HttpClient client = null;
+            Stream responseStream = null;
+            try
             {
-                ContentTypeSerializer.Serialize(contentType, postStream, data);
-            });
-            request.Content.Headers.ContentType = contentType switch
-            {
-                ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
-                ContentType.Json => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson),
-                ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
-                _ => throw new NotImplementedException(),
-            };
+                var cookieContainer = new CookieContainer();
+                if (cookies != null)
+                    cookieContainer.Add(cookies);
 
-            request.Headers.TransferEncodingChunked = true;
-            request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
-            request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-            request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
+                using var handler = new HttpClientHandler() { CookieContainer = cookieContainer };
+                client = new HttpClient(handler);
 
-            if (!String.IsNullOrWhiteSpace(providerType))
-                request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
+                using var request = new HttpRequestMessage(HttpMethod.Post, address);
+
+                request.Content = new WriteStreamContent((postStream) =>
+                {
+                    ContentTypeSerializer.Serialize(contentType, postStream, data);
+                });
+                request.Content.Headers.ContentType = contentType switch
+                {
+                    ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
+                    ContentType.Json => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson),
+                    ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
+                    _ => throw new NotImplementedException(),
+                };
+
+                request.Headers.TransferEncodingChunked = true;
+                request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
+                request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+                request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
+
+                if (!String.IsNullOrWhiteSpace(providerType))
+                    request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
 
 #if NET5_0_OR_GREATER
-            using var response = client.Send(request);
-            using var responseStream = response.Content.ReadAsStream();
+                using var response = client.Send(request);
+                responseStream = response.Content.ReadAsStream();
 #else
-            using var response = client.SendAsync(request).GetAwaiter().GetResult();
-            using var responseStream = response.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
+                using var response = client.SendAsync(request).GetAwaiter().GetResult();
+                responseStream = response.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
 #endif
 
-            if (!response.IsSuccessStatusCode)
-            {
-                var responseException = ContentTypeSerializer.DeserializeException(contentType, responseStream);
-                throw responseException;
+                if (!response.IsSuccessStatusCode)
+                {
+                    var responseException = ContentTypeSerializer.DeserializeException(contentType, responseStream);
+                    throw responseException;
+                }
+
+                this.cookies = GetCookiesFromContainer(cookieContainer);
+
+                if (!getResponseData)
+                {
+                    responseStream.Dispose();
+                    client.Dispose();
+                    return default;
+                }
+
+                if (isStream)
+                {
+                    return (TReturn)(object)responseStream; //TODO better way to convert type???
+                }
+                else
+                {
+                    var result = ContentTypeSerializer.Deserialize<TReturn>(contentType, responseStream);
+                    responseStream.Dispose();
+                    client.Dispose();
+                    return result;
+                }
             }
-
-            this.cookies = GetCookiesFromContainer(cookieContainer);
-
-            var result = ContentTypeSerializer.Deserialize<TReturn>(contentType, responseStream);
-
-            return result;
+            catch
+            {
+                if (responseStream != null)
+                {
+                    try
+                    {
+                        responseStream.Dispose();
+                    }
+                    catch { }
+                    client.Dispose();
+                }
+                throw;
+            }
+            finally
+            {
+                throttle.Release();
+            }
         }
-        private async Task<TReturn> RequestAsync<TReturn>(string address, string providerType, ContentType contentType, object data, bool getResponseData)
+        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, string address, string providerType, ContentType contentType, object data, bool getResponseData)
         {
-            var cookieContainer = new CookieContainer();
-            if (cookies != null)
-                cookieContainer.Add(cookies);
+            await throttle.WaitAsync();
 
-            using var handler = new HttpClientHandler() { CookieContainer = cookieContainer };
-            using var client = new HttpClient(handler);
-
-            using var request = new HttpRequestMessage(HttpMethod.Post, address);
-
-            request.Content = new WriteStreamContent(async (postStream) =>
+            HttpClient client = null;
+            Stream responseStream = null;
+            try
             {
-                await ContentTypeSerializer.SerializeAsync(contentType, postStream, data);
-            });
-            request.Content.Headers.ContentType = contentType switch
-            {
-                ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
-                ContentType.Json => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson),
-                ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
-                _ => throw new NotImplementedException(),
-            };
+                var cookieContainer = new CookieContainer();
+                if (cookies != null)
+                    cookieContainer.Add(cookies);
 
-            request.Headers.TransferEncodingChunked = true;
-            request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
-            request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-            request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
+                using var handler = new HttpClientHandler() { CookieContainer = cookieContainer };
+                client = new HttpClient(handler);
 
-            if (!String.IsNullOrWhiteSpace(providerType))
-                request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
+                using var request = new HttpRequestMessage(HttpMethod.Post, address);
 
-            using var response = await client.SendAsync(request);
+                request.Content = new WriteStreamContent(async (postStream) =>
+                {
+                    await ContentTypeSerializer.SerializeAsync(contentType, postStream, data);
+                });
+                request.Content.Headers.ContentType = contentType switch
+                {
+                    ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
+                    ContentType.Json => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson),
+                    ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
+                    _ => throw new NotImplementedException(),
+                };
+
+                request.Headers.TransferEncodingChunked = true;
+                request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
+                request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+                request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
+
+                if (!String.IsNullOrWhiteSpace(providerType))
+                    request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
+
+                using var response = await client.SendAsync(request);
+
+                responseStream = await response.Content.ReadAsStreamAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseStream);
+                    throw responseException;
+                }
+
+                this.cookies = GetCookiesFromContainer(cookieContainer);
+
+                if (!getResponseData)
+                {
+                    responseStream.Dispose();
+                    client.Dispose();
+                    return default;
+                }
+
+                if (isStream)
+                {
+                    return (TReturn)(object)responseStream; //TODO better way to convert type???
+                }
+                else
+                {
+                    var result = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, responseStream);
 #if NETSTANDARD2_0
-            using var responseStream = await response.Content.ReadAsStreamAsync();
+                    responseStream.Dispose();
 #else
-            await using var responseStream = await response.Content.ReadAsStreamAsync();
+                    await responseStream.DisposeAsync();
 #endif
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseStream);
-                throw responseException;
+                    client.Dispose();
+                    return result;
+                }
             }
-
-            this.cookies = GetCookiesFromContainer(cookieContainer);
-
-            var result = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, responseStream);
-
-            return result;
+            catch
+            {
+                if (responseStream != null)
+                {
+                    try
+                    {
+#if NETSTANDARD2_0
+                        responseStream.Dispose();
+#else
+                        await responseStream.DisposeAsync();
+#endif
+                    }
+                    catch { }
+                    client.Dispose();
+                }
+                throw;
+            }
+            finally
+            {
+                throttle.Release();
+            }
         }
 
         public CookieCollection GetCookieCredentials()
@@ -241,7 +287,7 @@ namespace Zerra.CQRS.Network
         public Task RequestCookieCredentials(string address, string json)
         {
             var bytes = Encoding.UTF8.GetBytes(json);
-            return RequestAsync<object>(address, null, ContentType.Json, bytes, false);
+            return RequestAsync<object>(null, false, address, null, ContentType.Json, bytes, false);
         }
 
         private static readonly Func<object, object> cookieContainerGetter = TypeAnalyzer.GetTypeDetail(typeof(CookieContainer)).GetMember("m_domainTable").Getter;

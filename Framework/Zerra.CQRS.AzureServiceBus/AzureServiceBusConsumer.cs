@@ -31,6 +31,9 @@ namespace Zerra.CQRS.AzureServiceBus
         private HandleRemoteCommandDispatch commandHandlerAwaitAsync = null;
         private HandleRemoteEventDispatch eventHandlerAsync = null;
 
+        private int? maxReceive = null;
+        private Action processExit = null;
+
         public string ServiceUrl => host;
 
         private static readonly ServiceBusReceiverOptions receiverOptions = new()
@@ -53,17 +56,21 @@ namespace Zerra.CQRS.AzureServiceBus
             this.client = new ServiceBusClient(host);
         }
 
-        void ICommandConsumer.SetHandler(HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(int? maxReceived, Action processExit, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
+            this.maxReceive = maxReceived;
+            this.processExit = processExit;
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
         }
-        void IEventConsumer.SetHandler(HandleRemoteEventDispatch handlerAsync)
+        void IEventConsumer.Setup(int? maxReceived, Action processExit, HandleRemoteEventDispatch handlerAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
+            this.maxReceive = maxReceived;
+            this.processExit = processExit;
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -96,10 +103,10 @@ namespace Zerra.CQRS.AzureServiceBus
                 return;
 
             foreach (var exchange in commandExchanges.Values.Where(x => !x.IsOpen))
-                exchange.Open(this.host, this.client, this.commandHandlerAsync, this.commandHandlerAwaitAsync);
+                exchange.Open(this.host, this.client);
 
             foreach (var exchange in eventExchanges.Values.Where(x => !x.IsOpen))
-                exchange.Open(this.host, this.client, this.eventHandlerAsync);
+                exchange.Open(this.host, this.client);
         }
 
         void ICommandConsumer.Close()
@@ -132,9 +139,8 @@ namespace Zerra.CQRS.AzureServiceBus
             await client.DisposeAsync();
         }
 
-        void ICommandConsumer.RegisterCommandType(Type type)
+        void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
-            var topic = Bus.GetCommandTopic(type);
             lock (commandExchanges)
             {
                 if (commandTypes.Contains(type))
@@ -142,7 +148,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 if (commandExchanges.ContainsKey(topic))
                     return;
                 commandTypes.Add(type);
-                commandExchanges.Add(topic, new CommandConsumer(topic, symmetricConfig, environment));
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, maxReceive, processExit, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync));
                 OpenExchanges();
             }
         }
@@ -151,9 +157,8 @@ namespace Zerra.CQRS.AzureServiceBus
             return commandTypes;
         }
 
-        void IEventConsumer.RegisterEventType(Type type)
+        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
-            var topic = Bus.GetEventTopic(type);
             lock (eventExchanges)
             {
                 if (eventTypes.Contains(type))
@@ -161,7 +166,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 if (eventExchanges.ContainsKey(topic))
                     return;
                 eventTypes.Add(type);
-                eventExchanges.Add(topic, new EventConsumer(topic, symmetricConfig, environment));
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, maxReceive, processExit, topic, symmetricConfig, environment, eventHandlerAsync));
                 OpenExchanges();
             }
         }

@@ -26,6 +26,13 @@ namespace Zerra.CQRS.Settings
 
         private const string bindingUrlDefault = "http://localhost:5000;https://localhost:5001";
 
+        public static ServiceSettings Get(bool bindingUrlFromStandardVariables)
+        {
+            var settingsName = Config.EntryAssemblyName;
+            if (settingsName == null)
+                throw new Exception($"Entry Assembly is null, {nameof(CQRSSettings)} cannot identify which service is running");
+            return Get(settingsName, bindingUrlFromStandardVariables);
+        }
         public static ServiceSettings Get(string serviceName, bool bindingUrlFromStandardVariables)
         {
             _ = Log.InfoAsync($"Configuring {serviceName}");

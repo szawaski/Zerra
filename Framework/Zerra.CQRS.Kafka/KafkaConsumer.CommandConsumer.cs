@@ -20,23 +20,41 @@ namespace Zerra.CQRS.Kafka
         {
             public bool IsOpen { get; private set; }
 
+            private readonly int maxConcurrent;
+            private readonly int? maxReceive;
+            private readonly Action processExit;
             private readonly string topic;
             private readonly string clientID;
             private readonly SymmetricConfig symmetricConfig;
-            private readonly CancellationTokenSource canceller = null;
+            private readonly HandleRemoteCommandDispatch handlerAsync;
+            private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
+            private readonly CancellationTokenSource canceller;
 
-            public CommandConsumer(string topic, SymmetricConfig symmetricConfig, string environment)
+            private readonly object countLocker = new();
+            private int receivedCount;
+            private int completedCount;
+
+            public CommandConsumer(int maxConcurrent, int? maxReceive, Action processExit, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
+                if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
+                if (maxReceive.HasValue && maxReceive.Value < 1) throw new ArgumentException("cannot be less than 1", nameof(maxReceive));
+
+                this.maxConcurrent = maxReceive.HasValue ? Math.Min(maxReceive.Value, maxConcurrent) : maxConcurrent;
+                this.maxReceive = maxReceive;
+                this.processExit = processExit;
+
                 if (!String.IsNullOrWhiteSpace(environment))
                     this.topic = $"{environment}_{topic}".Truncate(KafkaCommon.TopicMaxLength);
                 else
                     this.topic = topic.Truncate(KafkaCommon.TopicMaxLength);
                 this.clientID = Guid.NewGuid().ToString("N");
                 this.symmetricConfig = symmetricConfig;
+                this.handlerAsync = handlerAsync;
+                this.handlerAwaitAsync = handlerAwaitAsync;
                 this.canceller = new CancellationTokenSource();
             }
 
-            public void Open(string host, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            public void Open(string host)
             {
                 if (IsOpen)
                     return;
@@ -46,6 +64,8 @@ namespace Zerra.CQRS.Kafka
 
             private async Task ListeningThread(string host, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
+                using var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+
             retry:
 
                 try
@@ -64,10 +84,22 @@ namespace Zerra.CQRS.Kafka
                         {
                             for (; ; )
                             {
+                                await throttle.WaitAsync();
+
+                                if (maxReceive.HasValue)
+                                {
+                                    lock (countLocker)
+                                    {
+                                        if (receivedCount == maxReceive.Value)
+                                            continue; //fill throttle, don't receive anymore, externally will be shutdown (shouldn't hit this line)
+                                        receivedCount++;
+                                    }
+                                }
+
                                 var consumerResult = consumer.Consume(canceller.Token);
                                 consumer.Commit(consumerResult);
 
-                                _ = HandleMessage(host, consumerResult, handlerAsync, handlerAwaitAsync);
+                                _ = HandleMessage(throttle, host, consumerResult, handlerAsync, handlerAwaitAsync);
 
                                 if (canceller.IsCancellationRequested)
                                     break;
@@ -92,7 +124,7 @@ namespace Zerra.CQRS.Kafka
                 canceller.Dispose();
             }
 
-            private async Task HandleMessage(string host, ConsumeResult<string, byte[]> consumerResult, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            private async Task HandleMessage(SemaphoreSlim throttle, string host, ConsumeResult<string, byte[]> consumerResult, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
                 Exception error = null;
                 var awaitResponse = false;
@@ -141,36 +173,74 @@ namespace Zerra.CQRS.Kafka
                         _ = Log.ErrorAsync(topic, ex);
                     error = ex;
                 }
-
-                if (awaitResponse)
+                finally
                 {
-                    try
+                    if (!awaitResponse)
                     {
-                        var ack = new Acknowledgement()
+                        if (maxReceive.HasValue)
                         {
-                            Success = error == null,
-                            ErrorMessage = error?.Message
-                        };
-                        var body = KafkaCommon.Serialize(ack);
-                        if (symmetricConfig != null)
-                            body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
-
-                        var producerConfig = new ProducerConfig();
-                        producerConfig.BootstrapServers = host;
-                        producerConfig.ClientId = clientID;
-                        using (var producer = new ProducerBuilder<string, byte[]>(producerConfig).Build())
-                        {
-                            _ = await producer.ProduceAsync(ackTopic, new Message<string, byte[]>()
+                            lock (countLocker)
                             {
-                                Key = ackKey,
-                                Value = body
-                            });
+                                completedCount++;
+                                if (completedCount == maxReceive.Value)
+                                    processExit?.Invoke();
+                                else if (throttle.CurrentCount < maxReceive.Value - receivedCount)
+                                    _ = throttle.Release(); //don't release more than needed to reach maxReceive
+                            }
+                        }
+                        else
+                        {
+                            _ = throttle.Release();
                         }
                     }
+                }
 
-                    catch (Exception ex)
+                if (!awaitResponse)
+                    return;
+
+                try
+                {
+                    var ack = new Acknowledgement()
                     {
-                        _ = Log.ErrorAsync(ex);
+                        Success = error == null,
+                        ErrorMessage = error?.Message
+                    };
+                    var body = KafkaCommon.Serialize(ack);
+                    if (symmetricConfig != null)
+                        body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+
+                    var producerConfig = new ProducerConfig();
+                    producerConfig.BootstrapServers = host;
+                    producerConfig.ClientId = clientID;
+                    using (var producer = new ProducerBuilder<string, byte[]>(producerConfig).Build())
+                    {
+                        _ = await producer.ProduceAsync(ackTopic, new Message<string, byte[]>()
+                        {
+                            Key = ackKey,
+                            Value = body
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _ = Log.ErrorAsync(ex);
+                }
+                finally
+                {
+                    if (maxReceive.HasValue)
+                    {
+                        lock (countLocker)
+                        {
+                            completedCount++;
+                            if (completedCount == maxReceive.Value)
+                                processExit?.Invoke();
+                            else if (throttle.CurrentCount < maxReceive.Value - receivedCount)
+                                _ = throttle.Release(); //don't release more than needed to reach maxReceive
+                        }
+                    }
+                    else
+                    {
+                        _ = throttle.Release();
                     }
                 }
             }

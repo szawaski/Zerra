@@ -13,6 +13,7 @@ using Zerra.Encryption;
 using Zerra.IO;
 using System.IO;
 using Zerra.Serialization;
+using System.Threading.Tasks;
 
 namespace Zerra.CQRS.Network
 {
@@ -28,7 +29,7 @@ namespace Zerra.CQRS.Network
             this.symmetricConfig = symmetricConfig;
         }
 
-        protected override async void Handle(TcpClient client, CancellationToken cancellationToken)
+        protected override async Task Handle(TcpClient client, CancellationToken cancellationToken)
         {
             TcpRequestHeader requestHeader = null;
             var responseStarted = false;

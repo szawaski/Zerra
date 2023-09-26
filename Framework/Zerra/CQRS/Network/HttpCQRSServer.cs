@@ -12,6 +12,7 @@ using Zerra.Logging;
 using Zerra.IO;
 using System.IO;
 using Zerra.Serialization;
+using System.Threading.Tasks;
 
 namespace Zerra.CQRS.Network
 {
@@ -32,7 +33,7 @@ namespace Zerra.CQRS.Network
                 allowOrigins = null;
         }
 
-        protected override async void Handle(TcpClient client, CancellationToken cancellationToken)
+        protected override async Task Handle(TcpClient client, CancellationToken cancellationToken)
         {
             HttpRequestHeader requestHeader = null;
             var responseStarted = false;

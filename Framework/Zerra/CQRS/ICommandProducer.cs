@@ -10,7 +10,7 @@ namespace Zerra.CQRS
 {
     public interface ICommandProducer
     {
-        void RegisterCommandType(Type type);
+        void RegisterCommandType(int maxConcurrent, string topic, Type type);
         IEnumerable<Type> GetCommandTypes();
         Task DispatchAsync(ICommand command, string source);
         Task DispatchAsyncAwait(ICommand command, string source);

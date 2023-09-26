@@ -28,40 +28,44 @@ namespace Zerra.CQRS.Network
             this.contentType = contentType;
             this.authorizer = authorizer;
 
-            _ = Log.InfoAsync($"{nameof(HttpCQRSClient)} started for {this.contentType} at {serviceUrl} as {this.endpoint}");
+            _ = Log.InfoAsync($"{nameof(HttpCQRSClient)} started for {this.contentType} at {serviceUrl} as {this.ipEndpoint}");
         }
 
-        protected override TReturn CallInternal<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
+        protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
         {
-            string[][] claims = null;
-            if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
-                claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+            throttle.Wait();
 
-            var data = new CQRSRequestData()
-            {
-                ProviderType = interfaceType.Name,
-                ProviderMethod = methodName,
-
-                Claims = claims,
-                Source = source
-            };
-            data.AddProviderArguments(arguments);
-
-            IDictionary<string, IList<string>> authHeaders = null;
-            if (authorizer != null)
-                authHeaders = authorizer.BuildAuthHeaders();
-
-            var client = new TcpClient(endpoint.AddressFamily);
-            client.NoDelay = true;
-
-            var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
-            var buffer = bufferOwner.AsMemory();
+            TcpClient client = null;
             Stream stream = null;
             Stream requestBodyStream = null;
             Stream responseBodyStream = null;
+            var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
             try
             {
-                client.Connect(endpoint.Address, endpoint.Port);
+                string[][] claims = null;
+                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+                var data = new CQRSRequestData()
+                {
+                    ProviderType = interfaceType.Name,
+                    ProviderMethod = methodName,
+
+                    Claims = claims,
+                    Source = source
+                };
+                data.AddProviderArguments(arguments);
+
+                IDictionary<string, IList<string>> authHeaders = null;
+                if (authorizer != null)
+                    authHeaders = authorizer.BuildAuthHeaders();
+
+                client = new TcpClient(ipEndpoint.AddressFamily);
+                client.NoDelay = true;
+
+                var buffer = bufferOwner.AsMemory();
+
+                client.Connect(ipEndpoint.Address, ipEndpoint.Port);
 
                 stream = client.GetStream();
 
@@ -140,40 +144,45 @@ namespace Zerra.CQRS.Network
             finally
             {
                 BufferArrayPool<byte>.Return(bufferOwner);
+                throttle.Release();
             }
         }
 
-        protected override async Task<TReturn> CallInternalAsync<TReturn>(bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
+        protected override async Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
         {
-            string[][] claims = null;
-            if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
-                claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+            await throttle.WaitAsync();
 
-            var data = new CQRSRequestData()
-            {
-                ProviderType = interfaceType.Name,
-                ProviderMethod = methodName,
-
-                Claims = claims,
-                Source = source
-            };
-            data.AddProviderArguments(arguments);
-
-            IDictionary<string, IList<string>> authHeaders = null;
-            if (authorizer != null)
-                authHeaders = authorizer.BuildAuthHeaders();
-
-            var client = new TcpClient(endpoint.AddressFamily);
-            client.NoDelay = true;
-
-            var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
-            var buffer = bufferOwner.AsMemory();
+            TcpClient client = null;
             Stream stream = null;
             Stream requestBodyStream = null;
             Stream responseBodyStream = null;
+            var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
             try
             {
-                await client.ConnectAsync(endpoint.Address, endpoint.Port);
+                string[][] claims = null;
+                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+                var data = new CQRSRequestData()
+                {
+                    ProviderType = interfaceType.Name,
+                    ProviderMethod = methodName,
+
+                    Claims = claims,
+                    Source = source
+                };
+                data.AddProviderArguments(arguments);
+
+                IDictionary<string, IList<string>> authHeaders = null;
+                if (authorizer != null)
+                    authHeaders = authorizer.BuildAuthHeaders();
+
+                client = new TcpClient(ipEndpoint.AddressFamily);
+                client.NoDelay = true;
+
+                var buffer = bufferOwner.AsMemory();
+
+                await client.ConnectAsync(ipEndpoint.Address, ipEndpoint.Port);
 
                 stream = client.GetStream();
 
@@ -277,50 +286,55 @@ namespace Zerra.CQRS.Network
                     await stream.DisposeAsync();
 #endif
                 }
-                client.Close();
+                client?.Close();
                 throw;
             }
             finally
             {
                 BufferArrayPool<byte>.Return(bufferOwner);
+                throttle.Release();
             }
         }
 
-        protected override async Task DispatchInternal(Type commandType, ICommand command, bool messageAwait, string source)
+        protected override async Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source)
         {
-            var messageTypeName = commandType.GetNiceName();
+            await throttle.WaitAsync();
 
-            var messageData = JsonSerializer.Serialize(command, commandType);
-
-            string[][] claims = null;
-            if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
-                claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
-
-            var data = new CQRSRequestData()
-            {
-                MessageType = messageTypeName,
-                MessageData = messageData,
-                MessageAwait = messageAwait,
-
-                Claims = claims,
-                Source = source
-            };
-
-            IDictionary<string, IList<string>> authHeaders = null;
-            if (authorizer != null)
-                authHeaders = authorizer.BuildAuthHeaders();
-
-            var client = new TcpClient(endpoint.AddressFamily);
-            client.NoDelay = true;
-
-            var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
-            var buffer = bufferOwner.AsMemory();
+            TcpClient client = null;
             Stream stream = null;
             Stream requestBodyStream = null;
             Stream responseBodyStream = null;
+            var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
             try
             {
-                await client.ConnectAsync(endpoint.Address, endpoint.Port);
+                var messageTypeName = commandType.GetNiceName();
+
+                var messageData = JsonSerializer.Serialize(command, commandType);
+
+                string[][] claims = null;
+                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+                var data = new CQRSRequestData()
+                {
+                    MessageType = messageTypeName,
+                    MessageData = messageData,
+                    MessageAwait = messageAwait,
+
+                    Claims = claims,
+                    Source = source
+                };
+
+                IDictionary<string, IList<string>> authHeaders = null;
+                if (authorizer != null)
+                    authHeaders = authorizer.BuildAuthHeaders();
+
+                client = new TcpClient(ipEndpoint.AddressFamily);
+                client.NoDelay = true;
+
+                var buffer = bufferOwner.AsMemory();
+
+                await client.ConnectAsync(ipEndpoint.Address, ipEndpoint.Port);
 
                 stream = client.GetStream();
 
@@ -415,6 +429,7 @@ namespace Zerra.CQRS.Network
             finally
             {
                 BufferArrayPool<byte>.Return(bufferOwner);
+                throttle.Release();
             }
         }
     }

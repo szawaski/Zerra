@@ -9,11 +9,9 @@ namespace ZerraDemo.Common
 {
     public static class ServiceManager
     {
-        public static void StartServices()
+        public static void StartServices(int? receiveCountBeforeExit)
         {
-            var settingsName = Config.EntryAssemblyName;
-            if (settingsName == null)
-                throw new Exception($"Entry Assembly is null, {nameof(ServiceManager)} cannot identify which service is running");
+            Bus.ReceiveCountBeforeExit = receiveCountBeforeExit;
 
             Bus.AddLogger(new BusLoggingProvider());
 
@@ -21,7 +19,7 @@ namespace ZerraDemo.Common
             //environmental varibles such as ASPNETCORE_URLS are not read into the BindingUrl
             //this is helpful if running AspNetCore in addition to a TcpService Server which will fight for the port
             //in Kubernetes the BindingUrl needs to be 0.0.0.0 which can be replaced with "+" such as "+:80"
-            var serviceSettings = CQRSSettings.Get(settingsName, false);
+            var serviceSettings = CQRSSettings.Get(false);
 
             IServiceCreator serviceCreator;
 

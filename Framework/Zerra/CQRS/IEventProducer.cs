@@ -10,7 +10,7 @@ namespace Zerra.CQRS
 {
     public interface IEventProducer
     {
-        void RegisterEventType(Type type);
+        void RegisterEventType(int maxConcurrent, string topic, Type type);
         IEnumerable<Type> GetEventTypes();
         Task DispatchAsync(IEvent @event, string source);
     }

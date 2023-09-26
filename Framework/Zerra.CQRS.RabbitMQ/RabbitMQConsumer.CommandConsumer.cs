@@ -20,23 +20,42 @@ namespace Zerra.CQRS.RabbitMQ
         {
             public bool IsOpen { get; private set; }
 
+            private readonly int maxConcurrent;
+            private readonly int? maxReceive;
+            private readonly Action processExit;
             private readonly string topic;
             private readonly SymmetricConfig symmetricConfig;
-
-            private IModel channel = null;
+            private readonly HandleRemoteCommandDispatch handlerAsync;
+            private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
             private readonly CancellationTokenSource canceller;
 
-            public CommandConsumer(string topic, SymmetricConfig symmetricConfig, string environment)
+            private readonly object countLocker = new();
+            private int receivedCount;
+            private int completedCount;
+
+            private IModel channel = null;
+            private SemaphoreSlim throttle = null;
+
+            public CommandConsumer(int maxConcurrent, int? maxReceive, Action processExit, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
+                if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
+                if (maxReceive.HasValue && maxReceive.Value < 1) throw new ArgumentException("cannot be less than 1", nameof(maxReceive));
+
+                this.maxConcurrent = maxReceive.HasValue ? Math.Min(maxReceive.Value, maxConcurrent) : maxConcurrent;
+                this.maxReceive = maxReceive;
+                this.processExit = processExit;
+
                 if (!String.IsNullOrWhiteSpace(environment))
                     this.topic = $"{environment}_{topic}".Truncate(RabbitMQCommon.TopicMaxLength);
                 else
                     this.topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
                 this.symmetricConfig = symmetricConfig;
+                this.handlerAsync = handlerAsync;
+                this.handlerAwaitAsync = handlerAwaitAsync;
                 this.canceller = new CancellationTokenSource();
             }
 
-            public void Open(IConnection connection, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            public void Open(IConnection connection)
             {
                 if (IsOpen)
                     return;
@@ -46,6 +65,8 @@ namespace Zerra.CQRS.RabbitMQ
 
             private async Task ListeningThread(IConnection connection, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
+                throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+
             retry:
 
                 try
@@ -63,6 +84,16 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.Received += async (sender, e) =>
                     {
+                        await throttle.WaitAsync();
+
+                        if (maxReceive.HasValue)
+                        {
+                            lock (countLocker)
+                            {
+                                receivedCount++;
+                            }
+                        }
+
                         var awaitResponse = !String.IsNullOrWhiteSpace(e.BasicProperties.ReplyTo);
 
                         Acknowledgement acknowledgment;
@@ -109,25 +140,49 @@ namespace Zerra.CQRS.RabbitMQ
                                 acknowledgment.ErrorMessage = ex.Message;
                             }
                         }
-
-                        if (acknowledgment != null)
+                        finally
                         {
-                            try
+                            if (acknowledgment == null)
+                                throttle.Release();
+                        }
+
+                        if (acknowledgment == null)
+                            return;
+
+                        try
+                        {
+                            var replyProperties = this.channel.CreateBasicProperties();
+                            replyProperties.CorrelationId = e.BasicProperties.CorrelationId;
+
+                            var acknowledgmentBody = RabbitMQCommon.Serialize(acknowledgment);
+                            if (symmetricConfig != null)
+                                acknowledgmentBody = SymmetricEncryptor.Encrypt(symmetricConfig, acknowledgmentBody);
+
+                            this.channel.BasicPublish(String.Empty, e.BasicProperties.ReplyTo, replyProperties, acknowledgmentBody);
+                        }
+                        catch (Exception ex)
+                        {
+                            _ = Log.ErrorAsync(topic, ex);
+                        }
+                        finally
+                        {
+                            if (maxReceive.HasValue)
                             {
-                                var replyProperties = this.channel.CreateBasicProperties();
-                                replyProperties.CorrelationId = e.BasicProperties.CorrelationId;
-
-                                var acknowledgmentBody = RabbitMQCommon.Serialize(acknowledgment);
-                                if (symmetricConfig != null)
-                                    acknowledgmentBody = SymmetricEncryptor.Encrypt(symmetricConfig, acknowledgmentBody);
-
-                                this.channel.BasicPublish(String.Empty, e.BasicProperties.ReplyTo, replyProperties, acknowledgmentBody);
+                                lock (countLocker)
+                                {
+                                    completedCount++;
+                                    if (completedCount == maxReceive.Value)
+                                        processExit?.Invoke();
+                                    else if (throttle.CurrentCount < maxReceive.Value - receivedCount)
+                                        _ = throttle.Release(); //don't release more than needed to reach maxReceive
+                                }
                             }
-                            catch (Exception ex)
+                            else
                             {
-                                _ = Log.ErrorAsync(topic, ex);
+                                _ = throttle.Release();
                             }
                         }
+
                     };
 
                     _ = this.channel.BasicConsume(queueName, true, consumer);
@@ -144,7 +199,7 @@ namespace Zerra.CQRS.RabbitMQ
                             channel.Dispose();
                             channel = null;
                         }
-                        await Task.Delay(retryDelay);
+                        await Task.Delay(RabbitMQCommon.RetryDelay);
                         goto retry;
                     }
                 }
@@ -154,6 +209,9 @@ namespace Zerra.CQRS.RabbitMQ
             {
                 canceller.Cancel();
                 canceller.Dispose();
+
+                if (throttle != null)
+                    throttle.Dispose();
 
                 if (channel != null)
                 {

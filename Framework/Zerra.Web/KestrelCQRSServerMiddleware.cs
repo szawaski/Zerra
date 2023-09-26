@@ -21,7 +21,7 @@ using Zerra.Serialization;
 
 namespace Zerra.Web
 {
-    public sealed class KestrelCQRSServerMiddleware
+    public sealed class KestrelCQRSServerMiddleware : IDisposable
     {
         private readonly RequestDelegate requestDelegate;
         private readonly SymmetricConfig symmetricConfig;
@@ -32,6 +32,11 @@ namespace Zerra.Web
             this.requestDelegate = requestDelegate;
             this.symmetricConfig = symmetricConfig;
             this.settings = settings;
+        }
+
+        public void Dispose()
+        {
+            settings.Dispose();
         }
 
         public async Task Invoke(HttpContext context)
@@ -103,6 +108,7 @@ namespace Zerra.Web
             }
 
             var inHandlerContext = false;
+            SemaphoreSlim throttle = null;
             try
             {
                 Stream body = context.Request.Body;
@@ -144,10 +150,11 @@ namespace Zerra.Web
                 if (!String.IsNullOrWhiteSpace(data.ProviderType))
                 {
                     var providerType = Discovery.GetTypeFromName(data.ProviderType);
-                    var typeDetail = TypeAnalyzer.GetTypeDetail(providerType);
 
-                    if (!settings.InterfaceTypes.Contains(providerType))
-                        throw new Exception($"Unhandled Provider Type {providerType.FullName}");
+                    if (!settings.InterfaceTypes.TryGetValue(providerType, out throttle))
+                        throw new Exception($"{providerType.GetNiceName()} is not registered with {nameof(KestrelCQRSServerMiddleware)}");
+
+                    await throttle.WaitAsync();
 
                     inHandlerContext = true;
                     var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, false);
@@ -285,13 +292,11 @@ namespace Zerra.Web
                 else if (!String.IsNullOrWhiteSpace(data.MessageType))
                 {
                     var messageType = Discovery.GetTypeFromName(data.MessageType);
-                    var typeDetail = TypeAnalyzer.GetTypeDetail(messageType);
 
-                    if (!typeDetail.Interfaces.Contains(typeof(ICommand)) && !typeDetail.Interfaces.Contains(typeof(IEvent)))
-                        throw new Exception($"Type {data.MessageType} is not a command or event");
+                    if (!settings.CommandTypes.TryGetValue(messageType, out throttle))
+                        throw new Exception($"{messageType.GetNiceName()} is not registered with {nameof(KestrelCQRSServerMiddleware)}");
 
-                    if (!settings.CommandTypes.Contains(messageType))
-                        throw new Exception($"Unhandled Command Type {messageType.FullName}");
+                    await throttle.WaitAsync();
 
                     var command = (ICommand)JsonSerializer.Deserialize(messageType, data.MessageData);
 
@@ -378,6 +383,11 @@ namespace Zerra.Web
                     await ContentTypeSerializer.SerializeExceptionAsync(contentType.Value, responseBodyStream, ex);
                     await responseBodyStream.FlushAsync();
                 }
+            }
+            finally
+            {
+                if (throttle != null)
+                    throttle.Release();
             }
         }
     }

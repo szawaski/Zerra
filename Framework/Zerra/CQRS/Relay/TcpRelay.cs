@@ -15,6 +15,7 @@ using Zerra.CQRS.Network;
 using System.IO;
 using System.Linq;
 using Zerra.Serialization;
+using System.Threading.Tasks;
 
 namespace Zerra.CQRS.Relay
 {
@@ -52,7 +53,7 @@ namespace Zerra.CQRS.Relay
             canceller.Cancel();
         }
 
-        protected override async void Handle(TcpClient client, CancellationToken cancellationToken)
+        protected override async Task Handle(TcpClient client, CancellationToken cancellationToken)
         {
             TcpClient outgoingClient = null;
             CQRSProtocolType? protocolType = null;

@@ -24,8 +24,9 @@ namespace Zerra.CQRS.RabbitMQ
         private readonly string host;
         private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
-        private ConcurrentDictionary<Type, string> commandTypes;
-        private ConcurrentDictionary<Type, string> eventTypes;
+        private readonly ConcurrentDictionary<Type, string> topicsByCommandType;
+        private readonly ConcurrentDictionary<Type, string> topicsByEventType;
+        private readonly ConcurrentDictionary<string, SemaphoreSlim> throttleByTopic;
         private IConnection connection = null;
 
         public string ConnectionString => host;
@@ -37,8 +38,9 @@ namespace Zerra.CQRS.RabbitMQ
             this.host = host;
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
-            this.commandTypes = new();
-            this.eventTypes = new();
+            this.topicsByCommandType = new();
+            this.topicsByEventType = new();
+            this.throttleByTopic = new();
             try
             {
                 var factory = new ConnectionFactory() { HostName = host };
@@ -59,170 +61,191 @@ namespace Zerra.CQRS.RabbitMQ
         private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
         {
             var commandType = command.GetType();
-            if (!commandTypes.TryGetValue(commandType, out var topic))
+            if (!topicsByCommandType.TryGetValue(commandType, out var topic))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(RabbitMQProducer)}");
+            if (!throttleByTopic.TryGetValue(topic, out var throttle))
                 throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(RabbitMQProducer)}");
 
-            if (!String.IsNullOrWhiteSpace(environment))
-                topic = $"{environment}_{topic}".Truncate(RabbitMQCommon.TopicMaxLength);
-            else
-                topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
+            await throttle.WaitAsync();
 
             try
             {
-                if (connection.IsOpen == false)
+
+                if (!String.IsNullOrWhiteSpace(environment))
+                    topic = $"{environment}_{topic}".Truncate(RabbitMQCommon.TopicMaxLength);
+                else
+                    topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
+
+                try
                 {
-                    lock (locker)
+                    if (connection.IsOpen == false)
                     {
-                        if (connection.IsOpen == false)
+                        lock (locker)
                         {
-                            var factory = new ConnectionFactory() { HostName = host };
-                            this.connection = factory.CreateConnection();
-                            _ = Log.InfoAsync($"Sender Reconnected");
+                            if (connection.IsOpen == false)
+                            {
+                                var factory = new ConnectionFactory() { HostName = host };
+                                this.connection = factory.CreateConnection();
+                                _ = Log.InfoAsync($"Sender Reconnected");
+                            }
                         }
                     }
-                }
 
-                using var channel = connection.CreateModel();
+                    using var channel = connection.CreateModel();
 
-                string[][] claims = null;
-                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
-                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+                    string[][] claims = null;
+                    if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                        claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
-                var rabbitMessage = new RabbitMQCommandMessage()
-                {
-                    Message = command,
-                    Claims = claims,
-                    Source = source
-                };
-
-                var body = RabbitMQCommon.Serialize(rabbitMessage);
-                if (symmetricConfig != null)
-                    body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
-
-                var properties = channel.CreateBasicProperties();
-
-                EventingBasicConsumer consumer = null;
-                string consumerTag = null;
-                string correlationId = null;
-                if (requireAcknowledgement)
-                {
-                    var replyQueueName = channel.QueueDeclare().QueueName;
-                    consumer = new EventingBasicConsumer(channel);
-                    consumerTag = channel.BasicConsume(replyQueueName, true, consumer);
-
-                    correlationId = Guid.NewGuid().ToString("N");
-                    properties.ReplyTo = replyQueueName;
-                    properties.CorrelationId = correlationId;
-                }
-
-                channel.BasicPublish(topic, String.Empty, properties, body);
-
-                if (requireAcknowledgement)
-                {
-                    Exception exception = null;
-                    using var waiter = new SemaphoreSlim(0, 1);
-
-                    consumer.Received += (sender, e) =>
+                    var rabbitMessage = new RabbitMQCommandMessage()
                     {
-                        try
-                        {
-                            if (e.BasicProperties.CorrelationId != correlationId)
-                                throw new Exception("ACK response CorrelationIds should be single and unique");
-
-                            channel.BasicCancel(consumerTag);
-
-                            var acknowledgementBody = e.Body.Span;
-                            if (symmetricConfig != null)
-                                acknowledgementBody = SymmetricEncryptor.Decrypt(symmetricConfig, acknowledgementBody);
-
-                            var affirmation = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
-
-                            if (!affirmation.Success)
-                                exception = new AcknowledgementException(affirmation, topic);
-                        }
-                        catch (Exception ex)
-                        {
-                            exception = ex;
-                        }
-                        finally
-                        {
-                            _ = waiter.Release();
-                        }
+                        Message = command,
+                        Claims = claims,
+                        Source = source
                     };
 
-                    await waiter.WaitAsync();
+                    var body = RabbitMQCommon.Serialize(rabbitMessage);
+                    if (symmetricConfig != null)
+                        body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
-                    if (exception != null)
+                    var properties = channel.CreateBasicProperties();
+
+                    EventingBasicConsumer consumer = null;
+                    string consumerTag = null;
+                    string correlationId = null;
+                    if (requireAcknowledgement)
                     {
-                        throw exception;
-                    }
-                }
+                        var replyQueueName = channel.QueueDeclare().QueueName;
+                        consumer = new EventingBasicConsumer(channel);
+                        consumerTag = channel.BasicConsume(replyQueueName, true, consumer);
 
-                channel.Close();
+                        correlationId = Guid.NewGuid().ToString("N");
+                        properties.ReplyTo = replyQueueName;
+                        properties.CorrelationId = correlationId;
+                    }
+
+                    channel.BasicPublish(topic, String.Empty, properties, body);
+
+                    if (requireAcknowledgement)
+                    {
+                        Exception exception = null;
+                        using var waiter = new SemaphoreSlim(0, 1);
+
+                        consumer.Received += (sender, e) =>
+                        {
+                            try
+                            {
+                                if (e.BasicProperties.CorrelationId != correlationId)
+                                    throw new Exception("ACK response CorrelationIds should be single and unique");
+
+                                channel.BasicCancel(consumerTag);
+
+                                var acknowledgementBody = e.Body.Span;
+                                if (symmetricConfig != null)
+                                    acknowledgementBody = SymmetricEncryptor.Decrypt(symmetricConfig, acknowledgementBody);
+
+                                var affirmation = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
+
+                                if (!affirmation.Success)
+                                    exception = new AcknowledgementException(affirmation, topic);
+                            }
+                            catch (Exception ex)
+                            {
+                                exception = ex;
+                            }
+                            finally
+                            {
+                                _ = waiter.Release();
+                            }
+                        };
+
+                        await waiter.WaitAsync();
+
+                        if (exception != null)
+                        {
+                            throw exception;
+                        }
+                    }
+
+                    channel.Close();
+                }
+                catch (Exception ex)
+                {
+                    _ = Log.ErrorAsync(null, ex);
+                    throw;
+                }
             }
-            catch (Exception ex)
+            finally
             {
-                _ = Log.ErrorAsync(null, ex);
-                throw;
+                throttle.Release();
             }
         }
 
-        private Task SendAsync(IEvent @event, string source)
+        private async Task SendAsync(IEvent @event, string source)
         {
             var eventType = @event.GetType();
-            if (!eventTypes.TryGetValue(eventType, out var topic))
+            if (!topicsByEventType.TryGetValue(eventType, out var topic))
+                throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(RabbitMQProducer)}");
+            if (!throttleByTopic.TryGetValue(topic, out var throttle))
                 throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(RabbitMQProducer)}");
 
-            if (!String.IsNullOrWhiteSpace(environment))
-                topic = $"{environment}_{topic}".Truncate(RabbitMQCommon.TopicMaxLength);
-            else
-                topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
+            await throttle.WaitAsync();
 
             try
             {
-                if (connection.IsOpen == false)
+                if (!String.IsNullOrWhiteSpace(environment))
+                    topic = $"{environment}_{topic}".Truncate(RabbitMQCommon.TopicMaxLength);
+                else
+                    topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
+
+                try
                 {
-                    lock (locker)
+                    if (connection.IsOpen == false)
                     {
-                        if (connection.IsOpen == false)
+                        lock (locker)
                         {
-                            var factory = new ConnectionFactory() { HostName = host };
-                            this.connection = factory.CreateConnection();
-                            _ = Log.InfoAsync($"Sender Reconnected");
+                            if (connection.IsOpen == false)
+                            {
+                                var factory = new ConnectionFactory() { HostName = host };
+                                this.connection = factory.CreateConnection();
+                                _ = Log.InfoAsync($"Sender Reconnected");
+                            }
                         }
                     }
+
+                    using var channel = connection.CreateModel();
+
+                    string[][] claims = null;
+                    if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                        claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+                    var rabbitMessage = new RabbitMQEventMessage()
+                    {
+                        Message = @event,
+                        Claims = claims,
+                        Source = source
+                    };
+
+                    var body = RabbitMQCommon.Serialize(rabbitMessage);
+                    if (symmetricConfig != null)
+                        body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+
+                    var properties = channel.CreateBasicProperties();
+
+                    channel.BasicPublish(topic, String.Empty, properties, body);
+
+                    channel.Close();
                 }
-
-                using var channel = connection.CreateModel();
-
-                string[][] claims = null;
-                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
-                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
-
-                var rabbitMessage = new RabbitMQEventMessage()
+                catch (Exception ex)
                 {
-                    Message = @event,
-                    Claims = claims,
-                    Source = source
-                };
-
-                var body = RabbitMQCommon.Serialize(rabbitMessage);
-                if (symmetricConfig != null)
-                    body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
-
-                var properties = channel.CreateBasicProperties();
-
-                channel.BasicPublish(topic, String.Empty, properties, body);
-
-                channel.Close();
+                    _ = Log.ErrorAsync(null, ex);
+                    throw;
+                }
             }
-            catch (Exception ex)
+            finally
             {
-                _ = Log.ErrorAsync(null, ex);
-                throw;
+                throttle.Release();
             }
-
-            return Task.CompletedTask;
         }
 
         public void Dispose()
@@ -232,28 +255,36 @@ namespace Zerra.CQRS.RabbitMQ
             GC.SuppressFinalize(this);
         }
 
-        void ICommandProducer.RegisterCommandType(Type type)
+        void ICommandProducer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
-            if (commandTypes.ContainsKey(type))
+            if (topicsByCommandType.ContainsKey(type))
                 return;
-            var topic = Bus.GetCommandTopic(type);
-            commandTypes.TryAdd(type, topic);
+            topicsByCommandType.TryAdd(type, topic);
+            if (throttleByTopic.ContainsKey(topic))
+                return;
+            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            if (!throttleByTopic.TryAdd(topic, throttle))
+                throttle.Dispose();
         }
         IEnumerable<Type> ICommandProducer.GetCommandTypes()
         {
-            return commandTypes.Keys;
+            return topicsByCommandType.Keys;
         }
 
-        void IEventProducer.RegisterEventType(Type type)
+        void IEventProducer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
-            if (eventTypes.ContainsKey(type))
+            if (topicsByEventType.ContainsKey(type))
                 return;
-            var topic = Bus.GetEventTopic(type);
-            eventTypes.TryAdd(type, topic);
+            topicsByEventType.TryAdd(type, topic);
+            if (throttleByTopic.ContainsKey(topic))
+                return;
+            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            if (!throttleByTopic.TryAdd(topic, throttle))
+                throttle.Dispose();
         }
         IEnumerable<Type> IEventProducer.GetEventTypes()
         {
-            return eventTypes.Keys;
+            return topicsByEventType.Keys;
         }
     }
 }

@@ -3,17 +3,20 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using System.Threading;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
 
 namespace Zerra.Web
 {
-    public sealed class KestrelCQRSServerLinkedSettings
+    public sealed class KestrelCQRSServerLinkedSettings : IDisposable
     {
-        public List<Type> InterfaceTypes { get; private set; }
-        public List<Type> CommandTypes { get; private set; }
+        public ConcurrentDictionary<Type, SemaphoreSlim> InterfaceTypes { get; private set; }
+        public ConcurrentDictionary<Type, SemaphoreSlim> CommandTypes { get; private set; }
+
+        public int? MaxReceived { get; set; }
+        public Action ProcessExit { get; set; }
 
         public QueryHandlerDelegate ProviderHandlerAsync { get; set; }
         public HandleRemoteCommandDispatch HandlerAsync { get; set; }
@@ -51,6 +54,17 @@ namespace Zerra.Web
             InterfaceTypes = new();
             CommandTypes = new();
             this.allowOriginsString = "*";
+        }
+
+        public void Dispose()
+        {
+            foreach (var throttle in InterfaceTypes.Values)
+                throttle.Dispose();
+            InterfaceTypes.Clear();
+
+            foreach (var throttle in CommandTypes.Values)
+                throttle.Dispose();
+            CommandTypes.Clear();
         }
     }
 }

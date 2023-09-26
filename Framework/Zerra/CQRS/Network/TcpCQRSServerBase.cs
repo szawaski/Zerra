@@ -9,15 +9,16 @@ using Zerra.Collections;
 using Zerra.Logging;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Zerra.CQRS.Network
 {
-    public abstract class TcpCQRSServerBase : IDisposable, IQueryServer, ICommandConsumer
+    public abstract class TcpCQRSServerBase : IQueryServer, ICommandConsumer, IDisposable
     {
-        protected readonly ConcurrentReadWriteList<Type> interfaceTypes;
-        protected readonly ConcurrentReadWriteList<Type> commandTypes;
+        protected readonly ConcurrentReadWriteHashSet<Type> interfaceTypes;
+        protected readonly ConcurrentReadWriteHashSet<Type> commandTypes;
 
-        private readonly SocketListener[] listeners;
+        private SocketListener[] listeners = null;
         protected QueryHandlerDelegate providerHandlerAsync = null;
         protected HandleRemoteCommandDispatch handlerAsync = null;
         protected HandleRemoteCommandDispatch handlerAwaitAsync = null;
@@ -25,39 +26,34 @@ namespace Zerra.CQRS.Network
         private bool started = false;
         private bool disposed = false;
 
+        private int? maxReceived = null;
+        private Action processExit = null;
+        private int maxConcurrent = Environment.ProcessorCount * 8;
+
         private readonly string serviceUrl;
         public string ServiceUrl => serviceUrl;
 
-        public TcpCQRSServerBase(string serverUrl)
+        public TcpCQRSServerBase(string serviceUrl)
         {
-            this.serviceUrl = serverUrl;
-
-            var endpoints = IPResolver.GetIPEndPoints(serverUrl);
-
-            this.listeners = new SocketListener[endpoints.Count];
-            for (var i = 0; i < endpoints.Count; i++)
-            {
-                var endpoint = endpoints[i];
-                var socket = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                socket.NoDelay = true;
-                socket.Bind(endpoint);
-                var listener = new SocketListener(socket, Handle);
-                this.listeners[i] = listener;
-            }
-
-            _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} started for {serviceUrl} resolved {String.Join(", ", endpoints.Select(x => x.ToString()))}");
-
-            this.interfaceTypes = new ConcurrentReadWriteList<Type>();
-            this.commandTypes = new ConcurrentReadWriteList<Type>();
+            this.serviceUrl = serviceUrl;
+            this.interfaceTypes = new();
+            this.commandTypes = new();
         }
 
-        void IQueryServer.SetHandler(QueryHandlerDelegate handlerAsync)
+        void IQueryServer.Setup(int? maxReceived, Action processExit, QueryHandlerDelegate handlerAsync)
         {
+            this.maxReceived = maxReceived;
+            this.processExit = processExit;
             this.providerHandlerAsync = handlerAsync;
         }
 
-        void IQueryServer.RegisterInterfaceType(Type type)
+        void IQueryServer.RegisterInterfaceType(int maxConcurrent, Type type)
         {
+            if (commandTypes.Count > 0)
+                throw new Exception($"Cannot register interface because this instance of {this.GetType().GetNiceName()} is already being used for commands");
+
+            if (maxConcurrent < this.maxConcurrent)
+                this.maxConcurrent = maxConcurrent;
             interfaceTypes.Add(type);
         }
         ICollection<Type> IQueryServer.GetInterfaceTypes()
@@ -65,14 +61,20 @@ namespace Zerra.CQRS.Network
             return interfaceTypes.ToArray();
         }
 
-        void ICommandConsumer.SetHandler(HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(int? maxReceived, Action processExit, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
         {
+            this.maxReceived = maxReceived;
+            this.processExit = processExit;
             this.handlerAsync = handlerAsync;
             this.handlerAwaitAsync = handlerAwaitAsync;
         }
 
-        void ICommandConsumer.RegisterCommandType(Type type)
+        void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
+            if (interfaceTypes.Count > 0)
+                throw new Exception($"Cannot register command because this instance of {this.GetType().GetNiceName()} is already being used for queries");
+            if (maxConcurrent < this.maxConcurrent)
+                this.maxConcurrent = maxConcurrent;
             commandTypes.Add(type);
         }
         IEnumerable<Type> ICommandConsumer.GetCommandTypes()
@@ -92,12 +94,26 @@ namespace Zerra.CQRS.Network
         }
         protected void Open()
         {
-            lock (listeners)
+            lock (interfaceTypes)
             {
                 if (disposed)
                     throw new ObjectDisposedException(nameof(TcpCQRSServerBase));
                 if (started)
                     return;
+
+                var endpoints = IPResolver.GetIPEndPoints(serviceUrl);
+                this.listeners = new SocketListener[endpoints.Count];
+                for (var i = 0; i < endpoints.Count; i++)
+                {
+                    var endpoint = endpoints[i];
+                    var socket = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                    socket.NoDelay = true;
+                    socket.Bind(endpoint);
+                    var listener = new SocketListener(socket, maxConcurrent, maxReceived, processExit, Handle);
+                    this.listeners[i] = listener;
+                }
+
+                _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} started for {serviceUrl} resolved {String.Join(", ", endpoints.Select(x => x.ToString()))}");
 
                 foreach (var listener in listeners)
                     listener.Open();
@@ -106,35 +122,31 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        protected abstract void Handle(TcpClient client, CancellationToken cancellationToken);
+        protected abstract Task Handle(TcpClient client, CancellationToken cancellationToken);
 
         void IQueryServer.Close()
         {
-            Close();
+            Dispose();
             _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} Query Server Closed On {this.serviceUrl}");
         }
         void ICommandConsumer.Close()
         {
-            Close();
+            Dispose();
             _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} Command Consumer Closed On {this.serviceUrl}");
-        }
-        protected void Close()
-        {
-            lock (listeners)
-            {
-                foreach (var listener in listeners)
-                    listener.Close();
-            }
         }
 
         public void Dispose()
         {
-            lock (listeners)
+            lock (interfaceTypes)
             {
                 if (disposed)
                     return;
-                foreach (var listener in listeners)
-                    listener.Dispose();
+                if (listeners != null)
+                {
+                    foreach (var listener in listeners)
+                        listener.Dispose();
+                    listeners = null;
+                }
                 interfaceTypes.Dispose();
                 commandTypes.Dispose();
                 disposed = true;
