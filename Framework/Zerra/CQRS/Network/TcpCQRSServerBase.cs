@@ -50,7 +50,7 @@ namespace Zerra.CQRS.Network
             if (commandTypes.Count > 0)
                 throw new Exception($"Cannot register interface because this instance of {this.GetType().GetNiceName()} is already being used for commands");
 
-            if (maxConcurrent < this.maxConcurrent)
+            if (!this.maxConcurrent.HasValue || maxConcurrent < this.maxConcurrent)
                 this.maxConcurrent = maxConcurrent;
             interfaceTypes.Add(type);
         }
