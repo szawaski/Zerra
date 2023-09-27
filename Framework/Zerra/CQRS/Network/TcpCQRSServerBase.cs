@@ -119,7 +119,7 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        protected abstract Task Handle(TcpClient client, CancellationToken cancellationToken);
+        protected abstract Task Handle(Socket socket, CancellationToken cancellationToken);
 
         void IQueryServer.Close()
         {

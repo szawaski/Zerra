@@ -344,7 +344,7 @@ namespace Zerra.CQRS.Network
         {
             await throttle.WaitAsync();
 
-            TcpClient client = null;
+            Socket socket = null;
             Stream stream = null;
             Stream requestBodyStream = null;
             FinalBlockStream requestBodyCryptoStream = null;
@@ -370,14 +370,12 @@ namespace Zerra.CQRS.Network
                     Source = source
                 };
 
-                client = new TcpClient(ipEndpoint.AddressFamily);
-                client.NoDelay = true;
-           
+                socket = new Socket(ipEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                socket.NoDelay = true;
+                socket.Connect(ipEndpoint.Address, ipEndpoint.Port);
+                stream = new NetworkStream(socket, true);
+
                 var buffer = bufferOwner.AsMemory();
-
-                await client.ConnectAsync(ipEndpoint.Address, ipEndpoint.Port);
-
-                stream = client.GetStream();
 
                 //Request Header
                 var requestHeaderLength = TcpRawCommon.BufferHeader(buffer, data.MessageType, contentType);
@@ -462,7 +460,7 @@ namespace Zerra.CQRS.Network
                     await responseBodyStream.DisposeAsync();
 #endif
                 }
-                client.Dispose();
+                socket.Dispose();
             }
             catch
             {
@@ -490,7 +488,7 @@ namespace Zerra.CQRS.Network
                     await stream.DisposeAsync();
 #endif
                 }
-                client?.Dispose();
+                socket?.Dispose();
                 throw;
             }
             finally

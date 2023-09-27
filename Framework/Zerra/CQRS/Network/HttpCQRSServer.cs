@@ -33,7 +33,7 @@ namespace Zerra.CQRS.Network
                 allowOrigins = null;
         }
 
-        protected override async Task Handle(TcpClient client, CancellationToken cancellationToken)
+        protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
             HttpRequestHeader requestHeader = null;
             var responseStarted = false;
@@ -47,7 +47,7 @@ namespace Zerra.CQRS.Network
             var inHandlerContext = false;
             try
             {
-                stream = client.GetStream();
+                stream = new NetworkStream(socket, true);
 
                 //Read Request Header
                 //------------------------------------------------------------------------------------------------------------
@@ -81,7 +81,7 @@ namespace Zerra.CQRS.Network
 
                 if (requestHeader.Preflight)
                 {
-                    _ = Log.TraceAsync($"{nameof(HttpCQRSServer)} Received Preflight {client.Client.RemoteEndPoint}");
+                    _ = Log.TraceAsync($"{nameof(HttpCQRSServer)} Received Preflight {socket.RemoteEndPoint}");
 
                     var preflightLength = HttpCommon.BufferPreflightResponse(buffer, requestHeader.Origin);
 #if NETSTANDARD2_0
@@ -154,7 +154,7 @@ namespace Zerra.CQRS.Network
                         throw new Exception($"Unhandled Provider Type {providerType.FullName}");
 
                     inHandlerContext = true;
-                    var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, client.Client.AddressFamily.ToString(), false);
+                    var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, socket.AddressFamily.ToString(), false);
                     inHandlerContext = false;
 
                     responseStarted = true;
@@ -241,7 +241,7 @@ namespace Zerra.CQRS.Network
                 if (!inHandlerContext)
                     _ = Log.ErrorAsync(null, ex);
 
-                if (client.Connected && !responseStarted && requestHeader != null && requestHeader.ContentType.HasValue)
+                if (socket.Connected && !responseStarted && requestHeader != null && requestHeader.ContentType.HasValue)
                 {
                     try
                     {
@@ -260,7 +260,7 @@ namespace Zerra.CQRS.Network
                     }
                     catch (Exception ex2)
                     {
-                        _ = Log.ErrorAsync($"{nameof(HttpCQRSServer)} Error {client.Client.RemoteEndPoint}", ex2);
+                        _ = Log.ErrorAsync($"{nameof(HttpCQRSServer)} Error {socket.RemoteEndPoint}", ex2);
                     }
                 }         
             }
@@ -290,7 +290,7 @@ namespace Zerra.CQRS.Network
                     await stream.DisposeAsync();
 #endif
                 }
-                client.Dispose();
+                socket.Dispose();
                 BufferArrayPool<byte>.Return(bufferOwner);
             }
         }

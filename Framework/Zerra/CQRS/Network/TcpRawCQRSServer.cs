@@ -29,7 +29,7 @@ namespace Zerra.CQRS.Network
             this.symmetricConfig = symmetricConfig;
         }
 
-        protected override async Task Handle(TcpClient client, CancellationToken cancellationToken)
+        protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
             TcpRequestHeader requestHeader = null;
             var responseStarted = false;
@@ -44,7 +44,7 @@ namespace Zerra.CQRS.Network
             var inHandlerContext = false;
             try
             {
-                stream = client.GetStream();
+                stream = new NetworkStream(socket, true);
 
                 //Read Request Header
                 //------------------------------------------------------------------------------------------------------------
@@ -240,7 +240,7 @@ namespace Zerra.CQRS.Network
                 if (!inHandlerContext)
                     _ = Log.ErrorAsync(null, ex);
 
-                if (client.Connected && !responseStarted && requestHeader != null && requestHeader.ContentType.HasValue)
+                if (socket.Connected && !responseStarted && requestHeader != null && requestHeader.ContentType.HasValue)
                 {
                     try
                     {
@@ -272,7 +272,7 @@ namespace Zerra.CQRS.Network
                     }
                     catch (Exception ex2)
                     {
-                        _ = Log.ErrorAsync($"{nameof(TcpRawCQRSServer)} Error {client.Client.RemoteEndPoint}", ex2);
+                        _ = Log.ErrorAsync($"{nameof(TcpRawCQRSServer)} Error {socket.RemoteEndPoint}", ex2);
                     }
                 }
             }
@@ -310,7 +310,7 @@ namespace Zerra.CQRS.Network
                     await stream.DisposeAsync();
 #endif
                 }
-                client.Dispose();
+                socket.Dispose();
                 BufferArrayPool<byte>.Return(bufferOwner);
             }
         }

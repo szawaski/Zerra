@@ -12,7 +12,7 @@ namespace Zerra.CQRS.Network
         private readonly Socket socket;
         private readonly int maxConcurrent;
         private readonly ReceiveCounter receiveCounter;
-        private readonly Func<TcpClient, CancellationToken, Task> handler;
+        private readonly Func<Socket, CancellationToken, Task> handler;
         private readonly SemaphoreSlim beginAcceptWaiter;
 
         private bool started;
@@ -21,7 +21,7 @@ namespace Zerra.CQRS.Network
         private SemaphoreSlim throttle;
         private CancellationTokenSource canceller;
 
-        public SocketListener(Socket socket, int maxConcurrent, ReceiveCounter receiveCounter, Func<TcpClient, CancellationToken, Task> handler)
+        public SocketListener(Socket socket, int maxConcurrent, ReceiveCounter receiveCounter, Func<Socket, CancellationToken, Task> handler)
         {
             if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -108,11 +108,9 @@ namespace Zerra.CQRS.Network
 
             var incommingSocket = socket.EndAccept(result);
 
-            var client = new TcpClient(socket.AddressFamily);
-            client.NoDelay = true;
-            client.Client = incommingSocket;
+            incommingSocket.NoDelay = true;
 
-            _ = handler(client, canceller.Token).ContinueWith((task) =>
+            _ = handler(incommingSocket, canceller.Token).ContinueWith((task) =>
             {
                 receiveCounter.CompleteReceive(throttle);
             });
