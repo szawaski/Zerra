@@ -16,6 +16,7 @@ using System.IO;
 using System.Linq;
 using Zerra.Serialization;
 using System.Threading.Tasks;
+using System.Net;
 
 namespace Zerra.CQRS.Relay
 {
@@ -53,7 +54,7 @@ namespace Zerra.CQRS.Relay
             canceller.Cancel();
         }
 
-        protected override async Task Handle(TcpClient client, CancellationToken cancellationToken)
+        protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
             TcpClient outgoingClient = null;
             CQRSProtocolType? protocolType = null;
@@ -74,7 +75,7 @@ namespace Zerra.CQRS.Relay
 
             try
             {
-                incommingStream = client.GetStream();
+                incommingStream = new NetworkStream(socket, true);
 
                 var headerPosition = 0;
                 var headerLength = 0;
@@ -144,7 +145,7 @@ namespace Zerra.CQRS.Relay
                                 await incommingStream.FlushAsync();
                                 await incommingStream.DisposeAsync();
                                 incommingStream = null;
-                                client.Dispose();
+                                socket.Dispose();
                                 return;
                             }
                             break;
@@ -296,7 +297,7 @@ namespace Zerra.CQRS.Relay
                 await incommingWritingBodyStream.DisposeAsync();
                 incommingWritingBodyStream = null;
                 outgoingClient.Dispose();
-                client.Dispose();
+                socket.Dispose();
             }
             catch (Exception ex)
             {
@@ -354,7 +355,7 @@ namespace Zerra.CQRS.Relay
                 if (outgoingClient != null)
                     outgoingClient.Dispose();
 
-                client.Dispose();
+                socket.Dispose();
             }
             finally
             {

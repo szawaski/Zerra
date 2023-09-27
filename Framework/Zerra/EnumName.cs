@@ -18,9 +18,9 @@ public sealed class EnumName : Attribute
     private static readonly ConcurrentFactoryDictionary<Type, CoreType> underlyingTypes = new();
     private static CoreType GetUnderlyingType(Type type)
     {
-        return underlyingTypes.GetOrAdd(type, (t) =>
+        return underlyingTypes.GetOrAdd(type, (type) =>
         {
-            if (!TypeLookup.CoreTypeLookup(Enum.GetUnderlyingType(t), out var underlyingType))
+            if (!TypeLookup.CoreTypeLookup(Enum.GetUnderlyingType(type), out var underlyingType))
                 throw new NotImplementedException("Should not happen");
             return underlyingType;
         });
@@ -29,13 +29,13 @@ public sealed class EnumName : Attribute
     private static readonly ConcurrentFactoryDictionary<Type, Dictionary<long, string>> nameCache = new();
     private static Dictionary<long, string> GetNamesForType(Type type)
     {
-        var nameLookup = nameCache.GetOrAdd(type, (t) =>
+        var nameLookup = nameCache.GetOrAdd(type, (type) =>
         {
             var items = new Dictionary<long, string>();
-            var fields = t.GetFields();
-            var underlyingType = GetUnderlyingType(t);
+            var fields = type.GetFields();
+            var underlyingType = GetUnderlyingType(type);
 
-            foreach (var enumValue in Enum.GetValues(t))
+            foreach (var enumValue in Enum.GetValues(type))
             {
                 var name = enumValue.ToString();
                 var field = fields.First(x => x.Name == name);
@@ -150,11 +150,11 @@ public sealed class EnumName : Attribute
     private static readonly ConcurrentFactoryDictionary<Type, Dictionary<string, object>> valueLookups = new();
     private static Dictionary<string, object> GetValuesForType(Type type)
     {
-        var valueLookup = valueLookups.GetOrAdd(type, (t) =>
+        var valueLookup = valueLookups.GetOrAdd(type, (type) =>
         {
             var items = new Dictionary<string, object>();
-            var fields = t.GetFields();
-            foreach (var enumValue in Enum.GetValues(t))
+            var fields = type.GetFields();
+            foreach (var enumValue in Enum.GetValues(type))
             {
                 var name = enumValue.ToString();
                 var field = fields.First(x => x.Name == name);

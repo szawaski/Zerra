@@ -22,9 +22,9 @@ namespace Zerra.Reflection
         }
         public static Type GetEmptyImplementationType(Type interfaceType)
         {
-            var classType = emptyImplementations.GetOrAdd(interfaceType, (t) =>
+            var classType = emptyImplementations.GetOrAdd(interfaceType, (interfaceType) =>
             {
-                return GenerateEmptyImplementation(t);
+                return GenerateEmptyImplementation(interfaceType);
             });
             return classType;
         }
@@ -34,9 +34,9 @@ namespace Zerra.Reflection
         }
         public static object GetEmptyImplementation(Type interfaceType)
         {
-            var classType = emptyImplementations.GetOrAdd(interfaceType, (t) =>
+            var classType = emptyImplementations.GetOrAdd(interfaceType, (interfaceType) =>
             {
-                return GenerateEmptyImplementation(t);
+                return GenerateEmptyImplementation(interfaceType);
             });
             var instance = Instantiator.Create(classType);
             return instance;

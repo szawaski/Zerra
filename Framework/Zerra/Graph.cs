@@ -572,7 +572,7 @@ namespace Zerra
         {
             var key = new TypeKey(this.Signature, typeof(TSource), typeof(TTarget));
 
-            var expression = (Expression<Func<TSource, TTarget>>)selectExpressions.GetOrAdd(key, (factoryKey) =>
+            var expression = (Expression<Func<TSource, TTarget>>)selectExpressions.GetOrAdd(key, (_) =>
             {
                 return GenerateSelectorExpression<TSource, TTarget>(this);
             });

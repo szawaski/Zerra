@@ -63,11 +63,11 @@ namespace Zerra.Serialization
         private static SerializerTypeDetail GetTypeInformation(Type type, ByteSerializerIndexSize indexSize, bool ignoreIndexAttribute)
         {
             var dictionarySetIndex = ((int)indexSize + 1) * (ignoreIndexAttribute ? 1 : 2);
-            var dictionarySet = typeInfoCache.GetOrAdd(dictionarySetIndex, (factoryKey) =>
+            var dictionarySet = typeInfoCache.GetOrAdd(dictionarySetIndex, (_) =>
             {
                 return new ConcurrentFactoryDictionary<Type, SerializerTypeDetail>();
             });
-            var typeInfo = dictionarySet.GetOrAdd(type, (factoryKey) =>
+            var typeInfo = dictionarySet.GetOrAdd(type, (_) =>
             {
                 return new SerializerTypeDetail(indexSize, ignoreIndexAttribute, type);
             });

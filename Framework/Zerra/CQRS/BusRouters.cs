@@ -25,9 +25,9 @@ namespace Zerra.CQRS
         private static readonly ConcurrentFactoryDictionary<Type, Type> callerClasses = new();
         public static object GetProviderToCallMethodInternalInstance(Type interfaceType, NetworkType networkType, string source)
         {
-            var callerClassType = callerClasses.GetOrAdd(interfaceType, (t) =>
+            var callerClassType = callerClasses.GetOrAdd(interfaceType, (interfaceType) =>
             {
-                return GenerateProviderToCallMethodInternalClass(t);
+                return GenerateProviderToCallMethodInternalClass(interfaceType);
             });
             var instance = Instantiator.GetSingle(interfaceType.Name + ((byte)networkType) + source, () => Instantiator.Create(callerClassType, new Type[] { typeof(NetworkType), typeof(string) }, networkType, source));
             return instance;
@@ -186,9 +186,9 @@ namespace Zerra.CQRS
         private static readonly ConcurrentFactoryDictionary<Type, Type> commandDispatcherClasses = new();
         public static object GetCommandHandlerToDispatchInternalInstance(Type interfaceType, bool requireAffirmation, NetworkType networkType, string source, BusLogging busLogging)
         {
-            var dispatcherClassType = commandDispatcherClasses.GetOrAdd(interfaceType, (t) =>
+            var dispatcherClassType = commandDispatcherClasses.GetOrAdd(interfaceType, (interfaceType) =>
             {
-                return GenerateCommandHandlerToDispatchInternalClass(t, busLogging);
+                return GenerateCommandHandlerToDispatchInternalClass(interfaceType, busLogging);
             });
             var instance = Instantiator.GetSingle(interfaceType.Name + (requireAffirmation ? 1 : 0) + (byte)networkType + source, () => Instantiator.Create(dispatcherClassType, new Type[] { typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging) }, requireAffirmation, networkType, source, busLogging));
             return instance;
@@ -323,9 +323,9 @@ namespace Zerra.CQRS
         private static readonly ConcurrentFactoryDictionary<Type, Type> eventDispatcherClasses = new();
         public static object GetEventHandlerToDispatchInternalInstance(Type interfaceType, NetworkType networkType, string source, BusLogging busLogging)
         {
-            var dispatcherClassType = eventDispatcherClasses.GetOrAdd(interfaceType, (t) =>
+            var dispatcherClassType = eventDispatcherClasses.GetOrAdd(interfaceType, (interfaceType) =>
             {
-                return GenerateEventHandlerToDispatchInternalClass(t, busLogging);
+                return GenerateEventHandlerToDispatchInternalClass(interfaceType, busLogging);
             });
             var instance = Instantiator.GetSingle(interfaceType.Name + (byte)networkType + source, () => Instantiator.Create(dispatcherClassType, new Type[] { typeof(NetworkType), typeof(string), typeof(BusLogging) }, networkType, source, busLogging));
             return instance;

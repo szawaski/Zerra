@@ -150,7 +150,7 @@ namespace Zerra.CQRS
             if (metadata.Authenticate)
                 Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Command {commandType.GetNiceName()}");
 
-            var cacheProviderDispatchAsync = commandCacheProviders.GetOrAdd(commandType, (t) =>
+            var cacheProviderDispatchAsync = commandCacheProviders.GetOrAdd(commandType, (commandType) =>
             {
                 var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iCommandHandlerType, commandType);
 
@@ -222,7 +222,7 @@ namespace Zerra.CQRS
             if (metadata.Authenticate)
                 Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Event {eventType.GetNiceName()}");
 
-            var cacheProviderDispatchAsync = eventCacheProviders.GetOrAdd(eventType, (t) =>
+            var cacheProviderDispatchAsync = eventCacheProviders.GetOrAdd(eventType, (eventType) =>
             {
                 var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iEventHandlerType, eventType);
 

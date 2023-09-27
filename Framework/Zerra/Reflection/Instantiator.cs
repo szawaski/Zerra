@@ -16,18 +16,18 @@ namespace Zerra.Reflection
         {
             var type = typeof(T);
             factory ??= Create<T>;
-            var instance = (T)singleInstancesByType.GetOrAdd(type, (key) => { return factory(); });
+            var instance = (T)singleInstancesByType.GetOrAdd(type, (_) => { return factory(); });
             return instance;
         }
         public static object GetSingle(Type type, Func<object> factory = null)
         {
             factory ??= () => { return Create(type); };
-            var instance = singleInstancesByType.GetOrAdd(type, (key) => { return factory(); });
+            var instance = singleInstancesByType.GetOrAdd(type, (_) => { return factory(); });
             return instance;
         }
         public static object GetSingle(string key, Func<object> factory)
         {
-            var instance = singleInstancesByKey.GetOrAdd(key, (factoryKey) => { return factory.Invoke(); });
+            var instance = singleInstancesByKey.GetOrAdd(key, (_) => { return factory.Invoke(); });
             return instance;
         }
 
@@ -42,7 +42,7 @@ namespace Zerra.Reflection
         private static Func<object[], object> GetCreator(Type type, Type[] parameterTypes)
         {
             var key = new TypeKey(type, parameterTypes);
-            var creator = creatorsByType.GetOrAdd(key, (keyArg) =>
+            var creator = creatorsByType.GetOrAdd(key, (_) =>
             {
                 var typeDetail = TypeAnalyzer.GetTypeDetail(type);
                 if (parameterTypes.Length == 0)

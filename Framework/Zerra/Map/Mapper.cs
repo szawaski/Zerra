@@ -40,9 +40,9 @@ namespace Zerra
             if (source == null)
                 return default;
             var key = new TypeKey(source.GetType(), typeof(TTarget));
-            var copyFunc = copyFuncs.GetOrAdd(key, (k) =>
+            var copyFunc = copyFuncs.GetOrAdd(key, (key) =>
             {
-                var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, k.Type1, k.Type2);
+                var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, key.Type1, key.Type2);
                 var map = genericMapType.GetMethod("GetMap").Caller(null, null);
                 return (s, g) => { return genericMapType.GetMethod("Copy").Caller(map, new object[] { s, g }); };
             });
@@ -56,9 +56,9 @@ namespace Zerra
             if (source == null)
                 return default;
             var key = new TypeKey(typeof(TTarget), typeof(TTarget));
-            var copyFunc = copyFuncs.GetOrAdd(key, (k) =>
+            var copyFunc = copyFuncs.GetOrAdd(key, (key) =>
             {
-                var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, k.Type1, k.Type2);
+                var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, key.Type1, key.Type2);
                 var map = genericMapType.GetMethod("GetMap").Caller(null, null);
                 return (s, g) => { return genericMapType.GetMethod("Copy").Caller(map, new object[] { s, g }); };
             });
@@ -72,9 +72,9 @@ namespace Zerra
             if (source == null)
                 return;
             var key = new TypeKey(source.GetType(), typeof(TTarget));
-            var copyToFunc = copyToFuncs.GetOrAdd(key, (k) =>
+            var copyToFunc = copyToFuncs.GetOrAdd(key, (key) =>
             {
-                var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, k.Type1, k.Type2);
+                var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, key.Type1, key.Type2);
                 var map = genericMapType.GetMethod("GetMap").Caller(null, null);
                 return (s, t, g) => { return genericMapType.GetMethod("CopyTo").Caller(map, new object[] { s, t, g }); };
             });

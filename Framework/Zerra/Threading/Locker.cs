@@ -27,7 +27,7 @@ namespace Zerra.Threading
 
         private Locker(string purpose, T key)
         {
-            this.itemLockers = lockerPools.GetOrAdd(purpose, (k) => { return new ConcurrentDictionary<T, ItemLocker>(); });
+            this.itemLockers = lockerPools.GetOrAdd(purpose, (_) => { return new ConcurrentDictionary<T, ItemLocker>(); });
             this.key = key;
         }
 
@@ -35,7 +35,7 @@ namespace Zerra.Threading
         {
             lock (itemLockers)
             {
-                itemLocker = itemLockers.GetOrAdd(key, (k) => { return new ItemLocker(); });
+                itemLocker = itemLockers.GetOrAdd(key, (_) => { return new ItemLocker(); });
                 lock (itemLocker)
                 {
                     itemLocker.Checkouts++;

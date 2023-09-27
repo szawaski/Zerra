@@ -23,7 +23,7 @@ namespace Zerra.Repository.Reflection
         }
         public static ModelDetail GetModel(Type type)
         {
-            var modelInfo = modelInfos.GetOrAdd(type, (t) =>
+            var modelInfo = modelInfos.GetOrAdd(type, (type) =>
             {
                 var typeDetails = TypeAnalyzer.GetTypeDetail(type);
                 return new ModelDetail(typeDetails);
@@ -40,7 +40,7 @@ namespace Zerra.Repository.Reflection
             else
                 key = new TypeKey(propertyNames, typeof(T));
 
-            var getter = getterFunctionsByAttribute.GetOrAdd(key, (factoryKey) =>
+            var getter = getterFunctionsByAttribute.GetOrAdd(key, (_) =>
             {
                 return GenerateGetterFunctionByNameOrAttribute<T>(propertyNames, attributeType);
             });
@@ -104,7 +104,7 @@ namespace Zerra.Repository.Reflection
             else
                 key = new TypeKey(propertyNames, typeof(T));
 
-            var setter = setterFunctionsByAttribute.GetOrAdd(key, (factoryKey) =>
+            var setter = setterFunctionsByAttribute.GetOrAdd(key, (_) =>
             {
                 return GenerateSetterFunctionByNameOrAttribute<T>(propertyNames, attributeType);
             });
@@ -171,9 +171,9 @@ namespace Zerra.Repository.Reflection
         private static readonly ConcurrentFactoryDictionary<Type, string[]> identityPropertyNames = new();
         public static string[] GetIdentityPropertyNames(Type type)
         {
-            var names = identityPropertyNames.GetOrAdd(type, (key) =>
+            var names = identityPropertyNames.GetOrAdd(type, (type) =>
             {
-                return GenerateIdentityPropertyNames(key);
+                return GenerateIdentityPropertyNames(type);
             });
             return names;
         }

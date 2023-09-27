@@ -55,7 +55,7 @@ namespace Zerra
         public static Map<TSource, TTarget> GetMap()
         {
             var key = new TypeKey(tType, uType);
-            var map = (Map<TSource, TTarget>)mapsStore.GetOrAdd(key, (k) => { return new Map<TSource, TTarget>(); });
+            var map = (Map<TSource, TTarget>)mapsStore.GetOrAdd(key, (_) => { return new Map<TSource, TTarget>(); });
             return map;
         }
 
@@ -209,7 +209,7 @@ namespace Zerra
             }
             else
             {
-                var map = compiledGraphMaps.GetOrAdd(graph ?? Graph.Empty(), (g) => { return CompileMap(g); });
+                var map = compiledGraphMaps.GetOrAdd(graph ?? Graph.Empty(), (graph) => { return CompileMap(graph); });
                 return map(source, target, new Dictionary<MapRecursionKey, object>());
             }
         }
@@ -236,7 +236,7 @@ namespace Zerra
             }
             else
             {
-                var map = compiledGraphMaps.GetOrAdd(graph ?? Graph.Empty(), (g) => { return CompileMap(g); });
+                var map = compiledGraphMaps.GetOrAdd(graph ?? Graph.Empty(), (graph) => { return CompileMap(graph); });
                 return map(source, target, recursionDictionary);
             }
         }

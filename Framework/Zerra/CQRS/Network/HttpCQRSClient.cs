@@ -150,7 +150,7 @@ namespace Zerra.CQRS.Network
         {
             await throttle.WaitAsync();
 
-            TcpClient client = null;
+            Socket socket = null;
             Stream stream = null;
             Stream requestBodyStream = null;
             Stream responseBodyStream = null;
@@ -175,14 +175,12 @@ namespace Zerra.CQRS.Network
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
-                client = new TcpClient(ipEndpoint.AddressFamily);
-                client.NoDelay = true;
+                socket = new Socket(ipEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                socket.NoDelay = true;
+                socket.Connect(ipEndpoint.Address, ipEndpoint.Port);
+                stream = new NetworkStream(socket, true);
 
                 var buffer = bufferOwner.AsMemory();
-
-                await client.ConnectAsync(ipEndpoint.Address, ipEndpoint.Port);
-
-                stream = client.GetStream();
 
                 //Request Header
                 var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUrl, null, data.ProviderType, contentType, authHeaders);
@@ -254,7 +252,7 @@ namespace Zerra.CQRS.Network
 #else
                     await responseBodyStream.DisposeAsync();
 #endif
-                    client.Dispose();
+                    socket.Dispose();
                     return model;
                 }
             }
@@ -284,7 +282,7 @@ namespace Zerra.CQRS.Network
                     await stream.DisposeAsync();
 #endif
                 }
-                client?.Close();
+                socket?.Close();
                 throw;
             }
             finally
@@ -298,7 +296,7 @@ namespace Zerra.CQRS.Network
         {
             await throttle.WaitAsync();
 
-            TcpClient client = null;
+            Socket socket = null;
             Stream stream = null;
             Stream requestBodyStream = null;
             Stream responseBodyStream = null;
@@ -327,14 +325,12 @@ namespace Zerra.CQRS.Network
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
-                client = new TcpClient(ipEndpoint.AddressFamily);
-                client.NoDelay = true;
+                socket = new Socket(ipEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                socket.NoDelay = true;
+                socket.Connect(ipEndpoint.Address, ipEndpoint.Port);
+                stream = new NetworkStream(socket, true);
 
                 var buffer = bufferOwner.AsMemory();
-
-                await client.ConnectAsync(ipEndpoint.Address, ipEndpoint.Port);
-
-                stream = client.GetStream();
 
                 //Request Header
                 var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUrl, null, data.ProviderType, contentType, authHeaders);
@@ -393,7 +389,7 @@ namespace Zerra.CQRS.Network
 #else
                 await responseBodyStream.DisposeAsync();
 #endif
-                client.Dispose();
+                socket.Dispose();
             }
             catch
             {
@@ -421,7 +417,7 @@ namespace Zerra.CQRS.Network
                     await stream.DisposeAsync();
 #endif
                 }
-                client.Dispose();
+                socket.Dispose();
                 throw;
             }
             finally

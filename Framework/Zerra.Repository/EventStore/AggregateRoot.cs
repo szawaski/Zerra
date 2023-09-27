@@ -126,22 +126,22 @@ namespace Zerra.Repository
         private static readonly ConcurrentFactoryDictionary<Type, MethodDetail> methodCache = new();
         private Task ApplyEvent(IEvent @event, Type eventType)
         {
-            var methodDetail = methodCache.GetOrAdd(eventType, (t) =>
+            var methodDetail = methodCache.GetOrAdd(eventType, (eventType) =>
             {
                 var aggregateType = GetAggregateType();
                 var aggregateTypeDetail = TypeAnalyzer.GetTypeDetail(aggregateType);
                 MethodDetail methodDetail = null;
                 foreach (var method in aggregateTypeDetail.MethodDetails)
                 {
-                    if (!method.MethodInfo.IsStatic && method.ParametersInfo.Count == 1 && method.ParametersInfo[0].ParameterType == t)
+                    if (!method.MethodInfo.IsStatic && method.ParametersInfo.Count == 1 && method.ParametersInfo[0].ParameterType == eventType)
                     {
                         if (methodDetail != null)
-                            throw new Exception($"Multiple aggregate event methods found in {aggregateType.Name} to accept {t.Name}");
+                            throw new Exception($"Multiple aggregate event methods found in {aggregateType.Name} to accept {eventType.Name}");
                         methodDetail = method;
                     }
                 }
                 if (methodDetail == null)
-                    throw new Exception($"No aggregate event methods found in {aggregateType.Name} to accept {t.Name}");
+                    throw new Exception($"No aggregate event methods found in {aggregateType.Name} to accept {eventType.Name}");
                 return methodDetail;
             });
 

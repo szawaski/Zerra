@@ -14,9 +14,9 @@ public static class TypeExtensions
     {
         if (it == null)
             return "null";
-        var niceName = niceNames.GetOrAdd(it, (t) =>
+        var niceName = niceNames.GetOrAdd(it, (it) =>
         {
-            return GenerateNiceName(t, false);
+            return GenerateNiceName(it, false);
         });
         return niceName;
     }
@@ -26,9 +26,9 @@ public static class TypeExtensions
     {
         if (it == null)
             return "null";
-        var niceFullName = niceFullNames.GetOrAdd(it, (t) =>
+        var niceFullName = niceFullNames.GetOrAdd(it, (it) =>
         {
-            return GenerateNiceName(t, true);
+            return GenerateNiceName(it, true);
         });
         return niceFullName;
     }

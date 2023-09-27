@@ -58,7 +58,7 @@ namespace Zerra
         public static MapWithLog<TSource, TTarget> GetMap()
         {
             var key = new TypeKey(tType, uType);
-            var map = (MapWithLog<TSource, TTarget>)mapsStore.GetOrAdd(key, (k) => { return new MapWithLog<TSource, TTarget>(); });
+            var map = (MapWithLog<TSource, TTarget>)mapsStore.GetOrAdd(key, (_) => { return new MapWithLog<TSource, TTarget>(); });
             return map;
         }
 

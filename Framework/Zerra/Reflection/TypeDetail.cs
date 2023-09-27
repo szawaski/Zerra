@@ -453,7 +453,7 @@ namespace Zerra.Reflection
         private MethodDetail GetMethodInternal(string name, Type[] parameterTypes = null)
         {
             var key = new TypeKey(name, parameterTypes);
-            var method = methodLookups.GetOrAdd(key, (keyArg) =>
+            var method = methodLookups.GetOrAdd(key, (_) =>
             {
                 foreach (var methodDetail in MethodDetails)
                 {
@@ -501,7 +501,7 @@ namespace Zerra.Reflection
         private ConstructorDetail GetConstructorInternal(Type[] parameterTypes)
         {
             var key = new TypeKey(parameterTypes);
-            var constructor = constructorLookups.GetOrAdd(key, (keyArg) =>
+            var constructor = constructorLookups.GetOrAdd(key, (_) =>
             {
                 foreach (var constructorDetail in ConstructorDetails)
                 {
