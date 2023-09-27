@@ -43,9 +43,9 @@ namespace Zerra.CQRS
         private static readonly SemaphoreSlim setupLock = new(1, 1);
 
         private static SemaphoreSlim processWaiter = null;
-        private static int maxConcurrentQueries = Environment.ProcessorCount * 16;
-        private static int maxConcurrentCommandsPerTopic = Environment.ProcessorCount * 2;
-        private static int maxConcurrentEventsPerTopic = Environment.ProcessorCount * 4;
+        private static int maxConcurrentQueries = Environment.ProcessorCount * 32;
+        private static int maxConcurrentCommandsPerTopic = Environment.ProcessorCount * 8;
+        private static int maxConcurrentEventsPerTopic = Environment.ProcessorCount * 16;
         private static ReceiveCounter receiveCounter = new();
 
         public static async Task<RemoteQueryCallResponse> HandleRemoteQueryCallAsync(Type interfaceType, string methodName, string[] arguments, string source, bool isApi)

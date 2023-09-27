@@ -26,8 +26,8 @@ namespace Zerra.CQRS.Network
         private bool started = false;
         private bool disposed = false;
 
-        private ReceiveCounter counter;
-        private int? maxConcurrent = null;
+        protected ReceiveCounter receiveCounter;
+        protected SemaphoreSlim throttle;
 
         private readonly string serviceUrl;
         public string ServiceUrl => serviceUrl;
@@ -41,7 +41,7 @@ namespace Zerra.CQRS.Network
 
         void IQueryServer.Setup(ReceiveCounter receiveCounter, QueryHandlerDelegate handlerAsync)
         {
-            this.counter = receiveCounter;
+            this.receiveCounter = receiveCounter;
             this.providerHandlerAsync = handlerAsync;
         }
 
@@ -50,18 +50,20 @@ namespace Zerra.CQRS.Network
             if (commandTypes.Count > 0)
                 throw new Exception($"Cannot register interface because this instance of {this.GetType().GetNiceName()} is already being used for commands");
 
-            if (!this.maxConcurrent.HasValue || maxConcurrent < this.maxConcurrent)
-                this.maxConcurrent = maxConcurrent;
+            if (throttle != null)
+                throttle.Dispose();
+            throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+
             interfaceTypes.Add(type);
         }
         ICollection<Type> IQueryServer.GetInterfaceTypes()
         {
-            return interfaceTypes.ToArray();
+            return interfaceTypes;
         }
 
         void ICommandConsumer.Setup(ReceiveCounter receiveCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
         {
-            this.counter = receiveCounter;
+            this.receiveCounter = receiveCounter;
             this.handlerAsync = handlerAsync;
             this.handlerAwaitAsync = handlerAwaitAsync;
         }
@@ -70,8 +72,11 @@ namespace Zerra.CQRS.Network
         {
             if (interfaceTypes.Count > 0)
                 throw new Exception($"Cannot register command because this instance of {this.GetType().GetNiceName()} is already being used for queries");
-            if (!this.maxConcurrent.HasValue || maxConcurrent < this.maxConcurrent.Value)
-                this.maxConcurrent = maxConcurrent;
+
+            if (throttle != null)
+                throttle.Dispose();
+            throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+
             commandTypes.Add(type);
         }
         IEnumerable<Type> ICommandConsumer.GetCommandTypes()
@@ -106,7 +111,7 @@ namespace Zerra.CQRS.Network
                     var socket = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                     socket.NoDelay = true;
                     socket.Bind(endpoint);
-                    var listener = new SocketListener(socket, maxConcurrent.Value, counter, Handle);
+                    var listener = new SocketListener(socket, Handle);
                     this.listeners[i] = listener;
                 }
 

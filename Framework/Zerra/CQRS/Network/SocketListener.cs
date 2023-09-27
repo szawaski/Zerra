@@ -10,24 +10,16 @@ namespace Zerra.CQRS.Network
         private const int backlog = 512; //Kestrel uses this value
 
         private readonly Socket socket;
-        private readonly int maxConcurrent;
-        private readonly ReceiveCounter receiveCounter;
         private readonly Func<Socket, CancellationToken, Task> handler;
         private readonly SemaphoreSlim beginAcceptWaiter;
 
         private bool started;
         private bool disposed;
 
-        private SemaphoreSlim throttle;
         private CancellationTokenSource canceller;
 
-        public SocketListener(Socket socket, int maxConcurrent, ReceiveCounter receiveCounter, Func<Socket, CancellationToken, Task> handler)
+        public SocketListener(Socket socket, Func<Socket, CancellationToken, Task> handler)
         {
-            if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
-
-            this.maxConcurrent = receiveCounter.ReceiveCountBeforeExit.HasValue ? Math.Min(receiveCounter.ReceiveCountBeforeExit.Value, maxConcurrent) : maxConcurrent;
-            this.receiveCounter = receiveCounter;
-
             this.socket = socket;
             this.handler = handler;
             this.beginAcceptWaiter = new SemaphoreSlim(0, 1);
@@ -43,8 +35,6 @@ namespace Zerra.CQRS.Network
                     throw new ObjectDisposedException(nameof(SocketListener));
                 if (started)
                     return;
-
-                this.throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
                 socket.Listen(backlog);
 
@@ -63,11 +53,6 @@ namespace Zerra.CQRS.Network
             {
                 for (; ; )
                 {
-                    await throttle.WaitAsync(canceller.Token);
-
-                    if (!receiveCounter.BeginReceive())
-                        continue; //don't receive anymore, externally will be shutdown, fill throttle
-
                     _ = socket.BeginAccept(BeginAcceptCallback, null);
 
                     await beginAcceptWaiter.WaitAsync(canceller.Token);
@@ -87,7 +72,6 @@ namespace Zerra.CQRS.Network
                 started = false;
                 socket.Close();
 
-                throttle.Dispose();
                 canceller.Dispose();
                 canceller = null;
 
@@ -110,10 +94,7 @@ namespace Zerra.CQRS.Network
 
             incommingSocket.NoDelay = true;
 
-            _ = handler(incommingSocket, canceller.Token).ContinueWith((task) =>
-            {
-                receiveCounter.CompleteReceive(throttle);
-            });
+            _ = handler(incommingSocket, canceller.Token);
         }
 
         ~SocketListener()
