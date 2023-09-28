@@ -45,7 +45,7 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        private int maxConnectionsPerServer = Environment.ProcessorCount * 32;
+        private int maxConnectionsPerServer = Environment.ProcessorCount * 8;
         public int MaxConnectionsPerServer
         {
             get => maxConnectionsPerServer;
@@ -66,102 +66,96 @@ namespace Zerra.CQRS.Network
 
         private readonly ConcurrentFactoryDictionary<IPEndPoint, ConcurrentQueue<SocketHolder>> poolByEndpoint = new();
         private readonly ConcurrentFactoryDictionary<IPAddress, SemaphoreSlim> throttleByServer = new();
-        public Stream GetStream(IPEndPoint endpoint, ProtocolType protocol)
+        public Stream GetStream(IPEndPoint endPoint, ProtocolType protocol)
         {
             if (canceller.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(SocketPool));
 
-            var throttle = throttleByServer.GetOrAdd(endpoint.Address, (_) => new(maxConnectionsPerServer, maxConnectionsPerServer));
-            throttle.Wait();
-            if (canceller.IsCancellationRequested)
-                throw new ObjectDisposedException(nameof(SocketPool));
+            var throttle = throttleByServer.GetOrAdd(endPoint.Address, (_) => new(maxConnectionsPerServer, maxConnectionsPerServer));
+            throttle.Wait(canceller.Token);
 
-            var pool = poolByEndpoint.GetOrAdd(endpoint, (_) => new());
+            var pool = poolByEndpoint.GetOrAdd(endPoint, (_) => new());
 
-            void Completed(Socket socket)
-            {
-                if (canceller.IsCancellationRequested)
-                {
-                    socket.Dispose();
-                    return;
-                }
-
-                if (CheckConnection(socket))
-                    pool.Enqueue(new SocketHolder(socket));
-                else
-                    socket.Dispose();
-
-                throttle.Release();
-            }
-
-        tryagain:
-            if (pool.TryDequeue(out var holder))
+            while (pool.TryDequeue(out var holder))
             {
                 lock (holder)
                 {
                     holder.MarkUsed();
-                    if (CheckConnection(holder.Socket))
-                        return new SocketStream(holder.Socket, Completed);
-                    else
-                        holder.Socket.Dispose();
-                    goto tryagain;
                 }
+                if (CheckConnection(holder.Socket))
+                    return new SocketStream(holder.Socket, endPoint, ReturnSocket);
+                holder.Socket.Dispose();
             }
 
-            var socket = new Socket(endpoint.AddressFamily, SocketType.Stream, protocol);
+            var socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
             socket.NoDelay = true;
-            socket.Connect(endpoint.Address, endpoint.Port);
+            socket.Connect(endPoint.Address, endPoint.Port);
 
-            return new SocketStream(socket, Completed);
+            return new SocketStream(socket, endPoint, ReturnSocket);
         }
-        public async ValueTask<Stream> GetStreamAsync(IPEndPoint endpoint, ProtocolType protocol)
+        public async ValueTask<Stream> GetStreamAsync(IPEndPoint endPoint, ProtocolType protocol)
         {
             if (canceller.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(SocketPool));
 
-            var throttle = throttleByServer.GetOrAdd(endpoint.Address, (_) => new(maxConnectionsPerServer, maxConnectionsPerServer));
-            await throttle.WaitAsync();
-            if (canceller.IsCancellationRequested)
-                throw new ObjectDisposedException(nameof(SocketPool));
+            var throttle = throttleByServer.GetOrAdd(endPoint.Address, (_) => new(maxConnectionsPerServer, maxConnectionsPerServer));
+            await throttle.WaitAsync(canceller.Token);
 
-            var pool = poolByEndpoint.GetOrAdd(endpoint, (_) => new());
+            var pool = poolByEndpoint.GetOrAdd(endPoint, (_) => new());
 
-            void Completed(Socket socket)
-            {
-                if (canceller.IsCancellationRequested)
-                {
-                    socket.Dispose();
-                    return;
-                }
-
-                if (CheckConnection(socket))
-                    pool.Enqueue(new SocketHolder(socket));
-                else
-                   socket.Dispose();
-
-                throttle.Release();
-            }
-
-
-        tryagain:
-            if (pool.TryDequeue(out var holder))
+            while (pool.TryDequeue(out var holder))
             {
                 lock (holder)
                 {
                     holder.MarkUsed();
-                    if (CheckConnection(holder.Socket))
-                        return new SocketStream(holder.Socket, Completed);
-                    else
-                        holder.Socket.Dispose();
-                    goto tryagain;
                 }
+                if (CheckConnection(holder.Socket))
+                    return new SocketStream(holder.Socket, endPoint, ReturnSocket);
+                holder.Socket.Dispose();
             }
 
-            var socket = new Socket(endpoint.AddressFamily, SocketType.Stream, protocol);
+            var socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
             socket.NoDelay = true;
-            await socket.ConnectAsync(endpoint.Address, endpoint.Port);
+            await socket.ConnectAsync(endPoint.Address, endPoint.Port);
 
-            return new SocketStream(socket, Completed);
+            return new SocketStream(socket, endPoint, ReturnSocket);
+        }
+
+        private void ReturnSocket(Socket socket, IPEndPoint endPoint)
+        {
+            if (canceller.IsCancellationRequested)
+            {
+                socket.Dispose();
+                return;
+            }
+
+            if (CheckConnection(socket))
+            {
+                if (poolByEndpoint.TryGetValue(endPoint, out var pool))
+                {
+                    lock (pool)
+                    {
+                        if (canceller.IsCancellationRequested)
+                        {
+                            socket.Dispose();
+                            return;
+                        }
+
+                        pool.Enqueue(new SocketHolder(socket));
+                    }
+                }
+                else
+                {
+                    socket.Dispose();
+                }
+            }
+            else
+            {
+                socket.Dispose();
+            }
+
+            if (throttleByServer.TryGetValue(endPoint.Address, out var throttle))
+                throttle.Release();
         }
 
         private async Task Timeout(CancellationToken cancellationToken)
@@ -171,22 +165,8 @@ namespace Zerra.CQRS.Network
                 await Task.Delay(pooledConnectionIdleTimeout, cancellationToken);
 
                 var now = DateTime.UtcNow;
-                foreach (var kvp in poolByEndpoint)
+                foreach (var pool in poolByEndpoint.Values)
                 {
-                    var pool = kvp.Value;
-                    if (pool.Count == 0)
-                    {
-                        if (poolByEndpoint.TryRemove(kvp.Key, out _))
-                        {
-                            if (pool.Count == 0)
-                                continue;
-
-                            //pool was used after Count == 0 before TryRemove
-                            var newpool = poolByEndpoint.GetOrAdd(kvp.Key, (_) => new());
-                            foreach (var holder in pool)
-                                newpool.Enqueue(holder);
-                        }
-                    }
                     foreach (var holder in pool)
                     {
                         lock (holder)
@@ -195,14 +175,9 @@ namespace Zerra.CQRS.Network
                                 continue;
 
                             if (holder.Timestamp.Add(pooledConnectionLifetime) < now)
-                            {
                                 holder.Socket.Dispose();
-                            }
-                            else
-                            {
-                                if (!CheckConnection(holder.Socket))
-                                    holder.Socket.Dispose();
-                            }
+                            else if (!CheckConnection(holder.Socket))
+                                holder.Socket.Dispose();
                         }
                     }
                 }
@@ -213,12 +188,21 @@ namespace Zerra.CQRS.Network
         {
             if (canceller.IsCancellationRequested)
                 return;
+
             canceller.Cancel();
-            foreach (var kvp in poolByEndpoint)
+
+            foreach (var pool in poolByEndpoint.Values)
             {
-                foreach (var holder in kvp.Value)
-                    holder.Socket.Dispose();
+                lock (pool)
+                {
+                    while (pool.TryDequeue(out var holder))
+                        holder.Socket.Dispose();
+                }
             }
+
+            foreach (var throttle in throttleByServer.Values)
+                throttle.Dispose();
+
             canceller.Dispose();
         }
 
@@ -258,19 +242,21 @@ namespace Zerra.CQRS.Network
         private class SocketStream : StreamWrapper
         {
             private Socket socket;
-            private readonly Action<Socket> completed;
-            public SocketStream(Socket socket, Action<Socket> completed)
+            private readonly IPEndPoint endPoint;
+            private readonly Action<Socket, IPEndPoint> returnSocket;
+            public SocketStream(Socket socket, IPEndPoint endPoint, Action<Socket, IPEndPoint> returnSocket)
                 : base(new NetworkStream(socket, false), false)
             {
                 this.socket = socket;
-                this.completed = completed;
+                this.endPoint = endPoint;
+                this.returnSocket = returnSocket;
             }
 
             protected override void Dispose(bool disposing)
             {
                 if (socket != null)
                 {
-                    completed(socket);
+                    returnSocket(socket, endPoint);
                     socket = null;
                     base.Dispose(disposing);
                 }
