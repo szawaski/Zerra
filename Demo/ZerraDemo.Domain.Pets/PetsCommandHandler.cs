@@ -10,6 +10,8 @@ using ZerraDemo.Domain.Pets.DataModels;
 using ZerraDemo.Domain.Weather;
 using ZerraDemo.Domain.Weather.Constants;
 using ZerraDemo.Common;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ZerraDemo.Domain.Pets
 {
@@ -63,12 +65,28 @@ namespace ZerraDemo.Domain.Pets
         {
             Access.CheckRole("Admin");
 
-            var testStream = await Bus.Call<IWeatherQueryProvider>().TestStreams();
-            using (var ms = new MemoryStream())
+            using (var testStream = await Bus.Call<IWeatherQueryProvider>().TestStreams())
             {
-                await testStream.CopyToAsync(ms);
-                var result = Encoding.UTF8.GetString(ms.ToArray());
+                using (var ms = new MemoryStream())
+                {
+                    await testStream.CopyToAsync(ms);
+                    var result = Encoding.UTF8.GetString(ms.ToArray());
+                    if (result.Length != 1000000)
+                        throw new Exception();
+                    for (var i = 0; i < result.Length; i += 10)
+                    {
+                        if (result.Substring(i, 10) != "0123456789")
+                            throw new Exception();
+                    }
+                }
             }
+
+            var tasks = new Task[10];
+            for (var i = 0; i < 10; i++)
+            {
+                tasks[i] = Bus.Call<IWeatherQueryProvider>().GetWeather();
+            }
+            await Task.WhenAll(tasks);
 
             var weather = await Bus.Call<IWeatherQueryProvider>().GetWeather();
 
