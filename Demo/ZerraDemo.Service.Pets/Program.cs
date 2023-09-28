@@ -10,7 +10,7 @@ namespace ZerraDemo.Service.Pets
         {
             Config.LoadConfiguration(args);
             ServiceManager.StartServices();
-            Bus.WaitForProcessExit();
+            Bus.WaitForExit();
         }
     }
 }
