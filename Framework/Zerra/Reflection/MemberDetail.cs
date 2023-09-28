@@ -69,7 +69,6 @@ namespace Zerra.Reflection
                                     this.getter = AccessorGenerator.GenerateGetter(field);
                                 }
                             }
-
                             getterLoaded = true;
                         }
                     }
@@ -113,7 +112,6 @@ namespace Zerra.Reflection
                                     this.setter = AccessorGenerator.GenerateSetter(field);
                                 }
                             }
-
                             setterLoaded = true;
                         }
                     }
@@ -157,7 +155,6 @@ namespace Zerra.Reflection
                                     this.getterTyped = AccessorGenerator.GenerateGetterTyped(field);
                                 }
                             }
-
                             getterTypedLoaded = true;
                         }
                     }
@@ -201,7 +198,6 @@ namespace Zerra.Reflection
                                     this.setterTyped = AccessorGenerator.GenerateSetterTyped(field);
                                 }
                             }
-
                             setterTypedLoaded = true;
                         }
                     }

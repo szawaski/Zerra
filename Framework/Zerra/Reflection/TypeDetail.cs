@@ -99,7 +99,6 @@ namespace Zerra.Reflection
                     {
                         if (!enumUnderlyingTypeLoaded)
                         {
-                            enumUnderlyingTypeLoaded = true;
                             if (Type.IsEnum)
                             {
                                 var enumEnderlyingType = Enum.GetUnderlyingType(this.Type);
@@ -126,6 +125,7 @@ namespace Zerra.Reflection
                                 };
                                 enumUnderlyingType = enumCoreTypeLookup;
                             }
+                            enumUnderlyingTypeLoaded = true;
                         }
                     }
                 }
@@ -249,13 +249,13 @@ namespace Zerra.Reflection
                 {
                     if (!isInterfaceLoaded)
                     {
-                        isInterfaceLoaded = true;
                         var isCoreType = TypeLookup.CoreTypes.Contains(Type);
                         isIEnumerable = !isCoreType && (Type.IsArray || Type.Name == enumberableTypeName || Interfaces.Select(x => x.Name).Contains(enumberableTypeName));
                         isICollection = !isCoreType && (Type.Name == collectionTypeName || Interfaces.Select(x => x.Name).Contains(collectionTypeName));
                         isICollectionGeneric = !isCoreType && (Type.Name == collectionGenericTypeName || Interfaces.Select(x => x.Name).Contains(collectionGenericTypeName));
                         isIList = !isCoreType && (Type.Name == listTypeName || Type.Name == listGenericTypeName || Interfaces.Select(x => x.Name).Contains(listTypeName) || Interfaces.Select(x => x.Name).Contains(listGenericTypeName));
                         isISet = !isCoreType && (Type.Name == setGenericTypeName || Interfaces.Select(x => x.Name).Contains(setGenericTypeName));
+                        isInterfaceLoaded = true;
                     }
                 }
             }
@@ -713,7 +713,6 @@ namespace Zerra.Reflection
                     {
                         if (!creatorLoaded)
                         {
-                            creatorLoaded = true;
                             if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
                             {
                                 var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParametersInfo.Count == 0);
@@ -732,6 +731,7 @@ namespace Zerra.Reflection
                                     creator = () => { return String.Empty; };
                                 }
                             }
+                            creatorLoaded = true;
                         }
                     }
                 }
