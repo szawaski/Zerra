@@ -61,8 +61,8 @@ namespace Zerra.Reflection
                     {
                         if (!callerLoaded)
                         {
-                            callerLoaded = true;
                             LoadCaller();
+                            callerLoaded = true;
                         }
                     }
                 }
@@ -79,9 +79,8 @@ namespace Zerra.Reflection
                     {
                         if (!callerLoaded)
                         {
-                            callerLoaded = true;
                             LoadCaller();
-                         
+                            callerLoaded = true;
                         }
                     }
                 }
