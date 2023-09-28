@@ -66,7 +66,7 @@ namespace Zerra.CQRS.Network
 
         private readonly ConcurrentFactoryDictionary<IPEndPoint, ConcurrentQueue<SocketHolder>> poolByEndpoint = new();
         private readonly ConcurrentFactoryDictionary<IPAddress, SemaphoreSlim> throttleByServer = new();
-        public Stream GetStream(IPEndPoint endpoint)
+        public Stream GetStream(IPEndPoint endpoint, ProtocolType protocol)
         {
             if (canceller.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(SocketPool));
@@ -86,24 +86,10 @@ namespace Zerra.CQRS.Network
                     return;
                 }
 
-                if (socket.Connected)
-                {
-                    try
-                    {
-                        if (socket.Poll(pollMicroseconds, pollSelectMode))
-                            pool.Enqueue(new SocketHolder(socket));
-                        else
-                            socket.Dispose();
-                    }
-                    catch
-                    {
-                        socket.Dispose();
-                    }
-                }
+                if (CheckConnection(socket))
+                    pool.Enqueue(new SocketHolder(socket));
                 else
-                {
                     socket.Dispose();
-                }
 
                 throttle.Release();
             }
@@ -114,35 +100,21 @@ namespace Zerra.CQRS.Network
                 lock (holder)
                 {
                     holder.MarkUsed();
-                    if (holder.Socket.Connected)
-                    {
-                        try
-                        {
-                            if (holder.Socket.Poll(pollMicroseconds, pollSelectMode))
-                                return new SocketStream(holder.Socket, Completed);
-                            else
-                                holder.Socket.Dispose();
-                        }
-                        catch
-                        {
-                            holder.Socket.Dispose();
-                        }
-                    }
+                    if (CheckConnection(holder.Socket))
+                        return new SocketStream(holder.Socket, Completed);
                     else
-                    {
                         holder.Socket.Dispose();
-                    }
                     goto tryagain;
                 }
             }
 
-            var socket = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            var socket = new Socket(endpoint.AddressFamily, SocketType.Stream, protocol);
             socket.NoDelay = true;
             socket.Connect(endpoint.Address, endpoint.Port);
 
             return new SocketStream(socket, Completed);
         }
-        public async ValueTask<Stream> GetStreamAsync(IPEndPoint endpoint)
+        public async ValueTask<Stream> GetStreamAsync(IPEndPoint endpoint, ProtocolType protocol)
         {
             if (canceller.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(SocketPool));
@@ -162,24 +134,10 @@ namespace Zerra.CQRS.Network
                     return;
                 }
 
-                if (socket.Connected)
-                {
-                    try
-                    {
-                        if (socket.Poll(pollMicroseconds, pollSelectMode))
-                            pool.Enqueue(new SocketHolder(socket));
-                        else
-                            socket.Dispose();
-                    }
-                    catch
-                    {
-                        socket.Dispose();
-                    }
-                }
+                if (CheckConnection(socket))
+                    pool.Enqueue(new SocketHolder(socket));
                 else
-                {
-                    socket.Dispose();
-                }
+                   socket.Dispose();
 
                 throttle.Release();
             }
@@ -191,29 +149,15 @@ namespace Zerra.CQRS.Network
                 lock (holder)
                 {
                     holder.MarkUsed();
-                    if (holder.Socket.Connected)
-                    {
-                        try
-                        {
-                            if (holder.Socket.Poll(pollMicroseconds, pollSelectMode))
-                                return new SocketStream(holder.Socket, Completed);
-                            else
-                                holder.Socket.Dispose();
-                        }
-                        catch
-                        {
-                            holder.Socket.Dispose();
-                        }
-                    }
+                    if (CheckConnection(holder.Socket))
+                        return new SocketStream(holder.Socket, Completed);
                     else
-                    {
                         holder.Socket.Dispose();
-                    }
                     goto tryagain;
                 }
             }
 
-            var socket = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            var socket = new Socket(endpoint.AddressFamily, SocketType.Stream, protocol);
             socket.NoDelay = true;
             await socket.ConnectAsync(endpoint.Address, endpoint.Port);
 
@@ -256,22 +200,8 @@ namespace Zerra.CQRS.Network
                             }
                             else
                             {
-                                if (holder.Socket.Connected)
-                                {
-                                    try
-                                    {
-                                        if (!holder.Socket.Poll(pollMicroseconds, pollSelectMode))
-                                            holder.Socket.Dispose();
-                                    }
-                                    catch
-                                    {
-                                        holder.Socket.Dispose();
-                                    }
-                                }
-                                else
-                                {
+                                if (!CheckConnection(holder.Socket))
                                     holder.Socket.Dispose();
-                                }
                             }
                         }
                     }
@@ -290,6 +220,20 @@ namespace Zerra.CQRS.Network
                     holder.Socket.Dispose();
             }
             canceller.Dispose();
+        }
+
+        public static bool CheckConnection(Socket socket)
+        {
+            if (!socket.Connected)
+                return false;
+            try
+            {
+                return socket.Poll(pollMicroseconds, pollSelectMode);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private class SocketHolder

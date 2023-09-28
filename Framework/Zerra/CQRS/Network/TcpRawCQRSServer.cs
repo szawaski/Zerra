@@ -31,7 +31,7 @@ namespace Zerra.CQRS.Network
 
         protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
-            while (socket.Connected)
+            while (SocketPool.CheckConnection(socket))
             {
                 await throttle.WaitAsync(cancellationToken);
 

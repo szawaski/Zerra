@@ -29,11 +29,11 @@ namespace ZerraDemo.Common
             //----------------------------------------------------------
 
             //Option1A: Enable this for Tcp (backend only services)
-            serviceCreator = new TcpServiceCreator();
+            //serviceCreator = new TcpServiceCreator();
 
             //Option1B: Enable this for Http
-            //var authorizer = new DemoCookieApiAuthorizer();
-            //serviceCreator = new HttpServiceCreator(authorizer, null);
+            var authorizer = new DemoCookieApiAuthorizer();
+            serviceCreator = new HttpServiceCreator(Zerra.CQRS.Network.ContentType.Json, authorizer);
 
             //Option1C: Enable this using Kestrel Http (Required for Azure Apps)
             //var kestrelServiceCreator = new KestrelServiceCreator(app, null, ContentType.Bytes);

@@ -1030,225 +1030,6 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly HashSet<object> instantiations = new();
-
-        private static async Task DisposeServicesAsync()
-        {
-            _ = Log.InfoAsync($"{nameof(Bus)} Shutting Down");
-
-            if (processWaiter != null)
-                processWaiter.Dispose();
-
-            await setupLock.WaitAsync();
-
-            try
-            {
-                var asyncDisposed = new HashSet<IAsyncDisposable>();
-                var disposed = new HashSet<IDisposable>();
-
-                foreach (var commandProducer in commandProducers.Select(x => x.Value))
-                {
-                    if (commandProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-                    {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (commandProducer is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                commandProducers.Clear();
-
-                foreach (var commandConsumer in commandConsumers)
-                {
-                    commandConsumer.Close();
-                    if (commandConsumer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-                    {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (commandConsumer is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                commandConsumers.Clear();
-
-                foreach (var eventProducer in eventProducers.Select(x => x.Value))
-                {
-                    if (eventProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-                    {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                commandProducers.Clear();
-
-                foreach (var eventConsumer in eventConsumers)
-                {
-                    eventConsumer.Close();
-                    if (eventConsumer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-                    {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (eventConsumer is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                commandConsumers.Clear();
-
-                if (busLogger != null)
-                {
-                    if (busLogger is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-                    {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (busLogger is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                busLogger = null;
-
-                foreach (var client in queryClients.Select(x => x.Value))
-                {
-                    if (client is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-                    {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (client is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                queryClients.Clear();
-
-                foreach (var server in queryServers)
-                {
-                    server.Close();
-                    if (server is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-                    {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (server is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                queryClients.Clear();
-
-                foreach (var instance in instantiations)
-                {
-                    if (instance is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-                    {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (instance is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                instantiations.Clear();
-            }
-            finally
-            {
-                _ = setupLock.Release();
-                setupLock.Dispose();
-            }
-        }
-
-        public static void ProcessExit() => ProcessExit(null, null);
-        private static void ProcessExit(object sender, EventArgs e)
-        {
-            lock (exitLock)
-            {
-                exited = true;
-                if (processWaiter != null)
-                {
-                    AppDomain.CurrentDomain.ProcessExit -= ProcessExit;
-                    _ = processWaiter.Release();
-                }
-            }
-        }
-
-        public static void WaitUntilExit()
-        {
-            lock (exitLock)
-            {
-                if (exited)
-                    return;
-                processWaiter = new SemaphoreSlim(0, 1);
-                AppDomain.CurrentDomain.ProcessExit += ProcessExit;
-            }
-            processWaiter.Wait();
-            DisposeServicesAsync().GetAwaiter().GetResult();
-        }
-        public static void WaitUntilExit(CancellationToken cancellationToken)
-        {
-            lock (exitLock)
-            {
-                if (exited)
-                    return;
-                processWaiter = new SemaphoreSlim(0, 1);
-                AppDomain.CurrentDomain.ProcessExit += ProcessExit;
-            }
-            try
-            {
-                processWaiter.Wait(cancellationToken);
-            }
-            catch { }
-            DisposeServicesAsync().GetAwaiter().GetResult();
-        }
-
-        public static async Task WaitUntilExitAsync()
-        {
-            lock (exitLock)
-            {
-                if (exited)
-                    return;
-                processWaiter = new SemaphoreSlim(0, 1);
-                AppDomain.CurrentDomain.ProcessExit += ProcessExit;
-            }
-            await processWaiter.WaitAsync();
-            _ = Log.InfoAsync($"{nameof(Bus)} Exiting");
-            await DisposeServicesAsync();
-        }
-        public static async Task WaitUntilExitAsync(CancellationToken cancellationToken)
-        {
-            lock (exitLock)
-            {
-                if (exited)
-                    return;
-                processWaiter = new SemaphoreSlim(0, 1);
-                AppDomain.CurrentDomain.ProcessExit += ProcessExit;
-            }
-            try
-            {
-                await processWaiter.WaitAsync(cancellationToken);
-            }
-            catch { }
-            await DisposeServicesAsync();
-        }
-
         public static int MaxConcurrentQueries
         {
             get => maxConcurrentQueries;
@@ -1313,7 +1094,7 @@ namespace Zerra.CQRS
                 {
                     if (HasServices)
                         throw new InvalidOperationException($"Cannot set {nameof(ReceiveCountBeforeExit)} after services added");
-                    receiveCounter = new ReceiveCounter(value, ProcessExit);
+                    receiveCounter = new ReceiveCounter(value, HandleProcessExit);
                 }
                 finally
                 {
@@ -1321,7 +1102,6 @@ namespace Zerra.CQRS
                 }
             }
         }
-
         private static bool HasServices
         {
             get => commandProducers.Any() ||
@@ -1331,6 +1111,8 @@ namespace Zerra.CQRS
                     queryClients.Any() ||
                     queryServers.Any();
         }
+
+        private static readonly HashSet<object> instantiations = new();
 
         public static void StartServices(ServiceSettings serviceSettings, IServiceCreator serviceCreator, IRelayRegister relayRegister = null)
         {
@@ -1707,6 +1489,227 @@ namespace Zerra.CQRS
             {
                 setupLock.Release();
             }
+        }
+
+        public static void StopServices()
+        {
+            StopServicesAsync().GetAwaiter().GetResult();
+        }
+        public static async Task StopServicesAsync()
+        {
+            _ = Log.InfoAsync($"{nameof(Bus)} Shutting Down");
+
+            if (processWaiter != null)
+                processWaiter.Dispose();
+
+            await setupLock.WaitAsync();
+
+            try
+            {
+                var asyncDisposed = new HashSet<IAsyncDisposable>();
+                var disposed = new HashSet<IDisposable>();
+
+                foreach (var commandProducer in commandProducers.Select(x => x.Value))
+                {
+                    if (commandProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (commandProducer is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                commandProducers.Clear();
+
+                foreach (var commandConsumer in commandConsumers)
+                {
+                    commandConsumer.Close();
+                    if (commandConsumer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (commandConsumer is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                commandConsumers.Clear();
+
+                foreach (var eventProducer in eventProducers.Select(x => x.Value))
+                {
+                    if (eventProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                commandProducers.Clear();
+
+                foreach (var eventConsumer in eventConsumers)
+                {
+                    eventConsumer.Close();
+                    if (eventConsumer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (eventConsumer is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                commandConsumers.Clear();
+
+                if (busLogger != null)
+                {
+                    if (busLogger is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (busLogger is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                busLogger = null;
+
+                foreach (var client in queryClients.Select(x => x.Value))
+                {
+                    if (client is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (client is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                queryClients.Clear();
+
+                foreach (var server in queryServers)
+                {
+                    server.Close();
+                    if (server is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (server is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                queryClients.Clear();
+
+                foreach (var instance in instantiations)
+                {
+                    if (instance is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (instance is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                instantiations.Clear();
+            }
+            finally
+            {
+                _ = setupLock.Release();
+                setupLock.Dispose();
+            }
+        }
+
+        private static void HandleProcessExit() => HandleProcessExit(null, null);
+        private static void HandleProcessExit(object sender, EventArgs e)
+        {
+            lock (exitLock)
+            {
+                exited = true;
+                if (processWaiter != null)
+                {
+                    AppDomain.CurrentDomain.ProcessExit -= HandleProcessExit;
+                    _ = processWaiter.Release();
+                }
+            }
+        }
+
+        public static void WaitForExit()
+        {
+            lock (exitLock)
+            {
+                if (exited)
+                    return;
+                processWaiter = new SemaphoreSlim(0, 1);
+                AppDomain.CurrentDomain.ProcessExit += HandleProcessExit;
+            }
+            processWaiter.Wait();
+            StopServicesAsync().GetAwaiter().GetResult();
+        }
+        public static void WaitForExit(CancellationToken cancellationToken)
+        {
+            lock (exitLock)
+            {
+                if (exited)
+                    return;
+                processWaiter = new SemaphoreSlim(0, 1);
+                AppDomain.CurrentDomain.ProcessExit += HandleProcessExit;
+            }
+            try
+            {
+                processWaiter.Wait(cancellationToken);
+            }
+            catch { }
+            StopServicesAsync().GetAwaiter().GetResult();
+        }
+
+        public static async Task WaitForExitAsync()
+        {
+            lock (exitLock)
+            {
+                if (exited)
+                    return;
+                processWaiter = new SemaphoreSlim(0, 1);
+                AppDomain.CurrentDomain.ProcessExit += HandleProcessExit;
+            }
+            await processWaiter.WaitAsync();
+            _ = Log.InfoAsync($"{nameof(Bus)} Exiting");
+            await StopServicesAsync();
+        }
+        public static async Task WaitForExitAsync(CancellationToken cancellationToken)
+        {
+            lock (exitLock)
+            {
+                if (exited)
+                    return;
+                processWaiter = new SemaphoreSlim(0, 1);
+                AppDomain.CurrentDomain.ProcessExit += HandleProcessExit;
+            }
+            try
+            {
+                await processWaiter.WaitAsync(cancellationToken);
+            }
+            catch { }
+            await StopServicesAsync();
         }
     }
 }

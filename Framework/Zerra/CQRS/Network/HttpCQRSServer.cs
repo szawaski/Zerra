@@ -35,7 +35,7 @@ namespace Zerra.CQRS.Network
 
         protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
-            while (socket.Connected)
+            while (SocketPool.CheckConnection(socket))
             {
                 await throttle.WaitAsync(cancellationToken);
 
@@ -135,6 +135,10 @@ namespace Zerra.CQRS.Network
                     //------------------------------------------------------------------------------------------------------------
                     if (this.authorizer != null)
                     {
+                        this.authorizer.Authorize(requestHeader.Headers);
+                    }
+                    else
+                    {
                         if (data.Claims != null)
                         {
                             var claimsIdentity = new ClaimsIdentity(data.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
@@ -144,10 +148,6 @@ namespace Zerra.CQRS.Network
                         {
                             Thread.CurrentPrincipal = null;
                         }
-                    }
-                    else
-                    {
-                        this.authorizer.Authorize(requestHeader.Headers);
                     }
 
                     //Process and Respond

@@ -283,7 +283,7 @@ namespace Zerra.Web
             }
             finally
             {
-                throttle.Dispose();
+                throttle.Release();
             }
         }
 

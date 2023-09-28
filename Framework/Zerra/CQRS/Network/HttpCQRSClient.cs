@@ -62,12 +62,7 @@ namespace Zerra.CQRS.Network
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
-                stream = socketPool.GetStream(ipEndpoint);
-
-                //socket = new Socket(ipEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                //socket.NoDelay = true;
-                //socket.Connect(ipEndpoint.Address, ipEndpoint.Port);
-                //stream = new NetworkStream(socket, true);
+                stream = socketPool.GetStream(ipEndpoint, ProtocolType.Tcp);
 
                 var buffer = bufferOwner.AsMemory();
 
@@ -128,7 +123,6 @@ namespace Zerra.CQRS.Network
                 {
                     var model = ContentTypeSerializer.Deserialize<TReturn>(contentType, responseBodyStream);
                     responseBodyStream.Dispose();
-                    //socket.Dispose();
                     return model;
                 }
             }
@@ -140,7 +134,6 @@ namespace Zerra.CQRS.Network
                     requestBodyStream.Dispose();
                 if (stream != null)
                     stream.Dispose();
-                //socket.Dispose();
                 throw;
             }
             finally
@@ -179,12 +172,7 @@ namespace Zerra.CQRS.Network
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
-                stream = await socketPool.GetStreamAsync(ipEndpoint);
-
-                //socket = new Socket(ipEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                //socket.NoDelay = true;
-                //socket.Connect(ipEndpoint.Address, ipEndpoint.Port);
-                //stream = new NetworkStream(socket, true);
+                stream = await socketPool.GetStreamAsync(ipEndpoint, ProtocolType.Tcp);
 
                 var buffer = bufferOwner.AsMemory();
 
@@ -258,7 +246,6 @@ namespace Zerra.CQRS.Network
 #else
                     await responseBodyStream.DisposeAsync();
 #endif
-                    //socket.Dispose();
                     return model;
                 }
             }
@@ -288,7 +275,6 @@ namespace Zerra.CQRS.Network
                     await stream.DisposeAsync();
 #endif
                 }
-                //socket?.Close();
                 throw;
             }
             finally
@@ -331,12 +317,7 @@ namespace Zerra.CQRS.Network
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
-                stream = await socketPool.GetStreamAsync(ipEndpoint);
-
-                //socket = new Socket(ipEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                //socket.NoDelay = true;
-                //socket.Connect(ipEndpoint.Address, ipEndpoint.Port);
-                //stream = new NetworkStream(socket, true);
+                stream = await socketPool.GetStreamAsync(ipEndpoint, ProtocolType.Tcp);
 
                 var buffer = bufferOwner.AsMemory();
 
@@ -397,7 +378,6 @@ namespace Zerra.CQRS.Network
 #else
                 await responseBodyStream.DisposeAsync();
 #endif
-                //socket.Dispose();
             }
             catch
             {
@@ -425,7 +405,6 @@ namespace Zerra.CQRS.Network
                     await stream.DisposeAsync();
 #endif
                 }
-                //socket.Dispose();
                 throw;
             }
             finally

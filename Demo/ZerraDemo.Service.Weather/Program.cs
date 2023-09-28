@@ -10,7 +10,7 @@ namespace ZerraDemo.Service.Weather
         {
             Config.LoadConfiguration(args);
             ServiceManager.StartServices();
-            Bus.WaitUntilExit();
+            Bus.WaitForProcessExit();
         }
     }
 }

@@ -10,7 +10,7 @@ namespace ZerraDemo.Service.Ledger
         {
             Config.LoadConfiguration(args);
             ServiceManager.StartServices();
-            Bus.WaitUntilExit();
+            Bus.WaitForProcessExit();
         }
     }
 }
