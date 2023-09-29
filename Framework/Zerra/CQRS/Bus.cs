@@ -1172,6 +1172,8 @@ namespace Zerra.CQRS
 
                     foreach (var typeName in serviceSetting.Types)
                     {
+                        var externalUrl = relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl;
+
                         var interfaceType = Discovery.GetTypeFromName(typeName);
                         if (!interfaceType.IsInterface)
                         {
@@ -1219,7 +1221,7 @@ namespace Zerra.CQRS
                                     _ = Log.ErrorAsync($"Failed to create Command Consumer", ex);
                                 }
                             }
-                            else
+                            else if (!String.IsNullOrWhiteSpace(externalUrl))
                             {
                                 try
                                 {
@@ -1230,7 +1232,7 @@ namespace Zerra.CQRS
                                         {
                                             var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
                                             var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
-                                            commandProducer = serviceCreator.CreateCommandProducer(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, symmetricConfig);
+                                            commandProducer = serviceCreator.CreateCommandProducer(externalUrl, symmetricConfig);
                                         }
                                         foreach (var commandType in clientCommandTypes)
                                         {
@@ -1292,29 +1294,32 @@ namespace Zerra.CQRS
                                 }
                             }
 
-                            try
+                            if (!String.IsNullOrWhiteSpace(externalUrl))
                             {
-                                if (eventProducer == null)
+                                try
                                 {
-                                    var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                    var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
-                                    eventProducer = serviceCreator.CreateEventProducer(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, symmetricConfig);
-                                }
+                                    if (eventProducer == null)
+                                    {
+                                        var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
+                                        var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                        eventProducer = serviceCreator.CreateEventProducer(externalUrl, symmetricConfig);
+                                    }
 
-                                foreach (var eventType in eventTypes)
-                                {
-                                    if (!eventType.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute))
-                                        continue;
-                                    //multiple services handle events
-                                    //TODO do we need different encryption keys for events, commands, and queries??
-                                    var topic = GetEventTopic(eventType);
-                                    eventProducer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
-                                    _ = eventProducers.TryAdd(eventType, eventProducer);
+                                    foreach (var eventType in eventTypes)
+                                    {
+                                        if (!eventType.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute))
+                                            continue;
+                                        //multiple services handle events
+                                        //TODO do we need different encryption keys for events, commands, and queries??
+                                        var topic = GetEventTopic(eventType);
+                                        eventProducer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
+                                        _ = eventProducers.TryAdd(eventType, eventProducer);
+                                    }
                                 }
-                            }
-                            catch (Exception ex)
-                            {
-                                _ = Log.ErrorAsync($"Failed to create Event Producer", ex);
+                                catch (Exception ex)
+                                {
+                                    _ = Log.ErrorAsync($"Failed to create Event Producer", ex);
+                                }
                             }
                         }
 
@@ -1353,7 +1358,7 @@ namespace Zerra.CQRS
                                     }
                                 }
                             }
-                            else
+                            else if (!String.IsNullOrWhiteSpace(externalUrl))
                             {
                                 if (!serverTypes.Contains(interfaceType))
                                 {
@@ -1373,7 +1378,7 @@ namespace Zerra.CQRS
                                             {
                                                 var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
                                                 var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
-                                                queryClient = serviceCreator.CreateQueryClient(relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl, symmetricConfig);
+                                                queryClient = serviceCreator.CreateQueryClient(externalUrl, symmetricConfig);
                                             }
                                             queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
                                             _ = queryClients.TryAdd(interfaceType, queryClient);
