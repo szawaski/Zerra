@@ -1,8 +1,28 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: zerrademo
+  labels:
+    name: zerrademo
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: zerrademo-registry
+  namespace: zerrademo
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: eyJhdXRocyI6eyJkb2NrZXIuaW8iOnsidXNlcm5hbWUiOiJzemF3YXNraSIsInBhc3N3b3JkIjoiZGNrcl9wYXRfT3JVaVJud1pZRmlWcXk3OVJPY2tXeEx5Qm9FIiwiYXV0aCI6ImMzcGhkMkZ6YTJrNlpHTnJjbDl3WVhSZlQzSlZhVkp1ZDFwWlJtbFdjWGszT1ZKUFkydFhlRXg1UW05RiJ9fX0=
+
+---
 
 # apiVersion: v1
 # kind: PersistentVolumeClaim
 # metadata:
  # name: zerrademo-pets-mssql-volumeclaim
+ # namespace: zerrademo
  # labels:
    # app: zerrademo-pets-mssql-volumeclaim
 # spec:
@@ -18,6 +38,7 @@
 # kind: PersistentVolumeClaim
 # metadata:
  # name: zerrademo-ledger1-mssql-volumeclaim
+ # namespace: zerrademo
  # labels:
    # app: zerrademo-ledger1-mssql-volumeclaim
 # spec:
@@ -33,6 +54,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: zerrademo-pets-postgresql-volumeclaim
+  namespace: zerrademo
   labels:
     app: zerrademo-pets-postgresql-volumeclaim
 spec:
@@ -48,6 +70,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: zerrademo-ledger1-postgresql-volumeclaim
+  namespace: zerrademo
   labels:
     app: zerrademo-ledger1-postgresql-volumeclaim
 spec:
@@ -63,6 +86,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: zerrademo-ledger1-eventstore-data-volumeclaim
+  namespace: zerrademo
   labels:
     app: zerrademo-ledger1-eventstore-data-volumeclaim
 spec:
@@ -93,6 +117,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: zerrademo-ledger2-eventstore-data-volumeclaim
+  namespace: zerrademo
   labels:
     app: zerrademo-ledger2-eventstore-data-volumeclaim
 spec:
@@ -108,6 +133,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: zerrademo-ledger2-eventstore-log-volumeclaim
+  namespace: zerrademo
   labels:
     app: zerrademo-ledger2-eventstore-log-volumeclaim
 spec:
@@ -123,6 +149,7 @@ spec:
 # kind: Deployment
 # metadata:
  # name: zerrademo-petsdomain-mssql
+ # namespace: zerrademo
 # spec:
  # selector:
    # matchLabels:
@@ -132,6 +159,8 @@ spec:
      # labels:
        # app: zerrademo-petsdomain-mssql-pod
    # spec:
+      # imagePullSecrets:
+      # - name: zerrademo-registry
      # terminationGracePeriodSeconds: 30
      # containers:
      # - name: zerrademo-petsdomain-mssql-container
@@ -168,6 +197,8 @@ spec:
      # labels:
        # app: zerrademo-ledger1domain-mssql-pod
    # spec:
+      # imagePullSecrets:
+      # - name: zerrademo-registry
      # terminationGracePeriodSeconds: 30
      # containers:
      # - name: zerrademo-ledger1domain-mssql-container
@@ -195,6 +226,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zerrademo-petsdomain-postgresql
+  namespace: zerrademo
 spec:
   selector:
     matchLabels:
@@ -204,6 +236,8 @@ spec:
       labels:
         app: zerrademo-petsdomain-postgresql-pod
     spec:
+      imagePullSecrets:
+      - name: zerrademo-registry
       terminationGracePeriodSeconds: 30
       containers:
       - name: zerrademo-petsdomain-postgresql-container
@@ -229,6 +263,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zerrademo-ledger1domain-postgresql
+  namespace: zerrademo
 spec:
   selector:
     matchLabels:
@@ -238,6 +273,8 @@ spec:
       labels:
         app: zerrademo-ledger1domain-postgresql-pod
     spec:
+      imagePullSecrets:
+      - name: zerrademo-registry
       terminationGracePeriodSeconds: 30
       containers:
       - name: zerrademo-ledger1domain-postgresql-container
@@ -263,6 +300,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zerrademo-ledger1domain-eventstore
+  namespace: zerrademo
 spec:
   selector:
     matchLabels:
@@ -272,6 +310,8 @@ spec:
       labels:
         app: zerrademo-ledger1domain-eventstore-pod
     spec:
+      imagePullSecrets:
+      - name: zerrademo-registry
       securityContext:
         fsGroup: 1000
       containers:
@@ -308,6 +348,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zerrademo-ledger2domain-eventstore
+  namespace: zerrademo
 spec:
   selector:
     matchLabels:
@@ -317,6 +358,8 @@ spec:
       labels:
         app: zerrademo-ledger2domain-eventstore-pod
     spec:
+      imagePullSecrets:
+      - name: zerrademo-registry
       securityContext:
         fsGroup: 1000
       containers:
@@ -353,6 +396,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zerrademo-petsdomain
+  namespace: zerrademo
 spec:
   selector:
     matchLabels:
@@ -362,6 +406,8 @@ spec:
       labels:
         app: zerrademo-petsdomain-pod
     spec:
+      imagePullSecrets:
+      - name: zerrademo-registry
       containers:
       - name: zerrademo-petsdomain-container
         image: szawaski/zerrademo-petsdomain
@@ -381,8 +427,8 @@ spec:
             value: 
         resources:
           limits:
-            memory: "128Mi"
-            cpu: "500m"
+            memory: 128Mi
+            cpu: 500m
         ports:
         - containerPort: 80
           name: mainport
@@ -393,6 +439,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zerrademo-weatherdomain
+  namespace: zerrademo
 spec:
   selector:
     matchLabels:
@@ -402,6 +449,8 @@ spec:
       labels:
         app: zerrademo-weatherdomain-pod
     spec:
+      imagePullSecrets:
+      - name: zerrademo-registry
       containers:
       - name: zerrademo-weatherdomain-container
         image: szawaski/zerrademo-weatherdomain
@@ -415,8 +464,8 @@ spec:
             value: 
         resources:
           limits:
-            memory: "128Mi"
-            cpu: "500m"
+            memory: 128Mi
+            cpu: 500m
         ports:
         - containerPort: 80
           name: mainport
@@ -427,6 +476,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zerrademo-weathercacheddomain
+  namespace: zerrademo
 spec:
   selector:
     matchLabels:
@@ -436,6 +486,8 @@ spec:
       labels:
         app: zerrademo-weathercacheddomain-pod
     spec:
+      imagePullSecrets:
+      - name: zerrademo-registry
       containers:
       - name: zerrademo-weathercacheddomain-container
         image: szawaski/zerrademo-weathercacheddomain
@@ -449,8 +501,8 @@ spec:
             value: 
         resources:
           limits:
-            memory: "128Mi"
-            cpu: "500m"
+            memory: 128Mi
+            cpu: 500m
         ports:
         - containerPort: 80
           name: mainport
@@ -461,6 +513,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zerrademo-ledger1domain
+  namespace: zerrademo
 spec:
   selector:
     matchLabels:
@@ -470,6 +523,8 @@ spec:
       labels:
         app: zerrademo-ledger1domain-pod
     spec:
+      imagePullSecrets:
+      - name: zerrademo-registry
       containers:
       - name: zerrademo-ledger1domain-container
         image: szawaski/zerrademo-ledger1domain
@@ -489,8 +544,8 @@ spec:
             value: 
         resources:
           limits:
-            memory: "128Mi"
-            cpu: "500m"
+            memory: 128Mi
+            cpu: 500m
         ports:
         - containerPort: 80
           name: mainport
@@ -500,6 +555,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zerrademo-ledger2domain
+  namespace: zerrademo
 spec:
   selector:
     matchLabels:
@@ -509,6 +565,8 @@ spec:
       labels:
         app: zerrademo-ledger2domain-pod
     spec:
+      imagePullSecrets:
+      - name: zerrademo-registry
       containers:
       - name: zerrademo-ledger2domain-container
         image: szawaski/zerrademo-ledger2domain
@@ -524,8 +582,8 @@ spec:
             value: 
         resources:
           limits:
-            memory: "128Mi"
-            cpu: "500m"
+            memory: 128Mi
+            cpu: 500m
         ports:
         - containerPort: 80
           name: mainport
@@ -536,6 +594,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zerrademo-web
+  namespace: zerrademo
 spec:
   selector:
     matchLabels:
@@ -545,6 +604,8 @@ spec:
       labels:
         app: zerrademo-web-pod
     spec:
+      imagePullSecrets:
+      - name: zerrademo-registry
       containers:
       - name: zerrademo-web-container
         image: szawaski/zerrademo-web
@@ -566,8 +627,8 @@ spec:
             value: 
         resources:
           limits:
-            memory: "128Mi"
-            cpu: "500m"
+            memory: 128Mi
+            cpu: 500m
         ports:
         - containerPort: 80
           name: mainport
@@ -577,16 +638,17 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zerrademo-ledger1domain-eventstore-service
+  namespace: zerrademo
 spec:
   selector:
     app: zerrademo-ledger1domain-eventstore-pod
   ports:
   - port: 1113
     targetPort: 1113
-    name: "tcp"
+    name: tcp
   - port: 2113
     targetPort: 2113
-    name: "http"
+    name: http
     
 ---
 
@@ -594,16 +656,17 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zerrademo-ledger2domain-eventstore-service
+  namespace: zerrademo
 spec:
   selector:
     app: zerrademo-ledger2domain-eventstore-pod
   ports:
   - port: 1114
     targetPort: 1114
-    name: "tcp"
+    name: tcp
   - port: 2114
     targetPort: 2114
-    name: "http"
+    name: http
   
 ---
 
@@ -611,6 +674,7 @@ spec:
 # kind: Service
 # metadata:
  # name: zerrademo-petsdomain-mssql-service
+ # namespace: zerrademo
 # spec:
  # selector:
    # app: zerrademo-petsdomain-mssql-pod
@@ -624,6 +688,7 @@ spec:
 # kind: Service
 # metadata:
  # name: zerrademo-ledger1domain-mssql-service
+ # namespace: zerrademo
 # spec:
  # selector:
    # app: zerrademo-ledger1domain-mssql-pod
@@ -637,6 +702,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zerrademo-petsdomain-postgresql-service
+  namespace: zerrademo
 spec:
   selector:
     app: zerrademo-petsdomain-postgresql-pod
@@ -650,6 +716,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zerrademo-ledger1domain-postgresql-service
+  namespace: zerrademo
 spec:
   selector:
     app: zerrademo-ledger1domain-postgresql-pod
@@ -663,6 +730,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zerrademo-petsdomain-service
+  namespace: zerrademo
 spec:
   selector:
     app: zerrademo-petsdomain-pod
@@ -676,6 +744,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zerrademo-weatherdomain-service
+  namespace: zerrademo
 spec:
   selector:
     app: zerrademo-weatherdomain-pod
@@ -689,6 +758,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zerrademo-weathercacheddomain-service
+  namespace: zerrademo
 spec:
   selector:
     app: zerrademo-weathercacheddomain-pod
@@ -702,6 +772,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zerrademo-ledger1domain-service
+  namespace: zerrademo
 spec:
   selector:
     app: zerrademo-ledger1domain-pod
@@ -715,6 +786,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zerrademo-ledger2domain-service
+  namespace: zerrademo
 spec:
   selector:
     app: zerrademo-ledger2domain-pod
@@ -728,12 +800,13 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zerrademo-web-service
+  namespace: zerrademo
 spec:
   selector:
     app: zerrademo-web-pod
   ports:
   - port: 80
-    targetPort: 80
+    targetPort: mainport
     nodePort: 30000
   type: NodePort
   
