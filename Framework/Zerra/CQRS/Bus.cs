@@ -557,7 +557,7 @@ namespace Zerra.CQRS
                     {
                         blocked = true;
                     }
-                    else if (attribute is ServiceLogAttribute busLoggedAttribute && busLoggedAttribute.BusLogging < busLogging)
+                    else if (attribute is ServiceLogAttribute busLoggedAttribute && busLoggedAttribute.BusLogging > busLogging)
                     {
                         busLogging = busLoggedAttribute.BusLogging;
                     }
