@@ -794,7 +794,7 @@ namespace Zerra.CQRS
             {
                 var implementationTypes = Discovery.GetImplementationTypes(interfaceType).Where(x => x.IsInterface).ToArray();
                 if (implementationTypes.Length == 0)
-                    return $"EVT_{interfaceType.GetNiceName()}";
+                    return $"CMD_{interfaceType.GetNiceName()}";
                 else if (implementationTypes.Length == 1)
                     interfaceType = implementationTypes[0];
                 else
@@ -808,7 +808,7 @@ namespace Zerra.CQRS
             {
                 var implementationTypes = Discovery.GetImplementationTypes(interfaceType).Where(x => x.IsInterface).ToArray();
                 if (implementationTypes.Length == 0)
-                    return $"CMD_{interfaceType.GetNiceName()}";
+                    return $"EVT_{interfaceType.GetNiceName()}";
                 else if (implementationTypes.Length == 1)
                     interfaceType = implementationTypes[0];
                 else
