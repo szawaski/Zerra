@@ -16,6 +16,7 @@ namespace Zerra.Logger
         private const string commandCategory = "Command";
         private const string eventCategory = "Event";
         private const string callCategory = "Call";
+        private const string anonymous = "[Anonymous]";
 
         private readonly string file;
         public BusLoggingProvider()
@@ -29,7 +30,7 @@ namespace Zerra.Logger
         public async Task LogCommandAsync(Type commandType, ICommand command, string source, bool handled, long milliseconds, Exception ex)
         {
             var typeName = commandType.GetNiceName();
-            var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? "[Not Authenticated]";
+            var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
 
             string message;
             if (ex != null)
@@ -47,7 +48,7 @@ namespace Zerra.Logger
         public async Task LogEventAsync(Type eventType, IEvent @event, string source, bool handled, long milliseconds, Exception ex)
         {
             var typeName = eventType.GetNiceName();
-            var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? "[Not Authenticated]";
+            var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
 
             string message;
             if (ex != null)
@@ -65,7 +66,7 @@ namespace Zerra.Logger
         public async Task LogCallAsync(Type interfaceType, string methodName, object[] arguments, object result, string source, bool handled, long milliseconds, Exception ex)
         {
             var interfaceName = interfaceType.GetNiceName();
-            var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? "[Not Authenticated]";
+            var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
 
             string message;
             if (ex != null)
