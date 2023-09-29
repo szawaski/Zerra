@@ -76,7 +76,7 @@ namespace Zerra.CQRS.Settings
             {
                 if (service.Name == serviceName)
                 {
-                    if (GetBindingUrl(service.Name, service.BindingUrl, bindingUrlFromStandardVariables, out var newUrl, out var urlSource))
+                    if (GetBindingUrl(service.BindingUrl, bindingUrlFromStandardVariables, out var newUrl, out var urlSource))
                     {
                         service.BindingUrl = newUrl;
                         if (!String.IsNullOrWhiteSpace(service.BindingUrl))
@@ -109,15 +109,10 @@ namespace Zerra.CQRS.Settings
             return settings;
         }
 
-        public static bool GetBindingUrl(string settingName, string defaultUrl, bool useStandardVariables, out string url, out string urlSource)
+        public static bool GetBindingUrl(string defaultUrl, bool useStandardVariables, out string url, out string urlSource)
         {
             urlSource = bindingUrl0;
             url = Config.GetSetting(bindingUrl0);
-            if (!String.IsNullOrWhiteSpace(url))
-                return true;
-
-            urlSource = settingName;
-            url = Config.GetSetting(settingName);
             if (!String.IsNullOrWhiteSpace(url))
                 return true;
 
