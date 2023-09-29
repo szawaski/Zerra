@@ -95,7 +95,7 @@ namespace Zerra
 
             if (args != null && args.Length > 0)
                 _ = builder.AddCommandLine(args);
-            
+
             build?.Invoke(builder);
 
             configuration = builder.Build();
@@ -107,8 +107,7 @@ namespace Zerra
 
         private static void AddSettingsFile(ConfigurationBuilder builder, string fileName)
         {
-            var file = File.OpenRead(fileName);
-            _ = builder.AddJsonStream(file);
+            _ = builder.AddJsonFile(fileName);
             Console.WriteLine($"{nameof(Config)} Loaded {Path.GetFileName(fileName)}");
         }
 
