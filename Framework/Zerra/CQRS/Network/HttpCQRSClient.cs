@@ -359,7 +359,7 @@ namespace Zerra.CQRS.Network
                     if (bytesRead == 0)
                         throw new CQRSRequestAbortedException();
                     headerLength += bytesRead;
-
+                    
                     headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
                 }
                 var responseHeader = HttpCommon.ReadHeader(buffer, headerPosition, headerLength);

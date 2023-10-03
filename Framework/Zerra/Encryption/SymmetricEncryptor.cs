@@ -46,12 +46,19 @@ namespace Zerra.Encryption
         public static SymmetricKey GenerateKey(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize)
         {
             var (symmetricAlgorithm, _) = GetAlgorithm(symmetricAlgorithmType);
-            symmetricAlgorithm.KeySize = (int)keySize;
-            symmetricAlgorithm.BlockSize = (int)blockSize;
-            symmetricAlgorithm.GenerateKey();
-            symmetricAlgorithm.GenerateIV();
-            var symmetricKey = new SymmetricKey(symmetricAlgorithm.Key, symmetricAlgorithm.IV);
-            return symmetricKey;
+            try
+            {
+                symmetricAlgorithm.KeySize = (int)keySize;
+                symmetricAlgorithm.BlockSize = (int)blockSize;
+                symmetricAlgorithm.GenerateKey();
+                symmetricAlgorithm.GenerateIV();
+                var symmetricKey = new SymmetricKey(symmetricAlgorithm.Key, symmetricAlgorithm.IV);
+                return symmetricKey;
+            }
+            finally
+            {
+                symmetricAlgorithm.Dispose();
+            }
         }
 
         private static (SymmetricAlgorithm, bool) GetAlgorithm(SymmetricAlgorithmType symmetricAlgorithmType)
@@ -127,12 +134,20 @@ namespace Zerra.Encryption
         {
             var (symmetricAlgorithm, shiftAlgorithm) = GetAlgorithm(symmetricAlgorithmType);
 
-            symmetricAlgorithm.KeySize = key.KeySize;
-            symmetricAlgorithm.BlockSize = key.BlockSize;
-            symmetricAlgorithm.Key = key.Key;
-            symmetricAlgorithm.IV = key.IV;
+            ICryptoTransform transform;
+            try
+            {
+                symmetricAlgorithm.KeySize = key.KeySize;
+                symmetricAlgorithm.BlockSize = key.BlockSize;
+                symmetricAlgorithm.Key = key.Key;
+                symmetricAlgorithm.IV = key.IV;
 
-            var transform = symmetricAlgorithm.CreateEncryptor();
+                transform = symmetricAlgorithm.CreateEncryptor();
+            }
+            finally
+            {
+                symmetricAlgorithm.Dispose();
+            }
 
             //NetStandard2.0 CryptoStream does not option leaveOpen but has no critial memory releases in dispose
 #if NETSTANDARD2_0
@@ -237,12 +252,20 @@ namespace Zerra.Encryption
         {
             var (symmetricAlgorithm, shiftAlgorithm) = GetAlgorithm(symmetricAlgorithmType);
 
-            symmetricAlgorithm.KeySize = key.KeySize;
-            symmetricAlgorithm.BlockSize = key.BlockSize;
-            symmetricAlgorithm.Key = key.Key;
-            symmetricAlgorithm.IV = key.IV;
+            ICryptoTransform transform;
+            try
+            {
+                symmetricAlgorithm.KeySize = key.KeySize;
+                symmetricAlgorithm.BlockSize = key.BlockSize;
+                symmetricAlgorithm.Key = key.Key;
+                symmetricAlgorithm.IV = key.IV;
 
-            var transform = symmetricAlgorithm.CreateDecryptor();
+                transform = symmetricAlgorithm.CreateDecryptor();
+            }
+            finally
+            {
+                symmetricAlgorithm.Dispose();
+            }
 
             //NetStandard2.0 CryptoStream does not option leaveOpen but has no critial memory releases in dispose
 #if NETSTANDARD2_0

@@ -210,21 +210,15 @@ namespace Zerra.Web
 #else
                                     responseBodyCryptoStream.FlushFinalBlock();
 #endif
-#if NETSTANDARD2_0
-                                    responseBodyCryptoStream.Dispose();
-#else
-                                    await responseBodyCryptoStream.DisposeAsync();
-#endif
-                                    responseBodyCryptoStream = null;
                                 }
                                 finally
                                 {
                                     if (responseBodyCryptoStream != null)
                                     {
 #if NETSTANDARD2_0
-                                        responseBodyStream.Dispose();
+                                        responseBodyCryptoStream.Dispose();
 #else
-                                        await responseBodyStream.DisposeAsync();
+                                        await responseBodyCryptoStream.DisposeAsync();
 #endif
                                     }
                                 }
@@ -282,11 +276,6 @@ namespace Zerra.Web
                         {
                             await ContentTypeSerializer.SerializeAsync(contentType.Value, responseBodyStream, result.Model);
                             await responseBodyStream.FlushAsync();
-#if NETSTANDARD2_0
-                            responseBodyStream.Dispose();
-#else
-                            await responseBodyStream.DisposeAsync();
-#endif
                             return;
                         }
                     }
