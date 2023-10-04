@@ -85,7 +85,7 @@ namespace Zerra.Encryption
 #if !NETSTANDARD2_0
         public static Span<byte> Encrypt(SymmetricConfig symmetricConfig, ReadOnlySpan<byte> plainBytes) { return Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, plainBytes); }
 #endif
-        public static FinalBlockStream Encrypt(SymmetricConfig symmetricConfig, Stream stream, bool write, bool leaveOpen = false) { return Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, stream, write, leaveOpen); }
+        public static CryptoFlushStream Encrypt(SymmetricConfig symmetricConfig, Stream stream, bool write, bool leaveOpen = false) { return Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, stream, write, leaveOpen); }
 
         public static string Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, string plainData)
         {
@@ -130,7 +130,7 @@ namespace Zerra.Encryption
             }
         }
 #endif
-        public static FinalBlockStream Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, Stream stream, bool write, bool leaveOpen = false)
+        public static CryptoFlushStream Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, Stream stream, bool write, bool leaveOpen = false)
         {
             var (symmetricAlgorithm, shiftAlgorithm) = GetAlgorithm(symmetricAlgorithmType);
 
@@ -157,19 +157,19 @@ namespace Zerra.Encryption
                 {
                     var cryptoStream = new CryptoStream(stream, transform, CryptoStreamMode.Write);
                     var shiftStream = new CryptoShiftStream(cryptoStream, key.BlockSize, CryptoStreamMode.Write, false, leaveOpen);
-                    return new FinalBlockStream(shiftStream, false);
+                    return new CryptoFlushStream(shiftStream, transform, false);
                 }
                 else
                 {
                     var shiftStream = new CryptoShiftStream(stream, key.BlockSize, CryptoStreamMode.Read, false, leaveOpen);
                     var cryptoStream = new CryptoStream(shiftStream, transform, CryptoStreamMode.Read);
-                    return new FinalBlockStream(cryptoStream, false);
+                    return new CryptoFlushStream(cryptoStream, transform, false);
                 }
             }
             else
             {
                 var cryptoStream = new CryptoStream(stream, transform, write ? CryptoStreamMode.Write : CryptoStreamMode.Read);
-                return new FinalBlockStream(cryptoStream, leaveOpen);
+                return new CryptoFlushStream(cryptoStream, transform, leaveOpen);
             }
 #else
             if (shiftAlgorithm)
@@ -178,19 +178,19 @@ namespace Zerra.Encryption
                 {
                     var cryptoStream = new CryptoStream(stream, transform, CryptoStreamMode.Write, leaveOpen);
                     var shiftStream = new CryptoShiftStream(cryptoStream, key.BlockSize, CryptoStreamMode.Write, false, false);
-                    return new FinalBlockStream(shiftStream, false);
+                    return new CryptoFlushStream(shiftStream, transform, false);
                 }
                 else
                 {
                     var shiftStream = new CryptoShiftStream(stream, key.BlockSize, CryptoStreamMode.Read, false, leaveOpen);
                     var cryptoStream = new CryptoStream(shiftStream, transform, CryptoStreamMode.Read, false);
-                    return new FinalBlockStream(cryptoStream, false);
+                    return new CryptoFlushStream(cryptoStream, transform, false);
                 }
             }
             else
             {
                 var cryptoStream = new CryptoStream(stream, transform, write ? CryptoStreamMode.Write : CryptoStreamMode.Read, leaveOpen);
-                return new FinalBlockStream(cryptoStream, false);
+                return new CryptoFlushStream(cryptoStream, transform, false);
             }
 #endif
         }
@@ -200,7 +200,7 @@ namespace Zerra.Encryption
 #if !NETSTANDARD2_0
         public static Span<byte> Decrypt(SymmetricConfig symmetricConfig, ReadOnlySpan<byte> encryptedBytes) { return Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedBytes); }
 #endif
-        public static FinalBlockStream Decrypt(SymmetricConfig symmetricConfig, Stream stream, bool write, bool leaveOpen = false) { return Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, stream, write, leaveOpen); }
+        public static CryptoFlushStream Decrypt(SymmetricConfig symmetricConfig, Stream stream, bool write, bool leaveOpen = false) { return Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, stream, write, leaveOpen); }
 
 
         public static string Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, string encryptedData)
@@ -248,7 +248,7 @@ namespace Zerra.Encryption
             }
         }
 #endif
-        public static FinalBlockStream Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, Stream stream, bool write, bool leaveOpen = false)
+        public static CryptoFlushStream Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, Stream stream, bool write, bool leaveOpen = false)
         {
             var (symmetricAlgorithm, shiftAlgorithm) = GetAlgorithm(symmetricAlgorithmType);
 
@@ -275,19 +275,19 @@ namespace Zerra.Encryption
                 {
                     var shiftStream = new CryptoShiftStream(stream, key.BlockSize, CryptoStreamMode.Write, true, leaveOpen);
                     var cryptoStream = new CryptoStream(shiftStream, transform, CryptoStreamMode.Write);
-                    return new FinalBlockStream(cryptoStream, false);
+                    return new CryptoFlushStream(cryptoStream, transform, false);
                 }
                 else
                 {
                     var cryptoStream = new CryptoStream(stream, transform, CryptoStreamMode.Read);
                     var shiftStream = new CryptoShiftStream(cryptoStream, key.BlockSize, CryptoStreamMode.Read, true, leaveOpen);
-                    return new FinalBlockStream(shiftStream, false);
+                    return new CryptoFlushStream(shiftStream, transform, false);
                 }
             }
             else
             {
                 var cryptoStream = new CryptoStream(stream, transform, write ? CryptoStreamMode.Write : CryptoStreamMode.Read);
-                return new FinalBlockStream(cryptoStream, leaveOpen);
+                return new CryptoFlushStream(cryptoStream, transform, leaveOpen);
             }
 #else
             if (shiftAlgorithm)
@@ -296,19 +296,19 @@ namespace Zerra.Encryption
                 {
                     var shiftStream = new CryptoShiftStream(stream, key.BlockSize, CryptoStreamMode.Write, true, leaveOpen);
                     var cryptoStream = new CryptoStream(shiftStream, transform, CryptoStreamMode.Write, false);
-                    return new FinalBlockStream(cryptoStream, false);
+                    return new CryptoFlushStream(cryptoStream, transform, false);
                 }
                 else
                 {
                     var cryptoStream = new CryptoStream(stream, transform, CryptoStreamMode.Read, leaveOpen);
                     var shiftStream = new CryptoShiftStream(cryptoStream, key.BlockSize, CryptoStreamMode.Read, true, false);
-                    return new FinalBlockStream(shiftStream, false);
+                    return new CryptoFlushStream(shiftStream, transform, false);
                 }
             }
             else
             {
                 var cryptoStream = new CryptoStream(stream, transform, write ? CryptoStreamMode.Write : CryptoStreamMode.Read, leaveOpen);
-                return new FinalBlockStream(cryptoStream, false);
+                return new CryptoFlushStream(cryptoStream, transform, false);
             }
 #endif
         }

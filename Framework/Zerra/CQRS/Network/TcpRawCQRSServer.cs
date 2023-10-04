@@ -48,7 +48,7 @@ namespace Zerra.CQRS.Network
                     Stream stream = null;
                     Stream requestBodyStream = null;
                     Stream responseBodyStream = null;
-                    FinalBlockStream responseBodyCryptoStream = null;
+                    CryptoFlushStream responseBodyCryptoStream = null;
 
                     var inHandlerContext = false;
                     try

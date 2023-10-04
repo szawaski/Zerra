@@ -10,18 +10,21 @@ using Zerra.IO;
 
 namespace Zerra.Encryption
 {
-    public sealed class FinalBlockStream : StreamWrapper
+    public sealed class CryptoFlushStream : StreamWrapper
     {
         private readonly CryptoStream cryptoStream;
+        private readonly ICryptoTransform transform;
         private readonly CryptoShiftStream cryptoShiftStream;
-        public FinalBlockStream(CryptoStream stream, bool leaveOpen) : base(stream, leaveOpen)
+        public CryptoFlushStream(CryptoStream stream, ICryptoTransform transform, bool leaveOpen) : base(stream, leaveOpen)
         {
             this.cryptoStream = stream;
+            this.transform = transform;
             this.cryptoShiftStream = null;
         }
-        public FinalBlockStream(CryptoShiftStream stream, bool leaveOpen) : base(stream, leaveOpen)
+        public CryptoFlushStream(CryptoShiftStream stream, ICryptoTransform transform, bool leaveOpen) : base(stream, leaveOpen)
         {
             this.cryptoStream = null;
+            this.transform = transform;
             this.cryptoShiftStream = stream;
         }
 
@@ -43,5 +46,11 @@ namespace Zerra.Encryption
             return ValueTask.CompletedTask;
         }
 #endif
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            transform.Dispose();
+        }
     }
 }

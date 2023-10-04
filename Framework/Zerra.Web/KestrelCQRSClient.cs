@@ -70,7 +70,7 @@ namespace Zerra.Web
                     {
                         if (symmetricConfig != null)
                         {
-                            FinalBlockStream requestBodyCryptoStream = null;
+                            CryptoFlushStream requestBodyCryptoStream = null;
                             try
                             {
                                 requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true, true);
@@ -184,7 +184,7 @@ namespace Zerra.Web
                     {
                         if (symmetricConfig != null)
                         {
-                            FinalBlockStream requestBodyCryptoStream = null;
+                            CryptoFlushStream requestBodyCryptoStream = null;
                             try
                             {
                                 requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true, true);
@@ -324,7 +324,7 @@ namespace Zerra.Web
                     {
                         if (symmetricConfig != null)
                         {
-                            FinalBlockStream requestBodyCryptoStream = null;
+                            CryptoFlushStream requestBodyCryptoStream = null;
                             try
                             {
                                 requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true, true);

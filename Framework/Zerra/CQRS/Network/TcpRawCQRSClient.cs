@@ -39,7 +39,7 @@ namespace Zerra.CQRS.Network
             //Socket socket = null;
             Stream stream = null;
             Stream requestBodyStream = null;
-            FinalBlockStream requestBodyCryptoStream = null;
+            CryptoFlushStream requestBodyCryptoStream = null;
             Stream responseBodyStream = null;
             var bufferOwner = BufferArrayPool<byte>.Rent(TcpRawCommon.BufferLength);
             try
@@ -163,7 +163,7 @@ namespace Zerra.CQRS.Network
             //Socket socket = null;
             Stream stream = null;
             Stream requestBodyStream = null;
-            FinalBlockStream requestBodyCryptoStream = null;
+            CryptoFlushStream requestBodyCryptoStream = null;
             Stream responseBodyStream = null;
             var bufferOwner = BufferArrayPool<byte>.Rent(TcpRawCommon.BufferLength);
             try
@@ -333,7 +333,7 @@ namespace Zerra.CQRS.Network
             Socket socket = null;
             Stream stream = null;
             Stream requestBodyStream = null;
-            FinalBlockStream requestBodyCryptoStream = null;
+            CryptoFlushStream requestBodyCryptoStream = null;
             Stream responseBodyStream = null;
             var bufferOwner = BufferArrayPool<byte>.Rent(TcpRawCommon.BufferLength);
             try
