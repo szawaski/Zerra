@@ -20,7 +20,7 @@ using System.Net;
 
 namespace Zerra.CQRS.Relay
 {
-    public sealed class TcpRelay : TcpCQRSServerBase, IDisposable
+    public sealed class TcpRelay : TcpCqrsServerBase, IDisposable
     {
         private const int bufferLength = 65536;
         private readonly string relayKey;

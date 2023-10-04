@@ -19,14 +19,14 @@ using System.Linq;
 
 namespace Zerra.Web
 {
-    public sealed class KestrelCQRSClient : CQRSClientBase, IDisposable
+    public sealed class KestrelCQRSClient : CqrsClientBase, IDisposable
     {
         private readonly ContentType contentType;
         private readonly SymmetricConfig symmetricConfig;
-        private readonly ICQRSAuthorizer authorizer;
+        private readonly ICqrsAuthorizer authorizer;
         private readonly HttpClient client;
 
-        public KestrelCQRSClient(ContentType contentType, string serviceUrl, SymmetricConfig symmetricConfig, ICQRSAuthorizer authorizer)
+        public KestrelCQRSClient(ContentType contentType, string serviceUrl, SymmetricConfig symmetricConfig, ICqrsAuthorizer authorizer)
             : base(serviceUrl)
         {
             this.contentType = contentType;

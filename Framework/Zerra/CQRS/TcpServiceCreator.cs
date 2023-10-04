@@ -12,16 +12,16 @@ namespace Zerra.CQRS
 {
     public sealed class TcpServiceCreator : IServiceCreator
     {
-        private static readonly ConcurrentFactoryDictionary<string, TcpRawCQRSServer> servers = new();
+        private static readonly ConcurrentFactoryDictionary<string, TcpRawCqrsServer> servers = new();
 
         public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return TcpRawCQRSClient.CreateDefault(serviceUrl, symmetricConfig);
+            return TcpRawCqrsClient.CreateDefault(serviceUrl, symmetricConfig);
         }
 
         public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return servers.GetOrAdd(serviceUrl, (url) => TcpRawCQRSServer.CreateDefault(url, symmetricConfig));
+            return servers.GetOrAdd(serviceUrl, (url) => TcpRawCqrsServer.CreateDefault(url, symmetricConfig));
         }
 
         public IEventProducer CreateEventProducer(string serviceUrl, SymmetricConfig symmetricConfig)
@@ -36,12 +36,12 @@ namespace Zerra.CQRS
 
         public IQueryClient CreateQueryClient(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return TcpRawCQRSClient.CreateDefault(serviceUrl, symmetricConfig);
+            return TcpRawCqrsClient.CreateDefault(serviceUrl, symmetricConfig);
         }
 
         public IQueryServer CreateQueryServer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
-            return servers.GetOrAdd(serviceUrl, (url) => TcpRawCQRSServer.CreateDefault(url, symmetricConfig));
+            return servers.GetOrAdd(serviceUrl, (url) => TcpRawCqrsServer.CreateDefault(url, symmetricConfig));
         }
     }
 }

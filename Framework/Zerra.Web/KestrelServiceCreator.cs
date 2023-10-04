@@ -16,7 +16,7 @@ namespace Zerra.Web
         private readonly IApplicationBuilder applicationBuilder;
         private readonly KestrelCQRSServerLinkedSettings settings;
         private bool middlewareAdded;
-        public KestrelServiceCreator(IApplicationBuilder applicationBuilder = null, string route = null, ContentType contentType = ContentType.Json, ICQRSAuthorizer authorizer = null)
+        public KestrelServiceCreator(IApplicationBuilder applicationBuilder = null, string route = null, ContentType contentType = ContentType.Json, ICqrsAuthorizer authorizer = null)
         {
             this.applicationBuilder = applicationBuilder;
             this.settings = new KestrelCQRSServerLinkedSettings()

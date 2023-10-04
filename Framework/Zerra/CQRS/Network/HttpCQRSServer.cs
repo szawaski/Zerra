@@ -16,13 +16,13 @@ using System.Threading.Tasks;
 
 namespace Zerra.CQRS.Network
 {
-    public sealed class HttpCQRSServer : TcpCQRSServerBase
+    public sealed class HttpCqrsServer : TcpCqrsServerBase
     {
         private readonly ContentType? contentType;
-        private readonly ICQRSAuthorizer authorizer;
+        private readonly ICqrsAuthorizer authorizer;
         private readonly string[] allowOrigins;
 
-        public HttpCQRSServer(ContentType? contentType, string serverUrl, ICQRSAuthorizer authorizer, string[] allowOrigins)
+        public HttpCqrsServer(ContentType? contentType, string serverUrl, ICqrsAuthorizer authorizer, string[] allowOrigins)
             : base(serverUrl)
         {
             this.contentType = contentType;
@@ -37,7 +37,7 @@ namespace Zerra.CQRS.Network
         {
             try
             {
-                while (SocketPool.CheckConnection(socket))
+                for(; ; )
                 {
                     await throttle.WaitAsync(cancellationToken);
 
@@ -66,16 +66,16 @@ namespace Zerra.CQRS.Network
                         while (!headerEnd)
                         {
                             if (headerLength == buffer.Length)
-                                throw new Exception($"{nameof(HttpCQRSServer)} Header Too Long");
+                                throw new Exception($"{nameof(HttpCqrsServer)} Header Too Long");
 
 #if NETSTANDARD2_0
-                    var bytesRead = await stream.ReadAsync(bufferOwner, headerLength, buffer.Length - headerLength, cancellationToken);
+                            var bytesRead = await stream.ReadAsync(bufferOwner, headerLength, buffer.Length - headerLength, cancellationToken);
 #else
                             var bytesRead = await stream.ReadAsync(buffer.Slice(headerLength, buffer.Length - headerLength), cancellationToken);
 #endif
 
                             if (bytesRead == 0)
-                                throw new CQRSRequestAbortedException();
+                                return; //not an abort if we haven't started receiving, simple socket disconnect
                             headerLength += bytesRead;
 
                             headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
@@ -84,17 +84,17 @@ namespace Zerra.CQRS.Network
 
                         if (contentType.HasValue && requestHeader.ContentType.HasValue && requestHeader.ContentType != contentType)
                         {
-                            _ = Log.ErrorAsync($"{nameof(HttpCQRSServer)} Received Invalid Content Type {requestHeader.ContentType}");
+                            _ = Log.ErrorAsync($"{nameof(HttpCqrsServer)} Received Invalid Content Type {requestHeader.ContentType}");
                             throw new Exception("Invalid Content Type");
                         }
 
                         if (requestHeader.Preflight)
                         {
-                            _ = Log.TraceAsync($"{nameof(HttpCQRSServer)} Received Preflight {socket.RemoteEndPoint}");
+                            _ = Log.TraceAsync($"{nameof(HttpCqrsServer)} Received Preflight {socket.RemoteEndPoint}");
 
                             var preflightLength = HttpCommon.BufferPreflightResponse(buffer, requestHeader.Origin);
 #if NETSTANDARD2_0
-                    await stream.WriteAsync(bufferOwner, 0, preflightLength, cancellationToken);
+                            await stream.WriteAsync(bufferOwner, 0, preflightLength, cancellationToken);
 #else
                             await stream.WriteAsync(buffer.Slice(0, preflightLength), cancellationToken);
 #endif
@@ -105,7 +105,7 @@ namespace Zerra.CQRS.Network
 
                         if (!requestHeader.ContentType.HasValue)
                         {
-                            _ = Log.ErrorAsync($"{nameof(HttpCQRSServer)} Received Invalid Content Type {requestHeader.ContentType}");
+                            _ = Log.ErrorAsync($"{nameof(HttpCqrsServer)} Received Invalid Content Type {requestHeader.ContentType}");
                             throw new Exception("Invalid Content Type");
                         }
 
@@ -127,7 +127,7 @@ namespace Zerra.CQRS.Network
                             throw new Exception("Empty request body");
 
 #if NETSTANDARD2_0
-                requestBodyStream.Dispose();
+                        requestBodyStream.Dispose();
 #else
                         await requestBodyStream.DisposeAsync();
 #endif
@@ -171,7 +171,7 @@ namespace Zerra.CQRS.Network
                             //Response Header
                             var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ProviderType, requestHeader.ContentType.Value, null);
 #if NETSTANDARD2_0
-                    await stream.WriteAsync(bufferOwner, 0, responseHeaderLength);
+                            await stream.WriteAsync(bufferOwner, 0, responseHeaderLength);
 #else
                             await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
 #endif
@@ -183,8 +183,8 @@ namespace Zerra.CQRS.Network
                             if (result.Stream != null)
                             {
 #if NETSTANDARD2_0
-                        while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length, cancellationToken)) > 0)
-                            await responseBodyStream.WriteAsync(bufferOwner, 0, bytesRead, cancellationToken);
+                                while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length, cancellationToken)) > 0)
+                                    await responseBodyStream.WriteAsync(bufferOwner, 0, bytesRead, cancellationToken);
 #else
                                 while ((bytesRead = await result.Stream.ReadAsync(buffer, cancellationToken)) > 0)
                                     await responseBodyStream.WriteAsync(buffer.Slice(0, bytesRead), cancellationToken);
@@ -225,7 +225,7 @@ namespace Zerra.CQRS.Network
                             //Response Header
                             var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ProviderType, contentType, null);
 #if NETSTANDARD2_0
-                    await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
+                            await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
 #else
                             await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
 #endif
@@ -241,14 +241,13 @@ namespace Zerra.CQRS.Network
                     }
                     catch (Exception ex)
                     {
-                        if (ex is IOException ioException && ioException.InnerException != null && ioException.InnerException is SocketException socketException && socketException.SocketErrorCode == SocketError.ConnectionAborted)
-                        {
-                            //aborted
-                            continue;
-                        }
-
                         if (!inHandlerContext)
                             _ = Log.ErrorAsync(null, ex);
+
+                        if (ex is ConnectionAbortedException)
+                            return; //aborted
+                        if (ex.GetBaseException() is SocketException)
+                            return; //aborted
 
                         if (socket.Connected && !responseStarted && requestHeader != null && requestHeader.ContentType.HasValue)
                         {
@@ -258,7 +257,7 @@ namespace Zerra.CQRS.Network
                                 //Response Header
                                 var responseHeaderLength = HttpCommon.BufferErrorResponseHeader(buffer, requestHeader.Origin);
 #if NETSTANDARD2_0
-                        await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
+                                await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
 #else
                                 await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
 #endif
@@ -269,7 +268,7 @@ namespace Zerra.CQRS.Network
                             }
                             catch (Exception ex2)
                             {
-                                _ = Log.ErrorAsync($"{nameof(HttpCQRSServer)} Error {socket.RemoteEndPoint}", ex2);
+                                _ = Log.ErrorAsync($"{nameof(HttpCqrsServer)} Error {socket.RemoteEndPoint}", ex2);
                             }
                         }
                     }
@@ -278,7 +277,7 @@ namespace Zerra.CQRS.Network
                         if (responseBodyStream != null)
                         {
 #if NETSTANDARD2_0
-                    responseBodyStream.Dispose();
+                            responseBodyStream.Dispose();
 #else
                             await responseBodyStream.DisposeAsync();
 #endif
@@ -286,7 +285,7 @@ namespace Zerra.CQRS.Network
                         if (requestBodyStream != null)
                         {
 #if NETSTANDARD2_0
-                    requestBodyStream.Dispose();
+                            requestBodyStream.Dispose();
 #else
                             await requestBodyStream.DisposeAsync();
 #endif
@@ -294,7 +293,7 @@ namespace Zerra.CQRS.Network
                         if (stream != null)
                         {
 #if NETSTANDARD2_0
-                    stream.Dispose();
+                            stream.Dispose();
 #else
                             await stream.DisposeAsync();
 #endif
@@ -310,9 +309,9 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        public static HttpCQRSServer CreateDefault(string serverUrl, ICQRSAuthorizer authorizer, string[] allowOrigins)
+        public static HttpCqrsServer CreateDefault(string serverUrl, ICqrsAuthorizer authorizer, string[] allowOrigins)
         {
-            return new HttpCQRSServer(ContentType.Json, serverUrl, authorizer, allowOrigins);
+            return new HttpCqrsServer(ContentType.Json, serverUrl, authorizer, allowOrigins);
         }
     }
 }

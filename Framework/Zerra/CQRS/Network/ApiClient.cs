@@ -19,7 +19,7 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
-    public sealed class ApiClient : CQRSClientBase
+    public sealed class ApiClient : CqrsClientBase
     {
         private readonly ContentType requestContentType;
         private CookieCollection cookies = null;

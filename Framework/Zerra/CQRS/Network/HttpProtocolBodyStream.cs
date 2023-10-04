@@ -112,7 +112,7 @@ namespace Zerra.CQRS.Network
 #endif
                     }
                     if (bytesRead == 0)
-                        throw new CQRSRequestAbortedException();
+                        throw new ConnectionAbortedException();
 
                     position += bytesRead;
                 }
@@ -143,7 +143,7 @@ namespace Zerra.CQRS.Network
                         while (segmentLengthBufferLength < segmentLengthBufferMaxLength)
                         {
                             if (segmentLengthBufferLength == segmentLengthBufferMaxLength)
-                                throw new CQRSRequestAbortedException();
+                                throw new ConnectionAbortedException();
 
                             if (readStartBufferPosition < readStartBuffer.Length)
                             {
@@ -261,7 +261,7 @@ namespace Zerra.CQRS.Network
 #endif
                     }
                     if (bytesRead == 0)
-                        throw new CQRSRequestAbortedException();
+                        throw new ConnectionAbortedException();
 
                     position += bytesRead;
                 }

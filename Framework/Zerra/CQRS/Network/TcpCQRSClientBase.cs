@@ -9,11 +9,11 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.Network
 {
-    public abstract class TcpCQRSClientBase : CQRSClientBase
+    public abstract class TcpCqrsClientBase : CqrsClientBase
     {
         protected readonly IPEndPoint ipEndpoint;
 
-        public TcpCQRSClientBase(string serviceUrl) : base(serviceUrl)
+        public TcpCqrsClientBase(string serviceUrl) : base(serviceUrl)
         {
             var endpoints = IPResolver.GetIPEndPoints(serviceUrl);
             if (endpoints.Count > 1)

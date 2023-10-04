@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Zerra.CQRS.Network
 {
-    public abstract class TcpCQRSServerBase : IQueryServer, ICommandConsumer, IDisposable
+    public abstract class TcpCqrsServerBase : IQueryServer, ICommandConsumer, IDisposable
     {
         protected readonly ConcurrentReadWriteHashSet<Type> interfaceTypes;
         protected readonly ConcurrentReadWriteHashSet<Type> commandTypes;
@@ -32,7 +32,7 @@ namespace Zerra.CQRS.Network
         private readonly string serviceUrl;
         public string ServiceUrl => serviceUrl;
 
-        public TcpCQRSServerBase(string serviceUrl)
+        public TcpCqrsServerBase(string serviceUrl)
         {
             this.serviceUrl = serviceUrl;
             this.interfaceTypes = new();
@@ -87,19 +87,19 @@ namespace Zerra.CQRS.Network
         void IQueryServer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} Query Server Started On {this.serviceUrl}");
+            _ = Log.InfoAsync($"{nameof(TcpCqrsServerBase)} Query Server Started On {this.serviceUrl}");
         }
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} Command Consumer Started On {this.serviceUrl}");
+            _ = Log.InfoAsync($"{nameof(TcpCqrsServerBase)} Command Consumer Started On {this.serviceUrl}");
         }
         protected void Open()
         {
             lock (interfaceTypes)
             {
                 if (disposed)
-                    throw new ObjectDisposedException(nameof(TcpCQRSServerBase));
+                    throw new ObjectDisposedException(nameof(TcpCqrsServerBase));
                 if (started)
                     return;
 
@@ -115,7 +115,7 @@ namespace Zerra.CQRS.Network
                     this.listeners[i] = listener;
                 }
 
-                _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} started for {serviceUrl} resolved {String.Join(", ", endpoints.Select(x => x.ToString()))}");
+                _ = Log.InfoAsync($"{nameof(TcpCqrsServerBase)} started for {serviceUrl} resolved {String.Join(", ", endpoints.Select(x => x.ToString()))}");
 
                 foreach (var listener in listeners)
                     listener.Open();
@@ -129,12 +129,12 @@ namespace Zerra.CQRS.Network
         void IQueryServer.Close()
         {
             Dispose();
-            _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} Query Server Closed On {this.serviceUrl}");
+            _ = Log.InfoAsync($"{nameof(TcpCqrsServerBase)} Query Server Closed On {this.serviceUrl}");
         }
         void ICommandConsumer.Close()
         {
             Dispose();
-            _ = Log.InfoAsync($"{nameof(TcpCQRSServerBase)} Command Consumer Closed On {this.serviceUrl}");
+            _ = Log.InfoAsync($"{nameof(TcpCqrsServerBase)} Command Consumer Closed On {this.serviceUrl}");
         }
 
         public void Dispose()

@@ -15,14 +15,14 @@ using Zerra.Reflection;
 
 namespace Zerra.CQRS.Network
 {
-    public abstract class CQRSClientBase : IQueryClient, ICommandProducer, IDisposable
+    public abstract class CqrsClientBase : IQueryClient, ICommandProducer, IDisposable
     {
         protected readonly Uri serviceUrl;
         private readonly ConcurrentDictionary<Type, SemaphoreSlim> throttleByInterfaceType;
         private readonly ConcurrentDictionary<Type, string> topicsByCommandType;
         private readonly ConcurrentDictionary<string, SemaphoreSlim> throttleByTopic;
 
-        public CQRSClientBase(string serviceUrl)
+        public CqrsClientBase(string serviceUrl)
         {
             this.serviceUrl = new Uri(serviceUrl);
             this.throttleByInterfaceType = new();
@@ -30,7 +30,7 @@ namespace Zerra.CQRS.Network
             this.throttleByTopic = new();
         }
 
-        private static readonly MethodInfo callRequestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(CQRSClientBase)).MethodDetails.First(x => x.MethodInfo.Name == nameof(CQRSClientBase.CallInternalAsync)).MethodInfo;
+        private static readonly MethodInfo callRequestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(CqrsClientBase)).MethodDetails.First(x => x.MethodInfo.Name == nameof(CqrsClientBase.CallInternalAsync)).MethodInfo;
         private static readonly Type streamType = typeof(Stream);
 
         void ICommandProducer.RegisterCommandType(int maxConcurrent, string topic, Type type)

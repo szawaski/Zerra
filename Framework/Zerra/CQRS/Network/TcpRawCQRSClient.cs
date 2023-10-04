@@ -16,20 +16,20 @@ using System.Linq;
 
 namespace Zerra.CQRS.Network
 {
-    public sealed class TcpRawCQRSClient : TcpCQRSClientBase
+    public sealed class TcpRawCqrsClient : TcpCqrsClientBase
     {
         private readonly ContentType contentType;
         private readonly SymmetricConfig symmetricConfig;
-        private readonly SocketPool socketPool;
+        private readonly SocketClientPool socketPool;
 
-        public TcpRawCQRSClient(ContentType contentType, string serviceUrl, SymmetricConfig symmetricConfig)
+        public TcpRawCqrsClient(ContentType contentType, string serviceUrl, SymmetricConfig symmetricConfig)
             : base(serviceUrl)
         {
             this.contentType = contentType;
             this.symmetricConfig = symmetricConfig;
-            this.socketPool = SocketPool.Default;
+            this.socketPool = SocketClientPool.Default;
 
-            _ = Log.InfoAsync($"{nameof(TcpRawCQRSClient)} started for {this.contentType} at {serviceUrl} as {this.ipEndpoint}");
+            _ = Log.InfoAsync($"{nameof(TcpRawCqrsClient)} started for {this.contentType} at {serviceUrl} as {this.ipEndpoint}");
         }
 
         protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
@@ -58,16 +58,15 @@ namespace Zerra.CQRS.Network
                 };
                 data.AddProviderArguments(arguments);
 
-                stream = SocketPool.Default.GetStream(ipEndpoint, ProtocolType.Tcp);
-
                 var buffer = bufferOwner.AsMemory();
 
                 //Request Header
                 var requestHeaderLength = TcpRawCommon.BufferHeader(buffer, data.ProviderType, contentType);
+
 #if NETSTANDARD2_0
-                stream.Write(bufferOwner, 0, requestHeaderLength);
+                stream = SocketClientPool.Default.BeginStream(ipEndpoint, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength);
 #else
-                stream.Write(buffer.Span.Slice(0, requestHeaderLength));
+                stream = SocketClientPool.Default.BeginStream(ipEndpoint, ProtocolType.Tcp, buffer.Span.Slice(0, requestHeaderLength));
 #endif
 
                 requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
@@ -96,7 +95,7 @@ namespace Zerra.CQRS.Network
                 while (!requestHeaderEnd)
                 {
                     if (headerLength == buffer.Length)
-                        throw new Exception($"{nameof(TcpRawCQRSClient)} Header Too Long");
+                        throw new Exception($"{nameof(TcpRawCqrsClient)} Header Too Long");
 
 #if NETSTANDARD2_0
                     var bytesRead = stream.Read(bufferOwner, headerPosition, buffer.Length - headerPosition);
@@ -105,7 +104,7 @@ namespace Zerra.CQRS.Network
 #endif
 
                     if (bytesRead == 0)
-                        throw new CQRSRequestAbortedException();
+                        throw new ConnectionAbortedException();
                     headerLength += bytesRead;
 
                     requestHeaderEnd = TcpRawCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
@@ -183,16 +182,15 @@ namespace Zerra.CQRS.Network
                 };
                 data.AddProviderArguments(arguments);
 
-                stream = await socketPool.GetStreamAsync(ipEndpoint, ProtocolType.Tcp);
-
                 var buffer = bufferOwner.AsMemory();
 
                 //Request Header
                 var requestHeaderLength = TcpRawCommon.BufferHeader(buffer, data.ProviderType, contentType);
+
 #if NETSTANDARD2_0
-                await stream.WriteAsync(bufferOwner, 0, requestHeaderLength);
+                stream = await socketPool.BeginStreamAsync(ipEndpoint, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength);
 #else
-                await stream.WriteAsync(buffer.Slice(0, requestHeaderLength));
+                stream = await socketPool.BeginStreamAsync(ipEndpoint, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength));
 #endif
 
                 requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
@@ -233,7 +231,7 @@ namespace Zerra.CQRS.Network
                 while (!requestHeaderEnd)
                 {
                     if (headerLength == buffer.Length)
-                        throw new Exception($"{nameof(TcpRawCQRSClient)} Header Too Long");
+                        throw new Exception($"{nameof(TcpRawCqrsClient)} Header Too Long");
 
 #if NETSTANDARD2_0
                     var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition);
@@ -242,7 +240,7 @@ namespace Zerra.CQRS.Network
 #endif
 
                     if (bytesRead == 0)
-                        throw new CQRSRequestAbortedException();
+                        throw new ConnectionAbortedException();
                     headerLength += bytesRead;
 
                     requestHeaderEnd = TcpRawCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
@@ -358,16 +356,15 @@ namespace Zerra.CQRS.Network
                     Source = source
                 };
 
-                stream = await socketPool.GetStreamAsync(ipEndpoint, ProtocolType.Tcp);
-
                 var buffer = bufferOwner.AsMemory();
 
                 //Request Header
                 var requestHeaderLength = TcpRawCommon.BufferHeader(buffer, data.MessageType, contentType);
+
 #if NETSTANDARD2_0
-                await stream.WriteAsync(bufferOwner, 0, requestHeaderLength);
+                stream = await socketPool.BeginStreamAsync(ipEndpoint, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength);
 #else
-                await stream.WriteAsync(buffer.Slice(0, requestHeaderLength));
+                stream = await socketPool.BeginStreamAsync(ipEndpoint, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength));
 #endif
 
                 requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
@@ -409,7 +406,7 @@ namespace Zerra.CQRS.Network
                 while (!requestHeaderEnd)
                 {
                     if (headerLength == buffer.Length)
-                        throw new Exception($"{nameof(TcpRawCQRSClient)} Header Too Long");
+                        throw new Exception($"{nameof(TcpRawCqrsClient)} Header Too Long");
 
 #if NETSTANDARD2_0
                     var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition);
@@ -418,7 +415,7 @@ namespace Zerra.CQRS.Network
 #endif
 
                     if (bytesRead == 0)
-                        throw new CQRSRequestAbortedException();
+                        throw new ConnectionAbortedException();
                     headerLength += bytesRead;
 
                     requestHeaderEnd = TcpRawCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
@@ -483,9 +480,9 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        public static TcpRawCQRSClient CreateDefault(string endpoint, SymmetricConfig symmetricConfig)
+        public static TcpRawCqrsClient CreateDefault(string endpoint, SymmetricConfig symmetricConfig)
         {
-            return new TcpRawCQRSClient(ContentType.Bytes, endpoint, symmetricConfig);
+            return new TcpRawCqrsClient(ContentType.Bytes, endpoint, symmetricConfig);
         }
     }
 }
