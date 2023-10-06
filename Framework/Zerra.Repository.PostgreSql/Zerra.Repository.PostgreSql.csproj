@@ -18,7 +18,7 @@ Zerra.Repository.PostgreSql.PostgreSqlDataContext
         <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, SQL</PackageTags>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <LangVersion>10.0</LangVersion>
-        <Version>4.7.0</Version>
+        <Version>4.7.6</Version>
     </PropertyGroup>
 
     <ItemGroup>
