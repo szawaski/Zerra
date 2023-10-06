@@ -81,11 +81,15 @@ namespace Zerra.CQRS.Settings
                         service.BindingUrl = newUrl;
                         if (!String.IsNullOrWhiteSpace(service.BindingUrl))
                             _ = Log.InfoAsync($"Hosting {service.Name} at {service.BindingUrl} (from {urlSource})");
+                        else
+                            _ = Log.InfoAsync($"No {nameof(service.BindingUrl)} {service.Name}");
                     }
                     else
                     {
                         if (!String.IsNullOrWhiteSpace(service.BindingUrl))
                             _ = Log.InfoAsync($"Hosting {service.Name} at {service.BindingUrl} (from {fileName})");
+                        else
+                            _ = Log.InfoAsync($"No {nameof(service.BindingUrl)} {service.Name}");
                     }
                 }
                 else
@@ -95,11 +99,15 @@ namespace Zerra.CQRS.Settings
                         service.ExternalUrl = newUrl;
                         if (!String.IsNullOrWhiteSpace(service.ExternalUrl))
                             _ = Log.InfoAsync($"Set {service.Name} at {service.ExternalUrl} (from {urlSource})");
+                        else
+                            _ = Log.InfoAsync($"No {nameof(service.ExternalUrl)} {service.Name}");
                     }
                     else
                     {
                         if (!String.IsNullOrWhiteSpace(service.ExternalUrl))
                             _ = Log.InfoAsync($"Set {service.Name} at {service.ExternalUrl} (from {fileName})");
+                        else
+                            _ = Log.InfoAsync($"No {nameof(service.ExternalUrl)} {service.Name}");
                     }
                 }
             }
