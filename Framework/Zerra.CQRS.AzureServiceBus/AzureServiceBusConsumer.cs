@@ -74,12 +74,12 @@ namespace Zerra.CQRS.AzureServiceBus
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Command Consumer Started Connected");
+            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Command Consumer Listening");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Event Consumer Started Connected");
+            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Event Consumer Listening");
         }
         private void Open()
         {

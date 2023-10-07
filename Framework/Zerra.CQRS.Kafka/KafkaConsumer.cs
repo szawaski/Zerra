@@ -62,12 +62,12 @@ namespace Zerra.CQRS.Kafka
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Command Consumer Started Connected");
+            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Command Consumer Listening");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Event Consumer Started Connected");
+            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Event Consumer Listening");
         }
         private void Open()
         {

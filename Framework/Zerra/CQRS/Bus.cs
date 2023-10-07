@@ -761,7 +761,7 @@ namespace Zerra.CQRS
             _ = busLogger?.LogCallAsync(interfaceType, methodName, arguments, null, source, true, timer.ElapsedMilliseconds, null);
         }
 
-        public static ICollection<Type> GetCommandTypesFromInterface(Type interfaceType)
+        private static ICollection<Type> GetCommandTypesFromInterface(Type interfaceType)
         {
             var messageTypes = new HashSet<Type>();
             var typeDetail = TypeAnalyzer.GetTypeDetail(interfaceType);
@@ -773,7 +773,7 @@ namespace Zerra.CQRS
             }
             return messageTypes;
         }
-        public static ICollection<Type> GetEventTypesFromInterface(Type interfaceType)
+        private static ICollection<Type> GetEventTypesFromInterface(Type interfaceType)
         {
             var messageTypes = new HashSet<Type>();
             var typeDetail = TypeAnalyzer.GetTypeDetail(interfaceType);
@@ -827,13 +827,19 @@ namespace Zerra.CQRS
                 foreach (var commandType in commandTypes)
                 {
                     if (handledCommandTypes.Contains(commandType))
-                        throw new InvalidOperationException($"Cannot add Command Producer: Command Consumer already registered for type {commandType.GetNiceName()}");
+                    {
+                        _ = Log.ErrorAsync($"Cannot add Command Producer: Command Consumer already registered for type {commandType.GetNiceName()}");
+                        continue;
+                    }
                     if (commandProducers.ContainsKey(commandType))
-                        throw new InvalidOperationException($"Cannot add Command Producer: Command Producer already registered for type {commandType.GetNiceName()}");
+                    {
+                        _ = Log.ErrorAsync($"Cannot add Command Producer: Command Producer already registered for type {commandType.GetNiceName()}");
+                        continue;
+                    }
                     var topic = GetCommandTopic(commandType);
                     commandProducer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
                     _ = commandProducers.TryAdd(commandType, commandProducer);
-                    _ = Log.InfoAsync($"{nameof(Bus)} Added Command Producer For {commandType.GetNiceName()}");
+                    _ = Log.InfoAsync($"{commandProducer.GetType().GetNiceName()}: {commandType.GetNiceName()}");
                 }
             }
             finally
@@ -860,13 +866,19 @@ namespace Zerra.CQRS
                             if (hasHandler)
                             {
                                 if (commandProducers.ContainsKey(commandType))
-                                    throw new InvalidOperationException($"Cannot add Command Consumer: Command Producer already registered for type {commandType.GetNiceName()}");
+                                {
+                                    _ = Log.ErrorAsync($"Cannot add Command Consumer: Command Producer already registered for type {commandType.GetNiceName()}");
+                                    continue;
+                                }
                                 if (!handledCommandTypes.Contains(commandType))
-                                    throw new InvalidOperationException($"Cannot add Command Consumer: Command Consumer already registered for type {commandType.GetNiceName()}");
+                                {
+                                    _ = Log.ErrorAsync($"Cannot add Command Consumer: Command Consumer already registered for type {commandType.GetNiceName()}");
+                                    continue;
+                                }
                                 var topic = GetCommandTopic(commandType);
                                 commandConsumer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
                                 _ = handledCommandTypes.Add(commandType);
-                                _ = Log.InfoAsync($"{nameof(Bus)} Added Command Consumer For {commandType.GetNiceName()}");
+                                _ = Log.InfoAsync($"{commandConsumer.GetType().GetNiceName()}: {commandType.GetNiceName()}");
                             }
                         }
                     }
@@ -893,11 +905,14 @@ namespace Zerra.CQRS
                 foreach (var eventType in eventTypes)
                 {
                     if (eventProducers.ContainsKey(eventType))
-                        throw new InvalidOperationException($"Cannot add Event Producer: Event Producer already registered for type {eventType.GetNiceName()}");
+                    {
+                        _ = Log.ErrorAsync($"Cannot add Event Producer: Event Producer already registered for type {eventType.GetNiceName()}");
+                        continue;
+                    }
                     var topic = GetEventTopic(eventType);
                     eventProducer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
                     _ = eventProducers.TryAdd(eventType, eventProducer);
-                    _ = Log.InfoAsync($"{nameof(Bus)} Added Event Producer For {eventType.GetNiceName()}");
+                    _ = Log.InfoAsync($"{eventProducers.GetType().GetNiceName()}: {eventType.GetNiceName()}");
                 }
             }
             finally
@@ -924,10 +939,14 @@ namespace Zerra.CQRS
                             if (hasHandler)
                             {
                                 if (!handledEventTypes.Contains(eventType))
-                                    throw new InvalidOperationException($"Cannot add Event Consumer: Event Consumer already registered for type {eventType.GetNiceName()}");
+                                {
+                                    _ = Log.ErrorAsync($"Cannot add Event Consumer: Event Consumer already registered for type {eventType.GetNiceName()}");
+                                    continue;
+                                }
                                 var topic = GetEventTopic(eventType);
                                 eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
                                 _ = handledEventTypes.Add(eventType);
+                                _ = Log.InfoAsync($"{eventConsumer.GetType().GetNiceName()}: {eventType.GetNiceName()}");
                             }
                         }
                     }
@@ -951,12 +970,18 @@ namespace Zerra.CQRS
             {
                 var interfaceType = typeof(TInterface);
                 if (handledQueryTypes.Contains(interfaceType))
-                    throw new InvalidOperationException($"Cannot add Query Client: Query Server already registered for type {interfaceType.GetNiceName()}");
+                {
+                    _ = Log.ErrorAsync($"Cannot add Query Client: Query Server already registered for type {interfaceType.GetNiceName()}");
+                    return;
+                }
                 if (queryClients.ContainsKey(interfaceType))
-                    throw new InvalidOperationException($"Cannot add Query Client: Query Client already registered for type {interfaceType.GetNiceName()}");
+                {
+                    _ = Log.ErrorAsync($"Cannot add Query Client: Query Client already registered for type {interfaceType.GetNiceName()}");
+                    return;
+                }
                 queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
                 _ = queryClients.TryAdd(interfaceType, queryClient);
-                _ = Log.InfoAsync($"{nameof(Bus)} Added Query Client For {interfaceType.GetNiceName()}");
+                _ = Log.InfoAsync($"{queryClients.GetType().GetNiceName()}: {interfaceType.GetNiceName()}");
             }
             finally
             {
@@ -980,11 +1005,18 @@ namespace Zerra.CQRS
                         if (hasImplementation)
                         {
                             if (queryClients.ContainsKey(interfaceType))
-                                throw new InvalidOperationException($"Cannot add Query Client: Query Server already registered for type {interfaceType.GetNiceName()}");
+                            {
+                                _ = Log.ErrorAsync($"Cannot add Query Client: Query Server already registered for type {interfaceType.GetNiceName()}");
+                                continue;
+                            }
                             if (handledQueryTypes.Contains(interfaceType))
-                                throw new InvalidOperationException($"Cannot add Query Server: Query Server already registered for type {interfaceType.GetNiceName()}");
+                            {
+                                _ = Log.ErrorAsync($"Cannot add Query Server: Query Server already registered for type {interfaceType.GetNiceName()}");
+                                continue;
+                            }
                             queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
                             _ = handledQueryTypes.Add(interfaceType);
+                            _ = Log.InfoAsync($"{queryServer.GetType().GetNiceName()}: {interfaceType.GetNiceName()}");
                         }
                     }
                 }
@@ -1133,6 +1165,9 @@ namespace Zerra.CQRS
                 ICommandConsumer commandConsumer = null;
                 IEventConsumer eventConsumer = null;
                 IQueryServer queryServer = null;
+                Type commandConsumerType = null;
+                Type eventConsumerType = null;
+                Type queryServerType = null;
 
                 var serverTypes = new HashSet<Type>();
                 foreach (var clientSetting in serviceSettings.Services)
@@ -1169,6 +1204,9 @@ namespace Zerra.CQRS
                     ICommandProducer commandProducer = null;
                     IEventProducer eventProducer = null;
                     IQueryClient queryClient = null;
+                    Type commandProducerType = null;
+                    Type eventProducerType = null;
+                    Type queryClientType = null;
 
                     foreach (var typeName in serviceSetting.Types)
                     {
@@ -1193,9 +1231,10 @@ namespace Zerra.CQRS
                                         var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
                                         var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                         commandConsumer = serviceCreator.CreateCommandConsumer(serviceUrl, symmetricConfig);
+                                        commandConsumerType = commandConsumer.GetType();
                                         commandConsumer.Setup(receiveCounter, HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync);
-                                        if (!commandConsumers.Contains(commandConsumer))
-                                            _ = commandConsumers.Add(commandConsumer);
+                                        _ = commandConsumers.Add(commandConsumer);
+                                        _ = Log.InfoAsync($"Command Consumer: {commandConsumerType.GetNiceName()}");
                                     }
                                     foreach (var commandType in commandTypes)
                                     {
@@ -1214,6 +1253,7 @@ namespace Zerra.CQRS
                                         var topic = GetCommandTopic(commandType);
                                         commandConsumer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
                                         _ = handledCommandTypes.Add(commandType);
+                                        _ = Log.InfoAsync($"{commandConsumerType.GetNiceName()}: {commandType.GetNiceName()}");
                                     }
                                 }
                                 catch (Exception ex)
@@ -1233,6 +1273,8 @@ namespace Zerra.CQRS
                                             var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
                                             var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                             commandProducer = serviceCreator.CreateCommandProducer(externalUrl, symmetricConfig);
+                                            commandProducerType = commandProducer.GetType();
+                                            _ = Log.InfoAsync($"Command Producer: {commandProducer.GetType().GetNiceName()}");
                                         }
                                         foreach (var commandType in clientCommandTypes)
                                         {
@@ -1249,6 +1291,7 @@ namespace Zerra.CQRS
                                             var topic = GetCommandTopic(commandType);
                                             commandProducer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
                                             _ = commandProducers.TryAdd(commandType, commandProducer);
+                                            _ = Log.InfoAsync($"{commandProducerType.GetNiceName()}: {commandType.GetNiceName()}");
                                         }
                                     }
                                 }
@@ -1272,9 +1315,10 @@ namespace Zerra.CQRS
                                         var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
                                         var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                         eventConsumer = serviceCreator.CreateEventConsumer(serviceUrl, symmetricConfig);
+                                        eventConsumerType = eventConsumer.GetType();
                                         eventConsumer.Setup(receiveCounter, HandleRemoteEventDispatchAsync);
-                                        if (!eventConsumers.Contains(eventConsumer))
-                                            _ = eventConsumers.Add(eventConsumer);
+                                        _ = eventConsumers.Add(eventConsumer);
+                                        _ = Log.InfoAsync($"Event Consumer: {eventConsumer.GetType().GetNiceName()}");
                                     }
                                     foreach (var eventType in eventTypes)
                                     {
@@ -1286,6 +1330,7 @@ namespace Zerra.CQRS
                                         var topic = GetEventTopic(eventType);
                                         eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
                                         _ = handledEventTypes.Add(eventType);
+                                        _ = Log.InfoAsync($"{eventConsumerType.GetNiceName()}: {eventType.GetNiceName()}");
                                     }
                                 }
                                 catch (Exception ex)
@@ -1303,6 +1348,8 @@ namespace Zerra.CQRS
                                         var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
                                         var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                         eventProducer = serviceCreator.CreateEventProducer(externalUrl, symmetricConfig);
+                                        eventProducerType = eventProducer.GetType();
+                                        _ = Log.InfoAsync($"Event Producer: {eventProducer.GetType().GetNiceName()}");
                                     }
 
                                     foreach (var eventType in eventTypes)
@@ -1314,6 +1361,7 @@ namespace Zerra.CQRS
                                         var topic = GetEventTopic(eventType);
                                         eventProducer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
                                         _ = eventProducers.TryAdd(eventType, eventProducer);
+                                        _ = Log.InfoAsync($"{eventProducerType.GetNiceName()}: {eventType.GetNiceName()}");
                                     }
                                 }
                                 catch (Exception ex)
@@ -1345,12 +1393,14 @@ namespace Zerra.CQRS
                                             var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
                                             var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                             queryServer = serviceCreator.CreateQueryServer(serviceUrl, symmetricConfig);
+                                            queryServerType = queryServer.GetType();
                                             queryServer.Setup(receiveCounter, HandleRemoteQueryCallAsync);
-                                            if (!queryServers.Contains(queryServer))
-                                                _ = queryServers.Add(queryServer);
+                                            _ = queryServers.Add(queryServer);
+                                            _ = Log.InfoAsync($"Query Server: {queryServer.GetType().GetNiceName()}");
                                         }
                                         _ = handledQueryTypes.Add(interfaceType);
                                         queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
+                                        _ = Log.InfoAsync($"{queryServerType.GetNiceName()}: {interfaceType.GetNiceName()}");
                                     }
                                     catch (Exception ex)
                                     {
@@ -1379,9 +1429,12 @@ namespace Zerra.CQRS
                                                 var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
                                                 var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                                 queryClient = serviceCreator.CreateQueryClient(externalUrl, symmetricConfig);
+                                                queryClientType = queryClient.GetType();
+                                                _ = Log.InfoAsync($"Query Client: {queryClient.GetType().GetNiceName()}");
                                             }
                                             queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
                                             _ = queryClients.TryAdd(interfaceType, queryClient);
+                                            _ = Log.InfoAsync($"{queryClientType.GetNiceName()}: {interfaceType.GetNiceName()}");
                                         }
                                         catch (Exception ex)
                                         {

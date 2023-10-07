@@ -75,12 +75,12 @@ namespace Zerra.CQRS.AzureEventHub
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Command Consumer Started Connected");
+            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Command Consumer Listening");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Event Consumer Started Connected");
+            _ = Log.InfoAsync($"{nameof(AzureEventHubConsumer)} Event Consumer Listening");
         }
 
         private void Open()

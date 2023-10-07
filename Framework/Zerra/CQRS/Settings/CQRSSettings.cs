@@ -35,7 +35,7 @@ namespace Zerra.CQRS.Settings
         }
         public static ServiceSettings Get(string serviceName, bool bindingUrlFromStandardVariables)
         {
-            _ = Log.InfoAsync($"Configuring {serviceName}");
+            _ = Log.InfoAsync($"Configuring {serviceName}...");
 
             var environmentName = Config.EnvironmentName;
 

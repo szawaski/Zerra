@@ -64,12 +64,12 @@ namespace Zerra.CQRS.RabbitMQ
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Command Consumer Started Connected");
+            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Command Consumer Listening");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Event Consumer Started Connected");
+            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Event Consumer Listening");
         }
         private void Open()
         {
