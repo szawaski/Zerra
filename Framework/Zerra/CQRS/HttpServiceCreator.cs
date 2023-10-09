@@ -26,11 +26,15 @@ namespace Zerra.CQRS
 
         public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
+            if (String.IsNullOrWhiteSpace(serviceUrl))
+                return null;
             return new HttpCqrsClient(contentType, serviceUrl, authorizer);
         }
 
         public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
+            if (String.IsNullOrWhiteSpace(serviceUrl))
+                return null;
             return servers.GetOrAdd(serviceUrl, (url) => HttpCqrsServer.CreateDefault(url, authorizer, allowOrigins));
         }
 
@@ -46,11 +50,15 @@ namespace Zerra.CQRS
 
         public IQueryClient CreateQueryClient(string serviceUrl, SymmetricConfig symmetricConfig)
         {
+            if (String.IsNullOrWhiteSpace(serviceUrl))
+                return null;
             return new HttpCqrsClient(contentType, serviceUrl, authorizer);
         }
 
         public IQueryServer CreateQueryServer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
+            if (String.IsNullOrWhiteSpace(serviceUrl))
+                return null;
             return servers.GetOrAdd(serviceUrl, (url) => HttpCqrsServer.CreateDefault(url, authorizer, allowOrigins));
         }
     }
