@@ -828,12 +828,12 @@ namespace Zerra.CQRS
                 {
                     if (handledCommandTypes.Contains(commandType))
                     {
-                        _ = Log.ErrorAsync($"Cannot add Command Producer: Command Consumer already registered for type {commandType.GetNiceName()}");
+                        _ = Log.ErrorAsync($"Cannot add Command Producer: type already registered {commandType.GetNiceName()}");
                         continue;
                     }
                     if (commandProducers.ContainsKey(commandType))
                     {
-                        _ = Log.ErrorAsync($"Cannot add Command Producer: Command Producer already registered for type {commandType.GetNiceName()}");
+                        _ = Log.ErrorAsync($"Cannot add Command Producer: type already registered {commandType.GetNiceName()}");
                         continue;
                     }
                     var topic = GetCommandTopic(commandType);
@@ -867,12 +867,12 @@ namespace Zerra.CQRS
                             {
                                 if (commandProducers.ContainsKey(commandType))
                                 {
-                                    _ = Log.ErrorAsync($"Cannot add Command Consumer: Command Producer already registered for type {commandType.GetNiceName()}");
+                                    _ = Log.ErrorAsync($"Cannot add Command Consumer: type already registered {commandType.GetNiceName()}");
                                     continue;
                                 }
                                 if (!handledCommandTypes.Contains(commandType))
                                 {
-                                    _ = Log.ErrorAsync($"Cannot add Command Consumer: Command Consumer already registered for type {commandType.GetNiceName()}");
+                                    _ = Log.ErrorAsync($"Cannot add Command Consumer: type already registered {commandType.GetNiceName()}");
                                     continue;
                                 }
                                 var topic = GetCommandTopic(commandType);
@@ -906,7 +906,7 @@ namespace Zerra.CQRS
                 {
                     if (eventProducers.ContainsKey(eventType))
                     {
-                        _ = Log.ErrorAsync($"Cannot add Event Producer: Event Producer already registered for type {eventType.GetNiceName()}");
+                        _ = Log.ErrorAsync($"Cannot add Event Producer: type already registered {eventType.GetNiceName()}");
                         continue;
                     }
                     var topic = GetEventTopic(eventType);
@@ -940,7 +940,7 @@ namespace Zerra.CQRS
                             {
                                 if (!handledEventTypes.Contains(eventType))
                                 {
-                                    _ = Log.ErrorAsync($"Cannot add Event Consumer: Event Consumer already registered for type {eventType.GetNiceName()}");
+                                    _ = Log.ErrorAsync($"Cannot add Event Consumer: type already registered {eventType.GetNiceName()}");
                                     continue;
                                 }
                                 var topic = GetEventTopic(eventType);
@@ -971,12 +971,12 @@ namespace Zerra.CQRS
                 var interfaceType = typeof(TInterface);
                 if (handledQueryTypes.Contains(interfaceType))
                 {
-                    _ = Log.ErrorAsync($"Cannot add Query Client: Query Server already registered for type {interfaceType.GetNiceName()}");
+                    _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
                     return;
                 }
                 if (queryClients.ContainsKey(interfaceType))
                 {
-                    _ = Log.ErrorAsync($"Cannot add Query Client: Query Client already registered for type {interfaceType.GetNiceName()}");
+                    _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
                     return;
                 }
                 queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
@@ -1006,12 +1006,12 @@ namespace Zerra.CQRS
                         {
                             if (queryClients.ContainsKey(interfaceType))
                             {
-                                _ = Log.ErrorAsync($"Cannot add Query Client: Query Server already registered for type {interfaceType.GetNiceName()}");
+                                _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
                                 continue;
                             }
                             if (handledQueryTypes.Contains(interfaceType))
                             {
-                                _ = Log.ErrorAsync($"Cannot add Query Server: Query Server already registered for type {interfaceType.GetNiceName()}");
+                                _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
                                 continue;
                             }
                             queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
@@ -1242,12 +1242,12 @@ namespace Zerra.CQRS
                                             continue;
                                         if (commandProducers.ContainsKey(commandType))
                                         {
-                                            _ = Log.ErrorAsync($"Cannot add Command Consumer: Command Producer already registered for type {commandType.GetNiceName()}");
+                                            _ = Log.ErrorAsync($"Cannot add Command Consumer: type already registered {commandType.GetNiceName()}");
                                             continue;
                                         }
                                         if (handledCommandTypes.Contains(commandType))
                                         {
-                                            _ = Log.ErrorAsync($"Cannot add Command Consumer: Command Consumer already registered for type {commandType.GetNiceName()}");
+                                            _ = Log.ErrorAsync($"Cannot add Command Consumer: type already registered {commandType.GetNiceName()}");
                                             continue;
                                         }
                                         var topic = GetCommandTopic(commandType);
@@ -1280,12 +1280,12 @@ namespace Zerra.CQRS
                                         {
                                             if (handledCommandTypes.Contains(commandType))
                                             {
-                                                _ = Log.ErrorAsync($"Cannot add Command Producer: Command Consumer already registered for type {commandType.GetNiceName()}");
+                                                _ = Log.ErrorAsync($"Cannot add Command Producer: type already registered {commandType.GetNiceName()}");
                                                 continue;
                                             }
                                             if (commandProducers.ContainsKey(commandType))
                                             {
-                                                _ = Log.ErrorAsync($"Cannot add Command Producer: Command Producer already registered for type {commandType.GetNiceName()}");
+                                                _ = Log.ErrorAsync($"Cannot add Command Producer: type already registered {commandType.GetNiceName()}");
                                                 continue;
                                             }
                                             var topic = GetCommandTopic(commandType);
@@ -1324,7 +1324,7 @@ namespace Zerra.CQRS
                                     {
                                         if (handledEventTypes.Contains(eventType))
                                         {
-                                            _ = Log.ErrorAsync($"Cannot add Event Consumer: Event Consumer already registered for type {eventType.GetNiceName()}");
+                                            _ = Log.ErrorAsync($"Cannot add Event Consumer: type already registered {eventType.GetNiceName()}");
                                             continue;
                                         }
                                         var topic = GetEventTopic(eventType);
@@ -1378,11 +1378,11 @@ namespace Zerra.CQRS
                             {
                                 if (queryClients.ContainsKey(interfaceType))
                                 {
-                                    _ = Log.ErrorAsync($"Cannot add Query Server: Query Client already registered for type {interfaceType.GetNiceName()}");
+                                    _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
                                 }
                                 else if (handledQueryTypes.Contains(interfaceType))
                                 {
-                                    _ = Log.ErrorAsync($"Cannot add Query Server: Query Server already registered for type {interfaceType.GetNiceName()}");
+                                    _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
                                 }
                                 else
                                 {
@@ -1414,11 +1414,11 @@ namespace Zerra.CQRS
                                 {
                                     if (handledQueryTypes.Contains(interfaceType))
                                     {
-                                        _ = Log.ErrorAsync($"Cannot add Query Client: Query Server already registered for type {interfaceType.GetNiceName()}");
+                                        _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
                                     }
                                     else if (commandProducers.ContainsKey(interfaceType))
                                     {
-                                        _ = Log.ErrorAsync($"Cannot add Query Client: Query Client already registered for type {interfaceType.GetNiceName()}");
+                                        _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
                                     }
                                     else
                                     {
