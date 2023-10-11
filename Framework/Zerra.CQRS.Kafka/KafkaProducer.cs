@@ -40,7 +40,7 @@ namespace Zerra.CQRS.Kafka
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
 
-            var clientID = Guid.NewGuid().ToString("N");
+            var clientID = Environment.MachineName;
             this.ackTopic = $"ACK-{clientID}";
             this.topicsByCommandType = new();
             this.topicsByEventType = new();
@@ -80,19 +80,22 @@ namespace Zerra.CQRS.Kafka
 
                 if (requireAcknowledgement)
                 {
-                    await listenerStartedLock.WaitAsync();
-                    try
+                    if (!listenerStarted)
                     {
-                        if (!listenerStarted)
+                        await listenerStartedLock.WaitAsync();
+                        try
                         {
-                            await KafkaCommon.EnsureTopic(host, ackTopic);
-                            _ = AckListeningThread();
-                            listenerStarted = true;
+                            if (!listenerStarted)
+                            {
+                                await KafkaCommon.EnsureTopic(host, ackTopic);
+                                _ = AckListeningThread();
+                                listenerStarted = true;
+                            }
                         }
-                    }
-                    finally
-                    {
-                        _ = listenerStartedLock.Release();
+                        finally
+                        {
+                            _ = listenerStartedLock.Release();
+                        }
                     }
                 }
 

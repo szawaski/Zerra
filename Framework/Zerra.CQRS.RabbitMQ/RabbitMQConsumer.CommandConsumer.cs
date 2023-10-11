@@ -58,9 +58,12 @@ namespace Zerra.CQRS.RabbitMQ
 
             private async Task ListeningThread(IConnection connection, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
-                throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
             retry:
+
+                if (throttle != null)
+                    throttle.Dispose();
+                throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
                 try
                 {
@@ -71,14 +74,14 @@ namespace Zerra.CQRS.RabbitMQ
                     this.channel.BasicQos(0, (ushort)maxConcurrent, false);
                     this.channel.ExchangeDeclare(this.topic, ExchangeType.Direct);
 
-                    var queueName = this.channel.QueueDeclare().QueueName;
-                    this.channel.QueueBind(queueName, this.topic, String.Empty);
+                    var queue = this.channel.QueueDeclare(String.Empty, false, true, true);
+                    this.channel.QueueBind(queue.QueueName, this.topic, String.Empty);
 
                     var consumer = new AsyncEventingBasicConsumer(this.channel);
 
                     consumer.Received += async (sender, e) =>
                     {
-                        await throttle.WaitAsync();
+                        await throttle.WaitAsync(canceller.Token);
 
                         if (!receiveCounter.BeginReceive())
                             return; //don't receive anymore, externally will be shutdown
@@ -163,11 +166,18 @@ namespace Zerra.CQRS.RabbitMQ
                         }
                     };
 
-                    _ = this.channel.BasicConsume(queueName, false, consumer);
+                    consumer.ConsumerCancelled += (sender, e) =>
+                    {
+                        _ = ListeningThread(connection, handlerAsync, handlerAwaitAsync);
+                        return Task.CompletedTask;
+                    };
+
+                    _ = this.channel.BasicConsume(queue.QueueName, false, consumer);
                 }
                 catch (Exception ex)
                 {
                     _ = Log.ErrorAsync(topic, ex);
+
 
                     if (!canceller.IsCancellationRequested)
                     {

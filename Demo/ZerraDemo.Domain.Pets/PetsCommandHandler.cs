@@ -108,10 +108,12 @@ namespace ZerraDemo.Domain.Pets
             var item = new PetDataModel()
             {
                 ID = command.PetID,
+                AmountEaten = null,
                 LastPooped = DateTime.UtcNow
             };
 
             await Repo.PersistAsync(new Update<PetDataModel>(item, new Graph<PetDataModel>(
+                x => x.AmountEaten,
                 x => x.LastPooped
             )));
         }

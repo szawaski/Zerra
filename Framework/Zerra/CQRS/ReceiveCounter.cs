@@ -45,6 +45,21 @@ namespace Zerra.CQRS
             return true;
         }
 
+        public void CancelReceive(SemaphoreSlim throttle)
+        {
+            if (!receiveCountBeforeExit.HasValue)
+            {
+                throttle.Release();
+                return;
+            }
+
+            lock (locker)
+            {
+                started--;
+                _ = throttle.Release();
+            }
+        }
+
         public void CompleteReceive(SemaphoreSlim throttle)
         {
             if (!receiveCountBeforeExit.HasValue)

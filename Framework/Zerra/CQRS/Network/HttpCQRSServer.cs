@@ -37,7 +37,7 @@ namespace Zerra.CQRS.Network
         {
             try
             {
-                for(; ; )
+                for (; ; )
                 {
                     await throttle.WaitAsync(cancellationToken);
 

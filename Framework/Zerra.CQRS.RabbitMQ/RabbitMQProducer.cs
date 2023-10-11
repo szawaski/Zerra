@@ -115,12 +115,12 @@ namespace Zerra.CQRS.RabbitMQ
                     string correlationId = null;
                     if (requireAcknowledgement)
                     {
-                        var replyQueueName = channel.QueueDeclare().QueueName;
+                        var replyQueue = channel.QueueDeclare(String.Empty, false, true, true);
                         consumer = new EventingBasicConsumer(channel);
-                        consumerTag = channel.BasicConsume(replyQueueName, true, consumer);
+                        consumerTag = channel.BasicConsume(replyQueue.QueueName, true, consumer);
 
                         correlationId = Guid.NewGuid().ToString("N");
-                        properties.ReplyTo = replyQueueName;
+                        properties.ReplyTo = replyQueue.QueueName;
                         properties.CorrelationId = correlationId;
                     }
 

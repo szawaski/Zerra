@@ -40,7 +40,7 @@ namespace Zerra.CQRS.Kafka
                     this.topic = $"{environment}_{topic}".Truncate(KafkaCommon.TopicMaxLength);
                 else
                     this.topic = topic.Truncate(KafkaCommon.TopicMaxLength);
-                this.clientID = Guid.NewGuid().ToString("N");
+                this.clientID = Environment.MachineName;
                 this.symmetricConfig = symmetricConfig;
                 this.handlerAsync = handlerAsync;
                 this.handlerAwaitAsync = handlerAwaitAsync;
@@ -57,9 +57,9 @@ namespace Zerra.CQRS.Kafka
 
             private async Task ListeningThread(string host, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
-                using var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
-
             retry:
+
+                var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
                 try
                 {
@@ -77,7 +77,7 @@ namespace Zerra.CQRS.Kafka
                         {
                             for (; ; )
                             {
-                                await throttle.WaitAsync();
+                                await throttle.WaitAsync(canceller.Token);
 
                                 if (!receiveCounter.BeginReceive())
                                     continue; //don't receive anymore, externally will be shutdown, fill throttle
@@ -106,8 +106,10 @@ namespace Zerra.CQRS.Kafka
                         goto retry;
                     }
                 }
-
-                canceller.Dispose();
+                finally
+                {
+                    throttle.Dispose();
+                }
             }
 
             private async Task HandleMessage(SemaphoreSlim throttle, string host, ConsumeResult<string, byte[]> consumerResult, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)

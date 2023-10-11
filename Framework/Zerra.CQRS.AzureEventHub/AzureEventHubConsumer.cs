@@ -95,9 +95,10 @@ namespace Zerra.CQRS.AzureEventHub
         private async Task ListeningThread()
         {
             canceller = new CancellationTokenSource();
-            var throttle = new SemaphoreSlim(maxConcurrent.Value, maxConcurrent.Value);
 
         retry:
+
+            var throttle = new SemaphoreSlim(maxConcurrent.Value, maxConcurrent.Value);
 
             try
             {
@@ -121,11 +122,23 @@ namespace Zerra.CQRS.AzureEventHub
                         if (typeNameObject is not string typeName)
                             continue;
 
-                        await throttle.WaitAsync();
+                        var type = Discovery.GetTypeFromName(typeName);
+                        var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+                        var isCommand = commandTypes.Contains(type) && typeDetail.Interfaces.Contains(typeof(ICommand));
+                        var isEvent = eventTypes.Contains(type) && typeDetail.Interfaces.Contains(typeof(IEvent));
 
-                        _ = receiveCounter.BeginReceive();
+                        if (!isCommand && !isEvent)
+                            return;
 
-                        _ = HandleEvent(throttle, typeName, partitionEvent);
+                        await throttle.WaitAsync(canceller.Token);
+
+                        if (isCommand)
+                        {
+                            if (!receiveCounter.BeginReceive())
+                                continue; //don't receive anymore, externally will be shutdown, fill throttle
+                        }
+
+                        _ = HandleEvent(throttle, typeName, isCommand, isEvent, partitionEvent);
                     }
                 }
             }
@@ -139,29 +152,23 @@ namespace Zerra.CQRS.AzureEventHub
                     goto retry;
                 }
             }
-
-            canceller.Dispose();
-            isOpen = false;
+            finally
+            {
+                throttle.Dispose();
+                canceller.Dispose();
+                isOpen = false;
+            }
         }
 
-        private async Task HandleEvent(SemaphoreSlim throttle, string typeName, PartitionEvent partitionEvent)
+        private async Task HandleEvent(SemaphoreSlim throttle, string typeName, bool isCommand, bool isEvent, PartitionEvent partitionEvent)
         {
             Exception error = null;
-            Type type = null;
             string ackKey = null;
             var awaitResponse = false;
 
             var inHandlerContext = false;
             try
             {
-                type = Discovery.GetTypeFromName(typeName);
-                var typeDetail = TypeAnalyzer.GetTypeDetail(type);
-                var isCommand = commandTypes.Contains(type) && typeDetail.Interfaces.Contains(typeof(ICommand));
-                var isEvent = eventTypes.Contains(type) && typeDetail.Interfaces.Contains(typeof(IEvent));
-
-                if (!isCommand && !isEvent)
-                    return;
-
                 if (partitionEvent.Data.Properties.TryGetValue(AzureEventHubCommon.AckProperty, out var ackKeyObject))
                 {
                     if (ackKeyObject is string ackKeyString)
@@ -256,7 +263,8 @@ namespace Zerra.CQRS.AzureEventHub
         {
             if (isOpen)
             {
-                canceller.Cancel();
+                if (canceller != null)
+                    canceller.Cancel();
                 isOpen = false;
             }
         }

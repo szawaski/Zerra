@@ -23,8 +23,7 @@ namespace Zerra.CQRS.AzureServiceBus
         private static readonly SemaphoreSlim locker = new(1, 1);
         private static readonly TimeSpan deleteWhenIdleTimeout = new(24, 0, 0);
 
-        public const int TopicMaxLength = 50;
-        public const int SubscriptionMaxLength = 50;
+        public const int EntityNameMaxLength = 50;
 
         public const int RetryDelay = 5000;
 
@@ -38,6 +37,47 @@ namespace Zerra.CQRS.AzureServiceBus
             return ByteSerializer.DeserializeAsync<T>(stream, byteSerializerOptions);
         }
 
+        public static async Task EnsureQueue(string host, string queue, bool deleteWhenIdle)
+        {
+            var client = new ServiceBusAdministrationClient(host);
+
+            await locker.WaitAsync();
+            try
+            {
+                if (!await client.QueueExistsAsync(queue))
+                {
+                    if (await client.TopicExistsAsync(queue))
+                        await client.DeleteTopicAsync(queue);
+
+                    var options = new CreateQueueOptions(queue)
+                    {
+                        AutoDeleteOnIdle = deleteWhenIdle ? deleteWhenIdleTimeout : TimeSpan.MaxValue
+                    };
+                    _ = await client.CreateQueueAsync(options);
+                }
+            }
+            finally
+            {
+                _ = locker.Release();
+            }
+        }
+
+        public static async Task DeleteQueue(string host, string queue)
+        {
+            var client = new ServiceBusAdministrationClient(host);
+
+            await locker.WaitAsync();
+            try
+            {
+                if (await client.QueueExistsAsync(queue))
+                    _ = await client.DeleteQueueAsync(queue);
+            }
+            finally
+            {
+                _ = locker.Release();
+            }
+        }
+
         public static async Task EnsureTopic(string host, string topic, bool deleteWhenIdle)
         {
             var client = new ServiceBusAdministrationClient(host);
@@ -47,6 +87,9 @@ namespace Zerra.CQRS.AzureServiceBus
             {
                 if (!await client.TopicExistsAsync(topic))
                 {
+                    if (await client.QueueExistsAsync(topic))
+                        await client.DeleteQueueAsync(topic);
+
                     var options = new CreateTopicOptions(topic)
                     {
                         AutoDeleteOnIdle = deleteWhenIdle ? deleteWhenIdleTimeout : TimeSpan.MaxValue

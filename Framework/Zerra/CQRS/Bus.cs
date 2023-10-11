@@ -794,7 +794,7 @@ namespace Zerra.CQRS
             {
                 var implementationTypes = Discovery.GetImplementationTypes(interfaceType).Where(x => x.IsInterface).ToArray();
                 if (implementationTypes.Length == 0)
-                    return $"CMD_{interfaceType.GetNiceName()}";
+                    return interfaceType.GetNiceName();
                 else if (implementationTypes.Length == 1)
                     interfaceType = implementationTypes[0];
                 else
@@ -808,7 +808,7 @@ namespace Zerra.CQRS
             {
                 var implementationTypes = Discovery.GetImplementationTypes(interfaceType).Where(x => x.IsInterface).ToArray();
                 if (implementationTypes.Length == 0)
-                    return $"EVT_{interfaceType.GetNiceName()}";
+                    return interfaceType.GetNiceName();
                 else if (implementationTypes.Length == 1)
                     interfaceType = implementationTypes[0];
                 else
@@ -1143,8 +1143,6 @@ namespace Zerra.CQRS
                     queryClients.Any() ||
                     queryServers.Any();
         }
-
-        private static readonly HashSet<object> instantiations = new();
 
         public static void StartServices(ServiceSettings serviceSettings, IServiceCreator serviceCreator, IRelayRegister relayRegister = null)
         {
@@ -1555,23 +1553,6 @@ namespace Zerra.CQRS
                     foreach (var group in relayRegisterTypes)
                         _ = relayRegister.Register(group.Key, group.Value.ToArray());
                 }
-
-                if (thisServerSetting.InstantiateTypes != null && thisServerSetting.InstantiateTypes.Length > 0)
-                {
-                    foreach (var instantiation in thisServerSetting.InstantiateTypes)
-                    {
-                        try
-                        {
-                            var type = Discovery.GetTypeFromName(instantiation);
-                            var instance = Activator.CreateInstance(type);
-                            _ = instantiations.Add(instance);
-                        }
-                        catch (Exception ex)
-                        {
-                            _ = Log.ErrorAsync($"Failed to instantiate {instantiation}", ex);
-                        }
-                    }
-                }
             }
             finally
             {
@@ -1704,21 +1685,6 @@ namespace Zerra.CQRS
                     }
                 }
                 queryClients.Clear();
-
-                foreach (var instance in instantiations)
-                {
-                    if (instance is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-                    {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (instance is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                instantiations.Clear();
             }
             finally
             {

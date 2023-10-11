@@ -52,9 +52,10 @@ namespace Zerra.CQRS.Kafka
 
             public async Task ListeningThread(string host, HandleRemoteEventDispatch handlerAsync)
             {
-                using var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
-
+          
             retry:
+
+                var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
                 try
                 {
@@ -73,10 +74,11 @@ namespace Zerra.CQRS.Kafka
                         {
                             for (; ; )
                             {
-                                await throttle.WaitAsync();
+                                await throttle.WaitAsync(canceller.Token);
 
-                                if (!receiveCounter.BeginReceive())
-                                    continue; //don't receive anymore, externally will be shutdown, fill throttle
+                                //not for events
+                                //if (!receiveCounter.BeginReceive())
+                                //    continue; //don't receive anymore, externally will be shutdown, fill throttle
 
                                 var consumerResult = consumer.Consume(canceller.Token);
                                 consumer.Commit(consumerResult);
@@ -101,6 +103,10 @@ namespace Zerra.CQRS.Kafka
                         await Task.Delay(KafkaCommon.RetryDelay);
                         goto retry;
                     }
+                }
+                finally
+                {
+                    throttle.Dispose();
                 }
             }
 

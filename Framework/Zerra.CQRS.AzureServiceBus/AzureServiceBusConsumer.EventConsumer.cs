@@ -27,7 +27,7 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
 
-            public EventConsumer(int maxConcurrent, ReceiveCounter receiveCounter, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, ReceiveCounter receiveCounter, string queue, SymmetricConfig symmetricConfig, string environment, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -35,9 +35,9 @@ namespace Zerra.CQRS.AzureServiceBus
                 this.receiveCounter = receiveCounter;
 
                 if (!String.IsNullOrWhiteSpace(environment))
-                    this.topic = $"{environment}_{topic}".Truncate(AzureServiceBusCommon.TopicMaxLength);
+                    this.topic = $"{environment}_{queue}".Truncate(AzureServiceBusCommon.EntityNameMaxLength);
                 else
-                    this.topic = topic.Truncate(AzureServiceBusCommon.TopicMaxLength);
+                    this.topic = queue.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
 
                 this.subscription = $"EVENT-{Guid.NewGuid():N}";
                 this.symmetricConfig = symmetricConfig;
@@ -55,10 +55,10 @@ namespace Zerra.CQRS.AzureServiceBus
 
             public async Task ListeningThread(string host, ServiceBusClient client, HandleRemoteEventDispatch handlerAsync)
             {
-                using var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
-
+                
             retry:
 
+                var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
                 try
                 {
                     await AzureServiceBusCommon.EnsureTopic(host, topic, false);
@@ -68,14 +68,19 @@ namespace Zerra.CQRS.AzureServiceBus
                     {
                         for (; ; )
                         {
-                            await throttle.WaitAsync();
+                            await throttle.WaitAsync(canceller.Token);
 
-                            if (!receiveCounter.BeginReceive())
-                                continue; //don't receive anymore, externally will be shutdown, fill throttle
+                            //not for events
+                            //if (!receiveCounter.BeginReceive())
+                            //    continue; //don't receive anymore, externally will be shutdown, fill throttle
 
                             var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
                             if (serviceBusMessage == null)
+                            {
+                                //receiveCounter.CancelReceive(throttle);  not for events
+                                throttle.Release();
                                 continue;
+                            }
 
                             _ = HandleMessage(throttle, client, serviceBusMessage, handlerAsync);
 
@@ -95,6 +100,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
                 finally
                 {
+                    throttle.Dispose();
                     try
                     {
                         await AzureServiceBusCommon.DeleteSubscription(host, topic, subscription);

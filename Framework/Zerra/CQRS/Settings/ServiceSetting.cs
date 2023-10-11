@@ -11,6 +11,5 @@ namespace Zerra.CQRS.Settings
         public string ExternalUrl { get; internal set; }
         public string EncryptionKey { get; internal set; }
         public string[] Types { get; internal set; }
-        public string[] InstantiateTypes { get; internal set; }
     }
 }

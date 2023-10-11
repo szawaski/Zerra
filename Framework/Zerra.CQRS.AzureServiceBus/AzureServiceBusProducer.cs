@@ -4,6 +4,7 @@
 
 using Azure.Messaging.ServiceBus;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,11 +26,10 @@ namespace Zerra.CQRS.AzureServiceBus
         private readonly string host;
         private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
-        private readonly string ackTopic;
-        private readonly string ackSubscription;
-        private readonly ConcurrentDictionary<Type, string> topicsByCommandType;
-        private readonly ConcurrentDictionary<Type, string> topicsByEventType;
-        private readonly ConcurrentDictionary<string, SemaphoreSlim> throttleByTopic;
+        private readonly string ackQueue;
+        private readonly ConcurrentDictionary<Type, string> queueByCommandType;
+        private readonly ConcurrentDictionary<Type, string> topicByEventType;
+        private readonly ConcurrentDictionary<string, SemaphoreSlim> throttleByQueueOrTopic;
         private readonly ServiceBusClient client;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
@@ -41,12 +41,11 @@ namespace Zerra.CQRS.AzureServiceBus
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
 
-            this.ackTopic = $"ACK-{Guid.NewGuid().ToString("N")}";
-            this.ackSubscription = applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength);
+            this.ackQueue = $"ACK-{Environment.MachineName}";
 
-            this.topicsByCommandType = new();
-            this.topicsByEventType = new();
-            this.throttleByTopic = new();
+            this.queueByCommandType = new();
+            this.topicByEventType = new();
+            this.throttleByQueueOrTopic = new();
             this.client = new ServiceBusClient(host);
 
             this.canceller = new CancellationTokenSource();
@@ -62,38 +61,39 @@ namespace Zerra.CQRS.AzureServiceBus
         private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
         {
             var commandType = command.GetType();
-            if (!topicsByCommandType.TryGetValue(commandType, out var topic))
+            if (!queueByCommandType.TryGetValue(commandType, out var queue))
                 throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
-            if (!throttleByTopic.TryGetValue(topic, out var throttle))
+            if (!throttleByQueueOrTopic.TryGetValue(queue, out var throttle))
                 throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
 
             await throttle.WaitAsync();
 
             try
             {
-
                 if (!String.IsNullOrWhiteSpace(environment))
-                    topic = $"{environment}_{topic}".Truncate(AzureServiceBusCommon.TopicMaxLength);
+                    queue = $"{environment}_{queue}".Truncate(AzureServiceBusCommon.EntityNameMaxLength);
                 else
-                    topic = topic.Truncate(AzureServiceBusCommon.TopicMaxLength);
+                    queue = queue.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
 
                 if (requireAcknowledgement)
                 {
-                    await listenerStartedLock.WaitAsync();
-                    try
+                    if (!listenerStarted)
                     {
-                        if (!listenerStarted)
+                        await listenerStartedLock.WaitAsync();
+                        try
                         {
-                            await AzureServiceBusCommon.EnsureTopic(host, ackTopic, true);
-                            await AzureServiceBusCommon.EnsureSubscription(host, ackTopic, ackSubscription, true);
+                            if (!listenerStarted)
+                            {
+                                await AzureServiceBusCommon.EnsureQueue(host, ackQueue, true);
 
-                            _ = AckListeningThread();
-                            listenerStarted = true;
+                                _ = AckListeningThread();
+                                listenerStarted = true;
+                            }
                         }
-                    }
-                    finally
-                    {
-                        _ = listenerStartedLock.Release();
+                        finally
+                        {
+                            _ = listenerStartedLock.Release();
+                        }
                     }
                 }
 
@@ -129,9 +129,9 @@ namespace Zerra.CQRS.AzureServiceBus
                         });
 
                         var serviceBusMessage = new ServiceBusMessage(body);
-                        serviceBusMessage.ReplyTo = ackTopic;
+                        serviceBusMessage.ReplyTo = ackQueue;
                         serviceBusMessage.ReplyToSessionId = ackKey;
-                        await using (var sender = client.CreateSender(topic))
+                        await using (var sender = client.CreateSender(queue))
                         {
                             await sender.SendMessageAsync(serviceBusMessage);
                         }
@@ -139,7 +139,7 @@ namespace Zerra.CQRS.AzureServiceBus
                         await waiter.WaitAsync();
 
                         if (!ack.Success)
-                            throw new AcknowledgementException(ack, topic);
+                            throw new AcknowledgementException(ack, queue);
                     }
                     finally
                     {
@@ -150,7 +150,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 else
                 {
                     var serviceBusMessage = new ServiceBusMessage(body);
-                    await using (var sender = client.CreateSender(topic))
+                    await using (var sender = client.CreateSender(queue))
                     {
                         await sender.SendMessageAsync(serviceBusMessage);
                     }
@@ -165,9 +165,9 @@ namespace Zerra.CQRS.AzureServiceBus
         private async Task SendAsync(IEvent @event, string source)
         {
             var eventType = @event.GetType();
-            if (!topicsByEventType.TryGetValue(eventType, out var topic))
+            if (!topicByEventType.TryGetValue(eventType, out var topic))
                 throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
-            if (!throttleByTopic.TryGetValue(topic, out var throttle))
+            if (!throttleByQueueOrTopic.TryGetValue(topic, out var throttle))
                 throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
 
             await throttle.WaitAsync();
@@ -175,9 +175,9 @@ namespace Zerra.CQRS.AzureServiceBus
             try
             {
                 if (!String.IsNullOrWhiteSpace(environment))
-                    topic = $"{environment}_{topic}".Truncate(AzureServiceBusCommon.TopicMaxLength);
+                    topic = $"{environment}_{topic}".Truncate(AzureServiceBusCommon.EntityNameMaxLength);
                 else
-                    topic = topic.Truncate(AzureServiceBusCommon.TopicMaxLength);
+                    topic = topic.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
 
                 string[][] claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -212,7 +212,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
             try
             {
-                await using (var receiver = client.CreateReceiver(ackTopic, ackSubscription))
+                await using (var receiver = client.CreateReceiver(ackQueue))
                 {
                     for (; ; )
                     {
@@ -261,8 +261,7 @@ namespace Zerra.CQRS.AzureServiceBus
             {
                 try
                 {
-                    await AzureServiceBusCommon.DeleteTopic(host, ackTopic);
-                    await AzureServiceBusCommon.DeleteSubscription(host, ackTopic, ackSubscription);
+                    await AzureServiceBusCommon.DeleteTopic(host, ackQueue);
                 }
                 catch (Exception ex)
                 {
@@ -281,34 +280,34 @@ namespace Zerra.CQRS.AzureServiceBus
 
         void ICommandProducer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
-            if (topicsByCommandType.ContainsKey(type))
+            if (queueByCommandType.ContainsKey(type))
                 return;
-            topicsByCommandType.TryAdd(type, topic);
-            if (throttleByTopic.ContainsKey(topic))
+            queueByCommandType.TryAdd(type, topic);
+            if (throttleByQueueOrTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
-            if (!throttleByTopic.TryAdd(topic, throttle))
+            if (!throttleByQueueOrTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
         }
         IEnumerable<Type> ICommandProducer.GetCommandTypes()
         {
-            return topicsByCommandType.Keys;
+            return queueByCommandType.Keys;
         }
 
         void IEventProducer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
-            if (topicsByEventType.ContainsKey(type))
+            if (topicByEventType.ContainsKey(type))
                 return;
-            topicsByEventType.TryAdd(type, topic);
-            if (throttleByTopic.ContainsKey(topic))
+            topicByEventType.TryAdd(type, topic);
+            if (throttleByQueueOrTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
-            if (!throttleByTopic.TryAdd(topic, throttle))
+            if (!throttleByQueueOrTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
         }
         IEnumerable<Type> IEventProducer.GetEventTypes()
         {
-            return topicsByEventType.Keys;
+            return topicByEventType.Keys;
         }
     }
 }

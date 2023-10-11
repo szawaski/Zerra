@@ -14,8 +14,7 @@
             "Types": [
                 "IPetsQueryProvider",
                 "IPetsCommandHandler"
-            ],
-            "InstantiateTypes": []
+            ]
         },
         {
             "Name": "ZerraDemo.Service.Weather",
@@ -26,8 +25,7 @@
                 "IWeatherQueryProvider",
                 "IWeatherCommandHandler",
                 "IWeatherEventHandler"
-            ],
-            "InstantiateTypes": []
+            ]
         },
         {
             "Name": "ZerraDemo.Service.WeatherCached",
@@ -38,8 +36,7 @@
                 "IWeatherCachedQueryProvider",
                 "IWeatherCachedCommandHandler",
                 "IWeatherEventHandler"
-            ],
-            "InstantiateTypes": []
+            ]
         },
         {
             "Name": "ZerraDemo.Service.Ledger1",
@@ -49,8 +46,7 @@
             "Types": [
                 "ILedger1QueryProvider",
                 "ILedger1CommandHandler"
-            ],
-            "InstantiateTypes": []
+            ]
         },
         {
             "Name": "ZerraDemo.Service.Ledger2",
@@ -60,8 +56,7 @@
             "Types": [
                 "ILedger2QueryProvider",
                 "ILedger2CommandHandler"
-            ],
-            "InstantiateTypes": []
+            ]
         }
     ]
 }

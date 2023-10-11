@@ -21,14 +21,13 @@ namespace Zerra.CQRS.AzureServiceBus
 
             private readonly int maxConcurrent;
             private readonly ReceiveCounter receiveCounter;
-            private readonly string topic;
-            private readonly string subscription;
+            private readonly string queue;
             private readonly SymmetricConfig symmetricConfig;
             private readonly HandleRemoteCommandDispatch handlerAsync;
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
             private readonly CancellationTokenSource canceller = null;
 
-            public CommandConsumer(int maxConcurrent, ReceiveCounter receiveCounter, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            public CommandConsumer(int maxConcurrent, ReceiveCounter receiveCounter, string queue, SymmetricConfig symmetricConfig, string environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -36,11 +35,10 @@ namespace Zerra.CQRS.AzureServiceBus
                 this.receiveCounter = receiveCounter;
 
                 if (!String.IsNullOrWhiteSpace(environment))
-                    this.topic = $"{environment}_{topic}".Truncate(AzureServiceBusCommon.TopicMaxLength);
+                    this.queue = $"{environment}_{queue}".Truncate(AzureServiceBusCommon.EntityNameMaxLength);
                 else
-                    this.topic = topic.Truncate(AzureServiceBusCommon.TopicMaxLength);
+                    this.queue = queue.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
 
-                this.subscription = applicationName.Truncate(AzureServiceBusCommon.SubscriptionMaxLength);
                 this.symmetricConfig = symmetricConfig;
                 this.handlerAsync = handlerAsync;
                 this.handlerAwaitAsync = handlerAwaitAsync;
@@ -57,27 +55,29 @@ namespace Zerra.CQRS.AzureServiceBus
 
             private async Task ListeningThread(string host, ServiceBusClient client, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
-                using var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
             retry:
 
+                var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
                 try
                 {
-                    await AzureServiceBusCommon.EnsureTopic(host, topic, false);
-                    await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription, false);
+                    await AzureServiceBusCommon.EnsureQueue(host, queue, false);
 
-                    await using (var receiver = client.CreateReceiver(topic, subscription, receiverOptions))
+                    await using (var receiver = client.CreateReceiver(queue, receiverOptions))
                     {
                         for (; ; )
                         {
-                            await throttle.WaitAsync();
+                            await throttle.WaitAsync(canceller.Token);
 
                             if (!receiveCounter.BeginReceive())
                                 continue; //don't receive anymore, externally will be shutdown, fill throttle
 
                             var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
                             if (serviceBusMessage == null)
+                            {
+                                receiveCounter.CancelReceive(throttle);
                                 continue;
+                            }
 
                             _ = HandleMessage(throttle, client, serviceBusMessage, handlerAsync, handlerAwaitAsync);
 
@@ -88,12 +88,16 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(topic, ex);
+                    _ = Log.ErrorAsync(queue, ex);
                     if (!canceller.IsCancellationRequested)
                     {
                         await Task.Delay(AzureServiceBusCommon.RetryDelay);
                         goto retry;
                     }
+                }
+                finally
+                {
+                    throttle.Dispose();
                 }
             }
 
@@ -142,7 +146,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 {
                     error = ex;
                     if (!inHandlerContext)
-                        _ = Log.ErrorAsync(topic, ex);
+                        _ = Log.ErrorAsync(queue, ex);
                 }
                 finally
                 {

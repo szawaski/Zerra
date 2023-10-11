@@ -75,7 +75,7 @@
                     feed: function (model) {
                         const command = new FeedPetCommand({
                             PetID: model.ID,
-                            Amount: 2
+                            Amount: 1
                         });
                        Bus.Dispatch(command, function () {
                             alert("Pet Food Sent to " + model.Name + "!");
