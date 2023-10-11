@@ -13,7 +13,7 @@ namespace Zerra.CQRS
         string ServiceUrl { get; }
         void RegisterInterfaceType(int maxConcurrent, Type type);
         ICollection<Type> GetInterfaceTypes();
-        void Setup(ReceiveCounter receiveCounter, QueryHandlerDelegate providerHandlerAsync);
+        void Setup(CommandCounter commandCounter, QueryHandlerDelegate providerHandlerAsync);
         void Open();
         void Close();
     }

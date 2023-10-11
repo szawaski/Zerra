@@ -107,6 +107,7 @@ namespace Zerra.Web
                 originRequestHeader = "*";
             }
 
+            var isCommand = false;
             var inHandlerContext = false;
             SemaphoreSlim throttle = null;
             try
@@ -155,8 +156,6 @@ namespace Zerra.Web
                         throw new Exception($"{providerType.GetNiceName()} is not registered with {nameof(KestrelCQRSServerMiddleware)}");
 
                     await throttle.WaitAsync();
-
-                    _ = settings.ReceiveCounter.BeginReceive();
 
                     inHandlerContext = true;
                     var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, false);
@@ -282,6 +281,10 @@ namespace Zerra.Web
                 }
                 else if (!String.IsNullOrWhiteSpace(data.MessageType))
                 {
+                    isCommand = true;
+                    if (!settings.ReceiveCounter.BeginReceive())
+                        throw new Exception("Cannot receive any more commands");
+
                     var messageType = Discovery.GetTypeFromName(data.MessageType);
 
                     if (!settings.CommandTypes.TryGetValue(messageType, out throttle))
@@ -379,7 +382,8 @@ namespace Zerra.Web
             }
             finally
             {
-                settings.ReceiveCounter.CompleteReceive(throttle);
+                if (isCommand)
+                    settings.ReceiveCounter.CompleteReceive(throttle);
             }
         }
     }

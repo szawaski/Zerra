@@ -9,6 +9,7 @@ using System.Security.Claims;
 using System.Linq;
 using Zerra.Reflection;
 using Zerra.Logging;
+using Zerra.Encryption;
 using Zerra.IO;
 using System.IO;
 using Zerra.Serialization;
@@ -19,13 +20,15 @@ namespace Zerra.CQRS.Network
     public sealed class HttpCqrsServer : TcpCqrsServerBase
     {
         private readonly ContentType? contentType;
+        private readonly SymmetricConfig symmetricConfig;
         private readonly ICqrsAuthorizer authorizer;
         private readonly string[] allowOrigins;
 
-        public HttpCqrsServer(ContentType? contentType, string serverUrl, ICqrsAuthorizer authorizer, string[] allowOrigins)
+        public HttpCqrsServer(ContentType? contentType, string serverUrl, SymmetricConfig symmetricConfig, ICqrsAuthorizer authorizer, string[] allowOrigins)
             : base(serverUrl)
         {
             this.contentType = contentType;
+            this.symmetricConfig = symmetricConfig;
             this.authorizer = authorizer;
             if (allowOrigins != null && !allowOrigins.Contains("*"))
                 this.allowOrigins = allowOrigins.Select(x => x.ToLower()).ToArray();
@@ -41,9 +44,6 @@ namespace Zerra.CQRS.Network
                 {
                     await throttle.WaitAsync(cancellationToken);
 
-                    if (!receiveCounter.BeginReceive())
-                        continue;
-
                     HttpRequestHeader requestHeader = null;
                     var responseStarted = false;
 
@@ -52,6 +52,8 @@ namespace Zerra.CQRS.Network
                     Stream stream = null;
                     Stream requestBodyStream = null;
                     Stream responseBodyStream = null;
+                    CryptoFlushStream responseBodyCryptoStream = null;
+                    var isCommand = false;
 
                     var inHandlerContext = false;
                     try
@@ -122,6 +124,9 @@ namespace Zerra.CQRS.Network
 
                         requestBodyStream = new HttpProtocolBodyStream(requestHeader.ContentLength, stream, requestHeader.BodyStartBuffer, true);
 
+                        if (symmetricConfig != null)
+                            requestBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, requestBodyStream, false);
+
                         var data = await ContentTypeSerializer.DeserializeAsync<CQRSRequestData>(requestHeader.ContentType.Value, requestBodyStream);
                         if (data == null)
                             throw new Exception("Empty request body");
@@ -182,26 +187,65 @@ namespace Zerra.CQRS.Network
                             int bytesRead;
                             if (result.Stream != null)
                             {
-#if NETSTANDARD2_0
-                                while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length, cancellationToken)) > 0)
-                                    await responseBodyStream.WriteAsync(bufferOwner, 0, bytesRead, cancellationToken);
-#else
-                                while ((bytesRead = await result.Stream.ReadAsync(buffer, cancellationToken)) > 0)
-                                    await responseBodyStream.WriteAsync(buffer.Slice(0, bytesRead), cancellationToken);
-#endif
-                                await responseBodyStream.FlushAsync(cancellationToken);
+                                if (symmetricConfig != null)
+                                {
+                                    responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
 
-                                continue;
+#if NETSTANDARD2_0
+                                    while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length, cancellationToken)) > 0)
+                                        await responseBodyCryptoStream.WriteAsync(bufferOwner, 0, bytesRead, cancellationToken);
+#else
+                                    while ((bytesRead = await result.Stream.ReadAsync(buffer, cancellationToken)) > 0)
+                                        await responseBodyCryptoStream.WriteAsync(buffer.Slice(0, bytesRead), cancellationToken);
+#endif
+#if NET5_0_OR_GREATER
+                                    await responseBodyCryptoStream.FlushFinalBlockAsync();
+#else
+                                    responseBodyCryptoStream.FlushFinalBlock();
+#endif
+                                    continue;
+                                }
+                                else
+                                {
+#if NETSTANDARD2_0
+                                    while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length, cancellationToken)) > 0)
+                                        await responseBodyStream.WriteAsync(bufferOwner, 0, bytesRead, cancellationToken);
+#else
+                                    while ((bytesRead = await result.Stream.ReadAsync(buffer, cancellationToken)) > 0)
+                                        await responseBodyStream.WriteAsync(buffer.Slice(0, bytesRead), cancellationToken);
+#endif
+                                    await responseBodyStream.FlushAsync(cancellationToken);
+                                    continue;
+                                }
                             }
                             else
                             {
-                                await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyStream, result.Model);
-                                await responseBodyStream.FlushAsync(cancellationToken);
-                                continue;
+                                if (symmetricConfig != null)
+                                {
+                                    responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
+
+                                    await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, result.Model);
+#if NET5_0_OR_GREATER
+                                    await responseBodyCryptoStream.FlushFinalBlockAsync();
+#else
+                                    responseBodyCryptoStream.FlushFinalBlock();
+#endif
+                                    continue;
+                                }
+                                else
+                                {
+                                    await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyStream, result.Model);
+                                    await responseBodyStream.FlushAsync(cancellationToken);
+                                    continue;
+                                }
                             }
                         }
                         else if (!String.IsNullOrWhiteSpace(data.MessageType))
                         {
+                            isCommand = true;
+                            if (!commandCounter.BeginReceive())
+                                throw new Exception("Cannot receive any more commands");
+
                             var commandType = Discovery.GetTypeFromName(data.MessageType);
                             var typeDetail = TypeAnalyzer.GetTypeDetail(commandType);
 
@@ -264,7 +308,21 @@ namespace Zerra.CQRS.Network
 
                                 //Response Body
                                 responseBodyStream = new HttpProtocolBodyStream(null, stream, null, false);
-                                await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, responseBodyStream, ex);
+                                if (symmetricConfig != null)
+                                {
+                                    responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
+
+                                    await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, ex);
+#if NET5_0_OR_GREATER
+                                    await responseBodyCryptoStream.FlushFinalBlockAsync();
+#else
+                                    responseBodyCryptoStream.FlushFinalBlock();
+#endif
+                                }
+                                else
+                                {
+                                    await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, responseBodyStream, ex);
+                                }
                             }
                             catch (Exception ex2)
                             {
@@ -274,6 +332,14 @@ namespace Zerra.CQRS.Network
                     }
                     finally
                     {
+                        if (responseBodyCryptoStream != null)
+                        {
+#if NETSTANDARD2_0
+                            responseBodyCryptoStream.Dispose();
+#else
+                            await responseBodyCryptoStream.DisposeAsync();
+#endif
+                        }
                         if (responseBodyStream != null)
                         {
 #if NETSTANDARD2_0
@@ -299,7 +365,8 @@ namespace Zerra.CQRS.Network
 #endif
                         }
                         BufferArrayPool<byte>.Return(bufferOwner);
-                        receiveCounter.CompleteReceive(throttle);
+                        if (isCommand)
+                            commandCounter.CompleteReceive(throttle);
                     }
                 }
             }
@@ -309,9 +376,9 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        public static HttpCqrsServer CreateDefault(string serverUrl, ICqrsAuthorizer authorizer, string[] allowOrigins)
+        public static HttpCqrsServer CreateDefault(string serverUrl, SymmetricConfig symmetricConfig, ICqrsAuthorizer authorizer, string[] allowOrigins)
         {
-            return new HttpCqrsServer(ContentType.Json, serverUrl, authorizer, allowOrigins);
+            return new HttpCqrsServer(ContentType.Json, serverUrl, symmetricConfig, authorizer, allowOrigins);
         }
     }
 }

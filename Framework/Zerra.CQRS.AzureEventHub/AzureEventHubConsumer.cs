@@ -39,7 +39,7 @@ namespace Zerra.CQRS.AzureEventHub
 
         public string ServiceUrl => host;
 
-        private ReceiveCounter receiveCounter = null;
+        private CommandCounter commandCounter = null;
         private int? maxConcurrent = null;
 
         public AzureEventHubConsumer(string host, string eventHubName, SymmetricConfig symmetricConfig, string environment)
@@ -56,19 +56,19 @@ namespace Zerra.CQRS.AzureEventHub
             this.eventTypes = new();
         }
 
-        void ICommandConsumer.Setup(ReceiveCounter receiveCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
-            this.receiveCounter = receiveCounter;
+            this.commandCounter = commandCounter;
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
         }
-        void IEventConsumer.Setup(ReceiveCounter receiveCounter, HandleRemoteEventDispatch handlerAsync)
+        void IEventConsumer.Setup(CommandCounter commandCounter, HandleRemoteEventDispatch handlerAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
-            this.receiveCounter = receiveCounter;
+            this.commandCounter = commandCounter;
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -134,7 +134,7 @@ namespace Zerra.CQRS.AzureEventHub
 
                         if (isCommand)
                         {
-                            if (!receiveCounter.BeginReceive())
+                            if (!commandCounter.BeginReceive())
                                 continue; //don't receive anymore, externally will be shutdown, fill throttle
                         }
 
@@ -212,8 +212,8 @@ namespace Zerra.CQRS.AzureEventHub
             }
             finally
             {
-                if (!awaitResponse)
-                    receiveCounter.CompleteReceive(throttle);
+                if (isCommand && !awaitResponse)
+                    commandCounter.CompleteReceive(throttle);
             }
 
             if (!awaitResponse)
@@ -245,7 +245,8 @@ namespace Zerra.CQRS.AzureEventHub
             }
             finally
             {
-                receiveCounter.CompleteReceive(throttle);
+                if (isCommand)
+                    commandCounter.CompleteReceive(throttle);
             }
         }
 

@@ -10,10 +10,10 @@ namespace ZerraDemo.Common
 {
     public static class ServiceManager
     {
-        public static void StartServices(int? receiveCountBeforeExit = null)
+        public static void StartServices(int? receiveCommandsBeforeExit = null)
         {
             var timer = Stopwatch.StartNew();
-            Bus.ReceiveCountBeforeExit = receiveCountBeforeExit;
+            Bus.ReceiveCommandsBeforeExit = receiveCommandsBeforeExit;
 
             Bus.AddLogger(new BusLoggingProvider());
 

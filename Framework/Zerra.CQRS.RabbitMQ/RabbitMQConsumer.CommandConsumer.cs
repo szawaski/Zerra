@@ -21,7 +21,7 @@ namespace Zerra.CQRS.RabbitMQ
             public bool IsOpen { get; private set; }
 
             private readonly int maxConcurrent;
-            private readonly ReceiveCounter receiveCounter;
+            private readonly CommandCounter commandCounter;
             private readonly string topic;
             private readonly SymmetricConfig symmetricConfig;
             private readonly HandleRemoteCommandDispatch handlerAsync;
@@ -31,12 +31,12 @@ namespace Zerra.CQRS.RabbitMQ
             private IModel channel = null;
             private SemaphoreSlim throttle = null;
 
-            public CommandConsumer(int maxConcurrent, ReceiveCounter receiveCounter, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
-                this.maxConcurrent = receiveCounter.ReceiveCountBeforeExit.HasValue ? Math.Min(receiveCounter.ReceiveCountBeforeExit.Value, maxConcurrent) : maxConcurrent;
-                this.receiveCounter = receiveCounter;
+                this.maxConcurrent = commandCounter.ReceiveCountBeforeExit.HasValue ? Math.Min(commandCounter.ReceiveCountBeforeExit.Value, maxConcurrent) : maxConcurrent;
+                this.commandCounter = commandCounter;
 
                 if (!String.IsNullOrWhiteSpace(environment))
                     this.topic = $"{environment}_{topic}".Truncate(RabbitMQCommon.TopicMaxLength);
@@ -83,7 +83,7 @@ namespace Zerra.CQRS.RabbitMQ
                     {
                         await throttle.WaitAsync(canceller.Token);
 
-                        if (!receiveCounter.BeginReceive())
+                        if (!commandCounter.BeginReceive())
                             return; //don't receive anymore, externally will be shutdown
 
                         this.channel.BasicAck(e.DeliveryTag, false);
@@ -138,7 +138,7 @@ namespace Zerra.CQRS.RabbitMQ
                         {
                             if (acknowledgment == null)
                             {
-                                receiveCounter.CompleteReceive(throttle);
+                                commandCounter.CompleteReceive(throttle);
                             }
                         }
 
@@ -162,7 +162,7 @@ namespace Zerra.CQRS.RabbitMQ
                         }
                         finally
                         {
-                            receiveCounter.CompleteReceive(throttle);
+                            commandCounter.CompleteReceive(throttle);
                         }
                     };
 

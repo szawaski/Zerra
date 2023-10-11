@@ -27,7 +27,7 @@ namespace Zerra.CQRS.Network
         private bool started = false;
         private bool disposed = false;
 
-        protected ReceiveCounter receiveCounter;
+        protected CommandCounter commandCounter;
         protected SemaphoreSlim throttle;
 
         private readonly string serviceUrl;
@@ -41,9 +41,9 @@ namespace Zerra.CQRS.Network
             this.thisType = this.GetType();
         }
 
-        void IQueryServer.Setup(ReceiveCounter receiveCounter, QueryHandlerDelegate handlerAsync)
+        void IQueryServer.Setup(CommandCounter commandCounter, QueryHandlerDelegate handlerAsync)
         {
-            this.receiveCounter = receiveCounter;
+            this.commandCounter = commandCounter;
             this.providerHandlerAsync = handlerAsync;
         }
 
@@ -63,9 +63,9 @@ namespace Zerra.CQRS.Network
             return interfaceTypes;
         }
 
-        void ICommandConsumer.Setup(ReceiveCounter receiveCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
         {
-            this.receiveCounter = receiveCounter;
+            this.commandCounter = commandCounter;
             this.handlerAsync = handlerAsync;
             this.handlerAwaitAsync = handlerAwaitAsync;
         }

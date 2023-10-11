@@ -21,7 +21,6 @@ namespace Zerra.CQRS.RabbitMQ
             public bool IsOpen { get; private set; }
 
             private readonly int maxConcurrent;
-            private readonly ReceiveCounter receiveCounter;
             private readonly string topic;
             private readonly SymmetricConfig symmetricConfig;
             private readonly HandleRemoteEventDispatch handlerAsync;
@@ -30,12 +29,11 @@ namespace Zerra.CQRS.RabbitMQ
             private IModel channel = null;
             private SemaphoreSlim throttle = null;
 
-            public EventConsumer(int maxConcurrent, ReceiveCounter receiveCounter, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
-                this.maxConcurrent = receiveCounter.ReceiveCountBeforeExit.HasValue ? Math.Min(receiveCounter.ReceiveCountBeforeExit.Value, maxConcurrent) : maxConcurrent;
-                this.receiveCounter = receiveCounter;
+                this.maxConcurrent = maxConcurrent;
 
                 if (!String.IsNullOrWhiteSpace(environment))
                     this.topic = $"{environment}_{topic}".Truncate(RabbitMQCommon.TopicMaxLength);
@@ -80,9 +78,6 @@ namespace Zerra.CQRS.RabbitMQ
                     {
                         await throttle.WaitAsync(canceller.Token);
 
-                        if (!receiveCounter.BeginReceive())
-                            return; //don't receive anymore, externally will be shutdown
-
                         this.channel.BasicAck(e.DeliveryTag, false);
 
                         var inHandlerContext = false;
@@ -108,10 +103,6 @@ namespace Zerra.CQRS.RabbitMQ
                         {
                             if (!inHandlerContext)
                                 _ = Log.ErrorAsync(topic, ex);
-                        }
-                        finally
-                        {
-                            receiveCounter.CompleteReceive(throttle);
                         }
                     };
 

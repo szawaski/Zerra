@@ -37,9 +37,6 @@ namespace Zerra.CQRS.Network
                 {
                     await throttle.WaitAsync(cancellationToken);
 
-                    if (!receiveCounter.BeginReceive())
-                        continue;
-
                     TcpRequestHeader requestHeader = null;
                     var responseStarted = false;
 
@@ -49,6 +46,7 @@ namespace Zerra.CQRS.Network
                     Stream requestBodyStream = null;
                     Stream responseBodyStream = null;
                     CryptoFlushStream responseBodyCryptoStream = null;
+                    var isCommand = false;
 
                     var inHandlerContext = false;
                     try
@@ -201,6 +199,10 @@ namespace Zerra.CQRS.Network
                         }
                         else if (!String.IsNullOrWhiteSpace(data.MessageType))
                         {
+                            isCommand = true;
+                            if (!commandCounter.BeginReceive())
+                                throw new Exception("Cannot receive any more commands");
+
                             var commandType = Discovery.GetTypeFromName(data.MessageType);
                             var typeDetail = TypeAnalyzer.GetTypeDetail(commandType);
 
@@ -319,7 +321,8 @@ namespace Zerra.CQRS.Network
 #endif
                         }
                         BufferArrayPool<byte>.Return(bufferOwner);
-                        receiveCounter.CompleteReceive(throttle);
+                        if (isCommand)
+                            commandCounter.CompleteReceive(throttle);
                     }
                 }
             }

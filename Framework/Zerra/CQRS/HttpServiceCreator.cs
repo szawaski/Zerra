@@ -28,14 +28,14 @@ namespace Zerra.CQRS
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 return null;
-            return new HttpCqrsClient(contentType, serviceUrl, authorizer);
+            return new HttpCqrsClient(contentType, serviceUrl, symmetricConfig, authorizer);
         }
 
         public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 return null;
-            return servers.GetOrAdd(serviceUrl, (url) => HttpCqrsServer.CreateDefault(url, authorizer, allowOrigins));
+            return servers.GetOrAdd(serviceUrl, (url) => HttpCqrsServer.CreateDefault(url, symmetricConfig, authorizer, allowOrigins));
         }
 
         public IEventProducer CreateEventProducer(string serviceUrl, SymmetricConfig symmetricConfig)
@@ -52,14 +52,14 @@ namespace Zerra.CQRS
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 return null;
-            return new HttpCqrsClient(contentType, serviceUrl, authorizer);
+            return new HttpCqrsClient(contentType, serviceUrl, symmetricConfig, authorizer);
         }
 
         public IQueryServer CreateQueryServer(string serviceUrl, SymmetricConfig symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 return null;
-            return servers.GetOrAdd(serviceUrl, (url) => HttpCqrsServer.CreateDefault(url, authorizer, allowOrigins));
+            return servers.GetOrAdd(serviceUrl, (url) => HttpCqrsServer.CreateDefault(url, symmetricConfig, authorizer, allowOrigins));
         }
     }
 }

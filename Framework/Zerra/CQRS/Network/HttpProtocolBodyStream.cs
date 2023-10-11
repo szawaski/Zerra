@@ -76,9 +76,6 @@ namespace Zerra.CQRS.Network
         }
 #endif
 
-        public override bool CanRead => true;
-        public override bool CanSeek => false;
-        public override bool CanWrite => false;
         public override long Length => contentLength.Value;
         public override long Position { get { return position; } set { throw new NotSupportedException(); } }
 

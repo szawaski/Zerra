@@ -330,7 +330,6 @@ namespace Zerra.CQRS.Network
         {
             await throttle.WaitAsync();
 
-            Socket socket = null;
             Stream stream = null;
             Stream requestBodyStream = null;
             CryptoFlushStream requestBodyCryptoStream = null;
@@ -442,7 +441,6 @@ namespace Zerra.CQRS.Network
                     await responseBodyStream.DisposeAsync();
 #endif
                 }
-                socket.Dispose();
             }
             catch
             {
@@ -462,6 +460,14 @@ namespace Zerra.CQRS.Network
                     await requestBodyStream.DisposeAsync();
 #endif
                 }
+                if (requestBodyCryptoStream != null)
+                {
+#if NETSTANDARD2_0
+                    requestBodyCryptoStream.Dispose();
+#else
+                    await requestBodyCryptoStream.DisposeAsync();
+#endif
+                }
                 if (stream != null)
                 {
 #if NETSTANDARD2_0
@@ -470,7 +476,6 @@ namespace Zerra.CQRS.Network
                     await stream.DisposeAsync();
 #endif
                 }
-                socket?.Dispose();
                 throw;
             }
             finally

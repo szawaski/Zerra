@@ -20,19 +20,17 @@ namespace Zerra.CQRS.AzureServiceBus
             public bool IsOpen { get; private set; }
 
             private readonly int maxConcurrent;
-            private readonly ReceiveCounter receiveCounter;
             private readonly string topic;
             private readonly string subscription;
             private readonly SymmetricConfig symmetricConfig;
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
 
-            public EventConsumer(int maxConcurrent, ReceiveCounter receiveCounter, string queue, SymmetricConfig symmetricConfig, string environment, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string queue, SymmetricConfig symmetricConfig, string environment, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
-                this.maxConcurrent = receiveCounter.ReceiveCountBeforeExit.HasValue ? Math.Min(receiveCounter.ReceiveCountBeforeExit.Value, maxConcurrent) : maxConcurrent;
-                this.receiveCounter = receiveCounter;
+                this.maxConcurrent = maxConcurrent;
 
                 if (!String.IsNullOrWhiteSpace(environment))
                     this.topic = $"{environment}_{queue}".Truncate(AzureServiceBusCommon.EntityNameMaxLength);
@@ -70,14 +68,9 @@ namespace Zerra.CQRS.AzureServiceBus
                         {
                             await throttle.WaitAsync(canceller.Token);
 
-                            //not for events
-                            //if (!receiveCounter.BeginReceive())
-                            //    continue; //don't receive anymore, externally will be shutdown, fill throttle
-
                             var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
                             if (serviceBusMessage == null)
                             {
-                                //receiveCounter.CancelReceive(throttle);  not for events
                                 throttle.Release();
                                 continue;
                             }
@@ -145,10 +138,6 @@ namespace Zerra.CQRS.AzureServiceBus
                 {
                     if (!inHandlerContext)
                         _ = Log.ErrorAsync(topic, ex);
-                }
-                finally
-                {
-                    receiveCounter.CompleteReceive(throttle);
                 }
             }
 

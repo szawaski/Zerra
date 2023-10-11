@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace Zerra.CQRS
 {
-    public sealed class ReceiveCounter
+    public sealed class CommandCounter
     {
         private readonly object locker = new();
 
@@ -16,12 +16,12 @@ namespace Zerra.CQRS
 
         private readonly int? receiveCountBeforeExit;
         private readonly Action processExit;
-        public ReceiveCounter()
+        public CommandCounter()
         {
             this.receiveCountBeforeExit = null;
             this.processExit = null;
         }
-        public ReceiveCounter(int? receiveCountBeforeExit, Action processExit)
+        public CommandCounter(int? receiveCountBeforeExit, Action processExit)
         {
             if (receiveCountBeforeExit.HasValue && receiveCountBeforeExit.Value < 1) throw new ArgumentException("cannot be less than 1", nameof(receiveCountBeforeExit));
 
