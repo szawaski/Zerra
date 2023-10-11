@@ -323,6 +323,8 @@ namespace Zerra.CQRS.Network
                         BufferArrayPool<byte>.Return(bufferOwner);
                         if (isCommand)
                             commandCounter.CompleteReceive(throttle);
+                        else
+                            throttle.Release();
                     }
                 }
             }

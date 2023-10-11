@@ -384,6 +384,8 @@ namespace Zerra.Web
             {
                 if (isCommand)
                     settings.ReceiveCounter.CompleteReceive(throttle);
+                else
+                    throttle.Release();
             }
         }
     }

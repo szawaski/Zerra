@@ -214,6 +214,8 @@ namespace Zerra.CQRS.AzureEventHub
             {
                 if (isCommand && !awaitResponse)
                     commandCounter.CompleteReceive(throttle);
+                else
+                    throttle.Release();
             }
 
             if (!awaitResponse)
@@ -247,6 +249,8 @@ namespace Zerra.CQRS.AzureEventHub
             {
                 if (isCommand)
                     commandCounter.CompleteReceive(throttle);
+                else
+                    throttle.Release();
             }
         }
 
