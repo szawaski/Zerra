@@ -19,7 +19,7 @@ Zerra.Web.CheckBoxList
         <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, ASPNET, Web</PackageTags>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <LangVersion>10.0</LangVersion>
-        <Version>4.7.11</Version>
+        <Version>4.7.12</Version>
     </PropertyGroup>
 
     <ItemGroup>

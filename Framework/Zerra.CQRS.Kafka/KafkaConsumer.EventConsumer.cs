@@ -137,6 +137,10 @@ namespace Zerra.CQRS.Kafka
                     if (inHandlerContext)
                         _ = Log.ErrorAsync(topic, ex);
                 }
+                finally
+                {
+                    throttle.Release();
+                }
             }
 
             public void Dispose()

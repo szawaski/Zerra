@@ -139,6 +139,10 @@ namespace Zerra.CQRS.AzureServiceBus
                     if (!inHandlerContext)
                         _ = Log.ErrorAsync(topic, ex);
                 }
+                finally
+                {
+                    throttle.Release();
+                }
             }
 
             public void Dispose()

@@ -104,6 +104,10 @@ namespace Zerra.CQRS.RabbitMQ
                             if (!inHandlerContext)
                                 _ = Log.ErrorAsync(topic, ex);
                         }
+                        finally
+                        {
+                            throttle.Release();
+                        }
                     };
 
                     _ = this.channel.BasicConsume(queue.QueueName, false, consumer);
