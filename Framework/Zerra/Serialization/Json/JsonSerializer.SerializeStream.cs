@@ -220,7 +220,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static WriteFrame CreateWriteFrame(ref WriteState state, TypeDetail typeDetail, object obj, Graph graph = null)
         {
-            if (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable && obj != null)
+            if (((typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable) || typeDetail.Type.FullName == "System.Object") && obj != null)
             {
                 var objectType = obj.GetType();
                 typeDetail = TypeAnalyzer.GetTypeDetail(objectType);

@@ -96,7 +96,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ToStringJson(object value, TypeDetail typeDetail, Graph graph, ref CharWriter writer, ref OptionsStruct options)
         {
-            if (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable && value != null)
+            if (((typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable) || typeDetail.Type.FullName == "System.Object") && value != null)
             {
                 var objectType = value.GetType();
                 typeDetail = TypeAnalyzer.GetTypeDetail(objectType);

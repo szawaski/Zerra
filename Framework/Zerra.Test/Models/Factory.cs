@@ -1109,7 +1109,8 @@ namespace Zerra.Test
         {
             var model = new TestBoxingModel()
             {
-                BoxedThing = new BasicModel() { Value1 = 10, Value2 = "S-10" }
+                BoxedInterfaceThing = new BasicModel() { Value1 = 10, Value2 = "S-10" },
+                BoxedObjectThing = new BasicModel() { Value1 = 11, Value2 = "S-11" }
             };
             return model;
         }
@@ -1119,14 +1120,23 @@ namespace Zerra.Test
             Assert.IsNotNull(model2);
             Assert.AreNotEqual(model1, model2);
 
-            Assert.IsNotNull(model1.BoxedThing);
-            Assert.IsNotNull(model2.BoxedThing);
-            var subModel1 = model1.BoxedThing as BasicModel;
-            var subModel2 = model2.BoxedThing as BasicModel;
-            Assert.IsNotNull(subModel1);
-            Assert.IsNotNull(subModel2);
-            Assert.AreEqual(subModel1.Value1, subModel2.Value1);
-            Assert.AreEqual(subModel1.Value2, subModel2.Value2);
+            Assert.IsNotNull(model1.BoxedInterfaceThing);
+            Assert.IsNotNull(model2.BoxedInterfaceThing);
+            var interfaceModel1 = model1.BoxedInterfaceThing as BasicModel;
+            var interfaceModel2 = model2.BoxedInterfaceThing as BasicModel;
+            Assert.IsNotNull(interfaceModel1);
+            Assert.IsNotNull(interfaceModel2);
+            Assert.AreEqual(interfaceModel1.Value1, interfaceModel2.Value1);
+            Assert.AreEqual(interfaceModel1.Value2, interfaceModel2.Value2);
+
+            Assert.IsNotNull(model1.BoxedObjectThing);
+            Assert.IsNotNull(model2.BoxedObjectThing);
+            var objectModel1 = model1.BoxedObjectThing as BasicModel;
+            var objectModel2 = model2.BoxedObjectThing as BasicModel;
+            Assert.IsNotNull(objectModel1);
+            Assert.IsNotNull(objectModel2);
+            Assert.AreEqual(objectModel1.Value1, objectModel2.Value1);
+            Assert.AreEqual(objectModel1.Value2, objectModel2.Value2);
         }
 
         public static BasicModel[] GetArrayModel()

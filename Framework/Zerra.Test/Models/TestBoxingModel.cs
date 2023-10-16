@@ -9,6 +9,8 @@ namespace Zerra.Test
     public class TestBoxingModel
     {
         [SerializerIndex(1)]
-        public IBasicModel BoxedThing { get; set; }
+        public IBasicModel BoxedInterfaceThing { get; set; }
+        [SerializerIndex(2)]
+        public object BoxedObjectThing { get; set; }
     }
 }

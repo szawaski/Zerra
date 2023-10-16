@@ -720,6 +720,14 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void StringBoxing()
+        {
+            var baseModel = Factory.GetBoxingModel();
+            var json = JsonSerializer.Serialize(baseModel);
+            var model = JsonSerializer.Deserialize<TestBoxingModel>(json);
+        }
+
+        [TestMethod]
         public void StringRecord()
         {
             var baseModel = new RecordModel(true) { Property2 = 42, Property3 = "moo" };
@@ -1585,6 +1593,22 @@ namespace Zerra.Test
             //Assert.AreEqual(baseModel.Property1, model.Property1);
             //Assert.AreEqual(baseModel.Property2, model.Property2);
             //Assert.AreEqual(baseModel.Property3, model.Property3);
+        }
+
+        [TestMethod]
+        public async Task StreamBoxing()
+        {
+            var baseModel = Factory.GetBoxingModel();
+
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, baseModel);
+
+            stream.Position = 0;
+            using var sr = new StreamReader(stream);
+            var json = await sr.ReadToEndAsync();
+
+            stream.Position = 0;
+            var model = await JsonSerializer.DeserializeAsync<TestBoxingModel>(stream);
         }
     }
 }
