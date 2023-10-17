@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -695,6 +696,11 @@ namespace Zerra.Serialization
 
             if (state.CurrentFrame.State == 0)
             {
+                if (typeDetail.Type.IsInterface)
+                {
+                    typeDetail = TypeAnalyzer.GetGenericTypeDetail(dictionaryType, (Type[])typeDetail.IEnumerableGenericInnerTypeDetails.InnerTypes);
+                }
+
                 state.CurrentFrame.ResultObject = typeDetail.Creator();
                 state.CurrentFrame.AddMethod = typeDetail.GetMethod("Add");
                 state.CurrentFrame.AddMethodArgs = new object[2];
@@ -953,16 +959,18 @@ namespace Zerra.Serialization
                                 var propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name);
                                 if (memberDetail.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)
                                 {
-                                    var dictionary = memberDetail.TypeDetail.Creator();
-                                    var addMethod = memberDetail.TypeDetail.GetMethod("Add");
-                                    var keyGetter = memberDetail.TypeDetail.InnerTypeDetails[0].GetMember("Key").Getter;
-                                    var valueGetter = memberDetail.TypeDetail.InnerTypeDetails[0].GetMember("Value").Getter;
-                                    foreach (var item in (IEnumerable)state.LastFrameResultObject)
+                                    var innerItemEnumerable = TypeAnalyzer.GetGenericType(enumerableType, memberDetail.TypeDetail.IEnumerableGenericInnerType);
+                                    object dictionary;
+                                    if (memberDetail.TypeDetail.Type.IsInterface)
                                     {
-                                        var itemKey = keyGetter(item);
-                                        var itemValue = valueGetter(item);
-                                        _ = addMethod.Caller(dictionary, new object[] { itemKey, itemValue });
+                                        var dictionaryGenericType = TypeAnalyzer.GetGenericType(dictionaryType, (Type[])memberDetail.TypeDetail.IEnumerableGenericInnerTypeDetails.InnerTypes);
+                                        dictionary = Instantiator.Create(dictionaryGenericType, new Type[] { innerItemEnumerable }, state.LastFrameResultObject);
                                     }
+                                    else
+                                    {
+                                        dictionary = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, state.LastFrameResultObject);
+                                    }
+
                                     memberDetail.Setter(state.CurrentFrame.ResultObject, dictionary);
                                 }
                                 else

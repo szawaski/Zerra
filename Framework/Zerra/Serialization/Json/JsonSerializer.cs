@@ -24,6 +24,8 @@ namespace Zerra.Serialization
         private static readonly MethodInfo dictionaryToArrayMethod = typeof(System.Linq.Enumerable).GetMethod("ToArray");
         private static readonly Type genericListType = typeof(List<>);
         private static readonly Type genericHashSetType = typeof(HashSet<>);
+        private static readonly Type enumerableType = typeof(IEnumerable<>);
+        private static readonly Type dictionaryType = typeof(Dictionary<,>);
 
         private static readonly JsonSerializerOptions defaultOptions = new();
 

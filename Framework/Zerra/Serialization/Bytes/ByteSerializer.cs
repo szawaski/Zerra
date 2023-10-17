@@ -46,6 +46,7 @@ namespace Zerra.Serialization
         private static readonly Type genericListType = typeof(List<>);
         private static readonly MethodInfo enumerableToArrayMethod = typeof(Enumerable).GetMethod("ToArray");
         private static readonly Type enumerableType = typeof(IEnumerable<>);
+        private static readonly Type dictionaryType = typeof(Dictionary<,>);
 
         private static readonly Encoding defaultEncoding = Encoding.UTF8;
 

@@ -756,7 +756,16 @@ namespace Zerra.Serialization
                 {
                     if (jsonType != JsonObjectType.Object)
                         throw new InvalidCastException();
-                    var dictionary = (IDictionary)typeDetail.Creator();
+                    IDictionary dictionary;
+                    if (typeDetail.Type.IsInterface)
+                    {
+                        var dictionaryType = TypeAnalyzer.GetGenericType(typeof(Dictionary<,>), (Type[])typeDetail.IEnumerableGenericInnerTypeDetails.InnerTypes);
+                        dictionary = (IDictionary)Instantiator.Create(dictionaryType);
+                    }
+                    else
+                    {
+                        dictionary = (IDictionary)typeDetail.Creator();
+                    }
                     foreach (var item in valueProperties)
                     {
                         var key = TypeAnalyzer.Convert(item.Key, typeDetail.IEnumerableGenericInnerTypeDetails.InnerTypes[0]);

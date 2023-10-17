@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -1160,9 +1161,20 @@ namespace Zerra.Serialization
 
                         var innerValue = state.LastFrameResultObject;
                         var innerItemEnumerable = TypeAnalyzer.GetGenericType(enumerableType, typeDetail.TypeDetail.IEnumerableGenericInnerType);
-                        state.CurrentFrame.ResultObject = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
-                        state.EndFrame();
-                        return;
+
+                        if (typeDetail.Type.IsInterface)
+                        {
+                            var dictionaryGenericType = TypeAnalyzer.GetGenericType(dictionaryType, (Type[])typeDetail.TypeDetail.IEnumerableGenericInnerTypeDetails.InnerTypes);
+                            state.CurrentFrame.ResultObject = Instantiator.Create(dictionaryGenericType, new Type[] { innerItemEnumerable }, innerValue);
+                            state.EndFrame();
+                            return;
+                        }
+                        else
+                        {
+                            state.CurrentFrame.ResultObject = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
+                            state.EndFrame();
+                            return;
+                        }
                     }
                 default:
                     throw new NotImplementedException();

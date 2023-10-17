@@ -326,7 +326,7 @@ namespace Zerra.Test
             var json3 = JsonSerializer.Serialize<object>(null);
             Assert.AreEqual("null", json3);
 
-            var json4 = JsonSerializer.Serialize<object>(String.Empty);
+            var json4 = JsonSerializer.Serialize<object>(new object());
             Assert.AreEqual("{}", json4);
 
             var model1 = JsonSerializer.Deserialize<string>("null");
@@ -614,11 +614,15 @@ namespace Zerra.Test
             model1.ClassList = classList;
 
             var dictionaryThingJsonObject = jsonObject[nameof(AllTypesModel.DictionaryThing)];
-            model1.DictionaryThing = new Dictionary<int, string>();
-            model1.DictionaryThing.Add(1, (string)dictionaryThingJsonObject["1"]);
-            model1.DictionaryThing.Add(2, (string)dictionaryThingJsonObject["2"]);
-            model1.DictionaryThing.Add(3, (string)dictionaryThingJsonObject["3"]);
-            model1.DictionaryThing.Add(4, (string)dictionaryThingJsonObject["4"]);
+            model1.DictionaryThing = new Dictionary<int, string>(
+                new KeyValuePair<int, string>[]
+                {
+                    new KeyValuePair<int, string>(1, (string)dictionaryThingJsonObject["1"]),
+                    new KeyValuePair<int, string>(2, (string)dictionaryThingJsonObject["2"]),
+                    new KeyValuePair<int, string>(3, (string)dictionaryThingJsonObject["3"]),
+                    new KeyValuePair<int, string>(4, (string)dictionaryThingJsonObject["4"]),
+                }
+            );
 
             var stringArrayOfArrayThingJsonObject = jsonObject[nameof(AllTypesModel.StringArrayOfArrayThing)];
             var stringList = new List<string[]>();
@@ -1159,7 +1163,7 @@ namespace Zerra.Test
             Assert.AreEqual("null", json3);
 
             using var stream4 = new MemoryStream();
-            await JsonSerializer.SerializeAsync<object>(stream4, String.Empty);
+            await JsonSerializer.SerializeAsync<object>(stream4, new object());
             using var sr4 = new StreamReader(stream4, Encoding.UTF8);
             stream4.Position = 0;
             var json4 = await sr4.ReadToEndAsync();

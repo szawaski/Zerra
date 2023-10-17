@@ -260,9 +260,21 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object FromStringJsonDictionary(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph graph, ref OptionsStruct options)
         {
-            var obj = typeDetail != null && typeDetail.Creator != null ? typeDetail.Creator() : null;
-            object[] addMethodArgs = new object[2];
-            var method = typeDetail.GetMethod("Add");
+            object obj = null;
+            MethodDetail method = null;
+            object[] addMethodArgs = null;
+            if (typeDetail != null)
+            {
+                if (typeDetail.Type.IsInterface)
+                {
+                    typeDetail = TypeAnalyzer.GetGenericTypeDetail(dictionaryType, (Type[])typeDetail.IEnumerableGenericInnerTypeDetails.InnerTypes);
+                }
+
+                obj = typeDetail.Creator();
+                method = typeDetail.GetMethod("Add");
+                addMethodArgs = new object[2];
+            }
+        
             var canExpectComma = false;
             while (reader.TryReadSkipWhiteSpace(out var c))
             {
@@ -389,7 +401,7 @@ namespace Zerra.Serialization
                             throw reader.CreateException("Unexpected character");
                         var value = FromStringJson(c, ref reader, ref decodeBuffer, arrayElementType, graph, ref options);
                         if (collection != null)
-                        {                                    
+                        {
                             //special case nullable enum
                             if (arrayElementType.IsNullable && arrayElementType.InnerTypeDetails[0].EnumUnderlyingType.HasValue && value != null)
                                 value = Enum.ToObject(arrayElementType.InnerTypeDetails[0].Type, value);
@@ -435,15 +447,16 @@ namespace Zerra.Serialization
                                 var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail?.TypeDetail, propertyGraph, ref options);
                                 if (memberDetail.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)
                                 {
-                                    var dictionary = memberDetail.TypeDetail.Creator();
-                                    var addMethod = memberDetail.TypeDetail.GetMethod("Add");
-                                    var keyGetter = memberDetail.TypeDetail.InnerTypeDetails[0].GetMember("Key").Getter;
-                                    var valueGetter = memberDetail.TypeDetail.InnerTypeDetails[0].GetMember("Value").Getter;
-                                    foreach (var item in (IEnumerable)value)
+                                    var innerItemEnumerable = TypeAnalyzer.GetGenericType(enumerableType, memberDetail.TypeDetail.IEnumerableGenericInnerType);
+                                    object dictionary;
+                                    if (memberDetail.TypeDetail.Type.IsInterface)
                                     {
-                                        var itemKey = keyGetter(item);
-                                        var itemValue = valueGetter(item);
-                                        _ = addMethod.Caller(dictionary, new object[] { itemKey, itemValue });
+                                        var dictionaryGenericType = TypeAnalyzer.GetGenericType(dictionaryType, (Type[])memberDetail.TypeDetail.IEnumerableGenericInnerTypeDetails.InnerTypes);
+                                        dictionary = Instantiator.Create(dictionaryGenericType, new Type[] { innerItemEnumerable }, value);
+                                    }
+                                    else
+                                    {
+                                        dictionary = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, value);
                                     }
                                     memberDetail.Setter(obj, dictionary);
                                 }

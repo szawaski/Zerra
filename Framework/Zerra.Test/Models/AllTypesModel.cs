@@ -160,7 +160,7 @@ namespace Zerra.Test
         public IEnumerable<BasicModel> ClassEnumerable { get; set; }
         public List<BasicModel> ClassList { get; set; }
 
-        public Dictionary<int, string> DictionaryThing { get; set; }
+        public IReadOnlyDictionary<int, string> DictionaryThing { get; set; }
         public string[][] StringArrayOfArrayThing { get; set; }
     }
 }

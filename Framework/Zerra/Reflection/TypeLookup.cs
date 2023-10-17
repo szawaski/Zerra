@@ -220,6 +220,8 @@ namespace Zerra.Reflection
                 case "RuntimeType":
                     specialType = SpecialType.Type;
                     return true;
+                case "IDictionary`2":
+                case "IReadOnlyDictionary`2":
                 case "Dictionary`2":
                 case "ConcurrentDictionary`2":
                 case "ConcurrentFactoryDictionary`2":

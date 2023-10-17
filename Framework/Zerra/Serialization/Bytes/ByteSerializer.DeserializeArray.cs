@@ -542,8 +542,17 @@ namespace Zerra.Serialization
                             return null;
                         var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, ref options);
                         var innerItemEnumerable = TypeAnalyzer.GetGenericType(enumerableType, typeDetail.TypeDetail.IEnumerableGenericInnerType);
-                        var value = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
-                        return value;
+                        if (typeDetail.Type.IsInterface)
+                        {
+                            var dictionaryGenericType = TypeAnalyzer.GetGenericType(dictionaryType, (Type[])typeDetail.TypeDetail.IEnumerableGenericInnerTypeDetails.InnerTypes);
+                            var value = Instantiator.Create(dictionaryGenericType, new Type[] { innerItemEnumerable }, innerValue);
+                            return value;
+                        }
+                        else
+                        {
+                            var value = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
+                            return value;
+                        }
                     }
                 default:
                     throw new NotImplementedException();
