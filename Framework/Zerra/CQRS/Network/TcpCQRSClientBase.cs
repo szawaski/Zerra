@@ -16,6 +16,8 @@ namespace Zerra.CQRS.Network
         public TcpCqrsClientBase(string serviceUrl) : base(serviceUrl)
         {
             var endpoints = IPResolver.GetIPEndPoints(serviceUrl);
+            if (endpoints.Count == 0)
+                throw new Exception($"Client count not resolve endpoint at {serviceUrl}");
             if (endpoints.Count > 1)
                 _ = Log.WarnAsync($"Client resolved more than endpoint at {serviceUrl} as {String.Join(", ", endpoints.Select(x => x.ToString()))}");
             this.ipEndpoint = endpoints.First();
