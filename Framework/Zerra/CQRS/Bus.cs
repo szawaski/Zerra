@@ -1415,14 +1415,20 @@ namespace Zerra.CQRS
                                             var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
                                             var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                             queryServer = serviceCreator.CreateQueryServer(serviceUrl, symmetricConfig);
-                                            queryServerType = queryServer.GetType();
-                                            queryServer.Setup(commandCounter, HandleRemoteQueryCallAsync);
-                                            _ = queryServers.Add(queryServer);
-                                            //_ = Log.InfoAsync($"Query Server: {queryServer.GetType().GetNiceName()}");
+                                            if (queryServer != null)
+                                            {
+                                                queryServerType = queryServer.GetType();
+                                                queryServer.Setup(commandCounter, HandleRemoteQueryCallAsync);
+                                                _ = queryServers.Add(queryServer);
+                                                //_ = Log.InfoAsync($"Query Server: {queryServer.GetType().GetNiceName()}");
+                                            }
                                         }
-                                        _ = handledQueryTypes.Add(interfaceType);
-                                        queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
-                                        _ = Log.InfoAsync($"Hosting - {queryServerType.GetNiceName()}: {interfaceType.GetNiceName()}");
+                                        if (queryServer != null)
+                                        {
+                                            _ = handledQueryTypes.Add(interfaceType);
+                                            queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
+                                            _ = Log.InfoAsync($"Hosting - {queryServerType.GetNiceName()}: {interfaceType.GetNiceName()}");
+                                        }
                                     }
                                     catch (Exception ex)
                                     {
