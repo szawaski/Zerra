@@ -14,7 +14,7 @@ namespace Zerra.Test
         [TestMethod]
         public void ResolveEndpoint()
         {
-            var endpoints = IPResolver.GetIPEndPoints("https://qa01-integrations-sync.arcoro.com").ToArray();
+            var endpoints = IPResolver.GetIPEndPoints("https://google.com").ToArray();
         }
     }
 }

@@ -24,6 +24,8 @@ namespace Zerra.CQRS.Network
 
         public CqrsClientBase(string serviceUrl)
         {
+            if (String.IsNullOrWhiteSpace(serviceUrl))
+                throw new ArgumentNullException(nameof(serviceUrl));
             this.serviceUrl = new Uri(serviceUrl);
             this.throttleByInterfaceType = new();
             this.topicsByCommandType = new();
