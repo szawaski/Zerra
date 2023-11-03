@@ -1262,7 +1262,7 @@ namespace Zerra.CQRS
                                 }
                                 catch (Exception ex)
                                 {
-                                    _ = Log.ErrorAsync($"Failed to create Command Consumer", ex);
+                                    _ = Log.ErrorAsync($"Failed to create Command Consumer for {serviceSetting.Name}", ex);
                                 }
                             }
                             else if (!String.IsNullOrWhiteSpace(externalUrl) || !String.IsNullOrWhiteSpace(serviceSettings.MessageHost))
@@ -1307,7 +1307,7 @@ namespace Zerra.CQRS
                                 }
                                 catch (Exception ex)
                                 {
-                                    _ = Log.ErrorAsync($"Failed to create Command Producer", ex);
+                                    _ = Log.ErrorAsync($"Failed to create Command Producer for {serviceSetting.Name}", ex);
                                 }
                             }
                         }
@@ -1351,7 +1351,7 @@ namespace Zerra.CQRS
                                 }
                                 catch (Exception ex)
                                 {
-                                    _ = Log.ErrorAsync($"Failed to create Event Consumer", ex);
+                                    _ = Log.ErrorAsync($"Failed to create Event Consumer for {serviceSetting.Name}", ex);
                                 }
                             }
 
@@ -1388,7 +1388,7 @@ namespace Zerra.CQRS
                                 }
                                 catch (Exception ex)
                                 {
-                                    _ = Log.ErrorAsync($"Failed to create Event Producer", ex);
+                                    _ = Log.ErrorAsync($"Failed to create Event Producer for {serviceSetting.Name}", ex);
                                 }
                             }
                         }
@@ -1432,7 +1432,7 @@ namespace Zerra.CQRS
                                     }
                                     catch (Exception ex)
                                     {
-                                        _ = Log.ErrorAsync($"Failed to create Query Server", ex);
+                                        _ = Log.ErrorAsync($"Failed to create Query Server for {serviceSetting.Name}", ex);
                                     }
                                 }
                             }
@@ -1472,7 +1472,7 @@ namespace Zerra.CQRS
                                         }
                                         catch (Exception ex)
                                         {
-                                            _ = Log.ErrorAsync($"Failed to create Query Client", ex);
+                                            _ = Log.ErrorAsync($"Failed to create Query Client for {serviceSetting.Name}", ex);
                                         }
                                     }
                                 }
