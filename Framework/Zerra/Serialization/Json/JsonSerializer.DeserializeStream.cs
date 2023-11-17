@@ -698,7 +698,7 @@ namespace Zerra.Serialization
             {
                 if (typeDetail.Type.IsInterface)
                 {
-                    typeDetail = TypeAnalyzer.GetGenericTypeDetail(dictionaryType, (Type[])typeDetail.IEnumerableGenericInnerTypeDetails.InnerTypes);
+                    typeDetail = TypeAnalyzer.GetGenericTypeDetail(dictionaryType, (Type[])typeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes);
                 }
 
                 state.CurrentFrame.ResultObject = typeDetail.Creator();
@@ -784,7 +784,7 @@ namespace Zerra.Serialization
             {
                 if (typeDetail != null && typeDetail.IsIEnumerableGeneric)
                 {
-                    state.CurrentFrame.ArrayElementType = typeDetail.IEnumerableGenericInnerTypeDetails;
+                    state.CurrentFrame.ArrayElementType = typeDetail.IEnumerableGenericInnerTypeDetail;
                     if (typeDetail.Type.IsArray)
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
@@ -963,7 +963,7 @@ namespace Zerra.Serialization
                                     object dictionary;
                                     if (memberDetail.TypeDetail.Type.IsInterface)
                                     {
-                                        var dictionaryGenericType = TypeAnalyzer.GetGenericType(dictionaryType, (Type[])memberDetail.TypeDetail.IEnumerableGenericInnerTypeDetails.InnerTypes);
+                                        var dictionaryGenericType = TypeAnalyzer.GetGenericType(dictionaryType, (Type[])memberDetail.TypeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes);
                                         dictionary = Instantiator.Create(dictionaryGenericType, new Type[] { innerItemEnumerable }, state.LastFrameResultObject);
                                     }
                                     else

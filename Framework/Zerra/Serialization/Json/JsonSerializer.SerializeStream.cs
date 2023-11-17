@@ -248,7 +248,7 @@ namespace Zerra.Serialization
 
             if (typeDetail.IsIEnumerableGeneric)
             {
-                if (typeDetail.Type.IsArray && typeDetail.IEnumerableGenericInnerTypeDetails.CoreType == CoreType.Byte)
+                if (typeDetail.Type.IsArray && typeDetail.IEnumerableGenericInnerTypeDetail.CoreType == CoreType.Byte)
                 {
                     return new WriteFrame() { FrameType = WriteFrameType.ByteArray, TypeDetail = typeDetail, Object = obj, Graph = graph };
                 }

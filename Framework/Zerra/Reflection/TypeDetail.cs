@@ -663,21 +663,21 @@ namespace Zerra.Reflection
             }
         }
 
-        private TypeDetail iEnumerableGenericInnerTypeDetails = null;
-        public TypeDetail IEnumerableGenericInnerTypeDetails
+        private TypeDetail iEnumerableGenericInnerTypeDetail = null;
+        public TypeDetail IEnumerableGenericInnerTypeDetail
         {
             get
             {
                 if (IEnumerableGenericInnerType == null)
                     return null;
-                if (iEnumerableGenericInnerTypeDetails == null)
+                if (iEnumerableGenericInnerTypeDetail == null)
                 {
                     lock (locker)
                     {
-                        iEnumerableGenericInnerTypeDetails ??= TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
+                        iEnumerableGenericInnerTypeDetail ??= TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
                     }
                 }
-                return iEnumerableGenericInnerTypeDetails;
+                return iEnumerableGenericInnerTypeDetail;
             }
         }
 

@@ -151,7 +151,7 @@ namespace Zerra.Serialization
 
             if (typeDetail.IsIEnumerableGeneric)
             {
-                var innerTypeDetails = typeDetail.IEnumerableGenericInnerTypeDetails;
+                var innerTypeDetails = typeDetail.IEnumerableGenericInnerTypeDetail;
                 if (typeDetail.Type.IsArray && innerTypeDetails.CoreType == CoreType.Byte)
                 {
                     //special case
@@ -309,7 +309,7 @@ namespace Zerra.Serialization
                     {
                         var enumerable = value as IEnumerable;
                         writer.Write('[');
-                        ToStringJsonEnumerable(enumerable, typeDetail.IEnumerableGenericInnerTypeDetails, graph, ref writer, ref options);
+                        ToStringJsonEnumerable(enumerable, typeDetail.IEnumerableGenericInnerTypeDetail, graph, ref writer, ref options);
                         writer.Write(']');
                     }
                     else

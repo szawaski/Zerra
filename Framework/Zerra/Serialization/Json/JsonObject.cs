@@ -759,7 +759,7 @@ namespace Zerra.Serialization
                     IDictionary dictionary;
                     if (typeDetail.Type.IsInterface)
                     {
-                        var dictionaryType = TypeAnalyzer.GetGenericType(typeof(Dictionary<,>), (Type[])typeDetail.IEnumerableGenericInnerTypeDetails.InnerTypes);
+                        var dictionaryType = TypeAnalyzer.GetGenericType(typeof(Dictionary<,>), (Type[])typeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes);
                         dictionary = (IDictionary)Instantiator.Create(dictionaryType);
                     }
                     else
@@ -768,8 +768,8 @@ namespace Zerra.Serialization
                     }
                     foreach (var item in valueProperties)
                     {
-                        var key = TypeAnalyzer.Convert(item.Key, typeDetail.IEnumerableGenericInnerTypeDetails.InnerTypes[0]);
-                        var value = item.Value.Bind(typeDetail.IEnumerableGenericInnerTypeDetails.InnerTypes[1]);
+                        var key = TypeAnalyzer.Convert(item.Key, typeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes[0]);
+                        var value = item.Value.Bind(typeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes[1]);
                         dictionary.Add(key, value);
                     }
                     return dictionary;

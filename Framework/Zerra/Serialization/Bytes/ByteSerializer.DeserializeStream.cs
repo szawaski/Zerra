@@ -1164,7 +1164,7 @@ namespace Zerra.Serialization
 
                         if (typeDetail.Type.IsInterface)
                         {
-                            var dictionaryGenericType = TypeAnalyzer.GetGenericType(dictionaryType, (Type[])typeDetail.TypeDetail.IEnumerableGenericInnerTypeDetails.InnerTypes);
+                            var dictionaryGenericType = TypeAnalyzer.GetGenericType(dictionaryType, (Type[])typeDetail.TypeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes);
                             state.CurrentFrame.ResultObject = Instantiator.Create(dictionaryGenericType, new Type[] { innerItemEnumerable }, innerValue);
                             state.EndFrame();
                             return;
