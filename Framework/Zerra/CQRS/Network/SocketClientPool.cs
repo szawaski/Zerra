@@ -76,7 +76,7 @@ namespace Zerra.CQRS.Network
             var pool = poolByEndpoint.GetOrAdd(endPoint, (_) => new());
 
         getstream:
-            Stream stream = null;
+            SocketStream stream = null;
             throttle.Wait(canceller.Token);
             while (pool.TryDequeue(out var holder))
             {
@@ -98,6 +98,11 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     stream.Write(buffer, offset, count);
+                    if (!stream.Connected)
+                    {
+                        stream.Dispose();
+                        goto getstream;
+                    }
                     return stream;
                 }
                 catch (Exception ex)
@@ -116,6 +121,8 @@ namespace Zerra.CQRS.Network
             socket.Connect(endPoint.Address, endPoint.Port);
             stream = new SocketStream(socket, endPoint, ReturnSocket);
             stream.Write(buffer, offset, count);
+            if (!stream.Connected)
+                throw new SocketException((int)SocketError.ConnectionRefused);
             return stream;
         }
 #if !NETSTANDARD2_0
@@ -128,7 +135,7 @@ namespace Zerra.CQRS.Network
             var pool = poolByEndpoint.GetOrAdd(endPoint, (_) => new());
 
         getstream:
-            Stream stream = null;
+            SocketStream stream = null;
             throttle.Wait(canceller.Token);
             while (pool.TryDequeue(out var holder))
             {
@@ -150,6 +157,11 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     stream.Write(buffer);
+                    if (!stream.Connected)
+                    {
+                        stream.Dispose();
+                        goto getstream;
+                    }
                     return stream;
                 }
                 catch (Exception ex)
@@ -168,6 +180,8 @@ namespace Zerra.CQRS.Network
             socket.Connect(endPoint.Address, endPoint.Port);
             stream = new SocketStream(socket, endPoint, ReturnSocket);
             stream.Write(buffer);
+            if (!stream.Connected)
+                throw new SocketException((int)SocketError.ConnectionRefused);
             return stream;
         }
 #endif
@@ -181,7 +195,7 @@ namespace Zerra.CQRS.Network
             var pool = poolByEndpoint.GetOrAdd(endPoint, (_) => new());
 
         getstream:
-            Stream stream = null;
+            SocketStream stream = null;
             await throttle.WaitAsync(canceller.Token);
             while (pool.TryDequeue(out var holder))
             {
@@ -203,6 +217,11 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     await stream.WriteAsync(buffer, offset, count, cancellationToken);
+                    if (!stream.Connected)
+                    {
+                        stream.Dispose();
+                        goto getstream;
+                    }
                     return stream;
                 }
                 catch (Exception ex)
@@ -225,6 +244,8 @@ namespace Zerra.CQRS.Network
 #endif
             stream = new SocketStream(socket, endPoint, ReturnSocket);
             await stream.WriteAsync(buffer, offset, count, cancellationToken);
+            if (!stream.Connected)
+                throw new SocketException((int)SocketError.ConnectionRefused);
             return stream;
         }
 #if !NETSTANDARD2_0
@@ -237,7 +258,7 @@ namespace Zerra.CQRS.Network
             var pool = poolByEndpoint.GetOrAdd(endPoint, (_) => new());
 
         getstream:
-            Stream stream = null;
+            SocketStream stream = null;
             await throttle.WaitAsync(canceller.Token);
             while (pool.TryDequeue(out var holder))
             {
@@ -259,6 +280,11 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     await stream.WriteAsync(buffer, cancellationToken);
+                    if (!stream.Connected)
+                    {
+                        stream.Dispose();
+                        goto getstream;
+                    }
                     return stream;
                 }
                 catch (Exception ex)
@@ -281,6 +307,8 @@ namespace Zerra.CQRS.Network
 #endif
             stream = new SocketStream(socket, endPoint, ReturnSocket);
             await stream.WriteAsync(buffer, cancellationToken);
+            if (!stream.Connected)
+                throw new SocketException((int)SocketError.ConnectionRefused);
             return stream;
         }
 #endif
@@ -397,6 +425,8 @@ namespace Zerra.CQRS.Network
 
         private class SocketStream : StreamWrapper
         {
+            public bool Connected => socket?.Connected ?? false;
+
             private Socket socket;
             private readonly IPEndPoint endPoint;
             private readonly Action<Socket, IPEndPoint> returnSocket;
