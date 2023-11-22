@@ -16,7 +16,7 @@ namespace Zerra.CQRS.Network
 {
     public class SocketClientPool : IDisposable
     {
-        public static readonly SocketClientPool Default = new();
+        public static readonly SocketClientPool Shared = new();
 
         private const int pollMicroseconds = 1000;
         private const SelectMode pollSelectMode = SelectMode.SelectWrite;
@@ -65,22 +65,20 @@ namespace Zerra.CQRS.Network
         }
 
         private readonly ConcurrentFactoryDictionary<HostAndPort, ConcurrentQueue<SocketHolder>> poolByHostAndPort = new();
-        private readonly ConcurrentFactoryDictionary<string, SemaphoreSlim> throttleByHost = new();
+        private readonly ConcurrentFactoryDictionary<HostAndPort, SemaphoreSlim> throttleByHostAndPort = new();
 
         public Stream BeginStream(string host, int port, ProtocolType protocol, byte[] buffer, int offset, int count)
         {
             if (canceller.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(SocketClientPool));
 
-            host = host.ToLower();
             var hostAndPort = new HostAndPort(host, port);
 
-            var throttle = throttleByHost.GetOrAdd(hostAndPort.Host, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
+            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
             var pool = poolByHostAndPort.GetOrAdd(hostAndPort, (_) => new());
 
-            throttle.Wait(canceller.Token);
-
         getstream:
+            throttle.Wait(canceller.Token); //disposing release throttle so we enter again
             SocketStream stream = null;
             while (pool.TryDequeue(out var holder))
             {
@@ -156,15 +154,13 @@ namespace Zerra.CQRS.Network
             if (canceller.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(SocketClientPool));
 
-            host = host.ToLower();
             var hostAndPort = new HostAndPort(host, port);
 
-            var throttle = throttleByHost.GetOrAdd(hostAndPort.Host, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
+            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
             var pool = poolByHostAndPort.GetOrAdd(hostAndPort, (_) => new());
 
-            throttle.Wait(canceller.Token);
-
         getstream:
+            throttle.Wait(canceller.Token); //disposing release throttle so we enter again
             SocketStream stream = null;
             while (pool.TryDequeue(out var holder))
             {
@@ -241,15 +237,13 @@ namespace Zerra.CQRS.Network
             if (canceller.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(SocketClientPool));
 
-            host = host.ToLower();
             var hostAndPort = new HostAndPort(host, port);
 
-            var throttle = throttleByHost.GetOrAdd(hostAndPort.Host, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
+            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
             var pool = poolByHostAndPort.GetOrAdd(hostAndPort, (_) => new());
 
-            await throttle.WaitAsync(canceller.Token);
-
         getstream:
+            await throttle.WaitAsync(canceller.Token); //disposing release throttle so we enter again
             SocketStream stream = null;
             while (pool.TryDequeue(out var holder))
             {
@@ -333,15 +327,13 @@ namespace Zerra.CQRS.Network
             if (canceller.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(SocketClientPool));
 
-            host = host.ToLower();
             var hostAndPort = new HostAndPort(host, port);
 
-            var throttle = throttleByHost.GetOrAdd(hostAndPort.Host, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
+            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
             var pool = poolByHostAndPort.GetOrAdd(hostAndPort, (_) => new());
 
-            await throttle.WaitAsync(canceller.Token);
-
         getstream:
+            await throttle.WaitAsync(canceller.Token); //disposing release throttle so we enter again
             SocketStream stream = null;
             while (pool.TryDequeue(out var holder))
             {
@@ -426,13 +418,15 @@ namespace Zerra.CQRS.Network
             if (canceller.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(SocketClientPool));
 
-            host = host.ToLower();
             var hostAndPort = new HostAndPort(host, port);
 
-            var throttle = throttleByHost.GetOrAdd(hostAndPort.Host, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
+            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
             var pool = poolByHostAndPort.GetOrAdd(hostAndPort, (_) => new());
 
-            returnStream.Dispose();
+            if (returnStream is not SocketStream returnSocketStream)
+                throw new ArgumentException($"Stream is not from {nameof(BeginStreamAsync)}", nameof(returnStream));
+            returnSocketStream.CloseSocket();
+
             throttle.Wait(canceller.Token);
 
             var ips = Dns.GetHostAddresses(host);
@@ -471,13 +465,15 @@ namespace Zerra.CQRS.Network
             if (canceller.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(SocketClientPool));
 
-            host = host.ToLower();
             var hostAndPort = new HostAndPort(host, port);
 
-            var throttle = throttleByHost.GetOrAdd(hostAndPort.Host, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
+            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
             var pool = poolByHostAndPort.GetOrAdd(hostAndPort, (_) => new());
 
-            returnStream.Dispose();
+            if (returnStream is not SocketStream returnSocketStream)
+                throw new ArgumentException($"Stream is not from {nameof(BeginStreamAsync)}", nameof(returnStream));
+            returnSocketStream.CloseSocket();
+
             throttle.Wait(canceller.Token);
 
             var ips = Dns.GetHostAddresses(host);
@@ -517,14 +513,16 @@ namespace Zerra.CQRS.Network
             if (canceller.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(SocketClientPool));
 
-            host = host.ToLower();
             var hostAndPort = new HostAndPort(host, port);
 
-            var throttle = throttleByHost.GetOrAdd(hostAndPort.Host, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
+            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
             var pool = poolByHostAndPort.GetOrAdd(hostAndPort, (_) => new());
 
-            returnStream.Dispose();
-            throttle.Wait(canceller.Token);
+            if (returnStream is not SocketStream returnSocketStream)
+                throw new ArgumentException($"Stream is not from {nameof(BeginStreamAsync)}", nameof(returnStream));
+            returnSocketStream.CloseSocket();
+
+            await throttle.WaitAsync(canceller.Token);
 
 #if NET6_0_OR_GREATER
             var ips = await Dns.GetHostAddressesAsync(host, cancellationToken);
@@ -570,14 +568,16 @@ namespace Zerra.CQRS.Network
             if (canceller.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(SocketClientPool));
 
-            host = host.ToLower();
             var hostAndPort = new HostAndPort(host, port);
 
-            var throttle = throttleByHost.GetOrAdd(hostAndPort.Host, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
+            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
             var pool = poolByHostAndPort.GetOrAdd(hostAndPort, (_) => new());
 
-            returnStream.Dispose();
-            throttle.Wait(canceller.Token);
+            if (returnStream is not SocketStream returnSocketStream)
+                throw new ArgumentException($"Stream is not from {nameof(BeginStreamAsync)}", nameof(returnStream));
+            returnSocketStream.CloseSocket();
+
+            await throttle.WaitAsync(canceller.Token);
 
 #if NET6_0_OR_GREATER
             var ips = await Dns.GetHostAddressesAsync(host, cancellationToken);
@@ -619,7 +619,7 @@ namespace Zerra.CQRS.Network
         }
 #endif
 
-        private void ReturnSocket(Socket socket, HostAndPort hostAndPort)
+        private void ReturnSocket(Socket socket, HostAndPort hostAndPort, bool closeSocket)
         {
             if (canceller.IsCancellationRequested)
             {
@@ -627,7 +627,7 @@ namespace Zerra.CQRS.Network
                 return;
             }
 
-            if (socket.Connected)
+            if (!closeSocket && socket.Connected)
             {
                 if (poolByHostAndPort.TryGetValue(hostAndPort, out var pool))
                 {
@@ -652,7 +652,7 @@ namespace Zerra.CQRS.Network
                 socket.Dispose();
             }
 
-            if (throttleByHost.TryGetValue(hostAndPort.Host, out var throttle))
+            if (throttleByHostAndPort.TryGetValue(hostAndPort, out var throttle))
                 throttle.Release();
         }
 
@@ -704,10 +704,11 @@ namespace Zerra.CQRS.Network
                 }
             }
 
-            foreach (var throttle in throttleByHost.Values)
+            foreach (var throttle in throttleByHostAndPort.Values)
                 throttle.Dispose();
 
             canceller.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         private class SocketHolder
@@ -734,25 +735,34 @@ namespace Zerra.CQRS.Network
             public bool Connected => socket?.Connected ?? false;
 
             private Socket socket;
+            private bool closeSocket;
             private readonly HostAndPort hostAndPort;
-            private readonly Action<Socket, HostAndPort> returnSocket;
-            public SocketStream(Socket socket, HostAndPort hostAndPort, Action<Socket, HostAndPort> returnSocket)
+            private readonly Action<Socket, HostAndPort, bool> returnSocket;
+            public SocketStream(Socket socket, HostAndPort hostAndPort, Action<Socket, HostAndPort, bool> returnSocket)
                 : base(new NetworkStream(socket, false), false)
             {
                 this.socket = socket;
+                this.closeSocket = false;
                 this.hostAndPort = hostAndPort;
                 this.returnSocket = returnSocket;
+            }
+
+            public void CloseSocket()
+            {
+                closeSocket = true;
+                base.Close();
             }
 
             protected override void Dispose(bool disposing)
             {
                 if (socket != null)
                 {
-                    returnSocket(socket, hostAndPort);
+                    returnSocket(socket, hostAndPort, closeSocket);
                     socket = null;
                     base.Dispose(disposing);
                 }
             }
+
         }
 
         private class HostAndPort
@@ -768,7 +778,7 @@ namespace Zerra.CQRS.Network
             public override bool Equals(object obj)
             {
                 if (obj is not HostAndPort casted)
-                        return false;
+                    return false;
                 return casted.Port == this.Port && casted.Host.Equals(this.Host, StringComparison.OrdinalIgnoreCase);
             }
 

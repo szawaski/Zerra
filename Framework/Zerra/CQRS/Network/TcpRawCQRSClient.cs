@@ -27,7 +27,7 @@ namespace Zerra.CQRS.Network
         {
             this.contentType = contentType;
             this.symmetricConfig = symmetricConfig;
-            this.socketPool = SocketClientPool.Default;
+            this.socketPool = SocketClientPool.Shared;
 
             _ = Log.InfoAsync($"{nameof(TcpRawCqrsClient)} started for {this.contentType} at {serviceUrl}");
         }

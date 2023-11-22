@@ -30,7 +30,7 @@ namespace Zerra.CQRS.Network
             this.contentType = contentType;
             this.symmetricConfig = symmetricConfig;
             this.authorizer = authorizer;
-            this.socketPool = SocketClientPool.Default;
+            this.socketPool = SocketClientPool.Shared;
 
             _ = Log.InfoAsync($"{nameof(HttpCqrsClient)} started for {this.contentType} at {serviceUrl}");
         }
@@ -67,15 +67,29 @@ namespace Zerra.CQRS.Network
 
                 var buffer = bufferOwner.AsMemory();
 
+                var tryingNewConnection = false;
+            newconnection:
+
                 //Request Header
 
                 var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.ProviderType, contentType, authHeaders);
 
+                if (tryingNewConnection)
+                {
 #if NETSTANDARD2_0
-                stream = SocketClientPool.Default.BeginStream(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength);
+                    stream = socketPool.ReconnectBeginStream(stream, host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength);
 #else
-                stream = SocketClientPool.Default.BeginStream(host, port, ProtocolType.Tcp, buffer.Span.Slice(0, requestHeaderLength));
+                    stream = socketPool.ReconnectBeginStream(stream, host, port, ProtocolType.Tcp, buffer.Span.Slice(0, requestHeaderLength));
 #endif
+                }
+                else
+                {
+#if NETSTANDARD2_0
+                    stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength);
+#else
+                    stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, buffer.Span.Slice(0, requestHeaderLength));
+#endif
+                }
 
                 requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
 
@@ -112,7 +126,12 @@ namespace Zerra.CQRS.Network
 #endif
 
                     if (bytesRead == 0)
-                        throw new ConnectionAbortedException();
+                    {
+                        if (tryingNewConnection)
+                            throw new ConnectionAbortedException();
+                        tryingNewConnection = true;
+                        goto newconnection;
+                    }
                     headerLength += bytesRead;
 
                     headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
@@ -193,15 +212,28 @@ namespace Zerra.CQRS.Network
 
                 var buffer = bufferOwner.AsMemory();
 
+                var tryingNewConnection = false;
+            newconnection:
+
                 //Request Header
                 var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.ProviderType, contentType, authHeaders);
 
-
+                if (tryingNewConnection)
+                {
 #if NETSTANDARD2_0
-                stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp,bufferOwner, 0, requestHeaderLength); 
+                    stream = await socketPool.ReconnectBeginStreamAsync(stream, host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength);
 #else
-                stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength));
+                    stream = await socketPool.ReconnectBeginStreamAsync(stream, host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength));
 #endif
+                }
+                else
+                {
+#if NETSTANDARD2_0
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength);
+#else
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength));
+#endif
+                }
 
                 requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
 
@@ -250,7 +282,12 @@ namespace Zerra.CQRS.Network
 #endif
 
                     if (bytesRead == 0)
-                        throw new ConnectionAbortedException();
+                    {
+                        if (tryingNewConnection)
+                            throw new ConnectionAbortedException();
+                        tryingNewConnection = true;
+                        goto newconnection;
+                    }
                     headerLength += bytesRead;
 
                     headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
@@ -362,14 +399,28 @@ namespace Zerra.CQRS.Network
 
                 var buffer = bufferOwner.AsMemory();
 
+                var tryingNewConnection = false;
+            newconnection:
+
                 //Request Header
                 var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.ProviderType, contentType, authHeaders);
 
+                if (tryingNewConnection)
+                {
 #if NETSTANDARD2_0
-                stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength); 
+                    stream = await socketPool.ReconnectBeginStreamAsync(stream, host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength);
 #else
-                stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength));
+                    stream = await socketPool.ReconnectBeginStreamAsync(stream, host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength));
 #endif
+                }
+                else
+                {
+#if NETSTANDARD2_0
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength);
+#else
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength));
+#endif
+                }
 
                 requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
 
@@ -419,7 +470,12 @@ namespace Zerra.CQRS.Network
 #endif
 
                     if (bytesRead == 0)
-                        throw new ConnectionAbortedException();
+                    {
+                        if (tryingNewConnection)
+                            throw new ConnectionAbortedException();
+                        tryingNewConnection = true;
+                        goto newconnection;
+                    }
                     headerLength += bytesRead;
 
                     headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);

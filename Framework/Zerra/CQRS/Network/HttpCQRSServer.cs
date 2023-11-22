@@ -297,7 +297,6 @@ namespace Zerra.CQRS.Network
                         {
                             try
                             {
-
                                 //Response Header
                                 var responseHeaderLength = HttpCommon.BufferErrorResponseHeader(buffer, requestHeader.Origin);
 #if NETSTANDARD2_0
