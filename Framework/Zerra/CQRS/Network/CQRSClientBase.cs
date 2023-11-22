@@ -17,7 +17,9 @@ namespace Zerra.CQRS.Network
 {
     public abstract class CqrsClientBase : IQueryClient, ICommandProducer, IDisposable
     {
-        protected readonly Uri serviceUrl;
+        protected readonly Uri serviceUri;
+        protected readonly string host;
+        protected readonly int port;
         private readonly ConcurrentDictionary<Type, SemaphoreSlim> throttleByInterfaceType;
         private readonly ConcurrentDictionary<Type, string> topicsByCommandType;
         private readonly ConcurrentDictionary<string, SemaphoreSlim> throttleByTopic;
@@ -26,7 +28,14 @@ namespace Zerra.CQRS.Network
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 throw new ArgumentNullException(nameof(serviceUrl));
-            this.serviceUrl = new Uri(serviceUrl);
+
+            if (!serviceUrl.Contains("://"))
+                this.serviceUri = new Uri("any://" + serviceUrl); //hacky way to make it parse without scheme.
+            else
+                this.serviceUri = new Uri(serviceUrl, UriKind.RelativeOrAbsolute);
+            host = this.serviceUri.Host;
+            port = this.serviceUri.Port >= 0 ? this.serviceUri.Port : (String.Equals(this.serviceUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ? 443 : 80);
+
             this.throttleByInterfaceType = new();
             this.topicsByCommandType = new();
             this.throttleByTopic = new();

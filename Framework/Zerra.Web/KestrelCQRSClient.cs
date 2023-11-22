@@ -34,7 +34,7 @@ namespace Zerra.Web
             this.authorizer = authorizer;
             this.client = new HttpClient();
 
-            _ = Log.InfoAsync($"{nameof(KestrelCQRSClient)} started for {this.contentType} at {this.serviceUrl}");
+            _ = Log.InfoAsync($"{nameof(KestrelCQRSClient)} started for {this.contentType} at {this.serviceUri}");
         }
 
         protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
@@ -61,7 +61,7 @@ namespace Zerra.Web
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
-                var request = new HttpRequestMessage(HttpMethod.Post, serviceUrl);
+                var request = new HttpRequestMessage(HttpMethod.Post, serviceUri);
                 HttpResponseMessage response = null;
                 Stream responseBodyStream = null;
                 try
@@ -101,8 +101,8 @@ namespace Zerra.Web
                     request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
                     request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
                     request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-                    request.Headers.Host = serviceUrl.Authority;
-                    request.Headers.Add(HttpCommon.OriginHeader, serviceUrl.Host);
+                    request.Headers.Host = serviceUri.Authority;
+                    request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host);
 
                     if (authHeaders != null)
                     {
@@ -175,7 +175,7 @@ namespace Zerra.Web
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
-                var request = new HttpRequestMessage(HttpMethod.Post, serviceUrl);
+                var request = new HttpRequestMessage(HttpMethod.Post, serviceUri);
                 HttpResponseMessage response = null;
                 Stream responseBodyStream = null;
                 try
@@ -226,8 +226,8 @@ namespace Zerra.Web
                     request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
                     request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
                     request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-                    request.Headers.Host = serviceUrl.Authority;
-                    request.Headers.Add(HttpCommon.OriginHeader, serviceUrl.Host);
+                    request.Headers.Host = serviceUri.Authority;
+                    request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host);
 
                     if (authHeaders != null)
                     {
@@ -315,7 +315,7 @@ namespace Zerra.Web
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
-                var request = new HttpRequestMessage(HttpMethod.Post, serviceUrl);
+                var request = new HttpRequestMessage(HttpMethod.Post, serviceUri);
                 HttpResponseMessage response = null;
                 Stream responseBodyStream = null;
                 try
@@ -366,8 +366,8 @@ namespace Zerra.Web
                     request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
                     request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
                     request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-                    request.Headers.Host = serviceUrl.Authority;
-                    request.Headers.Add(HttpCommon.OriginHeader, serviceUrl.Host);
+                    request.Headers.Host = serviceUri.Authority;
+                    request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host);
 
                     if (authHeaders != null)
                     {

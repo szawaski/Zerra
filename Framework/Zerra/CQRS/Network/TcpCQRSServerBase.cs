@@ -105,7 +105,12 @@ namespace Zerra.CQRS.Network
                 if (started)
                     return;
 
-                var endpoints = IPResolver.GetIPEndPoints(serviceUrl);
+#if NETSTANDARD2_0
+                var urls = serviceUrl.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+#else
+                var urls = serviceUrl.Split(';', StringSplitOptions.RemoveEmptyEntries);
+#endif
+                var endpoints = IPResolver.GetIPEndPoints(urls);
                 this.listeners = new SocketListener[endpoints.Count];
                 for (var i = 0; i < endpoints.Count; i++)
                 {

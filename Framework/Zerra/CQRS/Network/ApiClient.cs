@@ -45,7 +45,7 @@ namespace Zerra.CQRS.Network
             };
             data.AddProviderArguments(arguments);
 
-            var model = Request<TReturn>(throttle, isStream, serviceUrl.OriginalString, providerName, requestContentType, data, true);
+            var model = Request<TReturn>(throttle, isStream, serviceUri.OriginalString, providerName, requestContentType, data, true);
             return model;
         }
 
@@ -65,7 +65,7 @@ namespace Zerra.CQRS.Network
             };
             data.AddProviderArguments(arguments);
 
-            var model = RequestAsync<TReturn>(throttle, isStream, serviceUrl.OriginalString, providerName, requestContentType, data, true);
+            var model = RequestAsync<TReturn>(throttle, isStream, serviceUri.OriginalString, providerName, requestContentType, data, true);
             return model;
         }
 
@@ -83,7 +83,7 @@ namespace Zerra.CQRS.Network
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, serviceUrl.OriginalString, commendTypeName, requestContentType, data, false);
+            return RequestAsync<object>(throttle, false, serviceUri.OriginalString, commendTypeName, requestContentType, data, false);
         }
 
         private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(ApiClient)).MethodDetails.First(x => x.MethodInfo.Name == nameof(ApiClient.RequestAsync)).MethodInfo;
