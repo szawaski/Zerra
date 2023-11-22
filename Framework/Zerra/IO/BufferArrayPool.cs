@@ -5,7 +5,7 @@
 using System;
 using System.Buffers;
 
-#if DEBUGMEMORY
+#if DEBUG
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -65,7 +65,7 @@ namespace Zerra.IO
             else if (newBufferLength < minSize)
                 newBufferLength = minSize;
 
-#if DEBUGMEMORY
+#if DEBUG
             var newBuffer = Rent(newBufferLength);
             Buffer.BlockCopy(buffer, 0, newBuffer, 0, buffer.Length * elementSize);
             Array.Clear(buffer, 0, buffer.Length);
@@ -80,20 +80,19 @@ namespace Zerra.IO
             buffer = newBuffer;
         }
 
-#if DEBUGMEMORY
+#if DEBUG
         private static readonly Dictionary<T[], string> rented = new();
 #endif
         public static T[] Rent(int minimunLength)
         {
-#if DEBUGMEMORY
+#if DEBUG
             lock (rented)
             {
-                var lines = Regex.Split(Environment.StackTrace, "\r\n|\r|\n");
-                var stack = string.Join(Environment.NewLine, lines.Skip(2).Select(x => x.Trim()));
+                var line = Regex.Split(Environment.StackTrace, "\r\n|\r|\n").Skip(2).Select(x => x.Trim()).First();
 
                 var buffer = pool.Rent(minimunLength);
-                rented.Add(buffer, stack);
-                System.Diagnostics.Debug.WriteLine($"Memory<{typeof(T).Name}> Rented - {rented.Count}: Size {buffer.Length} {lines[0]}");
+                rented.Add(buffer, line);
+                System.Diagnostics.Debug.WriteLine($"Memory<{typeof(T).Name}> Rented - {rented.Count}: Size {buffer.Length} {line}");
                 return buffer;
             }
 #else
@@ -102,16 +101,15 @@ namespace Zerra.IO
         }
         public static void Return(T[] buffer)
         {
-#if DEBUGMEMORY
+#if DEBUG
             lock (rented)
             {
-                if (!rented.TryGetValue(buffer, out var stack))
+                if (!rented.TryGetValue(buffer, out var line))
                     throw new Exception($"Memory<{typeof(T).Name}> Returned That Was Not Rented: Size {buffer.Length}");
 
-                var lines = Regex.Split(stack, "\r\n|\r|\n");
-                System.Diagnostics.Debug.WriteLine($"Memory<{typeof(T).Name}> Returned - {rented.Count}: Size {buffer.Length} {lines[0]}");
                 rented.Remove(buffer);
                 pool.Return(buffer);
+                System.Diagnostics.Debug.WriteLine($"Memory<{typeof(T).Name}> Returned - {rented.Count}: Size {buffer.Length} {line}");
             }
 #else
             pool.Return(buffer);

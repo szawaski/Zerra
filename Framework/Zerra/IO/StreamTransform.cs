@@ -11,6 +11,8 @@ namespace Zerra.IO
 {
     public abstract class StreamTransform : Stream
     {
+        private bool disposed = false;
+
         protected readonly Stream stream;
         protected readonly bool leaveOpen;
 
@@ -104,16 +106,18 @@ namespace Zerra.IO
 #endif
         public override sealed void Close()
         {
-            if (!leaveOpen)
-                stream.Close();
-            base.Close(); //important for disposing
+            base.Close(); //calls dispose underneath
         }
 
         protected override void Dispose(bool disposing)
         {
-            if (!leaveOpen)
-                stream.Dispose();
-            base.Dispose(disposing);
+            if (!disposed)
+            {
+                disposed = true;
+                if (!leaveOpen)
+                    stream.Dispose();
+                base.Dispose(disposing);
+            }
         }
 
 #if !NETSTANDARD2_0
@@ -147,9 +151,14 @@ namespace Zerra.IO
 
         public override async ValueTask DisposeAsync()
         {
-            if (!leaveOpen)
-                await stream.DisposeAsync();
-            await base.DisposeAsync();
+            if (!disposed)
+            {
+                disposed = true;
+                if (!leaveOpen)
+                    await stream.DisposeAsync();
+                await base.DisposeAsync();
+                GC.SuppressFinalize(this);
+            }
         }
 #endif
 
