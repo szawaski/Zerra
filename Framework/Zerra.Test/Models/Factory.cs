@@ -129,7 +129,7 @@ namespace Zerra.Test
         {
             Assert.IsNotNull(model1);
             Assert.IsNotNull(model2);
-            Assert.AreNotEqual(model1, model2);
+            Assert.AreNotEqual<object>(model1, model2);
 
             Assert.AreEqual(model1.BooleanThing.ToString(), model2.BooleanThing);
             Assert.AreEqual(model1.ByteThing.ToString(), model2.ByteThing);
@@ -197,7 +197,7 @@ namespace Zerra.Test
         {
             Assert.IsNotNull(model1);
             Assert.IsNotNull(model2);
-            Assert.AreNotEqual(model1, model2);
+            Assert.AreNotEqual<object>(model1, model2);
 
             Assert.AreEqual(model1.BooleanThing, model2.BooleanThing);
             Assert.AreEqual(model1.SByteThing, model2.SByteThing);
@@ -662,7 +662,7 @@ namespace Zerra.Test
         {
             Assert.IsNotNull(model1);
             Assert.IsNotNull(model2);
-            Assert.AreNotEqual(model1, model2);
+            Assert.AreNotEqual<object>(model1, model2);
 
             Assert.AreEqual(model1.BooleanThing, model2.BooleanThing);
             Assert.AreEqual(model1.ByteThing, model2.ByteThing);
@@ -941,7 +941,7 @@ namespace Zerra.Test
         {
             Assert.IsNotNull(model1);
             Assert.IsNotNull(model2);
-            Assert.AreNotEqual(model1, model2);
+            Assert.AreNotEqual<object>(model1, model2);
 
             Assert.AreEqual(model1.BooleanThing.ToString().ToLower(), model2.BooleanThing);
             Assert.AreEqual(model1.ByteThing.ToString(), model2.ByteThing);
@@ -1082,7 +1082,7 @@ namespace Zerra.Test
         {
             Assert.IsNotNull(model1);
             Assert.IsNotNull(model2);
-            Assert.AreNotEqual(model1, model2);
+            Assert.AreNotEqual<object>(model1, model2);
 
             Assert.AreEqual(model1.BooleanThing, model2.BooleanThing.Value);
             Assert.AreEqual(model1.ByteThing, model2.ByteThing.Value);
@@ -1176,7 +1176,7 @@ namespace Zerra.Test
         {
             Assert.IsNotNull(model1);
             Assert.IsNotNull(model2);
-            Assert.AreNotEqual(model1, model2);
+            Assert.AreNotEqual<object>(model1, model2);
 
             Assert.AreEqual(model1.Value1, model2.Value1);
             Assert.AreEqual(model1.Value2, model2.Value2);
@@ -1186,7 +1186,7 @@ namespace Zerra.Test
         {
             Assert.IsNotNull(model1);
             Assert.IsNotNull(model2);
-            Assert.AreNotEqual(model1, model2);
+            Assert.AreNotEqual<object>(model1, model2);
 
             Assert.AreNotEqual(model1.Value1, model2.Value1);
             Assert.AreNotEqual(model1.Value2, model2.Value2);

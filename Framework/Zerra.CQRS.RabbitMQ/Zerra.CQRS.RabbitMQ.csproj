@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net5.0;net6.0;net7.0</TargetFrameworks>
+        <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
         <CheckEolTargetFramework>false</CheckEolTargetFramework>
         <Authors>Steven Zawaski</Authors>
         <Copyright>KaKush LLC</Copyright>
@@ -14,11 +14,15 @@
         <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, RabbitMQ</PackageTags>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <LangVersion>10.0</LangVersion>
-        <Version>4.7.12</Version>
+        <Version>4.8.0</Version>
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Zerra\Zerra.csproj" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+        <PackageReference Include="RabbitMQ.Client" Version="6.7.0" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net7.0'">

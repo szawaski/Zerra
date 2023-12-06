@@ -5,6 +5,7 @@ using Zerra.CQRS.RabbitMQ;
 using Zerra.CQRS.Settings;
 using Zerra.Logging;
 using Zerra.Logger;
+using Zerra.CQRS.Kafka;
 
 namespace ZerraDemo.Common
 {
