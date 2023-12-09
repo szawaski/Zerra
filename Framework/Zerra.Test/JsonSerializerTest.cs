@@ -732,6 +732,15 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void StringHashSet()
+        {
+            var model1 = Factory.GetHashSetModel();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<HashSetModel>(json);
+            Factory.AssertAreEqual(model1, model2);
+        }
+
+        [TestMethod]
         public void StringRecord()
         {
             var baseModel = new RecordModel(true) { Property2 = 42, Property3 = "moo" };
@@ -1597,6 +1606,17 @@ namespace Zerra.Test
             //Assert.AreEqual(baseModel.Property1, model.Property1);
             //Assert.AreEqual(baseModel.Property2, model.Property2);
             //Assert.AreEqual(baseModel.Property3, model.Property3);
+        }
+
+        [TestMethod]
+        public async Task StreamHashSet()
+        {
+            var model1 = Factory.GetHashSetModel();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<HashSetModel>(stream);
+            Factory.AssertAreEqual(model1, model2);
         }
 
         [TestMethod]

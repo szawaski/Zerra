@@ -92,7 +92,9 @@ namespace Zerra.Serialization
 
             if (typeDetail.TypeDetail.IsIEnumerableGeneric)
             {
-                var enumerable = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList, ref options);
+                var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList;
+                var asSet = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsISet;
+                var enumerable = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, asList, asSet, ref options);
                 return enumerable;
             }
 
@@ -171,43 +173,28 @@ namespace Zerra.Serialization
             throw new Exception("Expected end of object marker");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromBytesEnumerable(ref ByteReader reader, SerializerTypeDetail typeDetail, bool asList, ref OptionsStruct options)
+        private static object FromBytesEnumerable(ref ByteReader reader, SerializerTypeDetail typeDetail, bool asList, bool asSet, ref OptionsStruct options)
         {
             var length = reader.ReadInt32();
 
             if (length == 0)
             {
-                if (!asList)
-                    return Array.CreateInstance(typeDetail.Type, length);
+                if (asList)
+                    return typeDetail.ListCreator(length);
+                else if (asSet)
+                    return typeDetail.HashSetCreator(length);
                 else
-                    return (IList)typeDetail.ListCreator(length);
+                    return Array.CreateInstance(typeDetail.Type, length);
             }
 
             if (typeDetail.TypeDetail.CoreType.HasValue)
             {
-                return FromBytesCoreTypeEnumerable(ref reader, length, typeDetail.TypeDetail.CoreType.Value, asList);
+                return FromBytesCoreTypeEnumerable(ref reader, length, typeDetail.TypeDetail.CoreType.Value, asList, asSet);
             }
 
             if (typeDetail.TypeDetail.EnumUnderlyingType.HasValue)
             {
-                if (!asList)
-                {
-                    var array = Array.CreateInstance(typeDetail.Type, length);
-                    for (var i = 0; i < length; i++)
-                    {
-                        var numValue = FromBytesCoreType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, true);
-                        object item;
-                        if (!typeDetail.TypeDetail.IsNullable)
-                            item = Enum.ToObject(typeDetail.Type, numValue);
-                        else if (numValue != null)
-                            item = Enum.ToObject(typeDetail.TypeDetail.InnerTypes[0], numValue);
-                        else
-                            item = null;
-                        array.SetValue(item, i);
-                    }
-                    return array;
-                }
-                else
+                if (asList)
                 {
                     var list = (IList)typeDetail.ListCreator(length);
                     for (var i = 0; i < length; i++)
@@ -224,6 +211,43 @@ namespace Zerra.Serialization
                     }
                     return list;
                 }
+                else if (asSet)
+                {
+                    var set = typeDetail.HashSetCreator(length);
+                    var adder = typeDetail.HashSetAdder;
+                    var adderArgs = new object[1];
+                    for (var i = 0; i < length; i++)
+                    {
+                        var numValue = FromBytesCoreType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, true);
+                        object item;
+                        if (!typeDetail.TypeDetail.IsNullable)
+                            item = Enum.ToObject(typeDetail.Type, numValue);
+                        else if (numValue != null)
+                            item = Enum.ToObject(typeDetail.TypeDetail.InnerTypes[0], numValue);
+                        else
+                            item = null;
+                        adderArgs[0] = item;
+                        adder.Caller(set, adderArgs);
+                    }
+                    return set;
+                }
+                else
+                {
+                    var array = Array.CreateInstance(typeDetail.Type, length);
+                    for (var i = 0; i < length; i++)
+                    {
+                        var numValue = FromBytesCoreType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, true);
+                        object item;
+                        if (!typeDetail.TypeDetail.IsNullable)
+                            item = Enum.ToObject(typeDetail.Type, numValue);
+                        else if (numValue != null)
+                            item = Enum.ToObject(typeDetail.TypeDetail.InnerTypes[0], numValue);
+                        else
+                            item = null;
+                        array.SetValue(item, i);
+                    }
+                    return array;
+                }  
             }
 
             if (typeDetail.TypeDetail.SpecialType.HasValue || typeDetail.TypeDetail.IsNullable && typeDetail.InnerTypeDetail.TypeDetail.SpecialType.HasValue)
@@ -233,34 +257,7 @@ namespace Zerra.Serialization
 
             object obj = null;
 
-            if (!asList)
-            {
-                var array = Array.CreateInstance(typeDetail.Type, length);
-                if (length == 0)
-                    return array;
-
-                var count = 0;
-                for (; ; )
-                {
-                    var hasObject = reader.ReadBoolean();
-                    if (!hasObject)
-                    {
-                        count++;
-                        if (count == length)
-                            return array;
-                        continue;
-                    }
-
-                    obj = FromBytes(ref reader, typeDetail, false, false, ref options);
-                    array.SetValue(obj, count);
-                    count++;
-                    if (count == length)
-                        return array;
-                }
-
-                throw new Exception("Expected end of object marker");
-            }
-            else
+            if (asList)
             {
                 var list = (IList)typeDetail.ListCreator(length);
                 if (length == 0)
@@ -285,9 +282,66 @@ namespace Zerra.Serialization
                     if (count == length)
                         return list;
                 }
-
-                throw new Exception("Expected end of object marker");
             }
+            else if (asSet)
+            {
+                var set = typeDetail.HashSetCreator(length);
+
+                if (length == 0)
+                    return set;
+
+                var adder = typeDetail.HashSetAdder;
+                var adderArgs = new object[1];
+
+                var count = 0;
+                for (; ; )
+                {
+                    var hasObject = reader.ReadBoolean();
+                    if (!hasObject)
+                    {
+                        adderArgs[0] = null;
+                        adder.Caller(set, adderArgs);
+                        count++;
+                        if (count == length)
+                            return set;
+                        continue;
+                    }
+
+                    obj = FromBytes(ref reader, typeDetail, false, false, ref options);
+                    adderArgs[0] = obj;
+                    adder.Caller(set, adderArgs);
+                    count++;
+                    if (count == length)
+                        return set;
+                }
+            }
+            else
+            {
+                var array = Array.CreateInstance(typeDetail.Type, length);
+                if (length == 0)
+                    return array;
+
+                var count = 0;
+                for (; ; )
+                {
+                    var hasObject = reader.ReadBoolean();
+                    if (!hasObject)
+                    {
+                        count++;
+                        if (count == length)
+                            return array;
+                        continue;
+                    }
+
+                    obj = FromBytes(ref reader, typeDetail, false, false, ref options);
+                    array.SetValue(obj, count);
+                    count++;
+                    if (count == length)
+                        return array;
+                }
+            }
+
+            throw new Exception("Expected end of object marker");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -335,188 +389,258 @@ namespace Zerra.Serialization
             };
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromBytesCoreTypeEnumerable(ref ByteReader reader, int length, CoreType coreType, bool asList)
+        private static object FromBytesCoreTypeEnumerable(ref ByteReader reader, int length, CoreType coreType, bool asList, bool asSet)
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless coreTypeCouldBeNull = true
             switch (coreType)
             {
                 case CoreType.Boolean:
-                    if (!asList)
-                        return reader.ReadBooleanArray(length);
-                    else
+                    if (asList)
                         return reader.ReadBooleanList(length);
+                    else if (asSet)
+                        return reader.ReadBooleanHashSet(length);
+                    else
+                        return reader.ReadBooleanArray(length);
                 case CoreType.Byte:
-                    if (!asList)
-                        return reader.ReadByteArray(length);
-                    else
+                    if (asList)
                         return reader.ReadByteList(length);
+                    else if (asSet)
+                        return reader.ReadByteHashSet(length);
+                    else
+                        return reader.ReadByteArray(length);
                 case CoreType.SByte:
-                    if (!asList)
-                        return reader.ReadSByteArray(length);
-                    else
+                    if (asList)
                         return reader.ReadSByteList(length);
+                    else if (asSet)
+                        return reader.ReadSByteHashSet(length);
+                    else
+                        return reader.ReadSByteArray(length);
                 case CoreType.Int16:
-                    if (!asList)
-                        return reader.ReadInt16Array(length);
-                    else
+                    if (asList)
                         return reader.ReadInt16List(length);
+                    else if (asSet)
+                        return reader.ReadInt16HashSet(length);
+                    else
+                        return reader.ReadInt16Array(length);
                 case CoreType.UInt16:
-                    if (!asList)
-                        return reader.ReadUInt16Array(length);
-                    else
+                    if (asList)
                         return reader.ReadUInt16List(length);
+                    else if (asSet)
+                        return reader.ReadUInt16HashSet(length);
+                    else
+                        return reader.ReadUInt16Array(length);
                 case CoreType.Int32:
-                    if (!asList)
-                        return reader.ReadInt32Array(length);
-                    else
+                    if (asList)
                         return reader.ReadInt32List(length);
+                    else if (asSet)
+                        return reader.ReadInt32HashSet(length);
+                    else
+                        return reader.ReadInt32Array(length);
                 case CoreType.UInt32:
-                    if (!asList)
-                        return reader.ReadUInt32Array(length);
-                    else
+                    if (asList)
                         return reader.ReadUInt32List(length);
+                    else if (asSet)
+                        return reader.ReadUInt32HashSet(length);
+                    else
+                        return reader.ReadUInt32Array(length);
                 case CoreType.Int64:
-                    if (!asList)
-                        return reader.ReadInt64Array(length);
-                    else
+                    if (asList)
                         return reader.ReadInt64List(length);
+                    else if (asSet)
+                        return reader.ReadInt64HashSet(length);
+                    else
+                        return reader.ReadInt64Array(length);
                 case CoreType.UInt64:
-                    if (!asList)
-                        return reader.ReadUInt64Array(length);
-                    else
+                    if (asList)
                         return reader.ReadUInt64List(length);
+                    else if (asSet)
+                        return reader.ReadUInt64HashSet(length);
+                    else
+                        return reader.ReadUInt64Array(length);
                 case CoreType.Single:
-                    if (!asList)
-                        return reader.ReadSingleArray(length);
-                    else
+                    if (asList)
                         return reader.ReadSingleList(length);
+                    else if (asSet)
+                        return reader.ReadSingleHashSet(length);
+                    else
+                        return reader.ReadSingleArray(length);
                 case CoreType.Double:
-                    if (!asList)
-                        return reader.ReadDoubleArray(length);
-                    else
+                    if (asList)
                         return reader.ReadDoubleList(length);
+                    else if (asSet)
+                        return reader.ReadDoubleHashSet(length);
+                    else
+                        return reader.ReadDoubleArray(length);
                 case CoreType.Decimal:
-                    if (!asList)
-                        return reader.ReadDecimalArray(length);
-                    else
+                    if (asList)
                         return reader.ReadDecimalList(length);
+                    else if (asSet)
+                        return reader.ReadDecimalHashSet(length);
+                    else
+                        return reader.ReadDecimalArray(length);
                 case CoreType.Char:
-                    if (!asList)
-                        return reader.ReadCharArray(length);
-                    else
+                    if (asList)
                         return reader.ReadCharList(length);
+                    else if (asSet)
+                        return reader.ReadCharHashSet(length);
+                    else
+                        return reader.ReadCharArray(length);
                 case CoreType.DateTime:
-                    if (!asList)
-                        return reader.ReadDateTimeArray(length);
-                    else
+                    if (asList)
                         return reader.ReadDateTimeList(length);
+                    else if (asSet)
+                        return reader.ReadDateTimeHashSet(length);
+                    else
+                        return reader.ReadDateTimeArray(length);
                 case CoreType.DateTimeOffset:
-                    if (!asList)
-                        return reader.ReadDateTimeOffsetArray(length);
-                    else
+                    if (asList)
                         return reader.ReadDateTimeOffsetList(length);
+                    else if (asSet)
+                        return reader.ReadDateTimeOffsetHashSet(length);
+                    else
+                        return reader.ReadDateTimeOffsetArray(length);
                 case CoreType.TimeSpan:
-                    if (!asList)
-                        return reader.ReadTimeSpanArray(length);
-                    else
+                    if (asList)
                         return reader.ReadTimeSpanList(length);
-                case CoreType.Guid:
-                    if (!asList)
-                        return reader.ReadGuidArray(length);
+                    else if (asSet)
+                        return reader.ReadTimeSpanHashSet(length);
                     else
+                        return reader.ReadTimeSpanArray(length);
+                case CoreType.Guid:
+                    if (asList)
                         return reader.ReadGuidList(length);
+                    else if (asSet)
+                        return reader.ReadGuidHashSet(length);
+                    else
+                        return reader.ReadGuidArray(length);
 
                 case CoreType.String:
-                    if (!asList)
-                        return reader.ReadStringArray(length);
-                    else
+                    if (asList)
                         return reader.ReadStringList(length);
+                    else if (asSet)
+                        return reader.ReadStringHashSet(length);
+                    else
+                        return reader.ReadStringArray(length);
 
                 case CoreType.BooleanNullable:
-                    if (!asList)
-                        return reader.ReadBooleanNullableArray(length);
-                    else
+                    if (asList)
                         return reader.ReadBooleanNullableList(length);
+                    else if (asSet)
+                        return reader.ReadBooleanNullableHashSet(length);
+                    else
+                        return reader.ReadBooleanNullableArray(length);
                 case CoreType.ByteNullable:
-                    if (!asList)
-                        return reader.ReadByteNullableArray(length);
-                    else
+                    if (asList)
                         return reader.ReadByteNullableList(length);
+                    else if (asSet)
+                        return reader.ReadByteNullableHashSet(length);
+                    else
+                        return reader.ReadByteNullableArray(length);
                 case CoreType.SByteNullable:
-                    if (!asList)
-                        return reader.ReadSByteNullableArray(length);
-                    else
+                    if (asList)
                         return reader.ReadSByteNullableList(length);
+                    else if (asSet)
+                        return reader.ReadSByteNullableHashSet(length);
+                    else
+                        return reader.ReadSByteNullableArray(length);
                 case CoreType.Int16Nullable:
-                    if (!asList)
-                        return reader.ReadInt16NullableArray(length);
-                    else
+                    if (asList)
                         return reader.ReadInt16NullableList(length);
+                    else if (asSet)
+                        return reader.ReadInt16NullableHashSet(length);
+                    else
+                        return reader.ReadInt16NullableArray(length);
                 case CoreType.UInt16Nullable:
-                    if (!asList)
-                        return reader.ReadUInt16NullableArray(length);
-                    else
+                    if (asList)
                         return reader.ReadUInt16NullableList(length);
+                    else if (asSet)
+                        return reader.ReadUInt16NullableHashSet(length);
+                    else
+                        return reader.ReadUInt16NullableArray(length);
                 case CoreType.Int32Nullable:
-                    if (!asList)
-                        return reader.ReadInt32NullableArray(length);
-                    else
+                    if (asList)
                         return reader.ReadInt32NullableList(length);
+                    else if (asSet)
+                        return reader.ReadInt32NullableHashSet(length);
+                    else
+                        return reader.ReadInt32NullableArray(length);
                 case CoreType.UInt32Nullable:
-                    if (!asList)
-                        return reader.ReadUInt32NullableArray(length);
-                    else
+                    if (asList)
                         return reader.ReadUInt32NullableList(length);
+                    else if (asSet)
+                        return reader.ReadUInt32NullableHashSet(length);
+                    else
+                        return reader.ReadUInt32NullableArray(length);
                 case CoreType.Int64Nullable:
-                    if (!asList)
-                        return reader.ReadInt64NullableArray(length);
-                    else
+                    if (asList)
                         return reader.ReadInt64NullableList(length);
+                    else if (asSet)
+                        return reader.ReadInt64NullableHashSet(length);
+                    else
+                        return reader.ReadInt64NullableArray(length);
                 case CoreType.UInt64Nullable:
-                    if (!asList)
-                        return reader.ReadUInt64NullableArray(length);
-                    else
+                    if (asList)
                         return reader.ReadUInt64NullableList(length);
+                    else if (asSet)
+                        return reader.ReadUInt64NullableHashSet(length);
+                    else
+                        return reader.ReadUInt64NullableArray(length);
                 case CoreType.SingleNullable:
-                    if (!asList)
-                        return reader.ReadSingleNullableArray(length);
-                    else
+                    if (asList)
                         return reader.ReadSingleNullableList(length);
+                    else if (asSet)
+                        return reader.ReadSingleNullableHashSet(length);
+                    else
+                        return reader.ReadSingleNullableArray(length);
                 case CoreType.DoubleNullable:
-                    if (!asList)
-                        return reader.ReadDoubleNullableArray(length);
-                    else
+                    if (asList)
                         return reader.ReadDoubleNullableList(length);
+                    else if (asSet)
+                        return reader.ReadDoubleNullableHashSet(length);
+                    else
+                        return reader.ReadDoubleNullableArray(length);
                 case CoreType.DecimalNullable:
-                    if (!asList)
-                        return reader.ReadDecimalNullableArray(length);
-                    else
+                    if (asList)
                         return reader.ReadDecimalNullableList(length);
+                    else if (asSet)
+                        return reader.ReadDecimalNullableHashSet(length);
+                    else
+                        return reader.ReadDecimalNullableArray(length);
                 case CoreType.CharNullable:
-                    if (!asList)
-                        return reader.ReadCharNullableArray(length);
-                    else
+                    if (asList)
                         return reader.ReadCharNullableList(length);
+                    else if (asSet)
+                        return reader.ReadCharNullableHashSet(length);
+                    else
+                        return reader.ReadCharNullableArray(length);
                 case CoreType.DateTimeNullable:
-                    if (!asList)
-                        return reader.ReadDateTimeNullableArray(length);
-                    else
+                    if (asList)
                         return reader.ReadDateTimeNullableList(length);
+                    else if (asSet)
+                        return reader.ReadDateTimeNullableHashSet(length);
+                    else
+                        return reader.ReadDateTimeNullableArray(length);
                 case CoreType.DateTimeOffsetNullable:
-                    if (!asList)
-                        return reader.ReadDateTimeOffsetNullableArray(length);
-                    else
+                    if (asList)
                         return reader.ReadDateTimeOffsetNullableList(length);
+                    else if (asSet)
+                        return reader.ReadDateTimeOffsetNullableHashSet(length);
+                    else
+                        return reader.ReadDateTimeOffsetNullableArray(length);
                 case CoreType.TimeSpanNullable:
-                    if (!asList)
-                        return reader.ReadTimeSpanNullableArray(length);
-                    else
+                    if (asList)
                         return reader.ReadTimeSpanNullableList(length);
-                case CoreType.GuidNullable:
-                    if (!asList)
-                        return reader.ReadGuidNullableArray(length);
+                    else if (asSet)
+                        return reader.ReadTimeSpanNullableHashSet(length);
                     else
+                        return reader.ReadTimeSpanNullableArray(length);
+                case CoreType.GuidNullable:
+                    if (asList)
                         return reader.ReadGuidNullableList(length);
+                    else if (asSet)
+                        return reader.ReadGuidNullableHashSet(length);
+                    else
+                        return reader.ReadGuidNullableArray(length);
                 default:
                     throw new NotImplementedException();
             }
@@ -540,7 +664,7 @@ namespace Zerra.Serialization
                     {
                         if (nullFlags && reader.ReadIsNull())
                             return null;
-                        var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, ref options);
+                        var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, false, ref options);
                         var innerItemEnumerable = TypeAnalyzer.GetGenericType(enumerableType, typeDetail.TypeDetail.IEnumerableGenericInnerType);
                         if (typeDetail.Type.IsInterface)
                         {
@@ -609,7 +733,7 @@ namespace Zerra.Serialization
                             {
                                 if (!reader.ReadIsNull())
                                 {
-                                    var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, ref options);
+                                    var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, false, ref options);
                                     var item = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
                                     array.SetValue(item, i);
                                 }
@@ -618,21 +742,46 @@ namespace Zerra.Serialization
                         }
                         else
                         {
-                            var list = (IList)typeDetail.ListCreator(length);
-                            for (var i = 0; i < length; i++)
+                            if (typeDetail.TypeDetail.IsIList)
                             {
-                                if (!reader.ReadIsNull())
+                                var list = (IList)typeDetail.ListCreator(length);
+                                for (var i = 0; i < length; i++)
                                 {
-                                    var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, ref options);
-                                    var item = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
-                                    _ = list.Add(item);
+                                    if (!reader.ReadIsNull())
+                                    {
+                                        var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, false, ref options);
+                                        var item = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
+                                        _ = list.Add(item);
+                                    }
+                                    else
+                                    {
+                                        _ = list.Add(null);
+                                    }
                                 }
-                                else
-                                {
-                                    _ = list.Add(null);
-                                }
+                                return list;
                             }
-                            return list;
+                            else
+                            {
+                                var set = typeDetail.HashSetCreator(length);
+                                var adder = typeDetail.HashSetAdder;
+                                var adderArgs = new object[1];
+                                for (var i = 0; i < length; i++)
+                                {
+                                    if (!reader.ReadIsNull())
+                                    {
+                                        var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, false, ref options);
+                                        var item = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
+                                        adderArgs[0] = item;
+                                        adder.Caller(set, adderArgs);
+                                    }
+                                    else
+                                    {
+                                        adderArgs[0] = null;
+                                        adder.Caller(set, adderArgs);
+                                    }
+                                }
+                                return set;
+                            }
                         }
                     }
                 default:

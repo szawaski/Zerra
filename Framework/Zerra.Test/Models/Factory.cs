@@ -12,7 +12,7 @@ namespace Zerra.Test
 {
     public static class Factory
     {
-        private static void AssertEnumerable(IEnumerable model1, IEnumerable model2)
+        private static void AssertOrderedEnumerable(IEnumerable model1, IEnumerable model2)
         {
             if (model1 != null)
             {
@@ -33,6 +33,38 @@ namespace Zerra.Test
                     var item1 = enumerator1.Current;
                     var item2 = enumerator2.Current;
                     Assert.AreEqual(item1, item2);
+                }
+            }
+            else
+            {
+                Assert.IsNull(model2);
+            }
+        }
+        private static void AssertUnorderedEnumerable(IEnumerable model1, IEnumerable model2)
+        {
+            if (model1 != null)
+            {
+                Assert.IsNotNull(model2);
+                var count1 = 0;
+                var count2 = 0;
+                foreach (var item1 in model1)
+                    count1++;
+                foreach (var item2 in model2)
+                    count2++;
+                Assert.AreEqual(count1, count1);
+
+                foreach (var item1 in model1)
+                {
+                    var found = false;
+                    foreach (var item2 in model2)
+                    {
+                        if ((item1 == null && item2 == null) || (item1 != null && item2 != null && item1.Equals(item2)))
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    Assert.IsTrue(found);
                 }
             }
             else
@@ -470,88 +502,88 @@ namespace Zerra.Test
             Assert.AreEqual(model1.EnumThingNullable, model2.EnumThingNullable);
             Assert.AreEqual(model1.EnumThingNullableNull, model2.EnumThingNullableNull);
 
-            AssertEnumerable(model1.BooleanArray, model2.BooleanArray);
-            AssertEnumerable(model1.ByteArray, model2.ByteArray);
-            AssertEnumerable(model1.SByteArray, model2.SByteArray);
-            AssertEnumerable(model1.Int16Array, model2.Int16Array);
-            AssertEnumerable(model1.UInt16Array, model2.UInt16Array);
-            AssertEnumerable(model1.Int32Array, model2.Int32Array);
-            AssertEnumerable(model1.UInt32Array, model2.UInt32Array);
-            AssertEnumerable(model1.Int64Array, model2.Int64Array);
-            AssertEnumerable(model1.UInt64Array, model2.UInt64Array);
-            AssertEnumerable(model1.SingleArray, model2.SingleArray);
-            AssertEnumerable(model1.DoubleArray, model2.DoubleArray);
-            AssertEnumerable(model1.DecimalArray, model2.DecimalArray);
-            AssertEnumerable(model1.CharArray, model2.CharArray);
-            AssertEnumerable(model1.DateTimeArray, model2.DateTimeArray);
-            AssertEnumerable(model1.DateTimeOffsetArray, model2.DateTimeOffsetArray);
-            AssertEnumerable(model1.TimeSpanArray, model2.TimeSpanArray);
-            AssertEnumerable(model1.GuidArray, model2.GuidArray);
+            AssertOrderedEnumerable(model1.BooleanArray, model2.BooleanArray);
+            AssertOrderedEnumerable(model1.ByteArray, model2.ByteArray);
+            AssertOrderedEnumerable(model1.SByteArray, model2.SByteArray);
+            AssertOrderedEnumerable(model1.Int16Array, model2.Int16Array);
+            AssertOrderedEnumerable(model1.UInt16Array, model2.UInt16Array);
+            AssertOrderedEnumerable(model1.Int32Array, model2.Int32Array);
+            AssertOrderedEnumerable(model1.UInt32Array, model2.UInt32Array);
+            AssertOrderedEnumerable(model1.Int64Array, model2.Int64Array);
+            AssertOrderedEnumerable(model1.UInt64Array, model2.UInt64Array);
+            AssertOrderedEnumerable(model1.SingleArray, model2.SingleArray);
+            AssertOrderedEnumerable(model1.DoubleArray, model2.DoubleArray);
+            AssertOrderedEnumerable(model1.DecimalArray, model2.DecimalArray);
+            AssertOrderedEnumerable(model1.CharArray, model2.CharArray);
+            AssertOrderedEnumerable(model1.DateTimeArray, model2.DateTimeArray);
+            AssertOrderedEnumerable(model1.DateTimeOffsetArray, model2.DateTimeOffsetArray);
+            AssertOrderedEnumerable(model1.TimeSpanArray, model2.TimeSpanArray);
+            AssertOrderedEnumerable(model1.GuidArray, model2.GuidArray);
 
-            AssertEnumerable(model1.BooleanArrayNullable, model2.BooleanArrayNullable);
-            AssertEnumerable(model1.ByteArrayNullable, model2.ByteArrayNullable);
-            AssertEnumerable(model1.SByteArrayNullable, model2.SByteArrayNullable);
-            AssertEnumerable(model1.Int16ArrayNullable, model2.Int16ArrayNullable);
-            AssertEnumerable(model1.UInt16ArrayNullable, model2.UInt16ArrayNullable);
-            AssertEnumerable(model1.Int32ArrayNullable, model2.Int32ArrayNullable);
-            AssertEnumerable(model1.UInt32ArrayNullable, model2.UInt32ArrayNullable);
-            AssertEnumerable(model1.Int64ArrayNullable, model2.Int64ArrayNullable);
-            AssertEnumerable(model1.UInt64ArrayNullable, model2.UInt64ArrayNullable);
-            AssertEnumerable(model1.SingleArrayNullable, model2.SingleArrayNullable);
-            AssertEnumerable(model1.DoubleArrayNullable, model2.DoubleArrayNullable);
-            AssertEnumerable(model1.DecimalArrayNullable, model2.DecimalArrayNullable);
-            AssertEnumerable(model1.CharArrayNullable, model2.CharArrayNullable);
-            AssertEnumerable(model1.DateTimeArrayNullable, model2.DateTimeArrayNullable);
-            AssertEnumerable(model1.DateTimeOffsetArrayNullable, model2.DateTimeOffsetArrayNullable);
-            AssertEnumerable(model1.TimeSpanArrayNullable, model2.TimeSpanArrayNullable);
-            AssertEnumerable(model1.GuidArrayNullable, model2.GuidArrayNullable);
+            AssertOrderedEnumerable(model1.BooleanArrayNullable, model2.BooleanArrayNullable);
+            AssertOrderedEnumerable(model1.ByteArrayNullable, model2.ByteArrayNullable);
+            AssertOrderedEnumerable(model1.SByteArrayNullable, model2.SByteArrayNullable);
+            AssertOrderedEnumerable(model1.Int16ArrayNullable, model2.Int16ArrayNullable);
+            AssertOrderedEnumerable(model1.UInt16ArrayNullable, model2.UInt16ArrayNullable);
+            AssertOrderedEnumerable(model1.Int32ArrayNullable, model2.Int32ArrayNullable);
+            AssertOrderedEnumerable(model1.UInt32ArrayNullable, model2.UInt32ArrayNullable);
+            AssertOrderedEnumerable(model1.Int64ArrayNullable, model2.Int64ArrayNullable);
+            AssertOrderedEnumerable(model1.UInt64ArrayNullable, model2.UInt64ArrayNullable);
+            AssertOrderedEnumerable(model1.SingleArrayNullable, model2.SingleArrayNullable);
+            AssertOrderedEnumerable(model1.DoubleArrayNullable, model2.DoubleArrayNullable);
+            AssertOrderedEnumerable(model1.DecimalArrayNullable, model2.DecimalArrayNullable);
+            AssertOrderedEnumerable(model1.CharArrayNullable, model2.CharArrayNullable);
+            AssertOrderedEnumerable(model1.DateTimeArrayNullable, model2.DateTimeArrayNullable);
+            AssertOrderedEnumerable(model1.DateTimeOffsetArrayNullable, model2.DateTimeOffsetArrayNullable);
+            AssertOrderedEnumerable(model1.TimeSpanArrayNullable, model2.TimeSpanArrayNullable);
+            AssertOrderedEnumerable(model1.GuidArrayNullable, model2.GuidArrayNullable);
 
-            AssertEnumerable(model1.StringArray, model2.StringArray);
-            AssertEnumerable(model1.StringEmptyArray, model2.StringEmptyArray);
+            AssertOrderedEnumerable(model1.StringArray, model2.StringArray);
+            AssertOrderedEnumerable(model1.StringEmptyArray, model2.StringEmptyArray);
 
-            AssertEnumerable(model1.EnumArray, model2.EnumArray);
-            AssertEnumerable(model1.EnumArrayNullable, model2.EnumArrayNullable);
+            AssertOrderedEnumerable(model1.EnumArray, model2.EnumArray);
+            AssertOrderedEnumerable(model1.EnumArrayNullable, model2.EnumArrayNullable);
 
-            AssertEnumerable(model1.BooleanList, model2.BooleanList);
-            AssertEnumerable(model1.ByteList, model2.ByteList);
-            AssertEnumerable(model1.SByteList, model2.SByteList);
-            AssertEnumerable(model1.Int16List, model2.Int16List);
-            AssertEnumerable(model1.UInt16List, model2.UInt16List);
-            AssertEnumerable(model1.Int32List, model2.Int32List);
-            AssertEnumerable(model1.UInt32List, model2.UInt32List);
-            AssertEnumerable(model1.Int64List, model2.Int64List);
-            AssertEnumerable(model1.UInt64List, model2.UInt64List);
-            AssertEnumerable(model1.SingleList, model2.SingleList);
-            AssertEnumerable(model1.DoubleList, model2.DoubleList);
-            AssertEnumerable(model1.DecimalList, model2.DecimalList);
-            AssertEnumerable(model1.CharList, model2.CharList);
-            AssertEnumerable(model1.DateTimeList, model2.DateTimeList);
-            AssertEnumerable(model1.DateTimeOffsetList, model2.DateTimeOffsetList);
-            AssertEnumerable(model1.TimeSpanList, model2.TimeSpanList);
-            AssertEnumerable(model1.GuidList, model2.GuidList);
+            AssertOrderedEnumerable(model1.BooleanList, model2.BooleanList);
+            AssertOrderedEnumerable(model1.ByteList, model2.ByteList);
+            AssertOrderedEnumerable(model1.SByteList, model2.SByteList);
+            AssertOrderedEnumerable(model1.Int16List, model2.Int16List);
+            AssertOrderedEnumerable(model1.UInt16List, model2.UInt16List);
+            AssertOrderedEnumerable(model1.Int32List, model2.Int32List);
+            AssertOrderedEnumerable(model1.UInt32List, model2.UInt32List);
+            AssertOrderedEnumerable(model1.Int64List, model2.Int64List);
+            AssertOrderedEnumerable(model1.UInt64List, model2.UInt64List);
+            AssertOrderedEnumerable(model1.SingleList, model2.SingleList);
+            AssertOrderedEnumerable(model1.DoubleList, model2.DoubleList);
+            AssertOrderedEnumerable(model1.DecimalList, model2.DecimalList);
+            AssertOrderedEnumerable(model1.CharList, model2.CharList);
+            AssertOrderedEnumerable(model1.DateTimeList, model2.DateTimeList);
+            AssertOrderedEnumerable(model1.DateTimeOffsetList, model2.DateTimeOffsetList);
+            AssertOrderedEnumerable(model1.TimeSpanList, model2.TimeSpanList);
+            AssertOrderedEnumerable(model1.GuidList, model2.GuidList);
 
-            AssertEnumerable(model1.BooleanListNullable, model2.BooleanListNullable);
-            AssertEnumerable(model1.ByteListNullable, model2.ByteListNullable);
-            AssertEnumerable(model1.SByteListNullable, model2.SByteListNullable);
-            AssertEnumerable(model1.Int16ListNullable, model2.Int16ListNullable);
-            AssertEnumerable(model1.UInt16ListNullable, model2.UInt16ListNullable);
-            AssertEnumerable(model1.Int32ListNullable, model2.Int32ListNullable);
-            AssertEnumerable(model1.UInt32ListNullable, model2.UInt32ListNullable);
-            AssertEnumerable(model1.Int64ListNullable, model2.Int64ListNullable);
-            AssertEnumerable(model1.UInt64ListNullable, model2.UInt64ListNullable);
-            AssertEnumerable(model1.SingleListNullable, model2.SingleListNullable);
-            AssertEnumerable(model1.DoubleListNullable, model2.DoubleListNullable);
-            AssertEnumerable(model1.DecimalListNullable, model2.DecimalListNullable);
-            AssertEnumerable(model1.CharListNullable, model2.CharListNullable);
-            AssertEnumerable(model1.DateTimeListNullable, model2.DateTimeListNullable);
-            AssertEnumerable(model1.DateTimeOffsetListNullable, model2.DateTimeOffsetListNullable);
-            AssertEnumerable(model1.TimeSpanListNullable, model2.TimeSpanListNullable);
-            AssertEnumerable(model1.GuidListNullable, model2.GuidListNullable);
+            AssertOrderedEnumerable(model1.BooleanListNullable, model2.BooleanListNullable);
+            AssertOrderedEnumerable(model1.ByteListNullable, model2.ByteListNullable);
+            AssertOrderedEnumerable(model1.SByteListNullable, model2.SByteListNullable);
+            AssertOrderedEnumerable(model1.Int16ListNullable, model2.Int16ListNullable);
+            AssertOrderedEnumerable(model1.UInt16ListNullable, model2.UInt16ListNullable);
+            AssertOrderedEnumerable(model1.Int32ListNullable, model2.Int32ListNullable);
+            AssertOrderedEnumerable(model1.UInt32ListNullable, model2.UInt32ListNullable);
+            AssertOrderedEnumerable(model1.Int64ListNullable, model2.Int64ListNullable);
+            AssertOrderedEnumerable(model1.UInt64ListNullable, model2.UInt64ListNullable);
+            AssertOrderedEnumerable(model1.SingleListNullable, model2.SingleListNullable);
+            AssertOrderedEnumerable(model1.DoubleListNullable, model2.DoubleListNullable);
+            AssertOrderedEnumerable(model1.DecimalListNullable, model2.DecimalListNullable);
+            AssertOrderedEnumerable(model1.CharListNullable, model2.CharListNullable);
+            AssertOrderedEnumerable(model1.DateTimeListNullable, model2.DateTimeListNullable);
+            AssertOrderedEnumerable(model1.DateTimeOffsetListNullable, model2.DateTimeOffsetListNullable);
+            AssertOrderedEnumerable(model1.TimeSpanListNullable, model2.TimeSpanListNullable);
+            AssertOrderedEnumerable(model1.GuidListNullable, model2.GuidListNullable);
 
-            AssertEnumerable(model1.StringList, model2.StringList);
+            AssertOrderedEnumerable(model1.StringList, model2.StringList);
 
-            AssertEnumerable(model1.EnumList, model2.EnumList);
-            AssertEnumerable(model1.EnumListNullable, model2.EnumListNullable);
+            AssertOrderedEnumerable(model1.EnumList, model2.EnumList);
+            AssertOrderedEnumerable(model1.EnumListNullable, model2.EnumListNullable);
 
             if (model1.ClassThing != null)
             {
@@ -749,88 +781,88 @@ namespace Zerra.Test
             Assert.AreEqual(model1.EnumThingNullable, model2.EnumThingNullable);
             Assert.AreEqual(model1.EnumThingNullableNull, model2.EnumThingNullableNull);
 
-            AssertEnumerable(model1.BooleanArray, model2.BooleanArray);
-            AssertEnumerable(model1.ByteArray, model2.ByteArray);
-            AssertEnumerable(model1.SByteArray, model2.SByteArray);
-            AssertEnumerable(model1.Int16Array, model2.Int16Array);
-            AssertEnumerable(model1.UInt16Array, model2.UInt16Array);
-            AssertEnumerable(model1.Int32Array, model2.Int32Array);
-            AssertEnumerable(model1.UInt32Array, model2.UInt32Array);
-            AssertEnumerable(model1.Int64Array, model2.Int64Array);
-            AssertEnumerable(model1.UInt64Array, model2.UInt64Array);
-            AssertEnumerable(model1.SingleArray, model2.SingleArray);
-            AssertEnumerable(model1.DoubleArray, model2.DoubleArray);
-            AssertEnumerable(model1.DecimalArray, model2.DecimalArray);
-            AssertEnumerable(model1.CharArray, model2.CharArray);
-            AssertEnumerable(model1.DateTimeArray, model2.DateTimeArray);
-            AssertEnumerable(model1.DateTimeOffsetArray, model2.DateTimeOffsetArray);
-            AssertEnumerable(model1.TimeSpanArray, model2.TimeSpanArray);
-            AssertEnumerable(model1.GuidArray, model2.GuidArray);
+            AssertOrderedEnumerable(model1.BooleanArray, model2.BooleanArray);
+            AssertOrderedEnumerable(model1.ByteArray, model2.ByteArray);
+            AssertOrderedEnumerable(model1.SByteArray, model2.SByteArray);
+            AssertOrderedEnumerable(model1.Int16Array, model2.Int16Array);
+            AssertOrderedEnumerable(model1.UInt16Array, model2.UInt16Array);
+            AssertOrderedEnumerable(model1.Int32Array, model2.Int32Array);
+            AssertOrderedEnumerable(model1.UInt32Array, model2.UInt32Array);
+            AssertOrderedEnumerable(model1.Int64Array, model2.Int64Array);
+            AssertOrderedEnumerable(model1.UInt64Array, model2.UInt64Array);
+            AssertOrderedEnumerable(model1.SingleArray, model2.SingleArray);
+            AssertOrderedEnumerable(model1.DoubleArray, model2.DoubleArray);
+            AssertOrderedEnumerable(model1.DecimalArray, model2.DecimalArray);
+            AssertOrderedEnumerable(model1.CharArray, model2.CharArray);
+            AssertOrderedEnumerable(model1.DateTimeArray, model2.DateTimeArray);
+            AssertOrderedEnumerable(model1.DateTimeOffsetArray, model2.DateTimeOffsetArray);
+            AssertOrderedEnumerable(model1.TimeSpanArray, model2.TimeSpanArray);
+            AssertOrderedEnumerable(model1.GuidArray, model2.GuidArray);
 
-            AssertEnumerable(model1.BooleanArrayNullable, model2.BooleanArrayNullable);
-            AssertEnumerable(model1.ByteArrayNullable, model2.ByteArrayNullable);
-            AssertEnumerable(model1.SByteArrayNullable, model2.SByteArrayNullable);
-            AssertEnumerable(model1.Int16ArrayNullable, model2.Int16ArrayNullable);
-            AssertEnumerable(model1.UInt16ArrayNullable, model2.UInt16ArrayNullable);
-            AssertEnumerable(model1.Int32ArrayNullable, model2.Int32ArrayNullable);
-            AssertEnumerable(model1.UInt32ArrayNullable, model2.UInt32ArrayNullable);
-            AssertEnumerable(model1.Int64ArrayNullable, model2.Int64ArrayNullable);
-            AssertEnumerable(model1.UInt64ArrayNullable, model2.UInt64ArrayNullable);
-            AssertEnumerable(model1.SingleArrayNullable, model2.SingleArrayNullable);
-            AssertEnumerable(model1.DoubleArrayNullable, model2.DoubleArrayNullable);
-            AssertEnumerable(model1.DecimalArrayNullable, model2.DecimalArrayNullable);
-            AssertEnumerable(model1.CharArrayNullable, model2.CharArrayNullable);
-            AssertEnumerable(model1.DateTimeArrayNullable, model2.DateTimeArrayNullable);
-            AssertEnumerable(model1.DateTimeOffsetArrayNullable, model2.DateTimeOffsetArrayNullable);
-            AssertEnumerable(model1.TimeSpanArrayNullable, model2.TimeSpanArrayNullable);
-            AssertEnumerable(model1.GuidArrayNullable, model2.GuidArrayNullable);
+            AssertOrderedEnumerable(model1.BooleanArrayNullable, model2.BooleanArrayNullable);
+            AssertOrderedEnumerable(model1.ByteArrayNullable, model2.ByteArrayNullable);
+            AssertOrderedEnumerable(model1.SByteArrayNullable, model2.SByteArrayNullable);
+            AssertOrderedEnumerable(model1.Int16ArrayNullable, model2.Int16ArrayNullable);
+            AssertOrderedEnumerable(model1.UInt16ArrayNullable, model2.UInt16ArrayNullable);
+            AssertOrderedEnumerable(model1.Int32ArrayNullable, model2.Int32ArrayNullable);
+            AssertOrderedEnumerable(model1.UInt32ArrayNullable, model2.UInt32ArrayNullable);
+            AssertOrderedEnumerable(model1.Int64ArrayNullable, model2.Int64ArrayNullable);
+            AssertOrderedEnumerable(model1.UInt64ArrayNullable, model2.UInt64ArrayNullable);
+            AssertOrderedEnumerable(model1.SingleArrayNullable, model2.SingleArrayNullable);
+            AssertOrderedEnumerable(model1.DoubleArrayNullable, model2.DoubleArrayNullable);
+            AssertOrderedEnumerable(model1.DecimalArrayNullable, model2.DecimalArrayNullable);
+            AssertOrderedEnumerable(model1.CharArrayNullable, model2.CharArrayNullable);
+            AssertOrderedEnumerable(model1.DateTimeArrayNullable, model2.DateTimeArrayNullable);
+            AssertOrderedEnumerable(model1.DateTimeOffsetArrayNullable, model2.DateTimeOffsetArrayNullable);
+            AssertOrderedEnumerable(model1.TimeSpanArrayNullable, model2.TimeSpanArrayNullable);
+            AssertOrderedEnumerable(model1.GuidArrayNullable, model2.GuidArrayNullable);
 
-            AssertEnumerable(model1.StringArray, model2.StringArray);
-            AssertEnumerable(model1.StringEmptyArray, model2.StringEmptyArray);
+            AssertOrderedEnumerable(model1.StringArray, model2.StringArray);
+            AssertOrderedEnumerable(model1.StringEmptyArray, model2.StringEmptyArray);
 
-            AssertEnumerable(model1.EnumArray, model2.EnumArray);
-            AssertEnumerable(model1.EnumArrayNullable, model2.EnumArrayNullable);
+            AssertOrderedEnumerable(model1.EnumArray, model2.EnumArray);
+            AssertOrderedEnumerable(model1.EnumArrayNullable, model2.EnumArrayNullable);
 
-            AssertEnumerable(model1.BooleanList, model2.BooleanList);
-            AssertEnumerable(model1.ByteList, model2.ByteList);
-            AssertEnumerable(model1.SByteList, model2.SByteList);
-            AssertEnumerable(model1.Int16List, model2.Int16List);
-            AssertEnumerable(model1.UInt16List, model2.UInt16List);
-            AssertEnumerable(model1.Int32List, model2.Int32List);
-            AssertEnumerable(model1.UInt32List, model2.UInt32List);
-            AssertEnumerable(model1.Int64List, model2.Int64List);
-            AssertEnumerable(model1.UInt64List, model2.UInt64List);
-            AssertEnumerable(model1.SingleList, model2.SingleList);
-            AssertEnumerable(model1.DoubleList, model2.DoubleList);
-            AssertEnumerable(model1.DecimalList, model2.DecimalList);
-            AssertEnumerable(model1.CharList, model2.CharList);
-            AssertEnumerable(model1.DateTimeList, model2.DateTimeList);
-            AssertEnumerable(model1.DateTimeOffsetList, model2.DateTimeOffsetList);
-            AssertEnumerable(model1.TimeSpanList, model2.TimeSpanList);
-            AssertEnumerable(model1.GuidList, model2.GuidList);
+            AssertOrderedEnumerable(model1.BooleanList, model2.BooleanList);
+            AssertOrderedEnumerable(model1.ByteList, model2.ByteList);
+            AssertOrderedEnumerable(model1.SByteList, model2.SByteList);
+            AssertOrderedEnumerable(model1.Int16List, model2.Int16List);
+            AssertOrderedEnumerable(model1.UInt16List, model2.UInt16List);
+            AssertOrderedEnumerable(model1.Int32List, model2.Int32List);
+            AssertOrderedEnumerable(model1.UInt32List, model2.UInt32List);
+            AssertOrderedEnumerable(model1.Int64List, model2.Int64List);
+            AssertOrderedEnumerable(model1.UInt64List, model2.UInt64List);
+            AssertOrderedEnumerable(model1.SingleList, model2.SingleList);
+            AssertOrderedEnumerable(model1.DoubleList, model2.DoubleList);
+            AssertOrderedEnumerable(model1.DecimalList, model2.DecimalList);
+            AssertOrderedEnumerable(model1.CharList, model2.CharList);
+            AssertOrderedEnumerable(model1.DateTimeList, model2.DateTimeList);
+            AssertOrderedEnumerable(model1.DateTimeOffsetList, model2.DateTimeOffsetList);
+            AssertOrderedEnumerable(model1.TimeSpanList, model2.TimeSpanList);
+            AssertOrderedEnumerable(model1.GuidList, model2.GuidList);
 
-            AssertEnumerable(model1.BooleanListNullable, model2.BooleanListNullable);
-            AssertEnumerable(model1.ByteListNullable, model2.ByteListNullable);
-            AssertEnumerable(model1.SByteListNullable, model2.SByteListNullable);
-            AssertEnumerable(model1.Int16ListNullable, model2.Int16ListNullable);
-            AssertEnumerable(model1.UInt16ListNullable, model2.UInt16ListNullable);
-            AssertEnumerable(model1.Int32ListNullable, model2.Int32ListNullable);
-            AssertEnumerable(model1.UInt32ListNullable, model2.UInt32ListNullable);
-            AssertEnumerable(model1.Int64ListNullable, model2.Int64ListNullable);
-            AssertEnumerable(model1.UInt64ListNullable, model2.UInt64ListNullable);
-            AssertEnumerable(model1.SingleListNullable, model2.SingleListNullable);
-            AssertEnumerable(model1.DoubleListNullable, model2.DoubleListNullable);
-            AssertEnumerable(model1.DecimalListNullable, model2.DecimalListNullable);
-            AssertEnumerable(model1.CharListNullable, model2.CharListNullable);
-            AssertEnumerable(model1.DateTimeListNullable, model2.DateTimeListNullable);
-            AssertEnumerable(model1.DateTimeOffsetListNullable, model2.DateTimeOffsetListNullable);
-            AssertEnumerable(model1.TimeSpanListNullable, model2.TimeSpanListNullable);
-            AssertEnumerable(model1.GuidListNullable, model2.GuidListNullable);
+            AssertOrderedEnumerable(model1.BooleanListNullable, model2.BooleanListNullable);
+            AssertOrderedEnumerable(model1.ByteListNullable, model2.ByteListNullable);
+            AssertOrderedEnumerable(model1.SByteListNullable, model2.SByteListNullable);
+            AssertOrderedEnumerable(model1.Int16ListNullable, model2.Int16ListNullable);
+            AssertOrderedEnumerable(model1.UInt16ListNullable, model2.UInt16ListNullable);
+            AssertOrderedEnumerable(model1.Int32ListNullable, model2.Int32ListNullable);
+            AssertOrderedEnumerable(model1.UInt32ListNullable, model2.UInt32ListNullable);
+            AssertOrderedEnumerable(model1.Int64ListNullable, model2.Int64ListNullable);
+            AssertOrderedEnumerable(model1.UInt64ListNullable, model2.UInt64ListNullable);
+            AssertOrderedEnumerable(model1.SingleListNullable, model2.SingleListNullable);
+            AssertOrderedEnumerable(model1.DoubleListNullable, model2.DoubleListNullable);
+            AssertOrderedEnumerable(model1.DecimalListNullable, model2.DecimalListNullable);
+            AssertOrderedEnumerable(model1.CharListNullable, model2.CharListNullable);
+            AssertOrderedEnumerable(model1.DateTimeListNullable, model2.DateTimeListNullable);
+            AssertOrderedEnumerable(model1.DateTimeOffsetListNullable, model2.DateTimeOffsetListNullable);
+            AssertOrderedEnumerable(model1.TimeSpanListNullable, model2.TimeSpanListNullable);
+            AssertOrderedEnumerable(model1.GuidListNullable, model2.GuidListNullable);
 
-            AssertEnumerable(model1.StringList, model2.StringList);
+            AssertOrderedEnumerable(model1.StringList, model2.StringList);
 
-            AssertEnumerable(model1.EnumList, model2.EnumList);
-            AssertEnumerable(model1.EnumListNullable, model2.EnumListNullable);
+            AssertOrderedEnumerable(model1.EnumList, model2.EnumList);
+            AssertOrderedEnumerable(model1.EnumListNullable, model2.EnumListNullable);
 
             if (model1.ClassThing != null)
             {
@@ -1211,6 +1243,96 @@ namespace Zerra.Test
             Assert.AreEqual(model1.Value1, model2.Value1);
             Assert.AreEqual(model1.Value2, model2.Value2);
             Assert.AreEqual(model1.Value3, model2.Value3);
+        }
+
+        public static HashSetModel GetHashSetModel()
+        {
+            var model = new HashSetModel()
+            {
+                BooleanHashSet = new HashSet<bool> { true, false, true },
+                ByteHashSet = new HashSet<byte> { 1, 2, 3 },
+                SByteHashSet = new HashSet<sbyte> { 4, 5, 6 },
+                Int16HashSet = new HashSet<short> { 7, 8, 9 },
+                UInt16HashSet = new HashSet<ushort> { 10, 11, 12 },
+                Int32HashSet = new HashSet<int> { 13, 14, 15 },
+                UInt32HashSet = new HashSet<uint> { 16, 17, 18 },
+                Int64HashSet = new HashSet<long> { 19, 20, 21 },
+                UInt64HashSet = new HashSet<ulong> { 22, 23, 24 },
+                SingleHashSet = new HashSet<float> { 25, 26, 27 },
+                DoubleHashSet = new HashSet<double> { 28, 29, 30 },
+                DecimalHashSet = new HashSet<decimal> { 31, 32, 33 },
+                CharHashSet = new HashSet<char> { 'A', 'B', 'C' },
+                DateTimeHashSet = new HashSet<DateTime> { DateTime.Now.AddMonths(1), DateTime.Now.AddMonths(2), DateTime.Now.AddMonths(3) },
+                DateTimeOffsetHashSet = new HashSet<DateTimeOffset> { DateTimeOffset.Now.AddMonths(4), DateTimeOffset.Now.AddMonths(5), DateTimeOffset.Now.AddMonths(6) },
+                TimeSpanHashSet = new HashSet<TimeSpan> { DateTime.Now.AddHours(1).TimeOfDay, DateTime.Now.AddHours(2).TimeOfDay, DateTime.Now.AddHours(3).TimeOfDay },
+                GuidHashSet = new HashSet<Guid> { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() },
+
+                BooleanHashSetNullable = new HashSet<bool?> { true, null, true },
+                ByteHashSetNullable = new HashSet<byte?> { 1, null, 3 },
+                SByteHashSetNullable = new HashSet<sbyte?> { 4, null, 6 },
+                Int16HashSetNullable = new HashSet<short?> { 7, null, 9 },
+                UInt16HashSetNullable = new HashSet<ushort?> { 10, null, 12 },
+                Int32HashSetNullable = new HashSet<int?> { 13, null, 15 },
+                UInt32HashSetNullable = new HashSet<uint?> { 16, null, 18 },
+                Int64HashSetNullable = new HashSet<long?> { 19, null, 21 },
+                UInt64HashSetNullable = new HashSet<ulong?> { 22, null, 24 },
+                SingleHashSetNullable = new HashSet<float?> { 25, null, 27 },
+                DoubleHashSetNullable = new HashSet<double?> { 28, null, 30 },
+                DecimalHashSetNullable = new HashSet<decimal?> { 31, null, 33 },
+                CharHashSetNullable = new HashSet<char?> { 'A', null, 'C' },
+                DateTimeHashSetNullable = new HashSet<DateTime?> { DateTime.Now.AddMonths(1), null, DateTime.Now.AddMonths(3) },
+                DateTimeOffsetHashSetNullable = new HashSet<DateTimeOffset?> { DateTimeOffset.Now.AddMonths(4), null, DateTimeOffset.Now.AddMonths(6) },
+                TimeSpanHashSetNullable = new HashSet<TimeSpan?> { DateTime.Now.AddHours(1).TimeOfDay, null, DateTime.Now.AddHours(3).TimeOfDay },
+                GuidHashSetNullable = new HashSet<Guid?> { Guid.NewGuid(), null, Guid.NewGuid() },
+
+                StringHashSet = new HashSet<string> { "Hello", "World", "People" },
+            };
+
+            return model;
+        }
+        public static void AssertAreEqual(HashSetModel model1, HashSetModel model2)
+        {
+            Assert.IsNotNull(model1);
+            Assert.IsNotNull(model2);
+            Assert.AreNotEqual(model1, model2);
+
+            AssertUnorderedEnumerable(model1.BooleanHashSet, model2.BooleanHashSet);
+            AssertUnorderedEnumerable(model1.ByteHashSet, model2.ByteHashSet);
+            AssertUnorderedEnumerable(model1.SByteHashSet, model2.SByteHashSet);
+            AssertUnorderedEnumerable(model1.Int16HashSet, model2.Int16HashSet);
+            AssertUnorderedEnumerable(model1.UInt16HashSet, model2.UInt16HashSet);
+            AssertUnorderedEnumerable(model1.Int32HashSet, model2.Int32HashSet);
+            AssertUnorderedEnumerable(model1.UInt32HashSet, model2.UInt32HashSet);
+            AssertUnorderedEnumerable(model1.Int64HashSet, model2.Int64HashSet);
+            AssertUnorderedEnumerable(model1.UInt64HashSet, model2.UInt64HashSet);
+            AssertUnorderedEnumerable(model1.SingleHashSet, model2.SingleHashSet);
+            AssertUnorderedEnumerable(model1.DoubleHashSet, model2.DoubleHashSet);
+            AssertUnorderedEnumerable(model1.DecimalHashSet, model2.DecimalHashSet);
+            AssertUnorderedEnumerable(model1.CharHashSet, model2.CharHashSet);
+            AssertUnorderedEnumerable(model1.DateTimeHashSet, model2.DateTimeHashSet);
+            AssertUnorderedEnumerable(model1.DateTimeOffsetHashSet, model2.DateTimeOffsetHashSet);
+            AssertUnorderedEnumerable(model1.TimeSpanHashSet, model2.TimeSpanHashSet);
+            AssertUnorderedEnumerable(model1.GuidHashSet, model2.GuidHashSet);
+
+            AssertUnorderedEnumerable(model1.BooleanHashSetNullable, model2.BooleanHashSetNullable);
+            AssertUnorderedEnumerable(model1.ByteHashSetNullable, model2.ByteHashSetNullable);
+            AssertUnorderedEnumerable(model1.SByteHashSetNullable, model2.SByteHashSetNullable);
+            AssertUnorderedEnumerable(model1.Int16HashSetNullable, model2.Int16HashSetNullable);
+            AssertUnorderedEnumerable(model1.UInt16HashSetNullable, model2.UInt16HashSetNullable);
+            AssertUnorderedEnumerable(model1.Int32HashSetNullable, model2.Int32HashSetNullable);
+            AssertUnorderedEnumerable(model1.UInt32HashSetNullable, model2.UInt32HashSetNullable);
+            AssertUnorderedEnumerable(model1.Int64HashSetNullable, model2.Int64HashSetNullable);
+            AssertUnorderedEnumerable(model1.UInt64HashSetNullable, model2.UInt64HashSetNullable);
+            AssertUnorderedEnumerable(model1.SingleHashSetNullable, model2.SingleHashSetNullable);
+            AssertUnorderedEnumerable(model1.DoubleHashSetNullable, model2.DoubleHashSetNullable);
+            AssertUnorderedEnumerable(model1.DecimalHashSetNullable, model2.DecimalHashSetNullable);
+            AssertUnorderedEnumerable(model1.CharHashSetNullable, model2.CharHashSetNullable);
+            AssertUnorderedEnumerable(model1.DateTimeHashSetNullable, model2.DateTimeHashSetNullable);
+            AssertUnorderedEnumerable(model1.DateTimeOffsetHashSetNullable, model2.DateTimeOffsetHashSetNullable);
+            AssertUnorderedEnumerable(model1.TimeSpanHashSetNullable, model2.TimeSpanHashSetNullable);
+            AssertUnorderedEnumerable(model1.GuidHashSetNullable, model2.GuidHashSetNullable);
+
+            AssertUnorderedEnumerable(model1.StringHashSet, model2.StringHashSet);
         }
     }
 }

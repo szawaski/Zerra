@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Threading.Tasks;
 using Zerra.Serialization;
 
 namespace Zerra.Test
@@ -214,38 +215,47 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void StreamTypes()
+        public void ByteArrayHashSet()
+        {
+            var model1 = Factory.GetHashSetModel();
+            var bytes = ByteSerializer.Serialize(model1);
+            var model2 = ByteSerializer.Deserialize<HashSetModel>(bytes);
+            Factory.AssertAreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypes()
         {
             var model1 = Factory.GetAllTypesModel();
             using (var ms = new MemoryStream())
             {
-                ByteSerializer.SerializeAsync(ms, model1).GetAwaiter().GetResult();
+                await ByteSerializer.SerializeAsync(ms, model1);
                 ms.Position = 0;
-                var model2 = ByteSerializer.DeserializeAsync<AllTypesModel>(ms).GetAwaiter().GetResult();
+                var model2 = await ByteSerializer.DeserializeAsync<AllTypesModel>(ms);
                 Factory.AssertAreEqual(model1, model2);
             }
         }
 
         [TestMethod]
-        public void StreamDeserializeTypes()
+        public async Task StreamDeserializeTypes()
         {
             var model1 = Factory.GetAllTypesModel();
             var bytes = ByteSerializer.Serialize(model1);
             using (var ms = new MemoryStream(bytes))
             {
-                var model2 = ByteSerializer.DeserializeAsync<AllTypesModel>(ms).GetAwaiter().GetResult();
+                var model2 = await ByteSerializer.DeserializeAsync<AllTypesModel>(ms);
                 Factory.AssertAreEqual(model1, model2);
             }
         }
 
         [TestMethod]
-        public void StreamSerializeTypes()
+        public async Task StreamSerializeTypes()
         {
             var model1 = Factory.GetAllTypesModel();
             byte[] bytes;
             using (var ms = new MemoryStream())
             {
-                ByteSerializer.SerializeAsync(ms, model1).GetAwaiter().GetResult();
+                await ByteSerializer.SerializeAsync(ms, model1);
                 bytes = ms.ToArray();
             }
 
@@ -254,7 +264,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void StreamDeserializeByPropertyName()
+        public async Task StreamDeserializeByPropertyName()
         {
             var options = new ByteSerializerOptions()
             {
@@ -265,13 +275,13 @@ namespace Zerra.Test
             var bytes = ByteSerializer.Serialize(model1, options);
             using (var ms = new MemoryStream(bytes))
             {
-                var model2 = ByteSerializer.DeserializeAsync<AllTypesReversedModel>(ms, options).GetAwaiter().GetResult();
+                var model2 = await ByteSerializer.DeserializeAsync<AllTypesReversedModel>(ms, options);
                 Factory.AssertAreEqual(model1, model2);
             }
         }
 
         [TestMethod]
-        public void StreamSerializeArrayByPropertyName()
+        public async Task StreamSerializeArrayByPropertyName()
         {
             var options = new ByteSerializerOptions()
             {
@@ -282,7 +292,7 @@ namespace Zerra.Test
             byte[] bytes;
             using (var ms = new MemoryStream())
             {
-                ByteSerializer.SerializeAsync(ms, model1, options).GetAwaiter().GetResult();
+                await ByteSerializer.SerializeAsync(ms, model1, options);
                 bytes = ms.ToArray();
             }
 
@@ -291,29 +301,40 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void StreamDeserializeArray()
+        public async Task StreamDeserializeArray()
         {
             var model1 = Factory.GetArrayModel();
             var bytes = ByteSerializer.Serialize(model1);
             using (var ms = new MemoryStream(bytes))
             {
-                var model2 = ByteSerializer.DeserializeAsync<BasicModel[]>(ms).GetAwaiter().GetResult();
+                var model2 = await ByteSerializer.DeserializeAsync<BasicModel[]>(ms);
                 Factory.AssertAreEqual(model1, model2);
             }
         }
 
         [TestMethod]
-        public void StreamSerializeArray()
+        public async Task StreamSerializeArray()
         {
             var model1 = Factory.GetArrayModel();
             byte[] bytes;
             using (var ms = new MemoryStream())
             {
-                ByteSerializer.SerializeAsync(ms, model1).GetAwaiter().GetResult();
+                await ByteSerializer.SerializeAsync(ms, model1);
                 bytes = ms.ToArray();
             }
 
             var model2 = ByteSerializer.Deserialize<BasicModel[]>(bytes);
+            Factory.AssertAreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamHashSet()
+        {
+            var model1 = Factory.GetHashSetModel();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<HashSetModel>(stream);
             Factory.AssertAreEqual(model1, model2);
         }
     }

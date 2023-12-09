@@ -3,7 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Collections;
+using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
@@ -25,7 +25,8 @@ namespace Zerra.Serialization
             public int? StringLength;
             public int? EnumerableLength;
 
-            public IList EnumerableList;
+            public MethodDetail AddMethod;
+            public object[] AddMethodArgs;
             public Array EnumerableArray;
 
             public int EnumerablePosition;

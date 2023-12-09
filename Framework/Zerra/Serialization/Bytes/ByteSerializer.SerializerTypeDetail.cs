@@ -20,6 +20,9 @@ namespace Zerra.Serialization
             public IReadOnlyDictionary<ushort, SerializerMemberDetail> IndexedProperties { get; private set; }
             public TypeDetail TypeDetail { get; private set; }
             public Func<int, object> ListCreator { get; private set; }
+            public MethodDetail ListAdder { get; private set; }
+            public Func<int, object> HashSetCreator { get; private set; }
+            public MethodDetail HashSetAdder { get; private set; }
 
             private SerializerTypeDetail innerTypeDetails = null;
             public SerializerTypeDetail InnerTypeDetail
@@ -46,8 +49,14 @@ namespace Zerra.Serialization
                 this.TypeDetail = TypeAnalyzer.GetTypeDetail(type);
 
                 var listTypeDetail = TypeAnalyzer.GetGenericTypeDetail(genericListType, type);
+                this.ListAdder = listTypeDetail.GetMethod("Add");
                 var listCreator = listTypeDetail.GetConstructor(typeof(int)).Creator;
                 this.ListCreator = (length) => { return listCreator(new object[] { length }); };
+
+                var hashSetTypeDetail = TypeAnalyzer.GetGenericTypeDetail(genericHashSetType, type);
+                this.HashSetAdder = hashSetTypeDetail.GetMethod("Add");
+                var hashSetCreator = hashSetTypeDetail.GetConstructor(typeof(int)).Creator;
+                this.HashSetCreator = (length) => { return hashSetCreator(new object[] { length }); };
 
                 if (!this.Type.IsEnum && !this.TypeDetail.CoreType.HasValue && !this.TypeDetail.SpecialType.HasValue && !this.TypeDetail.IsNullable && !this.TypeDetail.IsIEnumerableGeneric)
                 {

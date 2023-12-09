@@ -10,7 +10,6 @@ namespace Zerra.Test
     public class AllTypesReversedModel
     {
         public string[][] StringArrayOfArrayThing { get; set; }
-
         public Dictionary<int, string> DictionaryThing { get; set; }
 
         public List<BasicModel> ClassList { get; set; }

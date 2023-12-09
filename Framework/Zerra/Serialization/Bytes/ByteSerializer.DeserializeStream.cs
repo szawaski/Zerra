@@ -1696,8 +1696,10 @@ namespace Zerra.Serialization
                         {
                             if (!state.CurrentFrame.HasObjectStarted)
                             {
-                                state.CurrentFrame.EnumerableList = (IList)typeDetail.ListCreator(length);
-                                state.CurrentFrame.ResultObject = state.CurrentFrame.EnumerableList;
+                                state.CurrentFrame.ResultObject = typeDetail.ListCreator(length);
+                                state.CurrentFrame.AddMethod = typeDetail.ListAdder;
+                                state.CurrentFrame.AddMethodArgs = new object[1];
+
                                 state.CurrentFrame.HasObjectStarted = true;
                             }
 
@@ -1715,7 +1717,9 @@ namespace Zerra.Serialization
                                     }
                                     if (!stringLength.HasValue)
                                     {
-                                        _ = state.CurrentFrame.EnumerableList.Add(null);
+                                        state.CurrentFrame.AddMethodArgs[0] = null;
+                                        state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+
                                         state.CurrentFrame.EnumerablePosition++;
                                         if (state.CurrentFrame.EnumerablePosition == length)
                                             break;
@@ -1736,7 +1740,8 @@ namespace Zerra.Serialization
                                 }
                                 state.CurrentFrame.StringLength = null;
 
-                                _ = state.CurrentFrame.EnumerableList.Add(str);
+                                state.CurrentFrame.AddMethodArgs[0] = str;
+                                state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
                                 state.CurrentFrame.EnumerablePosition++;
                                 if (state.CurrentFrame.EnumerablePosition == length)
                                     break;
@@ -2153,6 +2158,7 @@ namespace Zerra.Serialization
             var typeDetail = state.CurrentFrame.TypeDetail;
             var nullFlags = true;
             var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList;
+            var asSet = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsISet;
             typeDetail = typeDetail.InnerTypeDetail;
 
             int length;
@@ -2168,15 +2174,23 @@ namespace Zerra.Serialization
 
                 if (!state.CurrentFrame.DrainBytes)
                 {
-                    if (!asList)
+                    if (asList)
                     {
-                        state.CurrentFrame.EnumerableArray = Array.CreateInstance(typeDetail.Type, length);
-                        state.CurrentFrame.ResultObject = state.CurrentFrame.EnumerableArray;
+                        state.CurrentFrame.ResultObject = typeDetail.ListCreator(length);
+                        state.CurrentFrame.AddMethod = typeDetail.ListAdder;
+                        state.CurrentFrame.AddMethodArgs = new object[1];
+                    }
+                    else if (asSet)
+                    {
+                        state.CurrentFrame.ResultObject = typeDetail.HashSetCreator(length);
+                        state.CurrentFrame.AddMethod = typeDetail.HashSetAdder;
+                        state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else
                     {
-                        state.CurrentFrame.EnumerableList = (IList)typeDetail.ListCreator(length);
-                        state.CurrentFrame.ResultObject = state.CurrentFrame.EnumerableList;
+                        state.CurrentFrame.EnumerableArray = Array.CreateInstance(typeDetail.Type, length);
+                        state.CurrentFrame.ResultObject = state.CurrentFrame.EnumerableArray;
+                        state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                 }
 
@@ -2368,9 +2382,14 @@ namespace Zerra.Serialization
                 if (!state.CurrentFrame.DrainBytes)
                 {
                     if (asList)
-                        _ = state.CurrentFrame.EnumerableList.Add(enumValue);
+                    {
+                        state.CurrentFrame.AddMethodArgs[0] = enumValue;
+                        state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                    }
                     else
+                    {
                         state.CurrentFrame.EnumerableArray.SetValue(enumValue, state.CurrentFrame.EnumerablePosition);
+                    }
                 }
                 state.CurrentFrame.EnumerablePosition++;
 
@@ -2392,6 +2411,7 @@ namespace Zerra.Serialization
             var typeDetail = state.CurrentFrame.TypeDetail;
 
             var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList;
+            var asSet = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsISet;
             typeDetail = typeDetail.InnerTypeDetail;
 
             int length;
@@ -2407,15 +2427,22 @@ namespace Zerra.Serialization
 
                 if (!state.CurrentFrame.DrainBytes)
                 {
-                    if (!asList)
+                    if (asList)
                     {
-                        state.CurrentFrame.EnumerableArray = Array.CreateInstance(typeDetail.Type, length);
-                        state.CurrentFrame.ResultObject = state.CurrentFrame.EnumerableArray;
+                        state.CurrentFrame.ResultObject = typeDetail.ListCreator(length);
+                        state.CurrentFrame.AddMethod = typeDetail.ListAdder;
+                        state.CurrentFrame.AddMethodArgs = new object[1];
+                    }
+                    else if (asSet)
+                    {
+                        state.CurrentFrame.ResultObject = typeDetail.HashSetCreator(length);
+                        state.CurrentFrame.AddMethod = typeDetail.HashSetAdder;
+                        state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else
                     {
-                        state.CurrentFrame.EnumerableList = (IList)typeDetail.ListCreator(length);
-                        state.CurrentFrame.ResultObject = state.CurrentFrame.EnumerableList;
+                        state.CurrentFrame.EnumerableArray = Array.CreateInstance(typeDetail.Type, length);
+                        state.CurrentFrame.ResultObject = state.CurrentFrame.EnumerableArray;
                     }
                 }
 
@@ -2441,7 +2468,10 @@ namespace Zerra.Serialization
                     if (isNull)
                     {
                         if (asList)
-                            _ = state.CurrentFrame.EnumerableList.Add(null);
+                        {
+                            state.CurrentFrame.AddMethodArgs[0] = null;
+                            state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                        }
                         state.CurrentFrame.EnumerablePosition++;
                         if (state.CurrentFrame.EnumerablePosition == length)
                         {
@@ -2464,9 +2494,14 @@ namespace Zerra.Serialization
                 if (!state.CurrentFrame.DrainBytes)
                 {
                     if (asList)
-                        _ = state.CurrentFrame.EnumerableList.Add(state.LastFrameResultObject);
+                    {
+                        state.CurrentFrame.AddMethodArgs[0] = state.LastFrameResultObject;
+                        state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                    }
                     else
+                    {
                         state.CurrentFrame.EnumerableArray.SetValue(state.LastFrameResultObject, state.CurrentFrame.EnumerablePosition);
+                    }
                 }
                 state.CurrentFrame.HasObjectStarted = false;
                 state.CurrentFrame.HasNullChecked = false;
