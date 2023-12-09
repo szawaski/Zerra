@@ -1331,6 +1331,7 @@ namespace Zerra.Serialization
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList;
+            var asSet = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsISet;
             typeDetail = typeDetail.InnerTypeDetail;
 
             int sizeNeeded;
@@ -1698,6 +1699,411 @@ namespace Zerra.Serialization
                             {
                                 state.CurrentFrame.ResultObject = typeDetail.ListCreator(length);
                                 state.CurrentFrame.AddMethod = typeDetail.ListAdder;
+                                state.CurrentFrame.AddMethodArgs = new object[1];
+
+                                state.CurrentFrame.HasObjectStarted = true;
+                            }
+
+                            if (length == 0)
+                                break;
+
+                            for (; ; )
+                            {
+                                if (!state.CurrentFrame.StringLength.HasValue)
+                                {
+                                    if (!reader.TryReadStringLength(true, out var stringLength, out sizeNeeded))
+                                    {
+                                        state.BytesNeeded = sizeNeeded;
+                                        return;
+                                    }
+                                    if (!stringLength.HasValue)
+                                    {
+                                        state.CurrentFrame.AddMethodArgs[0] = null;
+                                        state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+
+                                        state.CurrentFrame.EnumerablePosition++;
+                                        if (state.CurrentFrame.EnumerablePosition == length)
+                                            break;
+                                        continue;
+                                    }
+                                    state.CurrentFrame.StringLength = stringLength;
+                                }
+
+                                string str;
+                                if (state.CurrentFrame.StringLength.Value == 0)
+                                {
+                                    str = String.Empty;
+                                }
+                                else if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out str, out sizeNeeded))
+                                {
+                                    state.BytesNeeded = sizeNeeded;
+                                    return;
+                                }
+                                state.CurrentFrame.StringLength = null;
+
+                                state.CurrentFrame.AddMethodArgs[0] = str;
+                                state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                                state.CurrentFrame.EnumerablePosition++;
+                                if (state.CurrentFrame.EnumerablePosition == length)
+                                    break;
+                            }
+                            break;
+                        }
+                    default: throw new NotImplementedException();
+                };
+            }
+            else if (asSet)
+            {
+                switch (typeDetail.TypeDetail.CoreType)
+                {
+                    case CoreType.Boolean:
+                        {
+                            if (!reader.TryReadBooleanHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.Byte:
+                        {
+                            if (!reader.TryReadByteHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.SByte:
+                        {
+                            if (!reader.TryReadSByteHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.Int16:
+                        {
+                            if (!reader.TryReadInt16HashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.UInt16:
+                        {
+                            if (!reader.TryReadUInt16HashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.Int32:
+                        {
+                            if (!reader.TryReadInt32HashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.UInt32:
+                        {
+                            if (!reader.TryReadUInt32HashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.Int64:
+                        {
+                            if (!reader.TryReadInt64HashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.UInt64:
+                        {
+                            if (!reader.TryReadUInt64HashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.Single:
+                        {
+                            if (!reader.TryReadSingleHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.Double:
+                        {
+                            if (!reader.TryReadDoubleHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.Decimal:
+                        {
+                            if (!reader.TryReadDecimalHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.Char:
+                        {
+                            if (!reader.TryReadCharHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.DateTime:
+                        {
+                            if (!reader.TryReadDateTimeHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.DateTimeOffset:
+                        {
+                            if (!reader.TryReadDateTimeOffsetHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.TimeSpan:
+                        {
+                            if (!reader.TryReadTimeSpanHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.Guid:
+                        {
+                            if (!reader.TryReadGuidHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+
+                    case CoreType.BooleanNullable:
+                        {
+                            if (!reader.TryReadBooleanNullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.ByteNullable:
+                        {
+                            if (!reader.TryReadByteNullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.SByteNullable:
+                        {
+                            if (!reader.TryReadSByteNullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.Int16Nullable:
+                        {
+                            if (!reader.TryReadInt16NullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.UInt16Nullable:
+                        {
+                            if (!reader.TryReadUInt16NullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.Int32Nullable:
+                        {
+                            if (!reader.TryReadInt32NullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.UInt32Nullable:
+                        {
+                            if (!reader.TryReadUInt32NullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.Int64Nullable:
+                        {
+                            if (!reader.TryReadInt64NullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.UInt64Nullable:
+                        {
+                            if (!reader.TryReadUInt64NullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.SingleNullable:
+                        {
+                            if (!reader.TryReadSingleNullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.DoubleNullable:
+                        {
+                            if (!reader.TryReadDoubleNullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.DecimalNullable:
+                        {
+                            if (!reader.TryReadDecimalNullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.CharNullable:
+                        {
+                            if (!reader.TryReadCharNullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.DateTimeNullable:
+                        {
+                            if (!reader.TryReadDateTimeNullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.DateTimeOffsetNullable:
+                        {
+                            if (!reader.TryReadDateTimeOffsetNullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.TimeSpanNullable:
+                        {
+                            if (!reader.TryReadTimeSpanNullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.GuidNullable:
+                        {
+                            if (!reader.TryReadGuidNullableHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+
+                    case CoreType.String:
+                        {
+                            if (!state.CurrentFrame.HasObjectStarted)
+                            {
+                                state.CurrentFrame.ResultObject = typeDetail.HashSetCreator(length);
+                                state.CurrentFrame.AddMethod = typeDetail.HashSetAdder;
                                 state.CurrentFrame.AddMethodArgs = new object[1];
 
                                 state.CurrentFrame.HasObjectStarted = true;

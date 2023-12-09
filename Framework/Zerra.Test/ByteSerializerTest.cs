@@ -332,9 +332,9 @@ namespace Zerra.Test
         {
             var model1 = Factory.GetHashSetModel();
             using var stream = new MemoryStream();
-            await JsonSerializer.SerializeAsync(stream, model1);
+            await ByteSerializer.SerializeAsync(stream, model1);
             stream.Position = 0;
-            var model2 = await JsonSerializer.DeserializeAsync<HashSetModel>(stream);
+            var model2 = await ByteSerializer.DeserializeAsync<HashSetModel>(stream);
             Factory.AssertAreEqual(model1, model2);
         }
     }
