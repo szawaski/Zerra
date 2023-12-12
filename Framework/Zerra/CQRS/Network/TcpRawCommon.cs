@@ -107,7 +107,7 @@ namespace Zerra.CQRS.Network
                 }
 
                 if (propertyIndex != 3)
-                    throw new Exception("Invalid Header");
+                    throw new CqrsNetworkException("Invalid Header");
 
                 var isError = prefix == protocolErrorPrefix;
 

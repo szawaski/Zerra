@@ -61,7 +61,7 @@ namespace Zerra.CQRS.Network
                         while (!requestHeaderEnd)
                         {
                             if (headerLength == buffer.Length)
-                                throw new Exception($"{nameof(TcpRawCqrsServer)} Header Too Long");
+                                throw new CqrsNetworkException($"{nameof(TcpRawCqrsServer)} Header Too Long");
 
 #if NETSTANDARD2_0
                             var bytesRead = await stream.ReadAsync(bufferOwner, headerLength, buffer.Length - headerLength, cancellationToken);
@@ -80,7 +80,7 @@ namespace Zerra.CQRS.Network
                         if (!requestHeader.ContentType.HasValue || (contentType.HasValue && requestHeader.ContentType.HasValue && requestHeader.ContentType != contentType))
                         {
                             _ = Log.ErrorAsync($"{nameof(TcpRawCqrsServer)} Received Invalid Content Type {requestHeader.ContentType}");
-                            throw new Exception("Invalid Content Type");
+                            throw new CqrsNetworkException("Invalid Content Type");
                         }
 
                         //Read Request Body
@@ -93,7 +93,7 @@ namespace Zerra.CQRS.Network
 
                         var data = await ContentTypeSerializer.DeserializeAsync<CQRSRequestData>(requestHeader.ContentType.Value, requestBodyStream);
                         if (data == null)
-                            throw new Exception("Empty request body");
+                            throw new CqrsNetworkException("Empty request body");
 
 #if NETSTANDARD2_0
                         requestBodyStream.Dispose();
@@ -122,7 +122,7 @@ namespace Zerra.CQRS.Network
                             var typeDetail = TypeAnalyzer.GetTypeDetail(providerType);
 
                             if (!this.interfaceTypes.Contains(providerType))
-                                throw new Exception($"Unhandled Provider Type {providerType.FullName}");
+                                throw new CqrsNetworkException($"Unhandled Provider Type {providerType.FullName}");
 
                             inHandlerContext = true;
                             var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, false);
@@ -201,16 +201,16 @@ namespace Zerra.CQRS.Network
                         {
                             isCommand = true;
                             if (!commandCounter.BeginReceive())
-                                throw new Exception("Cannot receive any more commands");
+                                throw new CqrsNetworkException("Cannot receive any more commands");
 
                             var commandType = Discovery.GetTypeFromName(data.MessageType);
                             var typeDetail = TypeAnalyzer.GetTypeDetail(commandType);
 
                             if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
-                                throw new Exception($"Type {data.MessageType} is not a command");
+                                throw new CqrsNetworkException($"Type {data.MessageType} is not a command");
 
                             if (!this.commandTypes.Contains(commandType))
-                                throw new Exception($"Unhandled Command Type {commandType.FullName}");
+                                throw new CqrsNetworkException($"Unhandled Command Type {commandType.FullName}");
 
                             var command = (ICommand)JsonSerializer.Deserialize(commandType, data.MessageData);
 
@@ -238,17 +238,15 @@ namespace Zerra.CQRS.Network
                             continue;
                         }
 
-                        throw new Exception("Invalid Request");
+                        throw new CqrsNetworkException("Invalid Request");
                     }
                     catch (Exception ex)
                     {
                         if (!inHandlerContext)
+                        {
                             _ = Log.ErrorAsync(null, ex);
-
-                        if (ex is ConnectionAbortedException)
-                            return; //aborted
-                        if (ex.GetBaseException() is SocketException)
-                            return; //aborted
+                            return; //aborted or network error
+                        }
 
                         if (socket.Connected && !responseStarted && requestHeader != null && requestHeader.ContentType.HasValue)
                         {

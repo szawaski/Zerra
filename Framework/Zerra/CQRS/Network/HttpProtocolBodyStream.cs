@@ -184,7 +184,7 @@ namespace Zerra.CQRS.Network
 #endif
                         segmentLength = Int32.Parse(segmentLengthString, NumberStyles.HexNumber);
                         if (segmentLength < 0)
-                            throw new Exception("Bad Data");
+                            throw new CqrsNetworkException("Bad Data");
                     }
 
                     if (segmentLength == 0)
@@ -290,7 +290,7 @@ namespace Zerra.CQRS.Network
                         while (segmentLengthBufferLength < segmentLengthBufferMaxLength)
                         {
                             if (segmentLengthBufferLength == segmentLengthBufferMaxLength)
-                                throw new EndOfStreamException();
+                                throw new CqrsNetworkException();
 
                             if (readStartBufferPosition < readStartBuffer.Length)
                             {
@@ -334,7 +334,7 @@ namespace Zerra.CQRS.Network
 #endif
                         segmentLength = Int32.Parse(segmentLengthString, NumberStyles.HexNumber);
                         if (segmentLength < 0)
-                            throw new Exception("Bad Data");
+                            throw new CqrsNetworkException("Bad Data");
                     }
 
                     if (segmentLength == 0)
@@ -438,7 +438,7 @@ namespace Zerra.CQRS.Network
         public override void Flush()
         {
             if (ended)
-                throw new Exception("body already ended");
+                throw new CqrsNetworkException("body already ended");
             ended = true;
 #if NETSTANDARD2_0
             stream.Write(endingBytes, 0, endingBytes.Length);
@@ -451,7 +451,7 @@ namespace Zerra.CQRS.Network
         public override async Task FlushAsync(CancellationToken cancellationToken)
         {
             if (ended)
-                throw new Exception("body already ended");
+                throw new CqrsNetworkException("body already ended");
             ended = true;
 #if NETSTANDARD2_0
             await stream.WriteAsync(endingBytes, 0, endingBytes.Length, cancellationToken);

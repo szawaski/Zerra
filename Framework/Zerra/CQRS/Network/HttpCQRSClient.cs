@@ -44,6 +44,7 @@ namespace Zerra.CQRS.Network
             CryptoFlushStream requestBodyCryptoStream = null;
             Stream responseBodyStream = null;
             var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
+            var isThrowingRemote = false;
             try
             {
                 string[][] claims = null;
@@ -104,7 +105,7 @@ namespace Zerra.CQRS.Network
                 while (!headerEnd)
                 {
                     if (headerLength == buffer.Length)
-                        throw new Exception($"{nameof(HttpCqrsClient)} Header Too Long");
+                        throw new CqrsNetworkException($"{nameof(HttpCqrsClient)} Header Too Long");
 
 #if NETSTANDARD2_0
                     var bytesRead = stream.Read(bufferOwner, headerPosition, buffer.Length - headerPosition);
@@ -135,6 +136,7 @@ namespace Zerra.CQRS.Network
                 if (responseHeader.IsError)
                 {
                     var responseException = ContentTypeSerializer.DeserializeException(contentType, responseBodyStream);
+                    isThrowingRemote = true;
                     throw responseException;
                 }
 
@@ -157,8 +159,16 @@ namespace Zerra.CQRS.Network
                     requestBodyCryptoStream.Dispose();
                 if (requestBodyStream != null)
                     requestBodyStream.Dispose();
-                if (stream != null)
-                    stream.Dispose();
+                if (isThrowingRemote)
+                {
+                    if (stream != null)
+                        stream.Dispose();
+                }
+                else
+                {
+                    if (stream != null)
+                        stream.DisposeSocket();
+                }
                 throw;
             }
             finally
@@ -177,6 +187,7 @@ namespace Zerra.CQRS.Network
             CryptoFlushStream requestBodyCryptoStream = null;
             Stream responseBodyStream = null;
             var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
+            var isThrowingRemote = false;
             try
             {
                 string[][] claims = null;
@@ -249,7 +260,7 @@ namespace Zerra.CQRS.Network
                 while (!headerEnd)
                 {
                     if (headerLength == buffer.Length)
-                        throw new Exception($"{nameof(HttpCqrsClient)} Header Too Long");
+                        throw new CqrsNetworkException($"{nameof(HttpCqrsClient)} Header Too Long");
 
 #if NETSTANDARD2_0
                     var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition);
@@ -280,6 +291,7 @@ namespace Zerra.CQRS.Network
                 if (responseHeader.IsError)
                 {
                     var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream);
+                    isThrowingRemote = true;
                     throw responseException;
                 }
 
@@ -324,13 +336,15 @@ namespace Zerra.CQRS.Network
                     await requestBodyCryptoStream.DisposeAsync();
 #endif
                 }
-                if (stream != null)
+                if (isThrowingRemote)
                 {
-#if NETSTANDARD2_0
-                    stream.Dispose();
-#else
-                    await stream.DisposeAsync();
-#endif
+                    if (stream != null)
+                        stream.Dispose();
+                }
+                else
+                {
+                    if (stream != null)
+                        stream.DisposeSocket();
                 }
                 throw;
             }
@@ -350,6 +364,7 @@ namespace Zerra.CQRS.Network
             CryptoFlushStream requestBodyCryptoStream = null;
             Stream responseBodyStream = null;
             var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
+            var isThrowingRemote = false;
             try
             {
                 var messageTypeName = commandType.GetNiceName();
@@ -427,7 +442,7 @@ namespace Zerra.CQRS.Network
                 while (!headerEnd)
                 {
                     if (headerLength == buffer.Length)
-                        throw new Exception($"{nameof(HttpCqrsClient)} Header Too Long");
+                        throw new CqrsNetworkException($"{nameof(HttpCqrsClient)} Header Too Long");
 
 #if NETSTANDARD2_0
                     var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition);
@@ -458,6 +473,7 @@ namespace Zerra.CQRS.Network
                 if (responseHeader.IsError)
                 {
                     var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream);
+                    isThrowingRemote = true;
                     throw responseException;
                 }
 
@@ -493,13 +509,15 @@ namespace Zerra.CQRS.Network
                     await requestBodyCryptoStream.DisposeAsync();
 #endif
                 }
-                if (stream != null)
+                if (isThrowingRemote)
                 {
-#if NETSTANDARD2_0
-                    stream.Dispose();
-#else
-                    await stream.DisposeAsync();
-#endif
+                    if (stream != null)
+                        stream.Dispose();
+                }
+                else
+                {
+                    if (stream != null)
+                        stream.DisposeSocket();
                 }
                 throw;
             }

@@ -219,7 +219,7 @@ namespace Zerra.CQRS.Network
                     else if (String.Equals(contentTypeHeaderValue[0], ContentTypeJsonNameless, StringComparison.InvariantCultureIgnoreCase))
                         headerInfo.ContentType = ContentType.JsonNameless;
                     else
-                        throw new Exception("Invalid Header");
+                        throw new CqrsNetworkException("Invalid Header");
                 }
 
                 if (headers.TryGetValue(ContentLengthHeader, out var contentLengthHeaderValue))

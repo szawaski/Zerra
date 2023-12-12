@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.CQRS.Network
 {
-    public sealed class ConnectionFailedException : Exception
+    public sealed class ConnectionFailedException : CqrsNetworkException
     {
         public ConnectionFailedException() : base("Failed to establish a connection") { }
         public ConnectionFailedException(Exception innerException) : base("Failed to establish a connection", innerException) { }
