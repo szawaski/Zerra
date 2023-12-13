@@ -91,6 +91,8 @@ namespace Zerra.CQRS.Network
                                             var contentTypeString = new string(pChars, startIndex, indexLength);
                                             if (Int32.TryParse(contentTypeString, out var contentTypeValue))
                                                 contentType = (ContentType)contentTypeValue;
+                                            else
+                                                throw new CqrsNetworkException("Invalid Header");
 
                                             startIndex = index + 1;
                                             indexLength = 0;
@@ -106,7 +108,7 @@ namespace Zerra.CQRS.Network
                     }
                 }
 
-                if (propertyIndex != 3)
+                if (propertyIndex != 3 || !contentType.HasValue)
                     throw new CqrsNetworkException("Invalid Header");
 
                 var isError = prefix == protocolErrorPrefix;
