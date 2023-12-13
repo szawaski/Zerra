@@ -150,7 +150,7 @@ namespace Zerra.CQRS.Network
                         return model;
                     }
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     try
                     {
@@ -327,7 +327,7 @@ namespace Zerra.CQRS.Network
                         return model;
                     }
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     if (responseBodyStream != null)
                     {
@@ -519,7 +519,7 @@ namespace Zerra.CQRS.Network
 #endif
                     }
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     if (responseBodyStream != null)
                     {

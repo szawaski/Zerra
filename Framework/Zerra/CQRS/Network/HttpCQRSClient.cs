@@ -331,7 +331,7 @@ namespace Zerra.CQRS.Network
                         return model;
                     }
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     if (responseBodyStream != null)
                     {
