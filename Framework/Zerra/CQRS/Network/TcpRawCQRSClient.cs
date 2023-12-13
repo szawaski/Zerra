@@ -111,9 +111,15 @@ namespace Zerra.CQRS.Network
                         {
                             stream.DisposeSocket();
                             if (stream.NewConnection)
+                            {
+                                stream = null;
                                 throw new ConnectionAbortedException();
-                            stream = null;
-                            goto newconnection;
+                            }
+                            else
+                            {
+                                stream = null;
+                                goto newconnection;
+                            }
                         }
                         headerLength += bytesRead;
 
@@ -144,7 +150,7 @@ namespace Zerra.CQRS.Network
                         return model;
                     }
                 }
-                catch
+                catch(Exception ex)
                 {
                     try
                     {
@@ -168,6 +174,7 @@ namespace Zerra.CQRS.Network
                             stream.DisposeSocket();
                             if (!stream.NewConnection)
                             {
+                                _ = Log.ErrorAsync(null, ex);
                                 stream = null;
                                 goto newconnection;
                             }
@@ -273,9 +280,15 @@ namespace Zerra.CQRS.Network
                         {
                             stream.DisposeSocket();
                             if (stream.NewConnection)
+                            {
+                                stream = null;
                                 throw new ConnectionAbortedException();
-                            stream = null;
-                            goto newconnection;
+                            }
+                            else
+                            {
+                                stream = null;
+                                goto newconnection;
+                            }
                         }
                         headerLength += bytesRead;
 
@@ -314,7 +327,7 @@ namespace Zerra.CQRS.Network
                         return model;
                     }
                 }
-                catch
+                catch(Exception ex)
                 {
                     if (responseBodyStream != null)
                     {
@@ -357,6 +370,7 @@ namespace Zerra.CQRS.Network
                             stream.DisposeSocket();
                             if (!stream.NewConnection)
                             {
+                                _ = Log.ErrorAsync(null, ex);
                                 stream = null;
                                 goto newconnection;
                             }
@@ -467,9 +481,15 @@ namespace Zerra.CQRS.Network
                         {
                             stream.DisposeSocket();
                             if (stream.NewConnection)
+                            {
+                                stream = null;
                                 throw new ConnectionAbortedException();
-                            stream = null;
-                            goto newconnection;
+                            }
+                            else
+                            {
+                                stream = null;
+                                goto newconnection;
+                            }
                         }
                         headerLength += bytesRead;
 
@@ -499,7 +519,7 @@ namespace Zerra.CQRS.Network
 #endif
                     }
                 }
-                catch
+                catch(Exception ex)
                 {
                     if (responseBodyStream != null)
                     {
@@ -537,6 +557,7 @@ namespace Zerra.CQRS.Network
                             stream.DisposeSocket();
                             if (!stream.NewConnection)
                             {
+                                _ = Log.ErrorAsync(null, ex);
                                 stream = null;
                                 goto newconnection;
                             }
