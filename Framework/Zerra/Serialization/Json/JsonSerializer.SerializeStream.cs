@@ -977,7 +977,7 @@ namespace Zerra.Serialization
                         break;
                     case 4: //Member Name
                         var member = state.CurrentFrame.MemberEnumerator.Current;
-                        if (!writer.TryWrite(member.Name, out sizeNeeded))
+                        if (!writer.TryWrite(GetMemberName(member), out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -2382,7 +2382,7 @@ namespace Zerra.Serialization
                 }
                 if (state.CurrentFrame.State == 9)
                 {
-                    if (!writer.TryWrite(state.CurrentFrame.MemberEnumerator.Current.Name, out sizeNeeded))
+                    if (!writer.TryWrite(GetMemberName(state.CurrentFrame.MemberEnumerator.Current), out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;

@@ -216,7 +216,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void SetValue<T>(TypeDetail typeDetail, T model, string name, string value)
         {
-            if (!typeDetail.TryGetMemberCaseInsensitive(name, out var member))
+            if (!typeDetail.TryGetSerializableMemberCaseInsensitive(name, out var member))
                 return;
 
             if (!TypeLookup.CoreTypeLookup(member.Type, out var coreType))

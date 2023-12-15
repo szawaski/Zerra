@@ -208,7 +208,7 @@ namespace Zerra.Serialization
                 if (!options.Nameless)
                 {
                     writer.Write('\"');
-                    writer.Write(member.Name);
+                    writer.Write(GetMemberName(member));
                     writer.Write('\"');
                     writer.Write(':');
                 }
@@ -368,7 +368,7 @@ namespace Zerra.Serialization
                             if (!options.Nameless)
                             {
                                 writer.Write('\"');
-                                writer.Write(member.Name);
+                                writer.Write(GetMemberName(member));
                                 writer.Write('\"');
                                 writer.Write(':');
                             }

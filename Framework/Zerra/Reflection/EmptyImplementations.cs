@@ -114,7 +114,7 @@ namespace Zerra.Reflection
             foreach (var property in properties)
             {
                 var fieldBuilder = typeBuilder.DefineField(
-                    "_" + property.Name,
+                    $"<{property.Name}>k__BackingField",
                     property.PropertyType,
                     FieldAttributes.Private
                 );

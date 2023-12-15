@@ -753,6 +753,36 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void StringPropertyName()
+        {
+            var baseModel = new JsonNameTestModel()
+            {
+                _1_Property = 5,
+                property2 = 7,
+                _3_Property = new BasicModel()
+                {
+                    Value1 = 10,
+                    Value2 = "11"
+                }
+            };
+
+            var json = JsonSerializer.Serialize(baseModel);
+
+            Assert.IsTrue(json.Contains("\"1property\""));
+            Assert.IsTrue(json.Contains("\"property2\""));
+            Assert.IsTrue(json.Contains("\"3property\""));
+
+            json.Replace("\"property2\"", "\"PROPERTY2\"");
+
+            var model = JsonSerializer.Deserialize<JsonNameTestModel>(json);
+            Assert.AreEqual(baseModel._1_Property, model._1_Property);
+            Assert.AreEqual(baseModel.property2, model.property2);
+            Assert.IsNotNull(model._3_Property);
+            Assert.AreEqual(baseModel._3_Property.Value1, model._3_Property.Value1);
+            Assert.AreEqual(baseModel._3_Property.Value2, model._3_Property.Value2);
+        }
+
+        [TestMethod]
         public async Task StreamMatchesNewtonsoft()
         {
             var baseModel = Factory.GetAllTypesModel();
@@ -812,7 +842,7 @@ namespace Zerra.Test
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, baseModel);
             stream.Position = 0;
-            using var sr = new StreamReader(stream);
+            using var sr = new StreamReader(stream, Encoding.UTF8);
             var json = sr.ReadToEnd();
 
             stream.Position = 0;
@@ -833,7 +863,7 @@ namespace Zerra.Test
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, baseModel, options);
             stream.Position = 0;
-            using var sr = new StreamReader(stream);
+            using var sr = new StreamReader(stream, Encoding.UTF8);
             var json = sr.ReadToEnd();
 
             Assert.IsFalse(json.Contains(EnumModel.EnumItem0.EnumName()));
@@ -1628,11 +1658,47 @@ namespace Zerra.Test
             await JsonSerializer.SerializeAsync(stream, baseModel);
 
             stream.Position = 0;
-            using var sr = new StreamReader(stream);
+            using var sr = new StreamReader(stream, Encoding.UTF8);
             var json = await sr.ReadToEndAsync();
 
             stream.Position = 0;
             var model = await JsonSerializer.DeserializeAsync<TestBoxingModel>(stream);
+        }
+
+        [TestMethod]
+        public async Task StreamPropertyName()
+        {
+            var baseModel = new JsonNameTestModel()
+            {
+                _1_Property = 5,
+                property2 = 7,
+                _3_Property = new BasicModel()
+                {
+                    Value1 = 10,
+                    Value2 = "11"
+                }
+            };
+
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, baseModel);
+
+            stream.Position = 0;
+            using var sr = new StreamReader(stream, Encoding.UTF8);
+            var json = await sr.ReadToEndAsync();
+
+            Assert.IsTrue(json.Contains("\"1property\""));
+            Assert.IsTrue(json.Contains("\"property2\""));
+            Assert.IsTrue(json.Contains("\"3property\""));
+
+            json.Replace("\"property2\"", "\"PROPERTY2\"");
+
+            using var stream2 = new MemoryStream(Encoding.UTF8.GetBytes(json));
+            var model = await JsonSerializer.DeserializeAsync<JsonNameTestModel>(stream2);
+            Assert.AreEqual(baseModel._1_Property, model._1_Property);
+            Assert.AreEqual(baseModel.property2, model.property2);
+            Assert.IsNotNull(model._3_Property);
+            Assert.AreEqual(baseModel._3_Property.Value1, model._3_Property.Value1);
+            Assert.AreEqual(baseModel._3_Property.Value2, model._3_Property.Value2);
         }
     }
 }

@@ -5,6 +5,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -423,32 +424,6 @@ namespace Zerra.Reflection
             return this.membersByName.TryGetValue(name, out member);
         }
 
-        private IDictionary<string, MemberDetail> membersByNameLower = null;
-        public MemberDetail GetMemberCaseInsensitive(string name)
-        {
-            if (membersByNameLower == null)
-            {
-                lock (locker)
-                {
-                    membersByNameLower ??= this.MemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First());
-                }
-            }
-            if (!this.membersByNameLower.TryGetValue(name.ToLower(), out var member))
-                throw new Exception($"{Type.Name} does not contain member {name}");
-            return member;
-        }
-        public bool TryGetMemberCaseInsensitive(string name, out MemberDetail member)
-        {
-            if (membersByNameLower == null)
-            {
-                lock (locker)
-                {
-                    membersByNameLower ??= this.MemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First());
-                }
-            }
-            return this.membersByNameLower.TryGetValue(name.ToLower(), out member);
-        }
-
         private readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> methodLookups = new();
         private MethodDetail GetMethodInternal(string name, Type[] parameterTypes = null)
         {
@@ -561,6 +536,32 @@ namespace Zerra.Reflection
             }
         }
 
+        private Dictionary<string, MemberDetail> serializableMembersByNameLower = null;
+        public MemberDetail GetSerializableMemberCaseInsensitive(string name)
+        {
+            if (serializableMembersByNameLower == null)
+            {
+                lock (locker)
+                {
+                    serializableMembersByNameLower ??= this.SerializableMemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First(), new StringOrdinalIgnoreCaseComparer());
+                }
+            }
+            if (!this.serializableMembersByNameLower.TryGetValue(name, out var member))
+                throw new Exception($"{Type.Name} does not contain member {name}");
+            return member;
+        }
+        public bool TryGetSerializableMemberCaseInsensitive(string name, out MemberDetail member)
+        {
+            if (serializableMembersByNameLower == null)
+            {
+                lock (locker)
+                {
+                    serializableMembersByNameLower ??= this.SerializableMemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First(), new StringOrdinalIgnoreCaseComparer());
+                }
+            }
+            return this.serializableMembersByNameLower.TryGetValue(name, out member);
+        }
+
         private IDictionary<string, MemberDetail> membersFieldBackedByName;
         public MemberDetail GetMemberFieldBacked(string name)
         {
@@ -575,7 +576,7 @@ namespace Zerra.Reflection
                 throw new Exception($"{Type.Name} does not contain member {name}");
             return member;
         }
-        public bool TryGetSerializableMemberDetails(string name, out MemberDetail property)
+        public bool TryGetGetMemberFieldBacked(string name, out MemberDetail member)
         {
             if (membersFieldBackedByName == null)
             {
@@ -584,7 +585,7 @@ namespace Zerra.Reflection
                     membersFieldBackedByName ??= MemberDetails.ToDictionary(x => x.Name);
                 }
             }
-            return this.membersFieldBackedByName.TryGetValue(name, out property);
+            return this.membersFieldBackedByName.TryGetValue(name, out member);
         }
 
         private TypeDetail[] innerTypesDetails = null;

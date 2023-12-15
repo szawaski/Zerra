@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Zerra.Collections;
 using Zerra.Reflection;
 
 namespace Zerra.Serialization
@@ -325,6 +326,57 @@ namespace Zerra.Serialization
                 CoreType.GuidNullable => null,
                 _ => throw new NotImplementedException(),
             };
+        }
+
+        private static readonly ConcurrentFactoryDictionary<MemberDetail, string> namesByMember = new();
+        private static readonly ConcurrentFactoryDictionary<TypeDetail, Dictionary<string, MemberDetail>> membersByNameByType = new();
+        private static string GetMemberName(MemberDetail memberDetail)
+        {
+            return namesByMember.GetOrAdd(memberDetail, (memberDetail) =>
+            {
+                foreach (var attribute in memberDetail.Attributes)
+                {
+                    if (attribute is JsonPropertyNameAttribute jsonPropertyName)
+                    {
+                        return jsonPropertyName.Name;
+                    }
+                }
+                return memberDetail.Name;
+            });
+        }
+        private static bool TryGetMember(TypeDetail typeDetail, string propertyName, out MemberDetail memberDetail)
+        {
+            var membersByName = membersByNameByType.GetOrAdd(typeDetail, (typeDetail) =>
+            {
+                var membersByName = new Dictionary<string, MemberDetail>(new StringOrdinalIgnoreCaseComparer());
+                foreach (var memberDetail in typeDetail.SerializableMemberDetails)
+                {
+                    var found = false;
+                    foreach (var attribute in memberDetail.Attributes)
+                    {
+                        if (attribute is JsonPropertyNameAttribute jsonPropertyName)
+                        {
+                            membersByName.Add(jsonPropertyName.Name, memberDetail);
+                            found = true;
+                            break;
+                        }
+                        else if (attribute is System.Text.Json.Serialization.JsonPropertyNameAttribute jsonPropertyName2)
+                        {
+                            membersByName.Add(jsonPropertyName2.Name, memberDetail);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                    {
+                        membersByName.Add(memberDetail.Name, memberDetail);
+                    }
+                }
+                return membersByName;
+            });
+
+            return membersByName.TryGetValue(propertyName, out memberDetail);
+
         }
     }
 }

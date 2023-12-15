@@ -625,7 +625,7 @@ namespace Zerra.Serialization
                         var propertyName = state.LastFrameResultString;
 
                         Graph propertyGraph = null;
-                        if (typeDetail != null && typeDetail.TryGetMemberCaseInsensitive(propertyName, out var memberDetail))
+                        if (typeDetail != null && TryGetMember(typeDetail, propertyName, out var memberDetail))
                         {
                             state.CurrentFrame.ObjectProperty = memberDetail;
                             propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name);

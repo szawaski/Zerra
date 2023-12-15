@@ -872,7 +872,7 @@ namespace Zerra.Serialization
             var obj = typeDetail.Creator();
             foreach (var item in valueProperties)
             {
-                if (typeDetail.TryGetMember(item.Key, out var member))
+                if (typeDetail.TryGetSerializableMemberCaseInsensitive(item.Key, out var member))
                 {
                     var value = item.Value.Bind(member.Type);
                     if (value != null)

@@ -203,7 +203,7 @@ namespace Zerra.Serialization
 
                         if (obj != null)
                         {
-                            if (typeDetail.TryGetSerializableMemberDetails(propertyName, out var memberDetail))
+                            if (TryGetMember(typeDetail, propertyName, out var memberDetail))
                             {
                                 var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
                                 var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail.TypeDetail, propertyGraph, ref options);
