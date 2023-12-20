@@ -12,9 +12,9 @@ namespace Zerra.Encryption
 {
     public sealed class CryptoFlushStream : StreamWrapper
     {
-        private readonly CryptoStream cryptoStream;
+        private readonly CryptoStream? cryptoStream;
         private readonly ICryptoTransform transform;
-        private readonly CryptoShiftStream cryptoShiftStream;
+        private readonly CryptoShiftStream? cryptoShiftStream;
         public CryptoFlushStream(CryptoStream stream, ICryptoTransform transform, bool leaveOpen) : base(stream, leaveOpen)
         {
             this.cryptoStream = stream;

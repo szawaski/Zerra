@@ -34,9 +34,9 @@ public static class TypeExtensions
     }
 
     //framework dependent if property exists
-    private static Func<object, object> typeGetIsZSArrayGetter;
+    private static Func<object, object?>? typeGetIsZSArrayGetter;
     private static bool loadedTypeGetIsZSArrayGetter = false;
-    private static Func<object, object> GetTypeGetIsZSArrayGetter()
+    private static Func<object, object?>? GetTypeGetIsZSArrayGetter()
     {
         if (!loadedTypeGetIsZSArrayGetter)
         {
@@ -69,7 +69,9 @@ public static class TypeExtensions
             _ = sb.Append(elementTypeName);
             _ = sb.Append('[');
             var getter = GetTypeGetIsZSArrayGetter();
+#pragma warning disable CS8605 // Unboxing a possibly null value.
             var szArray = getter != null && (bool)getter(type);
+#pragma warning restore CS8605 // Unboxing a possibly null value.
             if (!szArray)
             {
                 if (rank == 1)

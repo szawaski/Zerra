@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.ComponentModel.Design;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -14,7 +15,7 @@ namespace Zerra.Encryption
         private static readonly byte[] defaultSalt = Encoding.UTF8.GetBytes("ενγρυπτιον"); //20 bytes
         private const SymmetricKeySize defaultKeySize = SymmetricKeySize.Bits_256;
         private const SymmetricBlockSize defaultBlockSize = SymmetricBlockSize.Bits_128;
-        private static byte[] SaltFromPassword(string password, string salt = null)
+        private static byte[] SaltFromPassword(string password, string? salt = null)
         {
             var passwordBytes = Encoding.UTF8.GetBytes(password);
             var saltBytes = String.IsNullOrWhiteSpace(salt) ? defaultSalt : Encoding.UTF8.GetBytes(salt);
@@ -22,7 +23,7 @@ namespace Zerra.Encryption
             return hashBytes;
         }
 
-        public static SymmetricKey GetKey(string password, string salt = null, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize)
+        public static SymmetricKey GetKey(string password, string? salt = null, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize)
         {
             var saltBytes = SaltFromPassword(password, salt);
 
@@ -42,7 +43,7 @@ namespace Zerra.Encryption
             }
         }
 
-        public static SymmetricKey GenerateKey(SymmetricConfig symmetricConfig, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize) { return GenerateKey(symmetricConfig.Algorithm, keySize, blockSize); }
+        public static SymmetricKey GenerateKey(SymmetricConfig symmetricConfig, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize) => GenerateKey(symmetricConfig.Algorithm, keySize, blockSize);
         public static SymmetricKey GenerateKey(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize)
         {
             var (symmetricAlgorithm, _) = GetAlgorithm(symmetricAlgorithmType);
@@ -80,15 +81,18 @@ namespace Zerra.Encryption
             ;
         }
 
-        public static string Encrypt(SymmetricConfig symmetricConfig, string plainData) { return Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, plainData); }
-        public static byte[] Encrypt(SymmetricConfig symmetricConfig, byte[] plainBytes) { return Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, plainBytes); }
+        public static string? Encrypt(SymmetricConfig symmetricConfig, string? plainData) => Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, plainData);
+        public static byte[] Encrypt(SymmetricConfig symmetricConfig, byte[] plainBytes) => Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, plainBytes);
 #if !NETSTANDARD2_0
-        public static Span<byte> Encrypt(SymmetricConfig symmetricConfig, ReadOnlySpan<byte> plainBytes) { return Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, plainBytes); }
+        public static Span<byte> Encrypt(SymmetricConfig symmetricConfig, ReadOnlySpan<byte> plainBytes) => Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, plainBytes); 
 #endif
-        public static CryptoFlushStream Encrypt(SymmetricConfig symmetricConfig, Stream stream, bool write, bool leaveOpen = false) { return Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, stream, write, leaveOpen); }
+        public static CryptoFlushStream Encrypt(SymmetricConfig symmetricConfig, Stream stream, bool write, bool leaveOpen = false) => Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, stream, write, leaveOpen); 
 
-        public static string Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, string plainData)
+        public static string? Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, string? plainData)
         {
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
+
             if (plainData == null)
                 return null;
             var plainBytes = Encoding.UTF8.GetBytes(plainData);
@@ -98,8 +102,11 @@ namespace Zerra.Encryption
         }
         public static byte[] Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, byte[] plainBytes)
         {
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
             if (plainBytes == null)
-                return null;
+                throw new ArgumentNullException(nameof(plainBytes));
+
             if (plainBytes.Length == 0)
                 return plainBytes;
             using (var memoryStream = new MemoryStream())
@@ -115,8 +122,11 @@ namespace Zerra.Encryption
 #if !NETSTANDARD2_0
         public static Span<byte> Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, ReadOnlySpan<byte> plainBytes)
         {
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
             if (plainBytes == null)
-                return null;
+                throw new ArgumentNullException(nameof(plainBytes));
+
             if (plainBytes.Length == 0)
                 return Span<byte>.Empty;
             using (var memoryStream = new MemoryStream())
@@ -132,6 +142,11 @@ namespace Zerra.Encryption
 #endif
         public static CryptoFlushStream Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, Stream stream, bool write, bool leaveOpen = false)
         {
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+
             var (symmetricAlgorithm, shiftAlgorithm) = GetAlgorithm(symmetricAlgorithmType);
 
             ICryptoTransform transform;
@@ -195,16 +210,19 @@ namespace Zerra.Encryption
 #endif
         }
 
-        public static string Decrypt(SymmetricConfig symmetricConfig, string encryptedData) { return Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedData); }
-        public static byte[] Decrypt(SymmetricConfig symmetricConfig, byte[] encryptedBytes) { return Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedBytes); }
+        public static string? Decrypt(SymmetricConfig symmetricConfig, string? encryptedData) => Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedData); 
+        public static byte[] Decrypt(SymmetricConfig symmetricConfig, byte[] encryptedBytes) => Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedBytes); 
 #if !NETSTANDARD2_0
-        public static Span<byte> Decrypt(SymmetricConfig symmetricConfig, ReadOnlySpan<byte> encryptedBytes) { return Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedBytes); }
+        public static Span<byte> Decrypt(SymmetricConfig symmetricConfig, ReadOnlySpan<byte> encryptedBytes) => Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedBytes); 
 #endif
-        public static CryptoFlushStream Decrypt(SymmetricConfig symmetricConfig, Stream stream, bool write, bool leaveOpen = false) { return Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, stream, write, leaveOpen); }
+        public static CryptoFlushStream Decrypt(SymmetricConfig symmetricConfig, Stream stream, bool write, bool leaveOpen = false) => Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, stream, write, leaveOpen); 
 
 
-        public static string Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, string encryptedData)
+        public static string? Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, string? encryptedData)
         {
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
+
             if (encryptedData == null)
                 return null;
             var encryptedBytes = Convert.FromBase64String(encryptedData);
@@ -216,8 +234,11 @@ namespace Zerra.Encryption
         }
         public static byte[] Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, byte[] encryptedBytes)
         {
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
             if (encryptedBytes == null)
-                return null;
+                throw new ArgumentNullException(nameof(encryptedBytes));
+
             if (encryptedBytes.Length == 0)
                 return encryptedBytes;
             using (var memoryStream = new MemoryStream())
@@ -233,8 +254,11 @@ namespace Zerra.Encryption
 #if !NETSTANDARD2_0
         public static Span<byte> Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, ReadOnlySpan<byte> encryptedBytes)
         {
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
             if (encryptedBytes == null)
-                return null;
+                throw new ArgumentNullException(nameof(encryptedBytes));
+
             if (encryptedBytes.Length == 0)
                 return Span<byte>.Empty;
             using (var memoryStream = new MemoryStream())
@@ -250,6 +274,11 @@ namespace Zerra.Encryption
 #endif
         public static CryptoFlushStream Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, Stream stream, bool write, bool leaveOpen = false)
         {
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+
             var (symmetricAlgorithm, shiftAlgorithm) = GetAlgorithm(symmetricAlgorithmType);
 
             ICryptoTransform transform;

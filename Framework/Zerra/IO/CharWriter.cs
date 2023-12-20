@@ -11,7 +11,7 @@ namespace Zerra.IO
     {
         private const int defaultBufferSize = 1024;
 
-        private char[] bufferOwner;
+        private char[]? bufferOwner;
         private Span<char> buffer;
 
         private int position;
@@ -51,7 +51,7 @@ namespace Zerra.IO
 
         public int Length => position;
 
-        public char[] BufferOwner => bufferOwner;
+        public char[]? BufferOwner => bufferOwner;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureBufferSize(int additionalSize)

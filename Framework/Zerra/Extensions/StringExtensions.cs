@@ -8,7 +8,9 @@ public static class StringExtensions
 {
     public static string Truncate(this string it, int maxLength)
     {
-        if (it == null || it.Length < maxLength)
+        if (it == null)
+            throw new ArgumentNullException(nameof(it));
+        if (it.Length < maxLength)
             return it;
         return it.Substring(0, maxLength);
     }

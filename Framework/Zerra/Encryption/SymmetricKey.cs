@@ -20,7 +20,7 @@ namespace Zerra.Encryption
             this.BlockSize = iv.Length * 8;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is not SymmetricKey casted)
                 return false;

@@ -15,7 +15,7 @@ namespace Zerra.IO
         private const byte nullByte = 0;
         private const byte notNullByte = 1;
 
-        private byte[] bufferOwner;
+        private byte[]? bufferOwner;
         private Span<byte> buffer;
 
         private int position;
@@ -34,7 +34,7 @@ namespace Zerra.IO
             this.length = buffer.Length;
         }
 
-        public ByteWriter(Span<byte> buffer, Encoding encoding = null)
+        public ByteWriter(Span<byte> buffer, Encoding? encoding = null)
         {
             this.bufferOwner = null;
             this.buffer = buffer;
@@ -43,7 +43,7 @@ namespace Zerra.IO
             this.length = buffer.Length;
         }
 
-        public ByteWriter(byte[] buffer, bool fromPool, int position = 0, Encoding encoding = null)
+        public ByteWriter(byte[] buffer, bool fromPool, int position = 0, Encoding? encoding = null)
         {
             this.bufferOwner = fromPool ? buffer : null;
             this.buffer = buffer;
@@ -52,7 +52,7 @@ namespace Zerra.IO
             this.length = buffer.Length;
         }
 
-        public ByteWriter(int initialSize, Encoding encoding = null)
+        public ByteWriter(int initialSize, Encoding? encoding = null)
         {
             this.bufferOwner = BufferArrayPool<byte>.Rent(initialSize);
             this.buffer = bufferOwner;

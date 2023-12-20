@@ -24,7 +24,7 @@ namespace Zerra.IO
         public int Position => position;
         public int Length => length;
 
-        public ByteReader(ReadOnlySpan<byte> bytes, Encoding encoding = null)
+        public ByteReader(ReadOnlySpan<byte> bytes, Encoding? encoding = null)
         {
             if (bytes == null)
                 throw new ArgumentNullException(nameof(bytes));

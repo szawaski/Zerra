@@ -16,14 +16,14 @@ namespace Zerra.Encryption
     {
         private const int bufferSize = 8 * 1024;
 
-        private readonly CryptoStream cryptoStream;
+        private readonly CryptoStream? cryptoStream;
         private readonly int blockSizeBytes;
         private readonly int keySizeBytes;
         private readonly CryptoStreamMode mode;
         private readonly bool deshift;
 
-        private byte[] keyBufferOwner;
-        private byte[] workingBufferOwner;
+        private byte[]? keyBufferOwner;
+        private byte[]? workingBufferOwner;
 
         private Memory<byte> keyBuffer;
         private Memory<byte> workingBuffer;

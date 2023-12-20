@@ -160,18 +160,20 @@ namespace Zerra.Encryption
             return !asecret.Equals(b);
         }
 
-        public static implicit operator T(Secret<T> it)
+        public static implicit operator T?(Secret<T>? it)
         {
             if (ReferenceEquals(it, null))
                 return default;
             return it.GetSecret();
         }
-        public static explicit operator Secret<T>(T it)
+        public static explicit operator Secret<T>?(T? it)
         {
+            if (it == null)
+                return null;
             return new Secret<T>(it);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (ReferenceEquals(this, obj))
                 return true;

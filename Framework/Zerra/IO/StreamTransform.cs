@@ -48,10 +48,10 @@ namespace Zerra.IO
             InternalWrite(buffer);
         }
 
-        public override sealed IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state) { throw new NotSupportedException(); }
+        public override sealed IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state) { throw new NotSupportedException(); }
         public override sealed int EndRead(IAsyncResult asyncResult) { throw new NotSupportedException(); }
 
-        public override sealed IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback callback, object state) { throw new NotSupportedException(); }
+        public override sealed IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state) { throw new NotSupportedException(); }
         public override sealed void EndWrite(IAsyncResult asyncResult) { throw new NotSupportedException(); }
 
         public override sealed int Read(byte[] buffer, int offset, int count) { return InternalRead(buffer.AsSpan().Slice(offset, count)); }

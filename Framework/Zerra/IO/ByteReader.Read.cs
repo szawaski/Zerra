@@ -2155,7 +2155,7 @@ namespace Zerra.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe string ReadString(bool nullFlags)
+        public unsafe string? ReadString(bool nullFlags)
         {
             if (nullFlags && buffer[position++] == nullByte)
                 return null;
@@ -2200,9 +2200,9 @@ namespace Zerra.IO
             return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe List<string> ReadStringList(int length)
+        public unsafe List<string?> ReadStringList(int length)
         {
-            var list = new List<string>(length);
+            var list = new List<string?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -2232,12 +2232,12 @@ namespace Zerra.IO
             return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe HashSet<string> ReadStringHashSet(int length)
+        public unsafe HashSet<string?> ReadStringHashSet(int length)
         {
 #if NETSTANDARD2_0
-            var set = new HashSet<string>();
+            var set = new HashSet<string?>();
 #else
-            var set = new HashSet<string>(length);
+            var set = new HashSet<string?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {

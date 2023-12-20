@@ -35,7 +35,7 @@ namespace Zerra.Encryption
             };
         }
 
-        public static string GenerateHash(HashAlgoritmType hashAlgoritmType, string plain, string salt = null)
+        public static string GenerateHash(HashAlgoritmType hashAlgoritmType, string plain, string? salt = null)
         {
             var plainBytes = Encoding.UTF8.GetBytes(plain);
             var saltBytes = salt != null ? Encoding.UTF8.GetBytes(salt) : null;
@@ -43,7 +43,7 @@ namespace Zerra.Encryption
             var hash = Convert.ToBase64String(hashedBytes);
             return hash;
         }
-        public static byte[] GenerateHash(HashAlgoritmType hashAlgoritmType, byte[] plainBytes, byte[] saltBytes = null)
+        public static byte[] GenerateHash(HashAlgoritmType hashAlgoritmType, byte[] plainBytes, byte[]? saltBytes = null)
         {
             using (var hashAlgorithm = GetHashAlgorithm(hashAlgoritmType))
             {
@@ -106,7 +106,7 @@ namespace Zerra.Encryption
 
         private const int pbkdf2HashByteSize = 64;
         private const int rfc2898HashItterations = 1000; //default per source code
-        public static string PBKDF2GenerateHash(string plain, string salt = null)
+        public static string PBKDF2GenerateHash(string plain, string? salt = null)
         {
             var plainBytes = Encoding.UTF8.GetBytes(plain);
             var saltBytes = salt != null ? Encoding.UTF8.GetBytes(salt) : null;
@@ -114,7 +114,7 @@ namespace Zerra.Encryption
             var hash = Convert.ToBase64String(hashedBytes);
             return hash;
         }
-        public static byte[] PBKDF2GenerateHash(byte[] plainBytes, byte[] saltBytes = null)
+        public static byte[] PBKDF2GenerateHash(byte[] plainBytes, byte[]? saltBytes = null)
         {
             saltBytes ??= GenerateSaltBytes();
 
