@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Zerra.Collections
 {
@@ -13,6 +14,7 @@ namespace Zerra.Collections
     /// A thread-safe dictionary that will only run a factory once and other threads must wait. System.Collections.Concurrent.ConcurrentDictionary may run the same keyed factories simultaneously.
     /// </summary>
     public class ConcurrentFactoryDictionary<TKey, TValue> : ICollection<KeyValuePair<TKey, TValue>>, IEnumerable<KeyValuePair<TKey, TValue>>, IEnumerable, IDictionary<TKey, TValue>, IReadOnlyCollection<KeyValuePair<TKey, TValue>>, IReadOnlyDictionary<TKey, TValue>, ICollection, IDictionary
+         where TKey : notnull
     {
         private readonly ConcurrentDictionary<TKey, object> factoryLocks = new();
         private readonly ConcurrentDictionary<TKey, TValue> dictionary;
@@ -77,8 +79,8 @@ namespace Zerra.Collections
         ICollection IDictionary.Keys => ((IDictionary)dictionary).Keys;
         ICollection IDictionary.Values => ((IDictionary)dictionary).Values;
         void ICollection.CopyTo(Array array, int index) { ((ICollection)dictionary).CopyTo(array, index); }
-        object IDictionary.this[object key] { get => ((IDictionary)dictionary)[key]; set => ((IDictionary)dictionary)[key] = value; }
-        void IDictionary.Add(object key, object value) { ((IDictionary)dictionary).Add(key, value); }
+        object? IDictionary.this[object key] { get => ((IDictionary)dictionary)[key]; set => ((IDictionary)dictionary)[key] = value; }
+        void IDictionary.Add(object key, object? value) { ((IDictionary)dictionary).Add(key, value); }
         void IDictionary.Clear() { Clear(); }
         bool IDictionary.Contains(object key) { return ((IDictionary)dictionary).Contains(key); }
         IDictionaryEnumerator IDictionary.GetEnumerator() { return ((IDictionary)dictionary).GetEnumerator(); }
@@ -155,9 +157,20 @@ namespace Zerra.Collections
         }
         public KeyValuePair<TKey, TValue>[] ToArray() { return dictionary.ToArray(); }
         public bool TryAdd(TKey key, TValue value) { return dictionary.TryAdd(key, value); }
-        public bool TryGetValue(TKey key, out TValue value) { return dictionary.TryGetValue(key, out value); }
+        public bool TryGetValue(TKey key,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out TValue value)
+        {
+            return dictionary.TryGetValue(key, out value);
+        }
         public bool TryUpdate(TKey key, TValue value, TValue comparisonValue) { return dictionary.TryUpdate(key, value, comparisonValue); }
-        public bool TryRemove(TKey key, out TValue value)
+        public bool TryRemove(TKey key,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out TValue value)
         {
             var removed = dictionary.TryRemove(key, out value);
             RemoveFactoryLock(key);

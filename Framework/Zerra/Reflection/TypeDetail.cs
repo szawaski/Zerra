@@ -33,7 +33,7 @@ namespace Zerra.Reflection
         public CoreType? CoreType { get; private set; }
         public SpecialType? SpecialType { get; private set; }
 
-        private Type[] innerTypes;
+        private Type[]? innerTypes = null;
         public IReadOnlyList<Type> InnerTypes
         {
             get
@@ -47,7 +47,9 @@ namespace Zerra.Reflection
                             if (Type.IsGenericType)
                                 innerTypes = Type.GetGenericArguments();
                             else if (Type.IsArray)
+#pragma warning disable CS8601 // Possible null reference assignment.
                                 innerTypes = new Type[] { Type.GetElementType() };
+#pragma warning restore CS8601 // Possible null reference assignment.
                             else
                                 innerTypes = Type.EmptyTypes;
 
@@ -153,7 +155,7 @@ namespace Zerra.Reflection
             }
         }
 
-        private Type[] baseTypes = null;
+        private Type[]? baseTypes = null;
         public IReadOnlyList<Type> BaseTypes
         {
             get
@@ -179,7 +181,7 @@ namespace Zerra.Reflection
             }
         }
 
-        private Type[] interfaces = null;
+        private Type[]? interfaces = null;
         public IReadOnlyList<Type> Interfaces
         {
             get
@@ -262,7 +264,7 @@ namespace Zerra.Reflection
             }
         }
 
-        private MemberDetail[] memberDetails = null;
+        private MemberDetail[]? memberDetails = null;
         public IReadOnlyList<MemberDetail> MemberDetails
         {
             get
@@ -292,7 +294,7 @@ namespace Zerra.Reflection
                                 {
                                     if (property.GetIndexParameters().Length > 0)
                                         continue;
-                                    MemberDetail backingMember = null;
+                                    MemberDetail? backingMember = null;
 
                                     //<{property.Name}>k__BackingField
                                     //<{property.Name}>i__Field
@@ -317,7 +319,7 @@ namespace Zerra.Reflection
             }
         }
 
-        private MethodDetail[] methodDetails = null;
+        private MethodDetail[]? methodDetails = null;
         public IReadOnlyList<MethodDetail> MethodDetails
         {
             get
@@ -352,7 +354,7 @@ namespace Zerra.Reflection
             }
         }
 
-        private ConstructorDetail[] constructorDetails = null;
+        private ConstructorDetail[]? constructorDetails = null;
         public IReadOnlyList<ConstructorDetail> ConstructorDetails
         {
             get
@@ -382,7 +384,7 @@ namespace Zerra.Reflection
             }
         }
 
-        private Attribute[] attributes = null;
+        private Attribute[]? attributes = null;
         public IReadOnlyList<Attribute> Attributes
         {
             get
@@ -398,7 +400,7 @@ namespace Zerra.Reflection
             }
         }
 
-        private IDictionary<string, MemberDetail> membersByName = null;
+        private IDictionary<string, MemberDetail>? membersByName = null;
         public MemberDetail GetMember(string name)
         {
             if (membersByName == null)
@@ -412,7 +414,11 @@ namespace Zerra.Reflection
                 throw new Exception($"{Type.Name} does not contain member {name}");
             return member;
         }
-        public bool TryGetMember(string name, out MemberDetail member)
+        public bool TryGetMember(string name,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out MemberDetail member)
         {
             if (membersByName == null)
             {
@@ -424,8 +430,8 @@ namespace Zerra.Reflection
             return this.membersByName.TryGetValue(name, out member);
         }
 
-        private readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> methodLookups = new();
-        private MethodDetail GetMethodInternal(string name, Type[] parameterTypes = null)
+        private readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail?> methodLookups = new();
+        private MethodDetail? GetMethodInternal(string name, Type[]? parameterTypes = null)
         {
             var key = new TypeKey(name, parameterTypes);
             var method = methodLookups.GetOrAdd(key, (_) =>
@@ -454,26 +460,34 @@ namespace Zerra.Reflection
             });
             return method;
         }
-        public MethodDetail GetMethod(string name, Type[] parameterTypes = null)
+        public MethodDetail GetMethod(string name, Type[]? parameterTypes = null)
         {
             var method = GetMethodInternal(name, parameterTypes);
             if (method == null)
                 throw new MissingMethodException($"{Type.Name}.{name} method not found for the given parameters {String.Join(",", parameterTypes.Select(x => x.GetNiceName()))}");
             return method;
         }
-        public bool TryGetMethod(string name, out MethodDetail method)
+        public bool TryGetMethod(string name,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out MethodDetail method)
         {
             method = GetMethodInternal(name, null);
             return method != null;
         }
-        public bool TryGetMethod(string name, Type[] parameterTypes, out MethodDetail method)
+        public bool TryGetMethod(string name, Type[] parameterTypes,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out MethodDetail method)
         {
             method = GetMethodInternal(name, parameterTypes);
             return method != null;
         }
 
-        private readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetail> constructorLookups = new();
-        private ConstructorDetail GetConstructorInternal(Type[] parameterTypes)
+        private readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetail?> constructorLookups = new();
+        private ConstructorDetail? GetConstructorInternal(Type[]? parameterTypes)
         {
             var key = new TypeKey(parameterTypes);
             var constructor = constructorLookups.GetOrAdd(key, (_) =>
@@ -509,18 +523,26 @@ namespace Zerra.Reflection
                 throw new MissingMethodException($"{Type.Name} constructor not found for the given parameters {String.Join(",", parameterTypes.Select(x => x.GetNiceName()))}");
             return constructor;
         }
-        public bool TryGetConstructor(out ConstructorDetail constructor)
+        public bool TryGetConstructor(
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out ConstructorDetail constructor)
         {
             constructor = GetConstructorInternal(null);
             return constructor != null;
         }
-        public bool TryGetConstructor(Type[] parameterTypes, out ConstructorDetail constructor)
+        public bool TryGetConstructor(Type[] parameterTypes,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out ConstructorDetail constructor)
         {
             constructor = GetConstructorInternal(parameterTypes);
             return constructor != null;
         }
 
-        private IReadOnlyList<MemberDetail> serializableMemberDetails = null;
+        private IReadOnlyList<MemberDetail>? serializableMemberDetails = null;
         public IReadOnlyList<MemberDetail> SerializableMemberDetails
         {
             get
@@ -536,7 +558,7 @@ namespace Zerra.Reflection
             }
         }
 
-        private Dictionary<string, MemberDetail> serializableMembersByNameLower = null;
+        private Dictionary<string, MemberDetail>? serializableMembersByNameLower = null;
         public MemberDetail GetSerializableMemberCaseInsensitive(string name)
         {
             if (serializableMembersByNameLower == null)
@@ -550,7 +572,11 @@ namespace Zerra.Reflection
                 throw new Exception($"{Type.Name} does not contain member {name}");
             return member;
         }
-        public bool TryGetSerializableMemberCaseInsensitive(string name, out MemberDetail member)
+        public bool TryGetSerializableMemberCaseInsensitive(string name,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+         out MemberDetail member)
         {
             if (serializableMembersByNameLower == null)
             {
@@ -562,7 +588,7 @@ namespace Zerra.Reflection
             return this.serializableMembersByNameLower.TryGetValue(name, out member);
         }
 
-        private IDictionary<string, MemberDetail> membersFieldBackedByName;
+        private IDictionary<string, MemberDetail>? membersFieldBackedByName = null;
         public MemberDetail GetMemberFieldBacked(string name)
         {
             if (membersFieldBackedByName == null)
@@ -576,7 +602,11 @@ namespace Zerra.Reflection
                 throw new Exception($"{Type.Name} does not contain member {name}");
             return member;
         }
-        public bool TryGetGetMemberFieldBacked(string name, out MemberDetail member)
+        public bool TryGetGetMemberFieldBacked(string name,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out MemberDetail member)
         {
             if (membersFieldBackedByName == null)
             {
@@ -588,8 +618,8 @@ namespace Zerra.Reflection
             return this.membersFieldBackedByName.TryGetValue(name, out member);
         }
 
-        private TypeDetail[] innerTypesDetails = null;
-        public IReadOnlyList<TypeDetail> InnerTypeDetails
+        private TypeDetail[]? innerTypesDetails = null;
+        public IReadOnlyList<TypeDetail>? InnerTypeDetails
         {
             get
             {
@@ -615,7 +645,7 @@ namespace Zerra.Reflection
         }
 
         private bool isIEnumerableGeneric;
-        private Type iEnumerableGenericInnerType = null;
+        private Type? iEnumerableGenericInnerType = null;
         public bool IsIEnumerableGeneric
         {
             get
@@ -626,7 +656,7 @@ namespace Zerra.Reflection
                 return isIEnumerableGeneric;
             }
         }
-        public Type IEnumerableGenericInnerType
+        public Type? IEnumerableGenericInnerType
         {
             get
             {
@@ -664,8 +694,8 @@ namespace Zerra.Reflection
             }
         }
 
-        private TypeDetail iEnumerableGenericInnerTypeDetail = null;
-        public TypeDetail IEnumerableGenericInnerTypeDetail
+        private TypeDetail? iEnumerableGenericInnerTypeDetail = null;
+        public TypeDetail? IEnumerableGenericInnerTypeDetail
         {
             get
             {
@@ -682,8 +712,8 @@ namespace Zerra.Reflection
             }
         }
 
-        Func<object, object> taskResultGetter = null;
-        public Func<object, object> TaskResultGetter
+        Func<object, object?>? taskResultGetter = null;
+        public Func<object, object?>? TaskResultGetter
         {
             get
             {
@@ -703,8 +733,8 @@ namespace Zerra.Reflection
         }
 
         private bool creatorLoaded = false;
-        private Func<object> creator = null;
-        public Func<object> Creator
+        private Func<object>? creator = null;
+        public Func<object>? Creator
         {
             get
             {
@@ -717,7 +747,7 @@ namespace Zerra.Reflection
                             if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
                             {
                                 var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParametersInfo.Count == 0);
-                                if (emptyConstructor != null)
+                                if (emptyConstructor != null && emptyConstructor.Creator != null)
                                 {
                                     creator = () => { return emptyConstructor.Creator(null); };
                                 }

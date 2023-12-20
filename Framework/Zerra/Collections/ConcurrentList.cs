@@ -64,7 +64,7 @@ namespace Zerra.Collections
 
         bool IList.IsFixedSize => ((IList)list).IsFixedSize;
         bool IList.IsReadOnly => ((IList)list).IsReadOnly;
-        object IList.this[int index]
+        object? IList.this[int index]
         {
             get
             {
@@ -86,12 +86,14 @@ namespace Zerra.Collections
                     {
                         throw new ArgumentOutOfRangeException(nameof(index));
                     }
-                    list[index] = (T)value;
+                    if (value is not T casted)
+                        throw new InvalidOperationException("value cannot be casted to the List type");
+                    list[index] = casted;
                 }
             }
         }
 
-        int IList.Add(object value)
+        int IList.Add(object? value)
         {
             lock (locker)
             {
@@ -100,10 +102,30 @@ namespace Zerra.Collections
             }
         }
         void IList.Clear() => Clear();
-        bool IList.Contains(object value) => Contains((T)value);
-        int IList.IndexOf(object value) => IndexOf((T)value);
-        void IList.Insert(int index, object value) => Insert(index, (T)value);
-        void IList.Remove(object value) => Remove((T)value);
+        bool IList.Contains(object? value)
+        {
+            if (value is not T casted)
+                throw new InvalidOperationException("value cannot be casted to the List type");
+            return Contains(casted);
+        }
+        int IList.IndexOf(object? value)
+        {
+            if (value is not T casted)
+                throw new InvalidOperationException("value cannot be casted to the List type");
+            return IndexOf(casted);
+        }
+        void IList.Insert(int index, object? value)
+        {
+            if (value is not T casted)
+                throw new InvalidOperationException("value cannot be casted to the List type");
+            Insert(index, casted);
+        }
+        void IList.Remove(object? value)
+        {
+            if (value is not T casted)
+                throw new InvalidOperationException("value cannot be casted to the List type");
+            Remove(casted);
+        }
         void IList.RemoveAt(int index) => RemoveAt(index);
 
         public void Add(T item)

@@ -5,6 +5,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Zerra.Collections
@@ -180,7 +181,7 @@ namespace Zerra.Collections
             }
         }
 #if !NETSTANDARD2_0
-        public bool TryGetValue(T equalValue, out T actualValue)
+        public bool TryGetValue(T equalValue, [MaybeNullWhen(false)] out T actualValue)
         {
             lock (locker)
             {

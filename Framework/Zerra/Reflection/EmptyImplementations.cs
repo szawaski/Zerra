@@ -89,14 +89,20 @@ namespace Zerra.Reflection
                 }
                 else if (method.ReturnType == taskType)
                 {
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
                     var getCompletedTaskMethod = taskType.GetProperty(nameof(Task.CompletedTask)).GetGetMethod();
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+#pragma warning disable CS8604 // Possible null reference argument.
                     methodBuilderIL.Emit(OpCodes.Call, getCompletedTaskMethod);
+#pragma warning restore CS8604 // Possible null reference argument.
                     methodBuilderIL.Emit(OpCodes.Ret);
                 }
                 else if (method.ReturnType.Name == taskGenericType.Name)
                 {
                     var taskInnerType = method.ReturnType.GetGenericArguments()[0];
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
                     var getFromResultsTaskMethod = taskType.GetMethod(nameof(Task.FromResult)).MakeGenericMethod(taskInnerType);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
 
                     EmitDefault(methodBuilderIL, method.ReturnType.GetGenericArguments()[0]);
                     methodBuilderIL.Emit(OpCodes.Call, getFromResultsTaskMethod);

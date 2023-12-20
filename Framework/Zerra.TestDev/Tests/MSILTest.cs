@@ -70,81 +70,81 @@ namespace Zerra.TestDev
             var item5 = Instantiator.Create<Stuff>();
         }
 
-        public static void TestSpeed()
-        {
-            var model = new Cookie();
-            var property = nameof(Cookie.Comment);
-            var value = "1";
+        //public static void TestSpeed()
+        //{
+        //    var model = new Cookie();
+        //    var property = nameof(Cookie.Comment);
+        //    var value = "1";
 
-            const int itterations = 30000000;
-            var accessor1 = MemberAccessor.Get(model.GetType());
-            var accessor2 = TypeAccessor.Create(model.GetType());
+        //    const int itterations = 30000000;
+        //    var accessor1 = MemberAccessor.Get(model.GetType());
+        //    var accessor2 = TypeAccessor.Create(model.GetType());
 
-            var timer = Stopwatch.StartNew();
-            for (var i = 0; i < itterations; i++)
-            {
-                accessor1[model, property] = value;
-                accessor2[model, property] = value;
-            }
-            timer.Stop();
-            Console.WriteLine($"Warmup {timer.ElapsedMilliseconds}ms");
+        //    var timer = Stopwatch.StartNew();
+        //    for (var i = 0; i < itterations; i++)
+        //    {
+        //        accessor1[model, property] = value;
+        //        accessor2[model, property] = value;
+        //    }
+        //    timer.Stop();
+        //    Console.WriteLine($"Warmup {timer.ElapsedMilliseconds}ms");
 
-            var timer1 = Stopwatch.StartNew();
-            for (var i = 0; i < itterations; i++)
-            {
-                accessor1[model, property] = value;
-                var read = accessor1[model, property];
-            }
-            timer1.Stop();
-            Console.WriteLine($"PropertyAccessor {timer1.ElapsedMilliseconds}ms");
+        //    var timer1 = Stopwatch.StartNew();
+        //    for (var i = 0; i < itterations; i++)
+        //    {
+        //        accessor1[model, property] = value;
+        //        var read = accessor1[model, property];
+        //    }
+        //    timer1.Stop();
+        //    Console.WriteLine($"PropertyAccessor {timer1.ElapsedMilliseconds}ms");
 
-            var timer2 = Stopwatch.StartNew();
-            for (var i = 0; i < itterations; i++)
-            {
-                accessor2[model, property] = value;
-                var read = accessor1[model, property];
-            }
-            timer2.Stop();
-            Console.WriteLine($"TypeAccessor {timer2.ElapsedMilliseconds}ms");
+        //    var timer2 = Stopwatch.StartNew();
+        //    for (var i = 0; i < itterations; i++)
+        //    {
+        //        accessor2[model, property] = value;
+        //        var read = accessor1[model, property];
+        //    }
+        //    timer2.Stop();
+        //    Console.WriteLine($"TypeAccessor {timer2.ElapsedMilliseconds}ms");
 
-            var timer4 = Stopwatch.StartNew();
-            for (var i = 0; i < itterations; i++)
-            {
-                accessor1[model, property] = value;
-                var read = accessor1[model, property];
-            }
-            timer4.Stop();
-            Console.WriteLine($"PropertyAccessor {timer4.ElapsedMilliseconds}ms");
+        //    var timer4 = Stopwatch.StartNew();
+        //    for (var i = 0; i < itterations; i++)
+        //    {
+        //        accessor1[model, property] = value;
+        //        var read = accessor1[model, property];
+        //    }
+        //    timer4.Stop();
+        //    Console.WriteLine($"PropertyAccessor {timer4.ElapsedMilliseconds}ms");
 
-            var timer3 = Stopwatch.StartNew();
-            for (var i = 0; i < itterations; i++)
-            {
-                accessor2[model, property] = value;
-                var read = accessor1[model, property];
-            }
-            timer3.Stop();
-            Console.WriteLine($"TypeAccessor {timer3.ElapsedMilliseconds}ms");
+        //    var timer3 = Stopwatch.StartNew();
+        //    for (var i = 0; i < itterations; i++)
+        //    {
+        //        accessor2[model, property] = value;
+        //        var read = accessor1[model, property];
+        //    }
+        //    timer3.Stop();
+        //    Console.WriteLine($"TypeAccessor {timer3.ElapsedMilliseconds}ms");
 
-            var accessor1Index = accessor1[property];
+        //    var accessor1Index = accessor1[property];
 
-            var timer5 = Stopwatch.StartNew();
-            for (var i = 0; i < itterations; i++)
-            {
-                accessor1[model, accessor1Index] = value;
-                var read = accessor1[model, accessor1Index];
-            }
-            timer5.Stop();
-            Console.WriteLine($"PropertyAccessor Indexed {timer5.ElapsedMilliseconds}ms");
+        //    var timer5 = Stopwatch.StartNew();
+        //    for (var i = 0; i < itterations; i++)
+        //    {
+        //        accessor1[model, accessor1Index] = value;
+        //        var read = accessor1[model, accessor1Index];
+        //    }
+        //    timer5.Stop();
+        //    Console.WriteLine($"PropertyAccessor Indexed {timer5.ElapsedMilliseconds}ms");
 
-            var timer6 = Stopwatch.StartNew();
-            for (var i = 0; i < itterations; i++)
-            {
-                accessor2[model, property] = value;
-                var read = accessor1[model, property];
-            }
-            timer6.Stop();
-            Console.WriteLine($"TypeAccessor {timer6.ElapsedMilliseconds}ms");
-        }
+        //    var timer6 = Stopwatch.StartNew();
+        //    for (var i = 0; i < itterations; i++)
+        //    {
+        //        accessor2[model, property] = value;
+        //        var read = accessor1[model, property];
+        //    }
+        //    timer6.Stop();
+        //    Console.WriteLine($"TypeAccessor {timer6.ElapsedMilliseconds}ms");
+        //}
 
 
         public interface ICallThings

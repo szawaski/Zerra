@@ -33,36 +33,41 @@ namespace Zerra
 
         internal static string[] DiscoveryAssemblyNameStartsWiths;
 
-        private static readonly Assembly entryAssembly;
-        private static readonly string entryAssemblyName;
-        private static readonly string entryNameSpace;
-        private static readonly string frameworkNameSpace;
-        private static readonly string executingAssemblyPath;
+        private static readonly Assembly? entryAssembly;
+        private static readonly string? entryAssemblyName;
+        private static readonly string? entryNameSpace;
+        private static readonly string? frameworkNameSpace;
+        private static readonly string? executingAssemblyPath;
         static Config()
         {
             entryAssembly = Assembly.GetEntryAssembly();
             var executingAssembly = Assembly.GetExecutingAssembly();
 
             entryAssemblyName = entryAssembly?.GetName().Name;
+            var executingAssemblyName = executingAssembly.GetName().Name;
 
-            entryNameSpace = entryAssemblyName?.Split('.')[0] + '.';
-            frameworkNameSpace = executingAssembly.GetName().Name.Split('.')[0] + '.';
+            entryNameSpace = entryAssemblyName != null ? entryAssemblyName.Split('.')[0] + '.' : null;
+            frameworkNameSpace = executingAssemblyName != null ? executingAssemblyName?.Split('.')[0] + '.' : null;
             executingAssemblyPath = Path.GetDirectoryName(executingAssembly.Location);
 
-            DiscoveryAssemblyNameStartsWiths = entryNameSpace != null ? (new string[] { entryNameSpace, frameworkNameSpace }) : (new string[] { frameworkNameSpace });
+            if (!String.IsNullOrWhiteSpace(frameworkNameSpace))
+                DiscoveryAssemblyNameStartsWiths = entryNameSpace != null ? (new string[] { entryNameSpace, frameworkNameSpace }) : (new string[] { frameworkNameSpace });
+            else
+                DiscoveryAssemblyNameStartsWiths = entryNameSpace != null ? (new string[] { entryNameSpace }) : Array.Empty<string>();
+
             discoveryStarted = false;
         }
 
-        private static IConfiguration configuration = null;
-        private static string environmentName = null;
-        private static string applicationIdentifier = null;
+        private static IConfiguration? configuration = null;
+        private static string? environmentName = null;
+        private static string? applicationIdentifier = null;
         public static void LoadConfiguration() { LoadConfiguration(null, null, null); }
-        public static void LoadConfiguration(string environmentName) { LoadConfiguration(null, environmentName, null); }
-        public static void LoadConfiguration(string[] args) { LoadConfiguration(args, null, null); }
-        public static void LoadConfiguration(string[] args, string environmentName) { LoadConfiguration(args, environmentName, null); }
-        public static void LoadConfiguration(string[] args, Action<ConfigurationBuilder> build) { LoadConfiguration(args, null, build); }
-        public static void LoadConfiguration(Action<ConfigurationBuilder> build) { LoadConfiguration(null, null, build); }
-        public static void LoadConfiguration(string[] args, string environmentName, Action<ConfigurationBuilder> build)
+        public static void LoadConfiguration(string? environmentName) { LoadConfiguration(null, environmentName, null); }
+        public static void LoadConfiguration(string[]? args) { LoadConfiguration(args, null, null); }
+        public static void LoadConfiguration(string[]? args, string? environmentName) { LoadConfiguration(args, environmentName, null); }
+        public static void LoadConfiguration(string[]? args, Action<ConfigurationBuilder>? build) { LoadConfiguration(args, null, build); }
+        public static void LoadConfiguration(Action<ConfigurationBuilder>? build) { LoadConfiguration(null, null, build); }
+        public static void LoadConfiguration(string[]? args, string? environmentName, Action<ConfigurationBuilder>? build)
         {
             var builder = new ConfigurationBuilder();
 
@@ -111,22 +116,12 @@ namespace Zerra
             Console.WriteLine($"{nameof(Config)} Loaded {Path.GetFileName(fileName)}");
         }
 
-        public static string GetSetting(string name, params string[] sections)
+        public static string? GetSetting(string name, params string[] sections)
         {
             if (configuration == null)
                 throw new Exception("Config not loaded");
 
-            var config = configuration;
-            if (sections != null && sections.Length > 0)
-            {
-                foreach (var section in sections)
-                {
-                    config = config.GetSection(section);
-                    if (config == null)
-                        throw new Exception($"Config section {section} not found");
-                }
-            }
-            var value = config[name];
+            var value = configuration[name];
             return value;
         }
 
@@ -140,7 +135,7 @@ namespace Zerra
                 return configuration;
             }
         }
-        public static string EnvironmentName
+        public static string? EnvironmentName
         {
             get
             {
@@ -151,30 +146,25 @@ namespace Zerra
         {
             get
             {
+                if (applicationIdentifier == null)
+                    throw new Exception("Config not loaded");
                 return applicationIdentifier;
             }
         }
 
-        public static T Bind<T>(params string[] sections)
+        public static T? Bind<T>(string? section = null)
         {
             if (configuration == null)
                 throw new Exception("Config not loaded");
 
             var config = configuration;
-            if (sections != null && sections.Length > 0)
-            {
-                foreach (var section in sections)
-                {
-                    config = config.GetSection(section);
-                    if (config == null)
-                        throw new Exception($"Config section {section} not found");
-                }
-            }
+            if (!String.IsNullOrWhiteSpace(section))
+                config = config.GetSection(section);
             var value = config.Get<T>();
             return value;
         }
 
-        public static string GetEnvironmentFilePath(string fileName)
+        public static string? GetEnvironmentFilePath(string fileName)
         {
             var filePath = $"{executingAssemblyPath}{Path.DirectorySeparatorChar}{fileName}";
             if (File.Exists(filePath))
@@ -183,11 +173,15 @@ namespace Zerra
             filePath = $"{Environment.CurrentDirectory}{Path.DirectorySeparatorChar}{fileName}";
             if (Directory.Exists(filePath))
                 return filePath;
+
             return null;
         }
         public static IEnumerable<string> GetEnvironmentFilesBySuffix(string fileSuffix)
         {
             var searchPattern = $"*{fileSuffix}";
+
+            if (String.IsNullOrWhiteSpace(executingAssemblyPath))
+                return Enumerable.Empty<string>();
 
             if (Environment.CurrentDirectory != executingAssemblyPath)
             {
@@ -210,7 +204,7 @@ namespace Zerra
             }
         }
 
-        public static string GetEnvironmentDirectory(string directoryName)
+        public static string? GetEnvironmentDirectory(string directoryName)
         {
             var directoryPath = $"{executingAssemblyPath}{Path.DirectorySeparatorChar}{directoryName}";
             if (Directory.Exists(directoryPath))
@@ -271,10 +265,19 @@ namespace Zerra
 
                 var newNamespaces = assemblyNameStartsWiths.Select(x => x + '.').ToArray();
 
-                var newNamespacesToLoad = new string[newNamespaces.Length + 1];
-                newNamespacesToLoad[0] = frameworkNameSpace;
-                newNamespaces.CopyTo(newNamespacesToLoad, 1);
-                DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
+                if (!String.IsNullOrWhiteSpace(frameworkNameSpace))
+                {
+                    var newNamespacesToLoad = new string[newNamespaces.Length + 1];
+                    newNamespacesToLoad[0] = frameworkNameSpace;
+                    newNamespaces.CopyTo(newNamespacesToLoad, 1);
+                    DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
+                }
+                else
+                {
+                    var newNamespacesToLoad = new string[newNamespaces.Length];
+                    newNamespaces.CopyTo(newNamespaces);
+                    DiscoveryAssemblyNameStartsWiths = newNamespaces;
+                }
             }
         }
         public static void SetDiscoveryAssemblies(params Assembly[] assemblies)
@@ -287,12 +290,23 @@ namespace Zerra
                 if (discoveryStarted)
                     throw new InvalidOperationException("Discovery has already started");
 
-                var newNamespaces = assemblies.Select(x => x.GetName().Name).ToArray();
+#pragma warning disable CS8619 // Nullability of reference types in value doesn't match target type.
+                string[] newNamespaces = assemblies.Select(x => x.GetName().Name).Where(x => x != null).ToArray();
+#pragma warning restore CS8619 // Nullability of reference types in value doesn't match target type.
 
-                var newNamespacesToLoad = new string[newNamespaces.Length + 1];
-                newNamespacesToLoad[0] = frameworkNameSpace;
-                newNamespaces.CopyTo(newNamespacesToLoad, 1);
-                DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
+                if (!String.IsNullOrWhiteSpace(frameworkNameSpace))
+                {
+                    var newNamespacesToLoad = new string[newNamespaces.Length + 1];
+                    newNamespacesToLoad[0] = frameworkNameSpace;
+                    newNamespaces.CopyTo(newNamespacesToLoad, 1);
+                    DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
+                }
+                else
+                {
+                    var newNamespacesToLoad = new string[newNamespaces.Length];
+                    newNamespaces.CopyTo(newNamespaces);
+                    DiscoveryAssemblyNameStartsWiths = newNamespaces;
+                }
             }
         }
 
@@ -307,10 +321,10 @@ namespace Zerra
             }
         }
 
-        public static string EntryAssemblyName { get { return entryAssemblyName; } }
-        public static Assembly EntryAssembly { get { return entryAssembly; } }
+        public static string? EntryAssemblyName { get { return entryAssemblyName; } }
+        public static Assembly? EntryAssembly { get { return entryAssembly; } }
 
-        private static readonly Lazy<bool> isDebugEntryAssembly = new(() => entryAssembly.GetCustomAttributes(false).OfType<DebuggableAttribute>().Any(x => x.IsJITTrackingEnabled));
+        private static readonly Lazy<bool> isDebugEntryAssembly = new(() => entryAssembly != null && entryAssembly.GetCustomAttributes(false).OfType<DebuggableAttribute>().Any(x => x.IsJITTrackingEnabled));
         public static bool IsDebugBuild { get { return isDebugEntryAssembly.Value; } }
     }
 }

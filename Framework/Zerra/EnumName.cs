@@ -38,6 +38,9 @@ public sealed class EnumName : Attribute
             foreach (var enumValue in Enum.GetValues(type))
             {
                 var name = enumValue.ToString();
+                if (name == null)
+                    continue;
+
                 var field = fields.First(x => x.Name == name);
                 var attribute = field.GetCustomAttribute<EnumName>(false);
 
@@ -157,6 +160,9 @@ public sealed class EnumName : Attribute
             foreach (var enumValue in Enum.GetValues(type))
             {
                 var name = enumValue.ToString();
+                if (name == null)
+                    continue;
+
                 var field = fields.First(x => x.Name == name);
                 items.Add(name.ToLower(), enumValue);
                 var attribute = field.GetCustomAttribute<EnumName>(false);
@@ -185,12 +191,12 @@ public sealed class EnumName : Attribute
         throw new Exception($"Could not parse \"{enumString}\" into enum type {type.GetNiceName()}");
     }
 
-    public static bool TryParse<T>(string enumString, out T value)
+    public static bool TryParse<T>(string enumString, out T? value)
         where T : Enum
     {
         if (TryParse(enumString, typeof(T), out var valueObject))
         {
-            value = (T)valueObject;
+            value = (T?)valueObject;
             return true;
         }
         else
@@ -199,7 +205,7 @@ public sealed class EnumName : Attribute
             return false;
         }
     }
-    public static bool TryParse(string enumString, Type type, out object value)
+    public static bool TryParse(string enumString, Type type, out object? value)
     {
         var valueLookup = GetValuesForType(type);
         if (valueLookup.TryGetValue(enumString.ToLower(), out value))

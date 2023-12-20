@@ -16,38 +16,41 @@ namespace Zerra
         {
         }
 
-        public Graph() : this(null, false, (string[])null) { }
-        public Graph(bool includeProperties) : this(null, includeProperties, (string[])null) { }
-        public Graph(string name, bool includeProperties) : this(name, includeProperties, (string[])null) { }
+        public Graph() : this(null, false, (string[]?)null) { }
+        public Graph(bool includeProperties) : this(null, includeProperties, (string[]?)null) { }
+        public Graph(string? name, bool includeProperties) : this(name, includeProperties, (string[]?)null) { }
         public Graph(params string[] properties) : this(null, false, properties) { }
-        public Graph(bool includeAllProperties, params string[] properties) : this(null, includeAllProperties, properties) { }
-        public Graph(string name, bool includeAllProperties, params string[] properties)
+        public Graph(bool includeAllProperties, params string[]? properties) : this(null, includeAllProperties, properties) { }
+        public Graph(string? name, bool includeAllProperties, params string[]? properties)
             : base(name, includeAllProperties, null)
         {
             this.type = GetModelType().FullName;
-            AddProperties(properties);
+
+            if (properties != null)
+                AddProperties(properties);
         }
 
-        public Graph(params Expression<Func<T, object>>[] properties) : this(null, false, (ICollection<Expression<Func<T, object>>>)properties) { }
-        public Graph(string name, params Expression<Func<T, object>>[] properties) : this(name, false, (ICollection<Expression<Func<T, object>>>)properties) { }
-        public Graph(bool includeAllProperties, params Expression<Func<T, object>>[] properties) : this(null, includeAllProperties, (ICollection<Expression<Func<T, object>>>)properties) { }
-        public Graph(string name, bool includeAllProperties, params Expression<Func<T, object>>[] properties) : this(name, includeAllProperties, (ICollection<Expression<Func<T, object>>>)properties) { }
+        public Graph(params Expression<Func<T, object>>[]? properties) : this(null, false, (ICollection<Expression<Func<T, object>>>?)properties) { }
+        public Graph(string? name, params Expression<Func<T, object>>[]? properties) : this(name, false, (ICollection<Expression<Func<T, object>>>?)properties) { }
+        public Graph(bool includeAllProperties, params Expression<Func<T, object>>[]? properties) : this(null, includeAllProperties, (ICollection<Expression<Func<T, object>>>?)properties) { }
+        public Graph(string? name, bool includeAllProperties, params Expression<Func<T, object>>[]? properties) : this(name, includeAllProperties, (ICollection<Expression<Func<T, object>>>?)properties) { }
 
-        public Graph(IEnumerable<Expression<Func<T, object>>> properties) : this(null, false, properties) { }
-        public Graph(string name, IEnumerable<Expression<Func<T, object>>> properties) : this(name, false, properties) { }
-        public Graph(bool includeAllProperties, IEnumerable<Expression<Func<T, object>>> properties) : this(null, includeAllProperties, properties) { }
-        public Graph(string name, bool includeAllProperties, IEnumerable<Expression<Func<T, object>>> properties)
-            : base(name, includeAllProperties, (IReadOnlyCollection<string>)null, null)
+        public Graph(IEnumerable<Expression<Func<T, object>>>? properties) : this(null, false, properties) { }
+        public Graph(string? name, IEnumerable<Expression<Func<T, object>>>? properties) : this(name, false, properties) { }
+        public Graph(bool includeAllProperties, IEnumerable<Expression<Func<T, object>>>? properties) : this(null, includeAllProperties, properties) { }
+        public Graph(string? name, bool includeAllProperties, IEnumerable<Expression<Func<T, object>>>? properties)
+            : base(name, includeAllProperties, (IReadOnlyCollection<string>?)null, null)
         {
             this.type = GetModelType().FullName;
-            AddProperties(properties);
+
+            if (properties != null)
+                AddProperties(properties);
         }
 
         private static void ReadPropertyExpression(Expression property, Stack<MemberInfo> members)
         {
-            if (property.NodeType != ExpressionType.Lambda)
+            if (property.NodeType != ExpressionType.Lambda || property is not LambdaExpression lambda)
                 throw new ArgumentException("Invalid property expression");
-            var lambda = property as LambdaExpression;
             ReadPropertyExpressionMember(lambda.Body, members);
         }
         private static void ReadPropertyExpressionMember(Expression property, Stack<MemberInfo> members)
@@ -56,34 +59,33 @@ namespace Zerra
             {
                 return;
             }
-            else if (property.NodeType == ExpressionType.Call)
+            else if (property.NodeType == ExpressionType.Call && property is MethodCallExpression call)
             {
-                var call = property as MethodCallExpression;
                 if (call.Arguments.Count != 2 || call.Object != null)
                     throw new ArgumentException("Invalid property expression");
-                if (call.Arguments[0].NodeType != ExpressionType.MemberAccess)
+                if (call.Arguments[0].NodeType != ExpressionType.MemberAccess || call.Arguments[0] is not MemberExpression member)
                     throw new ArgumentException("Invalid property expression");
-                if (call.Arguments[1].NodeType != ExpressionType.Lambda)
+                if (call.Arguments[1].NodeType != ExpressionType.Lambda || call.Arguments[1] is not LambdaExpression lambda)
+                    throw new ArgumentException("Invalid property expression");
+                if (member.Expression == null)
                     throw new ArgumentException("Invalid property expression");
 
-                var lambda = call.Arguments[1] as LambdaExpression;
                 ReadPropertyExpressionMember(lambda.Body, members);
 
-                var member = call.Arguments[0] as MemberExpression;
                 members.Push(member.Member);
                 ReadPropertyExpressionMember(member.Expression, members);
             }
             else
             {
-                if (property.NodeType == ExpressionType.Convert)
+                if (property.NodeType == ExpressionType.Convert && property is UnaryExpression convert)
                 {
-                    var convert = property as UnaryExpression;
                     property = convert.Operand;
                 }
-                if (property.NodeType != ExpressionType.MemberAccess)
+                if (property.NodeType != ExpressionType.MemberAccess || property is not MemberExpression member)
+                    throw new ArgumentException("Invalid property expression");
+                if (member.Expression == null)
                     throw new ArgumentException("Invalid property expression");
 
-                var member = property as MemberExpression;
                 members.Push(member.Member);
                 ReadPropertyExpressionMember(member.Expression, members);
             }
@@ -93,7 +95,7 @@ namespace Zerra
         public void AddProperties(IEnumerable<Expression<Func<T, object>>> properties)
         {
             if (properties == null)
-                return;
+                throw new ArgumentNullException(nameof(properties));
 
             var members = new Stack<MemberInfo>();
             foreach (var property in properties)
@@ -108,7 +110,7 @@ namespace Zerra
         public void RemoveProperties(IEnumerable<Expression<Func<T, object>>> properties)
         {
             if (properties == null)
-                return;
+                throw new ArgumentNullException(nameof(properties));
 
             var members = new Stack<MemberInfo>();
             foreach (var property in properties)

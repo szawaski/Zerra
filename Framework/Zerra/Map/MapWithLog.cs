@@ -727,7 +727,7 @@ namespace Zerra
                         }
                         else
                         {
-                            if (!graph.HasChildGraph(mapTo.Key))
+                            if (!graph.HasChild(mapTo.Key))
                                 continue;
                         }
                     }

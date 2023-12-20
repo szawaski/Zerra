@@ -10,8 +10,8 @@ namespace Zerra.Reflection
 {
     public static class TypeAnalyzer
     {
-        public static T Convert<T>(object obj) { return (T)Convert(obj, typeof(T)); }
-        public static object Convert(object obj, Type type)
+        public static T? Convert<T>(object obj) { return (T?)Convert(obj, typeof(T)); }
+        public static object? Convert(object obj, Type type)
         {
             if (!TypeLookup.CoreTypeLookup(type, out var coreType))
                 throw new NotImplementedException($"Type convert not available for {type.Name}");
@@ -107,21 +107,21 @@ namespace Zerra.Reflection
         {
             if (obj == null)
                 return Guid.Empty;
-            return Guid.Parse(obj.ToString());
+            return Guid.Parse(obj.ToString() ?? String.Empty);
         }
 
         private static TimeSpan ConvertToTimeSpan(object obj)
         {
             if (obj == null)
                 return TimeSpan.MinValue;
-            return TimeSpan.Parse(obj.ToString(), System.Globalization.CultureInfo.InvariantCulture);
+            return TimeSpan.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private static DateTimeOffset ConvertToDateTimeOffset(object obj)
         {
             if (obj == null)
                 return DateTimeOffset.MinValue;
-            return DateTimeOffset.Parse(obj.ToString(), System.Globalization.CultureInfo.CurrentCulture);
+            return DateTimeOffset.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.CurrentCulture);
         }
 
         private static readonly ConcurrentFactoryDictionary<Type, TypeDetail> typeDetailsByType = new();
@@ -135,7 +135,7 @@ namespace Zerra.Reflection
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> methodDetailsByType = new();
-        public static MethodDetail GetMethodDetail(Type type, string name, Type[] parameterTypes = null)
+        public static MethodDetail GetMethodDetail(Type type, string name, Type[]? parameterTypes = null)
         {
             var key = new TypeKey(name, type, parameterTypes);
             var method = methodDetailsByType.GetOrAdd(key, (_) =>
@@ -167,7 +167,7 @@ namespace Zerra.Reflection
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetail> constructorDetailsByType = new();
-        public static ConstructorDetail GetConstructorDetail(Type type, Type[] parameterTypes = null)
+        public static ConstructorDetail GetConstructorDetail(Type type, Type[]? parameterTypes = null)
         {
             var key = new TypeKey(type, parameterTypes);
             var constructor = constructorDetailsByType.GetOrAdd(key, (_) =>

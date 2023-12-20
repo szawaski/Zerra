@@ -12,15 +12,18 @@ namespace Zerra.Reflection
     {
         private static readonly ConcurrentFactoryDictionary<Type, object> singleInstancesByType = new();
         private static readonly ConcurrentFactoryDictionary<string, object> singleInstancesByKey = new();
-        public static T GetSingle<T>(Func<T> factory = null)
+        public static T GetSingle<T>(Func<T>? factory = null) 
+            where T : class
         {
             var type = typeof(T);
             factory ??= Create<T>;
             var instance = (T)singleInstancesByType.GetOrAdd(type, (_) => { return factory(); });
             return instance;
         }
-        public static object GetSingle(Type type, Func<object> factory = null)
+        public static object GetSingle(Type type, Func<object>? factory = null)
         {
+            if (!type.IsClass)
+                throw new ArgumentException("Must be a class", nameof(type));
             factory ??= () => { return Create(type); };
             var instance = singleInstancesByType.GetOrAdd(type, (_) => { return factory(); });
             return instance;
@@ -31,25 +34,25 @@ namespace Zerra.Reflection
             return instance;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object[], object>> creatorsByType = new();
-        public static T Create<T>() { return (T)Create(typeof(T), Type.EmptyTypes, null); }
-        public static T Create<T>(Type[] parameterTypes, params object[] args) { return (T)Create(typeof(T), parameterTypes, args); }
-        public static object Create(Type type) { return Create(type, Type.EmptyTypes, null); }
-        public static object Create(Type type, Type[] parameterTypes, params object[] args)
+        private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object[]?, object>?> creatorsByType = new();
+        public static T Create<T>() { return (T)Create(typeof(T), null, null); }
+        public static T Create<T>(Type[]? parameterTypes, params object[]? args) { return (T)Create(typeof(T), parameterTypes, args); }
+        public static object Create(Type type) { return Create(type, null, null); }
+        public static object Create(Type type, Type[]? parameterTypes, params object[]? args)
         {
             return GetCreator(type, parameterTypes)(args);
         }
-        private static Func<object[], object> GetCreator(Type type, Type[] parameterTypes)
+        private static Func<object[]?, object> GetCreator(Type type, Type[]? parameterTypes)
         {
             var key = new TypeKey(type, parameterTypes);
             var creator = creatorsByType.GetOrAdd(key, (_) =>
             {
                 var typeDetail = TypeAnalyzer.GetTypeDetail(type);
-                if (parameterTypes.Length == 0)
+                if (parameterTypes == null || parameterTypes.Length == 0)
                 {
                     if (typeDetail.Creator == null)
                         return null;
-                    object c(object[] a) { return typeDetail.Creator(); }
+                    object c(object[]? a) { return typeDetail.Creator(); }
                     return c;
                 }
                 foreach (var constructorDetail in typeDetail.ConstructorDetails)
@@ -57,15 +60,12 @@ namespace Zerra.Reflection
                     if (constructorDetail.ParametersInfo.Count == parameterTypes.Length)
                     {
                         var match = true;
-                        if (parameterTypes != null)
+                        for (var i = 0; i < parameterTypes.Length; i++)
                         {
-                            for (var i = 0; i < parameterTypes.Length; i++)
+                            if (parameterTypes[i] != constructorDetail.ParametersInfo[i].ParameterType)
                             {
-                                if (parameterTypes[i] != constructorDetail.ParametersInfo[i].ParameterType)
-                                {
-                                    match = false;
-                                    break;
-                                }
+                                match = false;
+                                break;
                             }
                         }
                         if (match)

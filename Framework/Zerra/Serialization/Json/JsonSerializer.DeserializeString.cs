@@ -645,7 +645,7 @@ namespace Zerra.Serialization
                                         properties.Add(propertyName, value);
                                     break;
                                 case JsonObject.JsonObjectType.Object:
-                                    if (graph.HasChildGraph(propertyName))
+                                    if (graph.HasChild(propertyName))
                                         properties.Add(propertyName, value);
                                     break;
                             }

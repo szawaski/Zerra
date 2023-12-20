@@ -11,14 +11,14 @@ namespace Zerra.Reflection
 {
     public sealed class MemberDetail
     {
-        public MemberDetail BackingFieldDetail { get; private set; }
+        public MemberDetail? BackingFieldDetail { get; private set; }
 
         public MemberInfo MemberInfo { get; private set; }
         public string Name { get; private set; }
         public Type Type { get; private set; }
         public bool IsBacked { get; private set; }
 
-        private Attribute[] attributes = null;
+        private Attribute[]? attributes = null;
         public IReadOnlyList<Attribute> Attributes
         {
             get
@@ -35,8 +35,8 @@ namespace Zerra.Reflection
         }
 
         private bool getterLoaded = false;
-        private Func<object, object> getter = null;
-        public Func<object, object> Getter
+        private Func<object, object?>? getter = null;
+        public Func<object, object?>? Getter
         {
             get
             {
@@ -78,8 +78,8 @@ namespace Zerra.Reflection
         }
 
         private bool setterLoaded = false;
-        private Action<object, object> setter = null;
-        public Action<object, object> Setter
+        private Action<object, object?>? setter = null;
+        public Action<object, object?>? Setter
         {
             get
             {
@@ -121,8 +121,8 @@ namespace Zerra.Reflection
         }
 
         private bool getterTypedLoaded = false;
-        private object getterTyped = null;
-        public object GetterTyped
+        private object? getterTyped = null;
+        public object? GetterTyped
         {
             get
             {
@@ -164,8 +164,8 @@ namespace Zerra.Reflection
         }
 
         private bool setterTypedLoaded = false;
-        private object setterTyped = null;
-        public object SetterTyped
+        private object? setterTyped = null;
+        public object? SetterTyped
         {
             get
             {
@@ -206,7 +206,7 @@ namespace Zerra.Reflection
             }
         }
 
-        private TypeDetail typeDetail = null;
+        private TypeDetail? typeDetail = null;
         public TypeDetail TypeDetail
         {
             get
@@ -228,22 +228,26 @@ namespace Zerra.Reflection
         }
 
         private readonly object locker;
-        internal MemberDetail(MemberInfo member, MemberDetail backingFieldDetail, object locker)
+        internal MemberDetail(MemberInfo member, MemberDetail? backingFieldDetail, object locker)
         {
             this.locker = locker;
             this.BackingFieldDetail = backingFieldDetail;
             this.MemberInfo = member;
             this.Name = member.Name;
 
-            if (MemberInfo.MemberType == MemberTypes.Property)
+            if (member.MemberType == MemberTypes.Property)
             {
                 var property = (PropertyInfo)MemberInfo;
                 this.Type = property.PropertyType;
             }
-            else if (MemberInfo.MemberType == MemberTypes.Field)
+            else if (member.MemberType == MemberTypes.Field)
             {
                 var field = (FieldInfo)MemberInfo;
                 this.Type = field.FieldType;
+            }
+            else
+            {
+                throw new NotSupportedException($"{nameof(MemberDetail)} does not support {member.MemberType}");
             }
 
             this.IsBacked = member.MemberType == MemberTypes.Field || backingFieldDetail != null;

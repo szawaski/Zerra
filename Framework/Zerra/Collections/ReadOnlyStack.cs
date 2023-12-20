@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Zerra.Collections
@@ -69,7 +70,11 @@ namespace Zerra.Collections
             return stack.Skip(index).ToArray();
         }
 
-        public bool TryPeek(out T result)
+        public bool TryPeek(
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out T result)
         {
             if (index == stack.Length)
             {
@@ -79,7 +84,11 @@ namespace Zerra.Collections
             result = stack[index];
             return true;
         }
-        public bool TryPop(out T result)
+        public bool TryPop(
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out T result)
         {
             if (index == stack.Length)
             {

@@ -10,7 +10,7 @@ namespace Zerra.Reflection
     public static class GeneratedAssembly
     {
         private static readonly object moduleBuilderLock = new();
-        private static ModuleBuilder moduleBuilderCache = null;
+        private static ModuleBuilder? moduleBuilderCache = null;
         public static ModuleBuilder GetModuleBuilder()
         {
             if (moduleBuilderCache == null)

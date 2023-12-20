@@ -10,7 +10,7 @@ namespace Zerra.Reflection
 {
     internal sealed class StringOrdinalIgnoreCaseComparer : IEqualityComparer<string>
     {
-        public bool Equals(string x, string y)
+        public bool Equals(string? x, string? y)
         {
             return String.Equals(x, y, StringComparison.OrdinalIgnoreCase);
         }

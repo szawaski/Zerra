@@ -48,7 +48,7 @@ namespace Zerra.Serialization
                 fixed (char* pFixed = queryString)
                 {
                     var p = pFixed;
-                    string name = null;
+                    string? name = null;
                     for (var i = 0; i < queryString.Length; i++)
                     {
                         var c = *p;

@@ -38,7 +38,7 @@ namespace Zerra.Repository
             }
         }
 
-        public virtual Expression<Func<TModel, bool>> WhereExpression(Graph<TModel> graph)
+        public virtual Expression<Func<TModel, bool>> WhereExpression(Graph<TModel>? graph)
         {
             return null;
         }

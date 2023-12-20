@@ -16,7 +16,7 @@ namespace Zerra.Reflection
         public MethodInfo MethodInfo { get; private set; }
         public string Name => MethodInfo.Name;
 
-        private ParameterInfo[] parameterInfos = null;
+        private ParameterInfo[]? parameterInfos = null;
         public IReadOnlyList<ParameterInfo> ParametersInfo
         {
             get
@@ -32,7 +32,7 @@ namespace Zerra.Reflection
             }
         }
 
-        private Attribute[] attributes = null;
+        private Attribute[]? attributes = null;
         public IReadOnlyList<Attribute> Attributes
         {
             get
@@ -49,9 +49,9 @@ namespace Zerra.Reflection
         }
 
         private bool callerLoaded = false;
-        private Func<object, object[], object> caller = null;
-        private Func<object, object[], Task<object>> callerAsync = null;
-        public Func<object, object[], object> Caller
+        private Func<object?, object[]?, object?>? caller = null;
+        private Func<object?, object[]?, Task<object?>>? callerAsync = null;
+        public Func<object?, object[]?, object?>? Caller
         {
             get
             {
@@ -69,7 +69,7 @@ namespace Zerra.Reflection
                 return this.caller;
             }
         }
-        public Func<object, object[], Task<object>> CallerAsync
+        public Func<object?, object[]?, Task<object?>>? CallerAsync
         {
             get
             {
@@ -99,27 +99,34 @@ namespace Zerra.Reflection
                 this.caller = AccessorGenerator.GenerateCaller(MethodInfo);
                 this.callerAsync = async (source, arguments) =>
                 {
+                    var caller = this.caller;
+                    if (caller == null)
+                        return default;
                     var returnTypeInfo = ReturnType;
 
                     if (returnTypeInfo.IsTask)
                     {
-                        var result = Caller(source, arguments);
+                        var result = caller(source, arguments);
                         var task = result as Task;
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
                         await task;
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
                         if (returnTypeInfo.Type.IsGenericType)
+#pragma warning disable CS8604 // Possible null reference argument.
                             return returnTypeInfo.TaskResultGetter(result);
+#pragma warning restore CS8604 // Possible null reference argument.
                         else
                             return default;
                     }
                     else
                     {
-                        return Caller(source, arguments);
+                        return caller(source, arguments);
                     }
                 };
             }
         }
 
-        private TypeDetail returnType = null;
+        private TypeDetail? returnType = null;
         public TypeDetail ReturnType
         {
             get

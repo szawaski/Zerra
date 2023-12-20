@@ -81,7 +81,7 @@ namespace Zerra.Collections
                 this.current = default;
             }
 
-            private T current;
+            private T? current;
             public T Current => current ?? throw new NotSupportedException();
 
             public async ValueTask<bool> MoveNextAsync()

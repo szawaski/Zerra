@@ -11,6 +11,7 @@ using Zerra.Collections;
 namespace Zerra.Threading
 {
     public sealed class Locker<T> : IDisposable
+        where T : notnull
     {
         private sealed class ItemLocker
         {
@@ -23,7 +24,7 @@ namespace Zerra.Threading
         private readonly ConcurrentDictionary<T, ItemLocker> itemLockers;
         private readonly T key;
 
-        private ItemLocker itemLocker;
+        private ItemLocker? itemLocker;
 
         private Locker(string purpose, T key)
         {
@@ -59,17 +60,20 @@ namespace Zerra.Threading
 
         public void Dispose()
         {
-            _ = itemLocker.Semaphore.Release();
-
-            lock (itemLocker)
+            if (itemLocker != null)
             {
-                itemLocker.Checkouts--;
-                lock (itemLockers)
+                _ = itemLocker.Semaphore.Release();
+
+                lock (itemLocker)
                 {
-                    if (itemLocker.Checkouts == 0)
+                    itemLocker.Checkouts--;
+                    lock (itemLockers)
                     {
-                        _ = itemLockers.TryRemove(key, out _);
-                        itemLocker.Semaphore.Dispose();
+                        if (itemLocker.Checkouts == 0)
+                        {
+                            _ = itemLockers.TryRemove(key, out _);
+                            itemLocker.Semaphore.Dispose();
+                        }
                     }
                 }
             }
@@ -88,7 +92,7 @@ namespace Zerra.Threading
         public static async Task<Locker<T>> LockAsync(string purpose, T key)
         {
             if (purpose == null)
-                throw new ArgumentException();
+                throw new ArgumentNullException(nameof(purpose));
             var locker = new Locker<T>(purpose, key);
             await locker.LockAsync();
             return locker;

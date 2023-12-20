@@ -12,8 +12,8 @@ public static class EnumNameExtensions
         return global::EnumName.GetName<T>(value);
     }
 
-    public static string EnumName<T>(this T? value)
-    where T : struct, Enum
+    public static string? EnumName<T>(this T? value)
+        where T : struct, Enum
     {
         if (value == null)
             return null;

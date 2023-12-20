@@ -10,66 +10,66 @@ namespace Zerra
 {
     public class TypeKey
     {
-        private readonly string str;
-        private readonly Type type1;
-        private readonly Type type2;
-        private readonly Type[] typeArray;
+        private readonly string? str;
+        private readonly Type? type1;
+        private readonly Type? type2;
+        private readonly Type[]? typeArray;
 
-        public string Str => str;
-        public Type Type1 => type1;
-        public Type Type2 => type2;
-        public IReadOnlyCollection<Type> TypeArray => typeArray;
+        public string? Str => str;
+        public Type? Type1 => type1;
+        public Type? Type2 => type2;
+        public IReadOnlyCollection<Type>? TypeArray => typeArray;
 
-        public TypeKey(Type type1, Type type2)
+        public TypeKey(Type? type1, Type type2)
         {
             this.str = null;
             this.type1 = type1;
             this.type2 = type2;
             this.typeArray = null;
         }
-        public TypeKey(Type[] typeArray)
+        public TypeKey(Type[]? typeArray)
         {
             this.str = null;
             this.type1 = null;
             this.type2 = null;
             this.typeArray = typeArray;
         }
-        public TypeKey(Type type1, Type[] typeArray)
+        public TypeKey(Type type1, Type[]? typeArray)
         {
             this.str = null;
             this.type1 = type1;
             this.type2 = null;
             this.typeArray = typeArray;
         }
-        public TypeKey(Type type1, Type type2, Type[] typeArray)
+        public TypeKey(Type? type1, Type? type2, Type[]? typeArray)
         {
             this.str = null;
             this.type1 = type1;
             this.type2 = type2;
             this.typeArray = typeArray;
         }
-        public TypeKey(string str, Type type1)
+        public TypeKey(string? str, Type? type1)
         {
             this.str = str;
             this.type1 = type1;
             this.type2 = null;
             this.typeArray = null;
         }
-        public TypeKey(string str, Type type1, Type type2)
+        public TypeKey(string? str, Type? type1, Type? type2)
         {
             this.str = str;
             this.type1 = type1;
             this.type2 = type2;
             this.typeArray = null;
         }
-        public TypeKey(string str, Type[] typeArray)
+        public TypeKey(string? str, Type[]? typeArray)
         {
             this.str = str;
             this.type1 = null;
             this.type2 = null;
             this.typeArray = typeArray;
         }
-        public TypeKey(string str, Type type1, Type[] typeArray)
+        public TypeKey(string? str, Type? type1, Type[]? typeArray)
         {
             this.str = str;
             this.type1 = type1;
@@ -84,14 +84,14 @@ namespace Zerra
             this.typeArray = typeArray;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is not TypeKey objCasted)
                 return false;
             if (this.type1 != objCasted.type1 || this.type2 != objCasted.type2 || this.typeArray?.Length != objCasted.typeArray?.Length || this.str != objCasted.str)
                 return false;
 
-            if (this.typeArray != null)
+            if (this.typeArray != null && objCasted.typeArray != null)
             {
                 for (var i = 0; i < this.typeArray.Length; i++)
                 {

@@ -5,11 +5,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Zerra.Collections
 {
     public class ConcurrentSortedDictionary<TKey, TValue> : ICollection<KeyValuePair<TKey, TValue>>, IEnumerable<KeyValuePair<TKey, TValue>>, IEnumerable, IDictionary<TKey, TValue>, IReadOnlyCollection<KeyValuePair<TKey, TValue>>, IReadOnlyDictionary<TKey, TValue>, ICollection, IDictionary
+         where TKey : notnull
     {
         private readonly object locker = new();
         private readonly SortedDictionary<TKey, TValue> dictionary;
@@ -111,7 +113,7 @@ namespace Zerra.Collections
                 ((ICollection)dictionary).CopyTo(array, index);
             }
         }
-        object IDictionary.this[object key]
+        object? IDictionary.this[object key]
         {
             get
             {
@@ -141,7 +143,7 @@ namespace Zerra.Collections
                 }
             }
         }
-        void IDictionary.Add(object key, object value)
+        void IDictionary.Add(object key, object? value)
         {
             if (key is not TKey keycasted)
                 throw new ArgumentException("Key is not the correct type");
@@ -365,7 +367,11 @@ namespace Zerra.Collections
                 return true;
             }
         }
-        public bool TryGetValue(TKey key, out TValue value)
+        public bool TryGetValue(TKey key,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out TValue value)
         {
             lock (locker)
             {
@@ -382,13 +388,17 @@ namespace Zerra.Collections
                     return false;
                 }
                 var currentvalue = dictionary[key];
-                if (!currentvalue.Equals(comparisonValue))
+                if (currentvalue != null && comparisonValue != null && !currentvalue.Equals(comparisonValue))
                     return false;
                 dictionary[key] = value;
                 return true;
             }
         }
-        public bool TryRemove(TKey key, out TValue value)
+        public bool TryRemove(TKey key,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out TValue value)
         {
             lock (locker)
             {
@@ -415,18 +425,15 @@ namespace Zerra.Collections
                 this.enumerator = enumerator;
             }
 
-            public object Current { get; private set; }
-            public object Key { get; private set; }
-            public object Value { get; private set; }
+            public object Key => enumerator.Current.Key;
+            public object? Current => enumerator.Current;
+            public object? Value => enumerator.Current.Value;
+
             public DictionaryEntry Entry => new(Key, Value);
 
             public bool MoveNext()
             {
                 var movenext = enumerator.MoveNext();
-                Current = enumerator.Current;
-
-                Key = enumerator.Current.Key;
-                Value = enumerator.Current.Value;
                 return movenext;
             }
 

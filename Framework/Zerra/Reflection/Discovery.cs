@@ -8,7 +8,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using Zerra.Collections;
 
 namespace Zerra.Reflection
@@ -44,7 +43,10 @@ namespace Zerra.Reflection
             var loadedAssemblies = new HashSet<string>();
             var currentAsssemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic);
             foreach (var currentAssembly in currentAsssemblies)
-                _ = loadedAssemblies.Add(currentAssembly.FullName);
+            {
+                if (!String.IsNullOrEmpty(currentAssembly.FullName))
+                    _ = loadedAssemblies.Add(currentAssembly.FullName);
+            }
 
             var assemblyPath = AppDomain.CurrentDomain.BaseDirectory;
 
@@ -63,20 +65,22 @@ namespace Zerra.Reflection
                     if (loadedAssemblies.Contains(assemblyName.FullName))
                         continue;
 
-                    if (assemblyName.Name.EndsWith(".Web.Views"))
+                    if (assemblyName.Name != null && assemblyName.Name.EndsWith(".Web.Views"))
                         continue;
 
                     try
                     {
                         var assembly = Assembly.Load(assemblyName);
-                        _ = loadedAssemblies.Add(assembly.FullName);
+                        if (!String.IsNullOrEmpty(assembly.FullName))
+                            _ = loadedAssemblies.Add(assembly.FullName);
                     }
                     catch (System.IO.FileNotFoundException)
                     {
                         try
                         {
                             var assembly = Assembly.LoadFrom(assemblyFileName);
-                            _ = loadedAssemblies.Add(assembly.FullName);
+                            if (!String.IsNullOrEmpty(assembly.FullName))
+                                _ = loadedAssemblies.Add(assembly.FullName);
                         }
                         catch (Exception)
                         {
@@ -112,15 +116,18 @@ namespace Zerra.Reflection
         {
             Assembly[] assemblies;
             if (Config.DiscoveryAssemblyNameStartsWiths.Length > 0)
-                assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic && Config.DiscoveryAssemblyNameStartsWiths.Any(y => x.FullName.StartsWith(y))).ToArray();
+                assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic && Config.DiscoveryAssemblyNameStartsWiths.Any(y => x.FullName != null && x.FullName.StartsWith(y))).ToArray();
             else
                 assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic).ToArray();
 
-            foreach (var assembly in assemblies.Where(x => !discoveredAssemblies.Contains(x.FullName)))
+            foreach (var assembly in assemblies)
             {
+                if (assembly.FullName == null || discoveredAssemblies.Contains(assembly.FullName))
+                    continue;
+
                 discoveredAssemblies.Add(assembly.FullName);
 
-                Type[] typesInAssembly = null;
+                Type[]? typesInAssembly = null;
                 try
                 {
                     typesInAssembly = assembly.GetTypes();
@@ -139,7 +146,7 @@ namespace Zerra.Reflection
         {
             var typeList1 = typeByName.GetOrAdd(typeInAssembly.Name, (key) => { return new(); });
             typeList1.Add(typeInAssembly);
-            if (typeInAssembly.Name != typeInAssembly.FullName)
+            if (typeInAssembly.FullName != null && typeInAssembly.Name != typeInAssembly.FullName)
             {
                 var typeList2 = typeByName.GetOrAdd(typeInAssembly.FullName, (key) => { return new(); });
                 typeList2.Add(typeInAssembly);
@@ -172,7 +179,7 @@ namespace Zerra.Reflection
             foreach (var attributeType in attributeTypes)
             {
                 var thisAttributeType = attributeType;
-                while (thisAttributeType != typeof(Attribute))
+                while (thisAttributeType != null && thisAttributeType != typeof(Attribute))
                 {
                     var list = typeByAttribute.GetOrAdd(thisAttributeType, (key) => { return new(); });
                     list.Add(typeInAssembly);
@@ -216,8 +223,7 @@ namespace Zerra.Reflection
                 if (!interfaceByType.TryGetValue(classType, out var interfaceList))
                     continue;
 
-                var isNull = secondaryInterface == null;
-                if ((!isNull && interfaceList.Contains(secondaryInterface)) || isNull)
+                if (secondaryInterface == null || interfaceList.Contains(secondaryInterface))
                     return true;
             }
 
@@ -322,7 +328,7 @@ namespace Zerra.Reflection
             return index != -1;
         }
 
-        public static Type GetImplementationType(Type interfaceType, bool throwException = true)
+        public static Type? GetImplementationType(Type interfaceType, bool throwException = true)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
@@ -347,7 +353,7 @@ namespace Zerra.Reflection
 
             return typeList[0];
         }
-        public static Type GetImplementationClass(Type interfaceType, bool throwException = true)
+        public static Type? GetImplementationClass(Type interfaceType, bool throwException = true)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
@@ -372,7 +378,7 @@ namespace Zerra.Reflection
 
             return classList[0];
         }
-        public static Type GetImplementationClass(Type interfaceType, Type secondaryInterface, bool throwException = true)
+        public static Type? GetImplementationClass(Type interfaceType, Type secondaryInterface, bool throwException = true)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
@@ -389,16 +395,14 @@ namespace Zerra.Reflection
                     return null;
             }
 
-            Type found = null;
+            Type? found = null;
             for (var j = 0; j < classList.Count; j++)
             {
                 var classType = classList[j];
                 if (!interfaceByType.TryGetValue(classType, out var interfaceList))
                     continue;
 
-                var isNull = secondaryInterface == null;
-                var contains = interfaceList.Contains(secondaryInterface);
-                if ((!isNull && contains) || isNull)
+                if (secondaryInterface == null || interfaceList.Contains(secondaryInterface))
                 {
                     if (found == null)
                     {
@@ -424,7 +428,7 @@ namespace Zerra.Reflection
 
             return found;
         }
-        public static unsafe Type GetImplementationClass(Type interfaceType, IReadOnlyList<Type> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface, bool throwException = true)
+        public static unsafe Type? GetImplementationClass(Type interfaceType, IReadOnlyList<Type> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface, bool throwException = true)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
@@ -585,8 +589,7 @@ namespace Zerra.Reflection
                 if (!interfaceByType.TryGetValue(classType, out var interfaceList))
                     continue;
 
-                var isNull = secondaryInterface == null;
-                if ((!isNull && interfaceList.Contains(secondaryInterface)) || isNull)
+                if (secondaryInterface == null || interfaceList.Contains(secondaryInterface))
                 {
                     list.Add(classType);
                 }

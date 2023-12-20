@@ -14,7 +14,7 @@ namespace Zerra.Reflection
         public ConstructorInfo ConstructorInfo { get; private set; }
         public string Name => ConstructorInfo.Name;
 
-        private ParameterInfo[] parameterInfos = null;
+        private ParameterInfo[]? parameterInfos = null;
         public IReadOnlyList<ParameterInfo> ParametersInfo
         {
             get
@@ -30,7 +30,7 @@ namespace Zerra.Reflection
             }
         }
 
-        private Attribute[] attributes = null;
+        private Attribute[]? attributes = null;
         public IReadOnlyList<Attribute> Attributes
         {
             get
@@ -47,8 +47,8 @@ namespace Zerra.Reflection
         }
 
         private bool creatorLoaded = false;
-        private Func<object[], object> creator = null;
-        public Func<object[], object> Creator
+        private Func<object[], object>? creator = null;
+        public Func<object[]?, object>? Creator
         {
             get
             {
@@ -58,7 +58,7 @@ namespace Zerra.Reflection
                     {
                         if (!creatorLoaded)
                         {
-                            if (!ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
+                            if (ConstructorInfo.DeclaringType != null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
                             {
                                 this.creator = AccessorGenerator.GenerateCreator(ConstructorInfo);
                             }

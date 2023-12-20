@@ -2339,7 +2339,7 @@ namespace Zerra.Serialization
                             }
                             else
                             {
-                                if (!graph.HasChildGraph(member.Name))
+                                if (!graph.HasChild(member.Name))
                                     goto nextprop;
                             }
                         }

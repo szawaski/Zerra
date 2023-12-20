@@ -91,14 +91,14 @@ namespace Zerra.Repository
 
             foreach (var property in ModelDetail.RelatedProperties)
             {
-                if (graph.HasChildGraph(property.Name))
+                if (graph.HasChild(property.Name))
                 {
                     var appendWhereExpressionMethodInfo = GetRelatedPropertyGetWhereExpressionMethod(property.Type);
 
                     if (appendWhereExpressionMethodInfo != null)
                     {
                         var relatedProvider = Resolver.GetSingle(appendWhereExpressionMethodInfo.RelatedProviderType);
-                        var relatedGraph = graph.GetChildGraphNotNull(property.Name, appendWhereExpressionMethodInfo.PropertyType);
+                        var relatedGraph = graph.GetChildGraph(property.Name, appendWhereExpressionMethodInfo.PropertyType);
 
                         Expression returnWhereExpression = null;
                         if (relatedProvider is IProviderRelation relatedProviderGeneric)
@@ -172,14 +172,14 @@ namespace Zerra.Repository
 
             foreach (var property in ModelDetail.RelatedProperties)
             {
-                if (graph.HasChildGraph(property.Name))
+                if (graph.HasChild(property.Name))
                 {
                     var onQueryMethodInfo = GetRelatedPropertyOnQueryMethod(property.Type);
 
                     if (onQueryMethodInfo != null)
                     {
                         var relatedProvider = Resolver.GetSingle(onQueryMethodInfo.RelatedProviderType);
-                        var relatedGraph = graph.GetChildGraphNotNull(property.Name, onQueryMethodInfo.PropertyType);
+                        var relatedGraph = graph.GetChildGraph(property.Name, onQueryMethodInfo.PropertyType);
 
                         if (relatedProvider is IProviderRelation relatedProviderGeneric)
                         {
@@ -254,7 +254,7 @@ namespace Zerra.Repository
             {
                 foreach (var modelPropertyInfo in ModelDetail.RelatedProperties)
                 {
-                    if (graph.HasChildGraph(modelPropertyInfo.Name))
+                    if (graph.HasChild(modelPropertyInfo.Name))
                     {
                         if (!modelPropertyInfo.IsEnumerable)
                         {
@@ -289,7 +289,7 @@ namespace Zerra.Repository
                 //var tasks = new List<Task>();
                 foreach (var modelPropertyInfo in ModelDetail.RelatedProperties)
                 {
-                    if (graph.HasChildGraph(modelPropertyInfo.Name))
+                    if (graph.HasChild(modelPropertyInfo.Name))
                     {
                         //var task = Task.Run(() =>
                         //{
@@ -297,7 +297,7 @@ namespace Zerra.Repository
                         {
                             //related single
                             var relatedType = modelPropertyInfo.InnerType;
-                            var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+                            var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name, relatedType);
 
                             var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
@@ -358,7 +358,7 @@ namespace Zerra.Repository
                         {
                             //related many
                             var relatedType = modelPropertyInfo.InnerType;
-                            var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+                            var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name, relatedType);
 
                             var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
@@ -438,7 +438,7 @@ namespace Zerra.Repository
                 //var tasks = new List<Task>();
                 foreach (var modelPropertyInfo in ModelDetail.RelatedProperties)
                 {
-                    if (graph.HasChildGraph(modelPropertyInfo.Name))
+                    if (graph.HasChild(modelPropertyInfo.Name))
                     {
                         //var task = Task.Run(async () =>
                         //{
@@ -446,7 +446,7 @@ namespace Zerra.Repository
                         {
                             //related single
                             var relatedType = modelPropertyInfo.InnerType;
-                            var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+                            var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name, relatedType);
 
                             var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
@@ -507,7 +507,7 @@ namespace Zerra.Repository
                         {
                             //related many
                             var relatedType = modelPropertyInfo.InnerType;
-                            var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+                            var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name, relatedType);
 
                             var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
@@ -581,7 +581,7 @@ namespace Zerra.Repository
 
             foreach (var property in ModelDetail.RelatedProperties)
             {
-                if (graph.HasChildGraph(property.Name))
+                if (graph.HasChild(property.Name))
                 {
                     var onGetMethodInfo = GetRelatedPropertyOnGetMethod(property.Type);
 
@@ -590,7 +590,7 @@ namespace Zerra.Repository
                         var relatedProvider = Resolver.GetSingle(onGetMethodInfo.RelatedProviderType);
                         if (relatedProvider is IProviderRelation relatedProviderGeneric)
                         {
-                            var relatedGraph = graph.GetChildGraphNotNull(property.Name, onGetMethodInfo.PropertyType);
+                            var relatedGraph = graph.GetChildGraph(property.Name, onGetMethodInfo.PropertyType);
                             if (onGetMethodInfo.Enumerable)
                             {
                                 foreach (var model in models)
@@ -653,7 +653,7 @@ namespace Zerra.Repository
 
             foreach (var property in ModelDetail.RelatedProperties)
             {
-                if (graph.HasChildGraph(property.Name))
+                if (graph.HasChild(property.Name))
                 {
                     var onGetMethodInfo = GetRelatedPropertyOnGetMethod(property.Type);
 
@@ -662,7 +662,7 @@ namespace Zerra.Repository
                         var relatedProvider = Resolver.GetSingle(onGetMethodInfo.RelatedProviderType);
                         if (relatedProvider is IProviderRelation relatedProviderGeneric)
                         {
-                            var relatedGraph = graph.GetChildGraphNotNull(property.Name, onGetMethodInfo.PropertyType);
+                            var relatedGraph = graph.GetChildGraph(property.Name, onGetMethodInfo.PropertyType);
                             if (onGetMethodInfo.Enumerable)
                             {
                                 foreach (var model in models)
@@ -1197,7 +1197,7 @@ namespace Zerra.Repository
 
             foreach (var modelPropertyInfo in ModelDetail.RelatedNonEnumerableProperties)
             {
-                if (graph.HasChildGraph(modelPropertyInfo.Name))
+                if (graph.HasChild(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(() =>
                     //{
@@ -1208,7 +1208,7 @@ namespace Zerra.Repository
 
                     if (relatedModel != null)
                     {
-                        var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+                        var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name, relatedType);
 
                         if (create)
                         {
@@ -1250,7 +1250,7 @@ namespace Zerra.Repository
 
             foreach (var modelPropertyInfo in ModelDetail.RelatedEnumerableProperties)
             {
-                if (graph.HasChildGraph(modelPropertyInfo.Name))
+                if (graph.HasChild(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(() =>
                     //{
@@ -1265,7 +1265,7 @@ namespace Zerra.Repository
                     if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var relatedForeignIdentityPropertyInfo))
                         throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
 
-                    var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+                    var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name, relatedType);
                     var relatedGraphType = TypeAnalyzer.GetGenericTypeDetail(graphType, relatedType);
 
                     var listTypeDetail = TypeAnalyzer.GetGenericTypeDetail(listType, relatedType);
@@ -1397,7 +1397,7 @@ namespace Zerra.Repository
 
             foreach (var modelPropertyInfo in ModelDetail.RelatedEnumerableProperties)
             {
-                if (graph.HasChildGraph(modelPropertyInfo.Name))
+                if (graph.HasChild(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(() =>
                     //{
@@ -1408,7 +1408,7 @@ namespace Zerra.Repository
                     if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var relatedForeignIdentityPropertyInfo))
                         throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
 
-                    var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+                    var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name, relatedType);
                     var relatedGraphType = TypeAnalyzer.GetGenericTypeDetail(graphType, relatedType);
 
                     var relatedModelsExisting = (IList)TypeAnalyzer.GetGenericTypeDetail(listType, relatedType).Creator();
@@ -1456,7 +1456,7 @@ namespace Zerra.Repository
 
             foreach (var modelPropertyInfo in ModelDetail.RelatedNonEnumerableProperties)
             {
-                if (graph.HasChildGraph(modelPropertyInfo.Name))
+                if (graph.HasChild(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(async () =>
                     //{
@@ -1467,7 +1467,7 @@ namespace Zerra.Repository
 
                     if (relatedModel != null)
                     {
-                        var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+                        var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name, relatedType);
 
                         if (create)
                         {
@@ -1509,7 +1509,7 @@ namespace Zerra.Repository
 
             foreach (var modelPropertyInfo in ModelDetail.RelatedEnumerableProperties)
             {
-                if (graph.HasChildGraph(modelPropertyInfo.Name))
+                if (graph.HasChild(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(async () =>
                     //{
@@ -1524,7 +1524,7 @@ namespace Zerra.Repository
                     if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var relatedForeignIdentityPropertyInfo))
                         throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
 
-                    var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+                    var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name, relatedType);
                     var relatedGraphType = TypeAnalyzer.GetGenericTypeDetail(graphType, relatedType);
 
                     var listTypeDetail = TypeAnalyzer.GetGenericTypeDetail(listType, relatedType);
@@ -1656,7 +1656,7 @@ namespace Zerra.Repository
 
             foreach (var modelPropertyInfo in ModelDetail.RelatedEnumerableProperties)
             {
-                if (graph.HasChildGraph(modelPropertyInfo.Name))
+                if (graph.HasChild(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(async () =>
                     //{
@@ -1667,7 +1667,7 @@ namespace Zerra.Repository
                     if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var relatedForeignIdentityPropertyInfo))
                         throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
 
-                    var relatedGraph = graph.GetChildGraphNotNull(modelPropertyInfo.Name, relatedType);
+                    var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name, relatedType);
                     var relatedGraphType = TypeAnalyzer.GetGenericTypeDetail(graphType, relatedType);
 
                     var relatedModelsExisting = (IList)TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(listType, relatedType)).Creator();

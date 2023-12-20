@@ -655,7 +655,7 @@ namespace Zerra.Serialization
                                 }
                                 else
                                 {
-                                    if (state.CurrentFrame.Graph.HasChildGraph(state.CurrentFrame.ObjectProperty.Name))
+                                    if (state.CurrentFrame.Graph.HasChild(state.CurrentFrame.ObjectProperty.Name))
                                         state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                                 }
                             }

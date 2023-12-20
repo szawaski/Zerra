@@ -5,6 +5,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 
@@ -162,7 +163,7 @@ namespace Zerra.Collections
             locker.ExitWriteLock();
         }
 #if !NETSTANDARD2_0
-        public bool TryGetValue(T equalValue, out T actualValue)
+        public bool TryGetValue(T equalValue, [MaybeNullWhen(false)] out T actualValue)
         {
             locker.EnterReadLock();
             var result = hashSet.TryGetValue(equalValue, out var tryActualValue);
