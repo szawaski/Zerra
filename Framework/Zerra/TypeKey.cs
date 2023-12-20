@@ -15,10 +15,10 @@ namespace Zerra
         private readonly Type? type2;
         private readonly Type[]? typeArray;
 
-        public string? Str => str;
-        public Type? Type1 => type1;
-        public Type? Type2 => type2;
-        public IReadOnlyCollection<Type>? TypeArray => typeArray;
+        public string Str => str ?? throw new NotSupportedException($"{nameof(TypeKey)} not setup with {nameof(Str)}");
+        public Type Type1 => type1 ?? throw new NotSupportedException($"{nameof(TypeKey)} not setup with {nameof(Type1)}");
+        public Type Type2 => type2 ?? throw new NotSupportedException($"{nameof(TypeKey)} not setup with {nameof(Type2)}");
+        public IReadOnlyCollection<Type> TypeArray => typeArray ?? throw new NotSupportedException($"{nameof(TypeKey)} not setup with {nameof(TypeArray)}");
 
         public TypeKey(Type? type1, Type type2)
         {

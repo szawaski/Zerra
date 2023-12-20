@@ -13,9 +13,11 @@ namespace Zerra.Reflection
     {
         public static bool TryGetSingle<TInterface>(
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)]
+            [MaybeNullWhen(false)] out TInterface provider
+#else
+            out TInterface? provider
 #endif
-        out TInterface provider)
+        )
         {
             provider = GetSingle<TInterface>(false);
             return provider != null;
@@ -35,9 +37,11 @@ namespace Zerra.Reflection
 
         public static bool TryGetNew<TInterface>(
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)]
+            [MaybeNullWhen(false)] out TInterface provider
+#else
+            out TInterface? provider
 #endif
-        out TInterface provider)
+        )
         {
             provider = GetNew<TInterface>(false);
             return provider != null;
@@ -62,9 +66,7 @@ namespace Zerra.Reflection
         private static object GetSingleGeneric(Type type, bool throwException)
         {
             var genericMethodProviderManagerTryGetSingle = TypeAnalyzer.GetGenericMethodDetail(methodProviderManagerGetSingle, type);
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
             var provider = genericMethodProviderManagerTryGetSingle.Caller(null, new object[] { throwException });
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
 #pragma warning disable CS8603 // Possible null reference return.
             return provider;
 #pragma warning restore CS8603 // Possible null reference return.
@@ -77,9 +79,7 @@ namespace Zerra.Reflection
         private static object GetNewGeneric(Type type, bool throwException)
         {
             var genericMethodProviderManagerTryGetNew = TypeAnalyzer.GetGenericMethodDetail(methodProviderManagerGetNew, type);
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
             var provider = genericMethodProviderManagerTryGetNew.Caller(null, new object[] { throwException });
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
 #pragma warning disable CS8603 // Possible null reference return.
             return provider;
 #pragma warning restore CS8603 // Possible null reference return.

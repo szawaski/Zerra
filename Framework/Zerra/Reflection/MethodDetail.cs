@@ -49,9 +49,9 @@ namespace Zerra.Reflection
         }
 
         private bool callerLoaded = false;
-        private Func<object?, object[]?, object?>? caller = null;
-        private Func<object?, object[]?, Task<object?>>? callerAsync = null;
-        public Func<object?, object[]?, object?>? Caller
+        private Func<object?, object?[]?, object?>? caller = null;
+        private Func<object?, object?[]?, Task<object?>>? callerAsync = null;
+        public Func<object?, object?[]?, object?> Caller
         {
             get
             {
@@ -66,10 +66,10 @@ namespace Zerra.Reflection
                         }
                     }
                 }
-                return this.caller;
+                return this.caller ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(Caller)}");
             }
         }
-        public Func<object?, object[]?, Task<object?>>? CallerAsync
+        public Func<object?, object?[]?, Task<object?>> CallerAsync
         {
             get
             {
@@ -84,7 +84,7 @@ namespace Zerra.Reflection
                         }
                     }
                 }
-                return this.callerAsync;
+                return this.callerAsync ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(CallerAsync)}");
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -113,7 +113,9 @@ namespace Zerra.Reflection
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
                         if (returnTypeInfo.Type.IsGenericType)
 #pragma warning disable CS8604 // Possible null reference argument.
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
                             return returnTypeInfo.TaskResultGetter(result);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
 #pragma warning restore CS8604 // Possible null reference argument.
                         else
                             return default;

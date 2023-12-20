@@ -10,6 +10,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Xml.Linq;
 using Zerra.Collections;
 
 namespace Zerra.Reflection
@@ -469,29 +470,37 @@ namespace Zerra.Reflection
         {
             var method = GetMethodInternal(name, parameterTypes);
             if (method == null)
-                throw new MissingMethodException($"{Type.Name}.{name} method not found for the given parameters {(parameterTypes == null ? "(none)" : String.Join(",", parameterTypes.Select(x => x.GetNiceName())))}");
+                throw new MissingMethodException($"{Type.Name}.{name} method not found for the given parameters {(parameterTypes == null || parameterTypes.Length == 0 ? "(none)" : String.Join(",", parameterTypes.Select(x => x.GetNiceName())))}");
             return method;
         }
         public bool TryGetMethod(string name,
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)] out MethodDetail method
-#else
-            out MethodDetail? method
+            [MaybeNullWhen(false)]
 #endif
-        )
+        out MethodDetail method)
         {
+#if NETSTANDARD2_0
+#pragma warning disable CS8601 // Possible null reference assignment.
             method = GetMethodInternal(name, null);
+#pragma warning restore CS8601 // Possible null reference assignment.
+#else
+            method = GetMethodInternal(name, null);
+#endif
             return method != null;
         }
         public bool TryGetMethod(string name, Type[] parameterTypes,
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)] out MethodDetail method
-#else
-            out MethodDetail? method
+            [MaybeNullWhen(false)]
 #endif
-        )
+        out MethodDetail method)
         {
+#if NETSTANDARD2_0
+#pragma warning disable CS8601 // Possible null reference assignment.
             method = GetMethodInternal(name, parameterTypes);
+#pragma warning restore CS8601 // Possible null reference assignment.
+#else
+            method = GetMethodInternal(name, parameterTypes);
+#endif
             return method != null;
         }
 
@@ -534,24 +543,32 @@ namespace Zerra.Reflection
         }
         public bool TryGetConstructor(
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)] out ConstructorDetail constructor
-#else
-            out ConstructorDetail? constructor
+            [MaybeNullWhen(false)] 
 #endif
-        )
+        out ConstructorDetail constructor)
         {
+#if NETSTANDARD2_0
+#pragma warning disable CS8601 // Possible null reference assignment.
             constructor = GetConstructorInternal(null);
+#pragma warning restore CS8601 // Possible null reference assignment.
+#else
+            constructor = GetConstructorInternal(null);
+#endif
             return constructor != null;
         }
         public bool TryGetConstructor(Type[] parameterTypes,
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)] out ConstructorDetail constructor
-#else
-            out ConstructorDetail? constructor
+            [MaybeNullWhen(false)]
 #endif
-        )
+        out ConstructorDetail constructor)
         {
+#if NETSTANDARD2_0
+#pragma warning disable CS8601 // Possible null reference assignment.
             constructor = GetConstructorInternal(parameterTypes);
+#pragma warning restore CS8601 // Possible null reference assignment.
+#else
+            constructor = GetConstructorInternal(parameterTypes);
+#endif
             return constructor != null;
         }
 
@@ -587,11 +604,9 @@ namespace Zerra.Reflection
         }
         public bool TryGetSerializableMemberCaseInsensitive(string name,
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)] out MemberDetail member
-#else
-            out MemberDetail? member
+            [MaybeNullWhen(false)]
 #endif
-         )
+         out MemberDetail member)
         {
             if (serializableMembersByNameLower == null)
             {
@@ -619,11 +634,9 @@ namespace Zerra.Reflection
         }
         public bool TryGetGetMemberFieldBacked(string name,
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)] out MemberDetail member
-#else
-            out MemberDetail? member
+            [MaybeNullWhen(false)]
 #endif
-        )
+        out MemberDetail member)
         {
             if (membersFieldBackedByName == null)
             {
@@ -680,14 +693,14 @@ namespace Zerra.Reflection
                 return isIEnumerableGeneric;
             }
         }
-        public Type? IEnumerableGenericInnerType
+        public Type IEnumerableGenericInnerType
         {
             get
             {
                 if (!IsIEnumerable)
-                    return null;
+                    throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric");
                 LoadIEnumerableGeneric();
-                return iEnumerableGenericInnerType;
+                return iEnumerableGenericInnerType ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric"); ;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -719,12 +732,12 @@ namespace Zerra.Reflection
         }
 
         private TypeDetail? iEnumerableGenericInnerTypeDetail = null;
-        public TypeDetail? IEnumerableGenericInnerTypeDetail
+        public TypeDetail IEnumerableGenericInnerTypeDetail
         {
             get
             {
                 if (IEnumerableGenericInnerType == null)
-                    return null;
+                    throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric");
                 if (iEnumerableGenericInnerTypeDetail == null)
                 {
                     lock (locker)
@@ -758,7 +771,7 @@ namespace Zerra.Reflection
 
         private bool creatorLoaded = false;
         private Func<object>? creator = null;
-        public Func<object>? Creator
+        public Func<object> Creator
         {
             get
             {
@@ -790,7 +803,7 @@ namespace Zerra.Reflection
                         }
                     }
                 }
-                return creator;
+                return creator ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} does not have a {nameof(Creator)}");
             }
         }
 

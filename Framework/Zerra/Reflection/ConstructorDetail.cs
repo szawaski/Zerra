@@ -47,8 +47,8 @@ namespace Zerra.Reflection
         }
 
         private bool creatorLoaded = false;
-        private Func<object[], object>? creator = null;
-        public Func<object[]?, object>? Creator
+        private Func<object?[]?, object>? creator = null;
+        public Func<object?[]?, object> Creator
         {
             get
             {
@@ -66,7 +66,7 @@ namespace Zerra.Reflection
                         }
                     }
                 }
-                return this.creator;
+                return this.creator ?? throw new NotSupportedException($"{nameof(ConstructorDetail)} {Name} does not have a {nameof(Creator)}"); ;
             }
         }
 

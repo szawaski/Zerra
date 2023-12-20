@@ -84,12 +84,10 @@ namespace System.Linq
         }
 
         public static bool TryReadMemberName(this Expression it,
-#if NET5_0_OR_GREATER
-            [MaybeNullWhen(false)] out string memberName
-#else
-            out string? memberName
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
 #endif
-        )
+         out string memberName)
         {
             var exp = it is LambdaExpression lambda ? lambda.Body : it;
 
@@ -109,7 +107,13 @@ namespace System.Linq
 
             if (exp is not ParameterExpression)
             {
+#if NETSTANDARD2_0
+#pragma warning disable CS8601 // Possible null reference assignment.
                 memberName = null;
+#pragma warning restore CS8601 // Possible null reference assignment.
+#else
+                memberName = null;
+#endif
                 return false;
             }
 

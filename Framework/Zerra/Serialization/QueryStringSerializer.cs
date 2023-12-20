@@ -222,6 +222,7 @@ namespace Zerra.Serialization
             if (!TypeLookup.CoreTypeLookup(member.Type, out var coreType))
                 throw new NotImplementedException($"Type convert not available for {member.Type.Name}");
 
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
             object parsed = coreType switch
             {
                 CoreType.Boolean => Boolean.Parse(value),
@@ -261,6 +262,7 @@ namespace Zerra.Serialization
                 CoreType.GuidNullable => value == null ? null : Guid.Parse(value),
                 _ => throw new NotImplementedException($"Type conversion not available for {member.Type.Name}"),
             };
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
 
             member.Setter(model, parsed);
         }

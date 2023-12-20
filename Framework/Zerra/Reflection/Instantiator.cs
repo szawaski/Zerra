@@ -77,7 +77,7 @@ namespace Zerra.Reflection
                 return null;
             });
             if (creator == null)
-                throw new MissingMethodException($"Constructor for {type.GetNiceName()} not available for the given parameters {String.Join(",", parameterTypes.Select(x => x.GetNiceName()))}");
+                throw new MissingMethodException($"Constructor for {type.GetNiceName()} not available for the given parameters {(parameterTypes == null || parameterTypes.Length == 0 ? "(none)" : String.Join(",", parameterTypes.Select(x => x.GetNiceName())))}");
 
             return creator;
         }

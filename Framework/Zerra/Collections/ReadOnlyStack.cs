@@ -78,7 +78,13 @@ namespace Zerra.Collections
         {
             if (index == stack.Length)
             {
+#if NETSTANDARD2_0
+#pragma warning disable CS8601 // Possible null reference assignment.
                 result = default;
+#pragma warning restore CS8601 // Possible null reference assignment.
+#else
+                result = default;
+#endif               
                 return false;
             }
             result = stack[index];
@@ -92,7 +98,13 @@ namespace Zerra.Collections
         {
             if (index == stack.Length)
             {
+#if NETSTANDARD2_0
+#pragma warning disable CS8601 // Possible null reference assignment.
                 result = default;
+#pragma warning restore CS8601 // Possible null reference assignment.
+#else
+                result = default;
+#endif
                 return false;
             }
             result = stack[index++];

@@ -24,8 +24,8 @@ namespace Zerra
         private readonly TypeDetail sourceType;
         private readonly TypeDetail targetType;
         private readonly Dictionary<string, Tuple<Expression<Func<TSource, object>>, Expression<Func<TTarget, object>>>> memberMaps;
-        private readonly ConcurrentFactoryDictionary<Graph, Func<TSource, TTarget, IMapLogger, Dictionary<MapRecursionKey, object>, TTarget>> compiledGraphMaps;
-        private Func<TSource, TTarget, IMapLogger, Dictionary<MapRecursionKey, object>, TTarget> compiledMap;
+        private readonly ConcurrentFactoryDictionary<Graph, Func<TSource, TTarget, IMapLogger?, Dictionary<MapRecursionKey, object>, TTarget>> compiledGraphMaps;
+        private Func<TSource, TTarget, IMapLogger?, Dictionary<MapRecursionKey, object>, TTarget>? compiledMap;
 
         private static readonly Type genericMapType = typeof(MapWithLog<,>);
         private static readonly Type genericListType = typeof(List<>);
@@ -66,8 +66,8 @@ namespace Zerra
         {
             sourceType = TypeAnalyzer.GetTypeDetail(tType);
             targetType = TypeAnalyzer.GetTypeDetail(uType);
-            memberMaps = new Dictionary<string, Tuple<Expression<Func<TSource, object>>, Expression<Func<TTarget, object>>>>();
-            compiledGraphMaps = new ConcurrentFactoryDictionary<Graph, Func<TSource, TTarget, IMapLogger, Dictionary<MapRecursionKey, object>, TTarget>>();
+            memberMaps = new();
+            compiledGraphMaps = new();
             GenerateDefaultMemberMaps();
             RunInitializers();
         }
@@ -137,10 +137,10 @@ namespace Zerra
             }
         }
 
-        public TTarget Copy(TSource source, IMapLogger logger = null, Graph graph = null)
+        public TTarget Copy(TSource source, IMapLogger? logger = null, Graph? graph = null)
         {
             if (source == null)
-                return default;
+                throw new ArgumentNullException(nameof(source));
 
             TTarget target;
             if (sourceType.IsIEnumerable && targetType.IsIEnumerable)
@@ -185,7 +185,9 @@ namespace Zerra
                 }
                 else if (sourceType.IsICollectionGeneric)
                 {
+#pragma warning disable CS8605 // Unboxing a possibly null value.
                     var length = (int)sourceType.GetMember("Count").Getter(source);
+#pragma warning restore CS8605 // Unboxing a possibly null value.
                     target = (TTarget)(object)Array.CreateInstance(targetType.InnerTypes[0], length);
                 }
                 else
@@ -196,7 +198,10 @@ namespace Zerra
             }
             else
             {
-                target = (TTarget)targetType.Creator();
+                var creator = targetType.Creator;
+                if (creator == null)
+                    throw new NotSupportedException($"{targetType.Type.GetNiceName()} does not have a default constructor");
+                target = (TTarget)creator();
             }
 
             if (graph == null)
@@ -217,14 +222,17 @@ namespace Zerra
             }
         }
 
-        public TTarget CopyTo(TSource source, TTarget target, IMapLogger logger = null, Graph graph = null)
+        public TTarget CopyTo(TSource source, TTarget target, IMapLogger? logger = null, Graph? graph = null)
         {
             if (source == null)
-                return default;
+                throw new ArgumentNullException(nameof(source));
+            if (target == null)
+                throw new ArgumentNullException(nameof(target));
+
             return CopyInternal(source, target, logger, graph, new Dictionary<MapRecursionKey, object>());
         }
 
-        internal TTarget CopyInternal(TSource source, TTarget target, IMapLogger logger, Graph graph, Dictionary<MapRecursionKey, object> recursionDictionary)
+        internal TTarget CopyInternal(TSource source, TTarget target, IMapLogger? logger, Graph? graph, Dictionary<MapRecursionKey, object> recursionDictionary)
         {
             if (graph == null)
             {
@@ -296,7 +304,7 @@ namespace Zerra
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Func<TSource, TTarget, IMapLogger, Dictionary<MapRecursionKey, object>, TTarget> CompileMap(Graph graph)
+        private Func<TSource, TTarget, IMapLogger?, Dictionary<MapRecursionKey, object>, TTarget> CompileMap(Graph? graph)
         {
             var depth = 0;
             var sourceParameter = Expression.Parameter(sourceType.Type, "source");
@@ -304,11 +312,11 @@ namespace Zerra
             var loggerParameter = Expression.Parameter(mapLoggerType, "logger");
             var recursionDictionaryParameter = Expression.Parameter(recursionDictionaryType, "recursionDictionary");
             var block = GenerateMap(graph, sourceParameter, targetParameter, loggerParameter, recursionDictionaryParameter, ref depth);
-            var lambda = Expression.Lambda<Func<TSource, TTarget, IMapLogger, Dictionary<MapRecursionKey, object>, TTarget>>(block, sourceParameter, targetParameter, loggerParameter, recursionDictionaryParameter);
+            var lambda = Expression.Lambda<Func<TSource, TTarget, IMapLogger?, Dictionary<MapRecursionKey, object>, TTarget>>(block, sourceParameter, targetParameter, loggerParameter, recursionDictionaryParameter);
             return lambda.Compile();
         }
 
-        private Expression GenerateMap(Graph graph, Expression source, Expression target, Expression logger, Expression recursionDictionary, ref int depth)
+        private Expression GenerateMap(Graph? graph, Expression source, Expression target, Expression logger, Expression recursionDictionary, ref int depth)
         {
             if (sourceType.CoreType.HasValue || targetType.CoreType.HasValue)
             {
@@ -776,7 +784,7 @@ namespace Zerra
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Expression GenerateMapAssignTarget(Graph graph, Expression source, Expression target, Expression logger, Expression recursionDictionary, ref int depth)
+        private static Expression GenerateMapAssignTarget(Graph? graph, Expression source, Expression target, Expression logger, Expression recursionDictionary, ref int depth)
         {
             if (source is null)
                 throw new MapException($"{nameof(source)} is null");
@@ -791,10 +799,16 @@ namespace Zerra
             {
                 var sourceMapType = TypeAnalyzer.GetGenericTypeDetail(genericMapType, source.Type, target.Type);
                 var sourceMap = sourceMapType.GetMethod("GetMap").MethodInfo.Invoke(null, null);
-                var generateMapArgs = new object[] { graph, source, target, logger, recursionDictionary, depth };
+                var generateMapArgs = new object?[] { graph, source, target, logger, recursionDictionary, depth };
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
                 var sourceBlockMap = (Expression)sourceMapType.GetMethod("GenerateMap").MethodInfo.Invoke(sourceMap, generateMapArgs);
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+#pragma warning disable CS8605 // Unboxing a possibly null value.
                 depth = (int)generateMapArgs[generateMapArgs.Length - 1];
+#pragma warning restore CS8605 // Unboxing a possibly null value.
+#pragma warning disable CS8603 // Possible null reference return.
                 return sourceBlockMap;
+#pragma warning restore CS8603 // Possible null reference return.
             }
             else
             {
@@ -914,9 +928,13 @@ namespace Zerra
                 else
                 {
                     var sourceMap = sourceMapType.GetMethod(nameof(GetMap)).MethodInfo.Invoke(null, null);
-                    var generateMapArgs = new object[] { graph, source, newTarget, logger, recursionDictionary, depth };
+                    var generateMapArgs = new object?[] { graph, source, newTarget, logger, recursionDictionary, depth };
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
                     sourceBlockMap = (Expression)sourceMapType.GetMethod(nameof(GenerateMap)).MethodInfo.Invoke(sourceMap, generateMapArgs);
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+#pragma warning disable CS8605 // Unboxing a possibly null value.
                     depth = (int)generateMapArgs[generateMapArgs.Length - 1];
+#pragma warning restore CS8605 // Unboxing a possibly null value.
                 }
 
                 var sourceName = GetMemberName(source);
@@ -934,7 +952,9 @@ namespace Zerra
                     Expression.Constant(newTarget.Type.Name)
                 );
 
+#pragma warning disable CS8604 // Possible null reference argument.
                 var block = Expression.Block(new[] { newTarget }, logNewObject, assignNewTarget, sourceBlockMap, assignTarget);
+#pragma warning restore CS8604 // Possible null reference argument.
 
                 var recursionKey = Expression.New(newRecursionKey, source, Expression.Constant(target.Type, typeof(Type)));
                 var tryGetValue = Expression.Variable(objectType, "value");

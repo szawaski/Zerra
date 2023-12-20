@@ -12,7 +12,7 @@ namespace Zerra.Logging
     {
         public static Task InfoAsync(string message)
         {
-            if (Resolver.TryGetSingle(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle<ILoggingProvider>(out var provider))
             {
                 return provider.InfoAsync(message);
             }
@@ -20,7 +20,7 @@ namespace Zerra.Logging
         }
         public static Task DebugAsync(string message)
         {
-            if (Resolver.TryGetSingle(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle<ILoggingProvider>(out var provider))
             {
                 return provider.DebugAsync(message);
             }
@@ -28,23 +28,23 @@ namespace Zerra.Logging
         }
         public static Task WarnAsync(string message)
         {
-            if (Resolver.TryGetSingle(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle<ILoggingProvider>(out var provider))
             {
                 return provider.WarnAsync(message);
             }
             return Task.CompletedTask;
-        } 
+        }
         public static Task TraceAsync(string message)
         {
-            if (Resolver.TryGetSingle(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle<ILoggingProvider>(out var provider))
             {
                 return provider.TraceAsync(message);
             }
             return Task.CompletedTask;
         }
-        public static Task ErrorAsync(string message, Exception exception = null)
+        public static Task ErrorAsync(string message, Exception? exception = null)
         {
-            if (Resolver.TryGetSingle(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle<ILoggingProvider>(out var provider))
             {
                 return provider.ErrorAsync(message, exception);
             }
@@ -52,15 +52,15 @@ namespace Zerra.Logging
         }
         public static Task ErrorAsync(Exception exception)
         {
-            if (Resolver.TryGetSingle(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle<ILoggingProvider>(out var provider))
             {
                 return provider.ErrorAsync(null, exception);
             }
             return Task.CompletedTask;
         }
-        public static Task CriticalAsync(string message, Exception exception = null)
+        public static Task CriticalAsync(string message, Exception? exception = null)
         {
-            if (Resolver.TryGetSingle(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle<ILoggingProvider>(out var provider))
             {
                 return provider.CriticalAsync(message, exception);
             }
@@ -68,7 +68,7 @@ namespace Zerra.Logging
         }
         public static Task CriticalAsync(Exception exception)
         {
-            if (Resolver.TryGetSingle(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle<ILoggingProvider>(out var provider))
             {
                 return provider.CriticalAsync(null, exception);
             }

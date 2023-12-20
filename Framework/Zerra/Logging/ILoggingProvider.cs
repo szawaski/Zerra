@@ -13,7 +13,7 @@ namespace Zerra.Logging
         Task DebugAsync(string message);
         Task InfoAsync(string message);
         Task WarnAsync(string message);
-        Task ErrorAsync(string message, Exception ex);
-        Task CriticalAsync(string message, Exception ex);
+        Task ErrorAsync(string? message, Exception? ex);
+        Task CriticalAsync(string? message, Exception? ex);
     }
 }

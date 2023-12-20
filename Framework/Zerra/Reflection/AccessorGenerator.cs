@@ -55,7 +55,7 @@ namespace Zerra.Reflection
         }
         public static object? GenerateGetterTyped(PropertyInfo propertyInfo)
         {
-            if (propertyInfo.ReflectedType == null)
+            if (propertyInfo.ReflectedType == null || propertyInfo.DeclaringType == null)
                 return null;
 
             if (!propertyInfo.CanRead)
@@ -124,7 +124,7 @@ namespace Zerra.Reflection
         }
         public static object? GenerateSetterTyped(PropertyInfo propertyInfo)
         {
-            if (propertyInfo.ReflectedType == null)
+            if (propertyInfo.ReflectedType == null || propertyInfo.DeclaringType == null)
                 return null;
 
             if (!propertyInfo.CanWrite)
@@ -187,7 +187,7 @@ namespace Zerra.Reflection
         }
         public static object? GenerateGetterTyped(FieldInfo fieldInfo)
         {
-            if (fieldInfo.ReflectedType == null)
+            if (fieldInfo.ReflectedType == null || fieldInfo.DeclaringType == null)
                 return null;
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.GetterTyped", fieldInfo.FieldType, new Type[] { fieldInfo.DeclaringType }, true);
@@ -247,7 +247,7 @@ namespace Zerra.Reflection
         }
         public static object? GenerateSetterTyped(FieldInfo fieldInfo)
         {
-            if (fieldInfo.ReflectedType == null)
+            if (fieldInfo.ReflectedType == null || fieldInfo.DeclaringType == null)
                 return null;
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.SetterTyped", null, new Type[] { fieldInfo.DeclaringType, fieldInfo.FieldType }, true);
@@ -273,7 +273,7 @@ namespace Zerra.Reflection
             return method;
         }
 
-        public static Func<object[]?, object>? GenerateCreator(ConstructorInfo constructorInfo)
+        public static Func<object?[]?, object>? GenerateCreator(ConstructorInfo constructorInfo)
         {
             if (constructorInfo.DeclaringType == null)
                 return null;
@@ -285,10 +285,10 @@ namespace Zerra.Reflection
             if (!success)
                 return null;
 
-            return (Func<object[]?, object>)dynamicMethod.CreateDelegate(typeof(Func<object[]?, object>));
+            return (Func<object?[]?, object>)dynamicMethod.CreateDelegate(typeof(Func<object?[]?, object>));
         }
 
-        public static Func<object?, object[]?, object?>? GenerateCaller(MethodInfo methodInfo)
+        public static Func<object?, object?[]?, object?>? GenerateCaller(MethodInfo methodInfo)
         {
             if (methodInfo.ReflectedType == null)
                 return null;
@@ -300,7 +300,7 @@ namespace Zerra.Reflection
             if (!success)
                 return null;
 
-            return (Func<object?, object[]?, object?>)dynamicMethod.CreateDelegate(typeof(Func<object?, object[]?, object?>));
+            return (Func<object?, object?[]?, object?>)dynamicMethod.CreateDelegate(typeof(Func<object?, object?[]?, object?>));
         }
 
         // Modified from origional method in Newtonsoft.Json Copyright © 2007 James Newton-King.

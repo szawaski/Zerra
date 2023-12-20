@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Xml.Linq;
 
 namespace Zerra.Collections
 {
@@ -396,23 +397,34 @@ namespace Zerra.Collections
         }
         public bool TryRemove(TKey key,
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)] out TValue value
-#else
-            out TValue? value
+            [MaybeNullWhen(false)]
 #endif
-        )
+        out TValue value)
         {
             lock (locker)
             {
                 if (!dictionary.ContainsKey(key))
                 {
+#if NETSTANDARD2_0
+#pragma warning disable CS8601 // Possible null reference assignment.
                     value = default;
+#pragma warning restore CS8601 // Possible null reference assignment.
+#else
+                    value = default;
+#endif
+
                     return false;
                 }
                 value = dictionary[key];
                 if (!dictionary.Remove(key))
                 {
+#if NETSTANDARD2_0
+#pragma warning disable CS8601 // Possible null reference assignment.
                     value = default;
+#pragma warning restore CS8601 // Possible null reference assignment.
+#else
+                    value = default;
+#endif
                     return false;
                 }
                 return true;
