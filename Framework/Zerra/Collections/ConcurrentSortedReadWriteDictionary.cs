@@ -12,6 +12,7 @@ using System.Threading;
 namespace Zerra.Collections
 {
     public class ConcurrentSortedReadWriteDictionary<TKey, TValue> : ICollection<KeyValuePair<TKey, TValue>>, IEnumerable<KeyValuePair<TKey, TValue>>, IEnumerable, IDictionary<TKey, TValue>, IReadOnlyCollection<KeyValuePair<TKey, TValue>>, IReadOnlyDictionary<TKey, TValue>, ICollection, IDictionary, IDisposable
+        where TKey : notnull
     {
         private readonly ReaderWriterLockSlim locker = new(LockRecursionPolicy.NoRecursion);
         private readonly SortedDictionary<TKey, TValue> dictionary;
@@ -106,7 +107,7 @@ namespace Zerra.Collections
             ((ICollection)dictionary).CopyTo(array, index);
             locker.ExitReadLock();
         }
-        object IDictionary.this[object key]
+        object? IDictionary.this[object key]
         {
             get
             {
@@ -135,7 +136,7 @@ namespace Zerra.Collections
                 locker.ExitWriteLock();
             }
         }
-        void IDictionary.Add(object key, object value)
+        void IDictionary.Add(object key, object? value)
         {
             if (key is not TKey keycasted)
                 throw new ArgumentException("Key is not the correct type");
@@ -348,7 +349,7 @@ namespace Zerra.Collections
             return true;
         }
         public bool TryGetValue(TKey key,
-#if !NETSTANDARD2_0
+#if NET5_0_OR_GREATER
             [MaybeNullWhen(false)]
 #endif
         out TValue value)
@@ -375,9 +376,11 @@ namespace Zerra.Collections
         }
         public bool TryRemove(TKey key,
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)]
+            [MaybeNullWhen(false)] out TValue value
+#else
+            out TValue? value
 #endif
-        out TValue value)
+        )
         {
             locker.EnterWriteLock();
             if (!dictionary.ContainsKey(key))

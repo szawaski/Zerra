@@ -45,21 +45,26 @@ namespace Zerra.Reflection
                         if (innerTypes == null)
                         {
                             if (Type.IsGenericType)
+                            {
                                 innerTypes = Type.GetGenericArguments();
+                                if (TypeLookup.SpecialTypeLookup(Type, out var specialTypeLookup))
+                                {
+                                    if (specialTypeLookup == Reflection.SpecialType.Dictionary)
+                                    {
+                                        var innerType = TypeAnalyzer.GetGenericType(keyValuePairType, (Type[])innerTypes);
+                                        innerTypes = new Type[] { innerType };
+                                    }
+                                }
+                            }
                             else if (Type.IsArray)
+                            {
 #pragma warning disable CS8601 // Possible null reference assignment.
                                 innerTypes = new Type[] { Type.GetElementType() };
 #pragma warning restore CS8601 // Possible null reference assignment.
+                            }
                             else
-                                innerTypes = Type.EmptyTypes;
-
-                            if (TypeLookup.SpecialTypeLookup(Type, out var specialTypeLookup))
                             {
-                                if (specialTypeLookup == Reflection.SpecialType.Dictionary)
-                                {
-                                    var innerType = TypeAnalyzer.GetGenericType(keyValuePairType, (Type[])this.InnerTypes);
-                                    innerTypes = new Type[] { innerType };
-                                }
+                                innerTypes = Array.Empty<Type>();
                             }
                         }
                     }
@@ -464,23 +469,27 @@ namespace Zerra.Reflection
         {
             var method = GetMethodInternal(name, parameterTypes);
             if (method == null)
-                throw new MissingMethodException($"{Type.Name}.{name} method not found for the given parameters {String.Join(",", parameterTypes.Select(x => x.GetNiceName()))}");
+                throw new MissingMethodException($"{Type.Name}.{name} method not found for the given parameters {(parameterTypes == null ? "(none)" : String.Join(",", parameterTypes.Select(x => x.GetNiceName())))}");
             return method;
         }
         public bool TryGetMethod(string name,
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)]
+            [MaybeNullWhen(false)] out MethodDetail method
+#else
+            out MethodDetail? method
 #endif
-        out MethodDetail method)
+        )
         {
             method = GetMethodInternal(name, null);
             return method != null;
         }
         public bool TryGetMethod(string name, Type[] parameterTypes,
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)]
+            [MaybeNullWhen(false)] out MethodDetail method
+#else
+            out MethodDetail? method
 #endif
-        out MethodDetail method)
+        )
         {
             method = GetMethodInternal(name, parameterTypes);
             return method != null;
@@ -525,18 +534,22 @@ namespace Zerra.Reflection
         }
         public bool TryGetConstructor(
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)]
+            [MaybeNullWhen(false)] out ConstructorDetail constructor
+#else
+            out ConstructorDetail? constructor
 #endif
-        out ConstructorDetail constructor)
+        )
         {
             constructor = GetConstructorInternal(null);
             return constructor != null;
         }
         public bool TryGetConstructor(Type[] parameterTypes,
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)]
+            [MaybeNullWhen(false)] out ConstructorDetail constructor
+#else
+            out ConstructorDetail? constructor
 #endif
-        out ConstructorDetail constructor)
+        )
         {
             constructor = GetConstructorInternal(parameterTypes);
             return constructor != null;
@@ -574,9 +587,11 @@ namespace Zerra.Reflection
         }
         public bool TryGetSerializableMemberCaseInsensitive(string name,
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)]
+            [MaybeNullWhen(false)] out MemberDetail member
+#else
+            out MemberDetail? member
 #endif
-         out MemberDetail member)
+         )
         {
             if (serializableMembersByNameLower == null)
             {
@@ -604,9 +619,11 @@ namespace Zerra.Reflection
         }
         public bool TryGetGetMemberFieldBacked(string name,
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)]
+            [MaybeNullWhen(false)] out MemberDetail member
+#else
+            out MemberDetail? member
 #endif
-        out MemberDetail member)
+        )
         {
             if (membersFieldBackedByName == null)
             {
@@ -619,24 +636,31 @@ namespace Zerra.Reflection
         }
 
         private TypeDetail[]? innerTypesDetails = null;
-        public IReadOnlyList<TypeDetail>? InnerTypeDetails
+        public IReadOnlyList<TypeDetail> InnerTypeDetails
         {
             get
             {
-                if (InnerTypes == null)
-                    return null;
+
                 if (innerTypesDetails == null)
                 {
                     lock (locker)
                     {
                         if (innerTypesDetails == null)
                         {
-                            var items = new TypeDetail[InnerTypes.Count];
-                            for (var i = 0; i < InnerTypes.Count; i++)
+                            var innerTypesRef = InnerTypes;
+                            if (innerTypesRef != null)
                             {
-                                items[i] = TypeAnalyzer.GetTypeDetail(InnerTypes[i]);
+                                var items = new TypeDetail[innerTypesRef.Count];
+                                for (var i = 0; i < innerTypesRef.Count; i++)
+                                {
+                                    items[i] = TypeAnalyzer.GetTypeDetail(innerTypesRef[i]);
+                                }
+                                innerTypesDetails = items;
                             }
-                            innerTypesDetails = items;
+                            else
+                            {
+                                innerTypesDetails = Array.Empty<TypeDetail>();
+                            }
                         }
                     }
                 }

@@ -134,8 +134,8 @@ namespace Zerra.Reflection
             return typeInfo;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> methodDetailsByType = new();
-        public static MethodDetail GetMethodDetail(Type type, string name, Type[]? parameterTypes = null)
+        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail?> methodDetailsByType = new();
+        public static MethodDetail? GetMethodDetail(Type type, string name, Type[]? parameterTypes = null)
         {
             var key = new TypeKey(name, type, parameterTypes);
             var method = methodDetailsByType.GetOrAdd(key, (_) =>
@@ -166,8 +166,8 @@ namespace Zerra.Reflection
             return method;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetail> constructorDetailsByType = new();
-        public static ConstructorDetail GetConstructorDetail(Type type, Type[]? parameterTypes = null)
+        private static readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetail?> constructorDetailsByType = new();
+        public static ConstructorDetail? GetConstructorDetail(Type type, Type[]? parameterTypes = null)
         {
             var key = new TypeKey(type, parameterTypes);
             var constructor = constructorDetailsByType.GetOrAdd(key, (_) =>

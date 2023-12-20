@@ -56,13 +56,14 @@ namespace Zerra.Linq
 
             var i = 0;
             var exp = BuildGroup(ref i, parameter);
+            exp ??= Expression.Constant(true, typeof(bool));
 
             var lambda = Expression.Lambda<Func<TModel, bool>>(exp, parameter);
             return lambda;
         }
-        private Expression BuildGroup(ref int i, ParameterExpression parameter)
+        private Expression? BuildGroup(ref int i, ParameterExpression parameter)
         {
-            Expression exp = null;
+            Expression? exp = null;
             while (i < expressionStack.Count)
             {
                 var item = expressionStack[i];

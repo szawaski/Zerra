@@ -145,7 +145,11 @@ namespace Zerra.Encryption
         {
             if (buffer == null)
                 throw new ArgumentNullException(nameof(buffer));
+#if NETSTANDARD2_0
+            if (!CanRead || workingBufferOwner == null)
+#else
             if (!CanRead)
+#endif
                 throw new InvalidOperationException($"Cannot read in {nameof(CryptoStreamMode)}.{mode}");
 
             var readTotal = 0;
@@ -219,7 +223,11 @@ namespace Zerra.Encryption
         }
         protected override async ValueTask<int> InternalReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
+#if NETSTANDARD2_0
+            if (!CanRead || workingBufferOwner == null)
+#else
             if (!CanRead)
+#endif
                 throw new InvalidOperationException($"Cannot read in {nameof(CryptoStreamMode)}.{mode}");
 
             var readTotal = 0;

@@ -196,11 +196,7 @@ namespace Zerra.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadByte(
-#if !NETSTANDARD2_0
-            [MaybeNullWhen(false)]
-#endif
-        out byte value, out int sizeNeeded)
+        public bool TryReadByte(out byte value, out int sizeNeeded)
         {
             sizeNeeded = 1;
             if (length - position < sizeNeeded)

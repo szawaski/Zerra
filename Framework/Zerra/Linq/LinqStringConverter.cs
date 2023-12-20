@@ -284,7 +284,7 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringLambda(Expression exp, ConvertContext context)
         {
-            var lambda = exp as LambdaExpression;
+            var lambda = (LambdaExpression)exp;
             _ = context.Builder.Append('(');
             for (var i = 0; i < lambda.Parameters.Count; i++)
             {
@@ -298,22 +298,22 @@ namespace Zerra.Linq
             _ = context.Builder.Append(")=>");
             ConvertToString(lambda.Body, context);
         }
-        private static void ConvertToStringUnary(string prefixOperation, string suffixOperation, Expression exp, ConvertContext context)
+        private static void ConvertToStringUnary(string? prefixOperation, string? suffixOperation, Expression exp, ConvertContext context)
         {
-            var unary = exp as UnaryExpression;
+            var unary = (UnaryExpression)exp;
             _ = context.Builder.Append(prefixOperation);
             ConvertToString(unary.Operand, context);
             _ = context.Builder.Append(suffixOperation);
         }
         private static void ConvertToStringBox(Expression exp, ConvertContext context)
         {
-            var unary = exp as UnaryExpression;
+            var unary = (UnaryExpression)exp;
             _ = context.Builder.Append('(').Append(unary.Type.GetNiceName()).Append(')');
             ConvertToString(unary.Operand, context);
         }
         private static void ConvertToStringBinary(string operation, Expression exp, ConvertContext context)
         {
-            var binary = exp as BinaryExpression;
+            var binary = (BinaryExpression)exp;
             //context.Builder.Append('(');
             ConvertToString(binary.Left, context);
             //context.Builder.Append(')');
@@ -324,11 +324,11 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringMember(Expression exp, ConvertContext context)
         {
-            var member = exp as MemberExpression;
+            var member = (MemberExpression)exp;
 
             if (member.Expression == null)
             {
-                _ = context.Builder.Append(member.Member.DeclaringType.GetNiceName()).Append('.').Append(member.Member.Name);
+                _ = context.Builder.Append(member.Member.DeclaringType?.GetNiceName()).Append('.').Append(member.Member.Name);
                 if (context.MemberAccessStack.Count > 0)
                 {
                     _ = context.Builder.Append('.');
@@ -344,11 +344,11 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringConstant(Expression exp, ConvertContext context)
         {
-            var constant = exp as ConstantExpression;
+            var constant = (ConstantExpression)exp;
 
             ConvertToStringConstantStack(constant.Type, constant.Value, context);
         }
-        private static void ConvertToStringConstantStack(Type type, object value, ConvertContext context)
+        private static void ConvertToStringConstantStack(Type type, object? value, ConvertContext context)
         {
             if (context.MemberAccessStack.Count > 0)
             {
@@ -358,14 +358,14 @@ namespace Zerra.Linq
                 {
                     case MemberTypes.Field:
                         {
-                            var field = memberProperty.Member as FieldInfo;
+                            var field = (FieldInfo)memberProperty.Member;
                             var fieldValue = field.GetValue(value);
                             ConvertToStringConstantStack(field.FieldType, fieldValue, context);
                             break;
                         }
                     case MemberTypes.Property:
                         {
-                            var property = memberProperty.Member as PropertyInfo;
+                            var property = (PropertyInfo)memberProperty.Member;
                             var propertyValue = property.GetValue(value);
                             ConvertToStringConstantStack(property.PropertyType, propertyValue, context);
                             break;
@@ -383,11 +383,11 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringCall(Expression exp, ConvertContext context)
         {
-            var call = exp as MethodCallExpression;
+            var call = (MethodCallExpression)exp;
 
             if (call.Object == null)
             {
-                _ = context.Builder.Append(call.Method.DeclaringType.Name);
+                _ = context.Builder.Append(call.Method.DeclaringType?.Name);
             }
             else
             {
@@ -407,7 +407,7 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringNew(Expression exp, ConvertContext context)
         {
-            var newExp = exp as NewExpression;
+            var newExp = (NewExpression)exp;
 
             _ = context.Builder.Append("new ").Append(newExp.Type.GetNiceName()).Append('(');
             for (var i = 0; i < newExp.Arguments.Count; i++)
@@ -420,7 +420,7 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringNewArray(Expression exp, ConvertContext context)
         {
-            var newExp = exp as NewArrayExpression;
+            var newExp = (NewArrayExpression)exp;
 
             _ = context.Builder.Append("new ").Append(newExp.Type.GetNiceName()).Append("[] {");
             for (var i = 0; i < newExp.Expressions.Count; i++)
@@ -433,7 +433,7 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringLabel(Expression exp, ConvertContext context)
         {
-            var label = exp as LabelExpression;
+            var label = (LabelExpression)exp;
             _ = context.Builder.Append(label.Target.Name).Append(':');
         }
         private static void ConvertToStringDebugInfo(Expression exp, ConvertContext context)
@@ -441,7 +441,7 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringMemberInit(Expression exp, ConvertContext context)
         {
-            var memberInti = exp as MemberInitExpression;
+            var memberInti = (MemberInitExpression)exp;
             ConvertToString(memberInti.NewExpression, context);
             _ = context.Builder.Append('{');
             for (var i = 0; i < memberInti.Bindings.Count; i++)
@@ -460,7 +460,7 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringListInit(Expression exp, ConvertContext context)
         {
-            var listInti = exp as ListInitExpression;
+            var listInti = (ListInitExpression)exp;
             ConvertToString(listInti.NewExpression, context);
             _ = context.Builder.Append('{');
             for (var i = 0; i < listInti.Initializers.Count; i++)
@@ -482,14 +482,14 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringLoop(Expression exp, ConvertContext context)
         {
-            var loop = exp as LoopExpression;
+            var loop = (LoopExpression)exp;
             _ = context.Builder.Append("while {");
             ConvertToString(loop.Body, context);
             _ = context.Builder.Append('}');
         }
         private static void ConvertToStringIndex(Expression exp, ConvertContext context)
         {
-            var index = exp as IndexExpression;
+            var index = (IndexExpression)exp;
             _ = context.Builder.Append(index.Type.GetNiceName());
             _ = context.Builder.Append('[');
             for (var i = 0; i < index.Arguments.Count; i++)
@@ -502,14 +502,14 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringTypeBinaryExpression(string operation, Expression exp, ConvertContext context)
         {
-            var typeBinary = exp as TypeBinaryExpression;
+            var typeBinary = (TypeBinaryExpression)exp;
             ConvertToString(typeBinary.Expression, context);
             _ = context.Builder.Append(operation);
             _ = context.Builder.Append(typeBinary.TypeOperand.GetNiceName());
         }
         private static void ConvertToStringBlock(Expression exp, ConvertContext context)
         {
-            var block = exp as BlockExpression;
+            var block = (BlockExpression)exp;
             _ = context.Builder.Append('{');
             foreach (var item in block.Expressions)
             {
@@ -520,14 +520,14 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringDefault(Expression exp, ConvertContext context)
         {
-            var @default = exp as DefaultExpression;
+            var @default = (DefaultExpression)exp;
             _ = context.Builder.Append("default(");
             _ = context.Builder.Append(@default.Type.GetNiceName());
             _ = context.Builder.Append(')');
         }
         private static void ConvertToStringDynamic(Expression exp, ConvertContext context)
         {
-            var dynamic = exp as DynamicExpression;
+            var dynamic = (DynamicExpression)exp;
             _ = context.Builder.Append(dynamic.DelegateType.GetNiceName());
             _ = context.Builder.Append('(');
             for (var i = 0; i < dynamic.Arguments.Count; i++)
@@ -540,7 +540,7 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringTry(Expression exp, ConvertContext context)
         {
-            var @try = exp as TryExpression;
+            var @try = (TryExpression)exp;
             _ = context.Builder.Append("try {");
             ConvertToString(@try.Body, context);
             _ = context.Builder.Append('}');
@@ -559,7 +559,7 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringSwitch(Expression exp, ConvertContext context)
         {
-            var @switch = exp as SwitchExpression;
+            var @switch = (SwitchExpression)exp;
             _ = context.Builder.Append("switch(");
             ConvertToString(@switch.SwitchValue, context);
             _ = context.Builder.Append(") {");
@@ -571,7 +571,6 @@ namespace Zerra.Linq
                     ConvertToString(testValue, context);
                     _ = context.Builder.Append(':');
                 }
-                ConvertToString(@switch.DefaultBody, context);
             }
             if (@switch.DefaultBody != null)
             {
@@ -582,13 +581,13 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringGoto(Expression exp, ConvertContext context)
         {
-            var @goto = exp as GotoExpression;
+            var @goto = (GotoExpression)exp;
             _ = context.Builder.Append("goto ");
             _ = context.Builder.Append(@goto.Target.Name);
         }
         private static void ConvertToStringInvoke(Expression exp, ConvertContext context)
         {
-            var invocation = exp as InvocationExpression;
+            var invocation = (InvocationExpression)exp;
             ConvertToString(invocation, context);
             _ = context.Builder.Append('(');
             for (var i = 0; i < invocation.Arguments.Count; i++)
@@ -601,7 +600,7 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringParameter(Expression exp, ConvertContext context)
         {
-            var parameterExpression = exp as ParameterExpression;
+            var parameterExpression = (ParameterExpression)exp;
 
             //if (!String.IsNullOrWhiteSpace(parameterExpression.Name))
             //{
@@ -634,7 +633,7 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringConditional(Expression exp, ConvertContext context)
         {
-            var conditional = exp as ConditionalExpression;
+            var conditional = (ConditionalExpression)exp;
             ConvertToString(conditional.Test, context);
             _ = context.Builder.Append('?');
             ConvertToString(conditional.IfTrue, context);
@@ -642,12 +641,12 @@ namespace Zerra.Linq
             ConvertToString(conditional.IfFalse, context);
         }
 
-        private static void ConvertToStringValue(Type type, object value, ConvertContext context)
+        private static void ConvertToStringValue(Type type, object? value, ConvertContext context)
         {
             ConvertToStringValueRender(type, value, context);
             ConvertToStringValueStack(context);
         }
-        private static void ConvertToStringValueRender(Type type, object value, ConvertContext context)
+        private static void ConvertToStringValueRender(Type type, object? value, ConvertContext context)
         {
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
@@ -686,7 +685,7 @@ namespace Zerra.Linq
                 return;
             }
 
-            if (typeDetails.IsIEnumerableGeneric)
+            if (typeDetails.IsIEnumerableGeneric && typeDetails.IEnumerableGenericInnerType != null)
             {
                 _ = context.Builder.Append('[');
                 var first = true;
@@ -717,18 +716,18 @@ namespace Zerra.Linq
                     case CoreType.Single: _ = context.Builder.Append((float)value); return;
                     case CoreType.Double: _ = context.Builder.Append((double)value); return;
                     case CoreType.Decimal: _ = context.Builder.Append((decimal)value); return;
-                    case CoreType.Char: _ = context.Builder.Append('\'').Append(value).Append('\''); return;
+                    case CoreType.Char: _ = context.Builder.Append('\"').Append(value).Append('\"'); return;
                     case CoreType.DateTime: _ = context.Builder.Append("DateTime.Parse(\"").Append(value).Append("\")"); return;
                     case CoreType.DateTimeOffset: _ = context.Builder.Append("DateTimeOffset.Parse(\"").Append(value).Append("\")"); return;
                     case CoreType.TimeSpan: _ = context.Builder.Append("TimeSpan.Parse(\"").Append(value).Append("\")"); return;
-                    case CoreType.Guid: _ = context.Builder.Append('\'').Append(value.ToString()).Append('\''); return;
-                    case CoreType.String: _ = context.Builder.Append('\'').Append(((string)value).Replace("'", "''")).Append('\''); return;
+                    case CoreType.Guid: _ = context.Builder.Append('\"').Append(value.ToString()).Append('\"'); return;
+                    case CoreType.String: _ = context.Builder.Append('\"').Append(((string)value).Replace("\"", "\"\"")).Append('\"'); return;
                 }
             }
 
             if (type == typeof(object))
             {
-                _ = context.Builder.Append('\'').Append(value.ToString().Replace("'", "''")).Append('\'');
+                _ = context.Builder.Append('\"').Append(value?.ToString()?.Replace("\"", "\"\"")).Append('\"');
                 return;
             }
 

@@ -14,12 +14,16 @@ namespace Zerra.Linq
     {
         public static Expression<Func<T, bool>> AppendAnd<T>(Expression<Func<T, bool>> it, params Expression<Func<T, bool>>[] expressions)
         {
-            var itLambda = it as LambdaExpression;
+            if (it is not LambdaExpression itLambda)
+                throw new ArgumentException("Expression must be a LambdaExpression", nameof(it));
+
             var exp = itLambda.Body;
             var parameter = itLambda.Parameters[0];
             foreach (Expression expression in expressions)
             {
-                var expressionLambda = expression as LambdaExpression;
+                if (expression is not LambdaExpression expressionLambda)
+                    throw new ArgumentException("Expression must be a LambdaExpression", nameof(expressions));
+
                 var convertedExpression = LinqRebinder.RebindExpression(expressionLambda.Body, expressionLambda.Parameters[0], parameter);
                 exp = Expression.AndAlso(exp, convertedExpression);
             }
@@ -28,12 +32,16 @@ namespace Zerra.Linq
 
         public static Expression<Func<T, bool>> AppendOr<T>(Expression<Func<T, bool>> it, params Expression<Func<T, bool>>[] expressions)
         {
-            var itLambda = it as LambdaExpression;
+            if (it is not LambdaExpression itLambda)
+                throw new ArgumentException("Expression must be a LambdaExpression", nameof(it));
+
             var exp = itLambda.Body;
             var parameter = itLambda.Parameters[0];
             foreach (Expression expression in expressions)
             {
-                var expressionLambda = expression as LambdaExpression;
+                if (expression is not LambdaExpression expressionLambda)
+                    throw new ArgumentException("Expression must be a LambdaExpression", nameof(expressions));
+
                 var convertedExpression = LinqRebinder.RebindExpression(expressionLambda.Body, expressionLambda.Parameters[0], parameter);
                 exp = Expression.AndAlso(exp, convertedExpression);
             }
@@ -44,8 +52,8 @@ namespace Zerra.Linq
         private static readonly MethodInfo anyMethod2 = typeof(Enumerable).GetMethods().First(m => m.Name == "Any" && m.GetParameters().Length == 2);
         public static Expression<Func<T, bool>> AppendExpressionOnMember<T>(Expression<Func<T, bool>> it, MemberInfo member, params Expression[] expressions)
         {
-            PropertyInfo propertyInfo = null;
-            FieldInfo fieldInfo = null;
+            PropertyInfo? propertyInfo = null;
+            FieldInfo? fieldInfo = null;
             Type type;
             if (member.MemberType == MemberTypes.Property)
             {
@@ -67,10 +75,11 @@ namespace Zerra.Linq
             var parameter = itLambda.Parameters[0];
             foreach (var expression in expressions)
             {
-                var expressionLambda = expression as LambdaExpression;
+                if (expression is not LambdaExpression expressionLambda)
+                    throw new ArgumentException("Expression must be a LambdaExpression", nameof(expressions));
 
                 var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-                Type elementType = null;
+                Type? elementType = null;
                 if (type.IsArray)
                 {
                     elementType = typeDetails.InnerTypes[0];
@@ -85,9 +94,11 @@ namespace Zerra.Linq
 
                 if (elementType != null && typeDetails.IsIEnumerable)
                 {
+#pragma warning disable CS8604 // Possible null reference argument.
                     Expression memberExpression = member.MemberType == MemberTypes.Property ?
                         Expression.Property(parameter, propertyInfo) :
                         Expression.Field(parameter, fieldInfo);
+#pragma warning restore CS8604 // Possible null reference argument.
 
                     var anyMethod2Generic = TypeAnalyzer.GetGenericMethodDetail(anyMethod2, elementType).MethodInfo;
                     var callAny2 = Expression.Call(anyMethod2Generic, memberExpression, expressionLambda);
@@ -97,22 +108,24 @@ namespace Zerra.Linq
 
                     Expression emptyCheckExpression = Expression.OrElse(Expression.Not(callAny1), callAny2);
 
-                    if (exp.NodeType == ExpressionType.Constant && ((ConstantExpression)exp).Value?.ToString().ToBoolean() == true)
+                    if (exp.NodeType == ExpressionType.Constant && ((ConstantExpression)exp).Value?.ToString()?.ToBoolean() == true)
                         exp = emptyCheckExpression;
                     else
                         exp = Expression.AndAlso(exp, emptyCheckExpression);
                 }
                 else
                 {
+#pragma warning disable CS8604 // Possible null reference argument.
                     Expression memberExpression = member.MemberType == MemberTypes.Property ?
                         Expression.Property(parameter, propertyInfo) :
                         Expression.Field(parameter, fieldInfo);
+#pragma warning restore CS8604 // Possible null reference argument.
 
                     var convertedExpressionLambda = (LambdaExpression)LinqRebinder.RebindExpression(expressionLambda, expressionLambda.Parameters[0], memberExpression);
 
                     Expression nullCheckExpression = Expression.OrElse(Expression.Equal(memberExpression, Expression.Constant(null)), convertedExpressionLambda.Body);
 
-                    if (exp.NodeType == ExpressionType.Constant && ((ConstantExpression)exp).Value?.ToString().ToBoolean() == true)
+                    if (exp.NodeType == ExpressionType.Constant && ((ConstantExpression)exp).Value?.ToString()?.ToBoolean() == true)
                         exp = nullCheckExpression;
                     else
                         exp = Expression.AndAlso(exp, nullCheckExpression);

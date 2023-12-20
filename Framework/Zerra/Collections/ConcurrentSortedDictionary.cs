@@ -368,7 +368,7 @@ namespace Zerra.Collections
             }
         }
         public bool TryGetValue(TKey key,
-#if !NETSTANDARD2_0
+#if NET5_0_OR_GREATER
             [MaybeNullWhen(false)]
 #endif
         out TValue value)
@@ -396,9 +396,11 @@ namespace Zerra.Collections
         }
         public bool TryRemove(TKey key,
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)]
+            [MaybeNullWhen(false)] out TValue value
+#else
+            out TValue? value
 #endif
-        out TValue value)
+        )
         {
             lock (locker)
             {

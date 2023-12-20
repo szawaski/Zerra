@@ -13,10 +13,10 @@ namespace Zerra.Linq
         private sealed class RebinderContext
         {
             //public IDictionary<Type, Type> TypeReplacements { get; private set; }
-            public IDictionary<Expression, Expression> ExpressionReplacements { get; private set; }
-            public IDictionary<string, Expression> ExpressionStringReplacements { get; private set; }
+            public IDictionary<Expression, Expression>? ExpressionReplacements { get; private set; }
+            public IDictionary<string, Expression>? ExpressionStringReplacements { get; private set; }
             public IDictionary<Type, ParameterExpression> Parameters { get; private set; }
-            public RebinderContext(IDictionary<Expression, Expression> expressionReplacements, IDictionary<string, Expression> expressionStringReplacements)
+            public RebinderContext(IDictionary<Expression, Expression>? expressionReplacements, IDictionary<string, Expression>? expressionStringReplacements)
             {
                 //this.TypeReplacements = typeReplacements;
                 this.ExpressionReplacements = expressionReplacements;

@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
@@ -82,7 +83,13 @@ namespace System.Linq
             return sb.ToString();
         }
 
-        public static bool TryReadMemberName(this Expression it, out string memberName)
+        public static bool TryReadMemberName(this Expression it,
+#if NET5_0_OR_GREATER
+            [MaybeNullWhen(false)] out string memberName
+#else
+            out string? memberName
+#endif
+        )
         {
             var exp = it is LambdaExpression lambda ? lambda.Body : it;
 

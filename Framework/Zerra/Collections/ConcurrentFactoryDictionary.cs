@@ -158,7 +158,7 @@ namespace Zerra.Collections
         public KeyValuePair<TKey, TValue>[] ToArray() { return dictionary.ToArray(); }
         public bool TryAdd(TKey key, TValue value) { return dictionary.TryAdd(key, value); }
         public bool TryGetValue(TKey key,
-#if !NETSTANDARD2_0
+#if NET5_0_OR_GREATER
             [MaybeNullWhen(false)]
 #endif
         out TValue value)
