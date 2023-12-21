@@ -18,8 +18,6 @@ namespace Zerra.CQRS.AzureServiceBus
 {
     public sealed class AzureServiceBusProducer : ICommandProducer, IEventProducer, IAsyncDisposable
     {
-        private static readonly string applicationName = Config.EntryAssemblyName;
-
         private bool listenerStarted = false;
         private SemaphoreSlim listenerStartedLock = new(1, 1);
 
@@ -41,7 +39,7 @@ namespace Zerra.CQRS.AzureServiceBus
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
 
-            this.ackQueue = $"ACK-{Environment.MachineName}";
+            this.ackQueue = $"ACK-{Guid.NewGuid():N}";
 
             this.queueByCommandType = new();
             this.topicByEventType = new();
@@ -71,7 +69,7 @@ namespace Zerra.CQRS.AzureServiceBus
             try
             {
                 if (!String.IsNullOrWhiteSpace(environment))
-                    queue = $"{environment}_{queue}".Truncate(AzureServiceBusCommon.EntityNameMaxLength);
+                    queue = StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, queue);
                 else
                     queue = queue.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
 
@@ -175,7 +173,7 @@ namespace Zerra.CQRS.AzureServiceBus
             try
             {
                 if (!String.IsNullOrWhiteSpace(environment))
-                    topic = $"{environment}_{topic}".Truncate(AzureServiceBusCommon.EntityNameMaxLength);
+                    topic = StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, topic);
                 else
                     topic = topic.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
 
@@ -259,6 +257,8 @@ namespace Zerra.CQRS.AzureServiceBus
             }
             finally
             {
+                listenerStarted = false;
+
                 try
                 {
                     await AzureServiceBusCommon.DeleteTopic(host, ackQueue);

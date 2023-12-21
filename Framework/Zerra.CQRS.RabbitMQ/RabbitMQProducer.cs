@@ -72,7 +72,7 @@ namespace Zerra.CQRS.RabbitMQ
             {
 
                 if (!String.IsNullOrWhiteSpace(environment))
-                    topic = $"{environment}_{topic}".Truncate(RabbitMQCommon.TopicMaxLength);
+                    topic = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic);
                 else
                     topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
 
@@ -194,7 +194,7 @@ namespace Zerra.CQRS.RabbitMQ
             try
             {
                 if (!String.IsNullOrWhiteSpace(environment))
-                    topic = $"{environment}_{topic}".Truncate(RabbitMQCommon.TopicMaxLength);
+                    topic = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic);
                 else
                     topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
 

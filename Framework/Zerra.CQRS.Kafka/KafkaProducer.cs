@@ -40,7 +40,7 @@ namespace Zerra.CQRS.Kafka
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
 
-            var clientID = Environment.MachineName;
+            var clientID = StringExtensions.Join(KafkaCommon.TopicMaxLength - 4, "_", Config.EnvironmentName, Environment.MachineName, Config.EntryAssemblyName);
             this.ackTopic = $"ACK-{clientID}";
             this.topicsByCommandType = new();
             this.topicsByEventType = new();
@@ -74,7 +74,7 @@ namespace Zerra.CQRS.Kafka
             try
             {
                 if (!String.IsNullOrWhiteSpace(environment))
-                    topic = $"{environment}_{topic}".Truncate(KafkaCommon.TopicMaxLength);
+                    topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic);
                 else
                     topic = topic.Truncate(KafkaCommon.TopicMaxLength);
 
@@ -178,7 +178,7 @@ namespace Zerra.CQRS.Kafka
             try
             {
                 if (!String.IsNullOrWhiteSpace(environment))
-                    topic = $"{environment}_{topic}".Truncate(KafkaCommon.TopicMaxLength);
+                    topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic);
                 else
                     topic = topic.Truncate(KafkaCommon.TopicMaxLength);
 
@@ -271,6 +271,8 @@ namespace Zerra.CQRS.Kafka
             }
             finally
             {
+                listenerStarted = false;
+
                 try
                 {
                     await KafkaCommon.DeleteTopic(host, ackTopic);

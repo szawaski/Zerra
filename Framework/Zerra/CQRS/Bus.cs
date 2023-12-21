@@ -786,7 +786,7 @@ namespace Zerra.CQRS
             return messageTypes;
         }
 
-        //don't need to cache these here, the message services will do that
+        //don't need to cache these here, the message services will hold the values
         private static string GetCommandTopic(Type commandType)
         {
             var interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerType, commandType);

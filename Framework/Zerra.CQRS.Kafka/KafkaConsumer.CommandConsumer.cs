@@ -37,7 +37,7 @@ namespace Zerra.CQRS.Kafka
                 this.commandCounter = commandCounter;
 
                 if (!String.IsNullOrWhiteSpace(environment))
-                    this.topic = $"{environment}_{topic}".Truncate(KafkaCommon.TopicMaxLength);
+                    this.topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic);
                 else
                     this.topic = topic.Truncate(KafkaCommon.TopicMaxLength);
                 this.clientID = Environment.MachineName;

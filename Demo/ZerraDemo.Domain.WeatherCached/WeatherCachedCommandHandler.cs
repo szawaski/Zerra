@@ -14,6 +14,9 @@ namespace ZerraDemo.Domain.WeatherCached
 
             await WeatherCachedServer.SetWeather(command.WeatherType);
 
+            //testing ack uniqueness
+            await Bus.DispatchAsync(new WeatherChangedEvent() { WeatherType = command.WeatherType });
+            await Bus.DispatchAsync(new WeatherChangedEvent() { WeatherType = command.WeatherType });
             await Bus.DispatchAsync(new WeatherChangedEvent() { WeatherType = command.WeatherType });
         }
     }

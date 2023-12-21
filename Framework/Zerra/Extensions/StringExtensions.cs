@@ -8,11 +8,189 @@ public static class StringExtensions
 {
     public static string Truncate(this string it, int maxLength)
     {
-        if (it == null)
-            throw new ArgumentNullException(nameof(it));
+		if (it == null) throw new ArgumentNullException(nameof(it));
+        if (maxLength < 0) throw new ArgumentException("Cannot be less than zero", nameof(maxLength));
+		
         if (it.Length < maxLength)
             return it;
         return it.Substring(0, maxLength);
+    }
+
+    public unsafe static string Join(int maxLength, string seperator, string str1, string str2)
+    {
+        if (maxLength - seperator.Length < 0) throw new ArgumentException("Cannot be shorter than the seperator length", nameof(maxLength));
+
+        var over = str1.Length + str2.Length + seperator.Length - maxLength;
+        if (over <= 0)
+            return String.Join(seperator, str1, str2);
+
+        var seperatorSpan = seperator.AsSpan();
+        var span1 = str1.AsSpan();
+        var span2 = str2.AsSpan();
+
+        if (span1.Length > span2.Length)
+        {
+            var diff = span1.Length - span2.Length;
+            var subtract = over > diff ? diff : over;
+            over -= subtract;
+            span1 = span1.Slice(0, span1.Length - subtract);
+        }
+        else if (span2.Length > span1.Length)
+        {
+            var diff = span2.Length - span1.Length;
+            var subtract = over > diff ? diff : over;
+            over -= subtract;
+            span2 = span2.Slice(0, span2.Length - subtract);
+        }
+
+        if (over > 0)
+        {
+            var split = over / 2;
+            span1 = span1.Slice(0, span1.Length - split);
+            span2 = span2.Slice(0, span2.Length - split - (over % 2 > 0 ? 1 : 0));
+        }
+
+        var result = new string('\0', checked(span1.Length + span2.Length + seperatorSpan.Length));
+        fixed (char* resultPtr = result)
+        {
+            var resultSpan = new Span<char>(resultPtr, result.Length);
+
+            span1.CopyTo(resultSpan);
+            resultSpan = resultSpan.Slice(span1.Length);
+
+            seperatorSpan.CopyTo(resultSpan);
+            resultSpan = resultSpan.Slice(seperatorSpan.Length);
+
+            span2.CopyTo(resultSpan);
+        }
+        return result;
+    }
+    public unsafe static string Join(int maxLength, string seperator, string str1, string str2, string str3)
+    {
+        if (maxLength - seperator.Length < 0) throw new ArgumentException("Cannot be shorter than the seperator length", nameof(maxLength));
+
+        var over = str1.Length + str2.Length + str3.Length + seperator.Length * 2 - maxLength;
+        if (over <= 0)
+            return String.Join(seperator, str1, str2, str3);
+
+        var seperatorSpan = seperator.AsSpan();
+        var span1 = str1.AsSpan();
+        var span2 = str2.AsSpan();
+        var span3 = str3.AsSpan();
+
+        while (over > 0)
+        {
+            var index = 1;
+            var length = span1.Length;
+            if (span2.Length >= length)
+            {
+                index = 2;
+                length = span2.Length;
+            }
+            if (span3.Length >= length)
+            {
+                index = 3;
+                length = span3.Length;
+            }
+            switch (index)
+            {
+                case 1: span1 = span1.Slice(0, span1.Length - 1); break;
+                case 2: span2 = span2.Slice(0, span2.Length - 1); break;
+                case 3: span3 = span3.Slice(0, span3.Length - 1); break;
+            }
+            over--;
+        }
+
+        var result = new string('\0', checked(span1.Length + span2.Length + span3.Length + seperatorSpan.Length * 2));
+        fixed (char* resultPtr = result)
+        {
+            var resultSpan = new Span<char>(resultPtr, result.Length);
+
+            span1.CopyTo(resultSpan);
+            resultSpan = resultSpan.Slice(span1.Length);
+
+            seperatorSpan.CopyTo(resultSpan);
+            resultSpan = resultSpan.Slice(seperatorSpan.Length);
+
+            span2.CopyTo(resultSpan);
+            resultSpan = resultSpan.Slice(span2.Length);
+
+            seperatorSpan.CopyTo(resultSpan);
+            resultSpan = resultSpan.Slice(seperatorSpan.Length);
+
+            span3.CopyTo(resultSpan);
+        }
+        return result;
+    }
+    public unsafe static string Join(int maxLength, string seperator, string str1, string str2, string str3, string str4)
+    {
+        if (maxLength - seperator.Length < 0) throw new ArgumentException("Cannot be shorter than the seperator length", nameof(maxLength));
+
+        var over = str1.Length + str2.Length + str3.Length + str4.Length + seperator.Length * 3 - maxLength;
+        if (over <= 0)
+            return String.Join(seperator, str1, str2, str3, str4);
+
+        var seperatorSpan = seperator.AsSpan();
+        var span1 = str1.AsSpan();
+        var span2 = str2.AsSpan();
+        var span3 = str3.AsSpan();
+        var span4 = str4.AsSpan();
+
+        while (over > 0)
+        {
+            var index = 1;
+            var length = span1.Length;
+            if (span2.Length >= length)
+            {
+                index = 2;
+                length = span2.Length;
+            }
+            if (span3.Length >= length)
+            {
+                index = 3;
+                length = span3.Length;
+            }
+            if (span4.Length >= length)
+            {
+                index = 4;
+                length = span4.Length;
+            }
+            switch (index)
+            {
+                case 1: span1 = span1.Slice(0, span1.Length - 1); break;
+                case 2: span2 = span2.Slice(0, span2.Length - 1); break;
+                case 3: span3 = span3.Slice(0, span3.Length - 1); break;
+                case 4: span4 = span4.Slice(0, span4.Length - 1); break;
+            }
+            over--;
+        }
+
+        var result = new string('\0', checked(span1.Length + span2.Length + span3.Length + span4.Length + seperatorSpan.Length * 3));
+        fixed (char* resultPtr = result)
+        {
+            var resultSpan = new Span<char>(resultPtr, result.Length);
+
+            span1.CopyTo(resultSpan);
+            resultSpan = resultSpan.Slice(span1.Length);
+
+            seperatorSpan.CopyTo(resultSpan);
+            resultSpan = resultSpan.Slice(seperatorSpan.Length);
+
+            span2.CopyTo(resultSpan);
+            resultSpan = resultSpan.Slice(span2.Length);
+
+            seperatorSpan.CopyTo(resultSpan);
+            resultSpan = resultSpan.Slice(seperatorSpan.Length);
+
+            span3.CopyTo(resultSpan);
+            resultSpan = resultSpan.Slice(span3.Length);
+
+            seperatorSpan.CopyTo(resultSpan);
+            resultSpan = resultSpan.Slice(seperatorSpan.Length);
+
+            span4.CopyTo(resultSpan);
+        }
+        return result;
     }
 
     public static bool ToBoolean(this string obj, bool defaultValue = default)

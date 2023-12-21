@@ -71,12 +71,15 @@ namespace Zerra.CQRS.AzureEventHub
             {
                 if (requireAcknowledgement)
                 {
-                    lock (locker)
+                    if (!listenerStarted)
                     {
-                        if (!listenerStarted)
+                        lock (locker)
                         {
-                            _ = AckListeningThread();
-                            listenerStarted = true;
+                            if (!listenerStarted)
+                            {
+                                _ = AckListeningThread();
+                                listenerStarted = true;
+                            }
                         }
                     }
                 }
@@ -256,6 +259,7 @@ namespace Zerra.CQRS.AzureEventHub
             }
             finally
             {
+                listenerStarted = false;
                 canceller.Dispose();
             }
         }

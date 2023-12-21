@@ -35,7 +35,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 this.commandCounter = commandCounter;
 
                 if (!String.IsNullOrWhiteSpace(environment))
-                    this.queue = $"{environment}_{queue}".Truncate(AzureServiceBusCommon.EntityNameMaxLength);
+                    this.queue = StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, queue);
                 else
                     this.queue = queue.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
 
