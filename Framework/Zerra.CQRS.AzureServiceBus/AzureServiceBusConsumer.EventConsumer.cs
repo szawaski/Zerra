@@ -26,18 +26,18 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
 
-            public EventConsumer(int maxConcurrent, string queue, SymmetricConfig symmetricConfig, string environment, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
                 this.maxConcurrent = maxConcurrent;
 
                 if (!String.IsNullOrWhiteSpace(environment))
-                    this.topic = $"{environment}_{queue}".Truncate(AzureServiceBusCommon.EntityNameMaxLength);
+                    this.topic = StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, topic);
                 else
-                    this.topic = queue.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
+                    this.topic = topic.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
 
-                this.subscription = $"EVENT-{Guid.NewGuid():N}";
+                this.subscription = $"EVT-{Guid.NewGuid():N}";
                 this.symmetricConfig = symmetricConfig;
                 this.handlerAsync = handlerAsync;
                 this.canceller = new CancellationTokenSource();

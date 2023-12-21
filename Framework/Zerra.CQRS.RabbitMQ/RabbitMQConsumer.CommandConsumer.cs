@@ -39,7 +39,7 @@ namespace Zerra.CQRS.RabbitMQ
                 this.commandCounter = commandCounter;
 
                 if (!String.IsNullOrWhiteSpace(environment))
-                    this.topic = $"{environment}_{topic}".Truncate(RabbitMQCommon.TopicMaxLength);
+                    this.topic = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic);
                 else
                     this.topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
                 this.symmetricConfig = symmetricConfig;

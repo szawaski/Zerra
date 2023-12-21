@@ -21,7 +21,7 @@ namespace Zerra.CQRS.AzureServiceBus
         };
 
         private static readonly SemaphoreSlim locker = new(1, 1);
-        private static readonly TimeSpan deleteWhenIdleTimeout = new(24, 0, 0);
+        private static readonly TimeSpan deleteWhenIdleTimeout = new(0, 5, 0);
 
         public const int EntityNameMaxLength = 50;
 

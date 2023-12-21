@@ -14,8 +14,6 @@ namespace Zerra.CQRS.AzureServiceBus
 {
     public sealed partial class AzureServiceBusConsumer : ICommandConsumer, IEventConsumer, IAsyncDisposable
     {
-        private static readonly string applicationName = Config.EntryAssemblyName;
-
         private readonly string host;
         private readonly SymmetricConfig symmetricConfig;
         private readonly string environment;
