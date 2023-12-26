@@ -8,12 +8,12 @@ namespace Zerra.CQRS.Settings
 {
     public sealed class ServiceSettings
     {
-        public string ThisServiceName { get; internal set; }
+        public string? ThisServiceName { get; internal set; }
 
-        public string MessageHost { get; internal set; }
-        public string RelayUrl { get; internal set; }
-        public string RelayKey { get; internal set; }
-        public ServiceSetting[] Services { get; internal set; }
+        public string? MessageHost { get; internal set; }
+        public string? RelayUrl { get; internal set; }
+        public string? RelayKey { get; internal set; }
+        public ServiceSetting[]? Services { get; internal set; }
 
         public void SetMessageHost(string messageHost)
         {

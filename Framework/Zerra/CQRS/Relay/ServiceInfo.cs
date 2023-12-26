@@ -6,7 +6,7 @@ namespace Zerra.CQRS.Relay
 {
     internal class ServiceInfo
     {
-        public string Url { get; set; }
-        public string[] ProviderTypes { get; set; }
+        public string? Url { get; set; }
+        public string[]? ProviderTypes { get; set; }
     }
 }

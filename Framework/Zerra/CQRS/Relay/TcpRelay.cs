@@ -48,30 +48,29 @@ namespace Zerra.CQRS.Relay
             _ = Log.InfoAsync($"{nameof(TcpRelay)} Closed On {ServiceUrl}");
         }
 
-        private void CurrentDomain_ProcessExit(object sender, EventArgs e)
+        private void CurrentDomain_ProcessExit(object? sender, EventArgs? e)
         {
-
             canceller.Cancel();
         }
 
         protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
-            TcpClient outgoingClient = null;
+            TcpClient? outgoingClient = null;
             CQRSProtocolType? protocolType = null;
-            RelayConnectedService service = null;
-            Stopwatch stopwatch = null;
+            RelayConnectedService? service = null;
+            Stopwatch? stopwatch = null;
             var responseStarted = false;
 
             var bufferOwner = BufferArrayPool<byte>.Rent(bufferLength);
             var buffer = bufferOwner.AsMemory();
 
-            Stream incommingStream = null;
-            Stream incommingBodyStream = null;
-            Stream outgoingWritingBodyStream = null;
+            Stream? incommingStream = null;
+            Stream? incommingBodyStream = null;
+            Stream? outgoingWritingBodyStream = null;
 
-            Stream outgoingStream = null;
-            Stream outgoingBodyStream = null;
-            Stream incommingWritingBodyStream = null;
+            Stream? outgoingStream = null;
+            Stream? outgoingBodyStream = null;
+            Stream? incommingWritingBodyStream = null;
 
             try
             {
@@ -182,7 +181,7 @@ namespace Zerra.CQRS.Relay
                     }
                 }
 
-                if (outgoingClient == null)
+                if (outgoingClient == null || service == null)
                 {
                     _ = Log.WarnAsync($"Destination not found {providerType}");
                     switch (protocolType.Value)
@@ -270,6 +269,8 @@ namespace Zerra.CQRS.Relay
                             outgoingBodyStream = new HttpProtocolBodyStream(header.ContentLength, outgoingStream, header.BodyStartBuffer, false);
                             break;
                         }
+                    default:
+                        throw new NotImplementedException();
                 }
 
                 await incommingStream.WriteAsync(buffer.Slice(0, headerPosition), cancellationToken);
@@ -310,7 +311,7 @@ namespace Zerra.CQRS.Relay
                     }
                 }
 
-                _ = Log.ErrorAsync(null, ex);
+                _ = Log.ErrorAsync(ex);
 
                 if (!responseStarted && incommingStream != null && protocolType.HasValue)
                 {
@@ -335,7 +336,7 @@ namespace Zerra.CQRS.Relay
                     }
                     catch (Exception ex2)
                     {
-                        _ = Log.ErrorAsync(null, ex2);
+                        _ = Log.ErrorAsync(ex2);
                     }
                 }
 

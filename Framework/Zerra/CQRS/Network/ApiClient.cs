@@ -22,7 +22,7 @@ namespace Zerra.CQRS.Network
     public sealed class ApiClient : CqrsClientBase
     {
         private readonly ContentType requestContentType;
-        private CookieCollection cookies = null;
+        private CookieCollection? cookies = null;
 
         public ApiClient(string endpoint, ContentType contentType) : base(endpoint)
         {
@@ -87,12 +87,12 @@ namespace Zerra.CQRS.Network
         }
 
         private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(ApiClient)).MethodDetails.First(x => x.MethodInfo.Name == nameof(ApiClient.RequestAsync)).MethodInfo;
-        private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, string address, string providerType, ContentType contentType, object data, bool getResponseData)
+        private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, string address, string? providerType, ContentType contentType, object data, bool getResponseData)
         {
             throttle.Wait();
 
-            HttpClient client = null;
-            Stream responseStream = null;
+            HttpClient? client = null;
+            Stream? responseStream = null;
             try
             {
                 var cookieContainer = new CookieContainer();
@@ -144,7 +144,9 @@ namespace Zerra.CQRS.Network
                 {
                     responseStream.Dispose();
                     client.Dispose();
+#pragma warning disable CS8603 // Possible null reference return.
                     return default;
+#pragma warning restore CS8603 // Possible null reference return.
                 }
 
                 if (isStream)
@@ -168,7 +170,7 @@ namespace Zerra.CQRS.Network
                         responseStream.Dispose();
                     }
                     catch { }
-                    client.Dispose();
+                    client?.Dispose();
                 }
                 throw;
             }
@@ -177,12 +179,12 @@ namespace Zerra.CQRS.Network
                 throttle.Release();
             }
         }
-        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, string address, string providerType, ContentType contentType, object data, bool getResponseData)
+        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, string address, string? providerType, ContentType contentType, object data, bool getResponseData)
         {
             await throttle.WaitAsync();
 
-            HttpClient client = null;
-            Stream responseStream = null;
+            HttpClient? client = null;
+            Stream? responseStream = null;
             try
             {
                 var cookieContainer = new CookieContainer();
@@ -230,7 +232,9 @@ namespace Zerra.CQRS.Network
                 {
                     responseStream.Dispose();
                     client.Dispose();
+#pragma warning disable CS8603 // Possible null reference return.
                     return default;
+#pragma warning restore CS8603 // Possible null reference return.
                 }
 
                 if (isStream)
@@ -262,7 +266,7 @@ namespace Zerra.CQRS.Network
 #endif
                     }
                     catch { }
-                    client.Dispose();
+                    client?.Dispose();
                 }
                 throw;
             }
@@ -272,7 +276,7 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        public CookieCollection GetCookieCredentials()
+        public CookieCollection? GetCookieCredentials()
         {
             return this.cookies;
         }
@@ -284,14 +288,16 @@ namespace Zerra.CQRS.Network
         {
             this.cookies = null;
         }
-        public Task RequestCookieCredentials(string address, string json)
-        {
-            var bytes = Encoding.UTF8.GetBytes(json);
-            return RequestAsync<object>(null, false, address, null, ContentType.Json, bytes, false);
-        }
+        //public Task RequestCookieCredentials(string address, string json)
+        //{
+        //    var bytes = Encoding.UTF8.GetBytes(json);
+        //    return RequestAsync<object>(null, false, address, null, ContentType.Json, bytes, false);
+        //}
 
+#pragma warning disable CS8619 // Nullability of reference types in value doesn't match target type.
         private static readonly Func<object, object> cookieContainerGetter = TypeAnalyzer.GetTypeDetail(typeof(CookieContainer)).GetMember("m_domainTable").Getter;
         private static readonly Func<object, object> pathListGetter = TypeAnalyzer.GetTypeDetail(Discovery.GetTypeFromName("System.Net.PathList, System.Net.Primitives, Version=4.1.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")).GetMember("m_list").Getter;
+#pragma warning restore CS8619 // Nullability of reference types in value doesn't match target type.
         private static CookieCollection GetCookiesFromContainer(CookieContainer cookieJar)
         {
             var cookieCollection = new CookieCollection();

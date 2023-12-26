@@ -9,7 +9,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Zerra.Logging;
-using Zerra.Providers;
 
 namespace Zerra.CQRS.Relay
 {
@@ -63,7 +62,7 @@ namespace Zerra.CQRS.Relay
             }
         }
 
-        public string Url { get; set; }
+        public string? Url { get; set; }
 
         public void AddStatistic(long runtime)
         {

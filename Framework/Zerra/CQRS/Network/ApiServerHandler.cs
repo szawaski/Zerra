@@ -12,7 +12,7 @@ namespace Zerra.CQRS.Network
 {
     public static class ApiServerHandler
     {
-        public static async Task<ApiResponseData> HandleRequestAsync(ContentType? contentType, ApiRequestData data)
+        public static async Task<ApiResponseData?> HandleRequestAsync(ContentType? contentType, ApiRequestData data)
         {
             if (!String.IsNullOrWhiteSpace(data.ProviderType))
             {
@@ -46,6 +46,11 @@ namespace Zerra.CQRS.Network
 
         private static Task<RemoteQueryCallResponse> Call(ApiRequestData data)
         {
+            if (String.IsNullOrWhiteSpace(data.ProviderType)) throw new ArgumentNullException(nameof(ApiRequestData.ProviderType));
+            if (String.IsNullOrWhiteSpace(data.ProviderMethod)) throw new ArgumentNullException(nameof(ApiRequestData.ProviderMethod));
+            if (data.ProviderArguments == null) throw new ArgumentNullException(nameof(ApiRequestData.ProviderArguments));
+            if (String.IsNullOrWhiteSpace(data.Source)) throw new ArgumentNullException(nameof(ApiRequestData.Source));
+
             var providerType = Discovery.GetTypeFromName(data.ProviderType);
             if (!providerType.IsInterface)
                 throw new ArgumentException($"Provider {data.ProviderType} is not an interface type");
@@ -60,10 +65,10 @@ namespace Zerra.CQRS.Network
             if (!exposed)
                 throw new Exception($"Interface {typeDetail.Type.GetNiceName()} is not exposed");
 
-            MethodDetail methodDetail = null;
+            MethodDetail? methodDetail = null;
             foreach (var method in typeDetail.MethodDetails)
             {
-                if (method.MethodInfo.Name == data.ProviderMethod && method.ParametersInfo.Count == (data.ProviderArguments != null ? data.ProviderArguments.Length : 0))
+                if (method.MethodInfo.Name == data.ProviderMethod && method.ParametersInfo.Count == data.ProviderArguments.Length)
                 {
                     methodDetail = method;
                     break;
@@ -86,6 +91,10 @@ namespace Zerra.CQRS.Network
 
         private static Task Dispatch(ApiRequestData data)
         {
+            if (String.IsNullOrWhiteSpace(data.MessageType)) throw new ArgumentNullException(nameof(ApiRequestData.MessageType));
+            if (data.MessageData == null) throw new ArgumentNullException(nameof(ApiRequestData.MessageData));
+            if (String.IsNullOrWhiteSpace(data.Source)) throw new ArgumentNullException(nameof(ApiRequestData.Source));
+
             var commandType = Discovery.GetTypeFromName(data.MessageType);
             var typeDetail = TypeAnalyzer.GetTypeDetail(commandType);
             if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
@@ -101,7 +110,7 @@ namespace Zerra.CQRS.Network
                 throw new Exception($"{typeDetail.Type.GetNiceName()} is not exposed");
 
             var command = (ICommand)JsonSerializer.Deserialize(commandType, data.MessageData);
-            if (data.MessageAwait)
+            if (data.MessageAwait == true)
                 return Bus.HandleRemoteCommandDispatchAwaitAsync(command, data.Source, true);
             else
                 return Bus.HandleRemoteCommandDispatchAsync(command, data.Source, true);

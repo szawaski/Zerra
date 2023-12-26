@@ -16,7 +16,7 @@ namespace Zerra.CQRS.Network
         private bool started;
         private bool disposed;
 
-        private CancellationTokenSource canceller;
+        private CancellationTokenSource? canceller;
 
         public SocketListener(Socket socket, Func<Socket, CancellationToken, Task> handler)
         {
@@ -48,7 +48,7 @@ namespace Zerra.CQRS.Network
 
         private async Task AcceptConnections()
         {
-            Exception error = null;
+            Exception? error = null;
             try
             {
                 for (; ; )

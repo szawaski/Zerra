@@ -16,7 +16,7 @@ namespace Zerra.CQRS.Network
             this.Port = port;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is not HostAndPort casted)
                 return false;

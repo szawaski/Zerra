@@ -9,6 +9,6 @@ namespace Zerra.CQRS.Network
     public sealed class ExceptionModel
     {
         [SerializerIndex(0)]
-        public string Message { get; set; }
+        public string? Message { get; set; }
     }
 }

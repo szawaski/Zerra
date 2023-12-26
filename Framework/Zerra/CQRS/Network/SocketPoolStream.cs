@@ -13,7 +13,7 @@ namespace Zerra.CQRS.Network
         public bool Connected => socket?.Connected ?? false;
         public bool NewConnection { get; private set; }
 
-        private Socket socket;
+        private Socket? socket;
         private bool closeSocket;
         private readonly HostAndPort hostAndPort;
         private readonly Action<Socket, HostAndPort, bool> returnSocket;

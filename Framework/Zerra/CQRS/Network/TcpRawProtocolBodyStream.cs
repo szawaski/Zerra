@@ -21,7 +21,7 @@ namespace Zerra.CQRS.Network
         private int segmentLength;
         private bool ended;
         private const int segmentLengthBufferLength = 4;
-        private byte[] segmentLengthBufferSource;
+        private byte[]? segmentLengthBufferSource;
         private Memory<byte> segmentLengthBuffer;
 
         public TcpRawProtocolBodyStream(Stream stream, ReadOnlyMemory<byte> readStartBufferPosition, bool leaveOpen) : base(stream, leaveOpen)

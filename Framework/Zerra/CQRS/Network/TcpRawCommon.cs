@@ -54,8 +54,8 @@ namespace Zerra.CQRS.Network
             {
                 var charsLength = encoding.GetChars(buffer.Span.Slice(0, position), chars.AsSpan());
 #endif
-                string prefix = null;
-                string providerType = null;
+                string? prefix = null;
+                string? providerType = null;
                 ContentType? contentType = null;
 
                 var propertyIndex = 0;
@@ -116,13 +116,7 @@ namespace Zerra.CQRS.Network
                 if (providerType == nullProviderType)
                     providerType = null;
 
-                return new TcpRequestHeader()
-                {
-                    BodyStartBuffer = buffer.Slice(position, length - position),
-                    IsError = isError,
-                    ContentType = contentType.Value,
-                    ProviderType = providerType
-                };
+                return new TcpRequestHeader(buffer.Slice(position, length - position), isError, contentType.Value, providerType);
 #if !NETSTANDARD2_0
             }
             finally
@@ -155,7 +149,7 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferErrorHeader(Memory<byte> buffer, string providerType, ContentType contentType)
+        public static int BufferErrorHeader(Memory<byte> buffer, string? providerType, ContentType contentType)
         {
             var headerBuffer = new ByteWriter(buffer.Span, encoding);
 

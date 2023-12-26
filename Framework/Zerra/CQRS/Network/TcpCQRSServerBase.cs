@@ -19,16 +19,16 @@ namespace Zerra.CQRS.Network
         protected readonly ConcurrentReadWriteHashSet<Type> commandTypes;
         private readonly Type thisType;
 
-        private SocketListener[] listeners = null;
-        protected QueryHandlerDelegate providerHandlerAsync = null;
-        protected HandleRemoteCommandDispatch handlerAsync = null;
-        protected HandleRemoteCommandDispatch handlerAwaitAsync = null;
+        private SocketListener[]? listeners = null;
+        protected QueryHandlerDelegate? providerHandlerAsync = null;
+        protected HandleRemoteCommandDispatch? handlerAsync = null;
+        protected HandleRemoteCommandDispatch? handlerAwaitAsync = null;
 
         private bool started = false;
         private bool disposed = false;
 
-        protected CommandCounter commandCounter;
-        protected SemaphoreSlim throttle;
+        protected CommandCounter? commandCounter = null;
+        protected SemaphoreSlim? throttle = null;
 
         private readonly string serviceUrl;
         public string ServiceUrl => serviceUrl;

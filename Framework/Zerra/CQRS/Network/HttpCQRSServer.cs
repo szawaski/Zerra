@@ -20,11 +20,11 @@ namespace Zerra.CQRS.Network
     public sealed class HttpCqrsServer : TcpCqrsServerBase
     {
         private readonly ContentType? contentType;
-        private readonly SymmetricConfig symmetricConfig;
-        private readonly ICqrsAuthorizer authorizer;
-        private readonly string[] allowOrigins;
+        private readonly SymmetricConfig? symmetricConfig;
+        private readonly ICqrsAuthorizer? authorizer;
+        private readonly string[]? allowOrigins;
 
-        public HttpCqrsServer(ContentType? contentType, string serverUrl, SymmetricConfig symmetricConfig, ICqrsAuthorizer authorizer, string[] allowOrigins)
+        public HttpCqrsServer(ContentType? contentType, string serverUrl, SymmetricConfig? symmetricConfig, ICqrsAuthorizer? authorizer, string[]? allowOrigins)
             : base(serverUrl)
         {
             this.contentType = contentType;
@@ -38,28 +38,34 @@ namespace Zerra.CQRS.Network
 
         protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
+            if (throttle == null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
+            if (providerHandlerAsync == null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
+            if (commandCounter == null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
+            if (handlerAsync == null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
+            if (handlerAwaitAsync == null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
+
+
             try
             {
                 for (; ; )
                 {
                     await throttle.WaitAsync(cancellationToken);
 
-                    HttpRequestHeader requestHeader = null;
+                    HttpRequestHeader? requestHeader = null;
                     var responseStarted = false;
 
                     var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
                     var buffer = bufferOwner.AsMemory();
-                    Stream stream = null;
-                    Stream requestBodyStream = null;
-                    Stream responseBodyStream = null;
-                    CryptoFlushStream responseBodyCryptoStream = null;
+                    var stream = new NetworkStream(socket, false);
+
+                    Stream? requestBodyStream = null;
+                    Stream? responseBodyStream = null;
+                    CryptoFlushStream? responseBodyCryptoStream = null;
                     var isCommand = false;
 
                     var inHandlerContext = false;
                     try
                     {
-                        stream = new NetworkStream(socket, false);
-
                         //Read Request Header
                         //------------------------------------------------------------------------------------------------------------
                         var headerPosition = 0;
@@ -142,7 +148,8 @@ namespace Zerra.CQRS.Network
                         //------------------------------------------------------------------------------------------------------------
                         if (this.authorizer != null)
                         {
-                            this.authorizer.Authorize(requestHeader.Headers);
+                            if (requestHeader.Headers != null)
+                                this.authorizer.Authorize(requestHeader.Headers);
                         }
                         else
                         {
@@ -161,6 +168,11 @@ namespace Zerra.CQRS.Network
                         //----------------------------------------------------------------------------------------------------
                         if (!String.IsNullOrWhiteSpace(data.ProviderType))
                         {
+                            if (String.IsNullOrWhiteSpace(data.ProviderMethod)) throw new Exception("Invalid Request");
+                            if (data.ProviderArguments == null) throw new Exception("Invalid Request");
+                            if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
+                            if (requestHeader.ProviderType != data.ProviderType) throw new Exception("Invalid Request");
+
                             var providerType = Discovery.GetTypeFromName(data.ProviderType);
                             var typeDetail = TypeAnalyzer.GetTypeDetail(providerType);
 
@@ -242,6 +254,10 @@ namespace Zerra.CQRS.Network
                         }
                         else if (!String.IsNullOrWhiteSpace(data.MessageType))
                         {
+                            if (data.MessageData == null) throw new Exception("Invalid Request");
+                            if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
+                            if (requestHeader.ProviderType != data.MessageType) throw new Exception("Invalid Request");
+
                             isCommand = true;
                             if (!commandCounter.BeginReceive())
                                 throw new CqrsNetworkException("Cannot receive any more commands");
@@ -258,7 +274,7 @@ namespace Zerra.CQRS.Network
                             var command = (ICommand)JsonSerializer.Deserialize(commandType, data.MessageData);
 
                             inHandlerContext = true;
-                            if (data.MessageAwait)
+                            if (data.MessageAwait == true)
                                 await handlerAwaitAsync(command, data.Source, false);
                             else
                                 await handlerAsync(command, data.Source, false);
@@ -287,10 +303,10 @@ namespace Zerra.CQRS.Network
                     {
                         if (!inHandlerContext)
                         {
-                            _ = Log.ErrorAsync(null, ex);
+                            _ = Log.ErrorAsync(ex);
                             return; //aborted or network error
                         }
-                        
+
                         if (socket.Connected && !responseStarted && requestHeader != null && requestHeader.ContentType.HasValue)
                         {
                             try
@@ -375,7 +391,7 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        public static HttpCqrsServer CreateDefault(string serverUrl, SymmetricConfig symmetricConfig, ICqrsAuthorizer authorizer, string[] allowOrigins)
+        public static HttpCqrsServer CreateDefault(string serverUrl, SymmetricConfig? symmetricConfig, ICqrsAuthorizer? authorizer, string[]? allowOrigins)
         {
             return new HttpCqrsServer(ContentType.Json, serverUrl, symmetricConfig, authorizer, allowOrigins);
         }

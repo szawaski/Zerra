@@ -117,7 +117,7 @@ namespace Zerra.CQRS.Network
                         break;
                 }
 
-                string key = null;
+                string? key = null;
                 var keyPartDone = false;
                 for (var index = start; index < chars.Length; index++)
                 {
@@ -160,7 +160,9 @@ namespace Zerra.CQRS.Network
 #else
                                 var value = chars.Slice(start, length).ToString();
 #endif
+#pragma warning disable CS8604 // Possible null reference argument.
                                 if (headers.TryGetValue(key, out var values))
+#pragma warning restore CS8604 // Possible null reference argument.
                                 {
                                     values.Add(value);
                                 }
@@ -319,7 +321,7 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferPreflightResponse(Memory<byte> buffer, string origin)
+        public static int BufferPreflightResponse(Memory<byte> buffer, string? origin)
         {
             var headerBuffer = new ByteWriter(buffer.Span, encoding);
 
@@ -345,7 +347,7 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferPostRequestHeader(Memory<byte> buffer, Uri serviceUrl, string origion, string providerType, ContentType? contentType, IDictionary<string, IList<string>> authHeaders)
+        public static int BufferPostRequestHeader(Memory<byte> buffer, Uri serviceUrl, string? origion, string? providerType, ContentType? contentType, IDictionary<string, IList<string>>? authHeaders)
         {
             var headerBuffer = new ByteWriter(buffer.Span, encoding);
 
@@ -430,7 +432,7 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferErrorResponseHeader(Memory<byte> buffer, string origin)
+        public static int BufferErrorResponseHeader(Memory<byte> buffer, string? origin)
         {
             var headerBuffer = new ByteWriter(buffer.Span, encoding);
 
@@ -471,7 +473,7 @@ namespace Zerra.CQRS.Network
             return headerBuffer.Length;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferOkResponseHeader(Memory<byte> buffer, string origion, string providerType, ContentType? contentType, IDictionary<string, IList<string>> authHeaders)
+        public static int BufferOkResponseHeader(Memory<byte> buffer, string? origion, string? providerType, ContentType? contentType, IDictionary<string, IList<string>>? authHeaders)
         {
             var headerBuffer = new ByteWriter(buffer.Span, encoding);
 

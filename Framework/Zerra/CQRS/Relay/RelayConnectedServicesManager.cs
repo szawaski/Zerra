@@ -26,6 +26,11 @@ namespace Zerra.CQRS.Relay
         private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, RelayConnectedService>> servicesByProviderType = new();
         private static void AddOrUpdate(ServiceInfo info, bool saveState)
         {
+            if (String.IsNullOrWhiteSpace(info.Url))
+                return;
+            if (info.ProviderTypes == null || info.ProviderTypes.Length == 0)
+                return;
+
             lock (servicesByUrl)
             {
                 var service = servicesByUrl.GetOrAdd(info.Url,
@@ -54,26 +59,29 @@ namespace Zerra.CQRS.Relay
             }
         }
         public static void AddOrUpdate(ServiceInfo info) { AddOrUpdate(info, true); }
-        public static void Remove(string url)
+        public static void Remove(string? url)
         {
+            if (String.IsNullOrWhiteSpace(url))
+                return;
+
             lock (servicesByUrl)
             {
                 var service = servicesByUrl[url];
                 if (service != null)
                 {
-                    _ = servicesByUrl.TryRemove(service.Url, out _);
+                    _ = servicesByUrl.TryRemove(url, out _);
                     foreach (var servicesForProvider in servicesByProviderType.Values)
                     {
-                        _ = servicesForProvider.TryRemove(service.Url, out _);
+                        _ = servicesForProvider.TryRemove(url, out _);
                     }
 
-                    _ = Log.InfoAsync($"Service Removed {service.Url}");
+                    _ = Log.InfoAsync($"Service Removed {url}");
                 }
             }
             _ = SaveState();
         }
 
-        public static RelayConnectedService GetBestService(string providerType)
+        public static RelayConnectedService? GetBestService(string providerType)
         {
             if (!servicesByProviderType.TryGetValue(providerType, out var servicesForProvider))
                 return null;
@@ -103,6 +111,8 @@ namespace Zerra.CQRS.Relay
             try
             {
                 var path = Config.GetEnvironmentFilePath("relaystate.dat");
+                if (path == null)
+                    throw new InvalidOperationException("Could not load environment to save relaystate.dat");
 
                 var infos = new List<ServiceInfo>();
                 foreach (var service in servicesByUrl.Values)
@@ -139,7 +149,7 @@ namespace Zerra.CQRS.Relay
                 var path = Config.GetEnvironmentFilePath("relaystate.dat");
                 if (File.Exists(path))
                 {
-                    ServiceInfo[] infoArray = null;
+                    ServiceInfo[]? infoArray = null;
                     try
                     {
                         using (var file = File.OpenRead(path))

@@ -37,8 +37,8 @@ namespace Zerra.CQRS.Settings
         {
             var environmentName = Config.EnvironmentName;
 
-            string filePath = null;
-            string fileName = null;
+            string? filePath = null;
+            string? fileName = null;
             if (!String.IsNullOrWhiteSpace(environmentName))
             {
                 fileName = String.Format(genericSettingsFileName, environmentName);
@@ -70,42 +70,45 @@ namespace Zerra.CQRS.Settings
 
             _ = Log.InfoAsync($"Config {serviceName} Loaded {fileName}");
 
-            foreach (var service in settings.Services)
+            if (settings.Services != null)
             {
-                if (service.Name == serviceName)
+                foreach (var service in settings.Services)
                 {
-                    if (GetBindingUrl(service.BindingUrl, bindingUrlFromStandardVariables, out var newUrl, out var urlSource))
+                    if (service.Name == serviceName)
                     {
-                        service.BindingUrl = newUrl;
-                        if (!String.IsNullOrWhiteSpace(service.BindingUrl))
-                            _ = Log.InfoAsync($"Config Hosting - {service.BindingUrl} (from {urlSource})");
+                        if (GetBindingUrl(service.BindingUrl, bindingUrlFromStandardVariables, out var newUrl, out var urlSource))
+                        {
+                            service.BindingUrl = newUrl;
+                            if (!String.IsNullOrWhiteSpace(service.BindingUrl))
+                                _ = Log.InfoAsync($"Config Hosting - {service.BindingUrl} (from {urlSource})");
+                            else
+                                _ = Log.InfoAsync($"Config Hosting - No {nameof(service.BindingUrl)}");
+                        }
                         else
-                            _ = Log.InfoAsync($"Config Hosting - No {nameof(service.BindingUrl)}");
+                        {
+                            if (!String.IsNullOrWhiteSpace(service.BindingUrl))
+                                _ = Log.InfoAsync($"Config Hosting - {service.BindingUrl} (from {fileName})");
+                            else
+                                _ = Log.InfoAsync($"Config Hosting - No {nameof(service.BindingUrl)}");
+                        }
                     }
                     else
                     {
-                        if (!String.IsNullOrWhiteSpace(service.BindingUrl))
-                            _ = Log.InfoAsync($"Config Hosting - {service.BindingUrl} (from {fileName})");
+                        if (GetExternalUrl(service.Name, service.ExternalUrl, out var newUrl, out var urlSource))
+                        {
+                            service.ExternalUrl = newUrl;
+                            if (!String.IsNullOrWhiteSpace(service.ExternalUrl))
+                                _ = Log.InfoAsync($"Config {service.Name} - {service.ExternalUrl} (from {urlSource})");
+                            else
+                                _ = Log.InfoAsync($"Config {service.Name} - No {nameof(service.ExternalUrl)}");
+                        }
                         else
-                            _ = Log.InfoAsync($"Config Hosting - No {nameof(service.BindingUrl)}");
-                    }
-                }
-                else
-                {
-                    if (GetExternalUrl(service.Name, service.ExternalUrl, out var newUrl, out var urlSource))
-                    {
-                        service.ExternalUrl = newUrl;
-                        if (!String.IsNullOrWhiteSpace(service.ExternalUrl))
-                            _ = Log.InfoAsync($"Config {service.Name} - {service.ExternalUrl} (from {urlSource})");
-                        else
-                            _ = Log.InfoAsync($"Config {service.Name} - No {nameof(service.ExternalUrl)}");
-                    }
-                    else
-                    {
-                        if (!String.IsNullOrWhiteSpace(service.ExternalUrl))
-                            _ = Log.InfoAsync($"Config {service.Name} - {service.ExternalUrl} (from {fileName})");
-                        else
-                            _ = Log.InfoAsync($"Config {service.Name} - No {nameof(service.ExternalUrl)}");
+                        {
+                            if (!String.IsNullOrWhiteSpace(service.ExternalUrl))
+                                _ = Log.InfoAsync($"Config {service.Name} - {service.ExternalUrl} (from {fileName})");
+                            else
+                                _ = Log.InfoAsync($"Config {service.Name} - No {nameof(service.ExternalUrl)}");
+                        }
                     }
                 }
             }
@@ -115,7 +118,7 @@ namespace Zerra.CQRS.Settings
             return settings;
         }
 
-        public static bool GetBindingUrl(string defaultUrl, bool useStandardVariables, out string url, out string urlSource)
+        public static bool GetBindingUrl(string? defaultUrl, bool useStandardVariables, out string? url, out string? urlSource)
         {
             urlSource = bindingUrl0;
             url = Config.GetSetting(bindingUrl0);
@@ -165,12 +168,15 @@ namespace Zerra.CQRS.Settings
             return false;
         }
 
-        public static bool GetExternalUrl(string settingName, string defaultUrl, out string url, out string urlSource)
+        public static bool GetExternalUrl(string? settingName, string? defaultUrl, out string? url, out string? urlSource)
         {
             urlSource = settingName;
-            url = Config.GetSetting(settingName);
-            if (!String.IsNullOrWhiteSpace(url))
-                return true;
+            if (!String.IsNullOrWhiteSpace(settingName))
+            {
+                url = Config.GetSetting(settingName);
+                if (!String.IsNullOrWhiteSpace(url))
+                    return true;
+            }
 
             urlSource = null;
             url = defaultUrl;

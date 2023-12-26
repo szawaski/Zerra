@@ -28,7 +28,7 @@ namespace Zerra.CQRS.Relay
             return Send(HttpCommon.RelayServiceRemove, serviceUrl, null);
         }
 
-        private async Task Send(string action, string serviceUrl, string[] providerTypes)
+        private async Task Send(string action, string serviceUrl, string[]? providerTypes)
         {
             var info = new ServiceInfo()
             {

@@ -26,7 +26,7 @@ namespace Zerra.CQRS.Network
         private int segmentLength;
         private bool ended;
         private const int segmentLengthBufferMaxLength = 24;
-        private byte[] segmentLengthBufferSource;
+        private byte[]? segmentLengthBufferSource;
         private Memory<byte> segmentLengthBuffer;
         private int segmentLengthBufferLength;
         private int segmentLengthBufferPosition;
@@ -76,7 +76,7 @@ namespace Zerra.CQRS.Network
         }
 #endif
 
-        public override long Length => contentLength.Value;
+        public override long Length => contentLength.HasValue ? contentLength.Value : default;
         public override long Position { get { return position; } set { throw new NotSupportedException(); } }
 
         public override long Seek(long offset, SeekOrigin origin) { throw new NotSupportedException(); }

@@ -15,9 +15,9 @@ namespace Zerra.CQRS
             public bool Exposed { get; private set; }
             public BusLogging BusLogging { get; private set; }
             public bool Authenticate { get; private set; }
-            public IReadOnlyCollection<string> Roles { get; private set; }
+            public IReadOnlyCollection<string>? Roles { get; private set; }
             public ConcurrentFactoryDictionary<MethodDetail, MethodMetadata> MethodMetadata { get; private set; }
-            public CallMetadata(bool exposed, BusLogging busLogging, bool authenticate, IReadOnlyCollection<string> roles)
+            public CallMetadata(bool exposed, BusLogging busLogging, bool authenticate, IReadOnlyCollection<string>? roles)
             {
                 this.Exposed = exposed;
                 this.BusLogging = busLogging;

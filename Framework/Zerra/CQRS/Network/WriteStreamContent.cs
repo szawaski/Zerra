@@ -13,8 +13,8 @@ namespace Zerra.CQRS.Network
 {
     public sealed class WriteStreamContent : HttpContent
     {
-        private readonly Func<Stream, Task> streamAsyncDelegate;
-        private readonly Action<Stream> streamDelegate;
+        private readonly Func<Stream, Task>? streamAsyncDelegate;
+        private readonly Action<Stream>? streamDelegate;
         public WriteStreamContent(Func<Stream, Task> streamDelegate)
         {
             if (streamDelegate == null)
@@ -30,28 +30,34 @@ namespace Zerra.CQRS.Network
             this.streamDelegate = streamDelegate;
         }
 
-        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext context)
+        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
         {
             if (streamAsyncDelegate != null)
                 await streamAsyncDelegate(stream);
-            else
+            else if (streamDelegate != null)
                 streamDelegate(stream);
+            else
+                throw new InvalidOperationException($"{nameof(WriteStreamContent)} did not initialize correctly");
         }
 #if NET5_0_OR_GREATER
-        protected override void SerializeToStream(Stream stream, TransportContext context, CancellationToken cancellationToken)
+        protected override void SerializeToStream(Stream stream, TransportContext? context, CancellationToken cancellationToken)
         {
             if (streamAsyncDelegate != null)
                 streamAsyncDelegate(stream).GetAwaiter().GetResult();
-            else
+            else if (streamDelegate != null)
                 streamDelegate(stream);
+            else
+                throw new InvalidOperationException($"{nameof(WriteStreamContent)} did not initialize correctly");
         }
 
-        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext context, CancellationToken cancellationToken)
+        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context, CancellationToken cancellationToken)
         {
             if (streamAsyncDelegate != null)
                 await streamAsyncDelegate(stream);
-            else
+            else if (streamDelegate != null)
                 streamDelegate(stream);
+            else
+                throw new InvalidOperationException($"{nameof(WriteStreamContent)} did not initialize correctly");
         }
 #endif
         protected override bool TryComputeLength(out long length)

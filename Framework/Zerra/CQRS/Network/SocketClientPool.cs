@@ -77,7 +77,7 @@ namespace Zerra.CQRS.Network
 
         getstream:
             throttle.Wait(canceller.Token); //disposing releases throttle so we enter again
-            SocketPoolStream stream = null;
+            SocketPoolStream? stream = null;
             while (pool.TryDequeue(out var holder))
             {
                 lock (holder)
@@ -118,7 +118,7 @@ namespace Zerra.CQRS.Network
 
             var ips = Dns.GetHostAddresses(hostAndPort.Host);
 
-            Exception lastex = null;
+            Exception? lastex = null;
             foreach (var ip in ips)
             {
                 if (ip.AddressFamily != AddressFamily.InterNetwork && ip.AddressFamily != AddressFamily.InterNetworkV6)
@@ -144,7 +144,10 @@ namespace Zerra.CQRS.Network
                     lastex = ex;
                 }
             }
-            throw new ConnectionFailedException(lastex);
+            if (lastex != null)
+                throw new ConnectionFailedException(lastex);
+            else
+                throw new ConnectionFailedException();
         }
 #if !NETSTANDARD2_0
         public SocketPoolStream BeginStream(string host, int port, ProtocolType protocol, Span<byte> buffer)
@@ -159,7 +162,7 @@ namespace Zerra.CQRS.Network
 
         getstream:
             throttle.Wait(canceller.Token); //disposing releases throttle so we enter again
-            SocketPoolStream stream = null;
+            SocketPoolStream? stream = null;
             while (pool.TryDequeue(out var holder))
             {
                 lock (holder)
@@ -200,7 +203,7 @@ namespace Zerra.CQRS.Network
 
             var ips = Dns.GetHostAddresses(hostAndPort.Host);
 
-            Exception lastex = null;
+            Exception? lastex = null;
             foreach (var ip in ips)
             {
                 if (ip.AddressFamily != AddressFamily.InterNetwork && ip.AddressFamily != AddressFamily.InterNetworkV6)
@@ -226,7 +229,10 @@ namespace Zerra.CQRS.Network
                     lastex = ex;
                 }
             }
-            throw new ConnectionFailedException(lastex);
+            if (lastex != null)
+                throw new ConnectionFailedException(lastex);
+            else
+                throw new ConnectionFailedException();
         }
 #endif
 
@@ -242,7 +248,7 @@ namespace Zerra.CQRS.Network
 
         getstream:
             await throttle.WaitAsync(canceller.Token); //disposing releases throttle so we enter again
-            SocketPoolStream stream = null;
+            SocketPoolStream? stream = null;
             while (pool.TryDequeue(out var holder))
             {
                 lock (holder)
@@ -287,7 +293,7 @@ namespace Zerra.CQRS.Network
             var ips = await Dns.GetHostAddressesAsync(host);
 #endif
 
-            Exception lastex = null;
+            Exception? lastex = null;
             foreach (var ip in ips)
             {
                 if (ip.AddressFamily != AddressFamily.InterNetwork && ip.AddressFamily != AddressFamily.InterNetworkV6)
@@ -317,7 +323,10 @@ namespace Zerra.CQRS.Network
                     lastex = ex;
                 }
             }
-            throw new ConnectionFailedException(lastex);
+            if (lastex != null)
+                throw new ConnectionFailedException(lastex);
+            else
+                throw new ConnectionFailedException();
         }
 #if !NETSTANDARD2_0
         public async Task<SocketPoolStream> BeginStreamAsync(string host, int port, ProtocolType protocol, Memory<byte> buffer, CancellationToken cancellationToken = default)
@@ -332,7 +341,7 @@ namespace Zerra.CQRS.Network
 
         getstream:
             await throttle.WaitAsync(canceller.Token); //disposing releases throttle so we enter again
-            SocketPoolStream stream = null;
+            SocketPoolStream? stream = null;
             while (pool.TryDequeue(out var holder))
             {
                 lock (holder)
@@ -377,7 +386,7 @@ namespace Zerra.CQRS.Network
             var ips = await Dns.GetHostAddressesAsync(host);
 #endif
 
-            Exception lastex = null;
+            Exception? lastex = null;
             foreach (var ip in ips)
             {
                 if (ip.AddressFamily != AddressFamily.InterNetwork && ip.AddressFamily != AddressFamily.InterNetworkV6)
@@ -407,7 +416,10 @@ namespace Zerra.CQRS.Network
                     lastex = ex;
                 }
             }
-            throw new ConnectionFailedException(lastex);
+            if (lastex != null)
+                throw new ConnectionFailedException(lastex);
+            else
+                throw new ConnectionFailedException();
         }
 #endif
 

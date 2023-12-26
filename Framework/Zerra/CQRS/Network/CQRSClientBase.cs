@@ -84,7 +84,11 @@ namespace Zerra.CQRS.Network
                 {
                     var isStream = returnTypeDetails.InnerTypeDetails[0].BaseTypes.Contains(streamType);
                     var callRequestMethodGeneric = TypeAnalyzer.GetGenericMethodDetail(callRequestAsyncMethod, returnTypeDetails.InnerTypes.ToArray());
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+#pragma warning disable CS8603 // Possible null reference return.
                     return (TReturn)callRequestMethodGeneric.Caller(this, new object[] { throttle, isStream, interfaceType, methodName, arguments, source });
+#pragma warning restore CS8603 // Possible null reference return.
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
                 }
                 else
                 {

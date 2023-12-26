@@ -20,11 +20,11 @@ namespace Zerra.CQRS.Network
     public sealed class HttpCqrsClient : TcpCqrsClientBase
     {
         private readonly ContentType contentType;
-        private readonly SymmetricConfig symmetricConfig;
-        private readonly ICqrsAuthorizer authorizer;
+        private readonly SymmetricConfig? symmetricConfig;
+        private readonly ICqrsAuthorizer? authorizer;
         private readonly SocketClientPool socketPool;
 
-        public HttpCqrsClient(ContentType contentType, string serviceUrl, SymmetricConfig symmetricConfig, ICqrsAuthorizer authorizer)
+        public HttpCqrsClient(ContentType contentType, string serviceUrl, SymmetricConfig? symmetricConfig, ICqrsAuthorizer? authorizer)
             : base(serviceUrl)
         {
             this.contentType = contentType;
@@ -39,15 +39,15 @@ namespace Zerra.CQRS.Network
         {
             throttle.Wait();
 
-            SocketPoolStream stream = null;
-            Stream requestBodyStream = null;
-            CryptoFlushStream requestBodyCryptoStream = null;
-            Stream responseBodyStream = null;
+            SocketPoolStream? stream = null;
+            Stream? requestBodyStream = null;
+            CryptoFlushStream? requestBodyCryptoStream = null;
+            Stream? responseBodyStream = null;
             var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
             var isThrowingRemote = false;
             try
             {
-                string[][] claims = null;
+                string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
@@ -61,7 +61,7 @@ namespace Zerra.CQRS.Network
                 };
                 data.AddProviderArguments(arguments);
 
-                IDictionary<string, IList<string>> authHeaders = null;
+                IDictionary<string, IList<string>>? authHeaders = null;
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
@@ -177,7 +177,7 @@ namespace Zerra.CQRS.Network
                             stream.DisposeSocket();
                             if (!stream.NewConnection)
                             {
-                                _ = Log.ErrorAsync(null, ex);
+                                _ = Log.ErrorAsync(ex);
                                 stream = null;
                                 goto newconnection;
                             }
@@ -197,15 +197,15 @@ namespace Zerra.CQRS.Network
         {
             await throttle.WaitAsync();
 
-            SocketPoolStream stream = null;
-            Stream requestBodyStream = null;
-            CryptoFlushStream requestBodyCryptoStream = null;
-            Stream responseBodyStream = null;
+            SocketPoolStream? stream = null;
+            Stream? requestBodyStream = null;
+            CryptoFlushStream? requestBodyCryptoStream = null;
+            Stream? responseBodyStream = null;
             var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
             var isThrowingRemote = false;
             try
             {
-                string[][] claims = null;
+                string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
@@ -219,7 +219,7 @@ namespace Zerra.CQRS.Network
                 };
                 data.AddProviderArguments(arguments);
 
-                IDictionary<string, IList<string>> authHeaders = null;
+                IDictionary<string, IList<string>>? authHeaders = null;
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
@@ -369,7 +369,7 @@ namespace Zerra.CQRS.Network
                             stream.DisposeSocket();
                             if (!stream.NewConnection)
                             {
-                                _ = Log.ErrorAsync(null, ex);
+                                _ = Log.ErrorAsync(ex);
                                 stream = null;
                                 goto newconnection;
                             }
@@ -389,10 +389,10 @@ namespace Zerra.CQRS.Network
         {
             await throttle.WaitAsync();
 
-            SocketPoolStream stream = null;
-            Stream requestBodyStream = null;
-            CryptoFlushStream requestBodyCryptoStream = null;
-            Stream responseBodyStream = null;
+            SocketPoolStream? stream = null;
+            Stream? requestBodyStream = null;
+            CryptoFlushStream? requestBodyCryptoStream = null;
+            Stream? responseBodyStream = null;
             var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
             var isThrowingRemote = false;
             try
@@ -401,7 +401,7 @@ namespace Zerra.CQRS.Network
 
                 var messageData = JsonSerializer.Serialize(command, commandType);
 
-                string[][] claims = null;
+                string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
@@ -415,7 +415,7 @@ namespace Zerra.CQRS.Network
                     Source = source
                 };
 
-                IDictionary<string, IList<string>> authHeaders = null;
+                IDictionary<string, IList<string>>? authHeaders = null;
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
@@ -557,7 +557,7 @@ namespace Zerra.CQRS.Network
                             stream.DisposeSocket();
                             if (!stream.NewConnection)
                             {
-                                _ = Log.ErrorAsync(null, ex);
+                                _ = Log.ErrorAsync(ex);
                                 stream = null;
                                 goto newconnection;
                             }

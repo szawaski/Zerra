@@ -22,7 +22,7 @@ namespace Zerra.CQRS.Network
             Nameless = true
         };
 
-        public static byte[] Serialize(ContentType contentType, object obj)
+        public static byte[] Serialize(ContentType contentType, object? obj)
         {
             switch (contentType)
             {
@@ -83,7 +83,7 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        public static void Serialize(ContentType contentType, Stream stream, object obj)
+        public static void Serialize(ContentType contentType, Stream stream, object? obj)
         {
             switch (contentType)
             {
@@ -147,7 +147,7 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        public static Task SerializeAsync(ContentType contentType, Stream stream, object obj)
+        public static Task SerializeAsync(ContentType contentType, Stream stream, object? obj)
         {
             switch (contentType)
             {

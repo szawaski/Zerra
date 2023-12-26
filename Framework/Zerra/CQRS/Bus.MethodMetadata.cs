@@ -13,8 +13,8 @@ namespace Zerra.CQRS
             public bool Blocked { get; private set; }
             public BusLogging BusLogging { get; private set; }
             public bool Authenticate { get; private set; }
-            public IReadOnlyCollection<string> Roles { get; private set; }
-            public MethodMetadata(bool blocked, BusLogging busLogging, bool authenticate, IReadOnlyCollection<string> roles)
+            public IReadOnlyCollection<string>? Roles { get; private set; }
+            public MethodMetadata(bool blocked, BusLogging busLogging, bool authenticate, IReadOnlyCollection<string>? roles)
             {
                 this.Blocked = blocked;
                 this.BusLogging = busLogging;

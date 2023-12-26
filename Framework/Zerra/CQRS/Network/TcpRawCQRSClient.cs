@@ -19,10 +19,10 @@ namespace Zerra.CQRS.Network
     public sealed class TcpRawCqrsClient : TcpCqrsClientBase
     {
         private readonly ContentType contentType;
-        private readonly SymmetricConfig symmetricConfig;
+        private readonly SymmetricConfig? symmetricConfig;
         private readonly SocketClientPool socketPool;
 
-        public TcpRawCqrsClient(ContentType contentType, string serviceUrl, SymmetricConfig symmetricConfig)
+        public TcpRawCqrsClient(ContentType contentType, string serviceUrl, SymmetricConfig? symmetricConfig)
             : base(serviceUrl)
         {
             this.contentType = contentType;
@@ -36,16 +36,15 @@ namespace Zerra.CQRS.Network
         {
             throttle.Wait();
 
-            //Socket socket = null;
-            SocketPoolStream stream = null;
-            Stream requestBodyStream = null;
-            CryptoFlushStream requestBodyCryptoStream = null;
-            Stream responseBodyStream = null;
+            SocketPoolStream? stream = null;
+            Stream? requestBodyStream = null;
+            CryptoFlushStream? requestBodyCryptoStream = null;
+            Stream? responseBodyStream = null;
             var bufferOwner = BufferArrayPool<byte>.Rent(TcpRawCommon.BufferLength);
             var isThrowingRemote = false;
             try
             {
-                string[][] claims = null;
+                string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
@@ -174,7 +173,7 @@ namespace Zerra.CQRS.Network
                             stream.DisposeSocket();
                             if (!stream.NewConnection)
                             {
-                                _ = Log.ErrorAsync(null, ex);
+                                _ = Log.ErrorAsync(ex);
                                 stream = null;
                                 goto newconnection;
                             }
@@ -194,15 +193,15 @@ namespace Zerra.CQRS.Network
         {
             await throttle.WaitAsync();
 
-            SocketPoolStream stream = null;
-            Stream requestBodyStream = null;
-            CryptoFlushStream requestBodyCryptoStream = null;
-            Stream responseBodyStream = null;
+            SocketPoolStream? stream = null;
+            Stream? requestBodyStream = null;
+            CryptoFlushStream? requestBodyCryptoStream = null;
+            Stream? responseBodyStream = null;
             var bufferOwner = BufferArrayPool<byte>.Rent(TcpRawCommon.BufferLength);
             var isThrowingRemote = false;
             try
             {
-                string[][] claims = null;
+                string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
@@ -370,7 +369,7 @@ namespace Zerra.CQRS.Network
                             stream.DisposeSocket();
                             if (!stream.NewConnection)
                             {
-                                _ = Log.ErrorAsync(null, ex);
+                                _ = Log.ErrorAsync(ex);
                                 stream = null;
                                 goto newconnection;
                             }
@@ -390,10 +389,10 @@ namespace Zerra.CQRS.Network
         {
             await throttle.WaitAsync();
 
-            SocketPoolStream stream = null;
-            Stream requestBodyStream = null;
-            CryptoFlushStream requestBodyCryptoStream = null;
-            Stream responseBodyStream = null;
+            SocketPoolStream? stream = null;
+            Stream? requestBodyStream = null;
+            CryptoFlushStream? requestBodyCryptoStream = null;
+            Stream? responseBodyStream = null;
             var bufferOwner = BufferArrayPool<byte>.Rent(TcpRawCommon.BufferLength);
             var isThrowingRemote = false;
             try
@@ -402,7 +401,7 @@ namespace Zerra.CQRS.Network
 
                 var messageData = JsonSerializer.Serialize(command, commandType);
 
-                string[][] claims = null;
+                string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
@@ -557,7 +556,7 @@ namespace Zerra.CQRS.Network
                             stream.DisposeSocket();
                             if (!stream.NewConnection)
                             {
-                                _ = Log.ErrorAsync(null, ex);
+                                _ = Log.ErrorAsync(ex);
                                 stream = null;
                                 goto newconnection;
                             }
@@ -573,7 +572,7 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        public static TcpRawCqrsClient CreateDefault(string endpoint, SymmetricConfig symmetricConfig)
+        public static TcpRawCqrsClient CreateDefault(string endpoint, SymmetricConfig? symmetricConfig)
         {
             return new TcpRawCqrsClient(ContentType.Bytes, endpoint, symmetricConfig);
         }

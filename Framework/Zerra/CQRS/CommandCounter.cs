@@ -15,7 +15,7 @@ namespace Zerra.CQRS
         private int completed = 0;
 
         private readonly int? receiveCountBeforeExit;
-        private readonly Action processExit;
+        private readonly Action? processExit;
         public CommandCounter()
         {
             this.receiveCountBeforeExit = null;
