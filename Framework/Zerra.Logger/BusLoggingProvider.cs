@@ -4,7 +4,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Threading.Tasks;
 using Zerra.CQRS;
 
 namespace Zerra.Logger
@@ -27,7 +26,49 @@ namespace Zerra.Logger
             file = $"{filePath}\\{fileName}";
         }
 
-        public async Task LogCommandAsync(Type commandType, ICommand command, string source, bool handled, long milliseconds, Exception ex)
+        public void BeginLogCommandAsync(Type commandType, ICommand command, string source, bool handled)
+        {
+            var typeName = commandType.GetNiceName();
+            var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
+
+            var message = $"{(handled ? "Handling " : "Sending ")}{commandCategory}: {typeName} from {source} as {user}";
+
+            Debug.WriteLine(message, commandCategory);
+            Console.WriteLine(message);
+
+            if (!String.IsNullOrWhiteSpace(file))
+                _ = LogFile.Log(file, commandCategory, message);
+        }
+
+        public void BeginLogEventAsync(Type eventType, IEvent @event, string source, bool handled)
+        {
+            var typeName = eventType.GetNiceName();
+            var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
+
+            var message = $"{(handled ? "Handling " : "Sending ")}{eventCategory}: {typeName} from {source} as {user}";
+
+            Debug.WriteLine(message, eventCategory);
+            Console.WriteLine(message);
+
+            if (!String.IsNullOrWhiteSpace(file))
+                _ = LogFile.Log(file, eventCategory, message);
+        }
+
+        public void BeginLogCallAsync(Type interfaceType, string methodName, object[] arguments, object result, string source, bool handled)
+        {
+            var interfaceName = interfaceType.GetNiceName();
+            var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
+
+            var message = $"{(handled ? "Handling " : "Sending ")}{callCategory}: {interfaceName}.{methodName} from {source} as {user}";
+
+            Debug.WriteLine(message, callCategory);
+            Console.WriteLine(message);
+
+            if (!String.IsNullOrWhiteSpace(file))
+                _ = LogFile.Log(file, callCategory, message);
+        }
+
+        public void LogCommandAsync(Type commandType, ICommand command, string source, bool handled, long milliseconds, Exception ex)
         {
             var typeName = commandType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
@@ -42,10 +83,10 @@ namespace Zerra.Logger
             Console.WriteLine(message);
 
             if (!String.IsNullOrWhiteSpace(file))
-                await LogFile.Log(file, commandCategory, message);
+                _ = LogFile.Log(file, commandCategory, message);
         }
 
-        public async Task LogEventAsync(Type eventType, IEvent @event, string source, bool handled, long milliseconds, Exception ex)
+        public void LogEventAsync(Type eventType, IEvent @event, string source, bool handled, long milliseconds, Exception ex)
         {
             var typeName = eventType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
@@ -60,10 +101,10 @@ namespace Zerra.Logger
             Console.WriteLine(message);
 
             if (!String.IsNullOrWhiteSpace(file))
-                await LogFile.Log(file, eventCategory, message);
+                _ = LogFile.Log(file, eventCategory, message);
         }
 
-        public async Task LogCallAsync(Type interfaceType, string methodName, object[] arguments, object result, string source, bool handled, long milliseconds, Exception ex)
+        public void LogCallAsync(Type interfaceType, string methodName, object[] arguments, object result, string source, bool handled, long milliseconds, Exception ex)
         {
             var interfaceName = interfaceType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
@@ -78,7 +119,7 @@ namespace Zerra.Logger
             Console.WriteLine(message);
 
             if (!String.IsNullOrWhiteSpace(file))
-                await LogFile.Log(file, callCategory, message);
+                _ = LogFile.Log(file, callCategory, message);
         }
     }
 }
