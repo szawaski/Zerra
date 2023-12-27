@@ -18,7 +18,7 @@ namespace Zerra.Serialization
             public Type Type { get; private set; }
             public CoreType? CoreType { get; private set; }
 
-            private SerializerTypeDetail serializerTypeDetails = null;
+            private SerializerTypeDetail? serializerTypeDetails = null;
             public SerializerTypeDetail SerailzierTypeDetails
             {
                 get
@@ -34,8 +34,8 @@ namespace Zerra.Serialization
                 }
             }
 
-            public Func<object, object> Getter { get; private set; }
-            public Action<object, object> Setter { get; private set; }
+            public Func<object, object?> Getter { get; private set; }
+            public Action<object, object?> Setter { get; private set; }
 
             public SerializerMemberDetail(ByteSerializerIndexSize indexSize, bool ignoreBinaryIndexAttribute, MemberDetail member)
             {

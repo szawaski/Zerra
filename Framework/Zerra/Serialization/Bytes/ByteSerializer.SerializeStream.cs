@@ -16,18 +16,21 @@ namespace Zerra.Serialization
 {
     public static partial class ByteSerializer
     {
-        public static byte[] NewSerializeStackBased(object obj, ByteSerializerOptions options = null)
+        public static byte[] NewSerializeStackBased(object? obj, ByteSerializerOptions? options = null)
         {
-            if (obj == null) throw new ArgumentNullException(nameof(obj));
+            if (obj == null)
+                return Array.Empty<byte>();
             return SerializeStackBased(obj, obj.GetType(), options);
         }
-        public static byte[] SerializeStackBased<T>(T obj, ByteSerializerOptions options = null)
+        public static byte[] SerializeStackBased<T>(T? obj, ByteSerializerOptions? options = null)
         {
             return SerializeStackBased(obj, typeof(T), options);
         }
-        public static byte[] SerializeStackBased(object obj, Type type, ByteSerializerOptions options = null)
+        public static byte[] SerializeStackBased(object? obj, Type type, ByteSerializerOptions? options = null)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
+            if (obj == null)
+                return Array.Empty<byte>();
 
             options ??= defaultOptions;
 
@@ -78,24 +81,26 @@ namespace Zerra.Serialization
             return result;
         }
 
-        public static void Serialize(Stream stream, object obj, ByteSerializerOptions options = null)
+        public static void Serialize(Stream stream, object? obj, ByteSerializerOptions? options = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
             if (obj == null)
-                throw new ArgumentNullException(nameof(obj));
+                return;
             Serialize(stream, obj, obj.GetType());
         }
-        public static void Serialize<T>(Stream stream, T obj, ByteSerializerOptions options = null)
+        public static void Serialize<T>(Stream stream, T? obj, ByteSerializerOptions? options = null)
         {
             Serialize(stream, obj, typeof(T), options);
         }
-        public static void Serialize(Stream stream, object obj, Type type, ByteSerializerOptions options = null)
+        public static void Serialize(Stream stream, object? obj, Type type, ByteSerializerOptions? options = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
+            if (obj == null)
+                return;
 
             options ??= defaultOptions;
 
@@ -146,7 +151,7 @@ namespace Zerra.Serialization
             }
         }
 
-        public static Task SerializeAsync(Stream stream, object obj, ByteSerializerOptions options = null)
+        public static Task SerializeAsync(Stream stream, object? obj, ByteSerializerOptions? options = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -157,7 +162,7 @@ namespace Zerra.Serialization
 
             return SerializeAsync(stream, obj, type, options);
         }
-        public static Task SerializeAsync<T>(Stream stream, T obj, ByteSerializerOptions options = null)
+        public static Task SerializeAsync<T>(Stream stream, T? obj, ByteSerializerOptions? options = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -168,7 +173,7 @@ namespace Zerra.Serialization
 
             return SerializeAsync(stream, obj, type, options);
         }
-        public static async Task SerializeAsync(Stream stream, object obj, Type type, ByteSerializerOptions options = null)
+        public static async Task SerializeAsync(Stream stream, object? obj, Type type, ByteSerializerOptions? options = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -256,7 +261,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static WriteFrame WriteFrameFromType(ref WriteState state, object obj, SerializerTypeDetail typeDetail, bool hasWrittenPropertyType, bool nullFlags)
+        private static WriteFrame WriteFrameFromType(ref WriteState state, object? obj, SerializerTypeDetail typeDetail, bool hasWrittenPropertyType, bool nullFlags)
         {
             var frame = new WriteFrame();
             frame.TypeDetail = typeDetail;
@@ -327,11 +332,11 @@ namespace Zerra.Serialization
                 return;
             }
 
-            var typeDetail = state.CurrentFrame.TypeDetail;
+            var typeDetail = state.CurrentFrame.TypeDetail!;
 
             if (state.IncludePropertyTypes)
             {
-                var typeFromValue = state.CurrentFrame.Object.GetType();
+                var typeFromValue = state.CurrentFrame.Object!.GetType();
                 var typeName = typeFromValue.FullName;
 
                 int sizeNeeded;
@@ -345,7 +350,7 @@ namespace Zerra.Serialization
             }
             else if (typeDetail.Type.IsInterface && !typeDetail.TypeDetail.IsIEnumerableGeneric)
             {
-                var objectType = state.CurrentFrame.Object.GetType();
+                var objectType = state.CurrentFrame.Object!.GetType();
                 typeDetail = GetTypeInformation(objectType, state.IndexSize, state.IgnoreIndexAttribute);
             }
 
@@ -359,123 +364,125 @@ namespace Zerra.Serialization
         private static void WriteCoreType(ref ByteWriter writer, ref WriteState state)
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
+
             int sizeNeeded;
-            switch (state.CurrentFrame.TypeDetail.TypeDetail.CoreType)
+            switch (state.CurrentFrame.TypeDetail!.TypeDetail.CoreType)
             {
                 case CoreType.Boolean:
-                    if (!writer.TryWrite((bool)state.CurrentFrame.Object, out sizeNeeded))
+
+                    if (!writer.TryWrite((bool)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.Byte:
-                    if (!writer.TryWrite((byte)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((byte)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.SByte:
-                    if (!writer.TryWrite((sbyte)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((sbyte)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.Int16:
-                    if (!writer.TryWrite((short)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((short)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.UInt16:
-                    if (!writer.TryWrite((ushort)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((ushort)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.Int32:
-                    if (!writer.TryWrite((int)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((int)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.UInt32:
-                    if (!writer.TryWrite((uint)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((uint)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.Int64:
-                    if (!writer.TryWrite((long)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((long)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.UInt64:
-                    if (!writer.TryWrite((ulong)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((ulong)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.Single:
-                    if (!writer.TryWrite((float)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((float)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.Double:
-                    if (!writer.TryWrite((double)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((double)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.Decimal:
-                    if (!writer.TryWrite((decimal)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((decimal)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.Char:
-                    if (!writer.TryWrite((char)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((char)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.DateTime:
-                    if (!writer.TryWrite((DateTime)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((DateTime)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.DateTimeOffset:
-                    if (!writer.TryWrite((DateTimeOffset)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((DateTimeOffset)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.TimeSpan:
-                    if (!writer.TryWrite((TimeSpan)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((TimeSpan)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.Guid:
-                    if (!writer.TryWrite((Guid)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((Guid)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
@@ -603,7 +610,7 @@ namespace Zerra.Serialization
                     break;
 
                 case CoreType.String:
-                    if (!writer.TryWrite((string)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite((string?)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
@@ -621,59 +628,59 @@ namespace Zerra.Serialization
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
             int sizeNeeded;
-            switch (state.CurrentFrame.TypeDetail.TypeDetail.EnumUnderlyingType)
+            switch (state.CurrentFrame.TypeDetail!.TypeDetail.EnumUnderlyingType)
             {
                 case CoreType.Byte:
-                    if (!writer.TryWrite((byte)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((byte)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.SByte:
-                    if (!writer.TryWrite((sbyte)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((sbyte)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.Int16:
-                    if (!writer.TryWrite((short)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((short)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.UInt16:
-                    if (!writer.TryWrite((ushort)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((ushort)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.Int32:
-                    if (!writer.TryWrite((int)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((int)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.UInt32:
-                    if (!writer.TryWrite((uint)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((uint)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.Int64:
-                    if (!writer.TryWrite((long)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((long)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreType.UInt64:
-                    if (!writer.TryWrite((ulong)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((ulong)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
@@ -745,8 +752,9 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteSpecialType(ref ByteWriter writer, ref WriteState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
-            var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType.Value : typeDetail.TypeDetail.SpecialType.Value;
+            var typeDetail = state.CurrentFrame.TypeDetail!;
+            var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType!.Value : typeDetail.TypeDetail.SpecialType!.Value;
+
             switch (specialType)
             {
                 case SpecialType.Type:
@@ -779,7 +787,7 @@ namespace Zerra.Serialization
                                     }
                                 }
                                 var method = TypeAnalyzer.GetGenericMethodDetail(enumerableToArrayMethod, typeDetail.TypeDetail.IEnumerableGenericInnerType);
-                                var innerValue = (ICollection)method.Caller(null, new object[] { state.CurrentFrame.Object });
+                                var innerValue = (ICollection)method.Caller(null, new object[] { state.CurrentFrame.Object })!;
 
                                 state.CurrentFrame.ObjectInProgress = true;
                                 state.PushFrame(new WriteFrame()
@@ -810,7 +818,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteObject(ref ByteWriter writer, ref WriteState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
+            var typeDetail = state.CurrentFrame.TypeDetail!;
             var nullFlags = state.CurrentFrame.NullFlags;
 
             var value = state.CurrentFrame.Object;
@@ -839,7 +847,7 @@ namespace Zerra.Serialization
                 state.CurrentFrame.HasWrittenIsNull = true;
             }
 
-            state.CurrentFrame.MemberEnumerator ??= typeDetail.IndexedProperties.GetEnumerator();
+            state.CurrentFrame.MemberEnumerator ??= typeDetail.IndexedProperties!.GetEnumerator();
 
             while (state.CurrentFrame.EnumeratorObjectInProgress || state.CurrentFrame.MemberEnumerator.MoveNext())
             {
@@ -927,10 +935,10 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteCoreTypeEnumerable(ref ByteWriter writer, ref WriteState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
+            var typeDetail = state.CurrentFrame.TypeDetail!;
             typeDetail = typeDetail.InnerTypeDetail;
 
-            var values = state.CurrentFrame.Object;
+            var values = state.CurrentFrame.Object!;
 
             int sizeNeeded;
 
@@ -944,7 +952,7 @@ namespace Zerra.Serialization
                 }
                 else if (typeDetail.TypeDetail.IsICollectionGeneric)
                 {
-                    length = (int)typeDetail.TypeDetail.GetMember("Count").Getter(values);
+                    length = (int)typeDetail.TypeDetail.GetMember("Count").Getter(values)!;
                 }
                 else
                 {
@@ -965,7 +973,6 @@ namespace Zerra.Serialization
             {
                 length = state.CurrentFrame.EnumerableLength.Value;
             }
-
 
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
             switch (typeDetail.TypeDetail.CoreType)
@@ -1226,10 +1233,10 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteEnumTypeEnumerable(ref ByteWriter writer, ref WriteState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
+            var typeDetail = state.CurrentFrame.TypeDetail!;
             typeDetail = typeDetail.InnerTypeDetail;
 
-            var values = (IEnumerable)state.CurrentFrame.Object;
+            var values = (IEnumerable?)state.CurrentFrame.Object!;
 
             int sizeNeeded;
 
@@ -1243,7 +1250,7 @@ namespace Zerra.Serialization
                 }
                 else if (typeDetail.TypeDetail.IsICollectionGeneric)
                 {
-                    length = (int)typeDetail.TypeDetail.GetMember("Count").Getter(values);
+                    length = (int)typeDetail.TypeDetail.GetMember("Count").Getter(values)!;
                 }
                 else
                 {
@@ -1395,17 +1402,18 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteObjectEnumerable(ref ByteWriter writer, ref WriteState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
+            var typeDetail = state.CurrentFrame.TypeDetail!;
 
             var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList;
 
-            var values = (IEnumerable)state.CurrentFrame.Object;
+            var values = (IEnumerable?)state.CurrentFrame.Object!;
 
             int sizeNeeded;
 
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
                 int length;
+
                 if (typeDetail.TypeDetail.IsICollection)
                 {
                     var collection = (ICollection)values;
@@ -1413,7 +1421,7 @@ namespace Zerra.Serialization
                 }
                 else if (typeDetail.TypeDetail.IsICollectionGeneric)
                 {
-                    length = (int)typeDetail.TypeDetail.GetMember("Count").Getter(values);
+                    length = (int)typeDetail.TypeDetail.GetMember("Count").Getter(values)!;
                 }
                 else
                 {
@@ -1431,38 +1439,41 @@ namespace Zerra.Serialization
                 state.CurrentFrame.EnumerableLength = length;
             }
 
-            typeDetail = typeDetail.InnerTypeDetail;
-
-            state.CurrentFrame.ObjectEnumerator ??= values.GetEnumerator();
-
-            while (state.CurrentFrame.EnumeratorObjectInProgress || state.CurrentFrame.ObjectEnumerator.MoveNext())
+            if (state.CurrentFrame.EnumerableLength > 0)
             {
-                var value = state.CurrentFrame.ObjectEnumerator.Current;
-                state.CurrentFrame.EnumeratorObjectInProgress = true;
+                typeDetail = typeDetail.InnerTypeDetail;
 
-                if (value == null)
+                state.CurrentFrame.ObjectEnumerator ??= values!.GetEnumerator();
+
+                while (state.CurrentFrame.EnumeratorObjectInProgress || state.CurrentFrame.ObjectEnumerator.MoveNext())
                 {
-                    if (!writer.TryWriteNull(out sizeNeeded))
+                    var value = state.CurrentFrame.ObjectEnumerator.Current;
+                    state.CurrentFrame.EnumeratorObjectInProgress = true;
+
+                    if (value == null)
                     {
-                        state.BytesNeeded = sizeNeeded;
-                        return;
+                        if (!writer.TryWriteNull(out sizeNeeded))
+                        {
+                            state.BytesNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.EnumeratorObjectInProgress = false;
+                        continue;
                     }
+                    else
+                    {
+                        if (!writer.TryWriteNotNull(out sizeNeeded))
+                        {
+                            state.BytesNeeded = sizeNeeded;
+                            return;
+                        }
+                    }
+
                     state.CurrentFrame.EnumeratorObjectInProgress = false;
-                    continue;
+                    var frame = WriteFrameFromType(ref state, value, typeDetail, false, false);
+                    state.PushFrame(frame);
+                    return;
                 }
-                else
-                {
-                    if (!writer.TryWriteNotNull(out sizeNeeded))
-                    {
-                        state.BytesNeeded = sizeNeeded;
-                        return;
-                    }
-                }
-
-                state.CurrentFrame.EnumeratorObjectInProgress = false;
-                var frame = WriteFrameFromType(ref state, value, typeDetail, false, false);
-                state.PushFrame(frame);
-                return;
             }
 
             state.EndFrame();

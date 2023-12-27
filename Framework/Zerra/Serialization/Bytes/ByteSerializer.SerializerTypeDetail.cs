@@ -17,14 +17,14 @@ namespace Zerra.Serialization
             private readonly bool ignoreIndexAttribute;
 
             public Type Type { get; private set; }
-            public IReadOnlyDictionary<ushort, SerializerMemberDetail> IndexedProperties { get; private set; }
+            public IReadOnlyDictionary<ushort, SerializerMemberDetail>? IndexedProperties { get; private set; }
             public TypeDetail TypeDetail { get; private set; }
             public Func<int, object> ListCreator { get; private set; }
             public MethodDetail ListAdder { get; private set; }
             public Func<int, object> HashSetCreator { get; private set; }
             public MethodDetail HashSetAdder { get; private set; }
 
-            private SerializerTypeDetail innerTypeDetails = null;
+            private SerializerTypeDetail? innerTypeDetails = null;
             public SerializerTypeDetail InnerTypeDetail
             {
                 get
@@ -60,12 +60,12 @@ namespace Zerra.Serialization
 
                 if (!this.Type.IsEnum && !this.TypeDetail.CoreType.HasValue && !this.TypeDetail.SpecialType.HasValue && !this.TypeDetail.IsNullable && !this.TypeDetail.IsIEnumerableGeneric)
                 {
-                    var memberSets = new List<Tuple<MemberDetail, SerializerIndexAttribute, NonSerializedAttribute>>();
+                    var memberSets = new List<Tuple<MemberDetail, SerializerIndexAttribute?, NonSerializedAttribute?>>();
                     foreach (var member in this.TypeDetail.SerializableMemberDetails)
                     {
                         var indexAttribute = member.Attributes.Select(x => x as SerializerIndexAttribute).Where(x => x != null).FirstOrDefault();
                         var nonSerializedAttribute = member.Attributes.Select(x => x as NonSerializedAttribute).Where(x => x != null).FirstOrDefault();
-                        memberSets.Add(new Tuple<MemberDetail, SerializerIndexAttribute, NonSerializedAttribute>(member, indexAttribute, nonSerializedAttribute));
+                        memberSets.Add(new Tuple<MemberDetail, SerializerIndexAttribute?, NonSerializedAttribute?>(member, indexAttribute, nonSerializedAttribute));
                     }
 
                     var indexProperties = new Dictionary<ushort, SerializerMemberDetail>();
@@ -80,12 +80,16 @@ namespace Zerra.Serialization
                                 switch (indexSize)
                                 {
                                     case ByteSerializerIndexSize.Byte:
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
                                         if (member.Item2.Index > Byte.MaxValue - indexOffset)
                                             throw new Exception("Index attribute too large for the index size");
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
                                         break;
                                     case ByteSerializerIndexSize.UInt16:
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
                                         if (member.Item2.Index > UInt16.MaxValue - indexOffset)
                                             throw new Exception("Index attribute too large for the index size");
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
                                         break;
                                     default:
                                         throw new NotImplementedException();

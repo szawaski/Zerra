@@ -1980,7 +1980,7 @@ namespace Zerra.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(string value, bool nullFlags)
+        public void Write(string? value, bool nullFlags)
         {
             if (value != null)
             {

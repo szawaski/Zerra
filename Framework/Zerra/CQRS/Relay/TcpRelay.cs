@@ -88,7 +88,7 @@ namespace Zerra.CQRS.Relay
                 }
                 protocolType = TcpCommon.ReadProtocol(buffer.Span);
 
-                string providerType;
+                string? providerType;
 
                 switch (protocolType.Value)
                 {
@@ -152,10 +152,13 @@ namespace Zerra.CQRS.Relay
                     default: throw new NotImplementedException();
                 }
 
+                if (providerType == null)
+                    throw new Exception("ProviderType not supplied");
+
                 while (outgoingClient == null)
                 {
                     service = RelayConnectedServicesManager.GetBestService(providerType);
-                    if (service == null)
+                    if (service == null || String.IsNullOrWhiteSpace(service.Url))
                         break;
 
                     try

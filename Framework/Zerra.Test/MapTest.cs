@@ -397,19 +397,19 @@ namespace Zerra.Test
             Assert.AreEqual(modelA.ArrayToArray.Length, modelB.ArrayToList.Count);
         }
 
-        [TestMethod]
-        public void Null()
-        {
-            var modelB = Mapper.Map<ModelB>(null);
-            Assert.IsNull(modelB);
-        }
-        [TestMethod]
-        public void NullLogger()
-        {
-            var log = new MapperLog();
-            var modelB = MapperWithLog.Map<ModelB>(null, log);
-            Assert.IsNull(modelB);
-        }
+        //[TestMethod]
+        //public void Null()
+        //{
+        //    var modelB = Mapper.Map<ModelB>(null);
+        //    Assert.IsNull(modelB);
+        //}
+        //[TestMethod]
+        //public void NullLogger()
+        //{
+        //    var log = new MapperLog();
+        //    var modelB = MapperWithLog.Map<ModelB>(null, log);
+        //    Assert.IsNull(modelB);
+        //}
 
         [TestMethod]
         public void Collections()

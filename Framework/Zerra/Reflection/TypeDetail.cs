@@ -775,35 +775,48 @@ namespace Zerra.Reflection
         {
             get
             {
-                if (!creatorLoaded)
+                LoadCreator();
+                return creator ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} does not have a {nameof(Creator)}");
+            }
+        }
+        public bool HasCreator
+        {
+            get
+            {
+                LoadCreator();
+                return creator != null;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void LoadCreator()
+        {
+            if (!creatorLoaded)
+            {
+                lock (locker)
                 {
-                    lock (locker)
+                    if (!creatorLoaded)
                     {
-                        if (!creatorLoaded)
+                        if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
                         {
-                            if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
+                            var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParametersInfo.Count == 0);
+                            if (emptyConstructor != null && emptyConstructor.Creator != null)
                             {
-                                var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParametersInfo.Count == 0);
-                                if (emptyConstructor != null && emptyConstructor.Creator != null)
-                                {
-                                    creator = () => { return emptyConstructor.Creator(null); };
-                                }
-                                else if (Type.IsValueType && Type.Name != "Void")
-                                {
-                                    var constantExpression = Expression.Convert(Expression.Default(Type), typeof(object));
-                                    var lambda = Expression.Lambda<Func<object>>(constantExpression).Compile();
-                                    creator = lambda;
-                                }
-                                else if (Type == typeof(string))
-                                {
-                                    creator = () => { return String.Empty; };
-                                }
+                                creator = () => { return emptyConstructor.Creator(null); };
                             }
-                            creatorLoaded = true;
+                            else if (Type.IsValueType && Type.Name != "Void")
+                            {
+                                var constantExpression = Expression.Convert(Expression.Default(Type), typeof(object));
+                                var lambda = Expression.Lambda<Func<object>>(constantExpression).Compile();
+                                creator = lambda;
+                            }
+                            else if (Type == typeof(string))
+                            {
+                                creator = () => { return String.Empty; };
+                            }
                         }
+                        creatorLoaded = true;
                     }
                 }
-                return creator ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} does not have a {nameof(Creator)}");
             }
         }
 

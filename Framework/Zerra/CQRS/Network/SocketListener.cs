@@ -55,7 +55,9 @@ namespace Zerra.CQRS.Network
                 {
                     _ = socket.BeginAccept(BeginAcceptCallback, null);
 
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
                     await beginAcceptWaiter.WaitAsync(canceller.Token);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
                 }
             }
             catch (OperationCanceledException)
@@ -72,7 +74,9 @@ namespace Zerra.CQRS.Network
                 started = false;
                 socket.Close();
 
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
                 canceller.Dispose();
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
                 canceller = null;
 
                 socket.Dispose();
@@ -93,7 +97,9 @@ namespace Zerra.CQRS.Network
             var incommingSocket = socket.EndAccept(result);
             //incommingSocket.NoDelay = socket.NoDelay; linstener copies settings
 
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
             _ = handler(incommingSocket, canceller.Token);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
         }
 
         ~SocketListener()

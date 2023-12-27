@@ -586,7 +586,7 @@ namespace Zerra.Serialization
 
             if (state.CurrentFrame.State == 0)
             {
-                state.CurrentFrame.ResultObject = typeDetail != null && typeDetail.Creator != null ? typeDetail.Creator() : null;
+                state.CurrentFrame.ResultObject = typeDetail != null && typeDetail.HasCreator ? typeDetail.Creator() : null;
                 state.CurrentFrame.State = 1;
             }
 

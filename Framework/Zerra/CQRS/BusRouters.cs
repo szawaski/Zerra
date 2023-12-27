@@ -16,12 +16,12 @@ namespace Zerra.CQRS
     internal static class BusRouters
     {
         private static readonly Type taskType = typeof(Task);
-        private static readonly ConstructorInfo notSupportedExceptionConstructor = typeof(NotSupportedException).GetConstructor(new Type[] { typeof(string) });
-        private static readonly ConstructorInfo objectConstructor = typeof(object).GetConstructor(Array.Empty<Type>());
-        private static readonly MethodInfo getTypeMethod = typeof(object).GetMethod(nameof(Object.GetType));
-        private static readonly MethodInfo typeofMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle));
+        private static readonly ConstructorInfo notSupportedExceptionConstructor = typeof(NotSupportedException).GetConstructor(new Type[] { typeof(string) }) ?? throw new Exception($"{nameof(NotSupportedException)} constructor not found");
+        private static readonly ConstructorInfo objectConstructor = typeof(object).GetConstructor(Array.Empty<Type>()) ?? throw new Exception($"{nameof(Object)} constructor not found");
+        private static readonly MethodInfo getTypeMethod = typeof(object).GetMethod(nameof(Object.GetType)) ?? throw new Exception($"{nameof(Object)}.{nameof(Object.GetType)} not found");
+        private static readonly MethodInfo typeofMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle)) ?? throw new Exception($"{nameof(Type)}.{nameof(Type.GetTypeFromHandle)} not found");
 
-        private static readonly MethodInfo callInternalMethodNonGeneric = typeof(Bus).GetMethod(nameof(Bus._CallMethod), BindingFlags.Static | BindingFlags.Public);
+        private static readonly MethodInfo callInternalMethodNonGeneric = typeof(Bus).GetMethod(nameof(Bus._CallMethod), BindingFlags.Static | BindingFlags.Public) ?? throw new Exception($"{nameof(Bus)}.{nameof(Bus._CallMethod)} not found");
         private static readonly ConcurrentFactoryDictionary<Type, Type> callerClasses = new();
         public static object GetProviderToCallMethodInternalInstance(Type interfaceType, NetworkType networkType, string source)
         {
@@ -177,12 +177,12 @@ namespace Zerra.CQRS
             //    typeBuilder.DefineMethodOverride(methodBuilder, method);
             //}
 
-            Type objectType = typeBuilder.CreateTypeInfo();
+            Type objectType = typeBuilder.CreateTypeInfo() ?? throw new Exception("Failed to CreateTypeInfo");
             return objectType;
         }
 
         private static readonly Type commandHandlerType = typeof(ICommandHandler<>);
-        private static readonly MethodInfo dispatchCommandInternalAsyncMethod = typeof(Bus).GetMethod(nameof(Bus._DispatchCommandInternalAsync), BindingFlags.Static | BindingFlags.Public);
+        private static readonly MethodInfo dispatchCommandInternalAsyncMethod = typeof(Bus).GetMethod(nameof(Bus._DispatchCommandInternalAsync), BindingFlags.Static | BindingFlags.Public) ?? throw new Exception($"{nameof(Bus)}.{nameof(Bus._DispatchCommandInternalAsync)} not found");
         private static readonly ConcurrentFactoryDictionary<Type, Type> commandDispatcherClasses = new();
         public static object GetCommandHandlerToDispatchInternalInstance(Type interfaceType, bool requireAffirmation, NetworkType networkType, string source, BusLogging busLogging)
         {
@@ -314,12 +314,12 @@ namespace Zerra.CQRS
             //    typeBuilder.DefineMethodOverride(methodBuilder, method);
             //}
 
-            Type objectType = typeBuilder.CreateTypeInfo();
+            Type objectType = typeBuilder.CreateTypeInfo() ?? throw new Exception("Failed to CreateTypeInfo");
             return objectType;
         }
 
         private static readonly Type eventHandlerType = typeof(IEventHandler<>);
-        private static readonly MethodInfo dispatchEventInternalAsyncMethod = typeof(Bus).GetMethod(nameof(Bus._DispatchEventInternalAsync), BindingFlags.Static | BindingFlags.Public);
+        private static readonly MethodInfo dispatchEventInternalAsyncMethod = typeof(Bus).GetMethod(nameof(Bus._DispatchEventInternalAsync), BindingFlags.Static | BindingFlags.Public) ?? throw new Exception($"{nameof(Bus)}.{nameof(Bus._DispatchEventInternalAsync)} not found");
         private static readonly ConcurrentFactoryDictionary<Type, Type> eventDispatcherClasses = new();
         public static object GetEventHandlerToDispatchInternalInstance(Type interfaceType, NetworkType networkType, string source, BusLogging busLogging)
         {
@@ -447,7 +447,7 @@ namespace Zerra.CQRS
             //    typeBuilder.DefineMethodOverride(methodBuilder, method);
             //}
 
-            Type objectType = typeBuilder.CreateTypeInfo();
+            Type objectType = typeBuilder.CreateTypeInfo() ?? throw new Exception("Failed to CreateTypeInfo");
             return objectType;
         }
     }

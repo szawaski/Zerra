@@ -55,76 +55,83 @@ namespace Zerra.Reflection
         {
             get
             {
-                if (!callerLoaded)
-                {
-                    lock (locker)
-                    {
-                        if (!callerLoaded)
-                        {
-                            LoadCaller();
-                            callerLoaded = true;
-                        }
-                    }
-                }
+                LoadCaller();
                 return this.caller ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(Caller)}");
+            }
+        }
+        public bool HasCaller
+        {
+            get
+            {
+                LoadCaller();
+                return this.caller != null;
             }
         }
         public Func<object?, object?[]?, Task<object?>> CallerAsync
         {
             get
             {
-                if (!callerLoaded)
-                {
-                    lock (locker)
-                    {
-                        if (!callerLoaded)
-                        {
-                            LoadCaller();
-                            callerLoaded = true;
-                        }
-                    }
-                }
+                LoadCaller();
                 return this.callerAsync ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(CallerAsync)}");
+            }
+        }
+        public bool HasCallerAsync
+        {
+            get
+            {
+                LoadCaller();
+                return this.callerAsync != null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LoadCaller()
         {
-#if NETSTANDARD2_0
-            if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef)
-#else
-            if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef && !MethodInfo.ReturnType.IsByRefLike)
-#endif
+            if (!callerLoaded)
             {
-                this.caller = AccessorGenerator.GenerateCaller(MethodInfo);
-                this.callerAsync = async (source, arguments) =>
+                lock (locker)
                 {
-                    var caller = this.caller;
-                    if (caller == null)
-                        return default;
-                    var returnTypeInfo = ReturnType;
-
-                    if (returnTypeInfo.IsTask)
+                    if (!callerLoaded)
                     {
-                        var result = caller(source, arguments);
-                        var task = result as Task;
+#if NETSTANDARD2_0
+                        if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef)
+#else
+                        if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef && !MethodInfo.ReturnType.IsByRefLike)
+#endif
+                        {
+                            this.caller = AccessorGenerator.GenerateCaller(MethodInfo);
+                            this.callerAsync = async (source, arguments) =>
+                            {
+                                var caller = this.caller;
+                                if (caller == null)
+                                    return default;
+                                var returnTypeInfo = ReturnType;
+
+                                if (returnTypeInfo.IsTask)
+                                {
+                                    var result = caller(source, arguments);
+                                    var task = result as Task;
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-                        await task;
+                                    await task;
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
-                        if (returnTypeInfo.Type.IsGenericType)
+                                    if (returnTypeInfo.Type.IsGenericType)
 #pragma warning disable CS8604 // Possible null reference argument.
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-                            return returnTypeInfo.TaskResultGetter(result);
+                                        return returnTypeInfo.TaskResultGetter(result);
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
 #pragma warning restore CS8604 // Possible null reference argument.
-                        else
-                            return default;
+                                    else
+                                        return default;
+                                }
+                                else
+                                {
+                                    return caller(source, arguments);
+                                }
+                            };
+                        }
+
+                        callerLoaded = true;
                     }
-                    else
-                    {
-                        return caller(source, arguments);
-                    }
-                };
+                }
             }
         }
 

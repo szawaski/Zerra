@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Zerra.Reflection
 {
@@ -52,21 +53,34 @@ namespace Zerra.Reflection
         {
             get
             {
-                if (!creatorLoaded)
+                LoadCreator();
+                return this.creator ?? throw new NotSupportedException($"{nameof(ConstructorDetail)} {Name} does not have a {nameof(Creator)}"); ;
+            }
+        }
+        public bool HasCreator
+        {
+            get
+            {
+                LoadCreator();
+                return this.creator != null;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void LoadCreator()
+        {
+            if (!creatorLoaded)
+            {
+                lock (locker)
                 {
-                    lock (locker)
+                    if (!creatorLoaded)
                     {
-                        if (!creatorLoaded)
+                        if (ConstructorInfo.DeclaringType != null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
                         {
-                            if (ConstructorInfo.DeclaringType != null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
-                            {
-                                this.creator = AccessorGenerator.GenerateCreator(ConstructorInfo);
-                            }
-                            creatorLoaded = true;
+                            this.creator = AccessorGenerator.GenerateCreator(ConstructorInfo);
                         }
+                        creatorLoaded = true;
                     }
                 }
-                return this.creator ?? throw new NotSupportedException($"{nameof(ConstructorDetail)} {Name} does not have a {nameof(Creator)}"); ;
             }
         }
 

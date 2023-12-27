@@ -57,7 +57,6 @@ namespace Zerra.Reflection
                     CoreType.GuidNullable => null,
                     _ => throw new NotImplementedException($"Type conversion not available for {type.Name}"),
                 };
-                ;
             }
             else
             {

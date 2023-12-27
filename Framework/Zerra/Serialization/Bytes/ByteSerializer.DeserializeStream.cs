@@ -17,11 +17,11 @@ namespace Zerra.Serialization
 {
     public static partial class ByteSerializer
     {
-        public static T DeserializeStackBased<T>(byte[] bytes, ByteSerializerOptions options = null)
+        public static T? DeserializeStackBased<T>(byte[] bytes, ByteSerializerOptions? options = null)
         {
-            return (T)DeserializeStackBased(typeof(T), bytes, options);
+            return (T?)DeserializeStackBased(typeof(T), bytes, options);
         }
-        public static object DeserializeStackBased(Type type, byte[] bytes, ByteSerializerOptions options = null)
+        public static object? DeserializeStackBased(Type type, byte[] bytes, ByteSerializerOptions? options = null)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
@@ -47,11 +47,11 @@ namespace Zerra.Serialization
             return state.LastFrameResultObject;
         }
 
-        public static T Deserialize<T>(Stream stream, ByteSerializerOptions options = null)
+        public static T? Deserialize<T>(Stream stream, ByteSerializerOptions? options = null)
         {
-            return (T)Deserialize(typeof(T), stream, options);
+            return (T?)Deserialize(typeof(T), stream, options);
         }
-        public static object Deserialize(Type type, Stream stream, ByteSerializerOptions options = null)
+        public static object? Deserialize(Type type, Stream stream, ByteSerializerOptions? options = null)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
@@ -155,7 +155,7 @@ namespace Zerra.Serialization
             }
         }
 
-        public static async Task<T> DeserializeAsync<T>(Stream stream, ByteSerializerOptions options = null)
+        public static async Task<T?> DeserializeAsync<T>(Stream stream, ByteSerializerOptions? options = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -250,7 +250,7 @@ namespace Zerra.Serialization
                     }
                 }
 
-                return (T)state.LastFrameResultObject;
+                return (T?)state.LastFrameResultObject;
             }
             finally
             {
@@ -258,7 +258,7 @@ namespace Zerra.Serialization
                 BufferArrayPool<byte>.Return(buffer);
             }
         }
-        public static async Task<object> DeserializeAsync(Type type, Stream stream, ByteSerializerOptions options = null)
+        public static async Task<object?> DeserializeAsync(Type type, Stream stream, ByteSerializerOptions? options = null)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
@@ -392,7 +392,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ReadFrame ReadFrameFromType(ref ReadState state, SerializerTypeDetail typeDetail, bool hasReadPropertyType, bool nullFlags)
+        private static ReadFrame ReadFrameFromType(ref ReadState state, SerializerTypeDetail? typeDetail, bool hasReadPropertyType, bool nullFlags)
         {
             var frame = new ReadFrame();
             frame.TypeDetail = typeDetail;
@@ -469,8 +469,6 @@ namespace Zerra.Serialization
 
             var typeDetail = state.CurrentFrame.TypeDetail;
 
-            if (!state.CurrentFrame.DrainBytes && typeDetail == null)
-                throw new NotSupportedException("Cannot deserialize without type information");
             if (state.IncludePropertyTypes)
             {
                 int sizeNeeded;
@@ -484,36 +482,45 @@ namespace Zerra.Serialization
                     state.CurrentFrame.StringLength = stringLength;
                 }
 
-                if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out var value, out sizeNeeded))
+                if (!reader.TryReadString(state.CurrentFrame.StringLength!.Value, out var typeName, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
                     return;
                 }
-                var typeName = value;
+
+                if (typeName == null)
+                    throw new NotSupportedException("Cannot deserialize without type information");
 
                 var typeFromBytes = Discovery.GetTypeFromName(typeName);
-                //overrides potentially boxed type with actual type if exists in assembly
+
                 if (typeFromBytes != null)
                 {
                     var newTypeDetail = GetTypeInformation(typeFromBytes, state.IndexSize, state.IgnoreIndexAttribute);
 
-                    var typeDetailCheck = typeDetail.TypeDetail;
-                    if (typeDetailCheck.IsNullable)
-                        typeDetailCheck = typeDetailCheck.InnerTypeDetails[0];
-                    var newTypeDetailCheck = newTypeDetail.TypeDetail;
+                    //overrides potentially boxed type with actual type if exists in assembly
+                    if (typeDetail != null)
+                    {
+                        var typeDetailCheck = typeDetail.TypeDetail;
+                        if (typeDetailCheck.IsNullable)
+                            typeDetailCheck = typeDetailCheck.InnerTypeDetails[0];
+                        var newTypeDetailCheck = newTypeDetail.TypeDetail;
 
-                    if (newTypeDetailCheck.Type != typeDetailCheck.Type && !newTypeDetailCheck.Interfaces.Contains(typeDetailCheck.Type) && !newTypeDetail.TypeDetail.BaseTypes.Contains(typeDetailCheck.Type))
-                        throw new NotSupportedException($"{newTypeDetail.Type.GetNiceName()} does not convert to {typeDetail.TypeDetail.Type.GetNiceName()}");
+                        if (newTypeDetailCheck.Type != typeDetailCheck.Type && !newTypeDetailCheck.Interfaces.Contains(typeDetailCheck.Type) && !newTypeDetail.TypeDetail.BaseTypes.Contains(typeDetailCheck.Type))
+                            throw new NotSupportedException($"{newTypeDetail.Type.GetNiceName()} does not convert to {typeDetail.TypeDetail.Type.GetNiceName()}");
 
-                    typeDetail = newTypeDetail;
+                        typeDetail = newTypeDetail;
+                    }
                     state.CurrentFrame.TypeDetail = newTypeDetail;
                 }
             }
-            else if (typeDetail.Type.IsInterface && !typeDetail.TypeDetail.IsIEnumerableGeneric)
+            else if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.TypeDetail.IsIEnumerableGeneric)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 typeDetail = GetTypeInformation(emptyImplementationType, state.IndexSize, state.IgnoreIndexAttribute);
             }
+
+            if (typeDetail == null)
+                throw new NotSupportedException("Cannot deserialize without type information");
 
             state.CurrentFrame.HasReadPropertyType = true;
 
@@ -525,6 +532,9 @@ namespace Zerra.Serialization
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             var nullFlags = state.CurrentFrame.NullFlags;
+
+            if (typeDetail == null)
+                throw new NotSupportedException("Cannot deserialize without type information");
 
             int sizeNeeded;
             switch (typeDetail.TypeDetail.CoreType)
@@ -883,7 +893,7 @@ namespace Zerra.Serialization
                             state.CurrentFrame.StringLength = stringLength;
                         }
 
-                        if (state.CurrentFrame.StringLength.Value == 0)
+                        if (state.CurrentFrame.StringLength!.Value == 0)
                         {
                             state.CurrentFrame.ResultObject = String.Empty;
                             break;
@@ -905,12 +915,13 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadEnumType(ref ByteReader reader, ref ReadState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
+            var typeDetail = state.CurrentFrame.TypeDetail!;
             var nullFlags = state.CurrentFrame.NullFlags;
 
             int sizeNeeded;
-            object numValue;
-            switch (typeDetail.TypeDetail.EnumUnderlyingType.Value)
+            object? numValue;
+
+            switch (typeDetail.TypeDetail.EnumUnderlyingType!.Value)
             {
                 case CoreType.Byte:
                     {
@@ -1075,13 +1086,20 @@ namespace Zerra.Serialization
                 default: throw new NotImplementedException();
             };
 
-            object enumValue;
-            if (!typeDetail.TypeDetail.IsNullable)
-                enumValue = Enum.ToObject(typeDetail.Type, numValue);
-            else if (numValue != null)
-                enumValue = Enum.ToObject(typeDetail.TypeDetail.InnerTypes[0], numValue);
+
+
+            object? enumValue;
+            if (numValue != null)
+            {
+                if (!typeDetail.TypeDetail.IsNullable)
+                    enumValue = Enum.ToObject(typeDetail.Type, numValue);
+                else
+                    enumValue = Enum.ToObject(typeDetail.TypeDetail.InnerTypes[0], numValue);
+            }
             else
+            {
                 enumValue = null;
+            }
             state.CurrentFrame.ResultObject = enumValue;
 
             state.EndFrame();
@@ -1089,10 +1107,10 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadSpecialType(ref ByteReader reader, ref ReadState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
+            var typeDetail = state.CurrentFrame.TypeDetail!;
             var nullFlags = state.CurrentFrame.NullFlags;
 
-            var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType.Value : typeDetail.TypeDetail.SpecialType.Value;
+            var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType!.Value : typeDetail.TypeDetail.SpecialType!.Value;
             switch (specialType)
             {
                 case SpecialType.Type:
@@ -1183,7 +1201,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadObject(ref ByteReader reader, ref ReadState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
+            var typeDetail = state.CurrentFrame.TypeDetail!;
             var nullFlags = state.CurrentFrame.NullFlags;
 
             if (nullFlags && !state.CurrentFrame.HasNullChecked)
@@ -1215,11 +1233,11 @@ namespace Zerra.Serialization
             {
                 if (!state.CurrentFrame.DrainBytes && state.CurrentFrame.ObjectProperty != null)
                 {
-                    state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
+                    state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject!, state.LastFrameResultObject);
                     state.CurrentFrame.ObjectProperty = null;
                 }
 
-                SerializerMemberDetail property = null;
+                SerializerMemberDetail? property = null;
 
                 if (state.UsePropertyNames)
                 {
@@ -1234,7 +1252,7 @@ namespace Zerra.Serialization
                         state.CurrentFrame.StringLength = stringLength;
                     }
 
-                    if (state.CurrentFrame.StringLength.Value == 0)
+                    if (state.CurrentFrame.StringLength!.Value == 0)
                     {
                         state.EndFrame();
                         return;
@@ -1246,7 +1264,7 @@ namespace Zerra.Serialization
                         return;
                     }
                     state.CurrentFrame.StringLength = null;
-                    property = typeDetail.IndexedProperties.Values.FirstOrDefault(x => x.Name == name);
+                    property = typeDetail.IndexedProperties?.Values.FirstOrDefault(x => x.Name == name);
                     state.CurrentFrame.ObjectProperty = property;
 
                     if (property == null)
@@ -1301,7 +1319,7 @@ namespace Zerra.Serialization
                         return;
                     }
 
-                    if (typeDetail.IndexedProperties.Keys.Contains(propertyIndex))
+                    if (typeDetail.IndexedProperties != null && typeDetail.IndexedProperties.Keys.Contains(propertyIndex))
                         property = typeDetail.IndexedProperties[propertyIndex];
                     state.CurrentFrame.ObjectProperty = property;
 
@@ -1329,7 +1347,8 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadCoreTypeEnumerable(ref ByteReader reader, ref ReadState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
+            var typeDetail = state.CurrentFrame.TypeDetail!;
+
             var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList;
             var asSet = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsISet;
             typeDetail = typeDetail.InnerTypeDetail;
@@ -1718,8 +1737,8 @@ namespace Zerra.Serialization
                                     }
                                     if (!stringLength.HasValue)
                                     {
-                                        state.CurrentFrame.AddMethodArgs[0] = null;
-                                        state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                                        state.CurrentFrame.AddMethodArgs![0] = null;
+                                        state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
 
                                         state.CurrentFrame.EnumerablePosition++;
                                         if (state.CurrentFrame.EnumerablePosition == length)
@@ -1729,7 +1748,7 @@ namespace Zerra.Serialization
                                     state.CurrentFrame.StringLength = stringLength;
                                 }
 
-                                string str;
+                                string? str;
                                 if (state.CurrentFrame.StringLength.Value == 0)
                                 {
                                     str = String.Empty;
@@ -1741,8 +1760,9 @@ namespace Zerra.Serialization
                                 }
                                 state.CurrentFrame.StringLength = null;
 
-                                state.CurrentFrame.AddMethodArgs[0] = str;
-                                state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                                state.CurrentFrame.AddMethodArgs![0] = str;
+                                _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+
                                 state.CurrentFrame.EnumerablePosition++;
                                 if (state.CurrentFrame.EnumerablePosition == length)
                                     break;
@@ -2123,8 +2143,8 @@ namespace Zerra.Serialization
                                     }
                                     if (!stringLength.HasValue)
                                     {
-                                        state.CurrentFrame.AddMethodArgs[0] = null;
-                                        state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                                        state.CurrentFrame.AddMethodArgs![0] = null;
+                                        _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
 
                                         state.CurrentFrame.EnumerablePosition++;
                                         if (state.CurrentFrame.EnumerablePosition == length)
@@ -2134,7 +2154,7 @@ namespace Zerra.Serialization
                                     state.CurrentFrame.StringLength = stringLength;
                                 }
 
-                                string str;
+                                string? str;
                                 if (state.CurrentFrame.StringLength.Value == 0)
                                 {
                                     str = String.Empty;
@@ -2146,8 +2166,9 @@ namespace Zerra.Serialization
                                 }
                                 state.CurrentFrame.StringLength = null;
 
-                                state.CurrentFrame.AddMethodArgs[0] = str;
-                                state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                                state.CurrentFrame.AddMethodArgs![0] = str;
+                                _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+
                                 state.CurrentFrame.EnumerablePosition++;
                                 if (state.CurrentFrame.EnumerablePosition == length)
                                     break;
@@ -2534,7 +2555,7 @@ namespace Zerra.Serialization
                                     state.CurrentFrame.StringLength = stringLength;
                                 }
 
-                                string str;
+                                string? str;
                                 if (state.CurrentFrame.StringLength.Value == 0)
                                 {
                                     str = String.Empty;
@@ -2546,7 +2567,8 @@ namespace Zerra.Serialization
                                 }
                                 state.CurrentFrame.StringLength = null;
 
-                                state.CurrentFrame.EnumerableArray.SetValue(str, state.CurrentFrame.EnumerablePosition);
+                                state.CurrentFrame.EnumerableArray!.SetValue(str, state.CurrentFrame.EnumerablePosition);
+
                                 state.CurrentFrame.EnumerablePosition++;
                                 if (state.CurrentFrame.EnumerablePosition == length)
                                     break;
@@ -2561,7 +2583,8 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadEnumTypeEnumerable(ref ByteReader reader, ref ReadState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
+            var typeDetail = state.CurrentFrame.TypeDetail!;
+
             var nullFlags = true;
             var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList;
             var asSet = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsISet;
@@ -2611,8 +2634,8 @@ namespace Zerra.Serialization
 
             for (; ; )
             {
-                object numValue;
-                switch (typeDetail.TypeDetail.EnumUnderlyingType.Value)
+                object? numValue;
+                switch (typeDetail.TypeDetail.EnumUnderlyingType!.Value)
                 {
                     case CoreType.Byte:
                         {
@@ -2777,24 +2800,29 @@ namespace Zerra.Serialization
                     default: throw new NotImplementedException();
                 };
 
-                object enumValue;
-                if (!typeDetail.TypeDetail.IsNullable)
-                    enumValue = Enum.ToObject(typeDetail.Type, numValue);
-                else if (numValue != null)
-                    enumValue = Enum.ToObject(typeDetail.TypeDetail.InnerTypes[0], numValue);
+                object? enumValue;
+                if (numValue != null)
+                {
+                    if (!typeDetail.TypeDetail.IsNullable)
+                        enumValue = Enum.ToObject(typeDetail.Type, numValue);
+                    else
+                        enumValue = Enum.ToObject(typeDetail.TypeDetail.InnerTypes[0], numValue);
+                }
                 else
+                {
                     enumValue = null;
+                }
 
                 if (!state.CurrentFrame.DrainBytes)
                 {
                     if (asList)
                     {
-                        state.CurrentFrame.AddMethodArgs[0] = enumValue;
-                        state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                        state.CurrentFrame.AddMethodArgs![0] = enumValue;
+                        _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
                     }
                     else
                     {
-                        state.CurrentFrame.EnumerableArray.SetValue(enumValue, state.CurrentFrame.EnumerablePosition);
+                        state.CurrentFrame.EnumerableArray!.SetValue(enumValue, state.CurrentFrame.EnumerablePosition);
                     }
                 }
                 state.CurrentFrame.EnumerablePosition++;
@@ -2814,7 +2842,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadObjectEnumerable(ref ByteReader reader, ref ReadState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
+            var typeDetail = state.CurrentFrame.TypeDetail!;
 
             var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList;
             var asSet = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsISet;
@@ -2875,8 +2903,8 @@ namespace Zerra.Serialization
                     {
                         if (asList)
                         {
-                            state.CurrentFrame.AddMethodArgs[0] = null;
-                            state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                            state.CurrentFrame.AddMethodArgs![0] = null;
+                            _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
                         }
                         state.CurrentFrame.EnumerablePosition++;
                         if (state.CurrentFrame.EnumerablePosition == length)
@@ -2901,12 +2929,12 @@ namespace Zerra.Serialization
                 {
                     if (asList)
                     {
-                        state.CurrentFrame.AddMethodArgs[0] = state.LastFrameResultObject;
-                        state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                        state.CurrentFrame.AddMethodArgs![0] = state.LastFrameResultObject;
+                        _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
                     }
                     else
                     {
-                        state.CurrentFrame.EnumerableArray.SetValue(state.LastFrameResultObject, state.CurrentFrame.EnumerablePosition);
+                        state.CurrentFrame.EnumerableArray!.SetValue(state.LastFrameResultObject, state.CurrentFrame.EnumerablePosition);
                     }
                 }
                 state.CurrentFrame.HasObjectStarted = false;

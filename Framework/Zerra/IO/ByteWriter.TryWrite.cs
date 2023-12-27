@@ -2436,7 +2436,7 @@ namespace Zerra.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(string value, bool nullFlags, out int sizeNeeded)
+        public bool TryWrite(string? value, bool nullFlags, out int sizeNeeded)
         {
             if (value != null)
             {

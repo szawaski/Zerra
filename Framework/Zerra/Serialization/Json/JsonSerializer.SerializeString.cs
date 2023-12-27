@@ -53,7 +53,7 @@ namespace Zerra.Serialization
             var json = ToStringJson(obj.GetType(), obj, options, graph);
             return Encoding.UTF8.GetBytes(json);
         }
-        public static byte[] SerializeBytes(object obj, Type type, JsonSerializerOptions options = null, Graph graph = null)
+        public static byte[] SerializeBytes(object obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (obj == null)
                 return Encoding.UTF8.GetBytes("null");
@@ -1190,7 +1190,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void ToStringJsonString(string value, ref CharWriter writer)
+        internal static void ToStringJsonString(string? value, ref CharWriter writer)
         {
             if (value == null)
             {

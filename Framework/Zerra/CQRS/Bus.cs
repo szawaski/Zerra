@@ -271,7 +271,9 @@ namespace Zerra.CQRS
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
 #pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
 
+#pragma warning disable CS8604 // Possible null reference argument.
                 var messageHandlerToDispatchProvider = BusRouters.GetEventHandlerToDispatchInternalInstance(interfaceType, networkType, source, metadata.BusLogging);
+#pragma warning restore CS8604 // Possible null reference argument.
                 _ = methodSetNextProvider.Caller(cacheInstance, new object[] { messageHandlerToDispatchProvider });
 
                 var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(IEventHandler<IEvent>.Handle), new Type[] { eventType });
@@ -479,7 +481,9 @@ namespace Zerra.CQRS
 
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
 #pragma warning disable CS8603 // Possible null reference return.
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
             return (Task)method.Caller(provider, new object[] { @event });
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
 #pragma warning restore CS8603 // Possible null reference return.
 #pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
         }
@@ -822,7 +826,9 @@ namespace Zerra.CQRS
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+#pragma warning disable CS8604 // Possible null reference argument.
                 taskresult = methodDetail.ReturnType.TaskResultGetter(localresult);
+#pragma warning restore CS8604 // Possible null reference argument.
 #pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
             }
@@ -1157,9 +1163,9 @@ namespace Zerra.CQRS
             }
         }
 
-        private static void Authenticate(IPrincipal principal, IReadOnlyCollection<string>? roles, Func<string> message)
+        private static void Authenticate(IPrincipal? principal, IReadOnlyCollection<string>? roles, Func<string> message)
         {
-            if (!principal.Identity.IsAuthenticated)
+            if (principal == null || principal.Identity == null || !principal.Identity.IsAuthenticated)
                 throw new SecurityException(message());
             if (roles != null && roles.Count > 0)
             {
@@ -1254,7 +1260,7 @@ namespace Zerra.CQRS
                     queryServers.Any();
         }
 
-        public static void StartServices(ServiceSettings serviceSettings, IServiceCreator serviceCreator, IRelayRegister relayRegister = null)
+        public static void StartServices(ServiceSettings serviceSettings, IServiceCreator serviceCreator, IRelayRegister? relayRegister = null)
         {
             setupLock.Wait();
             try
@@ -1264,7 +1270,7 @@ namespace Zerra.CQRS
 
                 _ = Log.InfoAsync($"Starting {serviceSettings.ThisServiceName}");
 
-                var thisServerSetting = serviceSettings.Services.FirstOrDefault(x => x.Name == serviceSettings.ThisServiceName);
+                var thisServerSetting = serviceSettings.Services?.FirstOrDefault(x => x.Name == serviceSettings.ThisServiceName);
                 if (thisServerSetting == null)
                     throw new Exception($"Service {serviceSettings.ThisServiceName} not found in CQRS settings file");
 
@@ -1278,7 +1284,7 @@ namespace Zerra.CQRS
                 Type? queryServerType = null;
 
                 var serverTypes = new HashSet<Type>();
-                foreach (var clientSetting in serviceSettings.Services)
+                foreach (var clientSetting in serviceSettings.Services!)
                 {
                     if (clientSetting.Types == null || clientSetting.Types.Length == 0)
                         continue;
@@ -1533,7 +1539,7 @@ namespace Zerra.CQRS
                                                 //_ = Log.InfoAsync($"Query Server: {queryServer.GetType().GetNiceName()}");
                                             }
                                         }
-                                        if (queryServer != null)
+                                        if (queryServer != null && queryServerType != null)
                                         {
                                             _ = handledQueryTypes.Add(interfaceType);
                                             queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
@@ -1573,7 +1579,7 @@ namespace Zerra.CQRS
                                                     //_ = Log.InfoAsync($"Query Client: {queryClient.GetType().GetNiceName()}");
                                                 }
                                             }
-                                            if (queryClient != null)
+                                            if (queryClient != null && queryClientType != null)
                                             {
                                                 queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
                                                 _ = queryClients.TryAdd(interfaceType, queryClient);
@@ -1591,7 +1597,7 @@ namespace Zerra.CQRS
                     }
                 }
 
-                Dictionary<string, HashSet<string>> relayRegisterTypes = null;
+                Dictionary<string, HashSet<string>>? relayRegisterTypes = null;
                 if (relayRegister != null)
                 {
                     relayRegisterTypes = new Dictionary<string, HashSet<string>>();
@@ -1602,7 +1608,7 @@ namespace Zerra.CQRS
                     try
                     {
                         commandConsumer.Open();
-                        if (relayRegister != null)
+                        if (relayRegister != null && relayRegisterTypes != null)
                         {
                             var commandTypes = commandConsumer.GetCommandTypes().Select(x => x.GetNiceName()).ToArray();
                             if (!relayRegisterTypes.TryGetValue(commandConsumer.ServiceUrl, out var relayTypes))
@@ -1624,7 +1630,7 @@ namespace Zerra.CQRS
                     try
                     {
                         eventConsumer.Open();
-                        if (relayRegister != null)
+                        if (relayRegister != null && relayRegisterTypes != null)
                         {
                             var eventTypes = eventConsumer.GetEventTypes().Select(x => x.GetNiceName()).ToArray();
                             if (!relayRegisterTypes.TryGetValue(eventConsumer.ServiceUrl, out var relayTypes))
@@ -1646,7 +1652,7 @@ namespace Zerra.CQRS
                     try
                     {
                         queryServer.Open();
-                        if (relayRegister != null)
+                        if (relayRegister != null && relayRegisterTypes != null)
                         {
                             var queryTypes = queryServer.GetInterfaceTypes().Select(x => x.GetNiceName()).ToArray();
                             if (!relayRegisterTypes.TryGetValue(queryServer.ServiceUrl, out var relayTypes))

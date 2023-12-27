@@ -17,7 +17,7 @@ namespace Zerra.Serialization
 
             private Stack<ReadFrame> stack;
             public ReadFrame CurrentFrame;
-            public object LastFrameResultObject;
+            public object? LastFrameResultObject;
             public bool Ended;
 
             public void PushFrame(ReadFrame frame)

@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System;
 using System.Linq;
 
 namespace Zerra.CQRS.Settings
@@ -27,14 +28,16 @@ namespace Zerra.CQRS.Settings
 
         public void SetServiceEncryptionKey(string serviceName, string encryptionKey)
         {
-            var service = this.Services.FirstOrDefault(x => x.Name == serviceName);
+            var service = this.Services?.FirstOrDefault(x => x.Name == serviceName);
+            if (service == null)
+                throw new Exception($"Service {serviceName} not found");
             service.EncryptionKey = encryptionKey;
         }
 
 
         public void SetAllEncryptionKeys(string encryptionKey)
         {
-            this.Services.ForEach(x => x.EncryptionKey = encryptionKey);
+            this.Services?.ForEach(x => x.EncryptionKey = encryptionKey);
         }
     }
 }

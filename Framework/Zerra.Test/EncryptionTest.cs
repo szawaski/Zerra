@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Serialization;
 
@@ -80,7 +81,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void CryptoShiftStreamReadAsync()
+        public async Task CryptoShiftStreamReadAsync()
         {
             var test = GetTestBytes();
 
@@ -89,7 +90,7 @@ namespace Zerra.Test
             using (var shiftmsout = new MemoryStream())
             using (var shiftstream = new CryptoShiftStream(shiftmsin, 256, CryptoStreamMode.Read, false, false))
             {
-                shiftstream.CopyToAsync(shiftmsout).GetAwaiter().GetResult();
+                await shiftstream.CopyToAsync(shiftmsout);
                 result = shiftmsout.ToArray();
             }
 
@@ -100,7 +101,7 @@ namespace Zerra.Test
             using (var unshiftmsout = new MemoryStream())
             using (var unshift = new CryptoShiftStream(unshiftmsin, 256, CryptoStreamMode.Read, true, false))
             {
-                unshift.CopyToAsync(unshiftmsout).GetAwaiter().GetResult();
+                await unshift.CopyToAsync(unshiftmsout);
                 unshiftresult = unshiftmsout.ToArray();
             }
 
@@ -110,7 +111,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void CryptoShiftStreamWriteAsync()
+        public async Task CryptoShiftStreamWriteAsync()
         {
             var test = GetTestBytes();
 
@@ -118,7 +119,7 @@ namespace Zerra.Test
             using (var shiftmsout = new MemoryStream())
             using (var shift = new CryptoShiftStream(shiftmsout, 256, CryptoStreamMode.Write, false, false))
             {
-                shift.WriteAsync(test, 0, test.Length).GetAwaiter().GetResult();
+                await shift.WriteAsync(test, 0, test.Length);
                 shiftmsout.Position = 0;
                 result = shiftmsout.ToArray();
             }
@@ -129,7 +130,7 @@ namespace Zerra.Test
             using (var unshiftmsout = new MemoryStream())
             using (var unshift = new CryptoShiftStream(unshiftmsout, 256, CryptoStreamMode.Write, true, false))
             {
-                unshift.WriteAsync(result, 0, result.Length).GetAwaiter().GetResult();
+                await unshift.WriteAsync(result, 0, result.Length);
                 unshiftmsout.Position = 0;
                 unshiftresult = unshiftmsout.ToArray();
             }
@@ -179,41 +180,43 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void WithSerializer()
+        public async Task WithSerializer()
         {
             var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AESwithShift);
+            var options = new ByteSerializerOptions() { IndexSize = ByteSerializerIndexSize.UInt16 };
 
             var model1 = Factory.GetAllTypesModel();
             using (var ms = new MemoryStream())
             using (var cryptoStreamWriter = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AES, key, ms, true))
             using (var cryptoStreamReader = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AES, key, ms, false))
             {
-                var expected = ByteSerializer.Serialize(model1);
-                ByteSerializer.SerializeAsync(cryptoStreamWriter, model1).GetAwaiter().GetResult();
+                var expected = ByteSerializer.Serialize(model1, options);
+                await ByteSerializer.SerializeAsync(cryptoStreamWriter, model1, options);
                 cryptoStreamWriter.FlushFinalBlock();
                 ms.Position = 0;
                 var bytes = ms.ToArray();
-                var model2 = ByteSerializer.DeserializeAsync<AllTypesModel>(cryptoStreamReader).GetAwaiter().GetResult();
+                var model2 = await ByteSerializer.DeserializeAsync<AllTypesModel>(cryptoStreamReader, options);
                 Factory.AssertAreEqual(model1, model2);
             }
         }
 
         [TestMethod]
-        public void WithSerializerAndShift()
+        public async Task WithSerializerAndShift()
         {
             var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AESwithShift);
+            var options = new ByteSerializerOptions() { IndexSize = ByteSerializerIndexSize.UInt16 };
 
             var model1 = Factory.GetAllTypesModel();
             using (var ms = new MemoryStream())
             using (var cryptoStreamWriter = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AESwithShift, key, ms, true))
             using (var cryptoStreamReader = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESwithShift, key, ms, false))
             {
-                var expected = ByteSerializer.Serialize(model1);
-                ByteSerializer.SerializeAsync(cryptoStreamWriter, model1).GetAwaiter().GetResult();
+                var expected = ByteSerializer.Serialize(model1, options);
+                await ByteSerializer.SerializeAsync(cryptoStreamWriter, model1, options);
                 cryptoStreamWriter.FlushFinalBlock();
                 ms.Position = 0;
                 var bytes = ms.ToArray();
-                var model2 = ByteSerializer.DeserializeAsync<AllTypesModel>(cryptoStreamReader).GetAwaiter().GetResult();
+                var model2 = await ByteSerializer.DeserializeAsync<AllTypesModel>(cryptoStreamReader, options);
                 Factory.AssertAreEqual(model1, model2);
             }
         }

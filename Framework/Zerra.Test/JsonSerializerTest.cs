@@ -477,6 +477,42 @@ namespace Zerra.Test
             model1.TimeSpanArray = (TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanArray)];
             model1.GuidArray = (Guid[])jsonObject[nameof(AllTypesModel.GuidArray)];
 
+            model1.BooleanArrayEmpty = (bool[])jsonObject[nameof(AllTypesModel.BooleanArrayEmpty)];
+            model1.ByteArrayEmpty = (byte[])jsonObject[nameof(AllTypesModel.ByteArrayEmpty)];
+            model1.SByteArrayEmpty = (sbyte[])jsonObject[nameof(AllTypesModel.SByteArrayEmpty)];
+            model1.Int16ArrayEmpty = (short[])jsonObject[nameof(AllTypesModel.Int16ArrayEmpty)];
+            model1.UInt16ArrayEmpty = (ushort[])jsonObject[nameof(AllTypesModel.UInt16ArrayEmpty)];
+            model1.Int32ArrayEmpty = (int[])jsonObject[nameof(AllTypesModel.Int32ArrayEmpty)];
+            model1.UInt32ArrayEmpty = (uint[])jsonObject[nameof(AllTypesModel.UInt32ArrayEmpty)];
+            model1.Int64ArrayEmpty = (long[])jsonObject[nameof(AllTypesModel.Int64ArrayEmpty)];
+            model1.UInt64ArrayEmpty = (ulong[])jsonObject[nameof(AllTypesModel.UInt64ArrayEmpty)];
+            model1.SingleArrayEmpty = (float[])jsonObject[nameof(AllTypesModel.SingleArrayEmpty)];
+            model1.DoubleArrayEmpty = (double[])jsonObject[nameof(AllTypesModel.DoubleArrayEmpty)];
+            model1.DecimalArrayEmpty = (decimal[])jsonObject[nameof(AllTypesModel.DecimalArrayEmpty)];
+            model1.CharArrayEmpty = (char[])jsonObject[nameof(AllTypesModel.CharArrayEmpty)];
+            model1.DateTimeArrayEmpty = (DateTime[])jsonObject[nameof(AllTypesModel.DateTimeArrayEmpty)];
+            model1.DateTimeOffsetArrayEmpty = (DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetArrayEmpty)];
+            model1.TimeSpanArrayEmpty = (TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanArrayEmpty)];
+            model1.GuidArrayEmpty = (Guid[])jsonObject[nameof(AllTypesModel.GuidArrayEmpty)];
+
+            model1.BooleanArrayNull = (bool[])jsonObject[nameof(AllTypesModel.BooleanArrayNull)];
+            model1.ByteArrayNull = (byte[])jsonObject[nameof(AllTypesModel.ByteArrayNull)];
+            model1.SByteArrayNull = (sbyte[])jsonObject[nameof(AllTypesModel.SByteArrayNull)];
+            model1.Int16ArrayNull = (short[])jsonObject[nameof(AllTypesModel.Int16ArrayNull)];
+            model1.UInt16ArrayNull = (ushort[])jsonObject[nameof(AllTypesModel.UInt16ArrayNull)];
+            model1.Int32ArrayNull = (int[])jsonObject[nameof(AllTypesModel.Int32ArrayNull)];
+            model1.UInt32ArrayNull = (uint[])jsonObject[nameof(AllTypesModel.UInt32ArrayNull)];
+            model1.Int64ArrayNull = (long[])jsonObject[nameof(AllTypesModel.Int64ArrayNull)];
+            model1.UInt64ArrayNull = (ulong[])jsonObject[nameof(AllTypesModel.UInt64ArrayNull)];
+            model1.SingleArrayNull = (float[])jsonObject[nameof(AllTypesModel.SingleArrayNull)];
+            model1.DoubleArrayNull = (double[])jsonObject[nameof(AllTypesModel.DoubleArrayNull)];
+            model1.DecimalArrayNull = (decimal[])jsonObject[nameof(AllTypesModel.DecimalArrayNull)];
+            model1.CharArrayNull = (char[])jsonObject[nameof(AllTypesModel.CharArrayNull)];
+            model1.DateTimeArrayNull = (DateTime[])jsonObject[nameof(AllTypesModel.DateTimeArrayNull)];
+            model1.DateTimeOffsetArrayNull = (DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetArrayNull)];
+            model1.TimeSpanArrayNull = (TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanArrayNull)];
+            model1.GuidArrayNull = (Guid[])jsonObject[nameof(AllTypesModel.GuidArrayNull)];
+
             model1.BooleanArrayNullable = (bool?[])jsonObject[nameof(AllTypesModel.BooleanArrayNullable)];
             model1.ByteArrayNullable = (byte?[])jsonObject[nameof(AllTypesModel.ByteArrayNullable)];
             model1.SByteArrayNullable = (sbyte?[])jsonObject[nameof(AllTypesModel.SByteArrayNullable)];
@@ -495,8 +531,44 @@ namespace Zerra.Test
             model1.TimeSpanArrayNullable = (TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanArrayNullable)];
             model1.GuidArrayNullable = (Guid?[])jsonObject[nameof(AllTypesModel.GuidArrayNullable)];
 
+            model1.BooleanArrayNullableEmpty = (bool?[])jsonObject[nameof(AllTypesModel.BooleanArrayNullableEmpty)];
+            model1.ByteArrayNullableEmpty = (byte?[])jsonObject[nameof(AllTypesModel.ByteArrayNullableEmpty)];
+            model1.SByteArrayNullableEmpty = (sbyte?[])jsonObject[nameof(AllTypesModel.SByteArrayNullableEmpty)];
+            model1.Int16ArrayNullableEmpty = (short?[])jsonObject[nameof(AllTypesModel.Int16ArrayNullableEmpty)];
+            model1.UInt16ArrayNullableEmpty = (ushort?[])jsonObject[nameof(AllTypesModel.UInt16ArrayNullableEmpty)];
+            model1.Int32ArrayNullableEmpty = (int?[])jsonObject[nameof(AllTypesModel.Int32ArrayNullableEmpty)];
+            model1.UInt32ArrayNullableEmpty = (uint?[])jsonObject[nameof(AllTypesModel.UInt32ArrayNullableEmpty)];
+            model1.Int64ArrayNullableEmpty = (long?[])jsonObject[nameof(AllTypesModel.Int64ArrayNullableEmpty)];
+            model1.UInt64ArrayNullableEmpty = (ulong?[])jsonObject[nameof(AllTypesModel.UInt64ArrayNullableEmpty)];
+            model1.SingleArrayNullableEmpty = (float?[])jsonObject[nameof(AllTypesModel.SingleArrayNullableEmpty)];
+            model1.DoubleArrayNullableEmpty = (double?[])jsonObject[nameof(AllTypesModel.DoubleArrayNullableEmpty)];
+            model1.DecimalArrayNullableEmpty = (decimal?[])jsonObject[nameof(AllTypesModel.DecimalArrayNullableEmpty)];
+            model1.CharArrayNullableEmpty = (char?[])jsonObject[nameof(AllTypesModel.CharArrayNullableEmpty)];
+            model1.DateTimeArrayNullableEmpty = (DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeArrayNullableEmpty)];
+            model1.DateTimeOffsetArrayNullableEmpty = (DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetArrayNullableEmpty)];
+            model1.TimeSpanArrayNullableEmpty = (TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanArrayNullableEmpty)];
+            model1.GuidArrayNullableEmpty = (Guid?[])jsonObject[nameof(AllTypesModel.GuidArrayNullableEmpty)];
+
+            model1.BooleanArrayNullableNull = (bool?[])jsonObject[nameof(AllTypesModel.BooleanArrayNullableNull)];
+            model1.ByteArrayNullableNull = (byte?[])jsonObject[nameof(AllTypesModel.ByteArrayNullableNull)];
+            model1.SByteArrayNullableNull = (sbyte?[])jsonObject[nameof(AllTypesModel.SByteArrayNullableNull)];
+            model1.Int16ArrayNullableNull = (short?[])jsonObject[nameof(AllTypesModel.Int16ArrayNullableNull)];
+            model1.UInt16ArrayNullableNull = (ushort?[])jsonObject[nameof(AllTypesModel.UInt16ArrayNullableNull)];
+            model1.Int32ArrayNullableNull = (int?[])jsonObject[nameof(AllTypesModel.Int32ArrayNullableNull)];
+            model1.UInt32ArrayNullableNull = (uint?[])jsonObject[nameof(AllTypesModel.UInt32ArrayNullableNull)];
+            model1.Int64ArrayNullableNull = (long?[])jsonObject[nameof(AllTypesModel.Int64ArrayNullableNull)];
+            model1.UInt64ArrayNullableNull = (ulong?[])jsonObject[nameof(AllTypesModel.UInt64ArrayNullableNull)];
+            model1.SingleArrayNullableNull = (float?[])jsonObject[nameof(AllTypesModel.SingleArrayNullableNull)];
+            model1.DoubleArrayNullableNull = (double?[])jsonObject[nameof(AllTypesModel.DoubleArrayNullableNull)];
+            model1.DecimalArrayNullableNull = (decimal?[])jsonObject[nameof(AllTypesModel.DecimalArrayNullableNull)];
+            model1.CharArrayNullableNull = (char?[])jsonObject[nameof(AllTypesModel.CharArrayNullableNull)];
+            model1.DateTimeArrayNullableNull = (DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeArrayNullableNull)];
+            model1.DateTimeOffsetArrayNullableNull = (DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetArrayNullableNull)];
+            model1.TimeSpanArrayNullableNull = (TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanArrayNullableNull)];
+            model1.GuidArrayNullableNull = (Guid?[])jsonObject[nameof(AllTypesModel.GuidArrayNullableNull)];
+
             model1.StringArray = (string[])jsonObject[nameof(AllTypesModel.StringArray)];
-            model1.StringEmptyArray = (string[])jsonObject[nameof(AllTypesModel.StringEmptyArray)];
+            model1.StringArrayEmpty = (string[])jsonObject[nameof(AllTypesModel.StringArrayEmpty)];
 
             model1.EnumArray = ((string[])jsonObject[nameof(AllTypesModel.EnumArray)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray();
             model1.EnumArrayNullable = ((string[])jsonObject[nameof(AllTypesModel.EnumArrayNullable)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray();
@@ -519,6 +591,42 @@ namespace Zerra.Test
             model1.TimeSpanList = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanList)]).ToList();
             model1.GuidList = ((Guid[])jsonObject[nameof(AllTypesModel.GuidList)]).ToList();
 
+            model1.BooleanListEmpty = ((bool[])jsonObject[nameof(AllTypesModel.BooleanListEmpty)]).ToList();
+            model1.ByteListEmpty = ((byte[])jsonObject[nameof(AllTypesModel.ByteListEmpty)]).ToList();
+            model1.SByteListEmpty = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteListEmpty)]).ToList();
+            model1.Int16ListEmpty = ((short[])jsonObject[nameof(AllTypesModel.Int16ListEmpty)]).ToList();
+            model1.UInt16ListEmpty = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16ListEmpty)]).ToList();
+            model1.Int32ListEmpty = ((int[])jsonObject[nameof(AllTypesModel.Int32ListEmpty)]).ToList();
+            model1.UInt32ListEmpty = ((uint[])jsonObject[nameof(AllTypesModel.UInt32ListEmpty)]).ToList();
+            model1.Int64ListEmpty = ((long[])jsonObject[nameof(AllTypesModel.Int64ListEmpty)]).ToList();
+            model1.UInt64ListEmpty = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64ListEmpty)]).ToList();
+            model1.SingleListEmpty = ((float[])jsonObject[nameof(AllTypesModel.SingleListEmpty)]).ToList();
+            model1.DoubleListEmpty = ((double[])jsonObject[nameof(AllTypesModel.DoubleListEmpty)]).ToList();
+            model1.DecimalListEmpty = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalListEmpty)]).ToList();
+            model1.CharListEmpty = ((char[])jsonObject[nameof(AllTypesModel.CharListEmpty)]).ToList();
+            model1.DateTimeListEmpty = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeListEmpty)]).ToList();
+            model1.DateTimeOffsetListEmpty = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListEmpty)]).ToList();
+            model1.TimeSpanListEmpty = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanListEmpty)]).ToList();
+            model1.GuidListEmpty = ((Guid[])jsonObject[nameof(AllTypesModel.GuidListEmpty)]).ToList();
+
+            model1.BooleanListNull = ((bool[])jsonObject[nameof(AllTypesModel.BooleanListNull)])?.ToList();
+            model1.ByteListNull = ((byte[])jsonObject[nameof(AllTypesModel.ByteListNull)])?.ToList();
+            model1.SByteListNull = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteListNull)])?.ToList();
+            model1.Int16ListNull = ((short[])jsonObject[nameof(AllTypesModel.Int16ListNull)])?.ToList();
+            model1.UInt16ListNull = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16ListNull)])?.ToList();
+            model1.Int32ListNull = ((int[])jsonObject[nameof(AllTypesModel.Int32ListNull)])?.ToList();
+            model1.UInt32ListNull = ((uint[])jsonObject[nameof(AllTypesModel.UInt32ListNull)])?.ToList();
+            model1.Int64ListNull = ((long[])jsonObject[nameof(AllTypesModel.Int64ListNull)])?.ToList();
+            model1.UInt64ListNull = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64ListNull)])?.ToList();
+            model1.SingleListNull = ((float[])jsonObject[nameof(AllTypesModel.SingleListNull)])?.ToList();
+            model1.DoubleListNull = ((double[])jsonObject[nameof(AllTypesModel.DoubleListNull)])?.ToList();
+            model1.DecimalListNull = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalListNull)])?.ToList();
+            model1.CharListNull = ((char[])jsonObject[nameof(AllTypesModel.CharListNull)])?.ToList();
+            model1.DateTimeListNull = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeListNull)])?.ToList();
+            model1.DateTimeOffsetListNull = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListNull)])?.ToList();
+            model1.TimeSpanListNull = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanListNull)])?.ToList();
+            model1.GuidListNull = ((Guid[])jsonObject[nameof(AllTypesModel.GuidListNull)])?.ToList();
+
             model1.BooleanListNullable = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanListNullable)]).ToList();
             model1.ByteListNullable = ((byte?[])jsonObject[nameof(AllTypesModel.ByteListNullable)]).ToList();
             model1.SByteListNullable = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteListNullable)]).ToList();
@@ -537,10 +645,53 @@ namespace Zerra.Test
             model1.TimeSpanListNullable = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanListNullable)]).ToList();
             model1.GuidListNullable = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidListNullable)]).ToList();
 
+            model1.BooleanListNullableEmpty = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanListNullableEmpty)]).ToList();
+            model1.ByteListNullableEmpty = ((byte?[])jsonObject[nameof(AllTypesModel.ByteListNullableEmpty)]).ToList();
+            model1.SByteListNullableEmpty = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteListNullableEmpty)]).ToList();
+            model1.Int16ListNullableEmpty = ((short?[])jsonObject[nameof(AllTypesModel.Int16ListNullableEmpty)]).ToList();
+            model1.UInt16ListNullableEmpty = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16ListNullableEmpty)]).ToList();
+            model1.Int32ListNullableEmpty = ((int?[])jsonObject[nameof(AllTypesModel.Int32ListNullableEmpty)]).ToList();
+            model1.UInt32ListNullableEmpty = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32ListNullableEmpty)]).ToList();
+            model1.Int64ListNullableEmpty = ((long?[])jsonObject[nameof(AllTypesModel.Int64ListNullableEmpty)]).ToList();
+            model1.UInt64ListNullableEmpty = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64ListNullableEmpty)]).ToList();
+            model1.SingleListNullableEmpty = ((float?[])jsonObject[nameof(AllTypesModel.SingleListNullableEmpty)]).ToList();
+            model1.DoubleListNullableEmpty = ((double?[])jsonObject[nameof(AllTypesModel.DoubleListNullableEmpty)]).ToList();
+            model1.DecimalListNullableEmpty = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalListNullableEmpty)]).ToList();
+            model1.CharListNullableEmpty = ((char?[])jsonObject[nameof(AllTypesModel.CharListNullableEmpty)]).ToList();
+            model1.DateTimeListNullableEmpty = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeListNullableEmpty)]).ToList();
+            model1.DateTimeOffsetListNullableEmpty = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListNullableEmpty)]).ToList();
+            model1.TimeSpanListNullableEmpty = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanListNullableEmpty)]).ToList();
+            model1.GuidListNullableEmpty = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidListNullableEmpty)]).ToList();
+
+            model1.BooleanListNullableNull = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanListNullableNull)])?.ToList();
+            model1.ByteListNullableNull = ((byte?[])jsonObject[nameof(AllTypesModel.ByteListNullableNull)])?.ToList();
+            model1.SByteListNullableNull = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteListNullableNull)])?.ToList();
+            model1.Int16ListNullableNull = ((short?[])jsonObject[nameof(AllTypesModel.Int16ListNullableNull)])?.ToList();
+            model1.UInt16ListNullableNull = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16ListNullableNull)])?.ToList();
+            model1.Int32ListNullableNull = ((int?[])jsonObject[nameof(AllTypesModel.Int32ListNullableNull)])?.ToList();
+            model1.UInt32ListNullableNull = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32ListNullableNull)])?.ToList();
+            model1.Int64ListNullableNull = ((long?[])jsonObject[nameof(AllTypesModel.Int64ListNullableNull)])?.ToList();
+            model1.UInt64ListNullableNull = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64ListNullableNull)])?.ToList();
+            model1.SingleListNullableNull = ((float?[])jsonObject[nameof(AllTypesModel.SingleListNullableNull)])?.ToList();
+            model1.DoubleListNullableNull = ((double?[])jsonObject[nameof(AllTypesModel.DoubleListNullableNull)])?.ToList();
+            model1.DecimalListNullableNull = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalListNullableNull)])?.ToList();
+            model1.CharListNullableNull = ((char?[])jsonObject[nameof(AllTypesModel.CharListNullableNull)])?.ToList();
+            model1.DateTimeListNullableNull = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeListNullableNull)])?.ToList();
+            model1.DateTimeOffsetListNullableNull = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListNullableNull)])?.ToList();
+            model1.TimeSpanListNullableNull = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanListNullableNull)])?.ToList();
+            model1.GuidListNullableNull = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidListNullableNull)])?.ToList();
+
             model1.StringList = ((string[])jsonObject[nameof(AllTypesModel.StringList)]).ToList();
+            model1.StringListEmpty = ((string[])jsonObject[nameof(AllTypesModel.StringListEmpty)]).ToList();
+            model1.StringListNull = ((string[])jsonObject[nameof(AllTypesModel.StringListNull)])?.ToList();
 
             model1.EnumList = (((string[])jsonObject[nameof(AllTypesModel.EnumList)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList()).ToList();
+            model1.EnumListEmpty = (((string[])jsonObject[nameof(AllTypesModel.EnumListEmpty)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList()).ToList();
+            model1.EnumListNull = (((string[])jsonObject[nameof(AllTypesModel.EnumListNull)])?.Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList())?.ToList();
+
             model1.EnumListNullable = (((string[])jsonObject[nameof(AllTypesModel.EnumListNullable)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray()).ToList();
+            model1.EnumListNullableEmpty = (((string[])jsonObject[nameof(AllTypesModel.EnumListNullableEmpty)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray()).ToList();
+            model1.EnumListNullableNull = (((string[])jsonObject[nameof(AllTypesModel.EnumListNullableNull)])?.Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray())?.ToList();
 
             var classThingJsonObject = jsonObject[nameof(AllTypesModel.ClassThing)];
             if (!classThingJsonObject.IsNull)
@@ -577,6 +728,24 @@ namespace Zerra.Test
             }
             model1.ClassArray = classArray.ToArray();
 
+            var classArrayEmptyJsonObject = jsonObject[nameof(AllTypesModel.ClassArrayEmpty)];
+            var classArrayEmpty = new List<BasicModel>();
+            foreach (var item in classArrayEmptyJsonObject)
+            {
+                if (!item.IsNull)
+                {
+                    var obj = new BasicModel();
+                    obj.Value1 = (int)item["Value1"];
+                    obj.Value2 = (string)item["Value2"];
+                    classArrayEmpty.Add(obj);
+                }
+                else
+                {
+                    classArrayEmpty.Add(null);
+                }
+            }
+            model1.ClassArrayEmpty = classArrayEmpty.ToArray();
+
             var classEnumerableJsonObject = jsonObject[nameof(AllTypesModel.ClassEnumerable)];
             var classEnumerable = new List<BasicModel>();
             foreach (var item in classEnumerableJsonObject)
@@ -612,6 +781,25 @@ namespace Zerra.Test
                 }
             }
             model1.ClassList = classList;
+
+
+            var classListEmptyJsonObject = jsonObject[nameof(AllTypesModel.ClassListEmpty)];
+            var classListEmpty = new List<BasicModel>();
+            foreach (var item in classListEmptyJsonObject)
+            {
+                if (!item.IsNull)
+                {
+                    var obj = new BasicModel();
+                    obj.Value1 = (int)item["Value1"];
+                    obj.Value2 = (string)item["Value2"];
+                    classListEmpty.Add(obj);
+                }
+                else
+                {
+                    classListEmpty.Add(null);
+                }
+            }
+            model1.ClassListEmpty = classListEmpty;
 
             var dictionaryThingJsonObject = jsonObject[nameof(AllTypesModel.DictionaryThing)];
             model1.DictionaryThing = new Dictionary<int, string>(

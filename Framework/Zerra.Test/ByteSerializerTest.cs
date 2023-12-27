@@ -36,9 +36,14 @@ namespace Zerra.Test
         [TestMethod]
         public void ByteArrayTypes()
         {
+            var options = new ByteSerializerOptions()
+            {
+                IndexSize = ByteSerializerIndexSize.UInt16
+            };
+
             var model1 = Factory.GetAllTypesModel();
-            var bytes = ByteSerializer.Serialize(model1);
-            var model2 = ByteSerializer.Deserialize<AllTypesModel>(bytes);
+            var bytes = ByteSerializer.Serialize(model1, options);
+            var model2 = ByteSerializer.Deserialize<AllTypesModel>(bytes, options);
             Factory.AssertAreEqual(model1, model2);
         }
 
@@ -123,6 +128,7 @@ namespace Zerra.Test
         {
             var options = new ByteSerializerOptions()
             {
+                IndexSize = ByteSerializerIndexSize.UInt16,
                 UsePropertyNames = true
             };
 
@@ -226,12 +232,17 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamTypes()
         {
+            var options = new ByteSerializerOptions()
+            {
+                IndexSize = ByteSerializerIndexSize.UInt16
+            };
+
             var model1 = Factory.GetAllTypesModel();
             using (var ms = new MemoryStream())
             {
-                await ByteSerializer.SerializeAsync(ms, model1);
+                await ByteSerializer.SerializeAsync(ms, model1, options);
                 ms.Position = 0;
-                var model2 = await ByteSerializer.DeserializeAsync<AllTypesModel>(ms);
+                var model2 = await ByteSerializer.DeserializeAsync<AllTypesModel>(ms, options);
                 Factory.AssertAreEqual(model1, model2);
             }
         }
@@ -239,11 +250,16 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamDeserializeTypes()
         {
+            var options = new ByteSerializerOptions()
+            {
+                IndexSize = ByteSerializerIndexSize.UInt16
+            };
+
             var model1 = Factory.GetAllTypesModel();
-            var bytes = ByteSerializer.Serialize(model1);
+            var bytes = ByteSerializer.Serialize(model1, options);
             using (var ms = new MemoryStream(bytes))
             {
-                var model2 = await ByteSerializer.DeserializeAsync<AllTypesModel>(ms);
+                var model2 = await ByteSerializer.DeserializeAsync<AllTypesModel>(ms, options);
                 Factory.AssertAreEqual(model1, model2);
             }
         }
@@ -251,15 +267,20 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamSerializeTypes()
         {
+            var options = new ByteSerializerOptions()
+            {
+                IndexSize = ByteSerializerIndexSize.UInt16
+            };
+
             var model1 = Factory.GetAllTypesModel();
             byte[] bytes;
             using (var ms = new MemoryStream())
             {
-                await ByteSerializer.SerializeAsync(ms, model1);
+                await ByteSerializer.SerializeAsync(ms, model1, options);
                 bytes = ms.ToArray();
             }
 
-            var model2 = ByteSerializer.Deserialize<AllTypesModel>(bytes);
+            var model2 = ByteSerializer.Deserialize<AllTypesModel>(bytes, options);
             Factory.AssertAreEqual(model1, model2);
         }
 
@@ -268,6 +289,7 @@ namespace Zerra.Test
         {
             var options = new ByteSerializerOptions()
             {
+                IndexSize = ByteSerializerIndexSize.UInt16,
                 UsePropertyNames = true
             };
 
@@ -281,10 +303,11 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public async Task StreamSerializeArrayByPropertyName()
+        public async Task StreamSerializeByPropertyName()
         {
             var options = new ByteSerializerOptions()
             {
+                IndexSize = ByteSerializerIndexSize.UInt16,
                 UsePropertyNames = true
             };
 

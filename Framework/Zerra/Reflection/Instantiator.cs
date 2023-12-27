@@ -34,15 +34,15 @@ namespace Zerra.Reflection
             return instance;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object[]?, object>?> creatorsByType = new();
+        private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object?[]?, object>?> creatorsByType = new();
         public static T Create<T>() { return (T)Create(typeof(T), null, null); }
-        public static T Create<T>(Type[]? parameterTypes, params object[]? args) { return (T)Create(typeof(T), parameterTypes, args); }
+        public static T Create<T>(Type[]? parameterTypes, params object?[]? args) { return (T)Create(typeof(T), parameterTypes, args); }
         public static object Create(Type type) { return Create(type, null, null); }
-        public static object Create(Type type, Type[]? parameterTypes, params object[]? args)
+        public static object Create(Type type, Type[]? parameterTypes, params object?[]? args)
         {
             return GetCreator(type, parameterTypes)(args);
         }
-        private static Func<object[]?, object> GetCreator(Type type, Type[]? parameterTypes)
+        private static Func<object?[]?, object> GetCreator(Type type, Type[]? parameterTypes)
         {
             var key = new TypeKey(type, parameterTypes);
             var creator = creatorsByType.GetOrAdd(key, (_) =>
@@ -52,7 +52,7 @@ namespace Zerra.Reflection
                 {
                     if (typeDetail.Creator == null)
                         return null;
-                    object c(object[]? a) { return typeDetail.Creator(); }
+                    object c(object?[]? a) { return typeDetail.Creator(); }
                     return c;
                 }
                 foreach (var constructorDetail in typeDetail.ConstructorDetails)

@@ -17,7 +17,7 @@ namespace Zerra.CQRS.Network
 
             var startIndex = 0;
             var indexLength = 0;
-            string key = null;
+            string? key = null;
             fixed (char* pChars = chars)
             {
                 for (var index = 0; index < chars.Length; index++)

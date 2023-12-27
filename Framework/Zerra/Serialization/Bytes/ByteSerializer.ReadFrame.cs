@@ -11,7 +11,7 @@ namespace Zerra.Serialization
     {
         private sealed class ReadFrame
         {
-            public SerializerTypeDetail TypeDetail;
+            public SerializerTypeDetail? TypeDetail;
             public bool NullFlags;
             public ReadFrameType FrameType;
 
@@ -19,15 +19,15 @@ namespace Zerra.Serialization
 
             public bool HasNullChecked;
             public bool HasObjectStarted;
-            public object ResultObject;
-            public SerializerMemberDetail ObjectProperty;
+            public object? ResultObject;
+            public SerializerMemberDetail? ObjectProperty;
 
             public int? StringLength;
             public int? EnumerableLength;
 
-            public MethodDetail AddMethod;
-            public object[] AddMethodArgs;
-            public Array EnumerableArray;
+            public MethodDetail? AddMethod;
+            public object?[]? AddMethodArgs;
+            public Array? EnumerableArray;
 
             public int EnumerablePosition;
 

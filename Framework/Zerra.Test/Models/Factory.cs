@@ -317,97 +317,256 @@ namespace Zerra.Test
                 EnumThingNullable = EnumModel.EnumItem2,
                 EnumThingNullableNull = null,
 
-                BooleanArray = new bool[] { true, false, true },
-                ByteArray = new byte[] { 1, 2, 3 },
-                SByteArray = new sbyte[] { 4, 5, 6 },
-                Int16Array = new short[] { 7, 8, 9 },
-                UInt16Array = new ushort[] { 10, 11, 12 },
-                Int32Array = new int[] { 13, 14, 15 },
-                UInt32Array = new uint[] { 16, 17, 18 },
-                Int64Array = new long[] { 19, 20, 21 },
-                UInt64Array = new ulong[] { 22, 23, 24 },
-                SingleArray = new float[] { 25, 26, 27 },
-                DoubleArray = new double[] { 28, 29, 30 },
-                DecimalArray = new decimal[] { 31, 32, 33 },
-                CharArray = new char[] { 'A', 'B', 'C' },
-                DateTimeArray = new DateTime[] { DateTime.Now.AddMonths(1), DateTime.Now.AddMonths(2), DateTime.Now.AddMonths(3) },
-                DateTimeOffsetArray = new DateTimeOffset[] { DateTimeOffset.Now.AddMonths(4), DateTimeOffset.Now.AddMonths(5), DateTimeOffset.Now.AddMonths(6) },
-                TimeSpanArray = new TimeSpan[] { DateTime.Now.AddHours(1).TimeOfDay, DateTime.Now.AddHours(2).TimeOfDay, DateTime.Now.AddHours(3).TimeOfDay },
-                GuidArray = new Guid[] { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() },
+                BooleanArray = [true, false, true],
+                ByteArray = [1, 2, 3],
+                SByteArray = [4, 5, 6],
+                Int16Array = [7, 8, 9],
+                UInt16Array = [10, 11, 12],
+                Int32Array = [13, 14, 15],
+                UInt32Array = [16, 17, 18],
+                Int64Array = [19, 20, 21],
+                UInt64Array = [22, 23, 24],
+                SingleArray = [25, 26, 27],
+                DoubleArray = [28, 29, 30],
+                DecimalArray = [31, 32, 33],
+                CharArray = ['A', 'B', 'C'],
+                DateTimeArray = [DateTime.Now.AddMonths(1), DateTime.Now.AddMonths(2), DateTime.Now.AddMonths(3)],
+                DateTimeOffsetArray = [DateTimeOffset.Now.AddMonths(4), DateTimeOffset.Now.AddMonths(5), DateTimeOffset.Now.AddMonths(6)],
+                TimeSpanArray = [DateTime.Now.AddHours(1).TimeOfDay, DateTime.Now.AddHours(2).TimeOfDay, DateTime.Now.AddHours(3).TimeOfDay],
+                GuidArray = [Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()],
 
-                BooleanArrayNullable = new bool?[] { true, null, true },
-                ByteArrayNullable = new byte?[] { 1, null, 3 },
-                SByteArrayNullable = new sbyte?[] { 4, null, 6 },
-                Int16ArrayNullable = new short?[] { 7, null, 9 },
-                UInt16ArrayNullable = new ushort?[] { 10, null, 12 },
-                Int32ArrayNullable = new int?[] { 13, null, 15 },
-                UInt32ArrayNullable = new uint?[] { 16, null, 18 },
-                Int64ArrayNullable = new long?[] { 19, null, 21 },
-                UInt64ArrayNullable = new ulong?[] { 22, null, 24 },
-                SingleArrayNullable = new float?[] { 25, null, 27 },
-                DoubleArrayNullable = new double?[] { 28, null, 30 },
-                DecimalArrayNullable = new decimal?[] { 31, null, 33 },
-                CharArrayNullable = new char?[] { 'A', null, 'C' },
-                DateTimeArrayNullable = new DateTime?[] { DateTime.Now.AddMonths(1), null, DateTime.Now.AddMonths(3) },
-                DateTimeOffsetArrayNullable = new DateTimeOffset?[] { DateTimeOffset.Now.AddMonths(4), null, DateTimeOffset.Now.AddMonths(6) },
-                TimeSpanArrayNullable = new TimeSpan?[] { DateTime.Now.AddHours(1).TimeOfDay, null, DateTime.Now.AddHours(3).TimeOfDay },
-                GuidArrayNullable = new Guid?[] { Guid.NewGuid(), null, Guid.NewGuid() },
+                BooleanArrayEmpty = [],
+                ByteArrayEmpty = [],
+                SByteArrayEmpty = [],
+                Int16ArrayEmpty = [],
+                UInt16ArrayEmpty = [],
+                Int32ArrayEmpty = [],
+                UInt32ArrayEmpty = [],
+                Int64ArrayEmpty = [],
+                UInt64ArrayEmpty = [],
+                SingleArrayEmpty = [],
+                DoubleArrayEmpty = [],
+                DecimalArrayEmpty = [],
+                CharArrayEmpty = [],
+                DateTimeArrayEmpty = [],
+                DateTimeOffsetArrayEmpty = [],
+                TimeSpanArrayEmpty = [],
+                GuidArrayEmpty = [],
 
-                StringArray = new string[] { "Hello", "World", "People", "", null },
-                StringEmptyArray = Array.Empty<string>(),
+                BooleanArrayNull = null,
+                ByteArrayNull = null,
+                SByteArrayNull = null,
+                Int16ArrayNull = null,
+                UInt16ArrayNull = null,
+                Int32ArrayNull = null,
+                UInt32ArrayNull = null,
+                Int64ArrayNull = null,
+                UInt64ArrayNull = null,
+                SingleArrayNull = null,
+                DoubleArrayNull = null,
+                DecimalArrayNull = null,
+                CharArrayNull = null,
+                DateTimeArrayNull = null,
+                DateTimeOffsetArrayNull = null,
+                TimeSpanArrayNull = null,
+                GuidArrayNull = null,
 
-                EnumArray = new EnumModel[] { EnumModel.EnumItem1, EnumModel.EnumItem2, EnumModel.EnumItem3 },
-                EnumArrayNullable = new EnumModel?[] { EnumModel.EnumItem1, null, EnumModel.EnumItem3 },
+                BooleanArrayNullable = [true, null, true],
+                ByteArrayNullable = [1, null, 3],
+                SByteArrayNullable = [4, null, 6],
+                Int16ArrayNullable = [7, null, 9],
+                UInt16ArrayNullable = [10, null, 12],
+                Int32ArrayNullable = [13, null, 15],
+                UInt32ArrayNullable = [16, null, 18],
+                Int64ArrayNullable = [19, null, 21],
+                UInt64ArrayNullable = [22, null, 24],
+                SingleArrayNullable = [25, null, 27],
+                DoubleArrayNullable = [28, null, 30],
+                DecimalArrayNullable = [31, null, 33],
+                CharArrayNullable = ['A', null, 'C'],
+                DateTimeArrayNullable = [DateTime.Now.AddMonths(1), null, DateTime.Now.AddMonths(3)],
+                DateTimeOffsetArrayNullable = [DateTimeOffset.Now.AddMonths(4), null, DateTimeOffset.Now.AddMonths(6)],
+                TimeSpanArrayNullable = [DateTime.Now.AddHours(1).TimeOfDay, null, DateTime.Now.AddHours(3).TimeOfDay],
+                GuidArrayNullable = [Guid.NewGuid(), null, Guid.NewGuid()],
 
-                BooleanList = new List<bool> { true, false, true },
-                ByteList = new List<byte> { 1, 2, 3 },
-                SByteList = new List<sbyte> { 4, 5, 6 },
-                Int16List = new List<short> { 7, 8, 9 },
-                UInt16List = new List<ushort> { 10, 11, 12 },
-                Int32List = new List<int> { 13, 14, 15 },
-                UInt32List = new List<uint> { 16, 17, 18 },
-                Int64List = new List<long> { 19, 20, 21 },
-                UInt64List = new List<ulong> { 22, 23, 24 },
-                SingleList = new List<float> { 25, 26, 27 },
-                DoubleList = new List<double> { 28, 29, 30 },
-                DecimalList = new List<decimal> { 31, 32, 33 },
-                CharList = new List<char> { 'A', 'B', 'C' },
-                DateTimeList = new List<DateTime> { DateTime.Now.AddMonths(1), DateTime.Now.AddMonths(2), DateTime.Now.AddMonths(3) },
-                DateTimeOffsetList = new List<DateTimeOffset> { DateTimeOffset.Now.AddMonths(4), DateTimeOffset.Now.AddMonths(5), DateTimeOffset.Now.AddMonths(6) },
-                TimeSpanList = new List<TimeSpan> { DateTime.Now.AddHours(1).TimeOfDay, DateTime.Now.AddHours(2).TimeOfDay, DateTime.Now.AddHours(3).TimeOfDay },
-                GuidList = new List<Guid> { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() },
+                BooleanArrayNullableEmpty = [],
+                ByteArrayNullableEmpty = [],
+                SByteArrayNullableEmpty = [],
+                Int16ArrayNullableEmpty = [],
+                UInt16ArrayNullableEmpty = [],
+                Int32ArrayNullableEmpty = [],
+                UInt32ArrayNullableEmpty = [],
+                Int64ArrayNullableEmpty = [],
+                UInt64ArrayNullableEmpty = [],
+                SingleArrayNullableEmpty = [],
+                DoubleArrayNullableEmpty = [],
+                DecimalArrayNullableEmpty = [],
+                CharArrayNullableEmpty = [],
+                DateTimeArrayNullableEmpty = [],
+                DateTimeOffsetArrayNullableEmpty = [],
+                TimeSpanArrayNullableEmpty = [],
+                GuidArrayNullableEmpty = [],
 
-                BooleanListNullable = new List<bool?> { true, null, true },
-                ByteListNullable = new List<byte?> { 1, null, 3 },
-                SByteListNullable = new List<sbyte?> { 4, null, 6 },
-                Int16ListNullable = new List<short?> { 7, null, 9 },
-                UInt16ListNullable = new List<ushort?> { 10, null, 12 },
-                Int32ListNullable = new List<int?> { 13, null, 15 },
-                UInt32ListNullable = new List<uint?> { 16, null, 18 },
-                Int64ListNullable = new List<long?> { 19, null, 21 },
-                UInt64ListNullable = new List<ulong?> { 22, null, 24 },
-                SingleListNullable = new List<float?> { 25, null, 27 },
-                DoubleListNullable = new List<double?> { 28, null, 30 },
-                DecimalListNullable = new List<decimal?> { 31, null, 33 },
-                CharListNullable = new List<char?> { 'A', null, 'C' },
-                DateTimeListNullable = new List<DateTime?> { DateTime.Now.AddMonths(1), null, DateTime.Now.AddMonths(3) },
-                DateTimeOffsetListNullable = new List<DateTimeOffset?> { DateTimeOffset.Now.AddMonths(4), null, DateTimeOffset.Now.AddMonths(6) },
-                TimeSpanListNullable = new List<TimeSpan?> { DateTime.Now.AddHours(1).TimeOfDay, null, DateTime.Now.AddHours(3).TimeOfDay },
-                GuidListNullable = new List<Guid?> { Guid.NewGuid(), null, Guid.NewGuid() },
+                BooleanArrayNullableNull = null,
+                ByteArrayNullableNull = null,
+                SByteArrayNullableNull = null,
+                Int16ArrayNullableNull = null,
+                UInt16ArrayNullableNull = null,
+                Int32ArrayNullableNull = null,
+                UInt32ArrayNullableNull = null,
+                Int64ArrayNullableNull = null,
+                UInt64ArrayNullableNull = null,
+                SingleArrayNullableNull = null,
+                DoubleArrayNullableNull = null,
+                DecimalArrayNullableNull = null,
+                CharArrayNullableNull = null,
+                DateTimeArrayNullableNull = null,
+                DateTimeOffsetArrayNullableNull = null,
+                TimeSpanArrayNullableNull = null,
+                GuidArrayNullableNull = null,
 
-                StringList = new List<string> { "Hello", "World", "People" },
+                StringArray = ["Hello", "World", "People", "", null],
+                StringArrayEmpty = Array.Empty<string>(),
+                StringArrayNull = null,
 
-                EnumList = new List<EnumModel> { EnumModel.EnumItem1, EnumModel.EnumItem2, EnumModel.EnumItem3 },
-                EnumListNullable = new List<EnumModel?> { EnumModel.EnumItem1, null, EnumModel.EnumItem3 },
+                EnumArray = [EnumModel.EnumItem1, EnumModel.EnumItem2, EnumModel.EnumItem3],
+                EnumArrayNullable = [EnumModel.EnumItem1, null, EnumModel.EnumItem3],
+
+                BooleanList = new() { true, false, true },
+                ByteList = new() { 1, 2, 3 },
+                SByteList = new() { 4, 5, 6 },
+                Int16List = new() { 7, 8, 9 },
+                UInt16List = new() { 10, 11, 12 },
+                Int32List = new() { 13, 14, 15 },
+                UInt32List = new() { 16, 17, 18 },
+                Int64List = new() { 19, 20, 21 },
+                UInt64List = new() { 22, 23, 24 },
+                SingleList = new() { 25, 26, 27 },
+                DoubleList = new() { 28, 29, 30 },
+                DecimalList = new() { 31, 32, 33 },
+                CharList = new() { 'A', 'B', 'C' },
+                DateTimeList = new() { DateTime.Now.AddMonths(1), DateTime.Now.AddMonths(2), DateTime.Now.AddMonths(3) },
+                DateTimeOffsetList = new() { DateTimeOffset.Now.AddMonths(4), DateTimeOffset.Now.AddMonths(5), DateTimeOffset.Now.AddMonths(6) },
+                TimeSpanList = new() { DateTime.Now.AddHours(1).TimeOfDay, DateTime.Now.AddHours(2).TimeOfDay, DateTime.Now.AddHours(3).TimeOfDay },
+                GuidList = new() { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() },
+
+                BooleanListEmpty = new(0),
+                ByteListEmpty = new(0),
+                SByteListEmpty = new(0),
+                Int16ListEmpty = new(0),
+                UInt16ListEmpty = new(0),
+                Int32ListEmpty = new(0),
+                UInt32ListEmpty = new(0),
+                Int64ListEmpty = new(0),
+                UInt64ListEmpty = new(0),
+                SingleListEmpty = new(0),
+                DoubleListEmpty = new(0),
+                DecimalListEmpty = new(0),
+                CharListEmpty = new(0),
+                DateTimeListEmpty = new(0),
+                DateTimeOffsetListEmpty = new(0),
+                TimeSpanListEmpty = new(0),
+                GuidListEmpty = new(0),
+
+                BooleanListNull = null,
+                ByteListNull = null,
+                SByteListNull = null,
+                Int16ListNull = null,
+                UInt16ListNull = null,
+                Int32ListNull = null,
+                UInt32ListNull = null,
+                Int64ListNull = null,
+                UInt64ListNull = null,
+                SingleListNull = null,
+                DoubleListNull = null,
+                DecimalListNull = null,
+                CharListNull = null,
+                DateTimeListNull = null,
+                DateTimeOffsetListNull = null,
+                TimeSpanListNull = null,
+                GuidListNull = null,
+
+                BooleanListNullable = new() { true, null, true },
+                ByteListNullable = new() { 1, null, 3 },
+                SByteListNullable = new() { 4, null, 6 },
+                Int16ListNullable = new() { 7, null, 9 },
+                UInt16ListNullable = new() { 10, null, 12 },
+                Int32ListNullable = new() { 13, null, 15 },
+                UInt32ListNullable = new() { 16, null, 18 },
+                Int64ListNullable = new() { 19, null, 21 },
+                UInt64ListNullable = new() { 22, null, 24 },
+                SingleListNullable = new() { 25, null, 27 },
+                DoubleListNullable = new() { 28, null, 30 },
+                DecimalListNullable = new() { 31, null, 33 },
+                CharListNullable = new() { 'A', null, 'C' },
+                DateTimeListNullable = new() { DateTime.Now.AddMonths(1), null, DateTime.Now.AddMonths(3) },
+                DateTimeOffsetListNullable = new() { DateTimeOffset.Now.AddMonths(4), null, DateTimeOffset.Now.AddMonths(6) },
+                TimeSpanListNullable = new() { DateTime.Now.AddHours(1).TimeOfDay, null, DateTime.Now.AddHours(3).TimeOfDay },
+                GuidListNullable = new() { Guid.NewGuid(), null, Guid.NewGuid() },
+
+                BooleanListNullableEmpty = new(0),
+                ByteListNullableEmpty = new(0),
+                SByteListNullableEmpty = new(0),
+                Int16ListNullableEmpty = new(0),
+                UInt16ListNullableEmpty = new(0),
+                Int32ListNullableEmpty = new(0),
+                UInt32ListNullableEmpty = new(0),
+                Int64ListNullableEmpty = new(0),
+                UInt64ListNullableEmpty = new(0),
+                SingleListNullableEmpty = new(0),
+                DoubleListNullableEmpty = new(0),
+                DecimalListNullableEmpty = new(0),
+                CharListNullableEmpty = new(0),
+                DateTimeListNullableEmpty = new(0),
+                DateTimeOffsetListNullableEmpty = new(0),
+                TimeSpanListNullableEmpty = new(0),
+                GuidListNullableEmpty = new(0),
+
+                BooleanListNullableNull = null,
+                ByteListNullableNull = null,
+                SByteListNullableNull = null,
+                Int16ListNullableNull = null,
+                UInt16ListNullableNull = null,
+                Int32ListNullableNull = null,
+                UInt32ListNullableNull = null,
+                Int64ListNullableNull = null,
+                UInt64ListNullableNull = null,
+                SingleListNullableNull = null,
+                DoubleListNullableNull = null,
+                DecimalListNullableNull = null,
+                CharListNullableNull = null,
+                DateTimeListNullableNull = null,
+                DateTimeOffsetListNullableNull = null,
+                TimeSpanListNullableNull = null,
+                GuidListNullableNull = null,
+
+                StringList = new() { "Hello", "World", "People" },
+                StringListEmpty = new(0),
+                StringListNull = null,
+
+                EnumList = new() { EnumModel.EnumItem1, EnumModel.EnumItem2, EnumModel.EnumItem3 },
+                EnumListEmpty = new(0),
+                EnumListNull = null,
+
+                EnumListNullable = new() { EnumModel.EnumItem1, null, EnumModel.EnumItem3 },
+                EnumListNullableEmpty = new(0),
+                EnumListNullableNull = null,
 
                 ClassThing = new BasicModel { Value1 = 1234, Value2 = "S-1234" },
                 ClassThingNull = null,
-                ClassArray = new BasicModel[] { new BasicModel { Value1 = 10, Value2 = "S-10" }, new BasicModel { Value1 = 11, Value2 = "S-11" } },
+
+                ClassArray = [new BasicModel { Value1 = 10, Value2 = "S-10" }, new BasicModel { Value1 = 11, Value2 = "S-11" }],
+                ClassArrayEmpty = [],
+                ClassArrayNull = null,
+
                 ClassEnumerable = new List<BasicModel>() { new BasicModel { Value1 = 12, Value2 = "S-12" }, new BasicModel { Value1 = 13, Value2 = "S-13" } },
-                ClassList = new List<BasicModel>() { new BasicModel { Value1 = 14, Value2 = "S-14" }, new BasicModel { Value1 = 15, Value2 = "S-15" } },
+
+                ClassList = new() { new BasicModel { Value1 = 14, Value2 = "S-14" }, new BasicModel { Value1 = 15, Value2 = "S-15" } },
+                ClassListEmpty = new(0),
+                ClassListNull = null,
 
                 DictionaryThing = new Dictionary<int, string>() { { 1, "A" }, { 2, "B" }, { 3, "C" }, { 4, null } },
-                StringArrayOfArrayThing = new string[][] { new string[] { "a", "b", "c" }, null, new string[] { "d", "e", "f" }, new string[] { "", null, "" } }
+                StringArrayOfArrayThing = [["a", "b", "c"], null, ["d", "e", "f"], ["", null, ""]]
             };
             return model;
         }
@@ -452,7 +611,6 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DateTimeOffsetThingNullable, model2.DateTimeOffsetThingNullable);
             Assert.AreEqual(model1.TimeSpanThingNullable, model2.TimeSpanThingNullable);
             Assert.AreEqual(model1.GuidThingNullable, model2.GuidThingNullable);
-
 
             Assert.IsNull(model1.BooleanThingNullableNull);
             Assert.IsNull(model1.ByteThingNullableNull);
@@ -520,6 +678,42 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.TimeSpanArray, model2.TimeSpanArray);
             AssertOrderedEnumerable(model1.GuidArray, model2.GuidArray);
 
+            AssertOrderedEnumerable(model1.BooleanArrayEmpty, model2.BooleanArrayEmpty);
+            AssertOrderedEnumerable(model1.ByteArrayEmpty, model2.ByteArrayEmpty);
+            AssertOrderedEnumerable(model1.SByteArrayEmpty, model2.SByteArrayEmpty);
+            AssertOrderedEnumerable(model1.Int16ArrayEmpty, model2.Int16ArrayEmpty);
+            AssertOrderedEnumerable(model1.UInt16ArrayEmpty, model2.UInt16ArrayEmpty);
+            AssertOrderedEnumerable(model1.Int32ArrayEmpty, model2.Int32ArrayEmpty);
+            AssertOrderedEnumerable(model1.UInt32ArrayEmpty, model2.UInt32ArrayEmpty);
+            AssertOrderedEnumerable(model1.Int64ArrayEmpty, model2.Int64ArrayEmpty);
+            AssertOrderedEnumerable(model1.UInt64ArrayEmpty, model2.UInt64ArrayEmpty);
+            AssertOrderedEnumerable(model1.SingleArrayEmpty, model2.SingleArrayEmpty);
+            AssertOrderedEnumerable(model1.DoubleArrayEmpty, model2.DoubleArrayEmpty);
+            AssertOrderedEnumerable(model1.DecimalArrayEmpty, model2.DecimalArrayEmpty);
+            AssertOrderedEnumerable(model1.CharArrayEmpty, model2.CharArrayEmpty);
+            AssertOrderedEnumerable(model1.DateTimeArrayEmpty, model2.DateTimeArrayEmpty);
+            AssertOrderedEnumerable(model1.DateTimeOffsetArrayEmpty, model2.DateTimeOffsetArrayEmpty);
+            AssertOrderedEnumerable(model1.TimeSpanArrayEmpty, model2.TimeSpanArrayEmpty);
+            AssertOrderedEnumerable(model1.GuidArrayEmpty, model2.GuidArrayEmpty);
+
+            AssertOrderedEnumerable(model1.BooleanArrayNull, model2.BooleanArrayNull);
+            AssertOrderedEnumerable(model1.ByteArrayNull, model2.ByteArrayNull);
+            AssertOrderedEnumerable(model1.SByteArrayNull, model2.SByteArrayNull);
+            AssertOrderedEnumerable(model1.Int16ArrayNull, model2.Int16ArrayNull);
+            AssertOrderedEnumerable(model1.UInt16ArrayNull, model2.UInt16ArrayNull);
+            AssertOrderedEnumerable(model1.Int32ArrayNull, model2.Int32ArrayNull);
+            AssertOrderedEnumerable(model1.UInt32ArrayNull, model2.UInt32ArrayNull);
+            AssertOrderedEnumerable(model1.Int64ArrayNull, model2.Int64ArrayNull);
+            AssertOrderedEnumerable(model1.UInt64ArrayNull, model2.UInt64ArrayNull);
+            AssertOrderedEnumerable(model1.SingleArrayNull, model2.SingleArrayNull);
+            AssertOrderedEnumerable(model1.DoubleArrayNull, model2.DoubleArrayNull);
+            AssertOrderedEnumerable(model1.DecimalArrayNull, model2.DecimalArrayNull);
+            AssertOrderedEnumerable(model1.CharArrayNull, model2.CharArrayNull);
+            AssertOrderedEnumerable(model1.DateTimeArrayNull, model2.DateTimeArrayNull);
+            AssertOrderedEnumerable(model1.DateTimeOffsetArrayNull, model2.DateTimeOffsetArrayNull);
+            AssertOrderedEnumerable(model1.TimeSpanArrayNull, model2.TimeSpanArrayNull);
+            AssertOrderedEnumerable(model1.GuidArrayNull, model2.GuidArrayNull);
+
             AssertOrderedEnumerable(model1.BooleanArrayNullable, model2.BooleanArrayNullable);
             AssertOrderedEnumerable(model1.ByteArrayNullable, model2.ByteArrayNullable);
             AssertOrderedEnumerable(model1.SByteArrayNullable, model2.SByteArrayNullable);
@@ -538,8 +732,45 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.TimeSpanArrayNullable, model2.TimeSpanArrayNullable);
             AssertOrderedEnumerable(model1.GuidArrayNullable, model2.GuidArrayNullable);
 
+            AssertOrderedEnumerable(model1.BooleanArrayNullableEmpty, model2.BooleanArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.ByteArrayNullableEmpty, model2.ByteArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.SByteArrayNullableEmpty, model2.SByteArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.Int16ArrayNullableEmpty, model2.Int16ArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.UInt16ArrayNullableEmpty, model2.UInt16ArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.Int32ArrayNullableEmpty, model2.Int32ArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.UInt32ArrayNullableEmpty, model2.UInt32ArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.Int64ArrayNullableEmpty, model2.Int64ArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.UInt64ArrayNullableEmpty, model2.UInt64ArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.SingleArrayNullableEmpty, model2.SingleArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.DoubleArrayNullableEmpty, model2.DoubleArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.DecimalArrayNullableEmpty, model2.DecimalArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.CharArrayNullableEmpty, model2.CharArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.DateTimeArrayNullableEmpty, model2.DateTimeArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.DateTimeOffsetArrayNullableEmpty, model2.DateTimeOffsetArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.TimeSpanArrayNullableEmpty, model2.TimeSpanArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.GuidArrayNullableEmpty, model2.GuidArrayNullableEmpty);
+
+            AssertOrderedEnumerable(model1.BooleanArrayNullableNull, model2.BooleanArrayNullableNull);
+            AssertOrderedEnumerable(model1.ByteArrayNullableNull, model2.ByteArrayNullableNull);
+            AssertOrderedEnumerable(model1.SByteArrayNullableNull, model2.SByteArrayNullableNull);
+            AssertOrderedEnumerable(model1.Int16ArrayNullableNull, model2.Int16ArrayNullableNull);
+            AssertOrderedEnumerable(model1.UInt16ArrayNullableNull, model2.UInt16ArrayNullableNull);
+            AssertOrderedEnumerable(model1.Int32ArrayNullableNull, model2.Int32ArrayNullableNull);
+            AssertOrderedEnumerable(model1.UInt32ArrayNullableNull, model2.UInt32ArrayNullableNull);
+            AssertOrderedEnumerable(model1.Int64ArrayNullableNull, model2.Int64ArrayNullableNull);
+            AssertOrderedEnumerable(model1.UInt64ArrayNullableNull, model2.UInt64ArrayNullableNull);
+            AssertOrderedEnumerable(model1.SingleArrayNullableNull, model2.SingleArrayNullableNull);
+            AssertOrderedEnumerable(model1.DoubleArrayNullableNull, model2.DoubleArrayNullableNull);
+            AssertOrderedEnumerable(model1.DecimalArrayNullableNull, model2.DecimalArrayNullableNull);
+            AssertOrderedEnumerable(model1.CharArrayNullableNull, model2.CharArrayNullableNull);
+            AssertOrderedEnumerable(model1.DateTimeArrayNullableNull, model2.DateTimeArrayNullableNull);
+            AssertOrderedEnumerable(model1.DateTimeOffsetArrayNullableNull, model2.DateTimeOffsetArrayNullableNull);
+            AssertOrderedEnumerable(model1.TimeSpanArrayNullableNull, model2.TimeSpanArrayNullableNull);
+            AssertOrderedEnumerable(model1.GuidArrayNullableNull, model2.GuidArrayNullableNull);
+
             AssertOrderedEnumerable(model1.StringArray, model2.StringArray);
-            AssertOrderedEnumerable(model1.StringEmptyArray, model2.StringEmptyArray);
+            AssertOrderedEnumerable(model1.StringArrayEmpty, model2.StringArrayEmpty);
+            AssertOrderedEnumerable(model1.StringArrayNull, model2.StringArrayNull);
 
             AssertOrderedEnumerable(model1.EnumArray, model2.EnumArray);
             AssertOrderedEnumerable(model1.EnumArrayNullable, model2.EnumArrayNullable);
@@ -562,6 +793,42 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.TimeSpanList, model2.TimeSpanList);
             AssertOrderedEnumerable(model1.GuidList, model2.GuidList);
 
+            AssertOrderedEnumerable(model1.BooleanListEmpty, model2.BooleanListEmpty);
+            AssertOrderedEnumerable(model1.ByteListEmpty, model2.ByteListEmpty);
+            AssertOrderedEnumerable(model1.SByteListEmpty, model2.SByteListEmpty);
+            AssertOrderedEnumerable(model1.Int16ListEmpty, model2.Int16ListEmpty);
+            AssertOrderedEnumerable(model1.UInt16ListEmpty, model2.UInt16ListEmpty);
+            AssertOrderedEnumerable(model1.Int32ListEmpty, model2.Int32ListEmpty);
+            AssertOrderedEnumerable(model1.UInt32ListEmpty, model2.UInt32ListEmpty);
+            AssertOrderedEnumerable(model1.Int64ListEmpty, model2.Int64ListEmpty);
+            AssertOrderedEnumerable(model1.UInt64ListEmpty, model2.UInt64ListEmpty);
+            AssertOrderedEnumerable(model1.SingleListEmpty, model2.SingleListEmpty);
+            AssertOrderedEnumerable(model1.DoubleListEmpty, model2.DoubleListEmpty);
+            AssertOrderedEnumerable(model1.DecimalListEmpty, model2.DecimalListEmpty);
+            AssertOrderedEnumerable(model1.CharListEmpty, model2.CharListEmpty);
+            AssertOrderedEnumerable(model1.DateTimeListEmpty, model2.DateTimeListEmpty);
+            AssertOrderedEnumerable(model1.DateTimeOffsetListEmpty, model2.DateTimeOffsetListEmpty);
+            AssertOrderedEnumerable(model1.TimeSpanListEmpty, model2.TimeSpanListEmpty);
+            AssertOrderedEnumerable(model1.GuidListEmpty, model2.GuidListEmpty);
+
+            AssertOrderedEnumerable(model1.BooleanListNull, model2.BooleanListNull);
+            AssertOrderedEnumerable(model1.ByteListNull, model2.ByteListNull);
+            AssertOrderedEnumerable(model1.SByteListNull, model2.SByteListNull);
+            AssertOrderedEnumerable(model1.Int16ListNull, model2.Int16ListNull);
+            AssertOrderedEnumerable(model1.UInt16ListNull, model2.UInt16ListNull);
+            AssertOrderedEnumerable(model1.Int32ListNull, model2.Int32ListNull);
+            AssertOrderedEnumerable(model1.UInt32ListNull, model2.UInt32ListNull);
+            AssertOrderedEnumerable(model1.Int64ListNull, model2.Int64ListNull);
+            AssertOrderedEnumerable(model1.UInt64ListNull, model2.UInt64ListNull);
+            AssertOrderedEnumerable(model1.SingleListNull, model2.SingleListNull);
+            AssertOrderedEnumerable(model1.DoubleListNull, model2.DoubleListNull);
+            AssertOrderedEnumerable(model1.DecimalListNull, model2.DecimalListNull);
+            AssertOrderedEnumerable(model1.CharListNull, model2.CharListNull);
+            AssertOrderedEnumerable(model1.DateTimeListNull, model2.DateTimeListNull);
+            AssertOrderedEnumerable(model1.DateTimeOffsetListNull, model2.DateTimeOffsetListNull);
+            AssertOrderedEnumerable(model1.TimeSpanListNull, model2.TimeSpanListNull);
+            AssertOrderedEnumerable(model1.GuidListNull, model2.GuidListNull);
+
             AssertOrderedEnumerable(model1.BooleanListNullable, model2.BooleanListNullable);
             AssertOrderedEnumerable(model1.ByteListNullable, model2.ByteListNullable);
             AssertOrderedEnumerable(model1.SByteListNullable, model2.SByteListNullable);
@@ -580,10 +847,53 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.TimeSpanListNullable, model2.TimeSpanListNullable);
             AssertOrderedEnumerable(model1.GuidListNullable, model2.GuidListNullable);
 
+            AssertOrderedEnumerable(model1.BooleanListNullableEmpty, model2.BooleanListNullableEmpty);
+            AssertOrderedEnumerable(model1.ByteListNullableEmpty, model2.ByteListNullableEmpty);
+            AssertOrderedEnumerable(model1.SByteListNullableEmpty, model2.SByteListNullableEmpty);
+            AssertOrderedEnumerable(model1.Int16ListNullableEmpty, model2.Int16ListNullableEmpty);
+            AssertOrderedEnumerable(model1.UInt16ListNullableEmpty, model2.UInt16ListNullableEmpty);
+            AssertOrderedEnumerable(model1.Int32ListNullableEmpty, model2.Int32ListNullableEmpty);
+            AssertOrderedEnumerable(model1.UInt32ListNullableEmpty, model2.UInt32ListNullableEmpty);
+            AssertOrderedEnumerable(model1.Int64ListNullableEmpty, model2.Int64ListNullableEmpty);
+            AssertOrderedEnumerable(model1.UInt64ListNullableEmpty, model2.UInt64ListNullableEmpty);
+            AssertOrderedEnumerable(model1.SingleListNullableEmpty, model2.SingleListNullableEmpty);
+            AssertOrderedEnumerable(model1.DoubleListNullableEmpty, model2.DoubleListNullableEmpty);
+            AssertOrderedEnumerable(model1.DecimalListNullableEmpty, model2.DecimalListNullableEmpty);
+            AssertOrderedEnumerable(model1.CharListNullableEmpty, model2.CharListNullableEmpty);
+            AssertOrderedEnumerable(model1.DateTimeListNullableEmpty, model2.DateTimeListNullableEmpty);
+            AssertOrderedEnumerable(model1.DateTimeOffsetListNullableEmpty, model2.DateTimeOffsetListNullableEmpty);
+            AssertOrderedEnumerable(model1.TimeSpanListNullableEmpty, model2.TimeSpanListNullableEmpty);
+            AssertOrderedEnumerable(model1.GuidListNullableEmpty, model2.GuidListNullableEmpty);
+
+            AssertOrderedEnumerable(model1.BooleanListNullableNull, model2.BooleanListNullableNull);
+            AssertOrderedEnumerable(model1.ByteListNullableNull, model2.ByteListNullableNull);
+            AssertOrderedEnumerable(model1.SByteListNullableNull, model2.SByteListNullableNull);
+            AssertOrderedEnumerable(model1.Int16ListNullableNull, model2.Int16ListNullableNull);
+            AssertOrderedEnumerable(model1.UInt16ListNullableNull, model2.UInt16ListNullableNull);
+            AssertOrderedEnumerable(model1.Int32ListNullableNull, model2.Int32ListNullableNull);
+            AssertOrderedEnumerable(model1.UInt32ListNullableNull, model2.UInt32ListNullableNull);
+            AssertOrderedEnumerable(model1.Int64ListNullableNull, model2.Int64ListNullableNull);
+            AssertOrderedEnumerable(model1.UInt64ListNullableNull, model2.UInt64ListNullableNull);
+            AssertOrderedEnumerable(model1.SingleListNullableNull, model2.SingleListNullableNull);
+            AssertOrderedEnumerable(model1.DoubleListNullableNull, model2.DoubleListNullableNull);
+            AssertOrderedEnumerable(model1.DecimalListNullableNull, model2.DecimalListNullableNull);
+            AssertOrderedEnumerable(model1.CharListNullableNull, model2.CharListNullableNull);
+            AssertOrderedEnumerable(model1.DateTimeListNullableNull, model2.DateTimeListNullableNull);
+            AssertOrderedEnumerable(model1.DateTimeOffsetListNullableNull, model2.DateTimeOffsetListNullableNull);
+            AssertOrderedEnumerable(model1.TimeSpanListNullableNull, model2.TimeSpanListNullableNull);
+            AssertOrderedEnumerable(model1.GuidListNullableNull, model2.GuidListNullableNull);
+
             AssertOrderedEnumerable(model1.StringList, model2.StringList);
+            AssertOrderedEnumerable(model1.StringListEmpty, model2.StringListEmpty);
+            AssertOrderedEnumerable(model1.StringListNull, model2.StringListNull);
 
             AssertOrderedEnumerable(model1.EnumList, model2.EnumList);
+            AssertOrderedEnumerable(model1.EnumListEmpty, model2.EnumListEmpty);
+            AssertOrderedEnumerable(model1.EnumListNull, model2.EnumListNull);
+
             AssertOrderedEnumerable(model1.EnumListNullable, model2.EnumListNullable);
+            AssertOrderedEnumerable(model1.EnumListNullableEmpty, model2.EnumListNullableEmpty);
+            AssertOrderedEnumerable(model1.EnumListNullableNull, model2.EnumListNullableNull);
 
             if (model1.ClassThing != null)
             {
@@ -612,6 +922,36 @@ namespace Zerra.Test
             else
             {
                 Assert.IsNull(model2.ClassArray);
+            }
+
+            if (model1.ClassArrayEmpty != null)
+            {
+                Assert.IsNotNull(model2.ClassArrayEmpty);
+                Assert.AreEqual(model1.ClassArrayEmpty.Length, model2.ClassArrayEmpty.Length);
+                for (var i = 0; i < model1.ClassArrayEmpty.Length; i++)
+                {
+                    Assert.AreEqual(model1.ClassArrayEmpty[i].Value1, model2.ClassArrayEmpty[i].Value1);
+                    Assert.AreEqual(model1.ClassArrayEmpty[i].Value2, model2.ClassArrayEmpty[i].Value2);
+                }
+            }
+            else
+            {
+                Assert.IsNull(model2.ClassArrayEmpty);
+            }
+
+            if (model1.ClassArrayNull != null)
+            {
+                Assert.IsNotNull(model2.ClassArrayNull);
+                Assert.AreEqual(model1.ClassArrayNull.Length, model2.ClassArrayNull.Length);
+                for (var i = 0; i < model1.ClassArrayNull.Length; i++)
+                {
+                    Assert.AreEqual(model1.ClassArrayNull[i].Value1, model2.ClassArrayNull[i].Value1);
+                    Assert.AreEqual(model1.ClassArrayNull[i].Value2, model2.ClassArrayNull[i].Value2);
+                }
+            }
+            else
+            {
+                Assert.IsNull(model2.ClassArrayNull);
             }
 
             if (model1.ClassEnumerable != null)
@@ -648,6 +988,34 @@ namespace Zerra.Test
             else
             {
                 Assert.IsNull(model2.ClassList);
+            }
+
+            if (model1.ClassListEmpty != null)
+            {
+                Assert.AreEqual(model1.ClassListEmpty.Count, model2.ClassListEmpty.Count);
+                for (var i = 0; i < model1.ClassListEmpty.Count; i++)
+                {
+                    Assert.AreEqual(model1.ClassListEmpty[i].Value1, model2.ClassListEmpty[i].Value1);
+                    Assert.AreEqual(model1.ClassListEmpty[i].Value2, model2.ClassListEmpty[i].Value2);
+                }
+            }
+            else
+            {
+                Assert.IsNull(model2.ClassListEmpty);
+            }
+
+            if (model1.ClassListNull != null)
+            {
+                Assert.AreEqual(model1.ClassListNull.Count, model2.ClassListNull.Count);
+                for (var i = 0; i < model1.ClassListNull.Count; i++)
+                {
+                    Assert.AreEqual(model1.ClassListNull[i].Value1, model2.ClassListNull[i].Value1);
+                    Assert.AreEqual(model1.ClassListNull[i].Value2, model2.ClassListNull[i].Value2);
+                }
+            }
+            else
+            {
+                Assert.IsNull(model2.ClassListNull);
             }
 
             if (model1.DictionaryThing != null)
@@ -694,7 +1062,6 @@ namespace Zerra.Test
         {
             Assert.IsNotNull(model1);
             Assert.IsNotNull(model2);
-            Assert.AreNotEqual<object>(model1, model2);
 
             Assert.AreEqual(model1.BooleanThing, model2.BooleanThing);
             Assert.AreEqual(model1.ByteThing, model2.ByteThing);
@@ -731,7 +1098,6 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DateTimeOffsetThingNullable, model2.DateTimeOffsetThingNullable);
             Assert.AreEqual(model1.TimeSpanThingNullable, model2.TimeSpanThingNullable);
             Assert.AreEqual(model1.GuidThingNullable, model2.GuidThingNullable);
-
 
             Assert.IsNull(model1.BooleanThingNullableNull);
             Assert.IsNull(model1.ByteThingNullableNull);
@@ -799,6 +1165,42 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.TimeSpanArray, model2.TimeSpanArray);
             AssertOrderedEnumerable(model1.GuidArray, model2.GuidArray);
 
+            AssertOrderedEnumerable(model1.BooleanArrayEmpty, model2.BooleanArrayEmpty);
+            AssertOrderedEnumerable(model1.ByteArrayEmpty, model2.ByteArrayEmpty);
+            AssertOrderedEnumerable(model1.SByteArrayEmpty, model2.SByteArrayEmpty);
+            AssertOrderedEnumerable(model1.Int16ArrayEmpty, model2.Int16ArrayEmpty);
+            AssertOrderedEnumerable(model1.UInt16ArrayEmpty, model2.UInt16ArrayEmpty);
+            AssertOrderedEnumerable(model1.Int32ArrayEmpty, model2.Int32ArrayEmpty);
+            AssertOrderedEnumerable(model1.UInt32ArrayEmpty, model2.UInt32ArrayEmpty);
+            AssertOrderedEnumerable(model1.Int64ArrayEmpty, model2.Int64ArrayEmpty);
+            AssertOrderedEnumerable(model1.UInt64ArrayEmpty, model2.UInt64ArrayEmpty);
+            AssertOrderedEnumerable(model1.SingleArrayEmpty, model2.SingleArrayEmpty);
+            AssertOrderedEnumerable(model1.DoubleArrayEmpty, model2.DoubleArrayEmpty);
+            AssertOrderedEnumerable(model1.DecimalArrayEmpty, model2.DecimalArrayEmpty);
+            AssertOrderedEnumerable(model1.CharArrayEmpty, model2.CharArrayEmpty);
+            AssertOrderedEnumerable(model1.DateTimeArrayEmpty, model2.DateTimeArrayEmpty);
+            AssertOrderedEnumerable(model1.DateTimeOffsetArrayEmpty, model2.DateTimeOffsetArrayEmpty);
+            AssertOrderedEnumerable(model1.TimeSpanArrayEmpty, model2.TimeSpanArrayEmpty);
+            AssertOrderedEnumerable(model1.GuidArrayEmpty, model2.GuidArrayEmpty);
+
+            AssertOrderedEnumerable(model1.BooleanArrayNull, model2.BooleanArrayNull);
+            AssertOrderedEnumerable(model1.ByteArrayNull, model2.ByteArrayNull);
+            AssertOrderedEnumerable(model1.SByteArrayNull, model2.SByteArrayNull);
+            AssertOrderedEnumerable(model1.Int16ArrayNull, model2.Int16ArrayNull);
+            AssertOrderedEnumerable(model1.UInt16ArrayNull, model2.UInt16ArrayNull);
+            AssertOrderedEnumerable(model1.Int32ArrayNull, model2.Int32ArrayNull);
+            AssertOrderedEnumerable(model1.UInt32ArrayNull, model2.UInt32ArrayNull);
+            AssertOrderedEnumerable(model1.Int64ArrayNull, model2.Int64ArrayNull);
+            AssertOrderedEnumerable(model1.UInt64ArrayNull, model2.UInt64ArrayNull);
+            AssertOrderedEnumerable(model1.SingleArrayNull, model2.SingleArrayNull);
+            AssertOrderedEnumerable(model1.DoubleArrayNull, model2.DoubleArrayNull);
+            AssertOrderedEnumerable(model1.DecimalArrayNull, model2.DecimalArrayNull);
+            AssertOrderedEnumerable(model1.CharArrayNull, model2.CharArrayNull);
+            AssertOrderedEnumerable(model1.DateTimeArrayNull, model2.DateTimeArrayNull);
+            AssertOrderedEnumerable(model1.DateTimeOffsetArrayNull, model2.DateTimeOffsetArrayNull);
+            AssertOrderedEnumerable(model1.TimeSpanArrayNull, model2.TimeSpanArrayNull);
+            AssertOrderedEnumerable(model1.GuidArrayNull, model2.GuidArrayNull);
+
             AssertOrderedEnumerable(model1.BooleanArrayNullable, model2.BooleanArrayNullable);
             AssertOrderedEnumerable(model1.ByteArrayNullable, model2.ByteArrayNullable);
             AssertOrderedEnumerable(model1.SByteArrayNullable, model2.SByteArrayNullable);
@@ -817,8 +1219,45 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.TimeSpanArrayNullable, model2.TimeSpanArrayNullable);
             AssertOrderedEnumerable(model1.GuidArrayNullable, model2.GuidArrayNullable);
 
+            AssertOrderedEnumerable(model1.BooleanArrayNullableEmpty, model2.BooleanArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.ByteArrayNullableEmpty, model2.ByteArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.SByteArrayNullableEmpty, model2.SByteArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.Int16ArrayNullableEmpty, model2.Int16ArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.UInt16ArrayNullableEmpty, model2.UInt16ArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.Int32ArrayNullableEmpty, model2.Int32ArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.UInt32ArrayNullableEmpty, model2.UInt32ArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.Int64ArrayNullableEmpty, model2.Int64ArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.UInt64ArrayNullableEmpty, model2.UInt64ArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.SingleArrayNullableEmpty, model2.SingleArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.DoubleArrayNullableEmpty, model2.DoubleArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.DecimalArrayNullableEmpty, model2.DecimalArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.CharArrayNullableEmpty, model2.CharArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.DateTimeArrayNullableEmpty, model2.DateTimeArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.DateTimeOffsetArrayNullableEmpty, model2.DateTimeOffsetArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.TimeSpanArrayNullableEmpty, model2.TimeSpanArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.GuidArrayNullableEmpty, model2.GuidArrayNullableEmpty);
+
+            AssertOrderedEnumerable(model1.BooleanArrayNullableNull, model2.BooleanArrayNullableNull);
+            AssertOrderedEnumerable(model1.ByteArrayNullableNull, model2.ByteArrayNullableNull);
+            AssertOrderedEnumerable(model1.SByteArrayNullableNull, model2.SByteArrayNullableNull);
+            AssertOrderedEnumerable(model1.Int16ArrayNullableNull, model2.Int16ArrayNullableNull);
+            AssertOrderedEnumerable(model1.UInt16ArrayNullableNull, model2.UInt16ArrayNullableNull);
+            AssertOrderedEnumerable(model1.Int32ArrayNullableNull, model2.Int32ArrayNullableNull);
+            AssertOrderedEnumerable(model1.UInt32ArrayNullableNull, model2.UInt32ArrayNullableNull);
+            AssertOrderedEnumerable(model1.Int64ArrayNullableNull, model2.Int64ArrayNullableNull);
+            AssertOrderedEnumerable(model1.UInt64ArrayNullableNull, model2.UInt64ArrayNullableNull);
+            AssertOrderedEnumerable(model1.SingleArrayNullableNull, model2.SingleArrayNullableNull);
+            AssertOrderedEnumerable(model1.DoubleArrayNullableNull, model2.DoubleArrayNullableNull);
+            AssertOrderedEnumerable(model1.DecimalArrayNullableNull, model2.DecimalArrayNullableNull);
+            AssertOrderedEnumerable(model1.CharArrayNullableNull, model2.CharArrayNullableNull);
+            AssertOrderedEnumerable(model1.DateTimeArrayNullableNull, model2.DateTimeArrayNullableNull);
+            AssertOrderedEnumerable(model1.DateTimeOffsetArrayNullableNull, model2.DateTimeOffsetArrayNullableNull);
+            AssertOrderedEnumerable(model1.TimeSpanArrayNullableNull, model2.TimeSpanArrayNullableNull);
+            AssertOrderedEnumerable(model1.GuidArrayNullableNull, model2.GuidArrayNullableNull);
+
             AssertOrderedEnumerable(model1.StringArray, model2.StringArray);
-            AssertOrderedEnumerable(model1.StringEmptyArray, model2.StringEmptyArray);
+            AssertOrderedEnumerable(model1.StringArrayEmpty, model2.StringArrayEmpty);
+            AssertOrderedEnumerable(model1.StringArrayNull, model2.StringArrayNull);
 
             AssertOrderedEnumerable(model1.EnumArray, model2.EnumArray);
             AssertOrderedEnumerable(model1.EnumArrayNullable, model2.EnumArrayNullable);
@@ -841,6 +1280,42 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.TimeSpanList, model2.TimeSpanList);
             AssertOrderedEnumerable(model1.GuidList, model2.GuidList);
 
+            AssertOrderedEnumerable(model1.BooleanListEmpty, model2.BooleanListEmpty);
+            AssertOrderedEnumerable(model1.ByteListEmpty, model2.ByteListEmpty);
+            AssertOrderedEnumerable(model1.SByteListEmpty, model2.SByteListEmpty);
+            AssertOrderedEnumerable(model1.Int16ListEmpty, model2.Int16ListEmpty);
+            AssertOrderedEnumerable(model1.UInt16ListEmpty, model2.UInt16ListEmpty);
+            AssertOrderedEnumerable(model1.Int32ListEmpty, model2.Int32ListEmpty);
+            AssertOrderedEnumerable(model1.UInt32ListEmpty, model2.UInt32ListEmpty);
+            AssertOrderedEnumerable(model1.Int64ListEmpty, model2.Int64ListEmpty);
+            AssertOrderedEnumerable(model1.UInt64ListEmpty, model2.UInt64ListEmpty);
+            AssertOrderedEnumerable(model1.SingleListEmpty, model2.SingleListEmpty);
+            AssertOrderedEnumerable(model1.DoubleListEmpty, model2.DoubleListEmpty);
+            AssertOrderedEnumerable(model1.DecimalListEmpty, model2.DecimalListEmpty);
+            AssertOrderedEnumerable(model1.CharListEmpty, model2.CharListEmpty);
+            AssertOrderedEnumerable(model1.DateTimeListEmpty, model2.DateTimeListEmpty);
+            AssertOrderedEnumerable(model1.DateTimeOffsetListEmpty, model2.DateTimeOffsetListEmpty);
+            AssertOrderedEnumerable(model1.TimeSpanListEmpty, model2.TimeSpanListEmpty);
+            AssertOrderedEnumerable(model1.GuidListEmpty, model2.GuidListEmpty);
+
+            AssertOrderedEnumerable(model1.BooleanListNull, model2.BooleanListNull);
+            AssertOrderedEnumerable(model1.ByteListNull, model2.ByteListNull);
+            AssertOrderedEnumerable(model1.SByteListNull, model2.SByteListNull);
+            AssertOrderedEnumerable(model1.Int16ListNull, model2.Int16ListNull);
+            AssertOrderedEnumerable(model1.UInt16ListNull, model2.UInt16ListNull);
+            AssertOrderedEnumerable(model1.Int32ListNull, model2.Int32ListNull);
+            AssertOrderedEnumerable(model1.UInt32ListNull, model2.UInt32ListNull);
+            AssertOrderedEnumerable(model1.Int64ListNull, model2.Int64ListNull);
+            AssertOrderedEnumerable(model1.UInt64ListNull, model2.UInt64ListNull);
+            AssertOrderedEnumerable(model1.SingleListNull, model2.SingleListNull);
+            AssertOrderedEnumerable(model1.DoubleListNull, model2.DoubleListNull);
+            AssertOrderedEnumerable(model1.DecimalListNull, model2.DecimalListNull);
+            AssertOrderedEnumerable(model1.CharListNull, model2.CharListNull);
+            AssertOrderedEnumerable(model1.DateTimeListNull, model2.DateTimeListNull);
+            AssertOrderedEnumerable(model1.DateTimeOffsetListNull, model2.DateTimeOffsetListNull);
+            AssertOrderedEnumerable(model1.TimeSpanListNull, model2.TimeSpanListNull);
+            AssertOrderedEnumerable(model1.GuidListNull, model2.GuidListNull);
+
             AssertOrderedEnumerable(model1.BooleanListNullable, model2.BooleanListNullable);
             AssertOrderedEnumerable(model1.ByteListNullable, model2.ByteListNullable);
             AssertOrderedEnumerable(model1.SByteListNullable, model2.SByteListNullable);
@@ -859,10 +1334,53 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.TimeSpanListNullable, model2.TimeSpanListNullable);
             AssertOrderedEnumerable(model1.GuidListNullable, model2.GuidListNullable);
 
+            AssertOrderedEnumerable(model1.BooleanListNullableEmpty, model2.BooleanListNullableEmpty);
+            AssertOrderedEnumerable(model1.ByteListNullableEmpty, model2.ByteListNullableEmpty);
+            AssertOrderedEnumerable(model1.SByteListNullableEmpty, model2.SByteListNullableEmpty);
+            AssertOrderedEnumerable(model1.Int16ListNullableEmpty, model2.Int16ListNullableEmpty);
+            AssertOrderedEnumerable(model1.UInt16ListNullableEmpty, model2.UInt16ListNullableEmpty);
+            AssertOrderedEnumerable(model1.Int32ListNullableEmpty, model2.Int32ListNullableEmpty);
+            AssertOrderedEnumerable(model1.UInt32ListNullableEmpty, model2.UInt32ListNullableEmpty);
+            AssertOrderedEnumerable(model1.Int64ListNullableEmpty, model2.Int64ListNullableEmpty);
+            AssertOrderedEnumerable(model1.UInt64ListNullableEmpty, model2.UInt64ListNullableEmpty);
+            AssertOrderedEnumerable(model1.SingleListNullableEmpty, model2.SingleListNullableEmpty);
+            AssertOrderedEnumerable(model1.DoubleListNullableEmpty, model2.DoubleListNullableEmpty);
+            AssertOrderedEnumerable(model1.DecimalListNullableEmpty, model2.DecimalListNullableEmpty);
+            AssertOrderedEnumerable(model1.CharListNullableEmpty, model2.CharListNullableEmpty);
+            AssertOrderedEnumerable(model1.DateTimeListNullableEmpty, model2.DateTimeListNullableEmpty);
+            AssertOrderedEnumerable(model1.DateTimeOffsetListNullableEmpty, model2.DateTimeOffsetListNullableEmpty);
+            AssertOrderedEnumerable(model1.TimeSpanListNullableEmpty, model2.TimeSpanListNullableEmpty);
+            AssertOrderedEnumerable(model1.GuidListNullableEmpty, model2.GuidListNullableEmpty);
+
+            AssertOrderedEnumerable(model1.BooleanListNullableNull, model2.BooleanListNullableNull);
+            AssertOrderedEnumerable(model1.ByteListNullableNull, model2.ByteListNullableNull);
+            AssertOrderedEnumerable(model1.SByteListNullableNull, model2.SByteListNullableNull);
+            AssertOrderedEnumerable(model1.Int16ListNullableNull, model2.Int16ListNullableNull);
+            AssertOrderedEnumerable(model1.UInt16ListNullableNull, model2.UInt16ListNullableNull);
+            AssertOrderedEnumerable(model1.Int32ListNullableNull, model2.Int32ListNullableNull);
+            AssertOrderedEnumerable(model1.UInt32ListNullableNull, model2.UInt32ListNullableNull);
+            AssertOrderedEnumerable(model1.Int64ListNullableNull, model2.Int64ListNullableNull);
+            AssertOrderedEnumerable(model1.UInt64ListNullableNull, model2.UInt64ListNullableNull);
+            AssertOrderedEnumerable(model1.SingleListNullableNull, model2.SingleListNullableNull);
+            AssertOrderedEnumerable(model1.DoubleListNullableNull, model2.DoubleListNullableNull);
+            AssertOrderedEnumerable(model1.DecimalListNullableNull, model2.DecimalListNullableNull);
+            AssertOrderedEnumerable(model1.CharListNullableNull, model2.CharListNullableNull);
+            AssertOrderedEnumerable(model1.DateTimeListNullableNull, model2.DateTimeListNullableNull);
+            AssertOrderedEnumerable(model1.DateTimeOffsetListNullableNull, model2.DateTimeOffsetListNullableNull);
+            AssertOrderedEnumerable(model1.TimeSpanListNullableNull, model2.TimeSpanListNullableNull);
+            AssertOrderedEnumerable(model1.GuidListNullableNull, model2.GuidListNullableNull);
+
             AssertOrderedEnumerable(model1.StringList, model2.StringList);
+            AssertOrderedEnumerable(model1.StringListEmpty, model2.StringListEmpty);
+            AssertOrderedEnumerable(model1.StringListNull, model2.StringListNull);
 
             AssertOrderedEnumerable(model1.EnumList, model2.EnumList);
+            AssertOrderedEnumerable(model1.EnumListEmpty, model2.EnumListEmpty);
+            AssertOrderedEnumerable(model1.EnumListNull, model2.EnumListNull);
+
             AssertOrderedEnumerable(model1.EnumListNullable, model2.EnumListNullable);
+            AssertOrderedEnumerable(model1.EnumListNullableEmpty, model2.EnumListNullableEmpty);
+            AssertOrderedEnumerable(model1.EnumListNullableNull, model2.EnumListNullableNull);
 
             if (model1.ClassThing != null)
             {
@@ -891,6 +1409,36 @@ namespace Zerra.Test
             else
             {
                 Assert.IsNull(model2.ClassArray);
+            }
+
+            if (model1.ClassArrayEmpty != null)
+            {
+                Assert.IsNotNull(model2.ClassArrayEmpty);
+                Assert.AreEqual(model1.ClassArrayEmpty.Length, model2.ClassArrayEmpty.Length);
+                for (var i = 0; i < model1.ClassArrayEmpty.Length; i++)
+                {
+                    Assert.AreEqual(model1.ClassArrayEmpty[i].Value1, model2.ClassArrayEmpty[i].Value1);
+                    Assert.AreEqual(model1.ClassArrayEmpty[i].Value2, model2.ClassArrayEmpty[i].Value2);
+                }
+            }
+            else
+            {
+                Assert.IsNull(model2.ClassArrayEmpty);
+            }
+
+            if (model1.ClassArrayNull != null)
+            {
+                Assert.IsNotNull(model2.ClassArrayNull);
+                Assert.AreEqual(model1.ClassArrayNull.Length, model2.ClassArrayNull.Length);
+                for (var i = 0; i < model1.ClassArrayNull.Length; i++)
+                {
+                    Assert.AreEqual(model1.ClassArrayNull[i].Value1, model2.ClassArrayNull[i].Value1);
+                    Assert.AreEqual(model1.ClassArrayNull[i].Value2, model2.ClassArrayNull[i].Value2);
+                }
+            }
+            else
+            {
+                Assert.IsNull(model2.ClassArrayNull);
             }
 
             if (model1.ClassEnumerable != null)
@@ -927,6 +1475,34 @@ namespace Zerra.Test
             else
             {
                 Assert.IsNull(model2.ClassList);
+            }
+
+            if (model1.ClassListEmpty != null)
+            {
+                Assert.AreEqual(model1.ClassListEmpty.Count, model2.ClassListEmpty.Count);
+                for (var i = 0; i < model1.ClassListEmpty.Count; i++)
+                {
+                    Assert.AreEqual(model1.ClassListEmpty[i].Value1, model2.ClassListEmpty[i].Value1);
+                    Assert.AreEqual(model1.ClassListEmpty[i].Value2, model2.ClassListEmpty[i].Value2);
+                }
+            }
+            else
+            {
+                Assert.IsNull(model2.ClassListEmpty);
+            }
+
+            if (model1.ClassListNull != null)
+            {
+                Assert.AreEqual(model1.ClassListNull.Count, model2.ClassListNull.Count);
+                for (var i = 0; i < model1.ClassListNull.Count; i++)
+                {
+                    Assert.AreEqual(model1.ClassListNull[i].Value1, model2.ClassListNull[i].Value1);
+                    Assert.AreEqual(model1.ClassListNull[i].Value2, model2.ClassListNull[i].Value2);
+                }
+            }
+            else
+            {
+                Assert.IsNull(model2.ClassListNull);
             }
 
             if (model1.DictionaryThing != null)

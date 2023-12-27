@@ -24,38 +24,38 @@ namespace Zerra.CQRS
             this.allowOrigins = allowOrigins;
         }
 
-        public ICommandProducer? CreateCommandProducer(string serviceUrl, SymmetricConfig? symmetricConfig)
+        public ICommandProducer? CreateCommandProducer(string? serviceUrl, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 return null;
             return new HttpCqrsClient(contentType, serviceUrl, symmetricConfig, authorizer);
         }
 
-        public ICommandConsumer? CreateCommandConsumer(string serviceUrl, SymmetricConfig? symmetricConfig)
+        public ICommandConsumer? CreateCommandConsumer(string? serviceUrl, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 return null;
             return servers.GetOrAdd(serviceUrl, (url) => HttpCqrsServer.CreateDefault(url, symmetricConfig, authorizer, allowOrigins));
         }
 
-        public IEventProducer? CreateEventProducer(string serviceUrl, SymmetricConfig? symmetricConfig)
+        public IEventProducer? CreateEventProducer(string? serviceUrl, SymmetricConfig? symmetricConfig)
         {
             throw new NotSupportedException($"{nameof(HttpServiceCreator)} does not support {nameof(CreateEventProducer)}");
         }
 
-        public IEventConsumer? CreateEventConsumer(string serviceUrl, SymmetricConfig? symmetricConfig)
+        public IEventConsumer? CreateEventConsumer(string? serviceUrl, SymmetricConfig? symmetricConfig)
         {
             throw new NotSupportedException($"{nameof(HttpServiceCreator)} does not support {nameof(CreateEventConsumer)}");
         }
 
-        public IQueryClient? CreateQueryClient(string serviceUrl, SymmetricConfig? symmetricConfig)
+        public IQueryClient? CreateQueryClient(string? serviceUrl, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 return null;
             return new HttpCqrsClient(contentType, serviceUrl, symmetricConfig, authorizer);
         }
 
-        public IQueryServer? CreateQueryServer(string serviceUrl, SymmetricConfig? symmetricConfig)
+        public IQueryServer? CreateQueryServer(string? serviceUrl, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 return null;
