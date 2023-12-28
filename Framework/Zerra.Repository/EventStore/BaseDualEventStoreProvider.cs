@@ -22,7 +22,7 @@ namespace Zerra.Repository
             }
         }
 
-        public object Query(Query<TModel> query)
+        public object? Query(Query<TModel> query)
         {
             if (query.IsTemporal)
             {
@@ -34,7 +34,7 @@ namespace Zerra.Repository
             }
         }
 
-        public Task<object> QueryAsync(Query<TModel> query)
+        public Task<object?> QueryAsync(Query<TModel> query)
         {
             if (query.IsTemporal)
             {

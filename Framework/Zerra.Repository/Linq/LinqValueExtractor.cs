@@ -15,7 +15,7 @@ namespace Zerra.Repository
 {
     internal static partial class LinqValueExtractor
     {
-        public static IDictionary<string, List<object>> Extract(Expression where, Type propertyModelType, params string[] propertyNames)
+        public static IDictionary<string, List<object?>> Extract(Expression where, Type propertyModelType, params string[] propertyNames)
         {
             var context = new Context(propertyModelType, propertyNames);
 
@@ -24,7 +24,7 @@ namespace Zerra.Repository
             return context.Values;
         }
 
-        private static Return Extract(Expression exp, Context context)
+        private static Return? Extract(Expression exp, Context context)
         {
             switch (exp.NodeType)
             {
@@ -203,11 +203,9 @@ namespace Zerra.Repository
                     throw new NotImplementedException();
             }
         }
-        private static Return ExtractLambda(Expression exp, Context context)
+        private static Return? ExtractLambda(Expression exp, Context context)
         {
-            Return ret;
-
-            var lambda = exp as LambdaExpression;
+            var lambda = (LambdaExpression)exp;
             if (lambda.Parameters.Count != 1)
                 throw new NotSupportedException("Can only parse a lambda with one parameter.");
 
@@ -215,25 +213,23 @@ namespace Zerra.Repository
             var modelDetail = ModelAnalyzer.GetModel(modelType);
             context.ModelStack.Push(modelDetail);
 
-            ret = Extract(lambda.Body, context);
+            var ret = Extract(lambda.Body, context);
 
             _ = context.ModelStack.Pop();
 
             return ret;
         }
-        private static Return ExtractUnary(Expression exp, Context context)
+        private static Return? ExtractUnary(Expression exp, Context context)
         {
-            Return ret;
+            var unary = (UnaryExpression)exp;
 
-            var unary = exp as UnaryExpression;
-
-            ret = Extract(unary.Operand, context);
+            var ret = Extract(unary.Operand, context);
 
             return ret;
         }
-        private static Return ExtractBinary(string operation, Expression exp, Context context)
+        private static Return? ExtractBinary(string operation, Expression exp, Context context)
         {
-            var binary = exp as BinaryExpression;
+            var binary = (BinaryExpression)exp;
 
             var leftRet = Extract(binary.Left, context);
 
@@ -243,24 +239,24 @@ namespace Zerra.Repository
             {
                 if (leftRet != null && rightRet != null)
                 {
-                    if (!leftRet.HasValues && rightRet.HasValues && leftRet.PropertyModelType == context.PropertyModelType && context.PropertyNames.Contains(leftRet.PropertyName))
+                    if (leftRet.Values == null && rightRet.Values != null && leftRet.PropertyModelType == context.PropertyModelType && context.PropertyNames.Contains(leftRet.PropertyName))
                     {
-                        context.Values[leftRet.PropertyName].AddRange(rightRet.Values);
+                        context.Values[leftRet.PropertyName!].AddRange(rightRet.Values);
                     }
-                    else if (!rightRet.HasValues && leftRet.HasValues && rightRet.PropertyModelType == context.PropertyModelType && context.PropertyNames.Contains(rightRet.PropertyName))
+                    else if (rightRet.Values == null && leftRet.Values != null && rightRet.PropertyModelType == context.PropertyModelType && context.PropertyNames.Contains(rightRet.PropertyName))
                     {
-                        context.Values[rightRet.PropertyName].AddRange(leftRet.Values);
+                        context.Values[rightRet.PropertyName!].AddRange(leftRet.Values);
                     }
                 }
             }
 
             return null;
         }
-        private static Return ExtractMember(Expression exp, Context context)
+        private static Return? ExtractMember(Expression exp, Context context)
         {
-            Return ret;
+            Return? ret;
 
-            var member = exp as MemberExpression;
+            var member = (MemberExpression)exp;
 
             if (member.Expression == null)
             {
@@ -275,19 +271,17 @@ namespace Zerra.Repository
 
             return ret;
         }
-        private static Return ExtractConstant(Expression exp, Context context)
+        private static Return? ExtractConstant(Expression exp, Context context)
         {
-            Return ret;
+            var constant = (ConstantExpression)exp;
 
-            var constant = exp as ConstantExpression;
-
-            ret = ExtractConstantStack(constant.Type, constant.Value, context);
+            var ret = ExtractConstantStack(constant.Type, constant.Value, context);
 
             return ret;
         }
-        private static Return ExtractConstantStack(Type type, object value, Context context)
+        private static Return? ExtractConstantStack(Type type, object? value, Context context)
         {
-            Return ret;
+            Return? ret;
 
             if (context.MemberAccessStack.Count > 0)
             {
@@ -302,16 +296,23 @@ namespace Zerra.Repository
                     {
                         case MemberTypes.Field:
                             {
-                                var field = memberProperty.Member as FieldInfo;
+                                var field = (FieldInfo)memberProperty.Member;
                                 var fieldValue = field.GetValue(value);
                                 ret = ExtractConstantStack(field.FieldType, fieldValue, context);
                                 break;
                             }
                         case MemberTypes.Property:
                             {
-                                var property = memberProperty.Member as PropertyInfo;
-                                var propertyValue = property.GetValue(value);
-                                ret = ExtractConstantStack(property.PropertyType, propertyValue, context);
+                                var property = (PropertyInfo)memberProperty.Member;
+                                if (property.GetMethod != null)
+                                {
+                                    var propertyValue = property.GetValue(value);
+                                    ret = ExtractConstantStack(property.PropertyType, propertyValue, context);
+                                }
+                                else
+                                {
+                                    ret = null;
+                                }
                                 break;
                             }
                         default:
@@ -323,22 +324,22 @@ namespace Zerra.Repository
             }
             else
             {
-                return ExtractValue(type, value, context);
+                ret = ExtractValue(type, value, context);
             }
 
             return ret;
         }
-        private static Return ExtractCall(Expression exp, Context context)
+        private static Return? ExtractCall(Expression exp, Context context)
         {
-            Return ret = null;
+            Return? ret = null;
 
-            var call = exp as MethodCallExpression;
+            var call = (MethodCallExpression)exp;
             var isEvaluatable = IsEvaluatable(exp);
             if (isEvaluatable)
             {
                 ret = ExtractEvaluate(exp, context);
             }
-            else
+            else if (call.Method.DeclaringType != null)
             {
                 if (call.Method.DeclaringType == typeof(Enumerable) || call.Method.DeclaringType == typeof(Queryable))
                 {
@@ -370,9 +371,9 @@ namespace Zerra.Repository
 
                                 if (!context.Inverted)
                                 {
-                                    if (retLambda != null && retCallingObject != null && retCallingObject.HasValues && retLambda.PropertyModelType == context.PropertyModelType && context.PropertyNames.Contains(retLambda.PropertyName))
+                                    if (retLambda != null && retCallingObject != null && retCallingObject.Values != null && retLambda.PropertyModelType == context.PropertyModelType && context.PropertyNames.Contains(retLambda.PropertyName))
                                     {
-                                        context.Values[retLambda.PropertyName].AddRange(retCallingObject.Values);
+                                        context.Values[retLambda.PropertyName!].AddRange(retCallingObject.Values);
                                     }
                                 }
 
@@ -394,7 +395,7 @@ namespace Zerra.Repository
                             throw new NotSupportedException(String.Format("Cannot extract from call expression {0}", call.Method.Name));
                     }
                 }
-                else
+                else if (call.Object != null)
                 {
                     var typeDetails = TypeAnalyzer.GetTypeDetail(call.Method.DeclaringType);
                     if (typeDetails.IsIEnumerableGeneric && TypeLookup.CoreTypesWithNullables.Contains(typeDetails.IEnumerableGenericInnerType))
@@ -415,9 +416,9 @@ namespace Zerra.Repository
 
                                     if (!context.Inverted)
                                     {
-                                        if (retLambda != null && retCallingObject != null && retCallingObject.HasValues && retLambda.PropertyModelType == context.PropertyModelType && context.PropertyNames.Contains(retLambda.PropertyName))
+                                        if (retLambda != null && retCallingObject != null && retCallingObject.Values != null && retLambda.PropertyModelType == context.PropertyModelType && context.PropertyNames.Contains(retLambda.PropertyName))
                                         {
-                                            context.Values[retLambda.PropertyName].AddRange(retCallingObject.Values);
+                                            context.Values[retLambda.PropertyName!].AddRange(retCallingObject.Values);
                                         }
                                     }
 
@@ -436,14 +437,14 @@ namespace Zerra.Repository
 
             return ret;
         }
-        private static Return ExtractNew(Expression exp, Context context)
+        private static Return? ExtractNew(Expression exp, Context context)
         {
-            var newExp = exp as NewExpression;
+            var newExp = (NewExpression)exp;
 
             var argumentTypes = newExp.Arguments.Select(x => x.Type).ToArray();
-            var constructor = newExp.Type.GetConstructor(argumentTypes);
+            var constructor = newExp.Type.GetConstructor(argumentTypes)!;
 
-            var parameters = new List<object>();
+            var parameters = new List<object?>();
             foreach (var argument in newExp.Arguments)
             {
                 var argumentValue = Expression.Lambda(argument).Compile().DynamicInvoke();
@@ -455,9 +456,9 @@ namespace Zerra.Repository
 
             return ret;
         }
-        private static Return ExtractParameter(Context context)
+        private static Return? ExtractParameter(Context context)
         {
-            Return ret;
+            Return? ret;
 
             var member = context.MemberAccessStack.Pop();
 
@@ -470,7 +471,7 @@ namespace Zerra.Repository
                 ret = ExtractParameter(context);
                 _ = context.ModelStack.Pop();
             }
-            else
+            else if (member.Expression != null)
             {
                 if (context.MemberAccessStack.Count > 0)
                 {
@@ -493,14 +494,18 @@ namespace Zerra.Repository
 
                 ret = new Return(member.Expression.Type, member.Member.Name);
             }
+            else
+            {
+                ret = null;
+            }
 
             context.MemberAccessStack.Push(member);
 
             return ret;
         }
-        private static Return ExtractConditional(Expression exp, Context context)
+        private static Return? ExtractConditional(Expression exp, Context context)
         {
-            var conditional = exp as ConditionalExpression;
+            var conditional = (ConditionalExpression)exp;
 
             _ = Extract(conditional.Test, context);
 
@@ -510,27 +515,40 @@ namespace Zerra.Repository
 
             return null;
         }
-        private static Return ExtractEvaluate(Expression exp, Context context)
+        private static Return? ExtractEvaluate(Expression exp, Context context)
         {
             var value = Expression.Lambda(exp).Compile().DynamicInvoke();
-            var ret = ExtractValue(value.GetType(), value, context);
+            var ret = ExtractValue(exp.Type, value, context);
 
             return ret;
         }
 
-        private static Return ExtractValue(Type type, object value, Context context)
+        private static Return ExtractValue(Type type, object? value, Context context)
         {
             Return ret;
 
             if (context.MemberAccessStack.Count > 0)
                 _ = context.MemberAccessStack.Pop();
 
-            if (type.IsArray)
+            if (value == null)
             {
-                var values = new List<object>();
-                foreach (var item in (IEnumerable)value)
-                    values.Add(item);
-                ret = new Return(values.ToArray());
+                ret = new Return(value);
+            }
+            else if (type.IsArray)
+            {
+                var array = (Array)value;
+                var values = new object?[array.Length];
+                for (var i = 0; i < values.Length; i++)
+                    values[i] = array.GetValue(i);
+                ret = new Return(values);
+            }
+            else if (value is ICollection collection)
+            {
+                var values = new object?[collection.Count];
+                var i = 0;
+                foreach (var item in collection)
+                    values[i++] = item;
+                ret = new Return(values);
             }
             else if (value is IEnumerable enumerable)
             {
@@ -641,17 +659,17 @@ namespace Zerra.Repository
         }
         private static bool IsEvaluatableUnary(Expression exp)
         {
-            var unary = exp as UnaryExpression;
+            var unary = (UnaryExpression)exp;
             return IsEvaluatable(unary.Operand);
         }
         private static bool IsEvaluatableBinary(Expression exp)
         {
-            var binary = exp as BinaryExpression;
+            var binary = (BinaryExpression)exp;
             return IsEvaluatable(binary.Left) && IsEvaluatable(binary.Right);
         }
         private static bool IsEvaluatableBlock(Expression exp)
         {
-            var block = exp as BlockExpression;
+            var block = (BlockExpression)exp;
             foreach (var variable in block.Variables)
             {
                 if (!IsEvaluatable(variable))
@@ -668,7 +686,7 @@ namespace Zerra.Repository
         }
         private static bool IsEvaluatableCall(Expression exp)
         {
-            var call = exp as MethodCallExpression;
+            var call = (MethodCallExpression)exp;
 
             foreach (var arg in call.Arguments)
             {
@@ -683,7 +701,7 @@ namespace Zerra.Repository
         }
         private static bool IsEvaluatableMemberAccess(Expression exp)
         {
-            var member = exp as MemberExpression;
+            var member = (MemberExpression)exp;
             if (member.Expression == null)
             {
                 return true;
@@ -784,17 +802,17 @@ namespace Zerra.Repository
         }
         private static bool IsNullUnary(Expression exp)
         {
-            var unary = exp as UnaryExpression;
+            var unary = (UnaryExpression)exp;
             return IsNull(unary.Operand);
         }
         private static bool IsNullConstant(Expression exp)
         {
-            var constant = exp as ConstantExpression;
+            var constant = (ConstantExpression)exp;
             return constant.Value == null;
         }
         private static bool IsNullCall(Expression exp)
         {
-            var call = exp as MethodCallExpression;
+            var call = (MethodCallExpression)exp;
             if (call.Object == null)
             {
                 var result = true;
@@ -813,9 +831,9 @@ namespace Zerra.Repository
         }
         private static bool IsNullMemberAccess(Expression exp)
         {
-            var member = exp as MemberExpression;
+            var member = (MemberExpression)exp;
 
-            object value;
+            object? value;
             if (member.Expression == null)
             {
                 value = Evaluate(member);
@@ -837,6 +855,8 @@ namespace Zerra.Repository
                         break;
                     case MemberTypes.Property:
                         var propertyInfo = (PropertyInfo)member.Member;
+                        if (propertyInfo.GetMethod == null)
+                            return true;
                         if (expressionValue == null && !propertyInfo.GetMethod.IsStatic)
                             return true;
                         value = propertyInfo.GetValue(expressionValue);
@@ -849,7 +869,7 @@ namespace Zerra.Repository
             return value == null;
         }
 
-        private static object Evaluate(Expression exp)
+        private static object? Evaluate(Expression exp)
         {
             return exp.NodeType switch
             {
@@ -858,17 +878,17 @@ namespace Zerra.Repository
                 _ => EvaluateInvoke(exp),
             };
         }
-        private static object EvaluateConstant(Expression exp)
+        private static object? EvaluateConstant(Expression exp)
         {
-            var constant = exp as ConstantExpression;
+            var constant = (ConstantExpression)exp;
             return constant.Value;
         }
-        private static object EvaluateMemberAccess(Expression exp)
+        private static object? EvaluateMemberAccess(Expression exp)
         {
-            var member = exp as MemberExpression;
+            var member = (MemberExpression)exp;
             var expressionValue = member.Expression == null ? null : Evaluate(member.Expression);
 
-            object value;
+            object? value;
             switch (member.Member.MemberType)
             {
                 case MemberTypes.Field:
@@ -879,6 +899,8 @@ namespace Zerra.Repository
                     break;
                 case MemberTypes.Property:
                     var propertyInfo = (PropertyInfo)member.Member;
+                    if (propertyInfo.GetMethod == null)
+                        return null;
                     if (expressionValue == null && !propertyInfo.GetMethod.IsStatic)
                         return null;
                     value = propertyInfo.GetValue(expressionValue);
@@ -889,7 +911,7 @@ namespace Zerra.Repository
 
             return value;
         }
-        private static object EvaluateInvoke(Expression exp)
+        private static object? EvaluateInvoke(Expression exp)
         {
             var value = Expression.Lambda(exp).Compile().DynamicInvoke();
             return value;

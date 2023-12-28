@@ -46,7 +46,7 @@ namespace Zerra.Repository
                 this.Order = query.Order;
                 this.Skip = query.Skip;
                 this.Take = query.Take;
-                this.Graph = new Graph<TModel>(query.Graph);
+                this.Graph = query.Graph == null ? null : new Graph<TModel>(query.Graph);
             }
         }
     }

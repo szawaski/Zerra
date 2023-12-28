@@ -45,38 +45,44 @@ namespace Zerra.Repository
             if (properties.Length == 0)
                 return model;
 
-            graph = new Graph<TModel>(graph);
+            graph = graph == null ? null : new Graph<TModel>(graph);
 
             if (newCopy)
                 model = Mapper.Map<TModel, TModel>(model, graph);
 
             foreach (var property in properties)
             {
-                if (graph.HasLocalProperty(property.Name))
+                if (graph == null || graph.HasLocalProperty(property.Name))
                 {
                     if (property.TypeDetail.CoreType == CoreType.String)
                     {
-                        var encrypted = (string)property.Getter(model);
-                        try
+                        var encrypted = (string?)property.Getter(model);
+                        if (encrypted != null)
                         {
-                            if (encrypted.Length > encryptionPrefix.Length && encrypted.Substring(0, encryptionPrefix.Length) == encryptionPrefix)
+                            try
                             {
-                                encrypted = encrypted.Substring(encryptionPrefix.Length, encrypted.Length - encryptionPrefix.Length);
-                                var plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
-                                property.Setter(model, plain);
+                                if (encrypted.Length > encryptionPrefix.Length && encrypted.Substring(0, encryptionPrefix.Length) == encryptionPrefix)
+                                {
+                                    encrypted = encrypted.Substring(encryptionPrefix.Length, encrypted.Length - encryptionPrefix.Length);
+                                    var plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
+                                    property.Setter(model, plain);
+                                }
                             }
+                            catch { }
                         }
-                        catch { }
                     }
                     else if (property.Type == typeof(byte[]))
                     {
-                        var encrypted = (byte[])property.Getter(model);
-                        try
+                        var encrypted = (byte[]?)property.Getter(model);
+                        if (encrypted != null)
                         {
-                            var plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
-                            property.Setter(model, plain);
+                            try
+                            {
+                                var plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
+                                property.Setter(model, plain);
+                            }
+                            catch { }
                         }
-                        catch { }
                     }
                 }
             }
@@ -92,7 +98,7 @@ namespace Zerra.Repository
             if (properties.Length == 0)
                 return models;
 
-            graph = new Graph<TModel>(graph);
+            graph = graph == null ? null : new Graph<TModel>(graph);
 
             if (newCopy)
                 models = Mapper.Map<ICollection<TModel>, TModel[]>(models, graph);
@@ -101,11 +107,11 @@ namespace Zerra.Repository
             {
                 foreach (var property in properties)
                 {
-                    if (graph.HasLocalProperty(property.Name))
+                    if (graph == null || graph.HasLocalProperty(property.Name))
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
-                            var encrypted = (string)property.Getter(model);
+                            var encrypted = (string?)property.Getter(model);
                             if (encrypted != null)
                             {
                                 try
@@ -122,7 +128,7 @@ namespace Zerra.Repository
                         }
                         else if (property.Type == typeof(byte[]))
                         {
-                            var encrypted = (byte[])property.Getter(model);
+                            var encrypted = (byte[]?)property.Getter(model);
                             if (encrypted != null)
                             {
                                 try
@@ -166,7 +172,7 @@ namespace Zerra.Repository
             appenedQuery.Where = whereCompressed;
             appenedQuery.Order = orderCompressed;
 
-            var encryptedModels = (ICollection<TModel>)(NextProvider.Query(appenedQuery));
+            var encryptedModels = (ICollection<TModel>)NextProvider.Query(appenedQuery)!;
 
             if (encryptedModels.Count == 0)
                 return encryptedModels;
@@ -213,7 +219,7 @@ namespace Zerra.Repository
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
 
-            var count = NextProvider.Query(appenedQuery);
+            var count = NextProvider.Query(appenedQuery)!;
             return count;
         }
         public override sealed object Any(Query<TModel> query)
@@ -223,7 +229,7 @@ namespace Zerra.Repository
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
 
-            var any = NextProvider.Query(appenedQuery);
+            var any = NextProvider.Query(appenedQuery)!;
             return any;
         }
         public override sealed object EventMany(Query<TModel> query)
@@ -235,7 +241,7 @@ namespace Zerra.Repository
             appenedQuery.Where = whereCompressed;
             appenedQuery.Order = orderCompressed;
 
-            var eventModels = (ICollection<EventModel<TModel>>)(NextProvider.Query(appenedQuery));
+            var eventModels = (ICollection<EventModel<TModel>>)NextProvider.Query(appenedQuery)!;
 
             if (eventModels.Count == 0)
                 return eventModels;
@@ -261,7 +267,7 @@ namespace Zerra.Repository
             appenedQuery.Where = whereCompressed;
             appenedQuery.Order = orderCompressed;
 
-            var encryptedModels = (ICollection<TModel>)(await NextProvider.QueryAsync(appenedQuery));
+            var encryptedModels = (ICollection<TModel>)(await NextProvider.QueryAsync(appenedQuery))!;
 
             if (encryptedModels.Count == 0)
                 return encryptedModels;
@@ -330,7 +336,7 @@ namespace Zerra.Repository
             appenedQuery.Where = whereCompressed;
             appenedQuery.Order = orderCompressed;
 
-            var eventModels = (ICollection<EventModel<TModel>>)(await NextProvider.QueryAsync(appenedQuery));
+            var eventModels = (ICollection<EventModel<TModel>>)(await NextProvider.QueryAsync(appenedQuery))!;
 
             if (eventModels.Count == 0)
                 return eventModels;
@@ -347,7 +353,7 @@ namespace Zerra.Repository
             return eventModels;
         }
 
-        public TModel[] EncryptModels(TModel[] models, Graph<TModel> graph, bool newCopy)
+        public TModel[] EncryptModels(TModel[] models, Graph<TModel>? graph, bool newCopy)
         {
             if (!this.Enabled)
                 return models;
@@ -356,7 +362,7 @@ namespace Zerra.Repository
             if (properties.Length == 0)
                 return models;
 
-            graph = new Graph<TModel>(graph);
+            graph = graph == null ? null : new Graph<TModel>(graph);
 
             //add identites for copying
             graph.AddProperties(ModelAnalyzer.GetIdentityPropertyNames(typeof(TModel)));
@@ -368,11 +374,11 @@ namespace Zerra.Repository
             {
                 foreach (var property in properties)
                 {
-                    if (graph.HasLocalProperty(property.Name))
+                    if (graph == null || graph.HasLocalProperty(property.Name))
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
-                            var plain = (string)property.Getter(model);
+                            var plain = (string?)property.Getter(model);
                             if (plain != null)
                             {
                                 if (plain.Length <= encryptionPrefix.Length || plain.Substring(0, encryptionPrefix.Length) != encryptionPrefix)
@@ -385,7 +391,7 @@ namespace Zerra.Repository
                         }
                         else if (property.Type == typeof(byte[]))
                         {
-                            var plain = (byte[])property.Getter(model);
+                            var plain = (byte[]?)property.Getter(model);
                             if (plain != null)
                             {
                                 var encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain);

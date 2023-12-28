@@ -80,20 +80,20 @@ namespace Zerra.Repository
             return null;
         }
 
-        public Expression<Func<TModel, bool>>? GetWhereExpression(Graph<TModel> graph)
+        public Expression<Func<TModel, bool>>? GetWhereExpression(Graph<TModel>? graph)
         {
             Expression<Func<TModel, bool>>? whereExpression = null;
 
             foreach (var property in ModelDetail.RelatedProperties)
             {
-                if (graph.HasChild(property.Name))
+                if (graph == null || graph.HasChild(property.Name))
                 {
                     var appendWhereExpressionMethodInfo = GetRelatedPropertyGetWhereExpressionMethod(property.Type);
 
                     if (appendWhereExpressionMethodInfo != null)
                     {
                         var relatedProvider = Resolver.GetSingle(appendWhereExpressionMethodInfo.RelatedProviderType);
-                        var relatedGraph = graph.GetChildGraph(property.Name, appendWhereExpressionMethodInfo.PropertyType);
+                        var relatedGraph = graph?.GetChildGraph(property.Name, appendWhereExpressionMethodInfo.PropertyType);
 
                         Expression? returnWhereExpression = null;
                         if (relatedProvider is IProviderRelation relatedProviderGeneric)
@@ -112,11 +112,11 @@ namespace Zerra.Repository
 
             return whereExpression;
         }
-        public Expression? GetWhereExpressionIncludingBase(Graph graph)
+        public Expression? GetWhereExpressionIncludingBase(Graph? graph)
         {
-            return GetWhereExpressionIncludingBase((Graph<TModel>)graph);
+            return GetWhereExpressionIncludingBase((Graph<TModel>?)graph);
         }
-        public Expression<Func<TModel, bool>>? GetWhereExpressionIncludingBase(Graph<TModel> graph)
+        public Expression<Func<TModel, bool>>? GetWhereExpressionIncludingBase(Graph<TModel>? graph)
         {
             return GetWhereExpression(graph);
         }
@@ -175,11 +175,11 @@ namespace Zerra.Repository
                 }
             }
         }
-        public void OnQueryIncludingBase(Graph graph)
+        public void OnQueryIncludingBase(Graph? graph)
         {
             OnQueryIncludingBase((Graph<TModel>)graph);
         }
-        public void OnQueryIncludingBase(Graph<TModel> graph)
+        public void OnQueryIncludingBase(Graph<TModel>? graph)
         {
             OnQueryWithRelations(graph);
         }
@@ -248,7 +248,7 @@ namespace Zerra.Repository
         private static readonly MethodInfo repoQueryManyGeneric = typeof(Repo).GetMethods().First(m => m.Name == nameof(Repo.Query) && m.GetParameters().First().ParameterType.Name == typeof(QueryMany<>).Name);
         private static readonly MethodInfo repoQueryAsyncManyGeneric = typeof(Repo).GetMethods().First(m => m.Name == nameof(Repo.QueryAsync) && m.GetParameters().First().ParameterType.Name == typeof(QueryMany<>).Name);
         private static readonly MethodInfo containsMethod = typeof(Enumerable).GetMethods().First(m => m.Name == nameof(Enumerable.Contains) && m.GetParameters().Length == 2);
-        public ICollection<TModel> OnGetWithRelations(ICollection<TModel> models, Graph<TModel> graph)
+        public ICollection<TModel> OnGetWithRelations(ICollection<TModel> models, Graph<TModel>? graph)
         {
             var returnModels = models;
             if (EventLinking)
@@ -259,7 +259,7 @@ namespace Zerra.Repository
             if (QueryLinking)
             {
                 //Get related
-                //var tasks = new List<Task>();
+                //var tasks = new HashSet<Task>();
                 foreach (var modelPropertyInfo in ModelDetail.RelatedProperties)
                 {
                     if (graph.HasChild(modelPropertyInfo.Name))
@@ -565,9 +565,9 @@ namespace Zerra.Repository
             return returnModels;
         }
 
-        public ICollection<TModel> OnGet(ICollection<TModel> models, Graph<TModel> graph)
+        public ICollection<TModel> OnGet(ICollection<TModel> models, Graph<TModel>? graph)
         {
-            if (!EventLinking)
+            if (!EventLinking || graph == null)
                 return models;
 
             foreach (var property in ModelDetail.RelatedProperties)
@@ -639,7 +639,7 @@ namespace Zerra.Repository
         }
         public async Task<ICollection<TModel>> OnGetAsync(ICollection<TModel> models, Graph<TModel> graph)
         {
-            if (!EventLinking)
+            if (!EventLinking || graph == null)
                 return models;
 
             foreach (var property in ModelDetail.RelatedProperties)
@@ -710,20 +710,20 @@ namespace Zerra.Repository
             return models;
         }
 
-        public ICollection OnGetIncludingBase(ICollection models, Graph graph)
+        public ICollection OnGetIncludingBase(ICollection models, Graph? graph)
         {
-            return (ICollection)OnGetIncludingBase((ICollection<TModel>)models, (Graph<TModel>)graph);
+            return (ICollection)OnGetIncludingBase((ICollection<TModel>)models, (Graph<TModel>?)graph);
         }
-        public ICollection<TModel> OnGetIncludingBase(ICollection<TModel> models, Graph<TModel> graph)
+        public ICollection<TModel> OnGetIncludingBase(ICollection<TModel> models, Graph<TModel>? graph)
         {
             return OnGetWithRelations(models, graph);
         }
 
-        public async Task<ICollection> OnGetIncludingBaseAsync(ICollection models, Graph graph)
+        public async Task<ICollection> OnGetIncludingBaseAsync(ICollection models, Graph? graph)
         {
-            return (ICollection)(await OnGetIncludingBaseAsync((ICollection<TModel>)(object)models, (Graph<TModel>)graph));
+            return (ICollection)(await OnGetIncludingBaseAsync((ICollection<TModel>)(object)models, (Graph<TModel>?)graph));
         }
-        public Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel> graph)
+        public Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel>? graph)
         {
             return OnGetWithRelationsAsync(models, graph);
         }

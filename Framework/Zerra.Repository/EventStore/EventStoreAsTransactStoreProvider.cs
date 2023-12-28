@@ -667,8 +667,8 @@ namespace Zerra.Repository
                         }
                     case TemporalOrder.Oldest:
                         {
-                            EventStoreEventModelData<TModel> eventModelData = null;
-                            EventStoreEventData thisEventData = null;
+                            EventStoreEventModelData<TModel>? eventModelData = null;
+                            EventStoreEventData? thisEventData = null;
                             foreach (var eventData in eventDatas.Reverse())
                             {
                                 thisEventData = eventData;
@@ -703,14 +703,14 @@ namespace Zerra.Repository
             }
         }
 
-        private (TModel, ulong?) ReadModelState(object id, TemporalOrder? temporalOrder, DateTime? temporalDateFrom, ulong? temporalNumberFrom)
+        private (TModel?, ulong?) ReadModelState(object id, TemporalOrder? temporalOrder, DateTime? temporalDateFrom, ulong? temporalNumberFrom)
         {
             if (temporalOrder != TemporalOrder.Newest && !temporalDateFrom.HasValue && !temporalNumberFrom.HasValue)
                 return (null, null);
 
             var streamName = EventStoreCommon.GetStateStreamName<TModel>(id);
 
-            TModel model = null;
+            TModel? model = null;
             ulong? modelEventNumber = null;
 
             long? count = null;
@@ -730,14 +730,14 @@ namespace Zerra.Repository
 
             return (model, modelEventNumber);
         }
-        private async Task<(TModel, ulong?)> ReadModelStateAsync(object id, TemporalOrder? temporalOrder, DateTime? temporalDateFrom, ulong? temporalNumberFrom)
+        private async Task<(TModel?, ulong?)> ReadModelStateAsync(object id, TemporalOrder? temporalOrder, DateTime? temporalDateFrom, ulong? temporalNumberFrom)
         {
             if (temporalOrder != TemporalOrder.Newest && !temporalDateFrom.HasValue && !temporalNumberFrom.HasValue)
                 return (null, null);
 
             var streamName = EventStoreCommon.GetStateStreamName<TModel>(id);
 
-            TModel model = null;
+            TModel? model = null;
             ulong? modelEventNumber = null;
 
             long? count = null;
@@ -760,8 +760,11 @@ namespace Zerra.Repository
 
         private static object[] GetIDs(Query<TModel> query)
         {
+            if (query.Where == null)
+                throw new NotSupportedException("No identity clauses found in the query. These are required for event stores.");
+
             var identityProperties = ModelAnalyzer.GetIdentityPropertyNames(typeof(TModel));
-            object[] ids = null;
+            object[]? ids = null;
             if (identityProperties.Length == 1)
             {
                 var propertyValues = LinqValueExtractor.Extract(query.Where, typeof(TModel), identityProperties[0]);
@@ -775,9 +778,7 @@ namespace Zerra.Repository
             }
 
             if (ids.Length == 0)
-            {
                 throw new NotSupportedException("No identity clauses found in the query. These are required for event stores.");
-            }
 
             return ids;
         }
@@ -904,7 +905,7 @@ namespace Zerra.Repository
             }
         }
 
-        private void SaveModelState(object id, TModel model, ulong eventNumber)
+        private void SaveModelState(object id, TModel? model, ulong eventNumber)
         {
             var streamName = EventStoreCommon.GetStateStreamName<TModel>(id);
 
@@ -918,7 +919,7 @@ namespace Zerra.Repository
 
             _ = Engine.Append(Guid.NewGuid(), "StoreState", streamName, null, EventStoreState.Any, data);
         }
-        private async Task SaveModelStateAsync(object id, TModel model, ulong eventNumber)
+        private async Task SaveModelStateAsync(object id, TModel? model, ulong eventNumber)
         {
             var streamName = EventStoreCommon.GetStateStreamName<TModel>(id);
 

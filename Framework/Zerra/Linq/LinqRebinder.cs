@@ -478,7 +478,7 @@ namespace Zerra.Linq
                 case ExpressionType.Parameter:
                     {
                         return exp;
-                        //var cast = exp as ParameterExpression;
+                        //var cast = (ParameterExpression)exp;
 
                         //if (context.TypeReplacements != null && context.TypeReplacements.TryGetValue(cast.Type, out Type replacementType))
                         //{

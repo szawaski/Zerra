@@ -19,7 +19,7 @@ namespace Zerra.Repository
         {
             private const string compressionPrefix = "<c>";
 
-            public static string CompressGZip(string plain)
+            public static string? CompressGZip(string? plain)
             {
                 if (String.IsNullOrWhiteSpace(plain))
                     return plain;
@@ -33,7 +33,7 @@ namespace Zerra.Repository
                 var compressed = compressionPrefix + Convert.ToBase64String(compressedBytes);
                 return compressed;
             }
-            public static byte[] CompressGZip(byte[] plain)
+            public static byte[]? CompressGZip(byte[]? plain)
             {
                 if (plain == null)
                     return plain;
@@ -55,7 +55,7 @@ namespace Zerra.Repository
                 return gzipStream;
             }
 
-            public static string DecompressGZip(string compressed)
+            public static string? DecompressGZip(string? compressed)
             {
                 if (String.IsNullOrWhiteSpace(compressed))
                     return compressed;
@@ -71,7 +71,7 @@ namespace Zerra.Repository
                 var plain = Encoding.Unicode.GetString(plainBytes);
                 return plain;
             }
-            public static byte[] DecompressGZip(byte[] compressed)
+            public static byte[]? DecompressGZip(byte[]? compressed)
             {
                 if (compressed == null)
                     return compressed;
@@ -94,7 +94,7 @@ namespace Zerra.Repository
             }
 
             private static readonly ConcurrentFactoryDictionary<TypeKey, MemberDetail[]> compressableProperties = new();
-            public static MemberDetail[] GetModelCompressableProperties(Type type, Graph graph)
+            public static MemberDetail[] GetModelCompressableProperties(Type type, Graph? graph)
             {
                 var key = new TypeKey(graph?.Signature, type);
                 var props = compressableProperties.GetOrAdd(key, (_) =>

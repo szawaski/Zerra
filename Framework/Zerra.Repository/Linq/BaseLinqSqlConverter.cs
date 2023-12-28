@@ -380,16 +380,19 @@ namespace Zerra.Repository
                     {
                         case MemberTypes.Field:
                             {
-                                var field = memberProperty.Member as FieldInfo;
+                                var field = (FieldInfo)memberProperty.Member;
                                 var fieldValue = field.GetValue(value);
                                 ConvertToSqlConstantStack(field.FieldType, fieldValue, ref sb, context);
                                 break;
                             }
                         case MemberTypes.Property:
                             {
-                                var property = memberProperty.Member as PropertyInfo;
-                                var propertyValue = property.GetValue(value);
-                                ConvertToSqlConstantStack(property.PropertyType, propertyValue, ref sb, context);
+                                var property = (PropertyInfo)memberProperty.Member;
+                                if (property.GetMethod != null)
+                                {
+                                    var propertyValue = property.GetValue(value);
+                                    ConvertToSqlConstantStack(property.PropertyType, propertyValue, ref sb, context);
+                                }
                                 break;
                             }
                         default:
@@ -781,6 +784,8 @@ namespace Zerra.Repository
                         break;
                     case MemberTypes.Property:
                         var propertyInfo = (PropertyInfo)member.Member;
+                        if (propertyInfo.GetMethod == null)
+                            return true;
                         if (expressionValue == null && !propertyInfo.GetMethod.IsStatic)
                             return true;
                         value = propertyInfo.GetValue(expressionValue);
@@ -824,6 +829,8 @@ namespace Zerra.Repository
                     break;
                 case MemberTypes.Property:
                     var propertyInfo = (PropertyInfo)member.Member;
+                    if (propertyInfo.GetMethod == null)
+                        return null;
                     if (expressionValue == null && !propertyInfo.GetMethod.IsStatic)
                         return null;
                     value = propertyInfo.GetValue(expressionValue);

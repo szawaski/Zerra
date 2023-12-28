@@ -22,39 +22,39 @@ namespace Zerra.Repository
             ProviderRelation = NextProvider as IProviderRelation<TModel>;
         }
 
-        public Expression GetWhereExpressionIncludingBase(Graph graph)
+        public Expression? GetWhereExpressionIncludingBase(Graph? graph)
         {
-            return GetWhereExpressionIncludingBase((Graph<TModel>)graph);
+            return GetWhereExpressionIncludingBase((Graph<TModel>?)graph);
         }
-        public virtual Expression<Func<TModel, bool>> GetWhereExpressionIncludingBase(Graph<TModel> graph)
+        public virtual Expression<Func<TModel, bool>>? GetWhereExpressionIncludingBase(Graph<TModel>? graph)
         {
-            var expression = ProviderRelation.GetWhereExpressionIncludingBase(graph);
+            var expression = ProviderRelation?.GetWhereExpressionIncludingBase(graph);
             return expression;
         }
 
-        public void OnQueryIncludingBase(Graph graph)
+        public void OnQueryIncludingBase(Graph? graph)
         {
-            OnQueryIncludingBase((Graph<TModel>)graph);
+            OnQueryIncludingBase((Graph<TModel>?)graph);
         }
-        public virtual void OnQueryIncludingBase(Graph<TModel> graph)
+        public virtual void OnQueryIncludingBase(Graph<TModel>? graph)
         {
-            ProviderRelation.OnQueryIncludingBase(graph);
+            ProviderRelation?.OnQueryIncludingBase(graph);
         }
 
-        public ICollection OnGetIncludingBase(ICollection models, Graph graph)
+        public ICollection OnGetIncludingBase(ICollection models, Graph? graph)
         {
-            return (ICollection)OnGetIncludingBase((ICollection<TModel>)(object)models, (Graph<TModel>)graph);
+            return (ICollection)OnGetIncludingBase((ICollection<TModel>)(object)models, (Graph<TModel>?)graph);
         }
-        public virtual ICollection<TModel> OnGetIncludingBase(ICollection<TModel> models, Graph<TModel> graph)
+        public virtual ICollection<TModel> OnGetIncludingBase(ICollection<TModel> models, Graph<TModel>? graph)
         {
             return ProviderRelation.OnGetIncludingBase(models, graph);
         }
 
-        public async Task<ICollection> OnGetIncludingBaseAsync(ICollection models, Graph graph)
+        public async Task<ICollection> OnGetIncludingBaseAsync(ICollection models, Graph? graph)
         {
-            return (ICollection)await OnGetIncludingBaseAsync((ICollection<TModel>)models, (Graph<TModel>)graph);
+            return (ICollection)await OnGetIncludingBaseAsync((ICollection<TModel>)models, (Graph<TModel>?)graph);
         }
-        public virtual Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel> graph)
+        public virtual Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel>? graph)
         {
             return ProviderRelation.OnGetIncludingBaseAsync(models, graph);
         }

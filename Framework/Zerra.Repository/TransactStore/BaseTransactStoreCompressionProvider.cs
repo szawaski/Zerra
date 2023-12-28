@@ -20,21 +20,21 @@ namespace Zerra.Repository
         public virtual bool Enabled { get { return true; } }
         public virtual Graph<TModel>? Properties { get { return null; } }
 
-        public override sealed Expression<Func<TModel, bool>> GetWhereExpressionIncludingBase(Graph<TModel> graph)
+        public override sealed Expression<Func<TModel, bool>>? GetWhereExpressionIncludingBase(Graph<TModel>? graph)
         {
             return base.GetWhereExpressionIncludingBase(graph);
         }
 
-        private static Expression<Func<TModel, bool>> CompressWhere(Expression<Func<TModel, bool>> expression)
+        private static Expression<Func<TModel, bool>>? CompressWhere(Expression<Func<TModel, bool>>? expression)
         {
             return expression;
         }
-        private static QueryOrder<TModel> CompressOrder(QueryOrder<TModel> order)
+        private static QueryOrder<TModel>? CompressOrder(QueryOrder<TModel>? order)
         {
             return order;
         }
 
-        public TModel DecompressModel(TModel model, Graph<TModel> graph, bool newCopy)
+        public TModel DecompressModel(TModel model, Graph<TModel>? graph, bool newCopy)
         {
             if (!this.Enabled)
                 return model;
@@ -43,18 +43,18 @@ namespace Zerra.Repository
             if (properties.Length == 0)
                 return model;
 
-            graph = new Graph<TModel>(graph);
+            graph = graph == null ? null : graph.Copy();
 
             if (newCopy)
                 model = Mapper.Map<TModel, TModel>(model, graph);
 
             foreach (var property in properties)
             {
-                if (graph.HasLocalProperty(property.Name))
+                if (graph == null || graph.HasLocalProperty(property.Name))
                 {
                     if (property.TypeDetail.CoreType == CoreType.String)
                     {
-                        var compressed = (string)property.Getter(model);
+                        var compressed = (string?)property.Getter(model);
                         if (compressed != null)
                         {
                             try
@@ -67,7 +67,7 @@ namespace Zerra.Repository
                     }
                     else if (property.Type == typeof(byte[]))
                     {
-                        var compressed = (byte[])property.Getter(model);
+                        var compressed = (byte[]?)property.Getter(model);
                         if (compressed != null)
                         {
                             try
@@ -83,16 +83,16 @@ namespace Zerra.Repository
 
             return model;
         }
-        public ICollection<TModel> DecompressModels(ICollection<TModel> models, Graph<TModel> graph, bool newCopy)
+        public ICollection<TModel> DecompressModels(ICollection<TModel> models, Graph<TModel>? graph, bool newCopy)
         {
-            if (!this.Enabled)
+            if (!this.Enabled || graph == null)
                 return models;
 
             var properties = CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties);
             if (properties.Length == 0)
                 return models;
 
-            graph = new Graph<TModel>(graph);
+            graph = graph == null ? null : graph.Copy();
 
             if (newCopy)
                 models = Mapper.Map<ICollection<TModel>, TModel[]>(models, graph);
@@ -101,11 +101,11 @@ namespace Zerra.Repository
             {
                 foreach (var property in properties)
                 {
-                    if (graph.HasLocalProperty(property.Name))
+                    if (graph == null || graph.HasLocalProperty(property.Name))
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
-                            var compressed = (string)property.Getter(model);
+                            var compressed = (string?)property.Getter(model);
                             if (compressed != null)
                             {
                                 try
@@ -118,7 +118,7 @@ namespace Zerra.Repository
                         }
                         else if (property.Type == typeof(byte[]))
                         {
-                            var compressed = (byte[])property.Getter(model);
+                            var compressed = (byte[]?)property.Getter(model);
                             if (compressed != null)
                             {
                                 try
@@ -163,7 +163,7 @@ namespace Zerra.Repository
             appenedQuery.Where = whereCompressed;
             appenedQuery.Order = orderCompressed;
 
-            var compressedModels = (ICollection<TModel>)(NextProvider.Query(appenedQuery));
+            var compressedModels = (ICollection<TModel>)NextProvider.Query(appenedQuery)!;
 
             if (compressedModels.Count == 0)
                 return compressedModels;
@@ -171,7 +171,7 @@ namespace Zerra.Repository
             var models = DecompressModels(compressedModels, query.Graph, true);
             return models;
         }
-        public override sealed object First(Query<TModel> query)
+        public override sealed object? First(Query<TModel> query)
         {
             var whereCompressed = CompressWhere(query.Where);
             var orderCompressed = CompressOrder(query.Order);
@@ -180,7 +180,7 @@ namespace Zerra.Repository
             appenedQuery.Where = whereCompressed;
             appenedQuery.Order = orderCompressed;
 
-            var compressedModels = (TModel)(NextProvider.Query(appenedQuery));
+            var compressedModels = (TModel?)NextProvider.Query(appenedQuery);
 
             if (compressedModels == null)
                 return null;
@@ -188,14 +188,14 @@ namespace Zerra.Repository
             var model = DecompressModel(compressedModels, query.Graph, true);
             return model;
         }
-        public override sealed object Single(Query<TModel> query)
+        public override sealed object? Single(Query<TModel> query)
         {
             var whereCompressed = CompressWhere(query.Where);
 
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
 
-            var compressedModels = (TModel)(NextProvider.Query(appenedQuery));
+            var compressedModels = (TModel?)NextProvider.Query(appenedQuery);
 
             if (compressedModels == null)
                 return null;
@@ -210,7 +210,7 @@ namespace Zerra.Repository
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
 
-            var count = NextProvider.Query(appenedQuery);
+            var count = NextProvider.Query(appenedQuery)!;
             return count;
         }
         public override sealed object Any(Query<TModel> query)
@@ -220,7 +220,7 @@ namespace Zerra.Repository
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
 
-            var any = NextProvider.Query(appenedQuery);
+            var any = NextProvider.Query(appenedQuery)!;
             return any;
         }
         public override sealed object EventMany(Query<TModel> query)
@@ -232,7 +232,7 @@ namespace Zerra.Repository
             appenedQuery.Where = whereCompressed;
             appenedQuery.Order = orderCompressed;
 
-            var eventModels = (ICollection<EventModel<TModel>>)(NextProvider.Query(appenedQuery));
+            var eventModels = (ICollection<EventModel<TModel>>)NextProvider.Query(appenedQuery)!;
 
             if (eventModels.Count == 0)
                 return eventModels;
@@ -249,7 +249,7 @@ namespace Zerra.Repository
             return eventModels;
         }
 
-        public override sealed async Task<object> ManyAsync(Query<TModel> query)
+        public override sealed async Task<object?> ManyAsync(Query<TModel> query)
         {
             var whereCompressed = CompressWhere(query.Where);
             var orderCompressed = CompressOrder(query.Order);
@@ -258,7 +258,7 @@ namespace Zerra.Repository
             appenedQuery.Where = whereCompressed;
             appenedQuery.Order = orderCompressed;
 
-            var compressedModels = (ICollection<TModel>)(await NextProvider.QueryAsync(appenedQuery));
+            var compressedModels = (ICollection<TModel>)(await NextProvider.QueryAsync(appenedQuery))!;
 
             if (compressedModels.Count == 0)
                 return compressedModels;
@@ -266,7 +266,7 @@ namespace Zerra.Repository
             var models = DecompressModels(compressedModels, query.Graph, true);
             return models;
         }
-        public override sealed async Task<object> FirstAsync(Query<TModel> query)
+        public override sealed async Task<object?> FirstAsync(Query<TModel> query)
         {
             var whereCompressed = CompressWhere(query.Where);
             var orderCompressed = CompressOrder(query.Order);
@@ -275,7 +275,7 @@ namespace Zerra.Repository
             appenedQuery.Where = whereCompressed;
             appenedQuery.Order = orderCompressed;
 
-            var compressedModels = (TModel)(await NextProvider.QueryAsync(appenedQuery));
+            var compressedModels = (TModel?)await NextProvider.QueryAsync(appenedQuery);
 
             if (compressedModels == null)
                 return null;
@@ -283,14 +283,14 @@ namespace Zerra.Repository
             var model = DecompressModel(compressedModels, query.Graph, true);
             return model;
         }
-        public override sealed async Task<object> SingleAsync(Query<TModel> query)
+        public override sealed async Task<object?> SingleAsync(Query<TModel> query)
         {
             var whereCompressed = CompressWhere(query.Where);
 
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
 
-            var compressedModels = (TModel)(await NextProvider.QueryAsync(appenedQuery));
+            var compressedModels = (TModel?)await NextProvider.QueryAsync(appenedQuery);
 
             if (compressedModels == null)
                 return null;
@@ -298,7 +298,7 @@ namespace Zerra.Repository
             var model = DecompressModel(compressedModels, query.Graph, true);
             return model;
         }
-        public override sealed Task<object> CountAsync(Query<TModel> query)
+        public override sealed Task<object?> CountAsync(Query<TModel> query)
         {
             var whereCompressed = CompressWhere(query.Where);
 
@@ -308,7 +308,7 @@ namespace Zerra.Repository
             var count = NextProvider.QueryAsync(appenedQuery);
             return count;
         }
-        public override sealed Task<object> AnyAsync(Query<TModel> query)
+        public override sealed Task<object?> AnyAsync(Query<TModel> query)
         {
             var whereCompressed = CompressWhere(query.Where);
 
@@ -318,7 +318,7 @@ namespace Zerra.Repository
             var any = NextProvider.QueryAsync(appenedQuery);
             return any;
         }
-        public override sealed async Task<object> EventManyAsync(Query<TModel> query)
+        public override sealed async Task<object?> EventManyAsync(Query<TModel> query)
         {
             var whereCompressed = CompressWhere(query.Where);
             var orderCompressed = CompressOrder(query.Order);
@@ -327,7 +327,7 @@ namespace Zerra.Repository
             appenedQuery.Where = whereCompressed;
             appenedQuery.Order = orderCompressed;
 
-            var eventModels = (ICollection<EventModel<TModel>>)(await NextProvider.QueryAsync(appenedQuery));
+            var eventModels = (ICollection<EventModel<TModel>>)(await NextProvider.QueryAsync(appenedQuery))!;
 
             if (eventModels.Count == 0)
                 return eventModels;
@@ -369,7 +369,7 @@ namespace Zerra.Repository
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
-                            var plain = (string)property.Getter(model);
+                            var plain = (string?)property.Getter(model);
                             if (plain != null)
                             {
                                 var compressed = CompressionCommon.CompressGZip(plain);
@@ -378,7 +378,7 @@ namespace Zerra.Repository
                         }
                         else if (property.Type == typeof(byte[]))
                         {
-                            var plain = (byte[])property.Getter(model);
+                            var plain = (byte[]?)property.Getter(model);
                             if (plain != null)
                             {
                                 var compressed = CompressionCommon.CompressGZip(plain);

@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Zerra.Reflection;
 
@@ -30,7 +31,11 @@ namespace Zerra.Repository.Reflection
                 throw new Exception($"{nameof(ModelDetail)} for {Type.Name} does not contain property {name}");
             return property;
         }
-        public bool TryGetProperty(string name, out ModelPropertyDetail property)
+        public bool TryGetProperty(string name,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out ModelPropertyDetail property)
         {
             return this.propertiesByName.TryGetValue(name, out property);
         }
@@ -42,7 +47,11 @@ namespace Zerra.Repository.Reflection
                 throw new Exception($"{nameof(ModelDetail)} for {Type.Name} does not contain property {name}");
             return property;
         }
-        public bool TryGetPropertyLower(string name, out ModelPropertyDetail property)
+        public bool TryGetPropertyLower(string name,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out ModelPropertyDetail property)
         {
             return this.propertiesByNameLower.TryGetValue(name, out property);
         }

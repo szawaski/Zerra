@@ -37,7 +37,7 @@ namespace Zerra.Repository
             var models = Engine.ExecuteQueryToModelMany<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelDetail);
             return models;
         }
-        protected override sealed TModel QueryFirst(Query<TModel> query)
+        protected override sealed TModel? QueryFirst(Query<TModel> query)
         {
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
@@ -45,7 +45,7 @@ namespace Zerra.Repository
             var model = Engine.ExecuteQueryToModelFirst<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelDetail);
             return model;
         }
-        protected override sealed TModel QuerySingle(Query<TModel> query)
+        protected override sealed TModel? QuerySingle(Query<TModel> query)
         {
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
@@ -70,8 +70,8 @@ namespace Zerra.Repository
             return any;
         }
         protected override sealed ICollection<EventModel<TModel>> QueryEventMany(Query<TModel> query) => throw new NotSupportedException("Event queries not supported with this provider");
-        protected override sealed EventModel<TModel> QueryEventFirst(Query<TModel> query) => throw new NotSupportedException("Event queries not supported with this provider");
-        protected override sealed EventModel<TModel> QueryEventSingle(Query<TModel> query) => throw new NotSupportedException("Event queries not supported with this provider");
+        protected override sealed EventModel<TModel>? QueryEventFirst(Query<TModel> query) => throw new NotSupportedException("Event queries not supported with this provider");
+        protected override sealed EventModel<TModel>? QueryEventSingle(Query<TModel> query) => throw new NotSupportedException("Event queries not supported with this provider");
         protected override sealed long QueryEventCount(Query<TModel> query) => throw new NotSupportedException("Event queries not supported with this provider");
         protected override sealed bool QueryEventAny(Query<TModel> query) => throw new NotSupportedException("Event queries not supported with this provider");
 
@@ -83,7 +83,7 @@ namespace Zerra.Repository
             var models = Engine.ExecuteQueryToModelManyAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelDetail);
             return models;
         }
-        protected override sealed Task<TModel> QueryFirstAsync(Query<TModel> query)
+        protected override sealed Task<TModel?> QueryFirstAsync(Query<TModel> query)
         {
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
@@ -91,7 +91,7 @@ namespace Zerra.Repository
             var model = Engine.ExecuteQueryToModelFirstAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelDetail);
             return model;
         }
-        protected override sealed Task<TModel> QuerySingleAsync(Query<TModel> query)
+        protected override sealed Task<TModel?> QuerySingleAsync(Query<TModel> query)
         {
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
@@ -116,8 +116,8 @@ namespace Zerra.Repository
             return any;
         }
         protected override sealed Task<ICollection<EventModel<TModel>>> QueryEventManyAsync(Query<TModel> query) => throw new NotSupportedException("Event queries not supported with this provider");
-        protected override sealed Task<EventModel<TModel>> QueryEventFirstAsync(Query<TModel> query) => throw new NotSupportedException("Event queries not supported with this provider");
-        protected override sealed Task<EventModel<TModel>> QueryEventSingleAsync(Query<TModel> query) => throw new NotSupportedException("Event queries not supported with this provider");
+        protected override sealed Task<EventModel<TModel>?> QueryEventFirstAsync(Query<TModel> query) => throw new NotSupportedException("Event queries not supported with this provider");
+        protected override sealed Task<EventModel<TModel>?> QueryEventSingleAsync(Query<TModel> query) => throw new NotSupportedException("Event queries not supported with this provider");
         protected override sealed Task<long> QueryEventCountAsync(Query<TModel> query) => throw new NotSupportedException("Event queries not supported with this provider");
         protected override sealed Task<bool> QueryEventAnyAsync(Query<TModel> query) => throw new NotSupportedException("Event queries not supported with this provider");
 

@@ -8,6 +8,6 @@ namespace Zerra.Repository
     {
         public ulong? Number { get; set; }
         public bool Deleted { get; set; }
-        public TModel Model { get; set; }
+        public TModel? Model { get; set; }
     }
 }

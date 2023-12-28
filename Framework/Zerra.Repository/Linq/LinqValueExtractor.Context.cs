@@ -15,7 +15,7 @@ namespace Zerra.Repository
         {
             public Type PropertyModelType { get; private set; }
             public string[] PropertyNames { get; private set; }
-            public Dictionary<string, List<object>> Values { get; private set; }
+            public Dictionary<string, List<object?>> Values { get; private set; }
 
             public Stack<ModelDetail> ModelStack { get; private set; }
             public Stack<MemberExpression> MemberAccessStack { get; private set; }
