@@ -86,9 +86,7 @@
 //            setter = GenerateSetter(type, membersArray);
 //        }
 
-//#pragma warning disable CS8601 // Possible null reference assignment.
 //        private static readonly ConstructorInfo argumentOutOfRangeExceptionConstructor = typeof(ArgumentOutOfRangeException).GetConstructor(Array.Empty<Type>());
-//#pragma warning restore CS8601 // Possible null reference assignment.
 //        private static Func<object, int, object> GenerateGetter(Type type, KeyValuePair<string, MemberInfo>[] members)
 //        {
 //            var dynamicMethod = new DynamicMethod($"{type.FullName}.Getter", typeof(object), new Type[] { typeof(object), typeof(int) }, true);

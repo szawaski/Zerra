@@ -485,7 +485,6 @@ namespace Zerra.IO
             if (this.length - position < sizeNeeded)
             {
                 value = default;
-                ;
                 return false;
             }
 
@@ -511,7 +510,6 @@ namespace Zerra.IO
             if (this.length - position < sizeNeeded)
             {
                 value = default;
-                ;
                 return false;
             }
 

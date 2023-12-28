@@ -49,9 +49,7 @@ namespace Zerra
             {
                 var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, key.Type1, key.Type2);
                 var map = genericMapType.GetMethod("GetMap").Caller(null, null);
-#pragma warning disable CS8603 // Possible null reference return.
-                return (s, l, g) => { return genericMapType.GetMethod("Copy").Caller(map, new object?[] { s, l, g }); };
-#pragma warning restore CS8603 // Possible null reference return.
+                return (s, l, g) => { return genericMapType.GetMethod("Copy").Caller(map, new object?[] { s, l, g })!; };
             });
 
             return (TTarget)copyFunc(source, logger, graph);
@@ -68,9 +66,7 @@ namespace Zerra
             {
                 var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, key.Type1, key.Type2);
                 var map = genericMapType.GetMethod("GetMap").Caller(null, null);
-#pragma warning disable CS8603 // Possible null reference return.
-                return (s, l, g) => { return genericMapType.GetMethod("Copy").Caller(map, new object?[] { s, l, g }) ; };
-#pragma warning restore CS8603 // Possible null reference return.
+                return (s, l, g) => { return genericMapType.GetMethod("Copy").Caller(map, new object?[] { s, l, g })!; };
             });
 
             return (TTarget)copyFunc(source, logger, graph);
@@ -89,9 +85,7 @@ namespace Zerra
             {
                 var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, key.Type1, key.Type2);
                 var map = genericMapType.GetMethod("GetMap").Caller(null, null);
-#pragma warning disable CS8603 // Possible null reference return.
-                return (s, t, l, g) => { return genericMapType.GetMethod("CopyTo").Caller(map, new object?[] { s, t, l, g }); };
-#pragma warning restore CS8603 // Possible null reference return.
+                return (s, t, l, g) => { return genericMapType.GetMethod("CopyTo").Caller(map, new object?[] { s, t, l, g })!; };
             });
 
             _ = copyToFunc(source, target, logger, graph);

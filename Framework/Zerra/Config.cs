@@ -290,9 +290,7 @@ namespace Zerra
                 if (discoveryStarted)
                     throw new InvalidOperationException("Discovery has already started");
 
-#pragma warning disable CS8619 // Nullability of reference types in value doesn't match target type.
-                string[] newNamespaces = assemblies.Select(x => x.GetName().Name).Where(x => x != null).ToArray();
-#pragma warning restore CS8619 // Nullability of reference types in value doesn't match target type.
+                string[] newNamespaces = assemblies.Select(x => x.GetName().Name).Where(x => x != null).ToArray()!;
 
                 if (!String.IsNullOrWhiteSpace(frameworkNameSpace))
                 {

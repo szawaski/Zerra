@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -22,7 +23,7 @@ namespace Zerra.Serialization
         public static bool Testing { get; set; }
 #endif
 
-        private static readonly MethodInfo dictionaryToArrayMethod = typeof(System.Linq.Enumerable).GetMethod("ToArray");
+        private static readonly MethodInfo dictionaryToArrayMethod = typeof(System.Linq.Enumerable).GetMethod("ToArray") ?? throw new Exception($"{nameof(Enumerable)}.ToArray method not found");
         private static readonly Type genericListType = typeof(List<>);
         private static readonly Type genericHashSetType = typeof(HashSet<>);
         private static readonly Type enumerableType = typeof(IEnumerable<>);
@@ -31,7 +32,7 @@ namespace Zerra.Serialization
         private static readonly JsonSerializerOptions defaultOptions = new();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object ConvertStringToType(string s, TypeDetail typeDetail)
+        private static object? ConvertStringToType(string s, TypeDetail? typeDetail)
         {
             if (typeDetail == null)
                 return null;
@@ -223,7 +224,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object ConvertNullToType(CoreType coreType)
+        private static object? ConvertNullToType(CoreType coreType)
         {
             return coreType switch
             {
@@ -266,7 +267,7 @@ namespace Zerra.Serialization
             };
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object ConvertTrueToType(CoreType coreType)
+        private static object? ConvertTrueToType(CoreType coreType)
         {
             return coreType switch
             {
@@ -297,7 +298,7 @@ namespace Zerra.Serialization
             };
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object ConvertFalseToType(CoreType coreType)
+        private static object? ConvertFalseToType(CoreType coreType)
         {
             return coreType switch
             {

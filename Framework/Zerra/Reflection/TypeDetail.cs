@@ -59,9 +59,7 @@ namespace Zerra.Reflection
                             }
                             else if (Type.IsArray)
                             {
-#pragma warning disable CS8601 // Possible null reference assignment.
-                                innerTypes = new Type[] { Type.GetElementType() };
-#pragma warning restore CS8601 // Possible null reference assignment.
+                                innerTypes = new Type[] { Type.GetElementType()! };
                             }
                             else
                             {
@@ -479,13 +477,7 @@ namespace Zerra.Reflection
 #endif
         out MethodDetail method)
         {
-#if NETSTANDARD2_0
-#pragma warning disable CS8601 // Possible null reference assignment.
             method = GetMethodInternal(name, null);
-#pragma warning restore CS8601 // Possible null reference assignment.
-#else
-            method = GetMethodInternal(name, null);
-#endif
             return method != null;
         }
         public bool TryGetMethod(string name, Type[] parameterTypes,
@@ -494,13 +486,7 @@ namespace Zerra.Reflection
 #endif
         out MethodDetail method)
         {
-#if NETSTANDARD2_0
-#pragma warning disable CS8601 // Possible null reference assignment.
             method = GetMethodInternal(name, parameterTypes);
-#pragma warning restore CS8601 // Possible null reference assignment.
-#else
-            method = GetMethodInternal(name, parameterTypes);
-#endif
             return method != null;
         }
 
@@ -547,13 +533,7 @@ namespace Zerra.Reflection
 #endif
         out ConstructorDetail constructor)
         {
-#if NETSTANDARD2_0
-#pragma warning disable CS8601 // Possible null reference assignment.
             constructor = GetConstructorInternal(null);
-#pragma warning restore CS8601 // Possible null reference assignment.
-#else
-            constructor = GetConstructorInternal(null);
-#endif
             return constructor != null;
         }
         public bool TryGetConstructor(Type[] parameterTypes,
@@ -562,13 +542,7 @@ namespace Zerra.Reflection
 #endif
         out ConstructorDetail constructor)
         {
-#if NETSTANDARD2_0
-#pragma warning disable CS8601 // Possible null reference assignment.
             constructor = GetConstructorInternal(parameterTypes);
-#pragma warning restore CS8601 // Possible null reference assignment.
-#else
-            constructor = GetConstructorInternal(parameterTypes);
-#endif
             return constructor != null;
         }
 
@@ -750,22 +724,37 @@ namespace Zerra.Reflection
         }
 
         Func<object, object?>? taskResultGetter = null;
-        public Func<object, object?>? TaskResultGetter
+        public Func<object, object?> TaskResultGetter
         {
             get
             {
-                if (this.IsTask && this.Type.IsGenericType)
+                if (!this.IsTask || !this.Type.IsGenericType)
+                    throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} does not have a {nameof(TaskResultGetter)}");
+
+                LoadTaskResultGetter();
+                return taskResultGetter ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} does not have a {nameof(TaskResultGetter)}");
+            }
+        }
+        public bool HasTaskResultGetter
+        {
+            get
+            {
+                if (!this.IsTask || !this.Type.IsGenericType)
+                    return false;
+
+                LoadTaskResultGetter();
+                return taskResultGetter != null;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void LoadTaskResultGetter()
+        {
+            if (taskResultGetter == null)
+            {
+                lock (locker)
                 {
-                    if (taskResultGetter == null)
-                    {
-                        lock (locker)
-                        {
-                            taskResultGetter ??= GetMember("Result").Getter;
-                        }
-                    }
-                    return taskResultGetter;
+                    taskResultGetter ??= GetMember("Result").Getter;
                 }
-                return null;
             }
         }
 

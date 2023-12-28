@@ -185,9 +185,7 @@ namespace Zerra
                 }
                 else if (sourceType.IsICollectionGeneric)
                 {
-#pragma warning disable CS8605 // Unboxing a possibly null value.
-                    var length = (int)sourceType.GetMember("Count").Getter(source);
-#pragma warning restore CS8605 // Unboxing a possibly null value.
+                    var length = (int)sourceType.GetMember("Count").Getter(source)!;
                     target = (TTarget)(object)Array.CreateInstance(targetType.InnerTypes[0], length);
                 }
                 else
@@ -800,15 +798,9 @@ namespace Zerra
                 var sourceMapType = TypeAnalyzer.GetGenericTypeDetail(genericMapType, source.Type, target.Type);
                 var sourceMap = sourceMapType.GetMethod("GetMap").MethodInfo.Invoke(null, null);
                 var generateMapArgs = new object?[] { graph, source, target, logger, recursionDictionary, depth };
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-                var sourceBlockMap = (Expression)sourceMapType.GetMethod("GenerateMap").MethodInfo.Invoke(sourceMap, generateMapArgs);
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8605 // Unboxing a possibly null value.
-                depth = (int)generateMapArgs[generateMapArgs.Length - 1];
-#pragma warning restore CS8605 // Unboxing a possibly null value.
-#pragma warning disable CS8603 // Possible null reference return.
+                var sourceBlockMap = (Expression)sourceMapType.GetMethod("GenerateMap").MethodInfo.Invoke(sourceMap, generateMapArgs)!;
+                depth = (int)generateMapArgs[generateMapArgs.Length - 1]!;
                 return sourceBlockMap;
-#pragma warning restore CS8603 // Possible null reference return.
             }
             else
             {
@@ -929,12 +921,8 @@ namespace Zerra
                 {
                     var sourceMap = sourceMapType.GetMethod(nameof(GetMap)).MethodInfo.Invoke(null, null);
                     var generateMapArgs = new object?[] { graph, source, newTarget, logger, recursionDictionary, depth };
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-                    sourceBlockMap = (Expression)sourceMapType.GetMethod(nameof(GenerateMap)).MethodInfo.Invoke(sourceMap, generateMapArgs);
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8605 // Unboxing a possibly null value.
-                    depth = (int)generateMapArgs[generateMapArgs.Length - 1];
-#pragma warning restore CS8605 // Unboxing a possibly null value.
+                    sourceBlockMap = (Expression)sourceMapType.GetMethod(nameof(GenerateMap)).MethodInfo.Invoke(sourceMap, generateMapArgs)!;
+                    depth = (int)generateMapArgs[generateMapArgs.Length - 1]!;
                 }
 
                 var sourceName = GetMemberName(source);
@@ -952,9 +940,7 @@ namespace Zerra
                     Expression.Constant(newTarget.Type.Name)
                 );
 
-#pragma warning disable CS8604 // Possible null reference argument.
                 var block = Expression.Block(new[] { newTarget }, logNewObject, assignNewTarget, sourceBlockMap, assignTarget);
-#pragma warning restore CS8604 // Possible null reference argument.
 
                 var recursionKey = Expression.New(newRecursionKey, source, Expression.Constant(target.Type, typeof(Type)));
                 var tryGetValue = Expression.Variable(objectType, "value");

@@ -14,30 +14,36 @@ namespace Zerra.Serialization
 {
     public static partial class JsonSerializer
     {
-        public static void Serialize(Stream stream, object obj, JsonSerializerOptions options = null, Graph graph = null)
+        public static void Serialize(Stream stream, object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
+            if (obj == null)
+                return;
 
             var type = obj.GetType();
 
             Serialize(stream, obj, type, options, graph);
         }
-        public static void Serialize<T>(Stream stream, T obj, JsonSerializerOptions options = null, Graph graph = null)
+        public static void Serialize<T>(Stream stream, T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
+            if (obj == null)
+                return;
 
             var type = typeof(T);
 
             Serialize(stream, obj, type, options, graph);
         }
-        public static void Serialize(Stream stream, object obj, Type type, JsonSerializerOptions options = null, Graph graph = null)
+        public static void Serialize(Stream stream, object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
+            if (obj == null)
+                return;
 
             options ??= defaultOptions;
 
@@ -88,30 +94,36 @@ namespace Zerra.Serialization
             }
         }
 
-        public static Task SerializeAsync(Stream stream, object obj, JsonSerializerOptions options = null, Graph graph = null)
+        public static Task SerializeAsync(Stream stream, object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
+            if (obj == null)
+                return Task.CompletedTask;
 
             var type = obj.GetType();
 
             return SerializeAsync(stream, obj, type, options, graph);
         }
-        public static Task SerializeAsync<T>(Stream stream, T obj, JsonSerializerOptions options = null, Graph graph = null)
+        public static Task SerializeAsync<T>(Stream stream, T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
+            if (obj == null)
+                return Task.CompletedTask;
 
             var type = typeof(T);
 
             return SerializeAsync(stream, obj, type, options, graph);
         }
-        public static async Task SerializeAsync(Stream stream, object obj, Type type, JsonSerializerOptions options = null, Graph graph = null)
+        public static async Task SerializeAsync(Stream stream, object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
+            if (obj == null)
+                return;
 
             options ??= defaultOptions;
 
@@ -218,7 +230,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static WriteFrame CreateWriteFrame(ref WriteState state, TypeDetail typeDetail, object obj, Graph graph = null)
+        private static WriteFrame CreateWriteFrame(ref WriteState state, TypeDetail typeDetail, object obj, Graph? graph = null)
         {
             if (((typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable) || typeDetail.Type.FullName == "System.Object") && obj != null)
             {
@@ -290,18 +302,18 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteJsonCoreType(ref CharWriter writer, ref WriteState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
+            var typeDetail = state.CurrentFrame.TypeDetail!;
 
             switch (typeDetail.CoreType)
             {
                 case CoreType.String:
-                    if (!WriteJsonString(ref writer, ref state, (string)state.CurrentFrame.Object))
+                    if (!WriteJsonString(ref writer, ref state, (string)state.CurrentFrame.Object!))
                         return;
                     state.EndFrame();
                     return;
                 case CoreType.Boolean:
                 case CoreType.BooleanNullable:
-                    if (!writer.TryWrite((bool)state.CurrentFrame.Object == false ? "false" : "true", out var sizeNeeded))
+                    if (!writer.TryWrite((bool)state.CurrentFrame.Object! == false ? "false" : "true", out var sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
@@ -310,7 +322,7 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.Byte:
                 case CoreType.ByteNullable:
-                    if (!writer.TryWrite((byte)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((byte)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
@@ -319,7 +331,7 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.SByte:
                 case CoreType.SByteNullable:
-                    if (!writer.TryWrite((sbyte)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((sbyte)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
@@ -328,7 +340,7 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.Int16:
                 case CoreType.Int16Nullable:
-                    if (!writer.TryWrite((short)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((short)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
@@ -337,7 +349,7 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.UInt16:
                 case CoreType.UInt16Nullable:
-                    if (!writer.TryWrite((ushort)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((ushort)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
@@ -346,7 +358,7 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.Int32:
                 case CoreType.Int32Nullable:
-                    if (!writer.TryWrite((int)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((int)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
@@ -355,7 +367,7 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.UInt32:
                 case CoreType.UInt32Nullable:
-                    if (!writer.TryWrite((uint)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((uint)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
@@ -364,7 +376,7 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.Int64:
                 case CoreType.Int64Nullable:
-                    if (!writer.TryWrite((long)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((long)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
@@ -373,7 +385,7 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.UInt64:
                 case CoreType.UInt64Nullable:
-                    if (!writer.TryWrite((ulong)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((ulong)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
@@ -382,7 +394,7 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.Single:
                 case CoreType.SingleNullable:
-                    if (!writer.TryWrite((float)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((float)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
@@ -391,7 +403,7 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.Double:
                 case CoreType.DoubleNullable:
-                    if (!writer.TryWrite((double)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((double)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
@@ -400,7 +412,7 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.Decimal:
                 case CoreType.DecimalNullable:
-                    if (!writer.TryWrite((decimal)state.CurrentFrame.Object, out sizeNeeded))
+                    if (!writer.TryWrite((decimal)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
@@ -409,7 +421,7 @@ namespace Zerra.Serialization
                     return;
                 case CoreType.Char:
                 case CoreType.CharNullable:
-                    if (!WriteJsonChar(ref writer, ref state, (char)state.CurrentFrame.Object, 0))
+                    if (!WriteJsonChar(ref writer, ref state, (char)state.CurrentFrame.Object!, 0))
                         return;
                     state.EndFrame();
                     return;
@@ -427,7 +439,7 @@ namespace Zerra.Serialization
 
                     if (state.CurrentFrame.State == 1)
                     {
-                        if (!writer.TryWrite((DateTime)state.CurrentFrame.Object, DateTimeFormat.ISO8601, out sizeNeeded))
+                        if (!writer.TryWrite((DateTime)state.CurrentFrame.Object!, DateTimeFormat.ISO8601, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -456,7 +468,7 @@ namespace Zerra.Serialization
 
                     if (state.CurrentFrame.State == 1)
                     {
-                        if (!writer.TryWrite((DateTimeOffset)state.CurrentFrame.Object, DateTimeFormat.ISO8601, out sizeNeeded))
+                        if (!writer.TryWrite((DateTimeOffset)state.CurrentFrame.Object!, DateTimeFormat.ISO8601, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -485,7 +497,7 @@ namespace Zerra.Serialization
 
                     if (state.CurrentFrame.State == 1)
                     {
-                        if (!writer.TryWrite((TimeSpan)state.CurrentFrame.Object, TimeFormat.ISO8601, out sizeNeeded))
+                        if (!writer.TryWrite((TimeSpan)state.CurrentFrame.Object!, TimeFormat.ISO8601, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -514,7 +526,7 @@ namespace Zerra.Serialization
 
                     if (state.CurrentFrame.State == 1)
                     {
-                        if (!writer.TryWrite((Guid)state.CurrentFrame.Object, out sizeNeeded))
+                        if (!writer.TryWrite((Guid)state.CurrentFrame.Object!, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -537,7 +549,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteJsonEnumType(ref CharWriter writer, ref WriteState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
+            var typeDetail = state.CurrentFrame.TypeDetail!;
 
             if (state.EnumAsNumber)
             {
@@ -545,7 +557,7 @@ namespace Zerra.Serialization
                 {
                     case CoreType.Byte:
                     case CoreType.ByteNullable:
-                        if (!writer.TryWrite((byte)state.CurrentFrame.Object, out var sizeNeeded))
+                        if (!writer.TryWrite((byte)state.CurrentFrame.Object!, out var sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -554,7 +566,7 @@ namespace Zerra.Serialization
                         return;
                     case CoreType.SByte:
                     case CoreType.SByteNullable:
-                        if (!writer.TryWrite((sbyte)state.CurrentFrame.Object, out sizeNeeded))
+                        if (!writer.TryWrite((sbyte)state.CurrentFrame.Object!, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -563,7 +575,7 @@ namespace Zerra.Serialization
                         return;
                     case CoreType.Int16:
                     case CoreType.Int16Nullable:
-                        if (!writer.TryWrite((short)state.CurrentFrame.Object, out sizeNeeded))
+                        if (!writer.TryWrite((short)state.CurrentFrame.Object!, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -572,7 +584,7 @@ namespace Zerra.Serialization
                         return;
                     case CoreType.UInt16:
                     case CoreType.UInt16Nullable:
-                        if (!writer.TryWrite((ushort)state.CurrentFrame.Object, out sizeNeeded))
+                        if (!writer.TryWrite((ushort)state.CurrentFrame.Object!, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -581,7 +593,7 @@ namespace Zerra.Serialization
                         return;
                     case CoreType.Int32:
                     case CoreType.Int32Nullable:
-                        if (!writer.TryWrite((int)state.CurrentFrame.Object, out sizeNeeded))
+                        if (!writer.TryWrite((int)state.CurrentFrame.Object!, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -590,7 +602,7 @@ namespace Zerra.Serialization
                         return;
                     case CoreType.UInt32:
                     case CoreType.UInt32Nullable:
-                        if (!writer.TryWrite((uint)state.CurrentFrame.Object, out sizeNeeded))
+                        if (!writer.TryWrite((uint)state.CurrentFrame.Object!, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -599,7 +611,7 @@ namespace Zerra.Serialization
                         return;
                     case CoreType.Int64:
                     case CoreType.Int64Nullable:
-                        if (!writer.TryWrite((long)state.CurrentFrame.Object, out sizeNeeded))
+                        if (!writer.TryWrite((long)state.CurrentFrame.Object!, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -608,7 +620,7 @@ namespace Zerra.Serialization
                         return;
                     case CoreType.UInt64:
                     case CoreType.UInt64Nullable:
-                        if (!writer.TryWrite((ulong)state.CurrentFrame.Object, out sizeNeeded))
+                        if (!writer.TryWrite((ulong)state.CurrentFrame.Object!, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -622,14 +634,14 @@ namespace Zerra.Serialization
             }
             else
             {
-                string str = null;
+                string? str = null;
 
                 if (state.CurrentFrame.State == 0)
                 {
                     if (typeDetail.IsNullable)
-                        str = EnumName.GetName(typeDetail.InnerTypes[0], state.CurrentFrame.Object);
+                        str = EnumName.GetName(typeDetail.InnerTypes[0], state.CurrentFrame.Object!);
                     else
-                        str = EnumName.GetName(typeDetail.Type, state.CurrentFrame.Object);
+                        str = EnumName.GetName(typeDetail.Type, state.CurrentFrame.Object!);
 
                     state.CurrentFrame.Object = str;
                     state.CurrentFrame.State = 1;
@@ -645,7 +657,7 @@ namespace Zerra.Serialization
                 }
                 if (state.CurrentFrame.State == 2)
                 {
-                    str ??= (string)state.CurrentFrame.Object;
+                    str ??= (string?)state.CurrentFrame.Object;
                     if (!writer.TryWrite(str, out var sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
@@ -667,8 +679,8 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteJsonSpecialType(ref CharWriter writer, ref WriteState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
-            var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType.Value : typeDetail.SpecialType.Value;
+            var typeDetail = state.CurrentFrame.TypeDetail!;
+            var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType!.Value : typeDetail.SpecialType!.Value;
 
             int sizeNeeded;
             switch (specialType)
@@ -933,7 +945,7 @@ namespace Zerra.Serialization
                             state.CurrentFrame.State = 7;
                             break;
                         }
-                        if (state.CurrentFrame.MemberEnumerator.Current.Getter == null)
+                        if (!state.CurrentFrame.MemberEnumerator.Current.HasGetter)
                             break;
 
                         state.CurrentFrame.ObjectPropertyValue = state.CurrentFrame.MemberEnumerator.Current.Getter(state.CurrentFrame.Object);
@@ -1772,7 +1784,7 @@ namespace Zerra.Serialization
                     state.CharsNeeded = sizeNeeded;
                     return;
                 }
-                state.CurrentFrame.Enumerator = ((IEnumerable)state.CurrentFrame.Object).GetEnumerator();
+                state.CurrentFrame.Enumerator = ((IEnumerable)state.CurrentFrame.Object!).GetEnumerator();
                 state.CurrentFrame.State = 1;
             }
 
@@ -1788,12 +1800,12 @@ namespace Zerra.Serialization
                 return;
             }
 
-            string str = null;
+            string? str = null;
             for (; ; )
             {
                 if (state.CurrentFrame.State == 1)
                 {
-                    if (!state.CurrentFrame.Enumerator.MoveNext())
+                    if (!state.CurrentFrame.Enumerator!.MoveNext())
                     {
                         state.CurrentFrame.State = 100;
                         goto laststate;
@@ -1822,7 +1834,7 @@ namespace Zerra.Serialization
                     switch (typeDetail.EnumUnderlyingType)
                     {
                         case CoreType.Byte:
-                            if (!writer.TryWrite((byte)state.CurrentFrame.Enumerator.Current, out sizeNeeded))
+                            if (!writer.TryWrite((byte)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
@@ -1830,7 +1842,7 @@ namespace Zerra.Serialization
                             state.CurrentFrame.State = 1;
                             break;
                         case CoreType.SByte:
-                            if (!writer.TryWrite((sbyte)state.CurrentFrame.Enumerator.Current, out sizeNeeded))
+                            if (!writer.TryWrite((sbyte)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
@@ -1838,7 +1850,7 @@ namespace Zerra.Serialization
                             state.CurrentFrame.State = 1;
                             break;
                         case CoreType.Int16:
-                            if (!writer.TryWrite((short)state.CurrentFrame.Enumerator.Current, out sizeNeeded))
+                            if (!writer.TryWrite((short)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
@@ -1846,7 +1858,7 @@ namespace Zerra.Serialization
                             state.CurrentFrame.State = 1;
                             break;
                         case CoreType.UInt16:
-                            if (!writer.TryWrite((ushort)state.CurrentFrame.Enumerator.Current, out sizeNeeded))
+                            if (!writer.TryWrite((ushort)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
@@ -1854,7 +1866,7 @@ namespace Zerra.Serialization
                             state.CurrentFrame.State = 1;
                             break;
                         case CoreType.Int32:
-                            if (!writer.TryWrite((int)state.CurrentFrame.Enumerator.Current, out sizeNeeded))
+                            if (!writer.TryWrite((int)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
@@ -1862,7 +1874,7 @@ namespace Zerra.Serialization
                             state.CurrentFrame.State = 1;
                             break;
                         case CoreType.UInt32:
-                            if (!writer.TryWrite((uint)state.CurrentFrame.Enumerator.Current, out sizeNeeded))
+                            if (!writer.TryWrite((uint)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
@@ -1870,7 +1882,7 @@ namespace Zerra.Serialization
                             state.CurrentFrame.State = 1;
                             break;
                         case CoreType.Int64:
-                            if (!writer.TryWrite((long)state.CurrentFrame.Enumerator.Current, out sizeNeeded))
+                            if (!writer.TryWrite((long)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
@@ -1878,7 +1890,7 @@ namespace Zerra.Serialization
                             state.CurrentFrame.State = 1;
                             break;
                         case CoreType.UInt64:
-                            if (!writer.TryWrite((ulong)state.CurrentFrame.Enumerator.Current, out sizeNeeded))
+                            if (!writer.TryWrite((ulong)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
@@ -1887,7 +1899,7 @@ namespace Zerra.Serialization
                             break;
                         case CoreType.ByteNullable:
                             {
-                                var value = state.CurrentFrame.Enumerator.Current;
+                                var value = state.CurrentFrame.Enumerator!.Current!;
                                 if (value != null)
                                 {
                                     if (!writer.TryWrite((byte)value, out sizeNeeded))
@@ -1909,7 +1921,7 @@ namespace Zerra.Serialization
                             }
                         case CoreType.SByteNullable:
                             {
-                                var value = state.CurrentFrame.Enumerator.Current;
+                                var value = state.CurrentFrame.Enumerator!.Current!;
                                 if (value != null)
                                 {
                                     if (!writer.TryWrite((sbyte)value, out sizeNeeded))
@@ -1931,7 +1943,7 @@ namespace Zerra.Serialization
                             }
                         case CoreType.Int16Nullable:
                             {
-                                var value = state.CurrentFrame.Enumerator.Current;
+                                var value = state.CurrentFrame.Enumerator!.Current!;
                                 if (value != null)
                                 {
                                     if (!writer.TryWrite((short)value, out sizeNeeded))
@@ -1953,7 +1965,7 @@ namespace Zerra.Serialization
                             }
                         case CoreType.UInt16Nullable:
                             {
-                                var value = state.CurrentFrame.Enumerator.Current;
+                                var value = state.CurrentFrame.Enumerator!.Current!;
                                 if (value != null)
                                 {
                                     if (!writer.TryWrite((ushort)value, out sizeNeeded))
@@ -1975,7 +1987,7 @@ namespace Zerra.Serialization
                             }
                         case CoreType.Int32Nullable:
                             {
-                                var value = state.CurrentFrame.Enumerator.Current;
+                                var value = state.CurrentFrame.Enumerator!.Current!;
                                 if (value != null)
                                 {
                                     if (!writer.TryWrite((int)value, out sizeNeeded))
@@ -1997,7 +2009,7 @@ namespace Zerra.Serialization
                             }
                         case CoreType.UInt32Nullable:
                             {
-                                var value = state.CurrentFrame.Enumerator.Current;
+                                var value = state.CurrentFrame.Enumerator!.Current!;
                                 if (value != null)
                                 {
                                     if (!writer.TryWrite((uint)value, out sizeNeeded))
@@ -2019,7 +2031,7 @@ namespace Zerra.Serialization
                             }
                         case CoreType.Int64Nullable:
                             {
-                                var value = state.CurrentFrame.Enumerator.Current;
+                                var value = state.CurrentFrame.Enumerator!.Current!;
                                 if (value != null)
                                 {
                                     if (!writer.TryWrite((long)value, out sizeNeeded))
@@ -2041,7 +2053,7 @@ namespace Zerra.Serialization
                             }
                         case CoreType.UInt64Nullable:
                             {
-                                var value = state.CurrentFrame.Enumerator.Current;
+                                var value = state.CurrentFrame.Enumerator!.Current!;
                                 if (value != null)
                                 {
                                     if (!writer.TryWrite((ulong)value, out sizeNeeded))
@@ -2071,7 +2083,7 @@ namespace Zerra.Serialization
                     {
                         if (typeDetail.IsNullable)
                         {
-                            if (state.CurrentFrame.Enumerator.Current == null)
+                            if (state.CurrentFrame.Enumerator!.Current == null)
                             {
                                 state.CurrentFrame.State = 7;
                             }
@@ -2084,7 +2096,7 @@ namespace Zerra.Serialization
                         }
                         else
                         {
-                            str = EnumName.GetName(typeDetail.Type, state.CurrentFrame.Enumerator.Current);
+                            str = EnumName.GetName(typeDetail.Type, state.CurrentFrame.Enumerator!.Current!);
                             state.CurrentFrame.Object = str;
                             state.CurrentFrame.State = 4;
                         }
@@ -2100,7 +2112,7 @@ namespace Zerra.Serialization
                     }
                     if (state.CurrentFrame.State == 5)
                     {
-                        str ??= (string)state.CurrentFrame.Object;
+                        str ??= (string?)state.CurrentFrame.Object;
                         if (!writer.TryWrite(str, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
@@ -2315,16 +2327,16 @@ namespace Zerra.Serialization
                 if (state.CurrentFrame.State == 6)
                 {
                 nextprop:
-                    if (!state.CurrentFrame.MemberEnumerator.MoveNext())
+                    if (!state.CurrentFrame.MemberEnumerator!.MoveNext())
                     {
                         state.CurrentFrame.State = 99;
                     }
                     else
                     {
-                        if (state.CurrentFrame.MemberEnumerator.Current.Getter == null)
+                        if (!state.CurrentFrame.MemberEnumerator.Current.HasGetter)
                             goto nextprop;
 
-                        state.CurrentFrame.ObjectPropertyValue = state.CurrentFrame.MemberEnumerator.Current.Getter(state.CurrentFrame.Enumerator.Current);
+                        state.CurrentFrame.ObjectPropertyValue = state.CurrentFrame.MemberEnumerator.Current.Getter(state.CurrentFrame.Enumerator!.Current);
                         if (state.DoNotWriteNull && state.CurrentFrame.ObjectPropertyValue == null)
                             goto nextprop;
 

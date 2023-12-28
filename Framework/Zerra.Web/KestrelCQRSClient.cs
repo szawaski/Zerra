@@ -189,21 +189,13 @@ namespace Zerra.Web
                             {
                                 requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true, true);
                                 await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
-#if NET5_0_OR_GREATER
                                 await requestBodyCryptoStream.FlushFinalBlockAsync();
-#else
-                            requestBodyCryptoStream.FlushFinalBlock();
-#endif
                             }
                             finally
                             {
                                 if (requestBodyCryptoStream != null)
                                 {
-#if NETSTANDARD2_0
-                                requestBodyCryptoStream.Dispose();
-#else
                                     await requestBodyCryptoStream.DisposeAsync();
-#endif
                                 }
                             }
                         }
@@ -257,11 +249,7 @@ namespace Zerra.Web
                     else
                     {
                         var model = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, responseBodyStream);
-#if NETSTANDARD2_0
-                    responseBodyStream.Dispose();
-#else
                         await responseBodyStream.DisposeAsync();
-#endif
                         response.Dispose();
                         return model;
                     }
@@ -270,11 +258,7 @@ namespace Zerra.Web
                 {
                     if (responseBodyStream != null)
                     {
-#if NETSTANDARD2_0
-                    responseBodyStream.Dispose();
-#else
                         await responseBodyStream.DisposeAsync();
-#endif
                     }
                     if (response != null)
                         response.Dispose();
@@ -329,21 +313,13 @@ namespace Zerra.Web
                             {
                                 requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true, true);
                                 await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
-#if NET5_0_OR_GREATER
                                 await requestBodyCryptoStream.FlushFinalBlockAsync();
-#else
-                            requestBodyCryptoStream.FlushFinalBlock();
-#endif
                             }
                             finally
                             {
                                 if (requestBodyCryptoStream != null)
                                 {
-#if NETSTANDARD2_0
-                                requestBodyCryptoStream.Dispose();
-#else
                                     await requestBodyCryptoStream.DisposeAsync();
-#endif
                                 }
                             }
                         }
@@ -387,21 +363,13 @@ namespace Zerra.Web
                         throw responseException;
                     }
 
-#if NETSTANDARD2_0
-                responseBodyStream.Dispose();
-#else
                     await responseBodyStream.DisposeAsync();
-#endif
                 }
                 catch
                 {
                     if (responseBodyStream != null)
                     {
-#if NETSTANDARD2_0
-                    responseBodyStream.Dispose();
-#else
                         await responseBodyStream.DisposeAsync();
-#endif
                     }
                     if (response != null)
                         response.Dispose();

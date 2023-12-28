@@ -60,7 +60,7 @@ namespace Zerra.CQRS
             if (methodDetail.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
                 throw new ArgumentException("{interfaceType.GetNiceName()}.{methodName} invalid number of arguments");
 
-            var args = new object[arguments != null ? arguments.Length : 0];
+            var args = new object?[arguments != null ? arguments.Length : 0];
             if (arguments != null && arguments.Length > 0)
             {
                 var i = 0;
@@ -73,40 +73,26 @@ namespace Zerra.CQRS
             }
 
             bool isStream;
-            object model;
+            object? model;
             if (methodDetail.ReturnType.IsTask)
             {
                 isStream = methodDetail.ReturnType.Type.IsGenericType && methodDetail.ReturnType.InnerTypeDetails[0].BaseTypes.Contains(streamType);
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-                var result = (Task)methodDetail.Caller(callerProvider, args);
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
+                var result = (Task)methodDetail.Caller(callerProvider, args)!;
                 await result;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
 
                 if (methodDetail.ReturnType.Type.IsGenericType)
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
                     model = methodDetail.ReturnType.TaskResultGetter(result);
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
                 else
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
                     model = null;
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
             }
             else
             {
                 isStream = methodDetail.ReturnType.BaseTypes.Contains(streamType);
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
                 model = methodDetail.Caller(callerProvider, args);
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
             }
 
             if (isStream)
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-                return new RemoteQueryCallResponse((Stream)model);
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+                return new RemoteQueryCallResponse((Stream)model!);
             else
                 return new RemoteQueryCallResponse(model);
         }
@@ -181,28 +167,16 @@ namespace Zerra.CQRS
                 var cacheInstance = Instantiator.Create(busCacheType);
 
                 var methodGetProviderInterfaceType = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(LayerProvider<object>.GetProviderInterfaceType));
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                var interfaceType = (Type)methodGetProviderInterfaceType.Caller(cacheInstance, null);
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+                var interfaceType = (Type)methodGetProviderInterfaceType!.Caller(cacheInstance, null)!;
 
-#pragma warning disable CS8604 // Possible null reference argument.
                 var messageHandlerToDispatchProvider = BusRouters.GetCommandHandlerToDispatchInternalInstance(interfaceType, requireAffirmation, networkType, source, metadata.BusLogging);
-#pragma warning restore CS8604 // Possible null reference argument.
                 _ = methodSetNextProvider.Caller(cacheInstance, new object[] { messageHandlerToDispatchProvider });
 
                 var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand>.Handle), new Type[] { commandType });
                 Task caller(ICommand arg)
                 {
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    var task = (Task)method.Caller(cacheInstance, new object[] { arg });
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8603 // Possible null reference return.
+                    var task = (Task)method!.Caller(cacheInstance, new object?[] { arg })!;
                     return task;
-#pragma warning restore CS8603 // Possible null reference return.
                 }
 
                 return caller;
@@ -265,28 +239,16 @@ namespace Zerra.CQRS
                 var cacheInstance = Instantiator.Create(busCacheType);
 
                 var methodGetProviderInterfaceType = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(LayerProvider<object>.GetProviderInterfaceType));
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                var interfaceType = (Type)methodGetProviderInterfaceType.Caller(cacheInstance, null);
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+                var interfaceType = (Type)methodGetProviderInterfaceType!.Caller(cacheInstance, null)!;
 
-#pragma warning disable CS8604 // Possible null reference argument.
                 var messageHandlerToDispatchProvider = BusRouters.GetEventHandlerToDispatchInternalInstance(interfaceType, networkType, source, metadata.BusLogging);
-#pragma warning restore CS8604 // Possible null reference argument.
                 _ = methodSetNextProvider.Caller(cacheInstance, new object[] { messageHandlerToDispatchProvider });
 
                 var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(IEventHandler<IEvent>.Handle), new Type[] { eventType });
                 Task caller(IEvent arg)
                 {
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    var task = (Task)method.Caller(cacheInstance, new object[] { arg });
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8603 // Possible null reference return.
+                    var task = (Task)method!.Caller(cacheInstance, new object?[] { arg })!;
                     return task;
-#pragma warning restore CS8603 // Possible null reference return.
                 }
 
                 return caller;
@@ -432,13 +394,7 @@ namespace Zerra.CQRS
 
             var provider = Instantiator.GetSingle(providerType);
 
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8603 // Possible null reference return.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-            return (Task)method.Caller(provider, new object[] { command });
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-#pragma warning restore CS8603 // Possible null reference return.
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+            return (Task)method!.Caller(provider, new object?[] { command })!;
         }
         private static async Task HandleCommandLoggedAsync(ICommand command, Type commandType, string source)
         {
@@ -454,11 +410,7 @@ namespace Zerra.CQRS
             var timer = Stopwatch.StartNew();
             try
             {
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                await (Task)method.Caller(provider, new object[] { command });
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+                await (Task)method!.Caller(provider, new object[] { command })!;
             }
             catch (Exception ex)
             {
@@ -479,13 +431,7 @@ namespace Zerra.CQRS
 
             var provider = Instantiator.GetSingle(providerType);
 
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8603 // Possible null reference return.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-            return (Task)method.Caller(provider, new object[] { @event });
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-#pragma warning restore CS8603 // Possible null reference return.
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+            return (Task)method!.Caller(provider, new object?[] { @event })!;
         }
         private static async Task HandleEventLoggedAsync(IEvent @event, Type eventType, string source)
         {
@@ -503,11 +449,7 @@ namespace Zerra.CQRS
             var timer = Stopwatch.StartNew();
             try
             {
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                await (Task)method.Caller(provider, new object[] { @event });
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+                await (Task)method!.Caller(provider, new object?[] { @event })!;
             }
             catch (Exception ex)
             {
@@ -565,9 +507,7 @@ namespace Zerra.CQRS
                 if (busCacheType == null)
                     return null;
 
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                var methodSetNextProvider = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(LayerProvider<object>.SetNextProvider)).MethodInfo;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
+                var methodSetNextProvider = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(LayerProvider<object>.SetNextProvider))!.MethodInfo;
                 if (methodSetNextProvider == null)
                     return null;
 
@@ -661,9 +601,7 @@ namespace Zerra.CQRS
             {
                 if (busLogger == null || methodMetadata.BusLogging == BusLogging.None || (methodMetadata.BusLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                 {
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
                     result = methodCaller.Call<TReturn>(interfaceType, methodName, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
                 }
                 else if (methodDetail.ReturnType.IsTask)
                 {
@@ -742,11 +680,7 @@ namespace Zerra.CQRS
                 }
             }
 
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8603 // Possible null reference return.
-            return (TReturn)result;
-#pragma warning restore CS8603 // Possible null reference return.
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+            return (TReturn)result!;
         }
 
         private static readonly MethodDetail sendMethodLoggedGenericAsyncMethod = typeof(Bus).GetMethodDetail(nameof(SendMethodLoggedGenericAsync));
@@ -761,11 +695,7 @@ namespace Zerra.CQRS
                 var localresult = methodCaller.Call<Task<TReturn>>(interfaceType, methodName, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
                 var task = localresult;
                 await task;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-                taskresult = methodDetail.ReturnType.TaskResultGetter(task);
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
+                taskresult = methodDetail.ReturnType.TaskResultGetter(task)!;
             }
             catch (Exception ex)
             {
@@ -777,11 +707,7 @@ namespace Zerra.CQRS
             timer.Stop();
             busLogger?.LogCallAsync(interfaceType, methodName, arguments, taskresult, source, false, timer.ElapsedMilliseconds, null);
 
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8603 // Possible null reference return.
             return (TReturn)taskresult;
-#pragma warning restore CS8603 // Possible null reference return.
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
         }
         private static async Task SendMethodLoggedAsync<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, string source, MethodDetail methodDetail, IQueryClient methodCaller)
         {
@@ -817,20 +743,10 @@ namespace Zerra.CQRS
             var timer = Stopwatch.StartNew();
             try
             {
-                var localresult = methodDetail.Caller(provider, arguments);
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+                var localresult = methodDetail.Caller(provider, arguments)!;
                 var task = (Task)localresult;
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
                 await task;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8604 // Possible null reference argument.
-                taskresult = methodDetail.ReturnType.TaskResultGetter(localresult);
-#pragma warning restore CS8604 // Possible null reference argument.
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
+                taskresult = methodDetail.ReturnType.TaskResultGetter(localresult)!;
             }
             catch (Exception ex)
             {
@@ -842,11 +758,7 @@ namespace Zerra.CQRS
             timer.Stop();
             busLogger?.LogCallAsync(interfaceType, methodName, arguments, taskresult, source, true, timer.ElapsedMilliseconds, null);
 
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8603 // Possible null reference return.
             return (TReturn)taskresult;
-#pragma warning restore CS8603 // Possible null reference return.
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
         }
         private static async Task CallMethodInternalLoggedAsync(Type interfaceType, string methodName, object[] arguments, string source, MethodDetail methodDetail)
         {
@@ -858,13 +770,9 @@ namespace Zerra.CQRS
             var timer = Stopwatch.StartNew();
             try
             {
-                var localresult = methodDetail.Caller(provider, arguments);
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+                var localresult = methodDetail.Caller(provider, arguments)!;
                 var task = (Task)localresult;
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
                 await task;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
             }
             catch (Exception ex)
             {

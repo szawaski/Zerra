@@ -144,9 +144,7 @@ namespace Zerra.CQRS.Network
                 {
                     responseStream.Dispose();
                     client.Dispose();
-#pragma warning disable CS8603 // Possible null reference return.
-                    return default;
-#pragma warning restore CS8603 // Possible null reference return.
+                    return default!;
                 }
 
                 if (isStream)
@@ -232,9 +230,7 @@ namespace Zerra.CQRS.Network
                 {
                     responseStream.Dispose();
                     client.Dispose();
-#pragma warning disable CS8603 // Possible null reference return.
-                    return default;
-#pragma warning restore CS8603 // Possible null reference return.
+                    return default!;
                 }
 
                 if (isStream)
@@ -294,19 +290,18 @@ namespace Zerra.CQRS.Network
         //    return RequestAsync<object>(null, false, address, null, ContentType.Json, bytes, false);
         //}
 
-#pragma warning disable CS8619 // Nullability of reference types in value doesn't match target type.
-        private static readonly Func<object, object> cookieContainerGetter = TypeAnalyzer.GetTypeDetail(typeof(CookieContainer)).GetMember("m_domainTable").Getter;
-        private static readonly Func<object, object> pathListGetter = TypeAnalyzer.GetTypeDetail(Discovery.GetTypeFromName("System.Net.PathList, System.Net.Primitives, Version=4.1.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")).GetMember("m_list").Getter;
-#pragma warning restore CS8619 // Nullability of reference types in value doesn't match target type.
+        private static readonly Func<object, object?> cookieContainerGetter = TypeAnalyzer.GetTypeDetail(typeof(CookieContainer)).GetMember("m_domainTable").Getter;
+        private static readonly Func<object, object?> pathListGetter = TypeAnalyzer.GetTypeDetail(Discovery.GetTypeFromName("System.Net.PathList, System.Net.Primitives, Version=4.1.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")).GetMember("m_list").Getter;
+
         private static CookieCollection GetCookiesFromContainer(CookieContainer cookieJar)
         {
             var cookieCollection = new CookieCollection();
 
-            var table = (Hashtable)cookieContainerGetter(cookieJar);
+            var table = (Hashtable)cookieContainerGetter(cookieJar)!;
 
             foreach (var pathList in table.Values)
             {
-                var list = (SortedList)pathListGetter(pathList);
+                var list = (SortedList)pathListGetter(pathList)!;
 
                 foreach (CookieCollection collection in list.Values)
                 {

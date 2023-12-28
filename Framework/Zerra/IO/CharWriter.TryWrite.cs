@@ -130,7 +130,7 @@ namespace Zerra.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWrite(string value, out int sizeNeeded)
+        public unsafe bool TryWrite(string? value, out int sizeNeeded)
         {
             if (value == null)
             {

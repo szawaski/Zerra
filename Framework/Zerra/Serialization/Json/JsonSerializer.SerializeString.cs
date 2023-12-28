@@ -15,21 +15,21 @@ namespace Zerra.Serialization
 {
     public static partial class JsonSerializer
     {
-        public static string Serialize<T>(T obj, JsonSerializerOptions options = null, Graph graph = null)
+        public static string Serialize<T>(T obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (obj == null)
                 return "null";
 
             return ToStringJson(typeof(T), obj, options, graph);
         }
-        public static string Serialize(object obj, JsonSerializerOptions options = null, Graph graph = null)
+        public static string Serialize(object obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (obj == null)
                 return "null";
 
             return ToStringJson(obj.GetType(), obj, options, graph);
         }
-        public static string Serialize(object obj, Type type, JsonSerializerOptions options = null, Graph graph = null)
+        public static string Serialize(object obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (obj == null)
                 return "null";
@@ -37,7 +37,7 @@ namespace Zerra.Serialization
             return ToStringJson(type, obj, options, graph);
         }
 
-        public static byte[] SerializeBytes<T>(T obj, JsonSerializerOptions options = null, Graph graph = null)
+        public static byte[] SerializeBytes<T>(T obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (obj == null)
                 return Encoding.UTF8.GetBytes("null");
@@ -45,7 +45,7 @@ namespace Zerra.Serialization
             var json = ToStringJson(typeof(T), obj, options, graph);
             return Encoding.UTF8.GetBytes(json);
         }
-        public static byte[] SerializeBytes(object obj, JsonSerializerOptions options = null, Graph graph = null)
+        public static byte[] SerializeBytes(object obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (obj == null)
                 return Encoding.UTF8.GetBytes("null");
@@ -178,7 +178,7 @@ namespace Zerra.Serialization
             var firstProperty = true;
             foreach (var member in typeDetail.SerializableMemberDetails)
             {
-                if (member.Getter == null)
+                if (!member.HasGetter)
                     continue;
 
                 if (graph != null)
@@ -338,7 +338,7 @@ namespace Zerra.Serialization
                         var firstProperty = true;
                         foreach (var member in typeDetail.SerializableMemberDetails)
                         {
-                            if (member.Getter == null)
+                            if (!member.HasGetter)
                                 continue;
 
                             var propertyValue = member.Getter(value);

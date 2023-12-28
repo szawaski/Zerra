@@ -94,11 +94,9 @@ namespace Zerra.Linq
 
                 if (elementType != null && typeDetails.IsIEnumerable)
                 {
-#pragma warning disable CS8604 // Possible null reference argument.
                     Expression memberExpression = member.MemberType == MemberTypes.Property ?
-                        Expression.Property(parameter, propertyInfo) :
-                        Expression.Field(parameter, fieldInfo);
-#pragma warning restore CS8604 // Possible null reference argument.
+                        Expression.Property(parameter, propertyInfo!) :
+                        Expression.Field(parameter, fieldInfo!);
 
                     var anyMethod2Generic = TypeAnalyzer.GetGenericMethodDetail(anyMethod2, elementType).MethodInfo;
                     var callAny2 = Expression.Call(anyMethod2Generic, memberExpression, expressionLambda);
@@ -115,11 +113,9 @@ namespace Zerra.Linq
                 }
                 else
                 {
-#pragma warning disable CS8604 // Possible null reference argument.
                     Expression memberExpression = member.MemberType == MemberTypes.Property ?
-                        Expression.Property(parameter, propertyInfo) :
-                        Expression.Field(parameter, fieldInfo);
-#pragma warning restore CS8604 // Possible null reference argument.
+                        Expression.Property(parameter, propertyInfo!) :
+                        Expression.Field(parameter, fieldInfo!);
 
                     var convertedExpressionLambda = (LambdaExpression)LinqRebinder.RebindExpression(expressionLambda, expressionLambda.Parameters[0], memberExpression);
 

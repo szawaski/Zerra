@@ -80,16 +80,12 @@ namespace Zerra.Serialization
                                 switch (indexSize)
                                 {
                                     case ByteSerializerIndexSize.Byte:
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                                        if (member.Item2.Index > Byte.MaxValue - indexOffset)
+                                        if (member.Item2!.Index > Byte.MaxValue - indexOffset)
                                             throw new Exception("Index attribute too large for the index size");
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
                                         break;
                                     case ByteSerializerIndexSize.UInt16:
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                                        if (member.Item2.Index > UInt16.MaxValue - indexOffset)
+                                        if (member.Item2!.Index > UInt16.MaxValue - indexOffset)
                                             throw new Exception("Index attribute too large for the index size");
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
                                         break;
                                     default:
                                         throw new NotImplementedException();

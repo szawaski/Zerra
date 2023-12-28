@@ -54,9 +54,7 @@ namespace Zerra
                 {
                     GenerateSignature();
                 }
-#pragma warning disable CS8603 // Possible null reference return.
-                return this.signature;
-#pragma warning restore CS8603 // Possible null reference return.
+                return this.signature!;
             }
         }
 
@@ -617,13 +615,12 @@ namespace Zerra
                     else if (sourceProperty.PropertyType.GetInterface(typeof(IEnumerable<>).MakeGenericType(targetProperty.PropertyType).Name) != null)
                     {
                         //Related Enumerable
-                        if (graph.HasChild(targetProperty.Name))
+                        var childGraph = graph.GetChildGraph(targetProperty.Name);
+                        if (childGraph != null)
                         {
                             if (targetProperty.PropertyType.IsGenericType)
                             {
                                 var sourcePropertyGenericType = sourceProperty.PropertyType.GetGenericArguments()[0];
-                                var childGraph = graph.GetChildGraph(targetProperty.Name);
-
                                 if (stack.Where(x => x == sourcePropertyGenericType).Count() < maxSelectRecursive)
                                 {
                                     var targetPropertyGenericType = targetProperty.PropertyType.GetGenericArguments()[0];
@@ -648,9 +645,9 @@ namespace Zerra
                     else
                     {
                         //Related Single
-                        if (graph.HasChild(targetProperty.Name))
+                        var childGraph = graph.GetChildGraph(targetProperty.Name);
+                        if (childGraph != null)
                         {
-                            var childGraph = graph.GetChildGraph(targetProperty.Name);
                             if (stack.Where(x => x == sourceProperty.PropertyType).Count() < maxSelectRecursive)
                             {
                                 Expression sourcePropertyExpression = Expression.Property(sourceExpression, sourceProperty);

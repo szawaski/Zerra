@@ -69,9 +69,8 @@ public static class TypeExtensions
             _ = sb.Append(elementTypeName);
             _ = sb.Append('[');
             var getter = GetTypeGetIsZSArrayGetter();
-#pragma warning disable CS8605 // Unboxing a possibly null value.
-            var szArray = getter != null && (bool)getter(type);
-#pragma warning restore CS8605 // Unboxing a possibly null value.
+
+            var szArray = getter != null && (bool)getter(type)!;
             if (!szArray)
             {
                 if (rank == 1)

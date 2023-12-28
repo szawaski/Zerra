@@ -23,9 +23,7 @@ namespace Zerra.Reflection
             return provider != null;
         }
 
-#pragma warning disable CS8603 // Possible null reference return.
-        public static TInterface GetSingle<TInterface>() { return GetSingle<TInterface>(true); }
-#pragma warning restore CS8603 // Possible null reference return.
+        public static TInterface GetSingle<TInterface>() { return GetSingle<TInterface>(true)!; }
 
         public static bool TryGetSingle(Type type, out object provider)
         {
@@ -47,9 +45,7 @@ namespace Zerra.Reflection
             return provider != null;
         }
 
-#pragma warning disable CS8603 // Possible null reference return.
-        public static TInterface GetNew<TInterface>() { return GetNew<TInterface>(true); }
-#pragma warning restore CS8603 // Possible null reference return.
+        public static TInterface GetNew<TInterface>() { return GetNew<TInterface>(true)!; }
 
         public static bool TryGetNew(Type type, out object provider)
         {
@@ -59,30 +55,22 @@ namespace Zerra.Reflection
 
         public static object GetNew(Type type) { return GetNewGeneric(type, true); }
 
-#pragma warning disable CS8601 // Possible null reference assignment.
-        private static readonly MethodInfo methodProviderManagerGetSingle = typeof(Resolver).GetMethod(nameof(Resolver.GetSingle), BindingFlags.Static | BindingFlags.NonPublic);
-#pragma warning restore CS8601 // Possible null reference assignment.
+        private static readonly MethodInfo methodProviderManagerGetSingle = typeof(Resolver).GetMethod(nameof(Resolver.GetSingle), BindingFlags.Static | BindingFlags.NonPublic) ?? throw new Exception($"{nameof(Resolver)}.{nameof(Resolver.GetSingle)} method not found");
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object GetSingleGeneric(Type type, bool throwException)
         {
             var genericMethodProviderManagerTryGetSingle = TypeAnalyzer.GetGenericMethodDetail(methodProviderManagerGetSingle, type);
-            var provider = genericMethodProviderManagerTryGetSingle.Caller(null, new object[] { throwException });
-#pragma warning disable CS8603 // Possible null reference return.
+            var provider = genericMethodProviderManagerTryGetSingle.Caller(null, new object[] { throwException })!;
             return provider;
-#pragma warning restore CS8603 // Possible null reference return.
         }
 
-#pragma warning disable CS8601 // Possible null reference assignment.
-        private static readonly MethodInfo methodProviderManagerGetNew = typeof(Resolver).GetMethod(nameof(Resolver.GetNew), BindingFlags.Static | BindingFlags.NonPublic);
-#pragma warning restore CS8601 // Possible null reference assignment.
+        private static readonly MethodInfo methodProviderManagerGetNew = typeof(Resolver).GetMethod(nameof(Resolver.GetNew), BindingFlags.Static | BindingFlags.NonPublic) ?? throw new Exception($"{nameof(Resolver)}.{nameof(Resolver.GetNew)} method not found");
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object GetNewGeneric(Type type, bool throwException)
         {
             var genericMethodProviderManagerTryGetNew = TypeAnalyzer.GetGenericMethodDetail(methodProviderManagerGetNew, type);
-            var provider = genericMethodProviderManagerTryGetNew.Caller(null, new object[] { throwException });
-#pragma warning disable CS8603 // Possible null reference return.
+            var provider = genericMethodProviderManagerTryGetNew.Caller(null, new object[] { throwException })!;
             return provider;
-#pragma warning restore CS8603 // Possible null reference return.
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

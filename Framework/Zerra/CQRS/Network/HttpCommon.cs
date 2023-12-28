@@ -160,9 +160,7 @@ namespace Zerra.CQRS.Network
 #else
                                 var value = chars.Slice(start, length).ToString();
 #endif
-#pragma warning disable CS8604 // Possible null reference argument.
-                                if (headers.TryGetValue(key, out var values))
-#pragma warning restore CS8604 // Possible null reference argument.
+                                if (headers.TryGetValue(key!, out var values))
                                 {
                                     values.Add(value);
                                 }
@@ -170,7 +168,7 @@ namespace Zerra.CQRS.Network
                                 {
                                     values = new List<string>();
                                     values.Add(value);
-                                    headers.Add(key, values);
+                                    headers.Add(key!, values);
                                 }
                                 key = null;
                                 keyPartDone = false;

@@ -15,11 +15,11 @@ namespace Zerra.Serialization
 {
     public static partial class JsonSerializer
     {
-        public static T DeserializeStackBased<T>(Memory<byte> bytes, JsonSerializerOptions options = null, Graph graph = null)
+        public static T? DeserializeStackBased<T>(Memory<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            return (T)DeserializeStackBased(typeof(T), bytes, options, graph);
+            return (T?)DeserializeStackBased(typeof(T), bytes, options, graph);
         }
-        public static object DeserializeStackBased(Type type, Memory<byte> bytes, JsonSerializerOptions options = null, Graph graph = null)
+        public static object DeserializeStackBased(Type type, Memory<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
 
@@ -52,11 +52,11 @@ namespace Zerra.Serialization
             }
         }
 
-        public static T DeserializeStackBased<T>(Memory<char> json, JsonSerializerOptions options = null, Graph graph = null)
+        public static T? DeserializeStackBased<T>(Memory<char> json, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            return (T)DeserializeStackBased(typeof(T), json, options, graph);
+            return (T?)DeserializeStackBased(typeof(T), json, options, graph);
         }
-        public static object DeserializeStackBased(Type type, Memory<char> json, JsonSerializerOptions options = null, Graph graph = null)
+        public static object? DeserializeStackBased(Type type, Memory<char> json, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
 
@@ -89,11 +89,11 @@ namespace Zerra.Serialization
             }
         }
 
-        public static T Deserialize<T>(Stream stream, JsonSerializerOptions options = null, Graph graph = null)
+        public static T? Deserialize<T>(Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            return (T)Deserialize(typeof(T), stream, options, graph);
+            return (T?)Deserialize(typeof(T), stream, options, graph);
         }
-        public static object Deserialize(Type type, Stream stream, JsonSerializerOptions options = null, Graph graph = null)
+        public static object? Deserialize(Type type, Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
@@ -200,7 +200,7 @@ namespace Zerra.Serialization
             }
         }
 
-        public static async Task<T> DeserializeAsync<T>(Stream stream, JsonSerializerOptions options = null, Graph graph = null)
+        public static async Task<T?> DeserializeAsync<T>(Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -306,7 +306,7 @@ namespace Zerra.Serialization
                 BufferArrayPool<char>.Return(decodeBuffer);
             }
         }
-        public static async Task<object> DeserializeAsync(Type type, Stream stream, JsonSerializerOptions options = null, Graph graph = null)
+        public static async Task<object?> DeserializeAsync(Type type, Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
@@ -470,12 +470,12 @@ namespace Zerra.Serialization
                 }
                 if (state.Ended)
                 {
-                    decodeBuffer = decodeBufferWriter.BufferOwner;
+                    decodeBuffer = decodeBufferWriter.BufferOwner!;
                     return -1;
                 }
                 if (state.CharsNeeded > 0)
                 {
-                    decodeBuffer = decodeBufferWriter.BufferOwner;
+                    decodeBuffer = decodeBufferWriter.BufferOwner!;
                     decodeBufferPosition = decodeBufferWriter.Length;
                     return reader.Position;
                 }
@@ -624,11 +624,11 @@ namespace Zerra.Serialization
 
                         var propertyName = state.LastFrameResultString;
 
-                        Graph propertyGraph = null;
+                        Graph? propertyGraph = null;
                         if (typeDetail != null && TryGetMember(typeDetail, propertyName, out var memberDetail))
                         {
                             state.CurrentFrame.ObjectProperty = memberDetail;
-                            propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name);
+                            propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name)!;
                         }
                         else
                         {
@@ -640,7 +640,7 @@ namespace Zerra.Serialization
                         return;
 
                     case 3: //property value
-                        if (state.CurrentFrame.ObjectProperty != null && state.CurrentFrame.ResultObject != null && state.LastFrameResultObject != null && state.CurrentFrame.ObjectProperty.Setter != null)
+                        if (state.CurrentFrame.ObjectProperty != null && state.CurrentFrame.ResultObject != null && state.LastFrameResultObject != null && state.CurrentFrame.ObjectProperty.HasSetter)
                         {
                             //special case nullable enum
                             if (state.CurrentFrame.ObjectProperty.TypeDetail.IsNullable && state.CurrentFrame.ObjectProperty.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
@@ -692,7 +692,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadDictionary(ref CharReader reader, ref ReadState state)
         {
-            var typeDetail = state.CurrentFrame.TypeDetail;
+            var typeDetail = state.CurrentFrame.TypeDetail!;
 
             if (state.CurrentFrame.State == 0)
             {
@@ -746,9 +746,9 @@ namespace Zerra.Serialization
                         return;
 
                     case 3: //property value
-                        state.CurrentFrame.AddMethodArgs[0] = state.CurrentFrame.DictionaryKey;
-                        state.CurrentFrame.AddMethodArgs[1] = state.LastFrameResultObject;
-                        _ = state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                        state.CurrentFrame.AddMethodArgs![0] = state.CurrentFrame.DictionaryKey!;
+                        state.CurrentFrame.AddMethodArgs![1] = state.LastFrameResultObject;
+                        _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
 
                         state.CurrentFrame.State = 4;
                         break;
@@ -867,11 +867,11 @@ namespace Zerra.Serialization
                         if (state.CurrentFrame.ResultObject != null)
                         {
                             //special case nullable enum
-                            if (state.CurrentFrame.ArrayElementType.IsNullable && state.CurrentFrame.ArrayElementType.InnerTypeDetails[0].EnumUnderlyingType.HasValue && state.LastFrameResultObject != null)
+                            if (state.CurrentFrame.ArrayElementType!.IsNullable && state.CurrentFrame.ArrayElementType.InnerTypeDetails[0].EnumUnderlyingType.HasValue && state.LastFrameResultObject != null)
                                 state.LastFrameResultObject = Enum.ToObject(state.CurrentFrame.ArrayElementType.InnerTypeDetails[0].Type, state.LastFrameResultObject);
 
-                            state.CurrentFrame.AddMethodArgs[0] = state.LastFrameResultObject;
-                            _ = state.CurrentFrame.AddMethod.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                            state.CurrentFrame.AddMethodArgs![0] = state.LastFrameResultObject;
+                            _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
                         }
 
                         state.CurrentFrame.State = 3;
@@ -944,7 +944,7 @@ namespace Zerra.Serialization
                           ? typeDetail.SerializableMemberDetails[state.CurrentFrame.PropertyIndexForNameless]
                           : null;
                         state.CurrentFrame.State = 2;
-                        state.PushFrame(new ReadFrame() { TypeDetail = memberDetail.TypeDetail, FrameType = ReadFrameType.Value, Graph = graph });
+                        state.PushFrame(new ReadFrame() { TypeDetail = memberDetail?.TypeDetail, FrameType = ReadFrameType.Value, Graph = graph });
                         return;
 
                     case 2: //array value
@@ -954,7 +954,7 @@ namespace Zerra.Serialization
                             memberDetail = typeDetail != null && state.CurrentFrame.PropertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
                                 ? typeDetail.SerializableMemberDetails[state.CurrentFrame.PropertyIndexForNameless]
                                 : null;
-                            if (memberDetail != null && memberDetail.Setter != null)
+                            if (memberDetail != null && memberDetail.HasSetter)
                             {
                                 var propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name);
                                 if (memberDetail.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)

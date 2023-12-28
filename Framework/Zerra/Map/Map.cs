@@ -182,9 +182,7 @@ namespace Zerra
                 }
                 else if (sourceType.IsICollectionGeneric)
                 {
-#pragma warning disable CS8605 // Unboxing a possibly null value.
-                    var length = (int)sourceType.GetMember("Count").Getter(source);
-#pragma warning restore CS8605 // Unboxing a possibly null value.
+                    var length = (int)sourceType.GetMember("Count").Getter(source)!;
                     target = (TTarget)(object)Array.CreateInstance(targetType.InnerTypes[0], length);
                 }
                 else
@@ -333,17 +331,15 @@ namespace Zerra
                     }
                     else if (sourceType.CoreType == CoreType.String)
                     {
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
                         Expression convert = targetType.CoreType switch
                         {
                             CoreType.Boolean or CoreType.Byte or CoreType.SByte or CoreType.Int16 or CoreType.UInt16 or CoreType.Int32 or CoreType.UInt32 or CoreType.Int64 or CoreType.UInt64 or CoreType.Single or CoreType.Double or CoreType.Decimal or CoreType.Char or CoreType.DateTime or CoreType.DateTimeOffset or CoreType.TimeSpan or CoreType.Guid
-                                => Expression.Call(TypeAnalyzer.GetMethodDetail(targetType.Type, "Parse").MethodInfo, source),
+                                => Expression.Call(TypeAnalyzer.GetMethodDetail(targetType.Type, "Parse")!.MethodInfo, source),
                             CoreType.BooleanNullable or CoreType.ByteNullable or CoreType.SByteNullable or CoreType.Int16Nullable or CoreType.UInt16Nullable or CoreType.Int32Nullable or CoreType.UInt32Nullable or CoreType.Int64Nullable or CoreType.UInt64Nullable or CoreType.SingleNullable or CoreType.DoubleNullable or CoreType.DecimalNullable or CoreType.CharNullable or CoreType.DateTimeNullable or CoreType.DateTimeOffsetNullable or CoreType.TimeSpanNullable or CoreType.GuidNullable
-                                => Expression.Condition(Expression.Equal(source, Expression.Constant(null)), Expression.Constant(null, targetType.Type), Expression.Convert(Expression.Call(TypeAnalyzer.GetMethodDetail(targetType.InnerTypes[0], "Parse").MethodInfo, source), targetType.Type)),
+                                => Expression.Condition(Expression.Equal(source, Expression.Constant(null)), Expression.Constant(null, targetType.Type), Expression.Convert(Expression.Call(TypeAnalyzer.GetMethodDetail(targetType.InnerTypes[0], "Parse")!.MethodInfo, source), targetType.Type)),
                             CoreType.String => throw new Exception("Should not happen"),
                             _ => throw new NotImplementedException(),
                         };
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
                         assigner = Expression.Assign(target, convert);
                     }
                     else
@@ -787,15 +783,9 @@ namespace Zerra
                 var sourceMapType = TypeAnalyzer.GetGenericTypeDetail(genericMapType, source.Type, target.Type);
                 var sourceMap = sourceMapType.GetMethod("GetMap").MethodInfo.Invoke(null, null);
                 var generateMapArgs = new object?[] { graph, source, target, recursionDictionary, depth };
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-                var sourceBlockMap = (Expression)sourceMapType.GetMethod("GenerateMap").MethodInfo.Invoke(sourceMap, generateMapArgs);
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8605 // Unboxing a possibly null value.
-                depth = (int)generateMapArgs[generateMapArgs.Length - 1];
-#pragma warning restore CS8605 // Unboxing a possibly null value.
-#pragma warning disable CS8603 // Possible null reference return.
+                var sourceBlockMap = (Expression)sourceMapType.GetMethod("GenerateMap").MethodInfo.Invoke(sourceMap, generateMapArgs)!;
+                depth = (int)generateMapArgs[generateMapArgs.Length - 1]!;
                 return sourceBlockMap;
-#pragma warning restore CS8603 // Possible null reference return.
             }
             else
             {
@@ -915,12 +905,8 @@ namespace Zerra
                 {
                     var sourceMap = sourceMapType.GetMethod(nameof(GetMap)).MethodInfo.Invoke(null, null);
                     var generateMapArgs = new object?[] { graph, source, newTarget, recursionDictionary, depth };
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-                    sourceBlockMap = (Expression)sourceMapType.GetMethod(nameof(GenerateMap)).MethodInfo.Invoke(sourceMap, generateMapArgs);
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8605 // Unboxing a possibly null value.
-                    depth = (int)generateMapArgs[generateMapArgs.Length - 1];
-#pragma warning restore CS8605 // Unboxing a possibly null value.
+                    sourceBlockMap = (Expression)sourceMapType.GetMethod(nameof(GenerateMap)).MethodInfo.Invoke(sourceMap, generateMapArgs)!;
+                    depth = (int)generateMapArgs[generateMapArgs.Length - 1]!;
                 }
 
                 Expression assignTarget;
@@ -929,9 +915,7 @@ namespace Zerra
                 else
                     assignTarget = Expression.Assign(target, newTarget);
 
-#pragma warning disable CS8604 // Possible null reference argument.
                 var block = Expression.Block(new[] { newTarget }, assignNewTarget, sourceBlockMap, assignTarget);
-#pragma warning restore CS8604 // Possible null reference argument.
 
                 var recursionKey = Expression.New(newRecursionKey, source, Expression.Constant(target.Type, typeof(Type)));
                 var tryGetValue = Expression.Variable(objectType, "value");

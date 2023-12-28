@@ -108,17 +108,11 @@ namespace Zerra.Reflection
 
                                 if (returnTypeInfo.IsTask)
                                 {
-                                    var result = caller(source, arguments);
-                                    var task = result as Task;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
+                                    var result = caller(source, arguments)!;
+                                    var task = (Task)result;
                                     await task;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
                                     if (returnTypeInfo.Type.IsGenericType)
-#pragma warning disable CS8604 // Possible null reference argument.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
                                         return returnTypeInfo.TaskResultGetter(result);
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-#pragma warning restore CS8604 // Possible null reference argument.
                                     else
                                         return default;
                                 }

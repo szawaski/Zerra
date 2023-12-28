@@ -19,9 +19,7 @@ namespace Zerra.Serialization
             if (bytes == null || bytes.Length == 0)
                 return default;
 
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-            return (T)Deserialize(typeof(T), bytes, options);
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+            return (T?)Deserialize(typeof(T), bytes, options);
         }
         public static object? Deserialize(Type type, ReadOnlySpan<byte> bytes, ByteSerializerOptions? options = null)
         {

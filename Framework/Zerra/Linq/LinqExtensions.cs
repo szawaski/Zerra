@@ -107,13 +107,7 @@ namespace System.Linq
 
             if (exp is not ParameterExpression)
             {
-#if NETSTANDARD2_0
-#pragma warning disable CS8601 // Possible null reference assignment.
                 memberName = null;
-#pragma warning restore CS8601 // Possible null reference assignment.
-#else
-                memberName = null;
-#endif
                 return false;
             }
 

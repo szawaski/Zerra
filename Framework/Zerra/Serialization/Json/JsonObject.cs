@@ -21,7 +21,7 @@ namespace Zerra.Serialization
 
         public JsonObjectType JsonType => jsonType;
 
-        public JsonObject(string value, bool literal)
+        public JsonObject(string? value, bool literal)
         {
             this.jsonType = literal ? JsonObjectType.Literal : JsonObjectType.String;
             this.valueString = value;

@@ -10,26 +10,26 @@ namespace Zerra.Serialization
     {
         private sealed class ReadFrame
         {
-            public TypeDetail TypeDetail;
+            public TypeDetail? TypeDetail;
             public ReadFrameType FrameType;
 
-            public Graph Graph;
+            public Graph? Graph;
 
-            public object ResultObject;
-            public string ResultString;
+            public object? ResultObject;
+            public string? ResultString;
 
             public byte State;
 
-            public MemberDetail ObjectProperty;
+            public MemberDetail? ObjectProperty;
 
-            public MethodDetail AddMethod;
-            public object[] AddMethodArgs;
-            public TypeDetail ArrayElementType;
+            public MethodDetail? AddMethod;
+            public object?[]? AddMethodArgs;
+            public TypeDetail? ArrayElementType;
 
             public char FirstLiteralChar;
 
             public int PropertyIndexForNameless;
-            public object DictionaryKey;
+            public object? DictionaryKey;
         }
     }
 }

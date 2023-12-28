@@ -49,9 +49,9 @@ namespace Zerra.Web
 
             if (context.Request.Method == "OPTIONS")
             {
-                context.Response.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, settings.AllowOriginsString);
-                context.Response.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-                context.Response.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+                context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, settings.AllowOriginsString);
+                context.Response.Headers.Append(HttpCommon.AccessControlAllowMethodsHeader, "*");
+                context.Response.Headers.Append(HttpCommon.AccessControlAllowHeadersHeader, "*");
                 return;
             }
 
@@ -162,19 +162,19 @@ namespace Zerra.Web
                     inHandlerContext = false;
 
                     //Response Header
-                    context.Response.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
-                    context.Response.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-                    context.Response.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+                    context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
+                    context.Response.Headers.Append(HttpCommon.AccessControlAllowMethodsHeader, "*");
+                    context.Response.Headers.Append(HttpCommon.AccessControlAllowHeadersHeader, "*");
                     switch (contentType.Value)
                     {
                         case ContentType.Bytes:
-                            context.Response.Headers.Add(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeBytes);
+                            context.Response.Headers.Append(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeBytes);
                             break;
                         case ContentType.Json:
-                            context.Response.Headers.Add(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeJson);
+                            context.Response.Headers.Append(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeJson);
                             break;
                         case ContentType.JsonNameless:
-                            context.Response.Headers.Add(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeJsonNameless);
+                            context.Response.Headers.Append(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeJsonNameless);
                             break;
                         default:
                             throw new NotImplementedException();
@@ -197,40 +197,22 @@ namespace Zerra.Web
                                 {
                                     responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
 
-#if NETSTANDARD2_0
-                                    while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length)) > 0)
-                                        await responseBodyCryptoStream.WriteAsync(bufferOwner, 0, bytesRead);
-#else
                                     while ((bytesRead = await result.Stream.ReadAsync(buffer)) > 0)
                                         await responseBodyCryptoStream.WriteAsync(buffer.Slice(0, bytesRead));
-#endif
-#if NET5_0_OR_GREATER
                                     await responseBodyCryptoStream.FlushFinalBlockAsync();
-#else
-                                    responseBodyCryptoStream.FlushFinalBlock();
-#endif
                                 }
                                 finally
                                 {
                                     if (responseBodyCryptoStream != null)
                                     {
-#if NETSTANDARD2_0
-                                        responseBodyCryptoStream.Dispose();
-#else
                                         await responseBodyCryptoStream.DisposeAsync();
-#endif
                                     }
                                 }
                             }
                             else
                             {
-#if NETSTANDARD2_0
-                                while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length)) > 0)
-                                    await responseBodyStream.WriteAsync(bufferOwner, 0, bytesRead);
-#else
                                 while ((bytesRead = await result.Stream.ReadAsync(buffer)) > 0)
                                     await responseBodyStream.WriteAsync(buffer.Slice(0, bytesRead));
-#endif
                                 await responseBodyStream.FlushAsync();
                             }
                         }
@@ -252,22 +234,14 @@ namespace Zerra.Web
                                 responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
 
                                 await ContentTypeSerializer.SerializeAsync(contentType.Value, responseBodyCryptoStream, result.Model);
-#if NET5_0_OR_GREATER
                                 await responseBodyCryptoStream.FlushFinalBlockAsync();
-#else
-                                responseBodyCryptoStream.FlushFinalBlock();
-#endif
                                 return;
                             }
                             finally
                             {
                                 if (responseBodyCryptoStream != null)
                                 {
-#if NETSTANDARD2_0
-                                    responseBodyCryptoStream.Dispose();
-#else
                                     await responseBodyCryptoStream.DisposeAsync();
-#endif
                                 }
                             }
                         }
@@ -297,27 +271,27 @@ namespace Zerra.Web
                     var command = (ICommand)JsonSerializer.Deserialize(messageType, data.MessageData);
 
                     inHandlerContext = true;
-                    if (data.MessageAwait)
+                    if (data.MessageAwait == true)
                         await settings.HandlerAwaitAsync(command, data.Source, false);
                     else
                         await settings.HandlerAsync(command, data.Source, false);
                     inHandlerContext = false;
 
                     //Response Header
-                    context.Response.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
-                    context.Response.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
-                    context.Response.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-                    context.Response.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+                    context.Response.Headers.Append(HttpCommon.ProviderTypeHeader, data.ProviderType);
+                    context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
+                    context.Response.Headers.Append(HttpCommon.AccessControlAllowMethodsHeader, "*");
+                    context.Response.Headers.Append(HttpCommon.AccessControlAllowHeadersHeader, "*");
                     switch (contentType.Value)
                     {
                         case ContentType.Bytes:
-                            context.Response.Headers.Add(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeBytes);
+                            context.Response.Headers.Append(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeBytes);
                             break;
                         case ContentType.Json:
-                            context.Response.Headers.Add(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeJson);
+                            context.Response.Headers.Append(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeJson);
                             break;
                         case ContentType.JsonNameless:
-                            context.Response.Headers.Add(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeJsonNameless);
+                            context.Response.Headers.Append(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeJsonNameless);
                             break;
                         default:
                             throw new NotImplementedException();
@@ -340,19 +314,19 @@ namespace Zerra.Web
                 context.Response.StatusCode = 500;
 
                 //Response Header
-                context.Response.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
-                context.Response.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-                context.Response.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+                context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
+                context.Response.Headers.Append(HttpCommon.AccessControlAllowMethodsHeader, "*");
+                context.Response.Headers.Append(HttpCommon.AccessControlAllowHeadersHeader, "*");
                 switch (contentType.Value)
                 {
                     case ContentType.Bytes:
-                        context.Response.Headers.Add(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeBytes);
+                        context.Response.Headers.Append(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeBytes);
                         break;
                     case ContentType.Json:
-                        context.Response.Headers.Add(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeJson);
+                        context.Response.Headers.Append(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeJson);
                         break;
                     case ContentType.JsonNameless:
-                        context.Response.Headers.Add(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeJsonNameless);
+                        context.Response.Headers.Append(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeJsonNameless);
                         break;
                     default:
                         throw new NotImplementedException();
@@ -363,16 +337,8 @@ namespace Zerra.Web
                 {
                     var responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
                     await ContentTypeSerializer.SerializeExceptionAsync(contentType.Value, responseBodyCryptoStream, ex);
-#if NET5_0_OR_GREATER
                     await responseBodyCryptoStream.FlushFinalBlockAsync();
-#else
-                    responseBodyCryptoStream.FlushFinalBlock();
-#endif
-#if NETSTANDARD2_0
-                    responseBodyCryptoStream.Dispose();
-#else
                     await responseBodyCryptoStream.DisposeAsync();
-#endif
                 }
                 else
                 {

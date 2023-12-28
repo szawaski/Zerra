@@ -355,9 +355,7 @@ namespace Zerra.Reflection
             il.MarkLabel(argsLengthCheck);
             il.Emit(OpCodes.Ldc_I4, parameters.Length);
             il.Emit(OpCodes.Beq, argsOk);
-#pragma warning disable CS8604 // Possible null reference argument.
-            il.Emit(OpCodes.Newobj, typeof(TargetParameterCountException).GetConstructor(Type.EmptyTypes));
-#pragma warning restore CS8604 // Possible null reference argument.
+            il.Emit(OpCodes.Newobj, typeof(TargetParameterCountException).GetConstructor(Type.EmptyTypes)!);
             il.Emit(OpCodes.Throw);
             il.MarkLabel(argsOk);
 

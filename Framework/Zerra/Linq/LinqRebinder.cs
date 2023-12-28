@@ -237,18 +237,21 @@ namespace Zerra.Linq
                     {
                         var cast = (IndexExpression)exp;
 
-
-                        var replacementExpressions = new Expression[cast.Arguments.Count];
-                        for (var i = 0; i < cast.Arguments.Count; i++)
+                        if (cast.Object != null)
                         {
-                            var replacementExpression = Rebind(cast.Arguments[i], context);
-                            replacementExpressions[i] = replacementExpression;
+                            var replacementExpressions = new Expression[cast.Arguments.Count];
+                            for (var i = 0; i < cast.Arguments.Count; i++)
+                            {
+                                var replacementExpression = Rebind(cast.Arguments[i], context);
+                                replacementExpressions[i] = replacementExpression;
+                            }
+
+                            return Expression.MakeIndex(Rebind(cast.Object, context), cast.Indexer, replacementExpressions);
                         }
-
-#pragma warning disable CS8604 // Possible null reference argument.
-                        return Expression.MakeIndex(cast.Object != null ? Rebind(cast.Object, context) : null, cast.Indexer, replacementExpressions);
-#pragma warning restore CS8604 // Possible null reference argument.
-
+                        else
+                        {
+                            return exp;
+                        }
                     }
                 case ExpressionType.Invoke:
                     {

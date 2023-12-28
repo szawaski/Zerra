@@ -102,11 +102,7 @@ namespace Zerra.Web
                     };
 
                     context.Response.ContentLength = response.Bytes.Length;
-#if NETSTANDARD2_0
-                    await context.Response.Body.WriteAsync(response.Bytes, 0, response.Bytes.Length);
-#else
                     await context.Response.Body.WriteAsync(response.Bytes.AsMemory(0, response.Bytes.Length));
-#endif
                 }
                 else if (response.Stream != null)
                 {
@@ -133,11 +129,7 @@ namespace Zerra.Web
                     context.Response.ContentType = "text/plain";
                     var errorBytes = Encoding.UTF8.GetBytes(!String.IsNullOrEmpty(ex.Message) ? ex.Message : "Unauthorized");
                     context.Response.ContentLength = errorBytes.Length;
-#if NETSTANDARD2_0
-                    await context.Response.Body.WriteAsync(errorBytes, 0, errorBytes.Length);
-#else
                     await context.Response.Body.WriteAsync(errorBytes.AsMemory(0, errorBytes.Length));
-#endif
                     await context.Response.Body.FlushAsync();
                 }
                 else
@@ -146,11 +138,7 @@ namespace Zerra.Web
                     context.Response.ContentType = "text/plain";
                     var errorBytes = Encoding.UTF8.GetBytes(!String.IsNullOrEmpty(ex.Message) ? ex.Message : ex.GetType().Name);
                     context.Response.ContentLength = errorBytes.Length;
-#if NETSTANDARD2_0
-                    await context.Response.Body.WriteAsync(errorBytes, 0, errorBytes.Length);
-#else
                     await context.Response.Body.WriteAsync(errorBytes.AsMemory(0, errorBytes.Length));
-#endif
                     await context.Response.Body.FlushAsync();
                 }
             }

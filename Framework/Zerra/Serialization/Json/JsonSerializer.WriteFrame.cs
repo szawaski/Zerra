@@ -12,22 +12,22 @@ namespace Zerra.Serialization
     {
         private sealed class WriteFrame
         {
-            public TypeDetail TypeDetail;
+            public TypeDetail? TypeDetail;
             public WriteFrameType FrameType;
 
-            public Graph Graph;
+            public Graph? Graph;
 
-            public object Object;
+            public object? Object;
 
             public byte State;
 
-            public MemberDetail ObjectProperty;
-            public object ObjectPropertyValue;
+            public MemberDetail? ObjectProperty;
+            public object? ObjectPropertyValue;
 
             public int PropertyIndexForNameless;
 
-            public IEnumerator<MemberDetail> MemberEnumerator;
-            public IEnumerator Enumerator;
+            public IEnumerator<MemberDetail>? MemberEnumerator;
+            public IEnumerator? Enumerator;
             public bool EnumeratorPassedFirstProperty;
             public bool EnumeratorPassedFirstProperty2;
         }

@@ -405,26 +405,14 @@ namespace Zerra.Collections
             {
                 if (!dictionary.ContainsKey(key))
                 {
-#if NETSTANDARD2_0
-#pragma warning disable CS8601 // Possible null reference assignment.
                     value = default;
-#pragma warning restore CS8601 // Possible null reference assignment.
-#else
-                    value = default;
-#endif
 
                     return false;
                 }
                 value = dictionary[key];
                 if (!dictionary.Remove(key))
                 {
-#if NETSTANDARD2_0
-#pragma warning disable CS8601 // Possible null reference assignment.
                     value = default;
-#pragma warning restore CS8601 // Possible null reference assignment.
-#else
-                    value = default;
-#endif
                     return false;
                 }
                 return true;
