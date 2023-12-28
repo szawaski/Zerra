@@ -18,7 +18,7 @@ namespace Zerra.Repository
         ICollection<TModel> OnGetIncludingBase(ICollection<TModel> models, Graph<TModel> graph);
         Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel> graph);
 
-        Expression<Func<TModel, bool>> GetWhereExpressionIncludingBase(Graph<TModel> graph);
+        Expression<Func<TModel, bool>>? GetWhereExpressionIncludingBase(Graph<TModel> graph);
     }
 
     public interface IProviderRelation

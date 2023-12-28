@@ -13,9 +13,9 @@ namespace Zerra.Repository
         public TemporalQueryAny(DateTime? temporalDateFrom, DateTime? temporalDateTo, Expression<Func<TModel, bool>> where) : this(temporalDateFrom, temporalDateTo, null, null, where) { }
 
         public TemporalQueryAny(ulong? temporalNumberFrom, ulong? temporalNumberTo) : this(null, null, temporalNumberFrom, temporalNumberTo, null) { }
-        public TemporalQueryAny(ulong? temporalNumberFrom, ulong? temporalNumberTo, Expression<Func<TModel, bool>> where) : this(null, null, temporalNumberFrom, temporalNumberTo, where) { }
+        public TemporalQueryAny(ulong? temporalNumberFrom, ulong? temporalNumberTo, Expression<Func<TModel, bool>>? where) : this(null, null, temporalNumberFrom, temporalNumberTo, where) { }
 
-        public TemporalQueryAny(DateTime? temporalDateFrom, DateTime? temporalDateTo, ulong? temporalNumberFrom, ulong? temporalNumberTo, Expression<Func<TModel, bool>> where)
+        public TemporalQueryAny(DateTime? temporalDateFrom, DateTime? temporalDateTo, ulong? temporalNumberFrom, ulong? temporalNumberTo, Expression<Func<TModel, bool>>? where)
             : base(where)
         {
             this.TemporalOrder = Repository.TemporalOrder.Newest;

@@ -20,7 +20,7 @@ namespace Zerra.Repository
         public Graph<TModel> GraphChange { get; set; }
 
         public TModel Model { get; set; }
-        public object Source { get; set; }
-        public string SourceType { get; set; }
+        public object? Source { get; set; }
+        public string? SourceType { get; set; }
     }
 }

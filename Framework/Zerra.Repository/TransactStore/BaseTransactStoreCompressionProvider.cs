@@ -18,7 +18,7 @@ namespace Zerra.Repository
         where TModel : class, new()
     {
         public virtual bool Enabled { get { return true; } }
-        public virtual Graph<TModel> Properties { get { return null; } }
+        public virtual Graph<TModel>? Properties { get { return null; } }
 
         public override sealed Expression<Func<TModel, bool>> GetWhereExpressionIncludingBase(Graph<TModel> graph)
         {

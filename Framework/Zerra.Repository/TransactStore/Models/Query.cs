@@ -11,11 +11,11 @@ namespace Zerra.Repository
     {
         public QueryOperation Operation { get; private set; }
 
-        public Expression<Func<TModel, bool>> Where { get; set; }
-        public QueryOrder<TModel> Order { get; set; }
+        public Expression<Func<TModel, bool>>? Where { get; set; }
+        public QueryOrder<TModel>? Order { get; set; }
         public int? Skip { get; set; }
         public int? Take { get; set; }
-        public Graph<TModel> Graph { get; set; }
+        public Graph<TModel>? Graph { get; set; }
 
         public TemporalOrder? TemporalOrder { get; set; }
         public DateTime? TemporalDateFrom { get; set; }

@@ -8,15 +8,13 @@ namespace Zerra.Repository
 {
     public abstract partial class RootTransactStoreProvider<TModel> where TModel : class, new()
     {
-        private sealed class GetWhereExpressionMethodInfo
+        private sealed class OnQueryMethodInfo
         {
-            public Type PropertyType { get; private set; }
-            public bool Enumerable { get; private set; }
-            public Type RelatedProviderType { get; private set; }
-            public GetWhereExpressionMethodInfo(Type propertyType, bool enumerable, Type relatedProviderType)
+            public Type PropertyType { get; set; }
+            public Type RelatedProviderType { get; set; }
+            public OnQueryMethodInfo(Type propertyType, Type relatedProviderType)
             {
                 this.PropertyType = propertyType;
-                this.Enumerable = enumerable;
                 this.RelatedProviderType = relatedProviderType;
             }
         }

@@ -31,10 +31,10 @@ namespace Zerra.Repository.Reflection
             return modelInfo;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, object> getterFunctionsByAttribute = new();
-        private static Func<T, object> GetGetterFunctionByNameOrAttribute<T>(string propertyNames, Type attributeType)
+        private static readonly ConcurrentFactoryDictionary<TypeKey, object?> getterFunctionsByAttribute = new();
+        private static Func<T, object?>? GetGetterFunctionByNameOrAttribute<T>(string? propertyNames, Type? attributeType)
         {
-            TypeKey key = default;
+            TypeKey? key = default;
             if (attributeType != null)
                 key = new TypeKey(propertyNames, typeof(T), attributeType);
             else
@@ -45,10 +45,10 @@ namespace Zerra.Repository.Reflection
                 return GenerateGetterFunctionByNameOrAttribute<T>(propertyNames, attributeType);
             });
 
-            var expression = (Func<T, object>)getter;
+            var expression = (Func<T, object>?)getter;
             return expression;
         }
-        private static Func<T, object> GenerateGetterFunctionByNameOrAttribute<T>(string propertyNames, Type attributeType)
+        private static Func<T, object>? GenerateGetterFunctionByNameOrAttribute<T>(string? propertyNames, Type? attributeType)
         {
             var type = typeof(T);
 
@@ -76,7 +76,7 @@ namespace Zerra.Repository.Reflection
                 }
             }
 
-            Expression accessor = null;
+            Expression? accessor = null;
             if (propertyExpressions.Count == 1)
             {
                 accessor = Expression.Convert(propertyExpressions.Single(), typeof(object));
@@ -87,8 +87,8 @@ namespace Zerra.Repository.Reflection
             }
             else
             {
-                return null;
-                //throw new InvalidOperationException(String.Format("Attribute {0} on property not found in object {1}.", attributeType.FullName, type.FullName));
+                //return null;
+                throw new InvalidOperationException($"Getter function not found on {type.GetNiceName()}");
             }
 
             var lambda = Expression.Lambda<Func<T, object>>(accessor, sourceExpression);
@@ -96,9 +96,9 @@ namespace Zerra.Repository.Reflection
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, object> setterFunctionsByAttribute = new();
-        private static Action<T, object> GetSetterFunctionByNameOrAttribute<T>(string propertyNames, Type attributeType)
+        private static Action<T, object?> GetSetterFunctionByNameOrAttribute<T>(string? propertyNames, Type? attributeType)
         {
-            TypeKey key = default;
+            TypeKey? key = default;
             if (attributeType != null)
                 key = new TypeKey(propertyNames, typeof(T), attributeType);
             else
@@ -109,10 +109,10 @@ namespace Zerra.Repository.Reflection
                 return GenerateSetterFunctionByNameOrAttribute<T>(propertyNames, attributeType);
             });
 
-            var expression = (Action<T, object>)setter;
+            var expression = (Action<T, object?>)setter;
             return expression;
         }
-        private static Action<T, object> GenerateSetterFunctionByNameOrAttribute<T>(string propertyNames, Type attributeType)
+        private static Action<T, object?> GenerateSetterFunctionByNameOrAttribute<T>(string? propertyNames, Type? attributeType)
         {
             var type = typeof(T);
 
@@ -161,10 +161,10 @@ namespace Zerra.Repository.Reflection
             }
             else
             {
-                throw new InvalidOperationException($"Attribute {attributeType.FullName} on property not found in object {type.FullName}.");
+                throw new InvalidOperationException($"Setter function not found on {type.GetNiceName()}");
             }
 
-            var lambda = Expression.Lambda<Action<T, object>>(setter, sourceExpression, parameterValue);
+            var lambda = Expression.Lambda<Action<T, object?>>(setter, sourceExpression, parameterValue);
             return lambda.Compile();
         }
 
@@ -193,13 +193,13 @@ namespace Zerra.Repository.Reflection
         }
 
         private static readonly MethodInfo getIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.GetIdentity) && x.IsGenericMethod);
-        public static object GetIdentity<TModel>(TModel model) where TModel : class, new()
+        public static object? GetIdentity<TModel>(TModel model) where TModel : class, new()
         {
             var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(null, typeof(IdentityAttribute));
             var id = modelIdentityAccessor.Invoke(model);
             return id;
         }
-        public static object GetIdentity(Type type, object model)
+        public static object? GetIdentity(Type type, object model)
         {
             var genericGetIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(getIdentityMethod, type);
             return genericGetIdentityMethod.Caller(null, new object[] { model });
@@ -218,20 +218,20 @@ namespace Zerra.Repository.Reflection
         }
 
         private static readonly MethodInfo getForeignIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.GetForeignIdentity) && x.IsGenericMethod);
-        public static object GetForeignIdentity<TModel>(string foreignIdentityNames, TModel model) where TModel : class, new()
+        public static object? GetForeignIdentity<TModel>(string foreignIdentityNames, TModel model) where TModel : class, new()
         {
             var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(foreignIdentityNames, null);
             var id = modelIdentityAccessor.Invoke(model);
             return id;
         }
-        public static object GetForeignIdentity(Type type, string foreignIdentityNames, object model)
+        public static object? GetForeignIdentity(Type type, string foreignIdentityNames, object model)
         {
             var genericGetForeignIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(getForeignIdentityMethod, type);
             return genericGetForeignIdentityMethod.Caller(null, new object[] { foreignIdentityNames, model });
         }
 
         private static readonly MethodInfo setForeignIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.SetForeignIdentity) && x.IsGenericMethod);
-        public static void SetForeignIdentity<TModel>(string foreignIdentityNames, TModel model, object identity) where TModel : class, new()
+        public static void SetForeignIdentity<TModel>(string foreignIdentityNames, TModel model, object? identity) where TModel : class, new()
         {
             var setter = GetSetterFunctionByNameOrAttribute<TModel>(foreignIdentityNames, null);
             setter.Invoke(model, identity);
@@ -248,7 +248,7 @@ namespace Zerra.Repository.Reflection
             //return identity1.ToStringIfArray() = identity2.ToStringIfArray();
         }
 
-        public static Expression<Func<TModel, bool>> GetIdentityExpression<TModel>(object identity)
+        public static Expression<Func<TModel, bool>>? GetIdentityExpression<TModel>(object identity)
         {
             var type = typeof(TModel);
             var queryExpressionParameter = Expression.Parameter(type, "x");
@@ -260,7 +260,10 @@ namespace Zerra.Repository.Reflection
             if (identity is not object[] ids)
                 ids = new object[] { identity };
 
-            Expression where = null;
+            if (identityProperties.Count != ids.Length)
+                throw new InvalidOperationException($"{identity} values do not match {type.GetNiceName()} identity properties");
+
+            Expression? where = null;
             var i = 0;
             foreach (var identityProperty in identityProperties)
             {
@@ -278,6 +281,9 @@ namespace Zerra.Repository.Reflection
 
                 i++;
             }
+
+            if (where == null)
+                return null;
 
             var queryExpression = Expression.Lambda<Func<TModel, bool>>(where, queryExpressionParameter);
 

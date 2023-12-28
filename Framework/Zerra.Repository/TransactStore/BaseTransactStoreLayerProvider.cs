@@ -15,7 +15,7 @@ namespace Zerra.Repository
         where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {
-        protected IProviderRelation<TModel> ProviderRelation = null;
+        protected IProviderRelation<TModel>? ProviderRelation = null;
 
         public BaseTransactStoreLayerProvider()
         {
@@ -59,7 +59,7 @@ namespace Zerra.Repository
             return ProviderRelation.OnGetIncludingBaseAsync(models, graph);
         }
 
-        public object Query(Query<TModel> query)
+        public object? Query(Query<TModel> query)
         {
             return query.Operation switch
             {
@@ -73,7 +73,7 @@ namespace Zerra.Repository
             };
             ;
         }
-        public Task<object> QueryAsync(Query<TModel> query)
+        public Task<object?> QueryAsync(Query<TModel> query)
         {
             return query.Operation switch
             {
@@ -89,18 +89,18 @@ namespace Zerra.Repository
         }
 
         public abstract object Many(Query<TModel> query);
-        public abstract object First(Query<TModel> query);
-        public abstract object Single(Query<TModel> query);
+        public abstract object? First(Query<TModel> query);
+        public abstract object? Single(Query<TModel> query);
         public abstract object Count(Query<TModel> query);
         public abstract object Any(Query<TModel> query);
         public abstract object EventMany(Query<TModel> query);
 
-        public abstract Task<object> ManyAsync(Query<TModel> query);
-        public abstract Task<object> FirstAsync(Query<TModel> query);
-        public abstract Task<object> SingleAsync(Query<TModel> query);
-        public abstract Task<object> CountAsync(Query<TModel> query);
-        public abstract Task<object> AnyAsync(Query<TModel> query);
-        public abstract Task<object> EventManyAsync(Query<TModel> query);
+        public abstract Task<object?> ManyAsync(Query<TModel> query);
+        public abstract Task<object?> FirstAsync(Query<TModel> query);
+        public abstract Task<object?> SingleAsync(Query<TModel> query);
+        public abstract Task<object?> CountAsync(Query<TModel> query);
+        public abstract Task<object?> AnyAsync(Query<TModel> query);
+        public abstract Task<object?> EventManyAsync(Query<TModel> query);
 
         public void Persist(Persist<TModel> persist)
         {

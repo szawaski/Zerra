@@ -37,7 +37,7 @@ namespace Zerra.Repository
 
             return selectedArray;
         }
-        protected override sealed TModel QueryFirst(Query<TModel> query)
+        protected override sealed TModel? QueryFirst(Query<TModel> query)
         {
             var models = ReadModels(query);
 
@@ -49,7 +49,7 @@ namespace Zerra.Repository
 
             return selected;
         }
-        protected override sealed TModel QuerySingle(Query<TModel> query)
+        protected override sealed TModel? QuerySingle(Query<TModel> query)
         {
             var selector = query.Graph.GenerateSelect<TModel>();
 
@@ -105,7 +105,7 @@ namespace Zerra.Repository
 
             return eventModelSelectedArray;
         }
-        protected override sealed EventModel<TModel> QueryEventFirst(Query<TModel> query)
+        protected override sealed EventModel<TModel>? QueryEventFirst(Query<TModel> query)
         {
             var eventModels = ReadEventModels(query);
 
@@ -116,12 +116,14 @@ namespace Zerra.Repository
             var queriedSet = set.Query(query);
 
             var selected = queriedSet.FirstOrDefault();
+            if (selected == null)
+                return null;
 
-            var eventModelSelected = eventModels.First(x => x.Model == selected);
+            var eventModelSelected = eventModels.FirstOrDefault(x => x.Model == selected);
 
             return eventModelSelected;
         }
-        protected override sealed EventModel<TModel> QueryEventSingle(Query<TModel> query)
+        protected override sealed EventModel<TModel>? QueryEventSingle(Query<TModel> query)
         {
             var eventModels = ReadEventModels(query);
 
@@ -132,8 +134,10 @@ namespace Zerra.Repository
             var queriedSet = set.Query(query);
 
             var selected = queriedSet.FirstOrDefault();
+            if (selected == null)
+                return null;
 
-            var eventModelSelected = eventModels.Single(x => x.Model == selected);
+            var eventModelSelected = eventModels.SingleOrDefault(x => x.Model == selected);
 
             return eventModelSelected;
         }
@@ -178,7 +182,7 @@ namespace Zerra.Repository
 
             return selectedArray;
         }
-        protected override sealed async Task<TModel> QueryFirstAsync(Query<TModel> query)
+        protected override sealed async Task<TModel?> QueryFirstAsync(Query<TModel> query)
         {
             var models = await ReadModelsAsync(query);
 
@@ -190,7 +194,7 @@ namespace Zerra.Repository
 
             return selected;
         }
-        protected override sealed async Task<TModel> QuerySingleAsync(Query<TModel> query)
+        protected override sealed async Task<TModel?> QuerySingleAsync(Query<TModel> query)
         {
             var selector = query.Graph.GenerateSelect<TModel>();
 
@@ -246,7 +250,7 @@ namespace Zerra.Repository
 
             return eventModelSelectedArray;
         }
-        protected override sealed async Task<EventModel<TModel>> QueryEventFirstAsync(Query<TModel> query)
+        protected override sealed async Task<EventModel<TModel>?> QueryEventFirstAsync(Query<TModel> query)
         {
             var eventModels = await ReadEventModelsAsync(query);
 
@@ -257,12 +261,14 @@ namespace Zerra.Repository
             var queriedSet = set.Query(query);
 
             var selected = queriedSet.FirstOrDefault();
+            if (selected == null)
+                return null;
 
-            var eventModelSelected = eventModels.First(x => x.Model == selected);
+            var eventModelSelected = eventModels.FirstOrDefault(x => x.Model == selected);
 
             return eventModelSelected;
         }
-        protected override sealed async Task<EventModel<TModel>> QueryEventSingleAsync(Query<TModel> query)
+        protected override sealed async Task<EventModel<TModel>?> QueryEventSingleAsync(Query<TModel> query)
         {
             var eventModels = await ReadEventModelsAsync(query);
 
@@ -273,8 +279,10 @@ namespace Zerra.Repository
             var queriedSet = set.Query(query);
 
             var selected = queriedSet.FirstOrDefault();
+            if (selected == null)
+                return null;
 
-            var eventModelSelected = eventModels.Single(x => x.Model == selected);
+            var eventModelSelected = eventModels.SingleOrDefault(x => x.Model == selected);
 
             return eventModelSelected;
         }
@@ -627,8 +635,8 @@ namespace Zerra.Repository
                 {
                     case TemporalOrder.Newest:
                         {
-                            EventStoreEventModelData<TModel> eventModelData = null;
-                            EventStoreEventData thisEventData = null;
+                            EventStoreEventModelData<TModel>? eventModelData = null;
+                            EventStoreEventData? thisEventData = null;
                             foreach (var eventData in eventDatas.Reverse())
                             {
                                 thisEventData = eventData;
@@ -637,7 +645,7 @@ namespace Zerra.Repository
 
                                 if (query.TemporalDateTo.HasValue && query.TemporalDateTo.Value < eventData.Date)
                                     break;
-                                if (!query.TemporalNumberTo.HasValue && eventData.Number < query.TemporalNumberTo.Value)
+                                if (query.TemporalNumberTo.HasValue && eventData.Number < query.TemporalNumberTo.Value)
                                     break;
                             }
                             var eventModel = new EventModel<TModel>()

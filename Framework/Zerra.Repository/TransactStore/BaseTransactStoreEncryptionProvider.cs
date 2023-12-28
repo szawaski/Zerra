@@ -22,21 +22,21 @@ namespace Zerra.Repository
         private const string encryptionPrefix = "<encrypted>";
 
         public virtual bool Enabled { get { return true; } }
-        public virtual Graph<TModel> Properties { get { return null; } }
+        public virtual Graph<TModel>? Properties { get { return null; } }
         public abstract SymmetricKey EncryptionKey { get; }
 
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 
-        private static Expression<Func<TModel, bool>> EncryptWhere(Expression<Func<TModel, bool>> expression)
+        private static Expression<Func<TModel, bool>>? EncryptWhere(Expression<Func<TModel, bool>>? expression)
         {
             return expression;
         }
-        private static QueryOrder<TModel> EncryptOrder(QueryOrder<TModel> order)
+        private static QueryOrder<TModel>? EncryptOrder(QueryOrder<TModel>? order)
         {
             return order;
         }
 
-        public TModel DecryptModel(TModel model, Graph<TModel> graph, bool newCopy)
+        public TModel DecryptModel(TModel model, Graph<TModel>? graph, bool newCopy)
         {
             if (!this.Enabled)
                 return model;
@@ -83,7 +83,7 @@ namespace Zerra.Repository
 
             return model;
         }
-        public ICollection<TModel> DecryptModels(ICollection<TModel> models, Graph<TModel> graph, bool newCopy)
+        public ICollection<TModel> DecryptModels(ICollection<TModel> models, Graph<TModel>? graph, bool newCopy)
         {
             if (!this.Enabled)
                 return models;
@@ -174,7 +174,7 @@ namespace Zerra.Repository
             var models = DecryptModels(encryptedModels, query.Graph, true);
             return models;
         }
-        public override sealed object First(Query<TModel> query)
+        public override sealed object? First(Query<TModel> query)
         {
             var whereCompressed = EncryptWhere(query.Where);
             var orderCompressed = EncryptOrder(query.Order);
@@ -183,7 +183,7 @@ namespace Zerra.Repository
             appenedQuery.Where = whereCompressed;
             appenedQuery.Order = orderCompressed;
 
-            var encryptedModels = (TModel)(NextProvider.Query(appenedQuery));
+            var encryptedModels = (TModel?)(NextProvider.Query(appenedQuery));
 
             if (encryptedModels == null)
                 return null;
@@ -191,14 +191,14 @@ namespace Zerra.Repository
             var model = DecryptModel(encryptedModels, query.Graph, true);
             return model;
         }
-        public override sealed object Single(Query<TModel> query)
+        public override sealed object? Single(Query<TModel> query)
         {
             var whereCompressed = EncryptWhere(query.Where);
 
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
 
-            var encryptedModels = (TModel)(NextProvider.Query(appenedQuery));
+            var encryptedModels = (TModel?)(NextProvider.Query(appenedQuery));
 
             if (encryptedModels == null)
                 return null;
@@ -252,7 +252,7 @@ namespace Zerra.Repository
             return eventModels;
         }
 
-        public override sealed async Task<object> ManyAsync(Query<TModel> query)
+        public override sealed async Task<object?> ManyAsync(Query<TModel> query)
         {
             var whereCompressed = EncryptWhere(query.Where);
             var orderCompressed = EncryptOrder(query.Order);
@@ -269,7 +269,7 @@ namespace Zerra.Repository
             var models = DecryptModels(encryptedModels, query.Graph, true);
             return models;
         }
-        public override sealed async Task<object> FirstAsync(Query<TModel> query)
+        public override sealed async Task<object?> FirstAsync(Query<TModel> query)
         {
             var whereCompressed = EncryptWhere(query.Where);
             var orderCompressed = EncryptOrder(query.Order);
@@ -278,7 +278,7 @@ namespace Zerra.Repository
             appenedQuery.Where = whereCompressed;
             appenedQuery.Order = orderCompressed;
 
-            var encryptedModels = (TModel)(await NextProvider.QueryAsync(appenedQuery));
+            var encryptedModels = (TModel?)(await NextProvider.QueryAsync(appenedQuery));
 
             if (encryptedModels == null)
                 return null;
@@ -286,14 +286,14 @@ namespace Zerra.Repository
             var model = DecryptModels(new TModel[] { encryptedModels }, query.Graph, true).FirstOrDefault();
             return model;
         }
-        public override sealed async Task<object> SingleAsync(Query<TModel> query)
+        public override sealed async Task<object?> SingleAsync(Query<TModel> query)
         {
             var whereCompressed = EncryptWhere(query.Where);
 
             var appenedQuery = new Query<TModel>(query);
             appenedQuery.Where = whereCompressed;
 
-            var encryptedModels = (TModel)(await NextProvider.QueryAsync(appenedQuery));
+            var encryptedModels = (TModel?)(await NextProvider.QueryAsync(appenedQuery));
 
             if (encryptedModels == null)
                 return null;
@@ -301,7 +301,7 @@ namespace Zerra.Repository
             var model = DecryptModels(new TModel[] { encryptedModels }, query.Graph, true).FirstOrDefault();
             return model;
         }
-        public override sealed Task<object> CountAsync(Query<TModel> query)
+        public override sealed Task<object?> CountAsync(Query<TModel> query)
         {
             var whereCompressed = EncryptWhere(query.Where);
 
@@ -311,7 +311,7 @@ namespace Zerra.Repository
             var count = NextProvider.QueryAsync(appenedQuery);
             return count;
         }
-        public override sealed Task<object> AnyAsync(Query<TModel> query)
+        public override sealed Task<object?> AnyAsync(Query<TModel> query)
         {
             var whereCompressed = EncryptWhere(query.Where);
 
@@ -321,7 +321,7 @@ namespace Zerra.Repository
             var any = NextProvider.QueryAsync(appenedQuery);
             return any;
         }
-        public override sealed async Task<object> EventManyAsync(Query<TModel> query)
+        public override sealed async Task<object?> EventManyAsync(Query<TModel> query)
         {
             var whereCompressed = EncryptWhere(query.Where);
             var orderCompressed = EncryptOrder(query.Order);
