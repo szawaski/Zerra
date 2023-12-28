@@ -226,7 +226,9 @@ namespace Zerra.CQRS.Network
                             if (!this.commandTypes.Contains(commandType))
                                 throw new CqrsNetworkException($"Unhandled Command Type {commandType.FullName}");
 
-                            var command = (ICommand)JsonSerializer.Deserialize(commandType, data.MessageData);
+                            var command = (ICommand?)JsonSerializer.Deserialize(commandType, data.MessageData);
+                            if (command == null)
+                                throw new Exception($"Invalid {nameof(data.MessageData)}");
 
                             inHandlerContext = true;
                             if (data.MessageAwait == true)

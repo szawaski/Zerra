@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -33,9 +34,9 @@ namespace Zerra.Serialization
         private static readonly JsonSerializerOptions defaultOptions = new();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object? ConvertStringToType(string s, TypeDetail? typeDetail)
+        private static object? ConvertStringToType(string? s, TypeDetail? typeDetail)
         {
-            if (typeDetail == null)
+            if (typeDetail == null || s == null)
                 return null;
 
             if (typeDetail.CoreType.HasValue)
@@ -346,7 +347,11 @@ namespace Zerra.Serialization
                 return memberDetail.Name;
             });
         }
-        private static bool TryGetMember(TypeDetail typeDetail, string propertyName, out MemberDetail memberDetail)
+        private static bool TryGetMember(TypeDetail typeDetail, string propertyName,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out MemberDetail memberDetail)
         {
             var membersByName = membersByNameByType.GetOrAdd(typeDetail, (typeDetail) =>
             {
@@ -378,7 +383,6 @@ namespace Zerra.Serialization
             });
 
             return membersByName.TryGetValue(propertyName, out memberDetail);
-
         }
     }
 }

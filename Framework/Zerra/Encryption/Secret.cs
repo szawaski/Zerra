@@ -16,7 +16,7 @@ namespace Zerra.Encryption
             this.secretEncrypted = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AESwithShift, key, bytes);
         }
 
-        private T GetSecret()
+        private T? GetSecret()
         {
             var encryptedBytes = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESwithShift, key, secretEncrypted);
             var secret = ByteSerializer.Deserialize<T>(encryptedBytes);

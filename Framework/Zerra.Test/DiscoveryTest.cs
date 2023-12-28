@@ -41,12 +41,11 @@ namespace Zerra.Test
         [TestMethod]
         public void ProviderResolverTraverseLayers()
         {
-            var providerType = ProviderResolver.GetFirstType(typeof(ITestProvider));
+            var providerType = ProviderResolver.GetTypeFirst(typeof(ITestProvider));
 
             while (true)
             {
                 var nextProviderType = ProviderResolver.GetNextType<ITestProvider>(providerType);
-
                 if (nextProviderType == null)
                     break;
 

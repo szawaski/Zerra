@@ -32,7 +32,7 @@ namespace Zerra.CQRS.Network
             _ = Log.InfoAsync($"{nameof(TcpRawCqrsClient)} started for {this.contentType} at {serviceUrl}");
         }
 
-        protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
+        protected override TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
             throttle.Wait();
 
@@ -188,8 +188,7 @@ namespace Zerra.CQRS.Network
                 _ = throttle.Release();
             }
         }
-
-        protected override async Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
+        protected override async Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
             await throttle.WaitAsync();
 

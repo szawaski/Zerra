@@ -19,7 +19,7 @@ namespace Zerra.Serialization
         {
             return (T?)DeserializeStackBased(typeof(T), bytes, options, graph);
         }
-        public static object DeserializeStackBased(Type type, Memory<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static object? DeserializeStackBased(Type type, Memory<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
 
@@ -297,7 +297,7 @@ namespace Zerra.Serialization
                     }
                 }
 
-                return (T)state.LastFrameResultObject;
+                return (T?)state.LastFrameResultObject;
             }
             finally
             {
@@ -623,6 +623,8 @@ namespace Zerra.Serialization
                             throw reader.CreateException("Unexpected character");
 
                         var propertyName = state.LastFrameResultString;
+                        if (String.IsNullOrWhiteSpace(propertyName))
+                            throw reader.CreateException("Unexpected character");
 
                         Graph? propertyGraph = null;
                         if (typeDetail != null && TryGetMember(typeDetail, propertyName, out var memberDetail))
@@ -844,7 +846,7 @@ namespace Zerra.Serialization
                         {
                             if (state.CurrentFrame.ResultObject != null)
                             {
-                                if (typeDetail.Type.IsArray && state.CurrentFrame.ArrayElementType != null)
+                                if (typeDetail != null && typeDetail.Type.IsArray && state.CurrentFrame.ArrayElementType != null)
                                 {
                                     var list = (IList)state.CurrentFrame.ResultObject;
                                     var array = Array.CreateInstance(state.CurrentFrame.ArrayElementType.Type, list.Count);
@@ -891,7 +893,7 @@ namespace Zerra.Serialization
                             case ']':
                                 if (state.CurrentFrame.ResultObject != null)
                                 {
-                                    if (typeDetail.Type.IsArray && state.CurrentFrame.ArrayElementType != null)
+                                    if (typeDetail != null && typeDetail.Type.IsArray && state.CurrentFrame.ArrayElementType != null)
                                     {
                                         var list = (IList)state.CurrentFrame.ResultObject;
                                         var array = Array.CreateInstance(state.CurrentFrame.ArrayElementType.Type, list.Count);
@@ -968,7 +970,7 @@ namespace Zerra.Serialization
                                     }
                                     else
                                     {
-                                        dictionary = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, state.LastFrameResultObject);
+                                        dictionary = Instantiator.Create(typeDetail!.Type, new Type[] { innerItemEnumerable }, state.LastFrameResultObject);
                                     }
 
                                     memberDetail.Setter(state.CurrentFrame.ResultObject, dictionary);

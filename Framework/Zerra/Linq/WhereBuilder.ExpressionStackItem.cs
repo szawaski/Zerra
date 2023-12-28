@@ -12,7 +12,7 @@ namespace Zerra.Linq
     {
         private sealed class ExpressionStackItem
         {
-            public Expression<Func<TModel, bool>> Expression { get; set; }
+            public Expression<Func<TModel, bool>> Expression { get; set; } = null!;
             public bool And { get; set; }
             public bool Or { get; set; }
             public bool StartGroup { get; set; }

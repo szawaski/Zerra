@@ -229,7 +229,7 @@ namespace Zerra.Reflection
 
             return false;
         }
-        public static unsafe bool HasImplementationClass(Type interfaceType, IReadOnlyList<Type> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface)
+        public static unsafe bool HasImplementationClass(Type interfaceType, IReadOnlyList<Type?> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
@@ -402,7 +402,7 @@ namespace Zerra.Reflection
                 if (!interfaceByType.TryGetValue(classType, out var interfaceList))
                     continue;
 
-                if (secondaryInterface == null || interfaceList.Contains(secondaryInterface))
+                if (interfaceList.Contains(secondaryInterface))
                 {
                     if (found == null)
                     {
@@ -428,7 +428,7 @@ namespace Zerra.Reflection
 
             return found;
         }
-        public static unsafe Type? GetImplementationClass(Type interfaceType, IReadOnlyList<Type> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface, bool throwException = true)
+        public static unsafe Type? GetImplementationClass(Type interfaceType, IReadOnlyList<Type?> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface, bool throwException = true)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
@@ -531,14 +531,14 @@ namespace Zerra.Reflection
             if (index == -2)
             {
                 if (throwException)
-                    throw new Exception($"Multiple classes found for {interfaceType.GetNiceName()} with secondary interfaces type {secondaryInterfaces[firstLevelFound].GetNiceName()}");
+                    throw new Exception($"Multiple classes found for {interfaceType.GetNiceName()} with secondary interfaces type {secondaryInterfaces[firstLevelFound]?.GetNiceName()}");
                 else
                     return null;
             }
             if (index == -1)
             {
                 if (throwException)
-                    throw new Exception($"No classes found for {interfaceType.GetNiceName()} with secondary interfaces types {String.Join(", ", secondaryInterfaces.Select(x => x.GetNiceName()))}");
+                    throw new Exception($"No classes found for {interfaceType.GetNiceName()} with secondary interfaces types {String.Join(", ", secondaryInterfaces.Select(x => x == null ? "null" : x.GetNiceName()))}");
                 else
                     return null;
             }
@@ -749,7 +749,7 @@ namespace Zerra.Reflection
         {
             var index = 0;
             var chars = name.AsSpan();
-            string currentName = null;
+            string? currentName = null;
 
             var current = new List<char>();
             var genericArguments = new List<Type>();

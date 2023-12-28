@@ -29,7 +29,7 @@ namespace Zerra.CQRS.Network
             this.requestContentType = contentType;
         }
 
-        protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
+        protected override TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
             var providerName = interfaceType.Name;
             var stringArguments = new string[arguments.Length];
@@ -49,7 +49,7 @@ namespace Zerra.CQRS.Network
             return model;
         }
 
-        protected override Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
+        protected override Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
             var providerName = interfaceType.Name;
             var stringArguments = new string[arguments.Length];
@@ -87,7 +87,7 @@ namespace Zerra.CQRS.Network
         }
 
         private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(ApiClient)).MethodDetails.First(x => x.MethodInfo.Name == nameof(ApiClient.RequestAsync)).MethodInfo;
-        private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, string address, string? providerType, ContentType contentType, object data, bool getResponseData)
+        private TReturn? Request<TReturn>(SemaphoreSlim throttle, bool isStream, string address, string? providerType, ContentType contentType, object data, bool getResponseData)
         {
             throttle.Wait();
 
@@ -177,7 +177,7 @@ namespace Zerra.CQRS.Network
                 throttle.Release();
             }
         }
-        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, string address, string? providerType, ContentType contentType, object data, bool getResponseData)
+        private async Task<TReturn?> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, string address, string? providerType, ContentType contentType, object data, bool getResponseData)
         {
             await throttle.WaitAsync();
 
@@ -235,7 +235,7 @@ namespace Zerra.CQRS.Network
 
                 if (isStream)
                 {
-                    return (TReturn)(object)responseStream; //TODO better way to convert type???
+                    return (TReturn?)(object)responseStream; //TODO better way to convert type???
                 }
                 else
                 {

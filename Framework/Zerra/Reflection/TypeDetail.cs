@@ -404,7 +404,7 @@ namespace Zerra.Reflection
             }
         }
 
-        private IDictionary<string, MemberDetail>? membersByName = null;
+        private Dictionary<string, MemberDetail>? membersByName = null;
         public MemberDetail GetMember(string name)
         {
             if (membersByName == null)
@@ -592,7 +592,7 @@ namespace Zerra.Reflection
             return this.serializableMembersByNameLower.TryGetValue(name, out member);
         }
 
-        private IDictionary<string, MemberDetail>? membersFieldBackedByName = null;
+        private Dictionary<string, MemberDetail>? membersFieldBackedByName = null;
         public MemberDetail GetMemberFieldBacked(string name)
         {
             if (membersFieldBackedByName == null)

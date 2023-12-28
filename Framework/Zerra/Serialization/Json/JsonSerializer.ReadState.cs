@@ -12,8 +12,8 @@ namespace Zerra.Serialization
         {
             private Stack<ReadFrame> stack;
             public ReadFrame CurrentFrame;
-            public object LastFrameResultObject;
-            public string LastFrameResultString;
+            public object? LastFrameResultObject;
+            public string? LastFrameResultString;
             public bool Ended;
             public bool Nameless;
             public bool IsFinalBlock;

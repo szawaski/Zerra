@@ -31,9 +31,9 @@ namespace Zerra.Web
                 return;
             }
 
-            context.Response.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
-            context.Response.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-            context.Response.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+            context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, "*");
+            context.Response.Headers.Append(HttpCommon.AccessControlAllowMethodsHeader, "*");
+            context.Response.Headers.Append(HttpCommon.AccessControlAllowHeadersHeader, "*");
 
             if (context.Request.Method == "OPTIONS")
             {

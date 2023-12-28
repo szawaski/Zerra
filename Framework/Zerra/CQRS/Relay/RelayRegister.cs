@@ -1,4 +1,6 @@
 ﻿using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Zerra.CQRS.Network;
@@ -10,10 +12,12 @@ namespace Zerra.CQRS.Relay
     {
         private readonly string relayUrl;
         private readonly string relayKey;
+        private readonly HttpClient client;
         public RelayRegister(string relayUrl, string relayKey)
         {
             this.relayUrl = relayUrl;
             this.relayKey = relayKey;
+            this.client = new HttpClient();
         }
 
         public string RelayUrl => relayUrl;
@@ -39,23 +43,21 @@ namespace Zerra.CQRS.Relay
             var json = JsonSerializer.Serialize(info);
             var bytes = Encoding.UTF8.GetBytes(json);
 
-            var request = WebRequest.CreateHttp(relayUrl);
-            request.Method = "POST";
-            request.ContentLength = bytes.Length;
+            using var request = new HttpRequestMessage(HttpMethod.Post, relayUrl);
+
+            request.Content = new WriteStreamContent(async (postStream) =>
+            {
+                await JsonSerializer.SerializeAsync(postStream, info);
+            });
+            request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson);
+
             request.Headers.Add(HttpCommon.RelayServiceHeader, action);
             request.Headers.Add(HttpCommon.RelayKeyHeader, relayKey);
-            using (var postStream = request.GetRequestStream())
-            {
-                await postStream.WriteAsync(bytes, 0, bytes.Length);
-                await postStream.FlushAsync();
-            };
 
-            using (var response = (HttpWebResponse)(await request.GetResponseAsync()))
+            using var response = await client.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
             {
-                if (response.StatusCode != HttpStatusCode.OK)
-                {
-                    throw new WebException("Relay Register Failed");
-                }
+                throw new WebException("Relay Register Failed");
             }
         }
     }

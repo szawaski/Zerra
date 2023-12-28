@@ -16,7 +16,7 @@ namespace Zerra
             this.target = target;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is not MapRecursionKey objCasted)
                 return false;

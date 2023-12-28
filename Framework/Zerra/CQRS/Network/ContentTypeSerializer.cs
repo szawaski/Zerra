@@ -42,7 +42,7 @@ namespace Zerra.CQRS.Network
                     throw new NotImplementedException();
             }
         }
-        public static T Deserialize<T>(ContentType contentType, byte[] bytes)
+        public static T? Deserialize<T>(ContentType contentType, byte[] bytes)
         {
             switch (contentType)
             {
@@ -62,7 +62,7 @@ namespace Zerra.CQRS.Network
                     throw new NotImplementedException();
             }
         }
-        public static object Deserialize<T>(ContentType contentType, Type type, byte[] bytes)
+        public static object? Deserialize<T>(ContentType contentType, Type type, byte[] bytes)
         {
             switch (contentType)
             {
@@ -106,7 +106,7 @@ namespace Zerra.CQRS.Network
                     throw new NotImplementedException();
             }
         }
-        public static T Deserialize<T>(ContentType contentType, Stream stream)
+        public static T? Deserialize<T>(ContentType contentType, Stream stream)
         {
             switch (contentType)
             {
@@ -126,7 +126,7 @@ namespace Zerra.CQRS.Network
                     throw new NotImplementedException();
             }
         }
-        public static object Deserialize(ContentType contentType, Type type, Stream stream)
+        public static object? Deserialize(ContentType contentType, Type type, Stream stream)
         {
             switch (contentType)
             {
@@ -167,7 +167,7 @@ namespace Zerra.CQRS.Network
                     throw new NotImplementedException();
             }
         }
-        public static Task<T> DeserializeAsync<T>(ContentType contentType, Stream stream)
+        public static Task<T?> DeserializeAsync<T>(ContentType contentType, Stream stream)
         {
             switch (contentType)
             {
@@ -188,7 +188,7 @@ namespace Zerra.CQRS.Network
                     throw new NotImplementedException();
             }
         }
-        public static Task<object> DeserializeAsync(ContentType contentType, Type type, Stream stream)
+        public static Task<object?> DeserializeAsync(ContentType contentType, Type type, Stream stream)
         {
             switch (contentType)
             {
@@ -245,17 +245,17 @@ namespace Zerra.CQRS.Network
                 case ContentType.Bytes:
                     {
                         var model = ByteSerializer.Deserialize<ExceptionModel>(stream);
-                        return new Exception(model.Message);
+                        return new Exception(model?.Message);
                     }
                 case ContentType.Json:
                     {
                         var model = JsonSerializer.Deserialize<ExceptionModel>(stream);
-                        return new Exception(model.Message);
+                        return new Exception(model?.Message);
                     }
                 case ContentType.JsonNameless:
                     {
                         var model = JsonSerializer.Deserialize<ExceptionModel>(stream, jsonSerializerNamelessOptions);
-                        return new Exception(model.Message);
+                        return new Exception(model?.Message);
                     }
                 default:
                     throw new NotImplementedException();
@@ -294,17 +294,17 @@ namespace Zerra.CQRS.Network
                 case ContentType.Bytes:
                     {
                         var model = await ByteSerializer.DeserializeAsync<ExceptionModel>(stream);
-                        return new Exception(model.Message);
+                        return new Exception(model?.Message);
                     }
                 case ContentType.Json:
                     {
                         var model = await JsonSerializer.DeserializeAsync<ExceptionModel>(stream);
-                        return new Exception(model.Message);
+                        return new Exception(model?.Message);
                     }
                 case ContentType.JsonNameless:
                     {
                         var model = await JsonSerializer.DeserializeAsync<ExceptionModel>(stream, jsonSerializerNamelessOptions);
-                        return new Exception(model.Message);
+                        return new Exception(model?.Message);
                     }
                 default:
                     throw new NotImplementedException();

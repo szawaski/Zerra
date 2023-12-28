@@ -69,7 +69,7 @@ namespace Zerra.CQRS.Network
                 throttle.Dispose();
         }
 
-        TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source)
+        TReturn? IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
             if (!throttleByInterfaceType.TryGetValue(interfaceType, out var throttle))
                 throw new Exception($"{interfaceType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
@@ -100,8 +100,8 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        protected abstract TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source);
-        protected abstract Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source);
+        protected abstract TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source);
+        protected abstract Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source);
 
         Task ICommandProducer.DispatchAsync(ICommand command, string source)
         {

@@ -18,7 +18,7 @@ namespace Zerra.Providers
         }
 
         private readonly object locker = new();
-        private TProvider nextProvider;
+        private TProvider? nextProvider;
         protected TProvider NextProvider
         {
             get
@@ -30,8 +30,7 @@ namespace Zerra.Providers
                         if (this.nextProvider == null)
                         {
                             nextProvider = ProviderResolver.GetNext<TProvider>(this.GetType());
-                            if (nextProvider == null)
-                                this.nextProvider = EmptyImplementations.GetEmptyImplementation<TProvider>();
+                            nextProvider ??= EmptyImplementations.GetEmptyImplementation<TProvider>();
                         }
                     }
                 }
@@ -51,8 +50,8 @@ namespace Zerra.Providers
 
         internal Type GetProviderInterfaceType() { return InterfaceType; }
 
-        public override sealed string ToString() { return base.ToString(); }
-        public override sealed bool Equals(object obj) { return base.Equals(obj); }
+        public override sealed string? ToString() { return base.ToString(); }
+        public override sealed bool Equals(object? obj) { return base.Equals(obj); }
         public override sealed int GetHashCode() { return base.GetHashCode(); }
     }
 }

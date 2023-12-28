@@ -183,7 +183,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object? FromStringJsonObject(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph? graph, ref OptionsStruct options)
+        private static object? FromStringJsonObject(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
         {
             var obj = typeDetail != null && typeDetail.HasCreator ? typeDetail.Creator() : null;
             var canExpectComma = false;
@@ -195,6 +195,8 @@ namespace Zerra.Serialization
                         if (canExpectComma)
                             throw reader.CreateException("Unexpected character");
                         var propertyName = FromStringString(ref reader, ref decodeBuffer);
+                        if (String.IsNullOrWhiteSpace(propertyName))
+                            throw reader.CreateException("Unexpected character");
 
                         FromStringPropertySeperator(ref reader);
 
@@ -203,7 +205,7 @@ namespace Zerra.Serialization
 
                         if (obj != null)
                         {
-                            if (TryGetMember(typeDetail, propertyName, out var memberDetail))
+                            if (TryGetMember(typeDetail!, propertyName, out var memberDetail))
                             {
                                 var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
                                 var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail.TypeDetail, propertyGraph, ref options);
@@ -272,7 +274,7 @@ namespace Zerra.Serialization
 
                 obj = typeDetail.Creator();
                 method = typeDetail.GetMethod("Add");
-                addMethodArgs = new object[2];
+                addMethodArgs = new object?[2];
             }
 
             var canExpectComma = false;
@@ -283,7 +285,7 @@ namespace Zerra.Serialization
                     case '"':
                         if (canExpectComma)
                             throw reader.CreateException("Unexpected character");
-                        var dictionaryKey = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail.InnerTypeDetails[0].InnerTypeDetails[0], null, ref options);
+                        var dictionaryKey = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail?.InnerTypeDetails[0].InnerTypeDetails[0], null, ref options);
 
                         FromStringPropertySeperator(ref reader);
 
@@ -293,12 +295,12 @@ namespace Zerra.Serialization
                         if (obj != null)
                         {
                             //Dictionary Special Case
-                            var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail.InnerTypeDetails[0].InnerTypeDetails[1], null, ref options);
+                            var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail!.InnerTypeDetails[0].InnerTypeDetails[1], null, ref options);
                             if (typeDetail.InnerTypeDetails[0].InnerTypeDetails[0].CoreType.HasValue)
                             {
-                                addMethodArgs[0] = dictionaryKey;
+                                addMethodArgs![0] = dictionaryKey;
                                 addMethodArgs[1] = value;
-                                _ = method.Caller(obj, addMethodArgs);
+                                _ = method!.Caller(obj, addMethodArgs);
                             }
                         }
                         else
@@ -322,7 +324,7 @@ namespace Zerra.Serialization
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object? FromStringJsonArray(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph? graph, ref OptionsStruct options)
+        private static object? FromStringJsonArray(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
         {
             object? collection = null;
             MethodDetail? addMethod = null;
@@ -381,7 +383,7 @@ namespace Zerra.Serialization
                     case ']':
                         if (collection == null)
                             return null;
-                        if (typeDetail.Type.IsArray && arrayElementType != null)
+                        if (typeDetail != null && typeDetail.Type.IsArray && arrayElementType != null)
                         {
                             var list = (IList)collection;
                             var array = Array.CreateInstance(arrayElementType.Type, list.Count);
@@ -403,11 +405,11 @@ namespace Zerra.Serialization
                         if (collection != null)
                         {
                             //special case nullable enum
-                            if (arrayElementType.IsNullable && arrayElementType.InnerTypeDetails[0].EnumUnderlyingType.HasValue && value != null)
+                            if (arrayElementType!.IsNullable && arrayElementType.InnerTypeDetails[0].EnumUnderlyingType.HasValue && value != null)
                                 value = Enum.ToObject(arrayElementType.InnerTypeDetails[0].Type, value);
 
-                            addMethodArgs[0] = value;
-                            _ = addMethod.Caller(collection, addMethodArgs);
+                            addMethodArgs![0] = value;
+                            _ = addMethod!.Caller(collection, addMethodArgs);
                         }
                         canExpectComma = true;
                         break;
@@ -416,7 +418,7 @@ namespace Zerra.Serialization
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromStringJsonArrayNameless(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph? graph, ref OptionsStruct options)
+        private static object? FromStringJsonArrayNameless(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
         {
             var obj = typeDetail != null && typeDetail.Creator != null ? typeDetail.Creator() : null;
             var canExpectComma = false;
@@ -445,7 +447,7 @@ namespace Zerra.Serialization
                             {
                                 var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
                                 var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail?.TypeDetail, propertyGraph, ref options);
-                                if (memberDetail.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)
+                                if (memberDetail!.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)
                                 {
                                     var innerItemEnumerable = TypeAnalyzer.GetGenericType(enumerableType, memberDetail.TypeDetail.IEnumerableGenericInnerType);
                                     object dictionary;
@@ -456,7 +458,7 @@ namespace Zerra.Serialization
                                     }
                                     else
                                     {
-                                        dictionary = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, value);
+                                        dictionary = Instantiator.Create(typeDetail!.Type, new Type[] { innerItemEnumerable }, value);
                                     }
                                     memberDetail.Setter(obj, dictionary);
                                 }
@@ -504,7 +506,7 @@ namespace Zerra.Serialization
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object? FromStringLiteral(char c, ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail)
+        private static object? FromStringLiteral(char c, ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail? typeDetail)
         {
             switch (c)
             {
@@ -607,7 +609,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static JsonObject FromStringObjectToJsonObject(ref CharReader reader, ref CharWriter decodeBuffer, Graph graph)
+        private static JsonObject FromStringObjectToJsonObject(ref CharReader reader, ref CharWriter decodeBuffer, Graph? graph)
         {
             var properties = new Dictionary<string, JsonObject>();
             var canExpectComma = false;
@@ -619,6 +621,8 @@ namespace Zerra.Serialization
                         if (canExpectComma)
                             throw reader.CreateException("Unexpected character");
                         var propertyName = FromStringString(ref reader, ref decodeBuffer);
+                        if (String.IsNullOrWhiteSpace(propertyName))
+                            throw reader.CreateException("Unexpected character");
 
                         FromStringPropertySeperator(ref reader);
 

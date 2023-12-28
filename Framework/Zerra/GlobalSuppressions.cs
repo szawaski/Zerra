@@ -14,3 +14,6 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("Design", "CA1050:Declare types in namespaces", Justification = "<Pending>")]
 [assembly: SuppressMessage("Style", "IDE0057:Use range operator", Justification = "NetStandard2.0 does not support")]
 [assembly: SuppressMessage("Style", "IDE0056:Use index operator", Justification = "NetStandard2.0 does not support")]
+[assembly: SuppressMessage("Maintainability", "CA1510:Use ArgumentNullException throw helper", Justification = "Only net8.0 Support")]
+[assembly: SuppressMessage("Style", "IDE0031:Use null propagation", Justification = "<Pending>")]
+[assembly: SuppressMessage("Style", "IDE0270:Use coalesce expression", Justification = "<Pending>")]

@@ -134,14 +134,17 @@ namespace Zerra.CQRS.Relay
                                 await incommingBodyStream.DisposeAsync();
                                 incommingBodyStream = null;
 
-                                if (header.RelayServiceAddRemove == true)
-                                    RelayConnectedServicesManager.AddOrUpdate(serviceInfo);
-                                else
-                                    RelayConnectedServicesManager.Remove(serviceInfo.Url);
+                                if (serviceInfo != null)
+                                {
+                                    if (header.RelayServiceAddRemove == true)
+                                        RelayConnectedServicesManager.AddOrUpdate(serviceInfo);
+                                    else
+                                        RelayConnectedServicesManager.Remove(serviceInfo.Url);
+                                }
 
                                 var requestHeaderLength = HttpCommon.BufferOkResponseHeader(buffer);
                                 await incommingStream.WriteAsync(buffer.Slice(0, requestHeaderLength), cancellationToken);
-                                await incommingStream.FlushAsync();
+                                await incommingStream.FlushAsync(cancellationToken);
                                 await incommingStream.DisposeAsync();
                                 incommingStream = null;
                                 socket.Dispose();
@@ -192,13 +195,13 @@ namespace Zerra.CQRS.Relay
                         case CQRSProtocolType.TcpRaw:
                             {
                                 var requestHeaderLength = HttpCommon.BufferNotFoundResponseHeader(buffer);
-                                await incommingStream.WriteAsync(buffer.Slice(0, requestHeaderLength));
+                                await incommingStream.WriteAsync(buffer.Slice(0, requestHeaderLength), cancellationToken);
                                 return;
                             }
                         case CQRSProtocolType.Http:
                             {
                                 var requestHeaderLength = TcpRawCommon.BufferErrorHeader(buffer, null, default);
-                                await incommingStream.WriteAsync(buffer.Slice(0, requestHeaderLength));
+                                await incommingStream.WriteAsync(buffer.Slice(0, requestHeaderLength), cancellationToken);
                                 return;
                             }
                         default: throw new NotImplementedException();
@@ -217,14 +220,14 @@ namespace Zerra.CQRS.Relay
                         {
                             outgoingWritingBodyStream = new TcpRawProtocolBodyStream(outgoingStream, null, true);
                             await incommingBodyStream.CopyToAsync(outgoingWritingBodyStream, cancellationToken);
-                            await outgoingWritingBodyStream.FlushAsync();
+                            await outgoingWritingBodyStream.FlushAsync(cancellationToken);
                             break;
                         }
                     case CQRSProtocolType.Http:
                         {
                             outgoingWritingBodyStream = new HttpProtocolBodyStream(null, outgoingStream, null, true);
                             await incommingBodyStream.CopyToAsync(outgoingWritingBodyStream, cancellationToken);
-                            await outgoingWritingBodyStream.FlushAsync();
+                            await outgoingWritingBodyStream.FlushAsync(cancellationToken);
                             break;
                         }
                     default: throw new NotImplementedException();
@@ -250,7 +253,7 @@ namespace Zerra.CQRS.Relay
                                 if (headerLength == buffer.Length)
                                     throw new Exception($"{nameof(TcpRelay)} Header Too Long");
 
-                                headerLength += await outgoingStream.ReadAsync(buffer.Slice(headerLength, buffer.Length - headerLength));
+                                headerLength += await outgoingStream.ReadAsync(buffer.Slice(headerLength, buffer.Length - headerLength), cancellationToken);
 
                                 headerEnd = TcpRawCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
                             }
@@ -264,7 +267,7 @@ namespace Zerra.CQRS.Relay
                                 if (headerLength == buffer.Length)
                                     throw new Exception($"{nameof(TcpRelay)} Header Too Long");
 
-                                headerLength += await outgoingStream.ReadAsync(buffer.Slice(headerLength, buffer.Length - headerLength));
+                                headerLength += await outgoingStream.ReadAsync(buffer.Slice(headerLength, buffer.Length - headerLength), cancellationToken);
 
                                 headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
                             }
@@ -283,14 +286,14 @@ namespace Zerra.CQRS.Relay
                         {
                             incommingWritingBodyStream = new TcpRawProtocolBodyStream(incommingStream, null, false);
                             await outgoingBodyStream.CopyToAsync(incommingWritingBodyStream, cancellationToken);
-                            await incommingWritingBodyStream.FlushAsync();
+                            await incommingWritingBodyStream.FlushAsync(cancellationToken);
                             break;
                         }
                     case CQRSProtocolType.Http:
                         {
                             incommingWritingBodyStream = new HttpProtocolBodyStream(null, incommingStream, null, false);
                             await outgoingBodyStream.CopyToAsync(incommingWritingBodyStream, cancellationToken);
-                            await incommingWritingBodyStream.FlushAsync();
+                            await incommingWritingBodyStream.FlushAsync(cancellationToken);
                             break;
                         }
                     default: throw new NotImplementedException();

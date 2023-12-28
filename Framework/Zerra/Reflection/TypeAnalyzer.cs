@@ -134,7 +134,7 @@ namespace Zerra.Reflection
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail?> methodDetailsByType = new();
-        public static MethodDetail? GetMethodDetail(Type type, string name, Type[]? parameterTypes = null)
+        public static MethodDetail GetMethodDetail(Type type, string name, Type[]? parameterTypes = null)
         {
             var key = new TypeKey(name, type, parameterTypes);
             var method = methodDetailsByType.GetOrAdd(key, (_) =>
@@ -162,11 +162,11 @@ namespace Zerra.Reflection
                 }
                 return null;
             });
-            return method;
+            return method ?? throw new ArgumentException($"{type.GetNiceName()}.{name} method not found");
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetail?> constructorDetailsByType = new();
-        public static ConstructorDetail? GetConstructorDetail(Type type, Type[]? parameterTypes = null)
+        public static ConstructorDetail GetConstructorDetail(Type type, Type[]? parameterTypes = null)
         {
             var key = new TypeKey(type, parameterTypes);
             var constructor = constructorDetailsByType.GetOrAdd(key, (_) =>
@@ -194,7 +194,7 @@ namespace Zerra.Reflection
                 }
                 return null;
             });
-            return constructor;
+            return constructor ?? throw new ArgumentException($"{type.GetNiceName()} constructor not found");
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethodDetailsByMethod = new();

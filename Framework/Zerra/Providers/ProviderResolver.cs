@@ -11,7 +11,7 @@ namespace Zerra.Providers
 {
     public static class ProviderResolver
     {
-        private static readonly Type[] interfaceStack = new Type[]
+        private static readonly Type?[] interfaceStack = new Type?[]
         {
             typeof(IRuleProvider),
             typeof(ICacheProvider),
@@ -21,9 +21,9 @@ namespace Zerra.Providers
             null
         };
 
-        private static Type ignoreInterface = typeof(IIgnoreProviderResolver);
+        private static readonly Type ignoreInterface = typeof(IIgnoreProviderResolver);
 
-        public static IReadOnlyList<Type> InterfaceStack => interfaceStack;
+        public static IReadOnlyList<Type?> InterfaceStack => interfaceStack;
         public static Type IgnoreInterface => ignoreInterface;
 
         private static int GetInterfaceIndex(Type interfaceType)
@@ -37,8 +37,8 @@ namespace Zerra.Providers
             return i;
         }
 
-        private static readonly ConcurrentFactoryDictionary<Type, Type> highestProviderInterfaceTypes = new();
-        public static Type GetNextType<TInterface>(Type providerType)
+        private static readonly ConcurrentFactoryDictionary<Type, Type?> highestProviderInterfaceTypes = new();
+        public static Type? GetNextType<TInterface>(Type providerType)
         {
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
@@ -46,7 +46,7 @@ namespace Zerra.Providers
 
             var highestInterfaceType = highestProviderInterfaceTypes.GetOrAdd(providerType, (providerType) =>
             {
-                Type highest = null;
+                Type? highest = null;
                 var providerTypeDetail = TypeAnalyzer.GetTypeDetail(providerType);
 
                 foreach (var providerInterface in interfaceStack)
@@ -81,7 +81,7 @@ namespace Zerra.Providers
             var nextProviderType = Discovery.GetImplementationClass(interfaceType, interfaceStack, nextInterfaceIndex, ignoreInterface, false);
             return nextProviderType;
         }
-        public static TInterface GetNext<TInterface>(Type providerType)
+        public static TInterface? GetNext<TInterface>(Type providerType)
         {
             var nextProviderType = GetNextType<TInterface>(providerType);
             if (nextProviderType == null)
@@ -91,84 +91,138 @@ namespace Zerra.Providers
             return provider;
         }
 
-        public static TInterface GetFirst<TInterface>(bool throwException = true) => (TInterface)GetFirst(typeof(TInterface), throwException);
-        public static object GetFirst(Type interfaceType, bool throwException = true)
+        public static TInterface GetFirst<TInterface>() => (TInterface)GetFirst(typeof(TInterface));
+        public static object GetFirst(Type interfaceType)
         {
             if (!interfaceType.IsInterface)
                 throw new ArgumentException("Generic parameter must be an interface");
 
-            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, 0, ignoreInterface, throwException);
-
-            if (providerType == null)
-                return default;
-
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, 0, ignoreInterface, true)!;
             var provider = Instantiator.GetSingle(providerType);
-            if (provider == null)
-                return provider;
 
             return provider;
         }
-        public static Type GetFirstType(Type interfaceType, bool throwException = true)
+        public static Type GetTypeFirst(Type interfaceType)
         {
             if (!interfaceType.IsInterface)
                 throw new ArgumentException("Generic parameter must be an interface");
 
-            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, 0, ignoreInterface, throwException);
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, 0, ignoreInterface, true)!;
             return providerType;
         }
 
-        public static TInterface GetBase<TInterface>(bool throwException = true) => (TInterface)GetBase(typeof(TInterface), throwException);
-        public static object GetBase(Type interfaceType, bool throwException = true)
+        public static TInterface GetBase<TInterface>() => (TInterface)GetBase(typeof(TInterface));
+        public static object GetBase(Type interfaceType)
         {
             if (!interfaceType.IsInterface)
                 throw new ArgumentException("Generic parameter must be an interface");
 
-            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, interfaceStack.Length - 1, ignoreInterface, throwException);
-
-            if (providerType == null)
-                return default;
-
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, interfaceStack.Length - 1, ignoreInterface, true)!;
             var provider = Instantiator.GetSingle(providerType);
-            if (provider == null)
-                return provider;
 
             return provider;
         }
-        public static Type GetBaseType(Type interfaceType, bool throwException = true)
+        public static Type GetTypeBase(Type interfaceType)
         {
             if (!interfaceType.IsInterface)
                 throw new ArgumentException("Generic parameter must be an interface");
 
-            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, interfaceStack.Length - 1, ignoreInterface, throwException);
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, interfaceStack.Length - 1, ignoreInterface, true)!;
 
             return providerType;
         }
 
-        public static TInterface GetSpecific<TInterface>(Type secondaryInterfaceType, bool throwException = true) => (TInterface)GetSpecific(typeof(TInterface), secondaryInterfaceType, throwException);
-        public static object GetSpecific(Type interfaceType, Type secondaryInterfaceType, bool throwException = true)
+        public static TInterface GetSpecific<TInterface>(Type secondaryInterfaceType) => (TInterface)GetSpecific(typeof(TInterface), secondaryInterfaceType);
+        public static object GetSpecific(Type interfaceType, Type secondaryInterfaceType)
         {
             if (!interfaceType.IsInterface)
                 throw new ArgumentException("Generic parameter must be an interface");
 
             var index = GetInterfaceIndex(secondaryInterfaceType);
-            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, index, ignoreInterface, throwException);
-
-            if (providerType == null)
-                return default;
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, index, ignoreInterface, true)!;
 
             var provider = Instantiator.GetSingle(providerType);
-            if (provider == null)
-                return provider;
 
             return provider;
         }
-        public static Type GetSpecificType(Type interfaceType, Type secondaryInterfaceType, bool throwException = true)
+        public static Type GetSpecificType(Type interfaceType, Type secondaryInterfaceType)
         {
             if (!interfaceType.IsInterface)
                 throw new ArgumentException("Generic parameter must be an interface");
 
             var index = GetInterfaceIndex(secondaryInterfaceType);
-            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, index, ignoreInterface, throwException);
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, index, ignoreInterface, true)!;
+            return providerType;
+        }
+
+        public static TInterface? GetFirstOrDefault<TInterface>() => (TInterface?)GetFirstOrDefault(typeof(TInterface));
+        public static object? GetFirstOrDefault(Type interfaceType)
+        {
+            if (!interfaceType.IsInterface)
+                throw new ArgumentException("Generic parameter must be an interface");
+
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, 0, ignoreInterface, false);
+            if (providerType == null)
+                return null;
+
+            var provider = Instantiator.GetSingle(providerType);
+
+            return provider;
+        }
+        public static Type? GetTypeFirstOrDefault(Type interfaceType)
+        {
+            if (!interfaceType.IsInterface)
+                throw new ArgumentException("Generic parameter must be an interface");
+
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, 0, ignoreInterface, true);
+            return providerType;
+        }
+
+        public static TInterface? GetBaseOrDefault<TInterface>() => (TInterface?)GetBaseOrDefault(typeof(TInterface));
+        public static object? GetBaseOrDefault(Type interfaceType)
+        {
+            if (!interfaceType.IsInterface)
+                throw new ArgumentException("Generic parameter must be an interface");
+
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, interfaceStack.Length - 1, ignoreInterface, true);
+            if (providerType == null)
+                return null;
+            var provider = Instantiator.GetSingle(providerType);
+
+            return provider;
+        }
+        public static Type? GetTypeBaseOrDefault(Type interfaceType)
+        {
+            if (!interfaceType.IsInterface)
+                throw new ArgumentException("Generic parameter must be an interface");
+
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, interfaceStack.Length - 1, ignoreInterface, true);
+
+            return providerType;
+        }
+
+        public static TInterface? GetSpecificOrDefault<TInterface>(Type secondaryInterfaceType) => (TInterface?)GetSpecificOrDefault(typeof(TInterface), secondaryInterfaceType);
+        public static object? GetSpecificOrDefault(Type interfaceType, Type secondaryInterfaceType)
+        {
+            if (!interfaceType.IsInterface)
+                throw new ArgumentException("Generic parameter must be an interface");
+
+            var index = GetInterfaceIndex(secondaryInterfaceType);
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, index, ignoreInterface, true);
+            if (providerType == null)
+                return null;
+
+            var provider = Instantiator.GetSingle(providerType);
+
+            return provider;
+        }
+        public static Type? GetTypeSpecificOrDefault(Type interfaceType, Type secondaryInterfaceType)
+        {
+            if (!interfaceType.IsInterface)
+                throw new ArgumentException("Generic parameter must be an interface");
+
+            var index = GetInterfaceIndex(secondaryInterfaceType);
+            var providerType = Discovery.GetImplementationClass(interfaceType, interfaceStack, index, ignoreInterface, true);
             return providerType;
         }
 
