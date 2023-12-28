@@ -322,9 +322,12 @@ namespace Zerra.Repository
                             var condition = Expression.Call(containsMethodGeneric, Expression.Constant(foreignIdentities, foreignIdentityListTypeDetail.Type), Expression.MakeMemberAccess(queryExpressionParameter, relatedIdentityPropertyInfo.MemberInfo));
                             var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
 
-                            var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
-                            var allNames = relatedIdentityPropertyNames.Concat(new string[] { foreignIdentityPropertyInfo.Name }).ToArray();
-                            relatedGraph.AddProperties(relatedIdentityPropertyNames);
+                            if (relatedGraph != null)
+                            {
+                                var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
+                                var allNames = relatedIdentityPropertyNames.Concat(new string[] { foreignIdentityPropertyInfo.Name }).ToArray();
+                                relatedGraph.AddProperties(relatedIdentityPropertyNames);
+                            }
 
                             var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
                             var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
@@ -365,7 +368,10 @@ namespace Zerra.Repository
                             if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var relatedForeignIdentityPropertyInfo))
                                 throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
 
-                            relatedGraph.AddProperties(modelPropertyInfo.ForeignIdentity);
+                            if (relatedGraph != null)
+                            {
+                                relatedGraph.AddProperties(modelPropertyInfo.ForeignIdentity);
+                            }
 
                             var queryExpressionParameter = Expression.Parameter(relatedType, "x");
                             var foreignIdentityListTypeDetail = TypeAnalyzer.GetGenericTypeDetail(listType, relatedForeignIdentityPropertyInfo.Type);
@@ -380,9 +386,12 @@ namespace Zerra.Repository
                             var condition = Expression.Call(containsMethodGeneric, Expression.Constant(foreignIdentities, foreignIdentityListTypeDetail.Type), Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo));
                             var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
 
-                            var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
-                            var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
-                            relatedGraph.AddProperties(allNames);
+                            if (relatedGraph != null)
+                            {
+                                var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
+                                var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
+                                relatedGraph.AddProperties(allNames);
+                            }
 
                             var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
                             var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
@@ -471,9 +480,12 @@ namespace Zerra.Repository
                             var condition = Expression.Call(containsMethodGeneric, Expression.Constant(foreignIdentities, foreignIdentityListTypeDetail.Type), Expression.MakeMemberAccess(queryExpressionParameter, relatedIdentityPropertyInfo.MemberInfo));
                             var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
 
-                            var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
-                            var allNames = relatedIdentityPropertyNames.Concat(new string[] { foreignIdentityPropertyInfo.Name }).ToArray();
-                            relatedGraph.AddProperties(relatedIdentityPropertyNames);
+                            if (relatedGraph != null)
+                            {
+                                var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
+                                var allNames = relatedIdentityPropertyNames.Concat(new string[] { foreignIdentityPropertyInfo.Name }).ToArray();
+                                relatedGraph.AddProperties(relatedIdentityPropertyNames);
+                            }
 
                             var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
                             var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
@@ -514,7 +526,10 @@ namespace Zerra.Repository
                             if (!relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var relatedForeignIdentityPropertyInfo))
                                 throw new Exception(String.Format("Missing ForeignIdentity {0} for {1} defined in {2}", modelPropertyInfo.ForeignIdentity, relatedModelInfo.Name, ModelDetail.Name));
 
-                            relatedGraph.AddProperties(modelPropertyInfo.ForeignIdentity);
+                            if (relatedGraph != null)
+                            {
+                                relatedGraph.AddProperties(modelPropertyInfo.ForeignIdentity);
+                            }
 
                             var queryExpressionParameter = Expression.Parameter(relatedType, "x");
                             var foreignIdentityListTypeDetail = TypeAnalyzer.GetGenericTypeDetail(listType, relatedForeignIdentityPropertyInfo.Type);
@@ -529,9 +544,12 @@ namespace Zerra.Repository
                             var condition = Expression.Call(containsMethodGeneric, Expression.Constant(foreignIdentities, foreignIdentityListTypeDetail.Type), Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo));
                             var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
 
-                            var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
-                            var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
-                            relatedGraph.AddProperties(allNames);
+                            if (relatedGraph != null)
+                            {
+                                var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
+                                var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
+                                relatedGraph.AddProperties(allNames);
+                            }
 
                             var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
                             var queryParameterTypes = GetQueryManyParameterTypes(relatedType);

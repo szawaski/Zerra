@@ -14,12 +14,16 @@ namespace Zerra.Serialization
 {
     public static partial class JsonSerializer
     {
+
         public static void Serialize(Stream stream, object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
             if (obj == null)
+            {
+                stream.Write(nullBytes, 0, nullBytes.Length);
                 return;
+            }
 
             var type = obj.GetType();
 
@@ -29,8 +33,6 @@ namespace Zerra.Serialization
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
-                return;
 
             var type = typeof(T);
 
@@ -43,7 +45,10 @@ namespace Zerra.Serialization
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
             if (obj == null)
+            {
+                stream.Write(nullBytes, 0, nullBytes.Length);
                 return;
+            }
 
             options ??= defaultOptions;
 
@@ -99,7 +104,10 @@ namespace Zerra.Serialization
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
             if (obj == null)
+            {
+                stream.Write(nullBytes, 0, nullBytes.Length);
                 return Task.CompletedTask;
+            }
 
             var type = obj.GetType();
 
@@ -109,8 +117,6 @@ namespace Zerra.Serialization
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
-                return Task.CompletedTask;
 
             var type = typeof(T);
 
@@ -123,7 +129,10 @@ namespace Zerra.Serialization
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
             if (obj == null)
+            {
+                await stream.WriteAsync(nullBytes, 0, nullBytes.Length);
                 return;
+            }
 
             options ??= defaultOptions;
 

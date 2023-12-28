@@ -854,7 +854,7 @@ namespace Zerra.Serialization
                 var indexProperty = state.CurrentFrame.MemberEnumerator.Current;
                 state.CurrentFrame.EnumeratorObjectInProgress = true;
 
-                var propertyValue = indexProperty.Value.Getter(value);
+                var propertyValue = indexProperty.Value.Getter(value!);
                 if (propertyValue == null)
                 {
                     state.CurrentFrame.EnumeratorObjectInProgress = false;

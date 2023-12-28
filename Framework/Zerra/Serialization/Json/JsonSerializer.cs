@@ -19,6 +19,7 @@ namespace Zerra.Serialization
         private const int defaultBufferSize = 8 * 1024;
         private const int defaultDecodeBufferSize = 1024;
         private static readonly Encoding encoding = Encoding.UTF8;
+        private static readonly byte[] nullBytes = encoding!.GetBytes("null");
 #if DEBUG
         public static bool Testing { get; set; }
 #endif

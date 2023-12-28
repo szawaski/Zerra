@@ -26,7 +26,7 @@ namespace Zerra.Serialization
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
             if (json == null || json.Length == 0)
-                return (T)ConvertStringToType(String.Empty, typeDetails);
+                return (T?)ConvertStringToType(String.Empty, typeDetails);
 
             var reader = new CharReader(json);
             var decodeBuffer = new CharWriter();
@@ -41,7 +41,7 @@ namespace Zerra.Serialization
                     if (reader.TryReadSkipWhiteSpace(out _))
                         throw reader.CreateException("Unexpected character and end of json");
                 }
-                return (T)value;
+                return (T?)value;
             }
             finally
             {
