@@ -26,7 +26,7 @@ namespace Zerra.Logger
             file = $"{filePath}\\{fileName}";
         }
 
-        public void BeginLogCommandAsync(Type commandType, ICommand command, string source, bool handled)
+        public void BeginCommandAsync(Type commandType, ICommand command, string source, bool handled)
         {
             var typeName = commandType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
@@ -40,7 +40,7 @@ namespace Zerra.Logger
                 _ = LogFile.Log(file, commandCategory, message);
         }
 
-        public void BeginLogEventAsync(Type eventType, IEvent @event, string source, bool handled)
+        public void BeginEventAsync(Type eventType, IEvent @event, string source, bool handled)
         {
             var typeName = eventType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
@@ -54,7 +54,7 @@ namespace Zerra.Logger
                 _ = LogFile.Log(file, eventCategory, message);
         }
 
-        public void BeginLogCallAsync(Type interfaceType, string methodName, object[] arguments, object result, string source, bool handled)
+        public void BeginCallAsync(Type interfaceType, string methodName, object[] arguments, object result, string source, bool handled)
         {
             var interfaceName = interfaceType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
@@ -68,7 +68,7 @@ namespace Zerra.Logger
                 _ = LogFile.Log(file, callCategory, message);
         }
 
-        public void LogCommandAsync(Type commandType, ICommand command, string source, bool handled, long milliseconds, Exception ex)
+        public void EndCommandAsync(Type commandType, ICommand command, string source, bool handled, long milliseconds, Exception ex)
         {
             var typeName = commandType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
@@ -86,7 +86,7 @@ namespace Zerra.Logger
                 _ = LogFile.Log(file, commandCategory, message);
         }
 
-        public void LogEventAsync(Type eventType, IEvent @event, string source, bool handled, long milliseconds, Exception ex)
+        public void EndEventAsync(Type eventType, IEvent @event, string source, bool handled, long milliseconds, Exception ex)
         {
             var typeName = eventType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
@@ -104,7 +104,7 @@ namespace Zerra.Logger
                 _ = LogFile.Log(file, eventCategory, message);
         }
 
-        public void LogCallAsync(Type interfaceType, string methodName, object[] arguments, object result, string source, bool handled, long milliseconds, Exception ex)
+        public void EndCallAsync(Type interfaceType, string methodName, object[] arguments, object result, string source, bool handled, long milliseconds, Exception ex)
         {
             var interfaceName = interfaceType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;

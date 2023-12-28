@@ -341,7 +341,7 @@ namespace Zerra.CQRS
 
         private static async Task SendCommandLoggedAsync(ICommand command, Type commandType, bool requireAffirmation, NetworkType networkType, string source, ICommandProducer producer)
         {
-            busLogger?.BeginLogCommandAsync(commandType, command, source, false);
+            busLogger?.BeginCommandAsync(commandType, command, source, false);
 
             var timer = Stopwatch.StartNew();
             try
@@ -358,16 +358,16 @@ namespace Zerra.CQRS
             catch (Exception ex)
             {
                 timer.Stop();
-                busLogger?.LogCommandAsync(commandType, command, source, false, timer.ElapsedMilliseconds, ex);
+                busLogger?.EndCommandAsync(commandType, command, source, false, timer.ElapsedMilliseconds, ex);
                 throw;
             }
 
             timer.Stop();
-            busLogger?.LogCommandAsync(commandType, command, source, false, timer.ElapsedMilliseconds, null);
+            busLogger?.EndCommandAsync(commandType, command, source, false, timer.ElapsedMilliseconds, null);
         }
         private static async Task SendEventLoggedAsync(IEvent @event, Type eventType, NetworkType networkType, string source, IEventProducer producer)
         {
-            busLogger?.BeginLogEventAsync(eventType, @event, source, false);
+            busLogger?.BeginEventAsync(eventType, @event, source, false);
 
             var timer = Stopwatch.StartNew();
             try
@@ -377,12 +377,12 @@ namespace Zerra.CQRS
             catch (Exception ex)
             {
                 timer.Stop();
-                busLogger?.LogEventAsync(eventType, @event, source, false, timer.ElapsedMilliseconds, ex);
+                busLogger?.EndEventAsync(eventType, @event, source, false, timer.ElapsedMilliseconds, ex);
                 throw;
             }
 
             timer.Stop();
-            busLogger?.LogEventAsync(eventType, @event, source, false, timer.ElapsedMilliseconds, null);
+            busLogger?.EndEventAsync(eventType, @event, source, false, timer.ElapsedMilliseconds, null);
         }
 
         private static Task HandleCommandAsync(ICommand command, Type commandType, string source)
@@ -405,7 +405,7 @@ namespace Zerra.CQRS
 
             var provider = Instantiator.GetSingle(providerType);
 
-            busLogger?.BeginLogCommandAsync(commandType, command, source, true);
+            busLogger?.BeginCommandAsync(commandType, command, source, true);
 
             var timer = Stopwatch.StartNew();
             try
@@ -415,12 +415,12 @@ namespace Zerra.CQRS
             catch (Exception ex)
             {
                 timer.Stop();
-                busLogger?.LogCommandAsync(commandType, command, source, true, timer.ElapsedMilliseconds, ex);
+                busLogger?.EndCommandAsync(commandType, command, source, true, timer.ElapsedMilliseconds, ex);
                 throw;
             }
 
             timer.Stop();
-            busLogger?.LogCommandAsync(commandType, command, source, true, timer.ElapsedMilliseconds, null);
+            busLogger?.EndCommandAsync(commandType, command, source, true, timer.ElapsedMilliseconds, null);
         }
         private static Task HandleEventAsync(IEvent @event, Type eventType, string source)
         {
@@ -444,7 +444,7 @@ namespace Zerra.CQRS
 
             var provider = Instantiator.GetSingle(providerType);
 
-            busLogger?.BeginLogEventAsync(eventType, @event, source, true);
+            busLogger?.BeginEventAsync(eventType, @event, source, true);
 
             var timer = Stopwatch.StartNew();
             try
@@ -454,12 +454,12 @@ namespace Zerra.CQRS
             catch (Exception ex)
             {
                 timer.Stop();
-                busLogger?.LogEventAsync(eventType, @event, source, true, timer.ElapsedMilliseconds, ex);
+                busLogger?.EndEventAsync(eventType, @event, source, true, timer.ElapsedMilliseconds, ex);
                 throw;
             }
 
             timer.Stop();
-            busLogger?.LogEventAsync(eventType, @event, source, true, timer.ElapsedMilliseconds, null);
+            busLogger?.EndEventAsync(eventType, @event, source, true, timer.ElapsedMilliseconds, null);
         }
 
         public static TInterface Call<TInterface>() => (TInterface)CallInternal(typeof(TInterface), NetworkType.Local, Config.ApplicationIdentifier);
@@ -617,7 +617,7 @@ namespace Zerra.CQRS
                 {
                     var provider = ProviderResolver.GetFirst(interfaceType);
 
-                    busLogger?.BeginLogCallAsync(interfaceType, methodName, arguments, null, source, false);
+                    busLogger?.BeginCallAsync(interfaceType, methodName, arguments, null, source, false);
 
                     var timer = Stopwatch.StartNew();
                     try
@@ -627,12 +627,12 @@ namespace Zerra.CQRS
                     catch (Exception ex)
                     {
                         timer.Stop();
-                        busLogger?.LogCallAsync(interfaceType, methodName, arguments, null, source, false, timer.ElapsedMilliseconds, ex);
+                        busLogger?.EndCallAsync(interfaceType, methodName, arguments, null, source, false, timer.ElapsedMilliseconds, ex);
                         throw;
                     }
 
                     timer.Stop();
-                    busLogger?.LogCallAsync(interfaceType, methodName, arguments, result, source, false, timer.ElapsedMilliseconds, null);
+                    busLogger?.EndCallAsync(interfaceType, methodName, arguments, result, source, false, timer.ElapsedMilliseconds, null);
                 }
             }
             else
@@ -659,7 +659,7 @@ namespace Zerra.CQRS
                 {
                     var provider = ProviderResolver.GetFirst(interfaceType);
 
-                    busLogger?.BeginLogCallAsync(interfaceType, methodName, arguments, null, source, true);
+                    busLogger?.BeginCallAsync(interfaceType, methodName, arguments, null, source, true);
 
                     var timer = Stopwatch.StartNew();
                     try
@@ -669,12 +669,12 @@ namespace Zerra.CQRS
                     catch (Exception ex)
                     {
                         timer.Stop();
-                        busLogger?.LogCallAsync(interfaceType, methodName, arguments, null, source, true, timer.ElapsedMilliseconds, ex);
+                        busLogger?.EndCallAsync(interfaceType, methodName, arguments, null, source, true, timer.ElapsedMilliseconds, ex);
                         throw;
                     }
 
                     timer.Stop();
-                    busLogger?.LogCallAsync(interfaceType, methodName, arguments, result, source, true, timer.ElapsedMilliseconds, null);
+                    busLogger?.EndCallAsync(interfaceType, methodName, arguments, result, source, true, timer.ElapsedMilliseconds, null);
                 }
             }
 
@@ -684,7 +684,7 @@ namespace Zerra.CQRS
         private static readonly MethodDetail sendMethodLoggedGenericAsyncMethod = typeof(Bus).GetMethodDetail(nameof(SendMethodLoggedGenericAsync));
         private static async Task<TReturn> SendMethodLoggedGenericAsync<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, string source, MethodDetail methodDetail, IQueryClient methodCaller)
         {
-            busLogger?.BeginLogCallAsync(interfaceType, methodName, arguments, null, source, false);
+            busLogger?.BeginCallAsync(interfaceType, methodName, arguments, null, source, false);
 
             object taskresult;
             var timer = Stopwatch.StartNew();
@@ -698,18 +698,18 @@ namespace Zerra.CQRS
             catch (Exception ex)
             {
                 timer.Stop();
-                busLogger?.LogCallAsync(interfaceType, methodName, arguments, null, source, false, timer.ElapsedMilliseconds, ex);
+                busLogger?.EndCallAsync(interfaceType, methodName, arguments, null, source, false, timer.ElapsedMilliseconds, ex);
                 throw;
             }
 
             timer.Stop();
-            busLogger?.LogCallAsync(interfaceType, methodName, arguments, taskresult, source, false, timer.ElapsedMilliseconds, null);
+            busLogger?.EndCallAsync(interfaceType, methodName, arguments, taskresult, source, false, timer.ElapsedMilliseconds, null);
 
             return (TReturn)taskresult;
         }
         private static async Task SendMethodLoggedAsync<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, string source, MethodDetail methodDetail, IQueryClient methodCaller)
         {
-            busLogger?.BeginLogCallAsync(interfaceType, methodName, arguments, null, source, false);
+            busLogger?.BeginCallAsync(interfaceType, methodName, arguments, null, source, false);
 
             var timer = Stopwatch.StartNew();
             try
@@ -721,12 +721,12 @@ namespace Zerra.CQRS
             catch (Exception ex)
             {
                 timer.Stop();
-                busLogger?.LogCallAsync(interfaceType, methodName, arguments, null, source, false, timer.ElapsedMilliseconds, ex);
+                busLogger?.EndCallAsync(interfaceType, methodName, arguments, null, source, false, timer.ElapsedMilliseconds, ex);
                 throw;
             }
 
             timer.Stop();
-            busLogger?.LogCallAsync(interfaceType, methodName, arguments, null, source, false, timer.ElapsedMilliseconds, null);
+            busLogger?.EndCallAsync(interfaceType, methodName, arguments, null, source, false, timer.ElapsedMilliseconds, null);
         }
 
         private static readonly MethodDetail callInternalLoggedGenericAsyncMethod = typeof(Bus).GetMethodDetail(nameof(CallMethodInternalLoggedGenericAsync));
@@ -735,7 +735,7 @@ namespace Zerra.CQRS
             var providerType = ProviderResolver.GetTypeFirst(interfaceType);
             var provider = Instantiator.GetSingle(providerType);
 
-            busLogger?.BeginLogCallAsync(interfaceType, methodName, arguments, null, source, true);
+            busLogger?.BeginCallAsync(interfaceType, methodName, arguments, null, source, true);
 
             object taskresult;
             var timer = Stopwatch.StartNew();
@@ -749,12 +749,12 @@ namespace Zerra.CQRS
             catch (Exception ex)
             {
                 timer.Stop();
-                busLogger?.LogCallAsync(interfaceType, methodName, arguments, null, source, true, timer.ElapsedMilliseconds, ex);
+                busLogger?.EndCallAsync(interfaceType, methodName, arguments, null, source, true, timer.ElapsedMilliseconds, ex);
                 throw;
             }
 
             timer.Stop();
-            busLogger?.LogCallAsync(interfaceType, methodName, arguments, taskresult, source, true, timer.ElapsedMilliseconds, null);
+            busLogger?.EndCallAsync(interfaceType, methodName, arguments, taskresult, source, true, timer.ElapsedMilliseconds, null);
 
             return (TReturn)taskresult;
         }
@@ -763,7 +763,7 @@ namespace Zerra.CQRS
             var providerType = ProviderResolver.GetTypeFirst(interfaceType);
             var provider = Instantiator.GetSingle(providerType);
 
-            busLogger?.BeginLogCallAsync(interfaceType, methodName, arguments, null, source, true);
+            busLogger?.BeginCallAsync(interfaceType, methodName, arguments, null, source, true);
 
             var timer = Stopwatch.StartNew();
             try
@@ -775,12 +775,12 @@ namespace Zerra.CQRS
             catch (Exception ex)
             {
                 timer.Stop();
-                busLogger?.LogCallAsync(interfaceType, methodName, arguments, null, source, true, timer.ElapsedMilliseconds, ex);
+                busLogger?.EndCallAsync(interfaceType, methodName, arguments, null, source, true, timer.ElapsedMilliseconds, ex);
                 throw;
             }
 
             timer.Stop();
-            busLogger?.LogCallAsync(interfaceType, methodName, arguments, null, source, true, timer.ElapsedMilliseconds, null);
+            busLogger?.EndCallAsync(interfaceType, methodName, arguments, null, source, true, timer.ElapsedMilliseconds, null);
         }
 
         private static HashSet<Type> GetCommandTypesFromInterface(Type interfaceType)
