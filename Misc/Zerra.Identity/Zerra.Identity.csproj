@@ -48,7 +48,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Zerra\Zerra.csproj" />
+        <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
     </ItemGroup>
 
 </Project>

@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Zerra.T4\Zerra.T4.csproj" />
+    <ProjectReference Include="..\..\Framework\Zerra.T4\Zerra.T4.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -11,13 +11,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\LICENSE" Link="LICENSE">
-      <PackagePath>\</PackagePath>
-      <Pack>True</Pack>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.10.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.1.1" />
     <PackageReference Include="MSTest.TestFramework" Version="3.1.1" />
@@ -28,8 +21,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Zerra.Tools\Zerra.Tools.csproj" />
-    <ProjectReference Include="..\Zerra\Zerra.csproj" />
+    <ProjectReference Include="..\..\Framework\Zerra.Repository.MsSql\Zerra.Repository.MsSql.csproj" />
+    <ProjectReference Include="..\..\Framework\Zerra.Repository.MySql\Zerra.Repository.MySql.csproj" />
+    <ProjectReference Include="..\..\Framework\Zerra.Repository.PostgreSql\Zerra.Repository.PostgreSql.csproj" />
+    <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
+    <ProjectReference Include="..\..\Framework\Zerra.Repository\Zerra.Repository.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
