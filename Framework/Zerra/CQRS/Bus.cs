@@ -1158,12 +1158,12 @@ namespace Zerra.CQRS
         }
         private static bool HasServices
         {
-            get => commandProducers.IsEmpty ||
-                    commandConsumers.Count != 0 ||
-                    eventProducers.IsEmpty ||
-                    eventConsumers.Count != 0 ||
-                    queryClients.IsEmpty ||
-                    queryServers.Count != 0;
+            get => !commandProducers.IsEmpty ||
+                   commandConsumers.Count != 0 ||
+                   !eventProducers.IsEmpty ||
+                   eventConsumers.Count != 0 ||
+                   !queryClients.IsEmpty ||
+                   queryServers.Count != 0;
         }
 
         public static void StartServices(ServiceSettings serviceSettings, IServiceCreator serviceCreator, IRelayRegister? relayRegister = null)
@@ -1553,7 +1553,7 @@ namespace Zerra.CQRS
                         _ = Log.ErrorAsync($"Failed to open Event Consumer", ex);
                     }
                 }
-                if (queryServer != null && relayRegisterTypes != null)
+                if (queryServer != null)
                 {
                     try
                     {

@@ -32,10 +32,7 @@ namespace Zerra.CQRS.Network
         protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
             if (throttle == null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
-            if (providerHandlerAsync == null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
             if (commandCounter == null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
-            if (handlerAsync == null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
-            if (handlerAwaitAsync == null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
 
             try
             {
@@ -123,6 +120,8 @@ namespace Zerra.CQRS.Network
                         //----------------------------------------------------------------------------------------------------
                         if (!String.IsNullOrWhiteSpace(data.ProviderType))
                         {
+                            if (providerHandlerAsync == null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
+
                             if (String.IsNullOrWhiteSpace(data.ProviderMethod)) throw new Exception("Invalid Request");
                             if (data.ProviderArguments == null) throw new Exception("Invalid Request");
                             if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
@@ -232,9 +231,15 @@ namespace Zerra.CQRS.Network
 
                             inHandlerContext = true;
                             if (data.MessageAwait == true)
+                            {
+                                if (handlerAwaitAsync == null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
                                 await handlerAwaitAsync(command, data.Source, false);
+                            }
                             else
+                            {
+                                if (handlerAsync == null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
                                 await handlerAsync(command, data.Source, false);
+                            }
                             inHandlerContext = false;
 
                             responseStarted = true;
