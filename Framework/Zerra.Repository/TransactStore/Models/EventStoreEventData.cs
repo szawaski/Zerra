@@ -9,7 +9,7 @@ namespace Zerra.Repository
     public sealed class EventStoreEventData
     {
         public Guid EventID { get; set; }
-        public string EventName { get; set; }
+        public string EventName { get; set; } = null!;
         public ReadOnlyMemory<byte> Data { get; set; }
 
         public DateTime Date { get; set; }

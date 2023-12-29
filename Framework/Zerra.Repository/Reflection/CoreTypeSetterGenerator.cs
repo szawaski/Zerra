@@ -30,7 +30,7 @@ namespace Zerra.Repository.Reflection
         private static readonly ConstructorInfo notSupportedExceptionConstructor = typeof(NotSupportedException).GetConstructors()[0];
         private static Type Generate(MemberInfo memberInfo, CoreType? coreType, bool isByteArray)
         {
-            var interfaceType = TypeAnalyzer.GetGenericType(iCoreTypeSetterType, memberInfo.ReflectedType);
+            var interfaceType = TypeAnalyzer.GetGenericType(iCoreTypeSetterType, memberInfo.ReflectedType!);
 
             var typeSignature = $"{interfaceType.FullName}_{memberInfo.Name}_CoreTypeSetterGenerator";
 
@@ -85,7 +85,7 @@ namespace Zerra.Repository.Reflection
                     if (memberInfo.MemberType == MemberTypes.Property)
                     {
                         var propertyInfo = (PropertyInfo)memberInfo;
-                        var setMethod = propertyInfo.GetSetMethod(true);
+                        var setMethod = propertyInfo.GetSetMethod(true)!;
                         if (!setMethod.IsStatic)
                             il.Emit(OpCodes.Ldarg_1);
 
@@ -104,7 +104,7 @@ namespace Zerra.Repository.Reflection
                         if (!fieldInfo.IsStatic)
                         {
                             il.Emit(OpCodes.Ldarg_1);
-                            if (fieldInfo.ReflectedType.IsValueType)
+                            if (fieldInfo.ReflectedType!.IsValueType)
                                 il.Emit(OpCodes.Unbox, fieldInfo.ReflectedType);
                         }
 
@@ -176,13 +176,13 @@ namespace Zerra.Repository.Reflection
 
                 getMethodBuilderIL.Emit(OpCodes.Ret);
 
-                var getMethod = methods.FirstOrDefault(x => x.Name == getMethodName);
+                var getMethod = methods.FirstOrDefault(x => x.Name == getMethodName)!;
                 typeBuilder.DefineMethodOverride(getMethodBuilder, getMethod);
 
                 propertyBuilder.SetGetMethod(getMethodBuilder);
             }
 
-            Type objectType = typeBuilder.CreateTypeInfo();
+            Type objectType = typeBuilder.CreateTypeInfo()!;
             return objectType;
         }
     }

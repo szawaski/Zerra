@@ -256,7 +256,7 @@ namespace Zerra.Repository
                 {
                     var id = ModelAnalyzer.GetIdentity(model);
                     if (id == null)
-                        throw new Exception($"Model {typeof(TModel).GetNiceName()} is missing an identiy for {nameof(DeleteAsync)}");
+                        throw new Exception($"Model {typeof(TModel).GetNiceName()} missing Identity");
                     ids.Add(id);
                 }
 

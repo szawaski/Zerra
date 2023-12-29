@@ -176,7 +176,7 @@ namespace Zerra.Repository.Reflection
                 return GenerateIdentityPropertyNames(type);
             });
             if (names.Length == 0)
-                throw new Exception($"Model {type} is missing an Identity");
+                throw new Exception($"Model {type} missing Identity");
             return names;
         }
         private static string[] GenerateIdentityPropertyNames(Type type)
@@ -198,9 +198,11 @@ namespace Zerra.Repository.Reflection
         public static object GetIdentity<TModel>(TModel model) where TModel : class, new()
         {
             var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(null, typeof(IdentityAttribute));
-            var id = modelIdentityAccessor?.Invoke(model);
+            if (modelIdentityAccessor == null)
+                throw new Exception($"Model {typeof(TModel).GetNiceName()} missing Identity");
+            var id = modelIdentityAccessor.Invoke(model);
             if (id == null)
-                throw new Exception($"Model {typeof(TModel).GetNiceName()} is missing an Identity");
+                throw new Exception($"Model {typeof(TModel).GetNiceName()} missing Identity");
             return id;
         }
         public static object GetIdentity(Type type, object model)
@@ -222,15 +224,15 @@ namespace Zerra.Repository.Reflection
         }
 
         private static readonly MethodInfo getForeignIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.GetForeignIdentity) && x.IsGenericMethod);
-        public static object GetForeignIdentity<TModel>(string foreignIdentityNames, TModel model) where TModel : class, new()
+        public static object? GetForeignIdentity<TModel>(string foreignIdentityNames, TModel model) where TModel : class, new()
         {
             var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(foreignIdentityNames, null);
-            var id = modelIdentityAccessor?.Invoke(model);
-            if (id == null)
-                throw new Exception($"Model {typeof(TModel).GetNiceName()} is missing an Foreign Identity");
+            if (modelIdentityAccessor == null)
+                throw new Exception($"Model {typeof(TModel).GetNiceName()} missing Foreign Identity");
+            var id = modelIdentityAccessor.Invoke(model);
             return id;
         }
-        public static object GetForeignIdentity(Type type, string foreignIdentityNames, object model)
+        public static object? GetForeignIdentity(Type type, string foreignIdentityNames, object model)
         {
             var genericGetForeignIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(getForeignIdentityMethod, type);
             return genericGetForeignIdentityMethod.Caller(null, new object[] { foreignIdentityNames, model })!;
@@ -248,10 +250,42 @@ namespace Zerra.Repository.Reflection
             _ = genericSetForeignIdentityMethod.Caller(null, new object[] { foreignIdentityNames, model, identity });
         }
 
-        public static bool CompareIdentities(object identity1, object identity2)
+        public static bool CompareIdentities(object? identity1, object? identity2)
         {
-            return identity1?.GetHashCode() == identity2?.GetHashCode();
-            //return identity1.ToStringIfArray() = identity2.ToStringIfArray();
+            if (identity1 == null)
+                return identity2 == null;
+            if (identity2 == null)
+                return false;
+
+            if (identity1.Equals(identity2))
+                return true;
+
+            if (identity1 is object?[] array1)
+            {
+                if (identity2 is not object?[] array2)
+                    return false;
+                if (array1.Length != array2.Length)
+                    return false;
+                for (var i = 0; i < array1.Length; i++)
+                {
+                    var value1 = array1[i];
+                    var value2 = array2[i];
+
+                    if (value1 == null)
+                    {
+                        if (value2 == null)
+                            continue;
+                        return false;
+                    }
+                    if (value2 == null)
+                        return false;
+                    if (!value1.Equals(value2))
+                        return false;
+                }
+                return true;
+            }
+
+            return false;
         }
 
         public static Expression<Func<TModel, bool>>? GetIdentityExpression<TModel>(object identity)

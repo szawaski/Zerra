@@ -121,7 +121,7 @@ namespace Zerra.Repository
         protected override sealed Task<long> QueryEventCountAsync(Query<TModel> query) => throw new NotSupportedException("Event queries not supported with this provider");
         protected override sealed Task<bool> QueryEventAnyAsync(Query<TModel> query) => throw new NotSupportedException("Event queries not supported with this provider");
 
-        protected override sealed void PersistModel(PersistEvent @event, TModel model, Graph<TModel> graph, bool create)
+        protected override sealed void PersistModel(PersistEvent @event, TModel model, Graph<TModel>? graph, bool create)
         {
             if (create)
             {
@@ -179,7 +179,7 @@ namespace Zerra.Repository
             }
         }
 
-        protected override sealed async Task PersistModelAsync(PersistEvent @event, TModel model, Graph<TModel> graph, bool create)
+        protected override sealed async Task PersistModelAsync(PersistEvent @event, TModel model, Graph<TModel>? graph, bool create)
         {
             if (create)
             {

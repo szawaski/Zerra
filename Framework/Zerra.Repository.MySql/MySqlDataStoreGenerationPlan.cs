@@ -8,7 +8,7 @@ namespace Zerra.Repository.MySql
     public sealed class MySqlDataStoreGenerationPlan : IDataStoreGenerationPlan
     {
         private readonly MySqlEngine engine;
-        private readonly string createDatabaseName;
+        private readonly string? createDatabaseName;
         private readonly ICollection<string> sql;
 
         public ICollection<string> Plan
@@ -22,7 +22,7 @@ namespace Zerra.Repository.MySql
             }
         }
 
-        public MySqlDataStoreGenerationPlan(MySqlEngine engine, string createDatabaseName, ICollection<string> sql)
+        public MySqlDataStoreGenerationPlan(MySqlEngine engine, string? createDatabaseName, ICollection<string> sql)
         {
             this.engine = engine;
             this.createDatabaseName = createDatabaseName;

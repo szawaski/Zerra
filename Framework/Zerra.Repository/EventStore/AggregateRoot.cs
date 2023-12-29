@@ -12,7 +12,7 @@ namespace Zerra.Repository
 {
     public abstract class AggregateRoot
     {
-        private static Type typeCache = null;
+        private static Type? typeCache = null;
         private static readonly object typeCacheLock = new();
         private Type GetAggregateType()
         {
@@ -29,7 +29,7 @@ namespace Zerra.Repository
             return typeCache;
         }
 
-        private static IEventStoreEngine engineCache = null;
+        private static IEventStoreEngine? engineCache = null;
         private static readonly object engineCacheLock = new();
         private IEventStoreEngine GetEngine()
         {
@@ -42,7 +42,7 @@ namespace Zerra.Repository
                         var aggregateType = GetAggregateType();
                         var iEventStoreContextProviderType = typeof(IAggregateRootContextProvider<>);
                         var iEventStoreContextProviderGenericType = TypeAnalyzer.GetGenericType(iEventStoreContextProviderType, aggregateType);
-                        var providerType = Discovery.GetImplementationClass(iEventStoreContextProviderGenericType);
+                        var providerType = Discovery.GetImplementationClass(iEventStoreContextProviderGenericType)!;
                         var provider = (IContextProvider)Instantiator.Create(providerType);
                         var context = provider.GetContext();
                         engineCache = context.InitializeEngine<IEventStoreEngine>();
@@ -55,7 +55,7 @@ namespace Zerra.Repository
         public Guid ID { get; private set; }
         public ulong? LastEventNumber { get; private set; }
         public DateTime? LastEventDate { get; private set; }
-        public string LastEventName { get; private set; }
+        public string? LastEventName { get; private set; }
         public bool IsCreated { get; private set; }
         public bool IsDeleted { get; private set; }
 
@@ -118,6 +118,8 @@ namespace Zerra.Repository
                 if (eventData.Deleted)
                     this.IsDeleted = true;
                 var eventModel = EventStoreCommon.Deserialize<IEvent>(eventData.Data.Span);
+                if (eventModel == null)
+                    throw new Exception("Failed to deserialize Model");
                 await ApplyEvent(eventModel, eventModel.GetType());
             }
             return true;
@@ -130,7 +132,7 @@ namespace Zerra.Repository
             {
                 var aggregateType = GetAggregateType();
                 var aggregateTypeDetail = TypeAnalyzer.GetTypeDetail(aggregateType);
-                MethodDetail methodDetail = null;
+                MethodDetail? methodDetail = null;
                 foreach (var method in aggregateTypeDetail.MethodDetails)
                 {
                     if (!method.MethodInfo.IsStatic && method.ParametersInfo.Count == 1 && method.ParametersInfo[0].ParameterType == eventType)

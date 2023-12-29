@@ -8,7 +8,7 @@ namespace Zerra.Repository.PostgreSql
     public sealed class PostgreSqlDataStoreGenerationPlan : IDataStoreGenerationPlan
     {
         private readonly PostgreSqlEngine engine;
-        private readonly string createDatabaseName;
+        private readonly string? createDatabaseName;
         private readonly ICollection<string> sql;
 
         public ICollection<string> Plan
@@ -22,7 +22,7 @@ namespace Zerra.Repository.PostgreSql
             }
         }
 
-        public PostgreSqlDataStoreGenerationPlan(PostgreSqlEngine engine, string createDatabaseName, ICollection<string> sql)
+        public PostgreSqlDataStoreGenerationPlan(PostgreSqlEngine engine, string? createDatabaseName, ICollection<string> sql)
         {
             this.engine = engine;
             this.createDatabaseName = createDatabaseName;

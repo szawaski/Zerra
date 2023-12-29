@@ -12,7 +12,7 @@ namespace Zerra.Repository.PostgreSql
         public abstract string ConnectionString { get; }
 
         private readonly object locker = new();
-        private IDataStoreEngine engine = null;
+        private IDataStoreEngine? engine = null;
         protected override sealed IDataStoreEngine GetEngine()
         {
             if (engine == null)

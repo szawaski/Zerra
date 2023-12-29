@@ -8,7 +8,7 @@ namespace Zerra.Repository.MsSql
     public sealed class MsSqlDataStoreGenerationPlan : IDataStoreGenerationPlan
     {
         private readonly MsSqlEngine engine;
-        private readonly string createDatabaseName;
+        private readonly string? createDatabaseName;
         private readonly ICollection<string> sql;
 
         public ICollection<string> Plan
@@ -22,7 +22,7 @@ namespace Zerra.Repository.MsSql
             }
         }
 
-        public MsSqlDataStoreGenerationPlan(MsSqlEngine engine, string createDatabaseName, ICollection<string> sql)
+        public MsSqlDataStoreGenerationPlan(MsSqlEngine engine, string? createDatabaseName, ICollection<string> sql)
         {
             this.engine = engine;
             this.createDatabaseName = createDatabaseName;

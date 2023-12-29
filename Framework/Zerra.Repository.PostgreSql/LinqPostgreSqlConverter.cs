@@ -15,7 +15,7 @@ namespace Zerra.Repository.PostgreSql
     public sealed class LinqPostgreSqlConverter : BaseLinqSqlConverter
     {
         private static readonly LinqPostgreSqlConverter instance = new();
-        public static string Convert(QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail)
+        public static string Convert(QueryOperation select, Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
         {
             return instance.ConvertInternal(select, where, order, skip, take, graph, modelDetail);
         }
@@ -24,11 +24,14 @@ namespace Zerra.Repository.PostgreSql
         {
             context.MemberContext.OperatorStack.Push(Operator.Lambda);
 
-            var lambda = exp as LambdaExpression;
+            var lambda = (LambdaExpression)exp;
 
             if (lambda.Parameters.Count != 1)
                 throw new NotSupportedException("Can only parse a lambda with one parameter.");
             var parameter = lambda.Parameters[0];
+            if (parameter.Name == null)
+                throw new Exception($"Parameter has no name {parameter.Type.GetNiceName()}");
+
             var modelDetail = ModelAnalyzer.GetModel(parameter.Type);
 
             if (context.RootDependant.ModelDetail.Type != modelDetail.Type)
@@ -44,6 +47,9 @@ namespace Zerra.Repository.PostgreSql
                 var callingModelIdentity = callingModel.IdentityProperties[0];
 
                 var modelProperty = callingModel.GetProperty(property.Member.Name);
+
+                if (modelProperty.ForeignIdentity == null)
+                    throw new Exception($"{modelProperty.Type.GetNiceName()} missing Foreign Identity");
 
                 sb.Write(' ');
                 sb.Write(callingModel.DataSourceEntityName.ToLower());
@@ -74,13 +80,13 @@ namespace Zerra.Repository.PostgreSql
         {
             context.MemberContext.OperatorStack.Push(Operator.Call);
 
-            var call = exp as MethodCallExpression;
+            var call = (MethodCallExpression)exp;
             var isEvaluatable = IsEvaluatable(exp);
             if (isEvaluatable)
             {
                 ConvertToSqlEvaluate(exp, ref sb, context);
             }
-            else
+            else if (call.Method.DeclaringType != null)
             {
                 if (call.Method.DeclaringType == typeof(Enumerable) || call.Method.DeclaringType == typeof(Queryable))
                 {
@@ -92,13 +98,19 @@ namespace Zerra.Repository.PostgreSql
                                     throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
 
                                 var subMember = (MemberExpression)call.Arguments[0];
-                                var subWhere = call.Arguments.Count > 1 ? call.Arguments[1] : null;
+                                if (subMember.Expression == null)
+                                    throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
+
+                                var subWhere = call.Arguments[1];
 
                                 if (context.Inverted)
                                     sb.Write("NOT ");
 
                                 var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                                 var propertyInfo = subMemberModel.GetProperty(subMember.Member.Name);
+                                if (propertyInfo.ForeignIdentity == null)
+                                    throw new Exception($"{propertyInfo.Type.GetNiceName()} missing Foreign Identity");
+
                                 var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.InnerType);
 
                                 context.MemberContext.InCallRenderIdentity++;
@@ -122,6 +134,9 @@ namespace Zerra.Repository.PostgreSql
                                     throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
 
                                 var subMember = (MemberExpression)call.Arguments[0];
+                                if (subMember.Expression == null)
+                                    throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
+
                                 var subWhere = call.Arguments.Count > 1 ? call.Arguments[1] : null;
 
                                 if (context.Inverted)
@@ -129,6 +144,9 @@ namespace Zerra.Repository.PostgreSql
 
                                 var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                                 var propertyInfo = subMemberModel.GetProperty(subMember.Member.Name);
+                                if (propertyInfo.ForeignIdentity == null)
+                                    throw new Exception($"{propertyInfo.Type.GetNiceName()} missing Foreign Identity");
+
                                 var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.InnerType);
 
                                 context.MemberContext.InCallRenderIdentity++;
@@ -152,6 +170,9 @@ namespace Zerra.Repository.PostgreSql
                                     throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
 
                                 var subMember = (MemberExpression)call.Arguments[0];
+                                if (subMember.Expression == null)
+                                    throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
+
                                 var subWhere = call.Arguments.Count > 1 ? call.Arguments[1] : null;
 
                                 context.MemberContext.InCallNoRender++;
@@ -160,6 +181,9 @@ namespace Zerra.Repository.PostgreSql
 
                                 var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                                 var propertyInfo = subMemberModel.GetProperty(subMember.Member.Name);
+                                if (propertyInfo.ForeignIdentity == null)
+                                    throw new Exception($"{propertyInfo.Type.GetNiceName()} missing Foreign Identity");
+
                                 var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.InnerType);
 
                                 context.MemberContext.MemberLambdaStack.Push(subMember);
@@ -198,7 +222,7 @@ namespace Zerra.Repository.PostgreSql
                     {
                         case "Contains":
                             {
-                                if (call.Arguments.Count != 1)
+                                if (call.Arguments.Count != 1 || call.Object == null)
                                     throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
 
                                 var callingObject = call.Object;
@@ -226,7 +250,7 @@ namespace Zerra.Repository.PostgreSql
                         {
                             case "Contains":
                                 {
-                                    if (call.Arguments.Count != 1)
+                                    if (call.Arguments.Count != 1 || call.Object == null)
                                         throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
 
                                     var callingObject = call.Object;
@@ -248,6 +272,10 @@ namespace Zerra.Repository.PostgreSql
                         throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
                     }
                 }
+            }
+            else
+            {
+                throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
             }
 
             _ = context.MemberContext.OperatorStack.Pop();
@@ -374,7 +402,7 @@ namespace Zerra.Repository.PostgreSql
         {
             context.MemberContext.OperatorStack.Push(Operator.Conditional);
 
-            var conditional = exp as ConditionalExpression;
+            var conditional = (ConditionalExpression)exp;
 
             sb.Write("CASE WHEN(");
 
@@ -393,7 +421,7 @@ namespace Zerra.Repository.PostgreSql
             _ = context.MemberContext.OperatorStack.Pop();
         }
 
-        protected override bool ConvertToSqlValueRender(MemberExpression memberProperty, Type type, object value, ref CharWriter sb, BuilderContext context)
+        protected override bool ConvertToSqlValueRender(MemberExpression? memberProperty, Type type, object? value, ref CharWriter sb, BuilderContext context)
         {
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
@@ -684,7 +712,7 @@ namespace Zerra.Repository.PostgreSql
             if (type == typeof(object))
             {
                 sb.Write('\'');
-                sb.Write(value.ToString().Replace("\'", "''"));
+                sb.Write(value.ToString()!.Replace("\'", "''"));
                 sb.Write('\'');
                 return false;
             }
@@ -692,7 +720,7 @@ namespace Zerra.Repository.PostgreSql
             throw new NotImplementedException($"{type.GetNiceName()} value {value?.ToString()} not converted");
         }
 
-        protected override void GenerateWhere(Expression where, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
+        protected override void GenerateWhere(Expression? where, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
         {
             if (where == null)
                 return;
@@ -702,7 +730,7 @@ namespace Zerra.Repository.PostgreSql
             ConvertToSql(where, ref sb, context);
             AppendLineBreak(ref sb);
         }
-        protected override void GenerateOrderSkipTake(QueryOrder order, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
+        protected override void GenerateOrderSkipTake(QueryOrder? order, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
         {
             if (order?.OrderExpressions.Length > 0)
             {
@@ -742,7 +770,7 @@ namespace Zerra.Repository.PostgreSql
                 }
             }
         }
-        protected override void GenerateSelect(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriter sb)
+        protected override void GenerateSelect(QueryOperation select, Graph? graph, ModelDetail modelDetail, ref CharWriter sb)
         {
             switch (select)
             {
@@ -766,10 +794,10 @@ namespace Zerra.Repository.PostgreSql
                     break;
             }
         }
-        protected override void GenerateSelectProperties(Graph graph, ModelDetail modelDetail, ref CharWriter sb)
+        protected override void GenerateSelectProperties(Graph? graph, ModelDetail modelDetail, ref CharWriter sb)
         {
             AppendLineBreak(ref sb);
-            if (graph.IncludeAllProperties)
+            if (graph == null || graph.IncludeAllProperties)
             {
                 sb.Write(modelDetail.DataSourceEntityName.ToLower());
                 sb.Write(".*");
@@ -813,6 +841,12 @@ namespace Zerra.Repository.PostgreSql
             {
                 if (child.ModelDetail.IdentityProperties.Count != 1)
                     throw new NotSupportedException($"Relational queries support only one identity on {child.ModelDetail.Type.GetNiceName()}");
+
+                if (child.ParentMember == null)
+                    throw new Exception($"{child.ModelDetail.Type.GetNiceName()} is not a child member");
+                if (child.ParentMember.ForeignIdentity == null)
+                    throw new Exception($"{child.ParentMember.Type.GetNiceName()} missing Foreign Identity");
+
                 var dependantIdentity = child.ModelDetail.IdentityProperties[0];
 
                 sb.Write("JOIN ");
@@ -820,7 +854,7 @@ namespace Zerra.Repository.PostgreSql
                 sb.Write(" ON ");
                 sb.Write(dependant.ModelDetail.DataSourceEntityName.ToLower());
                 sb.Write('.');
-                sb.Write(child.ParentMember?.ForeignIdentity.ToLower());
+                sb.Write(child.ParentMember.ForeignIdentity.ToLower());
                 sb.Write('=');
                 sb.Write(child.ModelDetail.DataSourceEntityName.ToLower());
                 sb.Write('.');
@@ -831,7 +865,7 @@ namespace Zerra.Repository.PostgreSql
                 GenerateJoin(child, ref sb);
             }
         }
-        protected override void GenerateEnding(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriter sb)
+        protected override void GenerateEnding(QueryOperation select, Graph? graph, ModelDetail modelDetail, ref CharWriter sb)
         {
             switch (select)
             {
@@ -856,7 +890,7 @@ namespace Zerra.Repository.PostgreSql
             sb.Write(Environment.NewLine);
         }
 
-        protected override string OperatorToString(Operator operation)
+        protected override string? OperatorToString(Operator operation)
         {
             return operation switch
             {

@@ -10,7 +10,7 @@ namespace Zerra.Repository
 {
     public abstract partial class BaseLinqSqlConverter
     {
-        public string ConvertInternal(QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail)
+        public string ConvertInternal(QueryOperation select, Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
         {
             var operationContext = new MemberContext();
             var sb = new CharWriter();
@@ -25,7 +25,7 @@ namespace Zerra.Repository
             }
         }
 
-        protected void Convert(ref CharWriter sb, QueryOperation select, Expression? where, QueryOrder? order, int? skip, int? take, Graph graph, ModelDetail modelDetail, MemberContext operationContext)
+        protected void Convert(ref CharWriter sb, QueryOperation select, Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail, MemberContext operationContext)
         {
             var hasWhere = where != null;
             var hasOrderSkipTake = (select == QueryOperation.Many || select == QueryOperation.First) && (order?.OrderExpressions.Length > 0 || skip > 0 || take > 0);
@@ -854,14 +854,14 @@ namespace Zerra.Repository
 
         protected abstract void GenerateWhere(Expression? where, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext);
         protected abstract void GenerateOrderSkipTake(QueryOrder? order, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext);
-        protected abstract void GenerateSelect(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriter sb);
-        protected abstract void GenerateSelectProperties(Graph graph, ModelDetail modelDetail, ref CharWriter sb);
+        protected abstract void GenerateSelect(QueryOperation select, Graph? graph, ModelDetail modelDetail, ref CharWriter sb);
+        protected abstract void GenerateSelectProperties(Graph? graph, ModelDetail modelDetail, ref CharWriter sb);
         protected abstract void GenerateFrom(ModelDetail modelDetail, ref CharWriter sb);
         protected abstract void GenerateJoin(ParameterDependant dependant, ref CharWriter sb);
-        protected abstract void GenerateEnding(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriter sb);
+        protected abstract void GenerateEnding(QueryOperation select, Graph? graph, ModelDetail modelDetail, ref CharWriter sb);
 
         protected abstract void AppendLineBreak(ref CharWriter sb);
 
-        protected abstract string OperatorToString(Operator operation);
+        protected abstract string? OperatorToString(Operator operation);
     }
 }

@@ -8,9 +8,9 @@ namespace Zerra.Repository.MySql
     {
         private sealed class SqlColumnType
         {
-            public string Table { get; set; }
-            public string Column { get; set; }
-            public string DataType { get; set; }
+            public string Table { get; set; } = null!;
+            public string Column { get; set; } = null!;
+            public string DataType { get; set; } = null!;
             public bool IsNullable { get; set; }
             public long? CharacterMaximumLength { get; set; }
             public uint? NumericPrecision { get; set; }

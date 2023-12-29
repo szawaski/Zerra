@@ -12,14 +12,14 @@ namespace Zerra.Repository
     {
         protected sealed override DataStoreGenerationType DataStoreGenerationType => base.DataStoreGenerationType; //does nothing
 
-        protected override sealed (T, DataStoreGenerationType) GetEngine<T>()
+        protected override sealed (T?, DataStoreGenerationType) GetEngine<T>() where T : class
         {
             var contexts = GetDataContexts();
             foreach (var context in contexts)
             {
                 var contextName = context.GetType().GetNiceName();
                 Log.InfoAsync($"{nameof(DataContextSelector)} trying {contextName}");
-                if (!context.TryGetEngine(out T engine, out var dataStoreGenerationType))
+                if (!context.TryGetEngine<T>(out var engine, out var dataStoreGenerationType))
                 {
                     Log.InfoAsync($"{nameof(DataContextSelector)} could not validate {contextName}");
                     continue;
@@ -29,13 +29,14 @@ namespace Zerra.Repository
             }
             return (null, default);
         }
+        
         protected override sealed IDataStoreEngine GetEngine()
         {
             throw new NotSupportedException();
         }
 
         private readonly object locker = new();
-        private ICollection<DataContext> contexts = null;
+        private ICollection<DataContext>? contexts = null;
         protected ICollection<DataContext> GetDataContexts()
         {
             if (contexts == null)

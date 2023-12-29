@@ -8,9 +8,9 @@ namespace Zerra.Repository.PostgreSql
     {
         private sealed class SqlColumnType
         {
-            public string Table { get; set; }
-            public string Column { get; set; }
-            public string DataType { get; set; }
+            public string Table { get; set; } = null!;
+            public string Column { get; set; } = null!;
+            public string DataType { get; set; } = null!;
             public bool IsNullable { get; set; }
             public int? CharacterMaximumLength { get; set; }
             public int? NumericPrecision { get; set; }

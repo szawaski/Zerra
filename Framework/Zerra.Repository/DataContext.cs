@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using Zerra.Logging;
@@ -18,7 +19,11 @@ namespace Zerra.Repository
         private static bool validated = false;
         private static readonly object validatedLock = new();
 
-        public bool TryGetEngine<T>(out T engine, out DataStoreGenerationType dataStoreGenerationType) where T : class, IDataStoreEngine
+        public bool TryGetEngine<T>(
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out T engine, out DataStoreGenerationType dataStoreGenerationType) where T : class, IDataStoreEngine
         {
             (engine, dataStoreGenerationType) = GetEngine<T>();
             if (engine == null)
@@ -123,7 +128,7 @@ namespace Zerra.Repository
             return engine;
         }
 
-        protected virtual (T, DataStoreGenerationType) GetEngine<T>() where T : class, IDataStoreEngine
+        protected virtual (T?, DataStoreGenerationType) GetEngine<T>() where T : class, IDataStoreEngine
         {
             return (GetEngine() as T, DataStoreGenerationType);
         }

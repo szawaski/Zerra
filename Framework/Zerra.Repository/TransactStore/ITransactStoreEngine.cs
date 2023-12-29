@@ -24,14 +24,14 @@ namespace Zerra.Repository
         Task<long> ExecuteQueryCountAsync(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail);
         Task<bool> ExecuteQueryAnyAsync(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail);
 
-        ICollection<object> ExecuteInsertGetIdentities<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail);
-        int ExecuteInsert<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail);
-        int ExecuteUpdate<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail);
+        ICollection<object> ExecuteInsertGetIdentities<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new();
+        int ExecuteInsert<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new();
+        int ExecuteUpdate<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new();
         int ExecuteDelete(ICollection ids, ModelDetail modelDetail);
 
-        Task<ICollection<object>> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail);
-        Task<int> ExecuteInsertAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail);
-        Task<int> ExecuteUpdateAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail);
+        Task<ICollection<object>> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new();
+        Task<int> ExecuteInsertAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new();
+        Task<int> ExecuteUpdateAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new();
         Task<int> ExecuteDeleteAsync(ICollection ids, ModelDetail modelDetail);
     }
 }

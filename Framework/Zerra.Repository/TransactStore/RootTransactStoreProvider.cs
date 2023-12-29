@@ -234,7 +234,7 @@ namespace Zerra.Repository
                         {
                             //related single
                             if (modelPropertyInfo.ForeignIdentity == null)
-                                throw new Exception($"Model {modelPropertyInfo.Type.GetNiceName()} is missing an Foreign Identity");
+                                throw new Exception($"Model {modelPropertyInfo.Type.GetNiceName()} missing Foreign Identity");
                             graph.AddProperties(modelPropertyInfo.ForeignIdentity);
                         }
                         else
@@ -1304,7 +1304,7 @@ namespace Zerra.Repository
                     var relatedType = modelPropertyInfo.InnerType;
 
                     if (modelPropertyInfo.ForeignIdentity == null)
-                        throw new Exception($"Model {modelPropertyInfo.Type.GetNiceName()} is missing an Foreign Identity");
+                        throw new Exception($"Model {modelPropertyInfo.Type.GetNiceName()} missing Foreign Identity");
                     graph.AddProperties(modelPropertyInfo.ForeignIdentity);
 
                     var relatedModel = modelPropertyInfo.Getter(model);
@@ -1566,7 +1566,7 @@ namespace Zerra.Repository
                     var relatedType = modelPropertyInfo.InnerType;
 
                     if (modelPropertyInfo.ForeignIdentity == null)
-                        throw new Exception($"Model {modelPropertyInfo.Type.GetNiceName()} is missing an Foreign Identity");
+                        throw new Exception($"Model {modelPropertyInfo.Type.GetNiceName()} missing Foreign Identity");
                     graph.AddProperties(modelPropertyInfo.ForeignIdentity);
 
                     var relatedModel = modelPropertyInfo.Getter(model);

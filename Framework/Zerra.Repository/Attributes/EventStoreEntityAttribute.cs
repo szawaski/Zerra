@@ -100,7 +100,7 @@ namespace Zerra.Repository
                 );
 
                 var getMethodName = "get_" + property.Name;
-                var getMethod = methods.FirstOrDefault(x => x.Name == getMethodName);
+                var getMethod = methods.First(x => x.Name == getMethodName);
                 var getMethodBuilder = typeBuilder.DefineMethod(
                     getMethodName,
                     MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig | MethodAttributes.ReuseSlot | MethodAttributes.Virtual | MethodAttributes.Final,
@@ -119,7 +119,7 @@ namespace Zerra.Repository
                 propertyBuilder.SetGetMethod(getMethodBuilder);
             }
 
-            var objectType = typeBuilder.CreateTypeInfo();
+            var objectType = typeBuilder.CreateTypeInfo()!;
             return objectType;
         }
     }

@@ -94,7 +94,7 @@ namespace Zerra.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void Write(string value)
+        public unsafe void Write(string? value)
         {
             if (value == null)
                 return;

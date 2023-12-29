@@ -10,7 +10,7 @@ namespace Zerra.Repository.EventStoreDB
         public abstract bool Insecure { get; }
 
         private readonly object locker = new();
-        private IDataStoreEngine engine = null;
+        private IDataStoreEngine? engine = null;
         protected override IDataStoreEngine GetEngine()
         {
             if (engine == null)

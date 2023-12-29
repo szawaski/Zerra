@@ -8,14 +8,14 @@ namespace Zerra.Repository.MsSql
     {
         private sealed class SqlConstraint
         {
-            public string FK_Name { get; set; }
-            public string FK_Schema { get; set; }
-            public string FK_Table { get; set; }
-            public string FK_Column { get; set; }
-            public string PK_Name { get; set; }
-            public string PK_Schema { get; set; }
-            public string PK_Table { get; set; }
-            public string PK_Column { get; set; }
+            public string FK_Name { get; set; } = null!;
+            public string FK_Schema { get; set; } = null!;
+            public string FK_Table { get; set; } = null!;
+            public string FK_Column { get; set; } = null!;
+            public string PK_Name { get; set; } = null!;
+            public string PK_Schema { get; set; } = null!;
+            public string PK_Table { get; set; } = null!;
+            public string PK_Column { get; set; } = null!;
         }
     }
 }

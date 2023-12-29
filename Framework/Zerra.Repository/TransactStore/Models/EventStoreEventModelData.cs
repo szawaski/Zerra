@@ -8,7 +8,7 @@ namespace Zerra.Repository
     {
         public object? Source { get; set; }
         public string? SourceType { get; set; }
-        public TModel Model { get; set; }
+        public TModel Model { get; set; } = null!;
         public Graph<TModel>? Graph { get; set; }
     }
 }
