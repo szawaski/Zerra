@@ -14,7 +14,7 @@ namespace Zerra.Repository
         public StoreNameAttribute(string storeName)
         {
             if (!storeName.All(x => Char.IsLetterOrDigit(x) || x == '_' || x == '`'))
-                throw new ArgumentException(String.Format("{0}.{1}={2}", nameof(StoreNameAttribute), nameof(StoreName), storeName));
+                throw new ArgumentException($"{nameof(StoreNameAttribute)}.{nameof(StoreName)}={storeName}");
             this.StoreName = storeName;
         }
     }

@@ -27,10 +27,10 @@ namespace Zerra.Repository
             {
                 this.PropertyModelType = propertyModelType;
                 this.PropertyNames = propertyNames;
-                this.Values = new Dictionary<string, List<object>>();
+                this.Values = new();
                 foreach (var propertyName in PropertyNames)
                 {
-                    this.Values.Add(propertyName, new List<object>());
+                    this.Values.Add(propertyName, new());
                 }
 
                 this.ModelStack = new Stack<ModelDetail>();

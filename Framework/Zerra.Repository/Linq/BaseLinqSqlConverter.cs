@@ -25,7 +25,7 @@ namespace Zerra.Repository
             }
         }
 
-        protected void Convert(ref CharWriter sb, QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail, MemberContext operationContext)
+        protected void Convert(ref CharWriter sb, QueryOperation select, Expression? where, QueryOrder? order, int? skip, int? take, Graph graph, ModelDetail modelDetail, MemberContext operationContext)
         {
             var hasWhere = where != null;
             var hasOrderSkipTake = (select == QueryOperation.Many || select == QueryOperation.First) && (order?.OrderExpressions.Length > 0 || skip > 0 || take > 0);
@@ -101,10 +101,10 @@ namespace Zerra.Repository
                     ConvertToSqlConstant(exp, ref sb, context);
                     break;
                 case ExpressionType.Convert:
-                    ConvertToSqlUnary(Operator.Null, null, exp, ref sb, context);
+                    ConvertToSqlUnary(Operator.Null, exp, ref sb, context);
                     break;
                 case ExpressionType.ConvertChecked:
-                    ConvertToSqlUnary(Operator.Null, null, exp, ref sb, context);
+                    ConvertToSqlUnary(Operator.Null, exp, ref sb, context);
                     break;
                 case ExpressionType.DebugInfo:
                     throw new NotImplementedException();
@@ -186,10 +186,10 @@ namespace Zerra.Repository
                     ConvertToSqlBinary(Operator.Multiply, exp, ref sb, context);
                     break;
                 case ExpressionType.Negate:
-                    ConvertToSqlUnary(Operator.Negative, null, exp, ref sb, context);
+                    ConvertToSqlUnary(Operator.Negative, exp, ref sb, context);
                     break;
                 case ExpressionType.NegateChecked:
-                    ConvertToSqlUnary(Operator.Negative, null, exp, ref sb, context);
+                    ConvertToSqlUnary(Operator.Negative, exp, ref sb, context);
                     break;
                 case ExpressionType.New:
                     ConvertToSqlNew(exp, ref sb, context);
@@ -200,7 +200,7 @@ namespace Zerra.Repository
                     throw new NotImplementedException();
                 case ExpressionType.Not:
                     context.InvertStack++;
-                    ConvertToSqlUnary(Operator.Null, null, exp, ref sb, context);
+                    ConvertToSqlUnary(Operator.Null, exp, ref sb, context);
                     context.InvertStack--;
                     break;
                 case ExpressionType.NotEqual:
@@ -270,16 +270,17 @@ namespace Zerra.Repository
             }
         }
         protected abstract void ConvertToSqlLambda(Expression exp, ref CharWriter sb, BuilderContext context);
-        private void ConvertToSqlUnary(Operator prefixOperation, string suffixOperation, Expression exp, ref CharWriter sb, BuilderContext context)
+        private void ConvertToSqlUnary(Operator prefixOperation, Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(prefixOperation);
 
-            var unary = exp as UnaryExpression;
+            var unary = (UnaryExpression)exp;
             sb.Write(OperatorToString(prefixOperation));
 
             ConvertToSql(unary.Operand, ref sb, context);
 
-            sb.Write(suffixOperation);
+            //if (suffixOperation != null)
+            //    sb.Write(suffixOperation);
 
             _ = context.MemberContext.OperatorStack.Pop();
         }
@@ -287,7 +288,7 @@ namespace Zerra.Repository
         {
             context.MemberContext.OperatorStack.Push(operation);
 
-            var binary = exp as BinaryExpression;
+            var binary = (BinaryExpression)exp;
 
             var binaryLeft = binary.Left;
             var binaryRight = binary.Right;
@@ -328,25 +329,25 @@ namespace Zerra.Repository
         }
         private void ConvertToSqlArrayIndex(Expression exp, ref CharWriter sb, BuilderContext context)
         {
-            var array = exp as BinaryExpression;
-            var member = (Array)EvaluateMemberAccess(array.Left);
-            object value;
+            var array = (BinaryExpression)exp;
+            var member = (Array)EvaluateMemberAccess(array.Left)!;
+            object? value;
             if (array.Right.Type == typeof(long))
             {
-                var index = (long)Evaluate(array.Right);
+                var index = (long)Evaluate(array.Right)!;
                 value = member.GetValue(index);
             }
             else
             {
-                var index = (int)Evaluate(array.Right);
+                var index = (int)Evaluate(array.Right)!;
                 value = member.GetValue(index);
             }
 
-            ConvertToSqlValue(array.Left.Type.GetElementType(), value, ref sb, context);
+            ConvertToSqlValue(array.Left.Type.GetElementType()!, value, ref sb, context);
         }
         protected void ConvertToSqlMember(Expression exp, ref CharWriter sb, BuilderContext context)
         {
-            var member = exp as MemberExpression;
+            var member = (MemberExpression)exp;
 
             if (member.Expression == null)
             {
@@ -361,11 +362,11 @@ namespace Zerra.Repository
         }
         private void ConvertToSqlConstant(Expression exp, ref CharWriter sb, BuilderContext context)
         {
-            var constant = exp as ConstantExpression;
+            var constant = (ConstantExpression)exp;
 
             ConvertToSqlConstantStack(constant.Type, constant.Value, ref sb, context);
         }
-        private void ConvertToSqlConstantStack(Type type, object value, ref CharWriter sb, BuilderContext context)
+        private void ConvertToSqlConstantStack(Type type, object? value, ref CharWriter sb, BuilderContext context)
         {
             if (context.MemberContext.MemberAccessStack.Count > 0)
             {
@@ -412,16 +413,17 @@ namespace Zerra.Repository
         {
             context.MemberContext.OperatorStack.Push(Operator.New);
 
-            var newExp = exp as NewExpression;
+            var newExp = (NewExpression)exp;
 
             var argumentTypes = newExp.Arguments.Select(x => x.Type).ToArray();
-            var constructor = newExp.Type.GetConstructor(argumentTypes);
+            var constructor = newExp.Type.GetConstructor(argumentTypes)!;
 
-            var parameters = new List<object>();
+            var parameters = new object?[newExp.Arguments.Count];
+            var i = 0;
             foreach (var argument in newExp.Arguments)
             {
                 var argumentValue = Expression.Lambda(argument).Compile().DynamicInvoke();
-                parameters.Add(argumentValue);
+                parameters[i++] = argumentValue;
             }
 
             var value = constructor.Invoke(parameters.ToArray());
@@ -431,7 +433,10 @@ namespace Zerra.Repository
         }
         private void ConvertToSqlParameter(Expression exp, ref CharWriter sb, BuilderContext context)
         {
-            var parameter = exp as ParameterExpression;
+            var parameter = (ParameterExpression)exp;
+
+            if (parameter.Name == null)
+                throw new Exception($"Parameter has no name {parameter.Type.GetNiceName()}");
 
             var modelDetail = context.MemberContext.ModelContexts[parameter.Name];
 
@@ -451,9 +456,9 @@ namespace Zerra.Repository
             _ = context.MemberContext.OperatorStack.Pop();
         }
 
-        protected void ConvertToSqlValue(Type type, object value, ref CharWriter sb, BuilderContext context)
+        protected void ConvertToSqlValue(Type type, object? value, ref CharWriter sb, BuilderContext context)
         {
-            MemberExpression memberProperty = null;
+            MemberExpression? memberProperty = null;
 
             if (context.MemberContext.MemberAccessStack.Count > 0)
                 memberProperty = context.MemberContext.MemberAccessStack.Pop();
@@ -467,7 +472,7 @@ namespace Zerra.Repository
                 context.MemberContext.MemberAccessStack.Push(memberProperty);
             }
         }
-        protected abstract bool ConvertToSqlValueRender(MemberExpression memberProperty, Type type, object value, ref CharWriter sb, BuilderContext context);
+        protected abstract bool ConvertToSqlValueRender(MemberExpression? memberProperty, Type type, object? value, ref CharWriter sb, BuilderContext context);
 
         protected bool IsEvaluatable(Expression exp)
         {
@@ -564,12 +569,12 @@ namespace Zerra.Repository
         }
         private bool IsEvaluatableUnary(Expression exp)
         {
-            var unary = exp as UnaryExpression;
+            var unary = (UnaryExpression)exp;
             return IsEvaluatable(unary.Operand);
         }
         private bool IsEvaluatableBinary(Expression exp)
         {
-            var binary = exp as BinaryExpression;
+            var binary = (BinaryExpression)exp;
             return IsEvaluatable(binary.Left) && IsEvaluatable(binary.Right);
         }
         private bool IsEvaluatableConstant(Expression exp)
@@ -578,7 +583,7 @@ namespace Zerra.Repository
         }
         private bool IsEvaluatableBlock(Expression exp)
         {
-            var block = exp as BlockExpression;
+            var block = (BlockExpression)exp;
             foreach (var variable in block.Variables)
             {
                 if (!IsEvaluatable(variable))
@@ -595,7 +600,7 @@ namespace Zerra.Repository
         }
         private bool IsEvaluatableCall(Expression exp)
         {
-            var call = exp as MethodCallExpression;
+            var call = (MethodCallExpression)exp;
 
             foreach (var arg in call.Arguments)
             {
@@ -610,7 +615,7 @@ namespace Zerra.Repository
         }
         private bool IsEvaluatableMemberAccess(Expression exp)
         {
-            var member = exp as MemberExpression;
+            var member = (MemberExpression)exp;
             if (member.Expression == null)
             {
                 return true;
@@ -713,17 +718,17 @@ namespace Zerra.Repository
         }
         private bool IsNullUnary(Expression exp)
         {
-            var unary = exp as UnaryExpression;
+            var unary = (UnaryExpression)exp;
             return IsNull(unary.Operand);
         }
         private bool IsNullConstant(Expression exp)
         {
-            var constant = exp as ConstantExpression;
+            var constant = (ConstantExpression)exp;
             return constant.Value == null;
         }
         private bool IsNullCall(Expression exp)
         {
-            var call = exp as MethodCallExpression;
+            var call = (MethodCallExpression)exp;
             if (call.Object == null)
             {
                 var result = true;
@@ -742,17 +747,17 @@ namespace Zerra.Repository
         }
         private bool IsNullArrayIndex(Expression exp)
         {
-            var array = exp as BinaryExpression;
-            var member = (Array)EvaluateMemberAccess(array.Left);
-            object value;
+            var array = (BinaryExpression)exp;
+            var member = (Array)EvaluateMemberAccess(array.Left)!;
+            object? value;
             if (array.Right.Type == typeof(long))
             {
-                var index = (long)Evaluate(array.Right);
+                var index = (long)Evaluate(array.Right)!;
                 value = member.GetValue(index);
             }
             else
             {
-                var index = (int)Evaluate(array.Right);
+                var index = (int)Evaluate(array.Right)!;
                 value = member.GetValue(index);
             }
 
@@ -760,9 +765,9 @@ namespace Zerra.Repository
         }
         private bool IsNullMemberAccess(Expression exp)
         {
-            var member = exp as MemberExpression;
+            var member = (MemberExpression)exp;
 
-            object value;
+            object? value;
             if (member.Expression == null)
             {
                 value = Evaluate(member);
@@ -798,7 +803,7 @@ namespace Zerra.Repository
             return value == null;
         }
 
-        private object Evaluate(Expression exp)
+        private object? Evaluate(Expression exp)
         {
             return exp.NodeType switch
             {
@@ -808,17 +813,17 @@ namespace Zerra.Repository
             };
             ;
         }
-        private object EvaluateConstant(Expression exp)
+        private object? EvaluateConstant(Expression exp)
         {
-            var constant = exp as ConstantExpression;
+            var constant = (ConstantExpression)exp;
             return constant.Value;
         }
-        private object EvaluateMemberAccess(Expression exp)
+        private object? EvaluateMemberAccess(Expression exp)
         {
-            var member = exp as MemberExpression;
+            var member = (MemberExpression)exp;
             var expressionValue = member.Expression == null ? null : Evaluate(member.Expression);
 
-            object value;
+            object? value;
             switch (member.Member.MemberType)
             {
                 case MemberTypes.Field:
@@ -841,14 +846,14 @@ namespace Zerra.Repository
 
             return value;
         }
-        private object EvaluateInvoke(Expression exp)
+        private object? EvaluateInvoke(Expression exp)
         {
             var value = Expression.Lambda(exp).Compile().DynamicInvoke();
             return value;
         }
 
-        protected abstract void GenerateWhere(Expression where, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext);
-        protected abstract void GenerateOrderSkipTake(QueryOrder order, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext);
+        protected abstract void GenerateWhere(Expression? where, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext);
+        protected abstract void GenerateOrderSkipTake(QueryOrder? order, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext);
         protected abstract void GenerateSelect(QueryOperation select, Graph graph, ModelDetail modelDetail, ref CharWriter sb);
         protected abstract void GenerateSelectProperties(Graph graph, ModelDetail modelDetail, ref CharWriter sb);
         protected abstract void GenerateFrom(ModelDetail modelDetail, ref CharWriter sb);

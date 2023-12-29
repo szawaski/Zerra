@@ -59,7 +59,7 @@ namespace Zerra.Repository.Reflection
             if (String.IsNullOrWhiteSpace(this.PropertySourceName))
                 this.PropertySourceName = memberDetail.Name;
             if (!this.PropertySourceName.All(x => Char.IsLetterOrDigit(x) || x == '_' || x == '`'))
-                throw new ArgumentException(String.Format("{0}.{1}={2}", nameof(StoreNameAttribute), nameof(StoreNameAttribute.StoreName), this.PropertySourceName));
+                throw new ArgumentException($"{nameof(StoreNameAttribute)}.{nameof(StoreNameAttribute.StoreName)}={this.PropertySourceName}");
 
             IdentityAttribute? identityAttribute = null;
             RelationAttribute? foreignIdentityAttribute = null;

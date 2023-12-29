@@ -196,7 +196,7 @@ namespace Zerra.Repository.Reflection
         public static object? GetIdentity<TModel>(TModel model) where TModel : class, new()
         {
             var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(null, typeof(IdentityAttribute));
-            var id = modelIdentityAccessor.Invoke(model);
+            var id = modelIdentityAccessor?.Invoke(model);
             return id;
         }
         public static object? GetIdentity(Type type, object model)
@@ -206,22 +206,22 @@ namespace Zerra.Repository.Reflection
         }
 
         private static readonly MethodInfo setIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.SetIdentity) && x.IsGenericMethod);
-        public static void SetIdentity<TModel>(TModel model, object identity) where TModel : class, new()
+        public static void SetIdentity<TModel>(TModel model, object? identity) where TModel : class, new()
         {
             var setter = GetSetterFunctionByNameOrAttribute<TModel>(null, typeof(IdentityAttribute));
             setter.Invoke(model, identity);
         }
-        public static void SetIdentity(Type type, object model, object identity)
+        public static void SetIdentity(Type type, object model, object? identity)
         {
             var genericSetIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(setIdentityMethod, type);
-            _ = genericSetIdentityMethod.Caller(null, new object[] { model, identity });
+            _ = genericSetIdentityMethod.Caller(null, new object?[] { model, identity });
         }
 
         private static readonly MethodInfo getForeignIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.GetForeignIdentity) && x.IsGenericMethod);
         public static object? GetForeignIdentity<TModel>(string foreignIdentityNames, TModel model) where TModel : class, new()
         {
             var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(foreignIdentityNames, null);
-            var id = modelIdentityAccessor.Invoke(model);
+            var id = modelIdentityAccessor?.Invoke(model);
             return id;
         }
         public static object? GetForeignIdentity(Type type, string foreignIdentityNames, object model)

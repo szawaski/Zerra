@@ -29,7 +29,7 @@ namespace Zerra.Repository
         public DeleteByID(ICollection ids) : this(null, null, ids, null) { }
         public DeleteByID(string? eventName, ICollection ids) : this(eventName, null, ids, null) { }
         public DeleteByID(string? eventName, object? source, ICollection ids) : this(eventName, source, ids, null) { }
-        public DeleteByID(ICollection ids, Graph<TModel>? graph) : this((string)null, ids, graph) { }
+        public DeleteByID(ICollection ids, Graph<TModel>? graph) : this((string?)null, ids, graph) { }
         public DeleteByID(string? eventName, ICollection ids, Graph<TModel>? graph) : this(eventName, null, ids, graph) { }
         public DeleteByID(string? eventName, object? source, ICollection ids, Graph<TModel>? graph)
             : base(PersistOperation.Delete, eventName, source)

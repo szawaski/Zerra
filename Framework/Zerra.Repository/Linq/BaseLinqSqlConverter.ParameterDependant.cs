@@ -9,10 +9,10 @@ namespace Zerra.Repository
         protected sealed class ParameterDependant
         {
             public ModelDetail ModelDetail;
-            public ModelPropertyDetail ParentMember;
+            public ModelPropertyDetail? ParentMember;
             public Dictionary<Type, ParameterDependant> Dependants;
 
-            public ParameterDependant(ModelDetail modelDetail, ModelPropertyDetail parentMember)
+            public ParameterDependant(ModelDetail modelDetail, ModelPropertyDetail? parentMember)
             {
                 this.ModelDetail = modelDetail;
                 this.ParentMember = parentMember;

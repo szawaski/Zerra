@@ -47,6 +47,8 @@ namespace Zerra.Repository
         }
         public virtual ICollection<TModel> OnGetIncludingBase(ICollection<TModel> models, Graph<TModel>? graph)
         {
+            if (ProviderRelation == null)
+                return models;
             return ProviderRelation.OnGetIncludingBase(models, graph);
         }
 
@@ -56,6 +58,8 @@ namespace Zerra.Repository
         }
         public virtual Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel>? graph)
         {
+            if (ProviderRelation == null)
+                return Task.FromResult(models);
             return ProviderRelation.OnGetIncludingBaseAsync(models, graph);
         }
 

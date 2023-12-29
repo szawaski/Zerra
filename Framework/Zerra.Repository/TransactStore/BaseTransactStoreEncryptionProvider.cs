@@ -146,19 +146,23 @@ namespace Zerra.Repository
             return models;
         }
 
-        public override sealed void OnQueryIncludingBase(Graph<TModel> graph)
+        public override sealed void OnQueryIncludingBase(Graph<TModel>? graph)
         {
-            ProviderRelation.OnQueryIncludingBase(graph);
+            ProviderRelation?.OnQueryIncludingBase(graph);
         }
-        public override sealed ICollection<TModel> OnGetIncludingBase(ICollection<TModel> models, Graph<TModel> graph)
+        public override sealed ICollection<TModel> OnGetIncludingBase(ICollection<TModel> models, Graph<TModel>? graph)
         {
             var returnModels1 = DecryptModels(models, graph, false);
+            if (ProviderRelation == null)
+                return returnModels1;
             var returnModels2 = ProviderRelation.OnGetIncludingBase(returnModels1, graph);
             return returnModels2;
         }
-        public override sealed async Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel> graph)
+        public override sealed async Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel>? graph)
         {
             var returnModels1 = DecryptModels(models, graph, false);
+            if (ProviderRelation == null)
+                return returnModels1;
             var returnModels2 = await ProviderRelation.OnGetIncludingBaseAsync(returnModels1, graph);
             return returnModels2;
         }
@@ -362,10 +366,13 @@ namespace Zerra.Repository
             if (properties.Length == 0)
                 return models;
 
-            graph = graph == null ? null : new Graph<TModel>(graph);
+            if (graph != null)
+            {
+                graph = new Graph<TModel>(graph);
 
-            //add identites for copying
-            graph.AddProperties(ModelAnalyzer.GetIdentityPropertyNames(typeof(TModel)));
+                //add identites for copying
+                graph.AddProperties(ModelAnalyzer.GetIdentityPropertyNames(typeof(TModel)));
+            }
 
             if (newCopy)
                 models = Mapper.Map<TModel[], TModel[]>(models, graph);
@@ -406,7 +413,7 @@ namespace Zerra.Repository
 
         public override sealed void Create(Persist<TModel> persist)
         {
-            if (persist.Models.Length == 0)
+            if (persist.Models == null || persist.Models.Length == 0)
                 return;
 
             var encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
@@ -420,7 +427,7 @@ namespace Zerra.Repository
         }
         public override sealed void Update(Persist<TModel> persist)
         {
-            if (persist.Models.Length == 0)
+            if (persist.Models == null || persist.Models.Length == 0)
                 return;
 
             ICollection<TModel> encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
@@ -433,7 +440,7 @@ namespace Zerra.Repository
 
         public override sealed async Task CreateAsync(Persist<TModel> persist)
         {
-            if (persist.Models.Length == 0)
+            if (persist.Models == null || persist.Models.Length == 0)
                 return;
 
             var encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
@@ -447,7 +454,7 @@ namespace Zerra.Repository
         }
         public override sealed Task UpdateAsync(Persist<TModel> persist)
         {
-            if (persist.Models.Length == 0)
+            if (persist.Models == null || persist.Models.Length == 0)
                 return Task.CompletedTask;
 
             ICollection<TModel> encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
@@ -459,7 +466,7 @@ namespace Zerra.Repository
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, MemberDetail[]> encryptableProperties = new();
-        public static MemberDetail[] GetEncryptableProperties(Type type, Graph graph)
+        public static MemberDetail[] GetEncryptableProperties(Type type, Graph? graph)
         {
             var key = new TypeKey(graph?.Signature, type);
             var props = encryptableProperties.GetOrAdd(key, (_) =>

@@ -51,17 +51,13 @@ namespace Zerra.Repository
         }
         protected override sealed TModel? QuerySingle(Query<TModel> query)
         {
-            var selector = query.Graph.GenerateSelect<TModel>();
-
             var models = ReadModels(query);
 
             var set = models.AsQueryable();
 
             var queriedSet = set.Query(query);
 
-            var select = queriedSet.Select(selector);
-
-            var selected = select.SingleOrDefault();
+            var selected = queriedSet.SingleOrDefault();
 
             return selected;
         }
@@ -196,17 +192,13 @@ namespace Zerra.Repository
         }
         protected override sealed async Task<TModel?> QuerySingleAsync(Query<TModel> query)
         {
-            var selector = query.Graph.GenerateSelect<TModel>();
-
             var models = await ReadModelsAsync(query);
 
             var set = models.AsQueryable();
 
             var queriedSet = set.Query(query);
 
-            var select = queriedSet.Select(selector);
-
-            var selected = select.SingleOrDefault();
+            var selected = queriedSet.SingleOrDefault();
 
             return selected;
         }
@@ -397,7 +389,7 @@ namespace Zerra.Repository
             return models;
         }
 
-        private static ICollection<TModel> LoadModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel modelState, bool many, Query<TModel> query)
+        private static ICollection<TModel> LoadModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, Query<TModel> query)
         {
             if (modelState == null && eventDatas.Length == 0)
                 return Array.Empty<TModel>();
@@ -518,7 +510,7 @@ namespace Zerra.Repository
                 }
             }
         }
-        private static ICollection<EventModel<TModel>> LoadEventModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel modelState, bool many, Query<TModel> query)
+        private static ICollection<EventModel<TModel>> LoadEventModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, Query<TModel> query)
         {
             if (modelState == null && eventDatas.Length == 0)
                 return Array.Empty<EventModel<TModel>>();
@@ -826,6 +818,9 @@ namespace Zerra.Repository
         protected override sealed void PersistModel(PersistEvent @event, TModel model, Graph<TModel> graph, bool create)
         {
             var id = ModelAnalyzer.GetIdentity(model);
+            if (id == null)
+                throw new NotSupportedException("No identity on model. These are required for event stores.");
+
             var streamName = EventStoreCommon.GetStreamName<TModel>(id);
 
             var eventStoreModel = new EventStoreEventModelData<TModel>()

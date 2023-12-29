@@ -40,7 +40,7 @@ namespace Zerra.Repository
 
             _ = typeBuilder.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
 
-            var objectType = typeBuilder.CreateTypeInfo();
+            var objectType = typeBuilder.CreateTypeInfo()!;
             return objectType;
         }
     }

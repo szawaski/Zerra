@@ -574,7 +574,18 @@ namespace Zerra
 
             return expression;
         }
-        private static Expression<Func<TSource, TTarget>> GenerateSelectorExpression<TSource, TTarget>(Graph graph)
+        public static Expression<Func<TSource, TTarget>> GenerateSelect<TSource, TTarget>(Graph? graph)
+        {
+            var key = new TypeKey(graph?.Signature, typeof(TSource), typeof(TTarget));
+
+            var expression = (Expression<Func<TSource, TTarget>>)selectExpressions.GetOrAdd(key, (_) =>
+            {
+                return GenerateSelectorExpression<TSource, TTarget>(graph);
+            });
+
+            return expression;
+        }
+        private static Expression<Func<TSource, TTarget>> GenerateSelectorExpression<TSource, TTarget>(Graph? graph)
         {
             var typeSource = typeof(TSource);
             var typeTarget = typeof(TTarget);
@@ -586,7 +597,7 @@ namespace Zerra
             var lambda = Expression.Lambda<Func<TSource, TTarget>>(selectorExpression, sourceParameterExpression);
             return lambda;
         }
-        private static Expression GenerateSelectorExpression(Type typeSource, Type typeTarget, Expression sourceExpression, Graph graph, Stack<Type> stack)
+        private static Expression GenerateSelectorExpression(Type typeSource, Type typeTarget, Expression sourceExpression, Graph? graph, Stack<Type> stack)
         {
             var sourceProperties = typeSource.GetProperties();
             var targetProperites = typeTarget.GetProperties();

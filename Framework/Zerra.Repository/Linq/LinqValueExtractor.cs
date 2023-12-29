@@ -360,7 +360,7 @@ namespace Zerra.Repository
                         case "Contains":
                             {
                                 if (call.Arguments.Count != 2)
-                                    throw new NotSupportedException(String.Format("Cannot extract from call expression {0}", call.Method.Name));
+                                    throw new NotSupportedException($"Cannot extract from call expression {call.Method.Name}");
 
                                 var callingObject = call.Arguments[0];
                                 var lambda = call.Arguments[1];
@@ -380,7 +380,7 @@ namespace Zerra.Repository
                                 break;
                             }
                         default:
-                            throw new NotSupportedException(String.Format("Cannot extract from call expression {0}", call.Method.Name));
+                            throw new NotSupportedException($"Cannot extract from call expression {call.Method.Name}");
                     }
                 }
                 else if (call.Method.DeclaringType == typeof(string))
@@ -392,7 +392,7 @@ namespace Zerra.Repository
                                 break;
                             }
                         default:
-                            throw new NotSupportedException(String.Format("Cannot extract from call expression {0}", call.Method.Name));
+                            throw new NotSupportedException($"Cannot extract from call expression {call.Method.Name}");
                     }
                 }
                 else if (call.Object != null)
@@ -405,7 +405,7 @@ namespace Zerra.Repository
                             case "Contains":
                                 {
                                     if (call.Arguments.Count != 1)
-                                        throw new NotSupportedException(String.Format("Cannot extract from call expression {0}", call.Method.Name));
+                                        throw new NotSupportedException($"Cannot extract from call expression {call.Method.Name}");
 
                                     var callingObject = call.Object;
                                     var lambda = call.Arguments[0];
@@ -425,12 +425,12 @@ namespace Zerra.Repository
                                     break;
                                 }
                             default:
-                                throw new NotSupportedException(String.Format("Cannot extract from call expression {0}", call.Method.Name));
+                                throw new NotSupportedException($"Cannot extract from call expression {call.Method.Name}");
                         }
                     }
                     else
                     {
-                        throw new NotSupportedException(String.Format("Cannot extract from call expression {0}", call.Method.Name));
+                        throw new NotSupportedException($"Cannot extract from call expression {call.Method.Name}");
                     }
                 }
             }
@@ -444,11 +444,12 @@ namespace Zerra.Repository
             var argumentTypes = newExp.Arguments.Select(x => x.Type).ToArray();
             var constructor = newExp.Type.GetConstructor(argumentTypes)!;
 
-            var parameters = new List<object?>();
+            var parameters = new object?[newExp.Arguments.Count];
+            var i = 0;
             foreach (var argument in newExp.Arguments)
             {
                 var argumentValue = Expression.Lambda(argument).Compile().DynamicInvoke();
-                parameters.Add(argumentValue);
+                parameters[i++] = argumentValue;
             }
 
             var value = constructor.Invoke(parameters.ToArray());
@@ -488,7 +489,7 @@ namespace Zerra.Repository
                     }
 
                     if (!memberPropertyHandled)
-                        throw new NotSupportedException(String.Format("{0}.{1} not supported", member.Member.Name, memberProperty.Member.Name));
+                        throw new NotSupportedException($"{member.Member.Name}.{memberProperty.Member.Name} not supported");
                     context.MemberAccessStack.Push(memberProperty);
                 }
 

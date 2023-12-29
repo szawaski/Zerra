@@ -78,9 +78,17 @@ namespace Zerra.Repository
         public virtual ICollection<TModel> OnGet(ICollection<TModel> models, Graph<TModel>? graph) { return models; }
         public override sealed async Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel>? graph)
         {
-            var returnModels1 = await ProviderRelation.OnGetIncludingBaseAsync(models, graph);
-            var returnModels2 = this.OnGet(returnModels1, graph);
-            return returnModels2;
+            if (ProviderRelation != null)
+            {
+                var returnModels1 = await ProviderRelation.OnGetIncludingBaseAsync(models, graph);
+                var returnModels2 = this.OnGet(returnModels1, graph);
+                return returnModels2;
+            }
+            else
+            {
+                var returnModels1 = this.OnGet(models, graph);
+                return returnModels1;
+            }
         }
 
         public override sealed async Task<object?> ManyAsync(Query<TModel> query)
@@ -204,26 +212,32 @@ namespace Zerra.Repository
             return returnEventModels;
         }
 
-        protected virtual ICollection<TModel> OnCreate(ICollection<TModel> models, Graph<TModel> graph) { return models; }
-        protected virtual ICollection<TModel> OnUpdate(ICollection<TModel> models, Graph<TModel> graph) { return models; }
+        protected virtual ICollection<TModel> OnCreate(ICollection<TModel> models, Graph<TModel>? graph) { return models; }
+        protected virtual ICollection<TModel> OnUpdate(ICollection<TModel> models, Graph<TModel>? graph) { return models; }
         protected virtual ICollection OnDelete(ICollection identities) { return identities; }
 
-        protected virtual void OnCreateComplete(ICollection<TModel> models, Graph<TModel> graph) { }
-        protected virtual void OnUpdateComplete(ICollection<TModel> models, Graph<TModel> graph) { }
+        protected virtual void OnCreateComplete(ICollection<TModel> models, Graph<TModel>? graph) { }
+        protected virtual void OnUpdateComplete(ICollection<TModel> models, Graph<TModel>? graph) { }
         protected virtual void OnDeleteComplete(ICollection identities) { }
 
         public override sealed async Task CreateAsync(Persist<TModel> persist)
         {
+            if (persist.Models == null)
+                throw new Exception($"Invalid {nameof(Persist<TModel>)} for {nameof(CreateAsync)}");
+
             var appenedPersist = new Persist<TModel>(persist);
-            var returnModels = OnCreate(appenedPersist.Models, appenedPersist.Graph);
+            var returnModels = OnCreate(appenedPersist.Models!, appenedPersist.Graph);
             await NextProvider.PersistAsync(new Create<TModel>(appenedPersist.Event, returnModels, appenedPersist.Graph));
             OnCreateComplete(returnModels, appenedPersist.Graph);
         }
 
         public override sealed async Task UpdateAsync(Persist<TModel> persist)
         {
+            if (persist.Models == null)
+                throw new Exception($"Invalid {nameof(Persist<TModel>)} for {nameof(UpdateAsync)}");
+
             var appenedPersist = new Persist<TModel>(persist);
-            var returnModels = OnUpdate(appenedPersist.Models, appenedPersist.Graph);
+            var returnModels = OnUpdate(appenedPersist.Models!, appenedPersist.Graph);
             await NextProvider.PersistAsync(new Update<TModel>(appenedPersist.Event, returnModels, appenedPersist.Graph));
             OnUpdateComplete(returnModels, appenedPersist.Graph);
         }
@@ -235,13 +249,22 @@ namespace Zerra.Repository
             {
                 returnIds = OnDelete(persist.IDs);
             }
-            else
+            else if (persist.Models != null)
             {
                 var ids = new List<object>();
                 foreach (var model in persist.Models)
-                    ids.Add(ModelAnalyzer.GetIdentity<TModel>(model));
+                {
+                    var id = ModelAnalyzer.GetIdentity(model);
+                    if (id == null)
+                        throw new Exception($"Model {typeof(TModel).GetNiceName()} is missing an identiy for {nameof(DeleteAsync)}");
+                    ids.Add(id);
+                }
 
                 returnIds = OnDelete(ids);
+            }
+            else
+            {
+                throw new Exception($"Invalid {nameof(Persist<TModel>)} for {nameof(DeleteAsync)}");
             }
 
             await NextProvider.PersistAsync(new DeleteByID<TModel>(persist.Event, returnIds));

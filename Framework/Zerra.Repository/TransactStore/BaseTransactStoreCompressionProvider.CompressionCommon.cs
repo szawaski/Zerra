@@ -19,11 +19,8 @@ namespace Zerra.Repository
         {
             private const string compressionPrefix = "<c>";
 
-            public static string? CompressGZip(string? plain)
+            public static string CompressGZip(string plain)
             {
-                if (String.IsNullOrWhiteSpace(plain))
-                    return plain;
-
                 if (plain.Length > compressionPrefix.Length && plain.Substring(0, compressionPrefix.Length) == compressionPrefix)
                 {
                     return plain;
@@ -33,11 +30,8 @@ namespace Zerra.Repository
                 var compressed = compressionPrefix + Convert.ToBase64String(compressedBytes);
                 return compressed;
             }
-            public static byte[]? CompressGZip(byte[]? plain)
+            public static byte[] CompressGZip(byte[] plain)
             {
-                if (plain == null)
-                    return plain;
-
                 using (var msIn = new MemoryStream(plain))
                 using (var msOut = new MemoryStream())
                 {
@@ -55,11 +49,8 @@ namespace Zerra.Repository
                 return gzipStream;
             }
 
-            public static string? DecompressGZip(string? compressed)
+            public static string DecompressGZip(string compressed)
             {
-                if (String.IsNullOrWhiteSpace(compressed))
-                    return compressed;
-
                 string compressedWithoutPrefix;
                 if (compressed.Length > compressionPrefix.Length && compressed.Substring(0, compressionPrefix.Length) == compressionPrefix)
                     compressedWithoutPrefix = compressed.Substring(compressionPrefix.Length);
@@ -71,11 +62,8 @@ namespace Zerra.Repository
                 var plain = Encoding.Unicode.GetString(plainBytes);
                 return plain;
             }
-            public static byte[]? DecompressGZip(byte[]? compressed)
+            public static byte[] DecompressGZip(byte[] compressed)
             {
-                if (compressed == null)
-                    return compressed;
-
                 using (var msIn = new MemoryStream(compressed))
                 using (var msOut = new MemoryStream())
                 {
