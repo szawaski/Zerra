@@ -14,8 +14,8 @@ namespace Zerra.Encryption
         public int BlockSize { get; private set; }
         public SymmetricKey(byte[] key, byte[] iv)
         {
-            this.Key = key ?? throw new ArgumentNullException("key");
-            this.IV = iv ?? throw new ArgumentNullException("iv");
+            this.Key = key ?? throw new ArgumentNullException(nameof(key));
+            this.IV = iv ?? throw new ArgumentNullException(nameof(iv));
             this.KeySize = key.Length * 8;
             this.BlockSize = iv.Length * 8;
         }

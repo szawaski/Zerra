@@ -40,10 +40,10 @@ namespace ZerraDemo.Common
                 if (authCookieData == "I can access this")
                 {
                     var claims = new Claim[] {
-                        new Claim(ClaimTypes.Authentication, Boolean.TrueString),
-                        new Claim(ClaimTypes.NameIdentifier, "1234", ClaimValueTypes.String),
-                        new Claim(ClaimTypes.Name, "Tester", ClaimValueTypes.String),
-                        new Claim(ClaimTypes.Role, "Admin", ClaimValueTypes.String)
+                        new (ClaimTypes.Authentication, Boolean.TrueString),
+                        new (ClaimTypes.NameIdentifier, "1234", ClaimValueTypes.String),
+                        new (ClaimTypes.Name, "Tester", ClaimValueTypes.String),
+                        new (ClaimTypes.Role, "Admin", ClaimValueTypes.String)
                     };
 
                     var identity = new ClaimsIdentity(claims, "Cookies");
@@ -57,7 +57,7 @@ namespace ZerraDemo.Common
         {
             var authCookieData = "I can access this";
             var authCookieDataBytes = Encoding.UTF8.GetBytes(authCookieData);
-            var authCookieDataEncrypted = SymmetricEncryptor.Encrypt( encryptionAlgorithm, encryptionKey, authCookieDataBytes);
+            var authCookieDataEncrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, authCookieDataBytes);
             var authCookieDataEncoded = Base64UrlEncoder.ToBase64String(authCookieDataEncrypted);
 
             var cookies = new Dictionary<string, string>

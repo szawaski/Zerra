@@ -23,15 +23,15 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly int maxConcurrent;
             private readonly CommandCounter commandCounter;
             private readonly string topic;
-            private readonly SymmetricConfig symmetricConfig;
+            private readonly SymmetricConfig? symmetricConfig;
             private readonly HandleRemoteCommandDispatch handlerAsync;
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
             private readonly CancellationTokenSource canceller;
 
-            private IModel channel = null;
-            private SemaphoreSlim throttle = null;
+            private IModel? channel = null;
+            private SemaphoreSlim? throttle = null;
 
-            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -61,8 +61,7 @@ namespace Zerra.CQRS.RabbitMQ
 
             retry:
 
-                if (throttle != null)
-                    throttle.Dispose();
+                throttle?.Dispose();
                 throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
                 try
@@ -90,7 +89,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                         var awaitResponse = !String.IsNullOrWhiteSpace(e.BasicProperties.ReplyTo);
 
-                        Acknowledgement acknowledgment;
+                        Acknowledgement? acknowledgment;
                         if (awaitResponse)
                             acknowledgment = new Acknowledgement();
                         else
@@ -99,11 +98,14 @@ namespace Zerra.CQRS.RabbitMQ
                         var inHandlerContext = false;
                         try
                         {
-                            RabbitMQCommandMessage message;
+                            RabbitMQCommandMessage? message;
                             if (symmetricConfig != null)
                                 message = RabbitMQCommon.Deserialize<RabbitMQCommandMessage>(SymmetricEncryptor.Decrypt(symmetricConfig, e.Body.Span));
                             else
                                 message = RabbitMQCommon.Deserialize<RabbitMQCommandMessage>(e.Body.Span);
+
+                            if (message == null || message.Message == null || message.Source == null)
+                                throw new Exception("Invalid Message");
 
                             if (message.Claims != null)
                             {
@@ -198,8 +200,7 @@ namespace Zerra.CQRS.RabbitMQ
                 canceller.Cancel();
                 canceller.Dispose();
 
-                if (throttle != null)
-                    throttle.Dispose();
+                throttle?.Dispose();
 
                 if (channel != null)
                 {

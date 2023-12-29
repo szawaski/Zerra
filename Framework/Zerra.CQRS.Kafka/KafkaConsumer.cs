@@ -13,8 +13,8 @@ namespace Zerra.CQRS.Kafka
     public sealed partial class KafkaConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
         private readonly string host;
-        private readonly SymmetricConfig symmetricConfig;
-        private readonly string environment;
+        private readonly SymmetricConfig? symmetricConfig;
+        private readonly string? environment;
 
         private readonly Dictionary<string, CommandConsumer> commandExchanges;
         private readonly Dictionary<string, EventConsumer> eventExchanges;
@@ -22,15 +22,15 @@ namespace Zerra.CQRS.Kafka
         private HashSet<Type> eventTypes;
 
         private bool isOpen;
-        private HandleRemoteCommandDispatch commandHandlerAsync = null;
-        private HandleRemoteCommandDispatch commandHandlerAwaitAsync = null;
-        private HandleRemoteEventDispatch eventHandlerAsync = null;
+        private HandleRemoteCommandDispatch? commandHandlerAsync = null;
+        private HandleRemoteCommandDispatch? commandHandlerAwaitAsync = null;
+        private HandleRemoteEventDispatch? eventHandlerAsync = null;
 
         public string ServiceUrl => host;
 
-        private CommandCounter commandCounter = null;
+        private CommandCounter? commandCounter = null;
 
-        public KafkaConsumer(string host, SymmetricConfig symmetricConfig, string environment)
+        public KafkaConsumer(string host, SymmetricConfig? symmetricConfig, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
@@ -51,11 +51,10 @@ namespace Zerra.CQRS.Kafka
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
         }
-        void IEventConsumer.Setup(CommandCounter commandCounter, HandleRemoteEventDispatch handlerAsync)
+        void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
-            this.commandCounter = commandCounter;
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -125,6 +124,9 @@ namespace Zerra.CQRS.Kafka
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
+            if (commandCounter == null || commandHandlerAsync == null || commandHandlerAwaitAsync == null)
+                throw new Exception($"{nameof(KafkaConsumer)} is not setup");
+
             lock (commandExchanges)
             {
                 if (commandTypes.Contains(type))
@@ -143,6 +145,9 @@ namespace Zerra.CQRS.Kafka
 
         void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
+            if (eventHandlerAsync == null)
+                throw new Exception($"{nameof(KafkaConsumer)} is not setup");
+
             lock (eventExchanges)
             {
                 if (eventTypes.Contains(type))

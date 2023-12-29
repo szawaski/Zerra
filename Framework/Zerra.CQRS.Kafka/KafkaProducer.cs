@@ -20,11 +20,11 @@ namespace Zerra.CQRS.Kafka
     public sealed class KafkaProducer : ICommandProducer, IEventProducer, IDisposable
     {
         private bool listenerStarted = false;
-        private SemaphoreSlim listenerStartedLock = new(1, 1);
+        private readonly SemaphoreSlim listenerStartedLock = new(1, 1);
 
         private readonly string host;
-        private readonly SymmetricConfig symmetricConfig;
-        private readonly string environment;
+        private readonly SymmetricConfig? symmetricConfig;
+        private readonly string? environment;
         private readonly string ackTopic;
         private readonly ConcurrentDictionary<Type, string> topicsByCommandType;
         private readonly ConcurrentDictionary<Type, string> topicsByEventType;
@@ -32,7 +32,7 @@ namespace Zerra.CQRS.Kafka
         private readonly IProducer<string, byte[]> producer;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
-        public KafkaProducer(string host, SymmetricConfig symmetricConfig, string environment)
+        public KafkaProducer(string host, SymmetricConfig? symmetricConfig, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
@@ -40,7 +40,7 @@ namespace Zerra.CQRS.Kafka
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
 
-            var clientID = StringExtensions.Join(KafkaCommon.TopicMaxLength - 4, "_", Config.EnvironmentName, Environment.MachineName, Config.EntryAssemblyName);
+            var clientID = StringExtensions.Join(KafkaCommon.TopicMaxLength - 4, "_", environment ?? "Unknown_Environment", Environment.MachineName, Config.EntryAssemblyName ?? "Unknown_Assembly");
             this.ackTopic = $"ACK-{clientID}";
             this.topicsByCommandType = new();
             this.topicsByEventType = new();
@@ -99,7 +99,7 @@ namespace Zerra.CQRS.Kafka
                     }
                 }
 
-                string[][] claims = null;
+                string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
@@ -127,7 +127,7 @@ namespace Zerra.CQRS.Kafka
 
                     try
                     {
-                        Acknowledgement ack = null;
+                        Acknowledgement? ack = null;
                         _ = ackCallbacks.TryAdd(ackKey, (ackFromCallback) =>
                         {
                             ack = ackFromCallback;
@@ -140,14 +140,13 @@ namespace Zerra.CQRS.Kafka
 
                         await waiter.WaitAsync();
 
-                        if (!ack.Success)
+                        if (!ack!.Success)
                             throw new AcknowledgementException(ack, topic);
                     }
                     finally
                     {
                         _ = ackCallbacks.TryRemove(ackKey, out _);
-                        if (waiter != null)
-                            waiter.Dispose();
+                        waiter?.Dispose();
                     }
                 }
                 else
@@ -182,16 +181,11 @@ namespace Zerra.CQRS.Kafka
                 else
                     topic = topic.Truncate(KafkaCommon.TopicMaxLength);
 
-                string[][] claims = null;
+                string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
-                var message = new KafkaEventMessage()
-                {
-                    Message = @event,
-                    Claims = claims,
-                    Source = source
-                };
+                var message = new KafkaEventMessage(@event, claims, source);
 
                 var body = KafkaCommon.Serialize(message);
                 if (symmetricConfig != null)
@@ -231,13 +225,18 @@ namespace Zerra.CQRS.Kafka
                             if (!ackCallbacks.TryRemove(consumerResult.Message.Key, out var callback))
                                 continue;
 
-                            Acknowledgement ack = null;
+                            Acknowledgement? ack = null;
                             try
                             {
                                 var response = consumerResult.Message.Value;
                                 if (symmetricConfig != null)
                                     response = SymmetricEncryptor.Decrypt(symmetricConfig, response);
                                 ack = KafkaCommon.Deserialize<Acknowledgement>(response);
+                                ack ??= new Acknowledgement()
+                                {
+                                    Success = false,
+                                    ErrorMessage = "Invalid Acknowledgement"
+                                };
                             }
                             catch (Exception ex)
                             {
@@ -277,7 +276,7 @@ namespace Zerra.CQRS.Kafka
                 {
                     await KafkaCommon.DeleteTopic(host, ackTopic);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     _ = Log.ErrorAsync(ex);
                 }

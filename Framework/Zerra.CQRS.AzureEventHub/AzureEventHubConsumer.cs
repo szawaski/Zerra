@@ -20,29 +20,29 @@ namespace Zerra.CQRS.AzureEventHub
 {
     public sealed class AzureEventHubConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
-        private static readonly string requestedConsumerGroup = Config.EntryAssemblyName;
+        private static readonly string requestedConsumerGroup = Config.EntryAssemblyName ?? "Unknown_Assembly";
 
         private readonly string host;
         private readonly string eventHubName;
-        private readonly SymmetricConfig symmetricConfig;
-        private readonly string environment;
+        private readonly SymmetricConfig? symmetricConfig;
+        private readonly string? environment;
 
         private readonly ConcurrentHashSet<Type> commandTypes;
         private readonly ConcurrentHashSet<Type> eventTypes;
 
-        private HandleRemoteCommandDispatch commandHandlerAsync = null;
-        private HandleRemoteCommandDispatch commandHandlerAwaitAsync = null;
-        private HandleRemoteEventDispatch eventHandlerAsync = null;
+        private HandleRemoteCommandDispatch? commandHandlerAsync = null;
+        private HandleRemoteCommandDispatch? commandHandlerAwaitAsync = null;
+        private HandleRemoteEventDispatch? eventHandlerAsync = null;
 
         private bool isOpen;
-        private CancellationTokenSource canceller = null;
+        private CancellationTokenSource? canceller = null;
 
         public string ServiceUrl => host;
 
-        private CommandCounter commandCounter = null;
+        private CommandCounter? commandCounter = null;
         private int? maxConcurrent = null;
 
-        public AzureEventHubConsumer(string host, string eventHubName, SymmetricConfig symmetricConfig, string environment)
+        public AzureEventHubConsumer(string host, string eventHubName, SymmetricConfig? symmetricConfig, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
             if (String.IsNullOrWhiteSpace(eventHubName)) throw new ArgumentNullException(nameof(eventHubName));
@@ -64,11 +64,10 @@ namespace Zerra.CQRS.AzureEventHub
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
         }
-        void IEventConsumer.Setup(CommandCounter commandCounter, HandleRemoteEventDispatch handlerAsync)
+        void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
-            this.commandCounter = commandCounter;
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -89,6 +88,13 @@ namespace Zerra.CQRS.AzureEventHub
                 return;
 
             isOpen = true;
+
+            if (maxConcurrent == null)
+                throw new Exception($"{nameof(AzureEventHubConsumer)} is not setup");
+
+            if ((commandCounter == null || commandHandlerAsync == null || commandHandlerAwaitAsync == null) && (eventHandlerAsync == null))
+                throw new Exception($"{nameof(AzureEventHubConsumer)} is not setup");
+
             _ = ListeningThread();
         }
 
@@ -98,7 +104,7 @@ namespace Zerra.CQRS.AzureEventHub
 
         retry:
 
-            var throttle = new SemaphoreSlim(maxConcurrent.Value, maxConcurrent.Value);
+            var throttle = new SemaphoreSlim(maxConcurrent!.Value, maxConcurrent.Value);
 
             try
             {
@@ -134,8 +140,16 @@ namespace Zerra.CQRS.AzureEventHub
 
                         if (isCommand)
                         {
+                            if (commandCounter == null || commandHandlerAsync == null || commandHandlerAwaitAsync == null)
+                                throw new Exception($"{nameof(AzureEventHubConsumer)} is not setup");
+
                             if (!commandCounter.BeginReceive())
                                 continue; //don't receive anymore, externally will be shutdown, fill throttle
+                        }
+                        else if (isEvent)
+                        {
+                            if (eventHandlerAsync == null)
+                                throw new Exception($"{nameof(AzureEventHubConsumer)} is not setup");
                         }
 
                         _ = HandleEvent(throttle, typeName, isCommand, isEvent, partitionEvent);
@@ -162,8 +176,8 @@ namespace Zerra.CQRS.AzureEventHub
 
         private async Task HandleEvent(SemaphoreSlim throttle, string typeName, bool isCommand, bool isEvent, PartitionEvent partitionEvent)
         {
-            Exception error = null;
-            string ackKey = null;
+            Exception? error = null;
+            string? ackKey = null;
             var awaitResponse = false;
 
             var inHandlerContext = false;
@@ -183,6 +197,8 @@ namespace Zerra.CQRS.AzureEventHub
                     body = SymmetricEncryptor.Decrypt(symmetricConfig, body);
 
                 var message = AzureEventHubCommon.Deserialize<AzureEventHubMessage>(body);
+                if (message == null || message.Message == null || message.Source == null)
+                    throw new Exception("Invalid Message");
 
                 if (message.Claims != null)
                 {
@@ -194,13 +210,13 @@ namespace Zerra.CQRS.AzureEventHub
                 if (isCommand)
                 {
                     if (awaitResponse)
-                        await commandHandlerAwaitAsync((ICommand)message.Message, message.Source, false);
+                        await commandHandlerAwaitAsync!((ICommand)message.Message, message.Source, false);
                     else
-                        await commandHandlerAsync((ICommand)message.Message, message.Source, false);
+                        await commandHandlerAsync!((ICommand)message.Message, message.Source, false);
                 }
                 else if (isEvent)
                 {
-                    await eventHandlerAsync((IEvent)message.Message, message.Source, false);
+                    await eventHandlerAsync!((IEvent)message.Message, message.Source, false);
                 }
                 inHandlerContext = false;
             }
@@ -213,7 +229,7 @@ namespace Zerra.CQRS.AzureEventHub
             finally
             {
                 if (isCommand && !awaitResponse)
-                    commandCounter.CompleteReceive(throttle);
+                    commandCounter!.CompleteReceive(throttle);
                 else
                     throttle.Release();
             }
@@ -248,7 +264,7 @@ namespace Zerra.CQRS.AzureEventHub
             finally
             {
                 if (isCommand)
-                    commandCounter.CompleteReceive(throttle);
+                    commandCounter!.CompleteReceive(throttle);
                 else
                     throttle.Release();
             }
@@ -268,8 +284,7 @@ namespace Zerra.CQRS.AzureEventHub
         {
             if (isOpen)
             {
-                if (canceller != null)
-                    canceller.Cancel();
+                canceller?.Cancel();
                 isOpen = false;
             }
         }
@@ -292,7 +307,7 @@ namespace Zerra.CQRS.AzureEventHub
 
         void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
-            if (maxConcurrent < this.maxConcurrent)
+            if (!this.maxConcurrent.HasValue || maxConcurrent < this.maxConcurrent.Value)
                 this.maxConcurrent = maxConcurrent;
             eventTypes.Add(type);
         }

@@ -148,6 +148,7 @@ namespace Zerra.CQRS.Network
                 throttle.Dispose();
             foreach (var throttle in throttleByTopic.Values)
                 throttle.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

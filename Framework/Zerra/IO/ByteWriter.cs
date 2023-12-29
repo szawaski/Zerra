@@ -23,7 +23,7 @@ namespace Zerra.IO
 
         private readonly Encoding encoding;
 
-        public int Length => position;
+        public readonly int Length => position;
 
         public ByteWriter()
         {
@@ -81,11 +81,11 @@ namespace Zerra.IO
             position = 0;
         }
 
-        public Span<byte> ToSpan()
+        public readonly Span<byte> ToSpan()
         {
             return buffer.Slice(0, position);
         }
-        public byte[] ToArray()
+        public readonly byte[] ToArray()
         {
             return buffer.Slice(0, position).ToArray();
         }

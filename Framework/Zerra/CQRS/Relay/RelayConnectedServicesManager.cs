@@ -102,7 +102,7 @@ namespace Zerra.CQRS.Relay
                     }
                     Thread.Sleep(runExpireEveryMilliseconds);
                 }
-            });
+            }, token);
         }
 
         private static async Task SaveState()

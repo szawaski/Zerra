@@ -75,7 +75,7 @@ namespace Zerra.Linq
                 {
                     if (item.Expression == null)
                         throw new ArgumentException("Invalid Linq Where grouping structure");
-                    exp = Rebind(item.Expression, parameter);
+                    exp = WhereBuilder<TModel>.Rebind(item.Expression, parameter);
                 }
                 else if (item.StartGroup)
                 {
@@ -95,17 +95,17 @@ namespace Zerra.Linq
                 }
                 else if (item.And)
                 {
-                    exp = Expression.AndAlso(exp, Rebind(item.Expression, parameter));
+                    exp = Expression.AndAlso(exp, WhereBuilder<TModel>.Rebind(item.Expression, parameter));
                 }
                 else if (item.Or)
                 {
-                    exp = Expression.OrElse(exp, Rebind(item.Expression, parameter));
+                    exp = Expression.OrElse(exp, WhereBuilder<TModel>.Rebind(item.Expression, parameter));
                 }
                 i++;
             }
             return exp;
         }
-        private Expression Rebind(Expression<Func<TModel, bool>> expression, ParameterExpression parameter)
+        private static Expression Rebind(Expression<Func<TModel, bool>> expression, ParameterExpression parameter)
         {
             return LinqRebinder.RebindExpression(expression.Body, expression.Parameters.First(), parameter);
         }

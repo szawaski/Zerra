@@ -58,7 +58,7 @@ namespace Zerra.Web
                 throw new Exception("Invalid Request");
             }
 
-            var accepts = (string?)context.Request.Headers["Accept"];
+            var accepts = (string?)context.Request.Headers.Accept;
             ContentType? acceptContentType;
             if (accepts != null)
             {

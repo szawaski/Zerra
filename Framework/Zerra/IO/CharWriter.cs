@@ -15,7 +15,7 @@ namespace Zerra.IO
         private Span<char> buffer;
 
         private int position;
-        private int length;
+        private readonly int length;
 
         public CharWriter()
         {
@@ -49,9 +49,9 @@ namespace Zerra.IO
             this.length = buffer.Length;
         }
 
-        public int Length => position;
+        public readonly int Length => position;
 
-        public char[]? BufferOwner => bufferOwner;
+        public readonly char[]? BufferOwner => bufferOwner;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureBufferSize(int additionalSize)
@@ -72,15 +72,15 @@ namespace Zerra.IO
             position = 0;
         }
 
-        public Span<char> ToSpan()
+        public readonly Span<char> ToSpan()
         {
             return buffer.Slice(0, position);
         }
-        public char[] ToArray()
+        public readonly char[] ToArray()
         {
             return buffer.Slice(0, position).ToArray();
         }
-        public override string ToString()
+        public override readonly string ToString()
         {
             return buffer.Slice(0, position).ToString();
         }

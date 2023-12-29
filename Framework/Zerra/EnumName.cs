@@ -169,8 +169,12 @@ public sealed class EnumName : Attribute
                 if (attribute != null)
                 {
                     var attributeName = attribute.Text.ToLower();
+#if NETSTANDARD2_0
                     if (!items.ContainsKey(attributeName))
                         items.Add(attributeName, enumValue);
+#else
+                    _ = items.TryAdd(attributeName, enumValue);
+#endif
                 }
             }
             return items;

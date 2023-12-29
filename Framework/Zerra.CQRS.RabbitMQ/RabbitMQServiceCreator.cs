@@ -15,40 +15,40 @@ namespace Zerra.CQRS.RabbitMQ
 
         private readonly string rabbitHost;
         private readonly IServiceCreator serviceCreatorForQueries;
-        private readonly string environment;
-        public RabbitMQServiceCreator(string rabbitHost, IServiceCreator serviceCreatorForQueries, string environment)
+        private readonly string? environment;
+        public RabbitMQServiceCreator(string rabbitHost, IServiceCreator serviceCreatorForQueries, string? environment)
         {
             this.rabbitHost = rabbitHost;
             this.serviceCreatorForQueries = serviceCreatorForQueries;
             this.environment = environment;
         }
 
-        public ICommandProducer CreateCommandProducer(string serviceUrl, SymmetricConfig symmetricConfig)
+        public ICommandProducer? CreateCommandProducer(string? serviceUrl, SymmetricConfig? symmetricConfig)
         {
             return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQProducer(host, symmetricConfig, environment));
         }
 
-        public ICommandConsumer CreateCommandConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
+        public ICommandConsumer? CreateCommandConsumer(string? serviceUrl, SymmetricConfig? symmetricConfig)
         {
             return rabbitServers.GetOrAdd(rabbitHost, (host) => new RabbitMQConsumer(host, symmetricConfig, environment));
         }
 
-        public IEventProducer CreateEventProducer(string serviceUrl, SymmetricConfig symmetricConfig)
+        public IEventProducer? CreateEventProducer(string? serviceUrl, SymmetricConfig? symmetricConfig)
         {
             return rabbitClients.GetOrAdd(rabbitHost, (host) => new RabbitMQProducer(host, symmetricConfig, environment));
         }
 
-        public IEventConsumer CreateEventConsumer(string serviceUrl, SymmetricConfig symmetricConfig)
+        public IEventConsumer? CreateEventConsumer(string? serviceUrl, SymmetricConfig? symmetricConfig)
         {
             return rabbitServers.GetOrAdd(rabbitHost, (host) => new RabbitMQConsumer(host, symmetricConfig, environment));
         }
 
-        public IQueryClient CreateQueryClient(string serviceUrl, SymmetricConfig symmetricConfig)
+        public IQueryClient? CreateQueryClient(string? serviceUrl, SymmetricConfig? symmetricConfig)
         {
             return serviceCreatorForQueries.CreateQueryClient(serviceUrl, symmetricConfig);
         }
 
-        public IQueryServer CreateQueryServer(string serviceUrl, SymmetricConfig symmetricConfig)
+        public IQueryServer? CreateQueryServer(string? serviceUrl, SymmetricConfig? symmetricConfig)
         {
             return serviceCreatorForQueries.CreateQueryServer(serviceUrl, symmetricConfig);
         }

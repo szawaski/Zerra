@@ -53,7 +53,7 @@ namespace Zerra.Collections
         public void CopyTo(T[] array, int arrayIndex)
         {
             if (arrayIndex < 0 || arrayIndex > array.Length - 1)
-                throw new ArgumentOutOfRangeException("arrayIndex");
+                throw new ArgumentOutOfRangeException(nameof(arrayIndex));
 
             locker.EnterReadLock();
             hashSet.CopyTo(array, arrayIndex);
@@ -62,10 +62,10 @@ namespace Zerra.Collections
         public void CopyTo(T[] array, int arrayIndex, int count)
         {
             if (arrayIndex < 0 || arrayIndex > array.Length - 1)
-                throw new ArgumentOutOfRangeException("arrayIndex");
+                throw new ArgumentOutOfRangeException(nameof(arrayIndex));
 
             if (count < 0 || arrayIndex + count > array.Length)
-                throw new ArgumentOutOfRangeException("count");
+                throw new ArgumentOutOfRangeException(nameof(count));
 
             locker.EnterReadLock();
             hashSet.CopyTo(array, arrayIndex, count);

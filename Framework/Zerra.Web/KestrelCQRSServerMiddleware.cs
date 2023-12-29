@@ -381,8 +381,7 @@ namespace Zerra.Web
                 {
                     if (isCommand)
                     {
-                        if (settings.ReceiveCounter == null) throw new InvalidOperationException($"{nameof(KestrelCQRSServerMiddleware)} is not setup");
-                        settings.ReceiveCounter.CompleteReceive(throttle);
+                        settings.ReceiveCounter!.CompleteReceive(throttle);
                     }
                     else
                     {

@@ -22,11 +22,11 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly int maxConcurrent;
             private readonly string topic;
             private readonly string subscription;
-            private readonly SymmetricConfig symmetricConfig;
+            private readonly SymmetricConfig? symmetricConfig;
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
 
-            public EventConsumer(int maxConcurrent, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -111,7 +111,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 try
                 {
                     var body = serviceBusMessage.Body.ToStream();
-                    AzureServiceBusEventMessage message;
+                    AzureServiceBusEventMessage? message;
                     try
                     {
                         if (symmetricConfig != null)
@@ -123,6 +123,9 @@ namespace Zerra.CQRS.AzureServiceBus
                     {
                         body.Dispose();
                     }
+
+                    if (message == null || message.Message == null || message.Source == null)
+                        throw new Exception("Invalid Message");
 
                     if (message.Claims != null)
                     {

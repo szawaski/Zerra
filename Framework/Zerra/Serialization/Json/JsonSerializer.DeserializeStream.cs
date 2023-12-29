@@ -1030,7 +1030,6 @@ namespace Zerra.Serialization
         private static void ReadLiteralNumber(ref CharReader reader, ref ReadState state, ref CharWriter decodeBuffer)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
-            var frameCount = state.Count;
 
             var coreType = typeDetail == null ? null : typeDetail.CoreType ?? typeDetail.EnumUnderlyingType;
             switch (coreType)

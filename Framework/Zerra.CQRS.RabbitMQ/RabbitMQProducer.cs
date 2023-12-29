@@ -22,16 +22,17 @@ namespace Zerra.CQRS.RabbitMQ
         private readonly object locker = new();
 
         private readonly string host;
-        private readonly SymmetricConfig symmetricConfig;
-        private readonly string environment;
+        private readonly SymmetricConfig? symmetricConfig;
+        private readonly string? environment;
         private readonly ConcurrentDictionary<Type, string> topicsByCommandType;
         private readonly ConcurrentDictionary<Type, string> topicsByEventType;
         private readonly ConcurrentDictionary<string, SemaphoreSlim> throttleByTopic;
-        private IConnection connection = null;
+        private readonly ConnectionFactory factory;
+        private IConnection? connection = null;
 
         public string ConnectionString => host;
 
-        public RabbitMQProducer(string host, SymmetricConfig symmetricConfig, string environment)
+        public RabbitMQProducer(string host, SymmetricConfig? symmetricConfig, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
@@ -41,15 +42,16 @@ namespace Zerra.CQRS.RabbitMQ
             this.topicsByCommandType = new();
             this.topicsByEventType = new();
             this.throttleByTopic = new();
+
+            this.factory = new ConnectionFactory() { HostName = host };
             try
             {
-                var factory = new ConnectionFactory() { HostName = host };
                 this.connection = factory.CreateConnection();
                 _ = Log.InfoAsync($"{nameof(RabbitMQProducer)} Started");
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync(null, ex);
+                _ = Log.ErrorAsync(ex);
                 throw;
             }
         }
@@ -78,13 +80,14 @@ namespace Zerra.CQRS.RabbitMQ
 
                 try
                 {
-                    if (connection.IsOpen == false)
+                    if (connection == null || connection!.IsOpen == false)
                     {
                         lock (locker)
                         {
-                            if (connection.IsOpen == false)
+                            if (connection == null || connection.IsOpen == false)
                             {
-                                var factory = new ConnectionFactory() { HostName = host };
+                                this.connection?.Close();
+                                this.connection?.Dispose();
                                 this.connection = factory.CreateConnection();
                                 _ = Log.InfoAsync($"Sender Reconnected");
                             }
@@ -93,7 +96,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                     using var channel = connection.CreateModel();
 
-                    string[][] claims = null;
+                    string[][]? claims = null;
                     if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                         claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
@@ -110,9 +113,9 @@ namespace Zerra.CQRS.RabbitMQ
 
                     var properties = channel.CreateBasicProperties();
 
-                    EventingBasicConsumer consumer = null;
-                    string consumerTag = null;
-                    string correlationId = null;
+                    EventingBasicConsumer? consumer = null;
+                    string? consumerTag = null;
+                    string? correlationId = null;
                     if (requireAcknowledgement)
                     {
                         var replyQueue = channel.QueueDeclare(String.Empty, false, true, true);
@@ -128,10 +131,10 @@ namespace Zerra.CQRS.RabbitMQ
 
                     if (requireAcknowledgement)
                     {
-                        Exception exception = null;
+                        Exception? exception = null;
                         using var waiter = new SemaphoreSlim(0, 1);
 
-                        consumer.Received += (sender, e) =>
+                        consumer!.Received += (sender, e) =>
                         {
                             try
                             {
@@ -144,10 +147,12 @@ namespace Zerra.CQRS.RabbitMQ
                                 if (symmetricConfig != null)
                                     acknowledgementBody = SymmetricEncryptor.Decrypt(symmetricConfig, acknowledgementBody);
 
-                                var affirmation = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
+                                var acknowledgement = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
+                                if (acknowledgement == null)
+                                    throw new Exception("Invalid Acknowledgement");
 
-                                if (!affirmation.Success)
-                                    exception = new AcknowledgementException(affirmation, topic);
+                                if (!acknowledgement.Success)
+                                    exception = new AcknowledgementException(acknowledgement, topic);
                             }
                             catch (Exception ex)
                             {
@@ -171,7 +176,7 @@ namespace Zerra.CQRS.RabbitMQ
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(null, ex);
+                    _ = Log.ErrorAsync(ex);
                     throw;
                 }
             }
@@ -200,13 +205,14 @@ namespace Zerra.CQRS.RabbitMQ
 
                 try
                 {
-                    if (connection.IsOpen == false)
+                    if (connection == null || connection.IsOpen == false)
                     {
                         lock (locker)
                         {
-                            if (connection.IsOpen == false)
+                            if (connection == null || connection.IsOpen == false)
                             {
-                                var factory = new ConnectionFactory() { HostName = host };
+                                this.connection?.Close();
+                                this.connection?.Dispose();
                                 this.connection = factory.CreateConnection();
                                 _ = Log.InfoAsync($"Sender Reconnected");
                             }
@@ -215,7 +221,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                     using var channel = connection.CreateModel();
 
-                    string[][] claims = null;
+                    string[][]? claims = null;
                     if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                         claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
@@ -238,7 +244,7 @@ namespace Zerra.CQRS.RabbitMQ
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(null, ex);
+                    _ = Log.ErrorAsync(ex);
                     throw;
                 }
             }
@@ -250,8 +256,8 @@ namespace Zerra.CQRS.RabbitMQ
 
         public void Dispose()
         {
-            this.connection.Close();
-            this.connection.Dispose();
+            this.connection?.Close();
+            this.connection?.Dispose();
             GC.SuppressFinalize(this);
         }
 

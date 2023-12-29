@@ -21,11 +21,11 @@ namespace Zerra.CQRS.Kafka
 
             private readonly int maxConcurrent;
             private readonly string topic;
-            private readonly SymmetricConfig symmetricConfig;
+            private readonly SymmetricConfig? symmetricConfig;
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
 
-            public EventConsumer(int maxConcurrent, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -116,6 +116,8 @@ namespace Zerra.CQRS.Kafka
                             body = SymmetricEncryptor.Decrypt(symmetricConfig, body);
 
                         var message = KafkaCommon.Deserialize<KafkaEventMessage>(body);
+                        if (message == null)
+                            throw new Exception("Invalid Message");
 
                         if (message.Claims != null)
                         {

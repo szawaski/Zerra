@@ -32,7 +32,7 @@ namespace Zerra.CQRS.AzureServiceBus
             return ByteSerializer.Serialize(obj, byteSerializerOptions);
         }
 
-        public static Task<T> DeserializeAsync<T>(Stream stream)
+        public static Task<T?> DeserializeAsync<T>(Stream stream)
         {
             return ByteSerializer.DeserializeAsync<T>(stream, byteSerializerOptions);
         }

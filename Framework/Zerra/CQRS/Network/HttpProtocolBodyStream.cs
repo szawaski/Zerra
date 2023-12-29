@@ -76,7 +76,7 @@ namespace Zerra.CQRS.Network
         }
 #endif
 
-        public override long Length => contentLength.HasValue ? contentLength.Value : default;
+        public override long Length => contentLength ?? default;
         public override long Position { get { return position; } set { throw new NotSupportedException(); } }
 
         public override long Seek(long offset, SeekOrigin origin) { throw new NotSupportedException(); }

@@ -13,26 +13,25 @@ namespace Zerra.CQRS.RabbitMQ
 {
     public sealed partial class RabbitMQConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
-
         private readonly string host;
-        private readonly SymmetricConfig symmetricConfig;
-        private readonly string environment;
+        private readonly SymmetricConfig? symmetricConfig;
+        private readonly string? environment;
 
         private readonly Dictionary<string, CommandConsumer> commandExchanges;
         private readonly Dictionary<string, EventConsumer> eventExchanges;
-        private HashSet<Type> commandTypes;
-        private HashSet<Type> eventTypes;
+        private readonly HashSet<Type> commandTypes;
+        private readonly HashSet<Type> eventTypes;
 
-        private IConnection connection = null;
-        private HandleRemoteCommandDispatch commandHandlerAsync = null;
-        private HandleRemoteCommandDispatch commandHandlerAwaitAsync = null;
-        private HandleRemoteEventDispatch eventHandlerAsync = null;
+        private IConnection? connection = null;
+        private HandleRemoteCommandDispatch? commandHandlerAsync = null;
+        private HandleRemoteCommandDispatch? commandHandlerAwaitAsync = null;
+        private HandleRemoteEventDispatch? eventHandlerAsync = null;
 
         public string ServiceUrl => host;
 
-        private CommandCounter commandCounter = null;
+        private CommandCounter? commandCounter = null;
 
-        public RabbitMQConsumer(string host, SymmetricConfig symmetricConfig, string environment)
+        public RabbitMQConsumer(string host, SymmetricConfig? symmetricConfig, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
@@ -53,11 +52,10 @@ namespace Zerra.CQRS.RabbitMQ
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
         }
-        void IEventConsumer.Setup(CommandCounter commandCounter, HandleRemoteEventDispatch handlerAsync)
+        void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
         {
             if (this.connection != null)
                 throw new InvalidOperationException("Connection already open");
-            this.commandCounter = commandCounter;
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -143,6 +141,9 @@ namespace Zerra.CQRS.RabbitMQ
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
+            if (commandCounter == null || commandHandlerAsync == null || commandHandlerAwaitAsync == null)
+                throw new Exception($"{nameof(RabbitMQConsumer)} is not setup");
+
             lock (commandExchanges)
             {
                 if (commandTypes.Contains(type))
@@ -161,6 +162,9 @@ namespace Zerra.CQRS.RabbitMQ
 
         void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
+            if (eventHandlerAsync == null)
+                throw new Exception($"{nameof(RabbitMQConsumer)} is not setup");
+
             lock (eventExchanges)
             {
                 if (eventTypes.Contains(type))

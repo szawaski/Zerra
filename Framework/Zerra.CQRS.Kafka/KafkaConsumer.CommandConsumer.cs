@@ -24,12 +24,12 @@ namespace Zerra.CQRS.Kafka
             private readonly CommandCounter commandCounter;
             private readonly string topic;
             private readonly string clientID;
-            private readonly SymmetricConfig symmetricConfig;
+            private readonly SymmetricConfig? symmetricConfig;
             private readonly HandleRemoteCommandDispatch handlerAsync;
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
             private readonly CancellationTokenSource canceller;
 
-            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, SymmetricConfig symmetricConfig, string environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -114,10 +114,10 @@ namespace Zerra.CQRS.Kafka
 
             private async Task HandleMessage(SemaphoreSlim throttle, string host, ConsumeResult<string, byte[]> consumerResult, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
-                Exception error = null;
+                Exception? error = null;
                 var awaitResponse = false;
-                string ackTopic = null;
-                string ackKey = null;
+                string? ackTopic = null;
+                string? ackKey = null;
 
                 var inHandlerContext = false;
                 try
@@ -136,6 +136,8 @@ namespace Zerra.CQRS.Kafka
                             body = SymmetricEncryptor.Decrypt(symmetricConfig, body);
 
                         var message = KafkaCommon.Deserialize<KafkaCommandMessage>(body);
+                        if (message == null || message.Message == null || message.Source == null)
+                            throw new Exception("Invalid Message");
 
                         if (message.Claims != null)
                         {
@@ -190,7 +192,7 @@ namespace Zerra.CQRS.Kafka
                     {
                         _ = await producer.ProduceAsync(ackTopic, new Message<string, byte[]>()
                         {
-                            Key = ackKey,
+                            Key = ackKey!,
                             Value = body
                         });
                     }

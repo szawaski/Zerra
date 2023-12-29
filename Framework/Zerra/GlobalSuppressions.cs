@@ -17,3 +17,6 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("Maintainability", "CA1510:Use ArgumentNullException throw helper", Justification = "Only net8.0 Support")]
 [assembly: SuppressMessage("Style", "IDE0031:Use null propagation", Justification = "<Pending>")]
 [assembly: SuppressMessage("Style", "IDE0270:Use coalesce expression", Justification = "<Pending>")]
+[assembly: SuppressMessage("Usage", "CA2208:Instantiate argument exceptions correctly", Justification = "<Pending>")]
+[assembly: SuppressMessage("Maintainability", "CA1513:Use ObjectDisposedException throw helper", Justification = "Only net8.0 Support")]
+[assembly: SuppressMessage("Maintainability", "CA1512:Use ArgumentOutOfRangeException throw helper", Justification = "Only net8.0 Support")]

@@ -41,8 +41,12 @@ namespace Zerra.CQRS.Network
                             if (key != null)
                             {
                                 var value = chars.Slice(startIndex, indexLength).ToString();
+#if NETSTANDARD2_0
                                 if (!cookies.ContainsKey(key))
                                     cookies.Add(key, value);
+#else
+                                _ = cookies.TryAdd(key, value);
+#endif
                                 key = null;
                             }
                             startIndex = index + 1;
@@ -65,8 +69,12 @@ namespace Zerra.CQRS.Network
             if (key != null)
             {
                 var value = chars.Slice(startIndex, indexLength).ToString();
+#if NETSTANDARD2_0
                 if (!cookies.ContainsKey(key))
                     cookies.Add(key, value);
+#else
+                _ = cookies.TryAdd(key, value);
+#endif
             }
 
             return cookies;

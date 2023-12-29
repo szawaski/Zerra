@@ -22,12 +22,12 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly int maxConcurrent;
             private readonly CommandCounter commandCounter;
             private readonly string queue;
-            private readonly SymmetricConfig symmetricConfig;
+            private readonly SymmetricConfig? symmetricConfig;
             private readonly HandleRemoteCommandDispatch handlerAsync;
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
-            private readonly CancellationTokenSource canceller = null;
+            private readonly CancellationTokenSource canceller;
 
-            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string queue, SymmetricConfig symmetricConfig, string environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string queue, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -103,16 +103,16 @@ namespace Zerra.CQRS.AzureServiceBus
 
             private async Task HandleMessage(SemaphoreSlim throttle, ServiceBusClient client, ServiceBusReceivedMessage serviceBusMessage, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
-                Exception error = null;
+                Exception? error = null;
                 var awaitResponse = false;
-                string ackTopic = null;
-                string ackKey = null;
+                string? ackTopic = null;
+                string? ackKey = null;
 
                 var inHandlerContext = false;
                 try
                 {
                     var body = serviceBusMessage.Body.ToStream();
-                    AzureServiceBusCommandMessage message;
+                    AzureServiceBusCommandMessage? message;
                     try
                     {
                         if (symmetricConfig != null)
@@ -124,6 +124,9 @@ namespace Zerra.CQRS.AzureServiceBus
                     {
                         body.Dispose();
                     }
+
+                    if (message == null || message.Message == null || message.Source == null)
+                        throw new Exception("Invalid Message");
 
                     awaitResponse = !String.IsNullOrWhiteSpace(serviceBusMessage.ReplyTo);
                     ackTopic = serviceBusMessage.ReplyTo;

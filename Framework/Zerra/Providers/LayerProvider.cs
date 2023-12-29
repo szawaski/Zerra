@@ -48,7 +48,9 @@ namespace Zerra.Providers
             }
         }
 
+#pragma warning disable CA1822 // Mark members as static
         internal Type GetProviderInterfaceType() { return InterfaceType; }
+#pragma warning restore CA1822 // Mark members as static
 
         public override sealed string? ToString() { return base.ToString(); }
         public override sealed bool Equals(object? obj) { return base.Equals(obj); }

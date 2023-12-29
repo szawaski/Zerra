@@ -42,7 +42,7 @@ namespace Zerra.CQRS.AzureEventHub
             return ByteSerializer.Serialize(obj, byteSerializerOptions);
         }
 
-        public static T Deserialize<T>(byte[] bytes)
+        public static T? Deserialize<T>(byte[] bytes)
         {
             return ByteSerializer.Deserialize<T>(bytes, byteSerializerOptions);
         }
@@ -67,7 +67,7 @@ namespace Zerra.CQRS.AzureEventHub
             await locker.WaitAsync();
             try
             {
-                string hubNamespace = null;
+                string? hubNamespace = null;
                 var split = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
                 foreach (var item in split)
                 {
@@ -125,7 +125,7 @@ namespace Zerra.CQRS.AzureEventHub
             await locker.WaitAsync();
             try
             {
-                string hubNamespace = null;
+                string? hubNamespace = null;
                 var split = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
                 foreach (var item in split)
                 {

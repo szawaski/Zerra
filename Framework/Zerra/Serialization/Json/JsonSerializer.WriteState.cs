@@ -19,7 +19,7 @@ namespace Zerra.Serialization
             public WriteFrame CurrentFrame;
             public bool Ended;
 
-            public int Count => stack.Count;
+            public readonly int Count => stack.Count;
 
             public void PushFrame(WriteFrame frame)
             {

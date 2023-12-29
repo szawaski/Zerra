@@ -37,7 +37,7 @@ namespace Zerra.CQRS.Kafka
             return ByteSerializer.Serialize(obj, byteSerializerOptions);
         }
 
-        public static T Deserialize<T>(byte[] bytes)
+        public static T? Deserialize<T>(byte[] bytes)
         {
             return ByteSerializer.Deserialize<T>(bytes, byteSerializerOptions);
         }

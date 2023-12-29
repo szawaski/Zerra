@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Azure.Messaging.ServiceBus;
+using Microsoft.Azure.Amqp;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -19,11 +20,11 @@ namespace Zerra.CQRS.AzureServiceBus
     public sealed class AzureServiceBusProducer : ICommandProducer, IEventProducer, IAsyncDisposable
     {
         private bool listenerStarted = false;
-        private SemaphoreSlim listenerStartedLock = new(1, 1);
+        private readonly SemaphoreSlim listenerStartedLock = new(1, 1);
 
         private readonly string host;
-        private readonly SymmetricConfig symmetricConfig;
-        private readonly string environment;
+        private readonly SymmetricConfig? symmetricConfig;
+        private readonly string? environment;
         private readonly string ackQueue;
         private readonly ConcurrentDictionary<Type, string> queueByCommandType;
         private readonly ConcurrentDictionary<Type, string> topicByEventType;
@@ -31,7 +32,7 @@ namespace Zerra.CQRS.AzureServiceBus
         private readonly ServiceBusClient client;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
-        public AzureServiceBusProducer(string host, SymmetricConfig symmetricConfig, string environment)
+        public AzureServiceBusProducer(string host, SymmetricConfig? symmetricConfig, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
@@ -95,7 +96,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     }
                 }
 
-                string[][] claims = null;
+                string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
@@ -119,7 +120,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     try
                     {
 
-                        Acknowledgement ack = null;
+                        Acknowledgement? ack = null;
                         _ = ackCallbacks.TryAdd(ackKey, (ackFromCallback) =>
                         {
                             ack = ackFromCallback;
@@ -136,7 +137,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                         await waiter.WaitAsync();
 
-                        if (!ack.Success)
+                        if (!ack!.Success)
                             throw new AcknowledgementException(ack, queue);
                     }
                     finally
@@ -177,7 +178,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 else
                     topic = topic.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
 
-                string[][] claims = null;
+                string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
@@ -185,7 +186,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 {
                     Message = @event,
                     Claims = claims,
-                    Source = source,
+                    Source = source
                 };
 
                 var body = AzureServiceBusCommon.Serialize(message);
@@ -222,13 +223,18 @@ namespace Zerra.CQRS.AzureServiceBus
                         if (!ackCallbacks.TryRemove(serviceBusMessage.SessionId, out var callback))
                             continue;
 
-                        Acknowledgement ack = null;
+                        Acknowledgement? ack = null;
                         try
                         {
                             var response = serviceBusMessage.Body.ToStream();
                             if (symmetricConfig != null)
                                 response = SymmetricEncryptor.Decrypt(symmetricConfig, response, false);
                             ack = await AzureServiceBusCommon.DeserializeAsync<Acknowledgement>(response);
+                            ack = new Acknowledgement()
+                            {
+                                Success = false,
+                                ErrorMessage = "Invalid Acknowledgement"
+                            };
                         }
                         catch (Exception ex)
                         {

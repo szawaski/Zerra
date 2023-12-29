@@ -15,8 +15,8 @@ namespace Zerra.CQRS.AzureServiceBus
     public sealed partial class AzureServiceBusConsumer : ICommandConsumer, IEventConsumer, IAsyncDisposable
     {
         private readonly string host;
-        private readonly SymmetricConfig symmetricConfig;
-        private readonly string environment;
+        private readonly SymmetricConfig? symmetricConfig;
+        private readonly string? environment;
 
         private readonly Dictionary<string, CommandConsumer> commandExchanges;
         private readonly Dictionary<string, EventConsumer> eventExchanges;
@@ -25,11 +25,11 @@ namespace Zerra.CQRS.AzureServiceBus
         private readonly ServiceBusClient client;
 
         private bool isOpen;
-        private HandleRemoteCommandDispatch commandHandlerAsync = null;
-        private HandleRemoteCommandDispatch commandHandlerAwaitAsync = null;
-        private HandleRemoteEventDispatch eventHandlerAsync = null;
+        private HandleRemoteCommandDispatch? commandHandlerAsync = null;
+        private HandleRemoteCommandDispatch? commandHandlerAwaitAsync = null;
+        private HandleRemoteEventDispatch? eventHandlerAsync = null;
 
-        private CommandCounter commandCounter = null;
+        private CommandCounter? commandCounter = null;
 
         public string ServiceUrl => host;
 
@@ -38,7 +38,7 @@ namespace Zerra.CQRS.AzureServiceBus
             ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete,
         };
 
-        public AzureServiceBusConsumer(string host, SymmetricConfig symmetricConfig, string environment)
+        public AzureServiceBusConsumer(string host, SymmetricConfig? symmetricConfig, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
@@ -61,11 +61,10 @@ namespace Zerra.CQRS.AzureServiceBus
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
         }
-        void IEventConsumer.Setup(CommandCounter commandCounter, HandleRemoteEventDispatch handlerAsync)
+        void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
-            this.commandCounter = commandCounter;
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -136,6 +135,9 @@ namespace Zerra.CQRS.AzureServiceBus
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
+            if (commandCounter == null || commandHandlerAsync == null || commandHandlerAwaitAsync == null)
+                throw new Exception($"{nameof(AzureServiceBusConsumer)} is not setup");
+
             lock (commandExchanges)
             {
                 if (commandTypes.Contains(type))
@@ -154,6 +156,9 @@ namespace Zerra.CQRS.AzureServiceBus
 
         void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
+            if (eventHandlerAsync == null)
+                throw new Exception($"{nameof(AzureServiceBusConsumer)} is not setup");
+
             lock (eventExchanges)
             {
                 if (eventTypes.Contains(type))

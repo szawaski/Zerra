@@ -232,11 +232,11 @@ namespace Zerra.CQRS.Network
             var segmentLengthBytes = BitConverter.GetBytes(buffer.Length);
 
 #if NETSTANDARD2_0
-            await stream.WriteAsync(segmentLengthBytes, 0, segmentLengthBytes.Length);
-            await stream.WriteAsync(buffer.ToArray(), 0, buffer.Length);
+            await stream.WriteAsync(segmentLengthBytes, 0, segmentLengthBytes.Length, cancellationToken);
+            await stream.WriteAsync(buffer.ToArray(), 0, buffer.Length, cancellationToken);
 #else
-            await stream.WriteAsync(segmentLengthBytes.AsMemory());
-            await stream.WriteAsync(buffer);
+            await stream.WriteAsync(segmentLengthBytes.AsMemory(), cancellationToken);
+            await stream.WriteAsync(buffer, cancellationToken);
 #endif
             position += buffer.Length;
         }
@@ -260,11 +260,11 @@ namespace Zerra.CQRS.Network
                 throw new CqrsNetworkException("body already ended");
             ended = true;
 #if NETSTANDARD2_0
-            await stream.WriteAsync(endingBytes, 0, endingBytes.Length);
+            await stream.WriteAsync(endingBytes, 0, endingBytes.Length, cancellationToken);
 #else
-            await stream.WriteAsync(endingBytes.AsMemory());
+            await stream.WriteAsync(endingBytes.AsMemory(), cancellationToken);
 #endif
-            await stream.FlushAsync();
+            await stream.FlushAsync(cancellationToken);
         }
     }
 }

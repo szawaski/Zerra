@@ -123,11 +123,8 @@ namespace Zerra.Collections
 
                 lock (locker)
                 {
-                    if (!dictionary.ContainsKey(keycasted))
-                    {
+                    if (!dictionary.TryGetValue(keycasted, out var value))
                         throw new KeyNotFoundException();
-                    }
-                    var value = dictionary[keycasted];
                     return value;
                 }
             }
@@ -205,11 +202,8 @@ namespace Zerra.Collections
             {
                 lock (locker)
                 {
-                    if (!dictionary.ContainsKey(key))
-                    {
+                    if (!dictionary.TryGetValue(key, out var value))
                         throw new KeyNotFoundException();
-                    }
-                    var value = dictionary[key];
                     return value;
                 }
             }
@@ -325,12 +319,8 @@ namespace Zerra.Collections
         {
             lock (locker)
             {
-                if (!dictionary.ContainsKey(key))
-                {
-                    dictionary.Add(key, value);
-                    return value;
-                }
-                var currentvalue = dictionary[key];
+                if (!dictionary.TryGetValue(key, out var currentvalue))
+                    throw new KeyNotFoundException();
                 return currentvalue;
             }
         }
@@ -338,14 +328,12 @@ namespace Zerra.Collections
         {
             lock (locker)
             {
-                if (!dictionary.ContainsKey(key))
-                {
-                    var value = valueFactory(key);
-                    dictionary.Add(key, value);
-                    return value;
-                }
-                var currentvalue = dictionary[key];
-                return currentvalue;
+                if (dictionary.TryGetValue(key, out var currentvalue))
+                    return currentvalue;
+
+                var value = valueFactory(key);
+                dictionary.Add(key, value);
+                return value;
             }
         }
         public KeyValuePair<TKey, TValue>[] ToArray()
@@ -384,11 +372,9 @@ namespace Zerra.Collections
         {
             lock (locker)
             {
-                if (!dictionary.ContainsKey(key))
-                {
+                if (!dictionary.TryGetValue(key, out var currentvalue))
                     return false;
-                }
-                var currentvalue = dictionary[key];
+                
                 if (currentvalue != null && comparisonValue != null && !currentvalue.Equals(comparisonValue))
                     return false;
                 dictionary[key] = value;
@@ -403,18 +389,11 @@ namespace Zerra.Collections
         {
             lock (locker)
             {
-                if (!dictionary.ContainsKey(key))
-                {
-                    value = default;
+                if (!dictionary.TryGetValue(key, out value))
+                    return false;
 
-                    return false;
-                }
-                value = dictionary[key];
                 if (!dictionary.Remove(key))
-                {
-                    value = default;
                     return false;
-                }
                 return true;
             }
         }

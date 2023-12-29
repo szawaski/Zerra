@@ -25,7 +25,7 @@ namespace Zerra.CQRS.RabbitMQ
             return ByteSerializer.Serialize(obj, byteSerializerOptions);
         }
 
-        public static T Deserialize<T>(ReadOnlySpan<byte> bytes)
+        public static T? Deserialize<T>(ReadOnlySpan<byte> bytes)
         {
             return ByteSerializer.Deserialize<T>(bytes, byteSerializerOptions);
         }

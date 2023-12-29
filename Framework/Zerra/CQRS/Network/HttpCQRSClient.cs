@@ -61,7 +61,7 @@ namespace Zerra.CQRS.Network
                 };
                 data.AddProviderArguments(arguments);
 
-                IDictionary<string, IList<string>>? authHeaders = null;
+                IDictionary<string, IList<string?>>? authHeaders = null;
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
@@ -219,7 +219,7 @@ namespace Zerra.CQRS.Network
                 };
                 data.AddProviderArguments(arguments);
 
-                IDictionary<string, IList<string>>? authHeaders = null;
+                IDictionary<string, IList<string?>>? authHeaders = null;
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
@@ -415,7 +415,7 @@ namespace Zerra.CQRS.Network
                     Source = source
                 };
 
-                IDictionary<string, IList<string>>? authHeaders = null;
+                IDictionary<string, IList<string?>>? authHeaders = null;
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 

@@ -729,10 +729,10 @@ namespace Zerra.Reflection
             get
             {
                 if (!this.IsTask || !this.Type.IsGenericType)
-                    throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} does not have a {nameof(TaskResultGetter)}");
+                    throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(TaskResultGetter)}");
 
                 LoadTaskResultGetter();
-                return taskResultGetter ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} does not have a {nameof(TaskResultGetter)}");
+                return taskResultGetter ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(TaskResultGetter)}");
             }
         }
         public bool HasTaskResultGetter
@@ -765,7 +765,7 @@ namespace Zerra.Reflection
             get
             {
                 LoadCreator();
-                return creator ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} does not have a {nameof(Creator)}");
+                return creator ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(Creator)}");
             }
         }
         public bool HasCreator

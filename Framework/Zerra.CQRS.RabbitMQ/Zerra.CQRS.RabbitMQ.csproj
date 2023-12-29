@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
+        <Nullable>enable</Nullable>
         <CheckEolTargetFramework>false</CheckEolTargetFramework>
         <Authors>Steven Zawaski</Authors>
         <Copyright>KaKush LLC</Copyright>
@@ -14,7 +15,7 @@
         <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, RabbitMQ</PackageTags>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <LangVersion>10.0</LangVersion>
-        <Version>4.8.6</Version>
+        <Version>4.9.0</Version>
     </PropertyGroup>
 
     <ItemGroup>

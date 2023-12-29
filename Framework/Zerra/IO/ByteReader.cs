@@ -21,8 +21,8 @@ namespace Zerra.IO
 
         private readonly Encoding encoding;
 
-        public int Position => position;
-        public int Length => length;
+        public readonly int Position => position;
+        public readonly int Length => length;
 
         public ByteReader(ReadOnlySpan<byte> bytes, Encoding? encoding = null)
         {

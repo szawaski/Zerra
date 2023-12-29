@@ -339,8 +339,7 @@ namespace Zerra.Serialization
                 var typeFromValue = state.CurrentFrame.Object!.GetType();
                 var typeName = typeFromValue.FullName;
 
-                int sizeNeeded;
-                if (!writer.TryWrite(typeName, false, out sizeNeeded))
+                if (!writer.TryWrite(typeName, false, out var sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
                     return;

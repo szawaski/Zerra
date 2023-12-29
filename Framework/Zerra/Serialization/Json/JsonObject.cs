@@ -12,12 +12,12 @@ using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
-    public struct JsonObject : IEnumerable
+    public class JsonObject : IEnumerable
     {
-        private JsonObjectType jsonType;
-        private string? valueString;
-        private Dictionary<string, JsonObject>? valueProperties;
-        private JsonObject[]? valueArray;
+        private readonly JsonObjectType jsonType;
+        private readonly string? valueString;
+        private readonly Dictionary<string, JsonObject>? valueProperties;
+        private readonly JsonObject[]? valueArray;
 
         public JsonObjectType JsonType => jsonType;
 

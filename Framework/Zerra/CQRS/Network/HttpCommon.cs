@@ -67,10 +67,10 @@ namespace Zerra.CQRS.Network
         private static readonly byte[] hostHeadersBytes = encoding.GetBytes($"{HostHeader}: ");
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe (IList<string>, IDictionary<string, IList<string>>) ParseHeaders(ReadOnlySpan<char> chars)
+        private static unsafe (IList<string>, IDictionary<string, IList<string?>>) ParseHeaders(ReadOnlySpan<char> chars)
         {
             var declarations = new List<string>();
-            var headers = new Dictionary<string, IList<string>>();
+            var headers = new Dictionary<string, IList<string?>>();
 
             var start = 0;
             var length = 0;
@@ -166,7 +166,7 @@ namespace Zerra.CQRS.Network
                                 }
                                 else
                                 {
-                                    values = new List<string>();
+                                    values = new List<string?>();
                                     values.Add(value);
                                     headers.Add(key!, values);
                                 }
@@ -345,7 +345,7 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferPostRequestHeader(Memory<byte> buffer, Uri serviceUrl, string? origion, string? providerType, ContentType? contentType, IDictionary<string, IList<string>>? authHeaders)
+        public static int BufferPostRequestHeader(Memory<byte> buffer, Uri serviceUrl, string? origion, string? providerType, ContentType? contentType, IDictionary<string, IList<string?>>? authHeaders)
         {
             var headerBuffer = new ByteWriter(buffer.Span, encoding);
 
@@ -388,6 +388,8 @@ namespace Zerra.CQRS.Network
                 {
                     foreach (var authHeaderValue in authHeader.Value)
                     {
+                        if (authHeaderValue == null)
+                            continue;
                         headerBuffer.Write(encoding.GetBytes(authHeader.Key));
                         headerBuffer.Write(headerSplitBytes);
                         headerBuffer.Write(encoding.GetBytes(authHeaderValue));

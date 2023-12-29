@@ -974,7 +974,7 @@ namespace Zerra.CQRS
                     }
                 }
 
-                eventConsumer.Setup(commandCounter, HandleRemoteEventDispatchAsync);
+                eventConsumer.Setup(HandleRemoteEventDispatchAsync);
                 _ = eventConsumers.Add(eventConsumer);
                 eventConsumer.Open();
             }
@@ -1350,7 +1350,7 @@ namespace Zerra.CQRS
                                         if (eventConsumer != null)
                                         {
                                             eventConsumerType = eventConsumer.GetType();
-                                            eventConsumer.Setup(commandCounter, HandleRemoteEventDispatchAsync);
+                                            eventConsumer.Setup(HandleRemoteEventDispatchAsync);
                                             _ = eventConsumers.Add(eventConsumer);
                                             //_ = Log.InfoAsync($"Event Consumer: {eventConsumer.GetType().GetNiceName()}");
                                         }

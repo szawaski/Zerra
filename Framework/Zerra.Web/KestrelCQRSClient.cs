@@ -138,10 +138,8 @@ namespace Zerra.Web
                 }
                 catch
                 {
-                    if (responseBodyStream != null)
-                        responseBodyStream.Dispose();
-                    if (response != null)
-                        response.Dispose();
+                    responseBodyStream?.Dispose();
+                    response?.Dispose();
                     throw;
                 }
             }
@@ -260,8 +258,7 @@ namespace Zerra.Web
                     {
                         await responseBodyStream.DisposeAsync();
                     }
-                    if (response != null)
-                        response.Dispose();
+                    response?.Dispose();
                     throw;
                 }
             }
@@ -371,8 +368,7 @@ namespace Zerra.Web
                     {
                         await responseBodyStream.DisposeAsync();
                     }
-                    if (response != null)
-                        response.Dispose();
+                    response?.Dispose();
                     throw;
                 }
             }

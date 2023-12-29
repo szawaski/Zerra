@@ -265,18 +265,15 @@ namespace Zerra
             }
             else
             {
-                if (!this.localProperties.Contains(property))
-                    this.localProperties.Add(property);
+                _ = this.localProperties.Add(property);
                 if (removedProperties.Contains(property))
                     _ = this.localProperties.Remove(property);
             }
         }
         private void RemoveProperty(string property)
         {
-            if (this.localProperties.Contains(property))
-                _ = this.localProperties.Remove(property);
-            if (!removedProperties.Contains(property))
-                removedProperties.Add(property);
+            _ = this.localProperties.Remove(property);
+            _ = removedProperties.Add(property);
             if (childGraphs.ContainsKey(property))
                 _ = childGraphs.Remove(property);
         }
@@ -307,10 +304,8 @@ namespace Zerra
             if (String.IsNullOrWhiteSpace(graph.name))
                 throw new InvalidOperationException("Cannot remove a child graph without a name.");
 
-            if (this.localProperties.Contains(graph.name))
-                _ = this.localProperties.Remove(graph.name);
-            if (!removedProperties.Contains(graph.name))
-                removedProperties.Add(graph.name);
+            _ = this.localProperties.Remove(graph.name);
+            _ = removedProperties.Add(graph.name);
             if (childGraphs.ContainsKey(graph.name))
                 _ = childGraphs.Remove(graph.name);
         }

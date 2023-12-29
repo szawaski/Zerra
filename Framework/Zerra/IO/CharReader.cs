@@ -10,13 +10,13 @@ namespace Zerra.IO
     {
         const int errorHelperLength = 32;
 
-        private ReadOnlySpan<char> buffer;
+        private readonly ReadOnlySpan<char> buffer;
 
         private int position;
-        private int length;
+        private readonly int length;
 
-        public int Position => position;
-        public int Length => length;
+        public readonly int Position => position;
+        public readonly int Length => length;
 
         public CharReader(string chars)
         {
@@ -31,7 +31,7 @@ namespace Zerra.IO
             this.length = this.buffer.Length;
         }
 
-        public bool HasMoreChars()
+        public readonly bool HasMoreChars()
         {
             if (length - position > 0)
                 return true;
@@ -39,7 +39,7 @@ namespace Zerra.IO
             return false;
         }
 
-        public FormatException CreateException(string message)
+        public readonly FormatException CreateException(string message)
         {
             var character = buffer[position];
 
@@ -50,8 +50,6 @@ namespace Zerra.IO
             var start2 = position + 1;
             var length2 = start2 + errorHelperLength > buffer.Length ? buffer.Length - start2 : errorHelperLength;
             var helper2 = buffer.Slice(start2, length2).ToString();
-
-            var tester = buffer.Slice(position - 10, 20).ToString();
 
             return new FormatException($"JSON Error: {message} at position {position} character {character} between {helper1} and {helper2}");
         }

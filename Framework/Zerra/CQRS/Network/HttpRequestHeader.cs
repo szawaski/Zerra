@@ -12,7 +12,7 @@ namespace Zerra.CQRS.Network
         public ReadOnlyMemory<byte> BodyStartBuffer { get; set; }
 
         public IList<string>? Declarations { get; set; }
-        public IDictionary<string, IList<string>>? Headers { get; set; }
+        public IDictionary<string, IList<string?>>? Headers { get; set; }
         public bool IsError { get; set; }
         public ContentType? ContentType { get; set; }
         public int? ContentLength { get; set; }

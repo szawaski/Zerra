@@ -6,8 +6,8 @@ namespace Zerra.CQRS.RabbitMQ
 {
     public sealed class RabbitMQEventMessage
     {
-        public IEvent Message { get; set; }
-        public string[][] Claims { get; set; }
-        public string Source { get; set; }
+        public IEvent? Message { get; set; }
+        public string[][]? Claims { get; set; }
+        public string? Source { get; set; }
     }
 }

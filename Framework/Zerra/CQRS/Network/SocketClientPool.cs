@@ -268,7 +268,11 @@ namespace Zerra.CQRS.Network
             {
                 try
                 {
+#if !NETSTANDARD2_0
+                    await stream.WriteAsync(buffer, cancellationToken);
+#else
                     await stream.WriteAsync(buffer, offset, count, cancellationToken);
+#endif
                     if (!stream.Connected)
                     {
                         stream.Dispose();
@@ -310,7 +314,13 @@ namespace Zerra.CQRS.Network
                     await socket.ConnectAsync(endPoint);
 #endif
                     stream = new SocketPoolStream(socket, hostAndPort, ReturnSocket, true);
+
+#if !NETSTANDARD2_0
+                    await stream.WriteAsync(buffer, cancellationToken);
+#else
                     await stream.WriteAsync(buffer, offset, count, cancellationToken);
+#endif
+
                     if (!stream.Connected)
                     {
                         stream.Dispose();
