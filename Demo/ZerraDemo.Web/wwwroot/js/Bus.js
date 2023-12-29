@@ -1,4 +1,8 @@
-﻿const Bus = {
+﻿// Copyright © KaKush LLC
+// Written By Steven Zawaski
+// Licensed to you under the MIT license
+
+const Bus = {
 
     createModel: function (modelTypeName) {
         const model = {};
@@ -53,13 +57,43 @@
         return str;
     },
 
-    _deserializeJsonNameless: function (data, modelType, hasMany) {
-        if (data === null)
+    _deserializeJson: function (data, modelType, hasMany) {
+        if (data === null || modelType === null)
             return null;
 
         if (hasMany) {
-            const deserializedItems = new Array();
-            for (let index in data) {
+            for (const index in data) {
+                Bus._deserializeJson(data[index], modelType, false);
+            }
+        }
+        else {
+            for (const property in data) {
+                const propertyType = modelType[property];
+                const value = data[property];
+                if (propertyType === "Date") {
+                    if (value !== null) {
+                        data[property] = new Date(value);
+                    }
+                }
+                else if (propertyType !== "number" && propertyType !== "string" && propertyType !== "boolean") {
+                    const hasMany = propertyType.indexOf("[]") >= 0;
+                    try {
+                        const subModel = ModelTypeDictionary[propertyType.replace("[]", "")];
+                        Bus._deserializeJson(value, subModel, hasMany);
+                    }
+                    catch (exception) { const ok = 1; }
+                }
+            }
+        }
+    },
+
+    _deserializeJsonNameless: function (data, modelType, hasMany) {
+        if (data === null || modelType === null)
+            return null;
+
+        if (hasMany) {
+            const deserializedItems = [];
+            for (const index in data) {
                 const deserializedItem = Bus._deserializeJsonNameless(data[index], modelType, false);
                 deserializedItems.push(deserializedItem);
             }
@@ -75,7 +109,7 @@
                 let value = data[index];
                 if (propertyType === "Date") {
                     if (value !== null) {
-                        data[property] = new Date(value);
+                        value = new Date(value);
                     }
                 }
                 else if (propertyType !== "number" && propertyType !== "string" && propertyType !== "boolean") {
@@ -84,7 +118,7 @@
                         const subModel = ModelTypeDictionary[propertyType.replace("[]", "")];
                         value = Bus._deserializeJsonNameless(value, subModel, hasMany);
                     }
-                    catch (exception) { let ok = 1; }
+                    catch (exception) { const ok = 1; }
                 }
                 model[property] = value;
                 index++;
@@ -103,29 +137,24 @@
     },
 
     _isCors: function (url) {
-        return url.toLowerCase().startsWith("http");
+        return url.toLowerCase().indexOf("http") === 0;
     },
 
     _onFail: function (jqXHR, url, onFail) {
         let errorText;
-        if (jqXHR.responseJSON && jqXHR.responseJSON.Message) {
-            errorText = jqXHR.responseJSON.Message;
-            console.debug("Error: " + errorText);
-        }
-        if (jqXHR.responseJSON && jqXHR.responseJSON._message) {
-            errorText = jqXHR.responseJSON._message;
-            console.debug("Error: " + errorText);
-        }
-        else if (jqXHR.responseText) {
-            errorText = jqXHR.responseText;
-            console.debug("Error: " + errorText);
+        if (jqXHR.responseText) {
+            errorText = "Error " + jqXHR.status + ": " + jqXHR.responseText;
+            console.log(errorText);
         }
         else {
-            errorText = "Server Error";
-            console.debug("Server Error:" + url);
+            errorText = "Server Error " + jqXHR.status;
+            console.log(errorText + ": " + url);
         }
         if (onFail && typeof onFail === "function") {
             onFail(errorText);
+        }
+        if (BusFail) {
+            BusFail(errorText, url);
         }
     },
 
@@ -189,18 +218,26 @@
                 let deserialized = data;
                 if (responseJsonNameless) {
                     deserialized = Bus._deserializeJsonNameless(data, modelType, hasMany);
+                } else {
+                    Bus._deserializeJson(deserialized, modelType, hasMany);
                 }
 
-                if (onComplete && typeof onComplete === "function")
-                    onComplete(deserialized);
+                if (!(onComplete && typeof onComplete === "function"))
+                    throw "Bus.Call Missing onComplete function";
+                onComplete(deserialized);
             })
             .fail(function (jqXHR) {
-                Bus._onFail(jqXHR, route, onFail);
+                if (jqXHR.status === 200) {
+                    if (onComplete && typeof onComplete === "function")
+                        onComplete();
+                } else {
+                    Bus._onFail(jqXHR, route, onFail);
+                }
             });
     },
 
     Dispatch: function (command, onComplete, onFail) {
-        const type = command.constructor.name;
+        const type = command.CommandType;
         const route = Bus._getRoute(type);
         const isCors = Bus._isCors(route);
 
@@ -243,7 +280,7 @@
     },
 
     DispatchAwait: function (command, onComplete, onFail) {
-        const type = command.constructor.name;
+        const type = command.CommandType;
         const route = Bus._getRoute(type);
         const isCors = Bus._isCors(route);
 
