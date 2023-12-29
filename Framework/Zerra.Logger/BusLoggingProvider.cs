@@ -54,7 +54,7 @@ namespace Zerra.Logger
                 _ = LogFile.Log(file, eventCategory, message);
         }
 
-        public void BeginCallAsync(Type interfaceType, string methodName, object[] arguments, object result, string source, bool handled)
+        public void BeginCallAsync(Type interfaceType, string methodName, object[] arguments, object? result, string source, bool handled)
         {
             var interfaceName = interfaceType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
@@ -68,7 +68,7 @@ namespace Zerra.Logger
                 _ = LogFile.Log(file, callCategory, message);
         }
 
-        public void EndCommandAsync(Type commandType, ICommand command, string source, bool handled, long milliseconds, Exception ex)
+        public void EndCommandAsync(Type commandType, ICommand command, string source, bool handled, long milliseconds, Exception? ex)
         {
             var typeName = commandType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
@@ -86,7 +86,7 @@ namespace Zerra.Logger
                 _ = LogFile.Log(file, commandCategory, message);
         }
 
-        public void EndEventAsync(Type eventType, IEvent @event, string source, bool handled, long milliseconds, Exception ex)
+        public void EndEventAsync(Type eventType, IEvent @event, string source, bool handled, long milliseconds, Exception? ex)
         {
             var typeName = eventType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
@@ -104,7 +104,7 @@ namespace Zerra.Logger
                 _ = LogFile.Log(file, eventCategory, message);
         }
 
-        public void EndCallAsync(Type interfaceType, string methodName, object[] arguments, object result, string source, bool handled, long milliseconds, Exception ex)
+        public void EndCallAsync(Type interfaceType, string methodName, object[] arguments, object? result, string source, bool handled, long milliseconds, Exception? ex)
         {
             var interfaceName = interfaceType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;

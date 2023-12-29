@@ -75,7 +75,7 @@ namespace Zerra.Logger
                 await LogFile.Log(infoFile, warnCategory, message);
         }
 
-        public async Task ErrorAsync(string message, Exception exception)
+        public async Task ErrorAsync(string? message, Exception? exception)
         {
             var sb = new StringBuilder();
             _ = sb.Append(errorCategory).Append(": ").Append(message).Append(Environment.NewLine);
@@ -100,7 +100,7 @@ namespace Zerra.Logger
                 await LogFile.Log(infoFile, errorCategory, msg);
         }
 
-        public async Task CriticalAsync(string message, Exception exception)
+        public async Task CriticalAsync(string? message, Exception? exception)
         {
             var sb = new StringBuilder();
             _ = sb.Append(criticalCategory).Append(": ").Append(message).Append(Environment.NewLine);

@@ -18,7 +18,7 @@ namespace Zerra.Logger
             if (!String.IsNullOrWhiteSpace(message))
             {
                 await fileLock.WaitAsync();
-                FileStream fileStream = null;
+                FileStream? fileStream = null;
                 try
                 {
                     fileStream = File.Open(fileName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read);
@@ -31,10 +31,10 @@ namespace Zerra.Logger
                         await fileStream.WriteAsync(" ");
                         await fileStream.WriteAsync(category);
                     }
-                    if (Thread.CurrentPrincipal != null && Thread.CurrentPrincipal.Identity != null && !String.IsNullOrWhiteSpace(Thread.CurrentPrincipal.Identity.Name))
+                    if (!String.IsNullOrWhiteSpace(Thread.CurrentPrincipal?.Identity?.Name))
                     {
                         await fileStream.WriteAsync(" - ");
-                        await fileStream.WriteAsync(Thread.CurrentPrincipal.Identity?.Name);
+                        await fileStream.WriteAsync(Thread.CurrentPrincipal.Identity.Name);
                     }
                     await fileStream.WriteAsync(" - ");
                     await fileStream.WriteAsync(message);
@@ -48,7 +48,7 @@ namespace Zerra.Logger
                 }
                 finally
                 {
-                    fileStream.Dispose();
+                    fileStream?.Dispose();
                     _ = fileLock.Release();
                 }
             }
