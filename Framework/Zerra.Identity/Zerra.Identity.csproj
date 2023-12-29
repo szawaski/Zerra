@@ -1,55 +1,54 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFrameworks>net6.0;netstandard2.1;netstandard2.0</TargetFrameworks>
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
         <CheckEolTargetFramework>false</CheckEolTargetFramework>
-		<Authors>Steven Zawaski</Authors>
-		<Copyright>KaKush LLC</Copyright>
-		<Product>Zerra Framework</Product>
-		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-		<PackageLicenseFile>LICENSE</PackageLicenseFile>
-		<LangVersion>8.0</LangVersion>
-		<PackageTags>Identity Management, SSO, SAML, OAuth, OpenID</PackageTags>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<Description>
-			Identity Sign-On and Servers.
+        <Authors>Steven Zawaski</Authors>
+        <Copyright>KaKush LLC</Copyright>
+        <Product>Zerra Framework</Product>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <LangVersion>8.0</LangVersion>
+        <PackageTags>Identity Management, SSO, SAML, OAuth, OpenID</PackageTags>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Description>Identity Sign-On and Servers.
 
-			Commonly used types:
-			Zerra.Identity.Consumers.OpenIDIdentityConsumer
-			Zerra.Identity.Consumers.OAuth2IdentityConsumer
-			Zerra.Identity.Consumers.Saml2IdentityConsumer
-		</Description>
-		<Company>KaKush LLC</Company>
-		<RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-		<Version>0.9.2</Version>
-		<SignAssembly>false</SignAssembly>
-		<AssemblyVersion></AssemblyVersion>
-		<FileVersion></FileVersion>
-	</PropertyGroup>
+            Commonly used types:
+            Zerra.Identity.Consumers.OpenIDIdentityConsumer
+            Zerra.Identity.Consumers.OAuth2IdentityConsumer
+            Zerra.Identity.Consumers.Saml2IdentityConsumer
+        </Description>
+        <Company>KaKush LLC</Company>
+        <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
+        <Version>0.9.2</Version>
+        <SignAssembly>false</SignAssembly>
+        <AssemblyVersion></AssemblyVersion>
+        <FileVersion></FileVersion>
+    </PropertyGroup>
 
-	<ItemGroup>
-		<Compile Remove="Jwt\JwtManager.cs" />
-	</ItemGroup>
+    <ItemGroup>
+        <Compile Remove="Jwt\JwtManager.cs" />
+    </ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-		<PackageReference Include="System.Security.Cryptography.Xml" Version="6.0.1" />
-	</ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="System.Security.Cryptography.Xml" Version="6.0.1" />
+    </ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' != 'net48'">
-		<PackageReference Include="Microsoft.AspNetCore.Mvc.Abstractions" Version="2.2.0" />
-		<PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
-	</ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' != 'net48'">
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Abstractions" Version="2.2.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
+    </ItemGroup>
 
-	<ItemGroup>
-		<None Include="..\..\LICENSE">
-			<Pack>True</Pack>
-			<PackagePath></PackagePath>
-		</None>
-	</ItemGroup>
+    <ItemGroup>
+        <None Include="..\..\LICENSE">
+            <Pack>True</Pack>
+            <PackagePath></PackagePath>
+        </None>
+    </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\Zerra\Zerra.csproj" />
-	</ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Zerra\Zerra.csproj" />
+    </ItemGroup>
 
 </Project>

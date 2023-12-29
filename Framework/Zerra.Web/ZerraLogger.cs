@@ -11,7 +11,15 @@ namespace Zerra.Web
 {
     public sealed class ZerraLogger : ILogger
     {
-        public IDisposable BeginScope<TState>(TState state)
+#if NET6_0
+#pragma warning disable CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
+#pragma warning disable CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
+#endif
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+#if NET6_0
+#pragma warning restore CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
+#pragma warning restore CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
+#endif
         {
             return null;
         }
@@ -21,10 +29,10 @@ namespace Zerra.Web
             return true;
         }
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
             var message = formatter(state, null);
-            if (Resolver.TryGetSingle(out ILoggingProvider provider))
+            if (Resolver.TryGetSingle<ILoggingProvider>(out var provider))
             {
                 switch (logLevel)
                 {

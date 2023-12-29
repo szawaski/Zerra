@@ -17,9 +17,9 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
 {
     public static class CheckBoxListExtension
     {
-        public static HtmlString CheckBoxListFor<TModel, TValue>(this IHtmlHelper<TModel> htmlHelper, Expression<Func<TModel, TValue>> expression, IEnumerable<SelectListItem> items, object htmlAttributes = null)
+        public static HtmlString CheckBoxListFor<TModel, TValue>(this IHtmlHelper<TModel> htmlHelper, Expression<Func<TModel, TValue>> expression, IEnumerable<SelectListItem> items, object? htmlAttributes = null)
         {
-            var modelExpressionProvider = (ModelExpressionProvider)htmlHelper.ViewContext.HttpContext.RequestServices.GetService(typeof(ModelExpressionProvider));
+            var modelExpressionProvider = (ModelExpressionProvider)htmlHelper.ViewContext.HttpContext.RequestServices.GetService(typeof(ModelExpressionProvider))!;
 
             var listName = modelExpressionProvider.GetExpressionText(expression);
 
@@ -29,7 +29,7 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
             return htmlHelper.CheckBoxList(listName, items, htmlAttributes);
         }
 
-        public static HtmlString CheckBoxList(this IHtmlHelper htmlHelper, string listName, IEnumerable<SelectListItem> items, object htmlAttributes = null)
+        public static HtmlString CheckBoxList(this IHtmlHelper htmlHelper, string listName, IEnumerable<SelectListItem> items, object? htmlAttributes = null)
         {
             var container = new TagBuilder("div");
             foreach (var item in items)

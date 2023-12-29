@@ -11,8 +11,8 @@ namespace Zerra.Web
 {
     public sealed class CookieManager
     {
-        private readonly HttpContext context = null;
-        private readonly IDataProtectionProvider dataProtectionProvider = null;
+        private readonly HttpContext context;
+        private readonly IDataProtectionProvider? dataProtectionProvider;
 
         public CookieManager(HttpContext context)
         {
@@ -38,11 +38,11 @@ namespace Zerra.Web
             PersistCookie(name, encryptedValue, maxAge, sameSite, httpOnly, secure);
         }
 
-        public string Get(string name)
+        public string? Get(string name)
         {
             return ReadCookie(name);
         }
-        public string GetSecure(string name)
+        public string? GetSecure(string name)
         {
             var value = ReadCookie(name);
             if (value != null)
@@ -58,7 +58,7 @@ namespace Zerra.Web
             DeleteCookie(name, sameSite, httpOnly, secure);
         }
 
-        private string Encrypt(string value)
+        private string? Encrypt(string? value)
         {
             if (dataProtectionProvider == null)
                 throw new Exception("CookieManager created without an IDataProtectionProvider");
@@ -72,7 +72,7 @@ namespace Zerra.Web
 
             return encryptedValue;
         }
-        private string Decrypt(string encryptedValue)
+        private string? Decrypt(string? encryptedValue)
         {
             if (dataProtectionProvider == null)
                 throw new Exception("CookieManager created without an IDataProtectionProvider");
@@ -93,7 +93,7 @@ namespace Zerra.Web
             }
         }
 
-        private void PersistCookie(string name, string value, TimeSpan? maxAge, SameSiteMode sameSite, bool httpOnly, bool secure)
+        private void PersistCookie(string name, string? value, TimeSpan? maxAge, SameSiteMode sameSite, bool httpOnly, bool secure)
         {
             value ??= String.Empty;
             var cookieSeriesCount = value.Length * 2 / maxCookieSizeBytes + 1;
@@ -133,7 +133,7 @@ namespace Zerra.Web
                 }
             }
         }
-        private string ReadCookie(string name)
+        private string? ReadCookie(string name)
         {
             var sb = new StringBuilder();
             for (var x = 0; x < maxCookiesPerDomain; x++)

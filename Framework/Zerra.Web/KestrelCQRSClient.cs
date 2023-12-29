@@ -22,11 +22,11 @@ namespace Zerra.Web
     public sealed class KestrelCQRSClient : CqrsClientBase, IDisposable
     {
         private readonly ContentType contentType;
-        private readonly SymmetricConfig symmetricConfig;
-        private readonly ICqrsAuthorizer authorizer;
+        private readonly SymmetricConfig? symmetricConfig;
+        private readonly ICqrsAuthorizer? authorizer;
         private readonly HttpClient client;
 
-        public KestrelCQRSClient(ContentType contentType, string serviceUrl, SymmetricConfig symmetricConfig, ICqrsAuthorizer authorizer)
+        public KestrelCQRSClient(ContentType contentType, string serviceUrl, SymmetricConfig? symmetricConfig, ICqrsAuthorizer? authorizer)
             : base(serviceUrl)
         {
             this.contentType = contentType;
@@ -37,13 +37,13 @@ namespace Zerra.Web
             _ = Log.InfoAsync($"{nameof(KestrelCQRSClient)} started for {this.contentType} at {this.serviceUri}");
         }
 
-        protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
+        protected override TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
             throttle.Wait();
 
             try
             {
-                string[][] claims = null;
+                string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
@@ -57,20 +57,20 @@ namespace Zerra.Web
                 };
                 data.AddProviderArguments(arguments);
 
-                IDictionary<string, IList<string>> authHeaders = null;
+                IDictionary<string, IList<string?>>? authHeaders = null;
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
                 var request = new HttpRequestMessage(HttpMethod.Post, serviceUri);
-                HttpResponseMessage response = null;
-                Stream responseBodyStream = null;
+                HttpResponseMessage? response = null;
+                Stream? responseBodyStream = null;
                 try
                 {
                     request.Content = new WriteStreamContent((requestBodyStream) =>
                     {
                         if (symmetricConfig != null)
                         {
-                            CryptoFlushStream requestBodyCryptoStream = null;
+                            CryptoFlushStream? requestBodyCryptoStream = null;
                             try
                             {
                                 requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true, true);
@@ -151,13 +151,13 @@ namespace Zerra.Web
             }
         }
 
-        protected override async Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source)
+        protected override async Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
             await throttle.WaitAsync();
 
             try
             {
-                string[][] claims = null;
+                string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
@@ -171,20 +171,20 @@ namespace Zerra.Web
                 };
                 data.AddProviderArguments(arguments);
 
-                IDictionary<string, IList<string>> authHeaders = null;
+                IDictionary<string, IList<string?>>? authHeaders = null;
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
                 var request = new HttpRequestMessage(HttpMethod.Post, serviceUri);
-                HttpResponseMessage response = null;
-                Stream responseBodyStream = null;
+                HttpResponseMessage? response = null;
+                Stream? responseBodyStream = null;
                 try
                 {
                     request.Content = new WriteStreamContent(async (requestBodyStream) =>
                     {
                         if (symmetricConfig != null)
                         {
-                            CryptoFlushStream requestBodyCryptoStream = null;
+                            CryptoFlushStream? requestBodyCryptoStream = null;
                             try
                             {
                                 requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true, true);
@@ -281,7 +281,7 @@ namespace Zerra.Web
 
                 var messageData = JsonSerializer.Serialize(command, commandType);
 
-                string[][] claims = null;
+                string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
@@ -295,20 +295,20 @@ namespace Zerra.Web
                     Source = source
                 };
 
-                IDictionary<string, IList<string>> authHeaders = null;
+                IDictionary<string, IList<string?>>? authHeaders = null;
                 if (authorizer != null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
                 var request = new HttpRequestMessage(HttpMethod.Post, serviceUri);
-                HttpResponseMessage response = null;
-                Stream responseBodyStream = null;
+                HttpResponseMessage? response = null;
+                Stream? responseBodyStream = null;
                 try
                 {
                     request.Content = new WriteStreamContent(async (requestBodyStream) =>
                     {
                         if (symmetricConfig != null)
                         {
-                            CryptoFlushStream requestBodyCryptoStream = null;
+                            CryptoFlushStream? requestBodyCryptoStream = null;
                             try
                             {
                                 requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true, true);

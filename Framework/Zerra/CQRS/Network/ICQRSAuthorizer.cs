@@ -8,7 +8,7 @@ namespace Zerra.CQRS.Network
 {
     public interface ICqrsAuthorizer
     {
-        void Authorize(IDictionary<string, IList<string>> headers);
-        IDictionary<string, IList<string>> BuildAuthHeaders();
+        void Authorize(IDictionary<string, IList<string?>> headers);
+        IDictionary<string, IList<string?>> BuildAuthHeaders();
     }
 }

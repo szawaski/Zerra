@@ -42,39 +42,46 @@ namespace Zerra.Web
 
             var requestContentType = context.Request.ContentType;
             ContentType contentType;
-            if (requestContentType.StartsWith("application/octet-stream"))
+            if (requestContentType != null)
             {
-                contentType = ContentType.Bytes;
-            }
-            else if (requestContentType.StartsWith("application/jsonnameless"))
-            {
-                contentType = ContentType.JsonNameless;
-            }
-            else if (requestContentType.StartsWith("application/json"))
-            {
-                contentType = ContentType.Json;
+                if (requestContentType.StartsWith("application/octet-stream"))
+                    contentType = ContentType.Bytes;
+                else if (requestContentType.StartsWith("application/jsonnameless"))
+                    contentType = ContentType.JsonNameless;
+                else if (requestContentType.StartsWith("application/json"))
+                    contentType = ContentType.Json;
+                else
+                    throw new Exception("Invalid Request");
             }
             else
             {
-                context.Response.StatusCode = 400;
-                return;
+                throw new Exception("Invalid Request");
             }
 
-            var accepts = (string)context.Request.Headers["Accept"];
+            var accepts = (string?)context.Request.Headers["Accept"];
             ContentType? acceptContentType;
-            if (accepts.StartsWith("application/octet-stream"))
-                acceptContentType = ContentType.Bytes;
-            else if (accepts.StartsWith("application/jsonnameless"))
-                acceptContentType = ContentType.JsonNameless;
-            else if (accepts.StartsWith("application/json"))
-                acceptContentType = ContentType.Json;
+            if (accepts != null)
+            {
+                if (accepts.StartsWith("application/octet-stream"))
+                    acceptContentType = ContentType.Bytes;
+                else if (accepts.StartsWith("application/jsonnameless"))
+                    acceptContentType = ContentType.JsonNameless;
+                else if (accepts.StartsWith("application/json"))
+                    acceptContentType = ContentType.Json;
+                else
+                    acceptContentType = null;
+            }
             else
+            {
                 acceptContentType = null;
+            }
 
             var inHandlerContext = false;
             try
             {
                 var data = await ContentTypeSerializer.DeserializeAsync<ApiRequestData>(contentType, context.Request.Body);
+                if (data == null)
+                    throw new Exception("Invalid Request");
 
                 inHandlerContext = true;
                 var response = await ApiServerHandler.HandleRequestAsync(acceptContentType, data);

@@ -15,18 +15,18 @@ namespace Zerra.Web
         public ConcurrentDictionary<Type, SemaphoreSlim> InterfaceTypes { get; private set; }
         public ConcurrentDictionary<Type, SemaphoreSlim> CommandTypes { get; private set; }
 
-        public CommandCounter ReceiveCounter { get; set; }
+        public CommandCounter? ReceiveCounter { get; set; }
 
-        public QueryHandlerDelegate ProviderHandlerAsync { get; set; }
-        public HandleRemoteCommandDispatch HandlerAsync { get; set; }
-        public HandleRemoteCommandDispatch HandlerAwaitAsync { get; set; }
+        public QueryHandlerDelegate? ProviderHandlerAsync { get; set; }
+        public HandleRemoteCommandDispatch? HandlerAsync { get; set; }
+        public HandleRemoteCommandDispatch? HandlerAwaitAsync { get; set; }
 
-        public string Route { get; set; }
-        public ContentType ContentType { get; set; }
-        public ICqrsAuthorizer Authorizer { get; set; }
+        public string? Route { get; private set; }
+        public ICqrsAuthorizer? Authorizer { get; private set; }
+        public ContentType ContentType { get; private set; }
 
-        private string[] allowOrigins;
-        public string[] AllowOrigins
+        private string[]? allowOrigins;
+        public string[]? AllowOrigins
         {
             get
             {
@@ -48,8 +48,12 @@ namespace Zerra.Web
             }
         }
 
-        public KestrelCQRSServerLinkedSettings()
+        public KestrelCQRSServerLinkedSettings(string? route, ICqrsAuthorizer? authorizer, ContentType contentType)
         {
+            this.Route = route;
+            this.Authorizer = authorizer;
+            this.ContentType = contentType;
+
             InterfaceTypes = new();
             CommandTypes = new();
             this.allowOriginsString = "*";
