@@ -229,13 +229,16 @@ namespace Zerra
             this.signature = null;
         }
 
-        public void ReplaceChildGraphs(params Graph[] graphs)
+        public void ReplaceChildGraphs(params Graph?[]? graphs)
         {
             if (graphs == null || graphs.Length == 0)
                 return;
 
             foreach (var graph in graphs)
             {
+                if (graph == null)
+                    continue;
+
                 if (String.IsNullOrWhiteSpace(graph.name))
                     throw new InvalidOperationException("Cannot add a graph without a property name.");
 
@@ -615,7 +618,7 @@ namespace Zerra
                     if (targetProperty.PropertyType == sourceProperty.PropertyType)
                     {
                         //Basic Property
-                        if (graph.HasLocalProperty(targetProperty.Name))
+                        if (graph == null || graph.HasLocalProperty(targetProperty.Name))
                         {
                             Expression sourcePropertyExpression = Expression.Property(sourceExpression, sourceProperty);
 
@@ -626,7 +629,7 @@ namespace Zerra
                     else if (sourceProperty.PropertyType.GetInterface(typeof(IEnumerable<>).MakeGenericType(targetProperty.PropertyType).Name) != null)
                     {
                         //Related Enumerable
-                        var childGraph = graph.GetChildGraph(targetProperty.Name);
+                        var childGraph = graph?.GetChildGraph(targetProperty.Name);
                         if (childGraph != null)
                         {
                             if (targetProperty.PropertyType.IsGenericType)
@@ -656,7 +659,7 @@ namespace Zerra
                     else
                     {
                         //Related Single
-                        var childGraph = graph.GetChildGraph(targetProperty.Name);
+                        var childGraph = graph?.GetChildGraph(targetProperty.Name);
                         if (childGraph != null)
                         {
                             if (stack.Where(x => x == sourceProperty.PropertyType).Count() < maxSelectRecursive)

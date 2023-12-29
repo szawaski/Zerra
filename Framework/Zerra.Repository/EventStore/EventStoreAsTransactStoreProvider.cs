@@ -633,6 +633,7 @@ namespace Zerra.Repository
                             {
                                 thisEventData = eventData;
                                 eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
+
                                 Mapper.MapTo(eventModelData.Model, modelState, eventModelData.Graph);
 
                                 if (query.TemporalDateTo.HasValue && query.TemporalDateTo.Value < eventData.Date)
@@ -640,6 +641,10 @@ namespace Zerra.Repository
                                 if (query.TemporalNumberTo.HasValue && eventData.Number < query.TemporalNumberTo.Value)
                                     break;
                             }
+
+                            if (thisEventData == null || eventModelData == null)
+                                return Array.Empty<EventModel<TModel>>();
+
                             var eventModel = new EventModel<TModel>()
                             {
                                 EventID = thisEventData.EventID,
@@ -672,6 +677,10 @@ namespace Zerra.Repository
                                 if (!query.TemporalNumberFrom.HasValue || eventData.Number >= query.TemporalNumberFrom.Value)
                                     break;
                             }
+
+                            if (thisEventData == null || eventModelData == null)
+                                return Array.Empty<EventModel<TModel>>();
+
                             var eventModel = new EventModel<TModel>()
                             {
                                 EventID = thisEventData.EventID,
@@ -755,18 +764,25 @@ namespace Zerra.Repository
             if (query.Where == null)
                 throw new NotSupportedException("No identity clauses found in the query. These are required for event stores.");
 
-            var identityProperties = ModelAnalyzer.GetIdentityPropertyNames(typeof(TModel));
-            object[]? ids = null;
+            var type = typeof(TModel);
+
+            var identityProperties = ModelAnalyzer.GetIdentityPropertyNames(type);
+            object[] ids;
             if (identityProperties.Length == 1)
             {
-                var propertyValues = LinqValueExtractor.Extract(query.Where, typeof(TModel), identityProperties[0]);
-                ids = propertyValues[identityProperties[0]].ToArray();
+                var propertyValues = LinqValueExtractor.Extract(query.Where, type, identityProperties[0]);
+                var idSingle = propertyValues[identityProperties[0]].ToArray();
+                if (idSingle.Any(x => x == null))
+                    throw new Exception($"Model {type.GetNiceName()} missing Identity");
+                ids = idSingle!;
             }
             else
             {
-                var propertyValues = LinqValueExtractor.Extract(query.Where, typeof(TModel), identityProperties);
+                var propertyValues = LinqValueExtractor.Extract(query.Where, type, identityProperties);
                 var idSets = propertyValues.Select(x => x.Value.ToArray()).ToArray();
-                ids = CalculatePermutations(idSets);
+                if (idSets.Any(x => x.Any(y => y == null)))
+                    throw new Exception($"Model {type.GetNiceName()} missing Identity");
+                ids = CalculatePermutations(idSets!);
             }
 
             if (ids.Length == 0)
@@ -774,22 +790,22 @@ namespace Zerra.Repository
 
             return ids;
         }
-        private static object[] CalculatePermutations(IList<object[]> sets)
+        private static object[] CalculatePermutations(object[][] sets)
         {
-            var list = new List<object>();
+            var list = new List<object?[]>();
 
             var indexer = 0;
-            var indexes = new int[sets.Count];
+            var indexes = new int[sets.Length];
             while (true)
             {
-                var permutation = new List<object>();
-                for (var x = 0; x < sets.Count; x++)
+                var permutation = new object[sets.Length];
+                for (var i = 0; i < sets.Length; i++)
                 {
-                    var index = indexes[x];
-                    var value = sets[x][index];
-                    permutation.Add(value);
+                    var index = indexes[i];
+                    var value = sets[i][index];
+                    permutation[i] = value;
                 }
-                list.Add(permutation.ToArray());
+                list.Add(permutation);
 
                 while (true)
                 {
@@ -815,7 +831,7 @@ namespace Zerra.Repository
             return list.ToArray();
         }
 
-        protected override sealed void PersistModel(PersistEvent @event, TModel model, Graph<TModel> graph, bool create)
+        protected override sealed void PersistModel(PersistEvent @event, TModel model, Graph<TModel>? graph, bool create)
         {
             var id = ModelAnalyzer.GetIdentity(model);
             if (id == null)
@@ -859,7 +875,7 @@ namespace Zerra.Repository
             }
         }
 
-        protected override sealed async Task PersistModelAsync(PersistEvent @event, TModel model, Graph<TModel> graph, bool create)
+        protected override sealed async Task PersistModelAsync(PersistEvent @event, TModel model, Graph<TModel>? graph, bool create)
         {
             var id = ModelAnalyzer.GetIdentity(model);
             var streamName = EventStoreCommon.GetStreamName<TModel>(id);

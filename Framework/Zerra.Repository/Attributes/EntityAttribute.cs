@@ -10,8 +10,8 @@ namespace Zerra.Repository
     [AttributeUsage(AttributeTargets.Class)]
     public sealed class EntityAttribute : Attribute
     {
-        public string StoreName { get; private set; }
-        public EntityAttribute(string storeName = null)
+        public string? StoreName { get; private set; }
+        public EntityAttribute(string? storeName = null)
         {
             if (!String.IsNullOrWhiteSpace(storeName))
             {

@@ -175,6 +175,8 @@ namespace Zerra.Repository.Reflection
             {
                 return GenerateIdentityPropertyNames(type);
             });
+            if (names.Length == 0)
+                throw new Exception($"Model {type} is missing an Identity");
             return names;
         }
         private static string[] GenerateIdentityPropertyNames(Type type)
@@ -193,16 +195,18 @@ namespace Zerra.Repository.Reflection
         }
 
         private static readonly MethodInfo getIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.GetIdentity) && x.IsGenericMethod);
-        public static object? GetIdentity<TModel>(TModel model) where TModel : class, new()
+        public static object GetIdentity<TModel>(TModel model) where TModel : class, new()
         {
             var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(null, typeof(IdentityAttribute));
             var id = modelIdentityAccessor?.Invoke(model);
+            if (id == null)
+                throw new Exception($"Model {typeof(TModel).GetNiceName()} is missing an Identity");
             return id;
         }
-        public static object? GetIdentity(Type type, object model)
+        public static object GetIdentity(Type type, object model)
         {
             var genericGetIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(getIdentityMethod, type);
-            return genericGetIdentityMethod.Caller(null, new object[] { model });
+            return genericGetIdentityMethod.Caller(null, new object[] { model })!;
         }
 
         private static readonly MethodInfo setIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.SetIdentity) && x.IsGenericMethod);
@@ -218,16 +222,18 @@ namespace Zerra.Repository.Reflection
         }
 
         private static readonly MethodInfo getForeignIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.GetForeignIdentity) && x.IsGenericMethod);
-        public static object? GetForeignIdentity<TModel>(string foreignIdentityNames, TModel model) where TModel : class, new()
+        public static object GetForeignIdentity<TModel>(string foreignIdentityNames, TModel model) where TModel : class, new()
         {
             var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(foreignIdentityNames, null);
             var id = modelIdentityAccessor?.Invoke(model);
+            if (id == null)
+                throw new Exception($"Model {typeof(TModel).GetNiceName()} is missing an Foreign Identity");
             return id;
         }
-        public static object? GetForeignIdentity(Type type, string foreignIdentityNames, object model)
+        public static object GetForeignIdentity(Type type, string foreignIdentityNames, object model)
         {
             var genericGetForeignIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(getForeignIdentityMethod, type);
-            return genericGetForeignIdentityMethod.Caller(null, new object[] { foreignIdentityNames, model });
+            return genericGetForeignIdentityMethod.Caller(null, new object[] { foreignIdentityNames, model })!;
         }
 
         private static readonly MethodInfo setForeignIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.SetForeignIdentity) && x.IsGenericMethod);

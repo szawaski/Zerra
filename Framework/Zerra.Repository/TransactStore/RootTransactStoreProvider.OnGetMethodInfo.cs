@@ -11,12 +11,12 @@ namespace Zerra.Repository
         private sealed class OnGetMethodInfo
         {
             public Type PropertyType { get; private set; }
-            public bool Enumerable { get; private set; }
+            public bool Collection { get; private set; }
             public Type RelatedProviderType { get; private set; }
-            public OnGetMethodInfo(Type propertyType, bool enumerable, Type relatedProviderType)
+            public OnGetMethodInfo(Type propertyType, bool collection, Type relatedProviderType)
             {
                 this.PropertyType = propertyType;
-                this.Enumerable = enumerable;
+                this.Collection = collection;
                 this.RelatedProviderType = relatedProviderType;
             }
         }
