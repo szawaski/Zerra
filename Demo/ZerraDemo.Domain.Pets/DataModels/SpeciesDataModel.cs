@@ -9,9 +9,9 @@ namespace ZerraDemo.Domain.Pets.DataModels
     {
         [Identity]
         public Guid ID { get; set; }
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
         [Relation("SpeciesID")]
-        public ICollection<BreedDataModel> Breeds { get; set; }
+        public ICollection<BreedDataModel>? Breeds { get; set; }
     }
 }

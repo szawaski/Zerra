@@ -218,17 +218,11 @@ namespace Zerra.Threading
                     {
                         Thread.CurrentPrincipal = principal;
                         var result = task.DynamicInvoke(null);
-                        if (asyncResult != null)
-                        {
-                            asyncResult.SetCompleted(result);
-                        }
+                        asyncResult?.SetCompleted(result);
                     }
                     catch (Exception ex)
                     {
-                        if (asyncResult != null)
-                        {
-                            asyncResult.SetCompletedException(ex);
-                        }
+                        asyncResult?.SetCompletedException(ex);
                     }
                     isAvailable = true;
                     asyncResult = null;
@@ -338,10 +332,7 @@ namespace Zerra.Threading
                     this.ex = ex;
                     isCompleted = true;
                     _ = waitHandle.Set();
-                    if (asyncCallback != null)
-                    {
-                        asyncCallback(this);
-                    }
+                    asyncCallback?.Invoke(this);
                 }
             }
         }

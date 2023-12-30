@@ -20,8 +20,8 @@ namespace Zerra.CQRS.AzureServiceBus
 
         private readonly Dictionary<string, CommandConsumer> commandExchanges;
         private readonly Dictionary<string, EventConsumer> eventExchanges;
-        private HashSet<Type> commandTypes;
-        private HashSet<Type> eventTypes;
+        private readonly HashSet<Type> commandTypes;
+        private readonly HashSet<Type> eventTypes;
         private readonly ServiceBusClient client;
 
         private bool isOpen;

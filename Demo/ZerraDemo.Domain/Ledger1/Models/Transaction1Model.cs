@@ -7,8 +7,8 @@ namespace ZerraDemo.Domain.Ledger1.Models
         public Guid AccountID { get; set; }
         public DateTime Date { get; set; }
         public decimal Amount { get; set; }
-        public string Description { get; set; }
+        public string? Description { get; set; }
         public decimal Balance { get; set; }
-        public string Event { get; set; }
+        public string? Event { get; set; }
     }
 }

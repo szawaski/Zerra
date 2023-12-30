@@ -14,7 +14,7 @@ namespace Zerra.Repository.Test
     [TestClass]
     public class MsSqlEngineTests
     {
-        private int ExecuteSql(MsSqlTestSqlDataContext context, string sql)
+        private static int ExecuteSql(MsSqlTestSqlDataContext context, string sql)
         {
             using (var connection = new SqlConnection(context.ConnectionString))
             {
@@ -27,7 +27,7 @@ namespace Zerra.Repository.Test
             }
         }
 
-        private void DropDatabase(MsSqlTestSqlDataContext context)
+        private static void DropDatabase(MsSqlTestSqlDataContext context)
         {
             var builder = new SqlConnectionStringBuilder(context.ConnectionString);
             var testDatabase = builder.InitialCatalog;

@@ -2,6 +2,7 @@
 using Zerra.Repository;
 using Zerra.Repository.MsSql;
 using Zerra.Logging;
+using System;
 
 namespace ZerraDemo.Domain.Pets.Sql
 {
@@ -13,7 +14,10 @@ namespace ZerraDemo.Domain.Pets.Sql
         private readonly string connectionString;
         public PetsMsSqlDataContext()
         {
-            this.connectionString = Config.GetSetting("PetsSqlConnectionStringMSSQL");
+            var connectionString = Config.GetSetting("PetsSqlConnectionStringMSSQL");
+            if (String.IsNullOrWhiteSpace(connectionString))
+                throw new Exception("Missing Config PetsSqlConnectionStringMSSQL");
+            this.connectionString = connectionString;
             _ = Log.InfoAsync($"PetsSqlConnectionStringMSSQL {this.connectionString}");
         }
     }

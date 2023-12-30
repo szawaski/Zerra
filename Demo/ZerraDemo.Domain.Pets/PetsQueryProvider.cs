@@ -43,7 +43,7 @@ namespace ZerraDemo.Domain.Pets
                 new Graph<PetDataModel>(
                     true,
                     x => x.Breed,
-                    x => x.Breed.Species
+                    x => x.Breed!.Species
             )));
 
             var models = items.Map<PetModel[]>();
@@ -64,8 +64,10 @@ namespace ZerraDemo.Domain.Pets
                 new Graph<PetDataModel>(
                     true,
                     x => x.Breed,
-                    x => x.Breed.Species
+                    x => x.Breed!.Species
             )));
+            if (item == null)
+                throw new Exception("Pet not found");
 
             var model = item.Map<PetModel>();
             return model;
@@ -81,6 +83,8 @@ namespace ZerraDemo.Domain.Pets
                      x => x.AmountEaten,
                      x => x.LastEaten
             )));
+            if (item == null)
+                throw new Exception("Pet not found");
 
             if (item.AmountEaten.HasValue && item.LastEaten.HasValue)
                 item.AmountEaten = Math.Max(0, item.AmountEaten.Value - (DateTime.UtcNow - item.LastEaten.Value).Hours);
@@ -97,6 +101,8 @@ namespace ZerraDemo.Domain.Pets
                 new Graph<PetDataModel>(
                     x => x.LastPooped
             )));
+            if (item == null)
+                throw new Exception("Pet not found");
 
             var hoursSincePooped = (int)(DateTime.UtcNow - (item.LastPooped ?? DateTime.MinValue)).TotalHours;
 

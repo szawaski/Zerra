@@ -499,9 +499,9 @@ namespace Zerra.Mathematics
                 context.Next();
                 return null;
             }
-            return ParseNumbersAndVariables(ref context);
+            return MathParser.ParseNumbersAndVariables(ref context);
         }
-        private StatementPart ParseNumbersAndVariables(ref ParserContext context)
+        private static StatementPart ParseNumbersAndVariables(ref ParserContext context)
         {
             if (numbersAndLetters.Contains(context.Current))
             {

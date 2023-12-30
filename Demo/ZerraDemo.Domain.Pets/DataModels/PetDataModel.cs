@@ -8,7 +8,7 @@ namespace ZerraDemo.Domain.Pets.DataModels
     {
         [Identity]
         public Guid ID { get; set; }
-        public string Name { get; set; }
+        public string? Name { get; set; }
         public Guid BreedID { get; set; }
 
         public DateTime? LastEaten { get; set; }
@@ -17,6 +17,6 @@ namespace ZerraDemo.Domain.Pets.DataModels
         public DateTime? LastPooped { get; set; }
 
         [Relation("BreedID")]
-        public BreedDataModel Breed { get; set; }
+        public BreedDataModel? Breed { get; set; }
     }
 }

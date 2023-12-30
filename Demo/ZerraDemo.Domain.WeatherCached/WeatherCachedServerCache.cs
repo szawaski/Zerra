@@ -4,6 +4,6 @@ namespace ZerraDemo.Domain.WeatherCached
 {
     public static class WeatherCachedServerCache
     {
-        public static WeatherCachedModel Model { get; set; }
+        public static WeatherCachedModel? Model { get; set; }
     }
 }

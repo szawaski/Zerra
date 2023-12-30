@@ -63,27 +63,30 @@ namespace ZerraDemo.Domain.Ledger1
             var models = new List<Transaction1Model>();
             foreach (var item in items)
             {
+                if (item.Source == null)
+                    continue;
+
                 decimal amount;
-                string description;
+                string? description;
                 switch (item.SourceType)
                 {
                     case nameof(Deposit1Command):
                         {
-                            var command = item.Source as Deposit1Command;
+                            var command = (Deposit1Command)item.Source;
                             amount = command.Amount;
                             description = command.Description;
                         }
                         break;
                     case nameof(Withdraw1Command):
                         {
-                            var command = item.Source as Withdraw1Command;
+                            var command = (Withdraw1Command)item.Source;
                             amount = -command.Amount;
                             description = command.Description;
                         }
                         break;
                     case nameof(Transfer1Command):
                         {
-                            var command = item.Source as Transfer1Command;
+                            var command = (Transfer1Command)item.Source;
                             if (command.FromAccountID == accountID)
                                 amount = -command.Amount;
                             else

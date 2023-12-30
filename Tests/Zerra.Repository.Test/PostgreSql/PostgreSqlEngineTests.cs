@@ -14,7 +14,7 @@ namespace Zerra.Repository.Test
     [TestClass]
     public class PostgreSqlEngineTests
     {
-        private int ExecuteSql(PostgreSqlTestSqlDataContext context, string sql)
+        private static int ExecuteSql(PostgreSqlTestSqlDataContext context, string sql)
         {
             using (var connection = new NpgsqlConnection(context.ConnectionString))
             {
@@ -27,7 +27,7 @@ namespace Zerra.Repository.Test
             }
         }
 
-        private void DropDatabase(PostgreSqlTestSqlDataContext context)
+        private static void DropDatabase(PostgreSqlTestSqlDataContext context)
         {
             var builder = new NpgsqlConnectionStringBuilder(context.ConnectionString);
             var testDatabase = builder.Database;
@@ -93,7 +93,7 @@ namespace Zerra.Repository.Test
                     continue;
                 if (property.IsNullable)
                 {
-                    _ = sb.Append("ALTER TABLE testtypes ADD Junk").Append(property.PropertySourceName).Append(" ");
+                    _ = sb.Append("ALTER TABLE testtypes ADD Junk").Append(property.PropertySourceName).Append(' ');
                     PostgreSql.PostgreSqlEngine.WriteSqlTypeFromModel(sb, property);
                     PostgreSql.PostgreSqlEngine.WriteTypeEndingFromModel(sb, property);
                     _ = sb.Insert(sb.Length - 4, "NOT ");

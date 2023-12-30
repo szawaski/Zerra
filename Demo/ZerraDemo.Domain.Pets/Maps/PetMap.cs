@@ -8,8 +8,8 @@ namespace ZerraDemo.Domain.Pets
     {
         public void Define(IMapSetup<PetDataModel, PetModel> map)
         {
-            map.Define(x => x.Breed, x => x.Breed.Name);
-            map.Define(x => x.Species, x => x.Breed.Species.Name);
+            map.Define(x => x.Breed, x => x.Breed!.Name);
+            map.Define(x => x.Species, x => x.Breed!.Species!.Name);
         }
     }
 }

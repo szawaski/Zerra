@@ -6,6 +6,7 @@ using Zerra.CQRS.Settings;
 using Zerra.Logging;
 using Zerra.Logger;
 using Zerra.CQRS.Kafka;
+using System;
 
 namespace ZerraDemo.Common
 {
@@ -23,6 +24,8 @@ namespace ZerraDemo.Common
             //this is helpful if running AspNetCore in addition to a TcpService Server which will fight for the port
             //in Kubernetes the BindingUrl needs to be 0.0.0.0 which can be replaced with "+" such as "+:80"
             var serviceSettings = CQRSSettings.Get(false);
+            if (String.IsNullOrWhiteSpace(serviceSettings.MessageHost))
+                throw new Exception("Missing MessageHost");
 
             IServiceCreator serviceCreator;
 

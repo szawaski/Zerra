@@ -805,10 +805,10 @@ namespace Zerra.Test
             model1.DictionaryThing = new Dictionary<int, string>(
                 new KeyValuePair<int, string>[]
                 {
-                    new KeyValuePair<int, string>(1, (string)dictionaryThingJsonObject["1"]),
-                    new KeyValuePair<int, string>(2, (string)dictionaryThingJsonObject["2"]),
-                    new KeyValuePair<int, string>(3, (string)dictionaryThingJsonObject["3"]),
-                    new KeyValuePair<int, string>(4, (string)dictionaryThingJsonObject["4"]),
+                    new(1, (string)dictionaryThingJsonObject["1"]),
+                    new(2, (string)dictionaryThingJsonObject["2"]),
+                    new(3, (string)dictionaryThingJsonObject["3"]),
+                    new(4, (string)dictionaryThingJsonObject["4"]),
                 }
             );
 

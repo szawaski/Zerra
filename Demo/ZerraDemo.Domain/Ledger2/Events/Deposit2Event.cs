@@ -7,6 +7,6 @@ namespace ZerraDemo.Domain.Ledger2.Events
     {
         public Guid AccountID { get; set; }
         public decimal Amount { get; set; }
-        public string Description { get; set; }
+        public string? Description { get; set; }
     }
 }

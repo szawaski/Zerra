@@ -8,6 +8,6 @@ namespace ZerraDemo.Domain.Pets.Commands
     {
         public Guid PetID { get; set; }
         public Guid BreedID { get; set; }
-        public string Name { get; set; }
+        public string? Name { get; set; }
     }
 }

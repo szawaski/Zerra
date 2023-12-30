@@ -46,8 +46,8 @@ namespace ZerraDemo.Domain.Ledger2
                 {
                     AccountID = aggregate.ID,
                     Balance = aggregate.Balance,
-                    Amount = aggregate.LastTransactionAmount.Value,
-                    Date = aggregate.LastEventDate.Value,
+                    Amount = aggregate.LastTransactionAmount ?? default,
+                    Date = aggregate.LastEventDate ?? default,
                     Description = aggregate.LastTransactionDescription,
                     Event = aggregate.LastEventName
                 };

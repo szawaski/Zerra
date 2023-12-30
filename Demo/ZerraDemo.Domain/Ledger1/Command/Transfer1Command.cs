@@ -9,6 +9,6 @@ namespace ZerraDemo.Domain.Ledger1.Command
         public Guid FromAccountID { get; set; }
         public Guid ToAccountID { get; set; }
         public decimal Amount { get; set; }
-        public string Description { get; set; }
+        public string? Description { get; set; }
     }
 }

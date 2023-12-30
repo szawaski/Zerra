@@ -83,21 +83,21 @@ namespace Zerra.Test
                 },
                 ModelToModelArray = new ModelA[]
                 {
-                    new ModelA()
+                    new()
                     {
                         Prop1 = 101,
                         PropA = 102,
                         Prop2 = 103,
                         ArrayToArray = new int[] { 1, 2, 3 },
                     },
-                    new ModelA()
+                    new()
                     {
                         Prop1 = 104,
                         PropA = 105,
                         Prop2 = 106,
                         ArrayToArray = new int[] { 4, 5, 6 }
                     },
-                    new ModelA()
+                    new()
                     {
                         Prop1 = 107,
                         PropA = 108,

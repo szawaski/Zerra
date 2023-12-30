@@ -1,4 +1,5 @@
-﻿using Zerra;
+﻿using System;
+using Zerra;
 using Zerra.Repository;
 using Zerra.Repository.EventStoreDB;
 using ZerraDemo.Domain.Ledger2.Aggregates;
@@ -15,7 +16,10 @@ namespace ZerraDemo.Domain.Ledger2.EventStore
         private readonly string connectionString;
         public Ledger2EventStoreDataContext()
         {
-            this.connectionString = Config.GetSetting("Ledger2EventStoreServer");
+            var connectionString = Config.GetSetting("Ledger2EventStoreServer");
+            if (String.IsNullOrWhiteSpace(connectionString))
+                throw new Exception("Missing Config Ledger2EventStoreServer");
+            this.connectionString = connectionString;
         }
     }
 }

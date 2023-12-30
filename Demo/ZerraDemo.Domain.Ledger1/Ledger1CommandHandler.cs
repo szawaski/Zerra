@@ -28,6 +28,8 @@ namespace ZerraDemo.Domain.Ledger1
                 if (hasBalance)
                 {
                     var current = await Repo.QueryAsync(new QuerySingle<Ledger1DataModel>(x => x.AccountID == command.AccountID));
+                    if (current == null)
+                        throw new Exception("Ledger not found");
                     currentBalance = current.Balance;
                 }
                 else
@@ -74,6 +76,8 @@ namespace ZerraDemo.Domain.Ledger1
                 if (hasBalance)
                 {
                     var current = await Repo.QueryAsync(new QuerySingle<Ledger1DataModel>(x => x.AccountID == command.AccountID));
+                    if (current == null)
+                        throw new Exception("Ledger not found");
                     currentBalance = current.Balance;
                 }
                 else
@@ -118,10 +122,14 @@ namespace ZerraDemo.Domain.Ledger1
             {
                 decimal fromCurrentBalance;
                 var fromAccount = await Repo.QueryAsync(new QuerySingle<Ledger1AccountDataModel>(x => x.AccountID == command.FromAccountID));
-                var fromHasBalance = fromAccount?.HasBalance == true;
+                if (fromAccount == null)
+                    throw new Exception("Account not found");
+                var fromHasBalance = fromAccount.HasBalance == true;
                 if (fromHasBalance)
                 {
                     var current = await Repo.QueryAsync(new QuerySingle<Ledger1DataModel>(x => x.AccountID == command.FromAccountID));
+                    if (current == null)
+                        throw new Exception("Ledger not found");
                     fromCurrentBalance = current.Balance;
                 }
                 else
@@ -131,10 +139,14 @@ namespace ZerraDemo.Domain.Ledger1
 
                 decimal toCurrentBalance;
                 var toAccount = await Repo.QueryAsync(new QuerySingle<Ledger1AccountDataModel>(x => x.AccountID == command.ToAccountID));
-                var toHasBalance = fromAccount?.HasBalance == true;
+                if (toAccount == null)
+                    throw new Exception("Account not found");
+                var toHasBalance = fromAccount.HasBalance == true;
                 if (toHasBalance)
                 {
                     var current = await Repo.QueryAsync(new QuerySingle<Ledger1DataModel>(x => x.AccountID == command.ToAccountID));
+                    if (current == null)
+                        throw new Exception("Ledger not found");
                     toCurrentBalance = current.Balance;
                 }
                 else

@@ -10,7 +10,7 @@ namespace ZerraDemo.Domain.Ledger2.Aggregates
         public Transaction2Aggregate(Guid id) : base(id) { }
 
         public decimal Balance { get; protected set; }
-        public string LastTransactionDescription { get; protected set; }
+        public string? LastTransactionDescription { get; protected set; }
         public decimal? LastTransactionAmount { get; protected set; }
 
         protected void Apply(Deposit2Event @event)
@@ -34,7 +34,7 @@ namespace ZerraDemo.Domain.Ledger2.Aggregates
             LastTransactionAmount = @event.Amount;
         }
 
-        public async Task Deposit(decimal amount, string description)
+        public async Task Deposit(decimal amount, string? description)
         {
             if (amount < 0)
                 throw new ArgumentException("Invalid Amount");
@@ -50,7 +50,7 @@ namespace ZerraDemo.Domain.Ledger2.Aggregates
             await Append(@event);
         }
 
-        public async Task Withdraw(decimal amount, string description)
+        public async Task Withdraw(decimal amount, string? description)
         {
             if (amount < 0)
                 throw new ArgumentException("Invalid Amount");
@@ -69,7 +69,7 @@ namespace ZerraDemo.Domain.Ledger2.Aggregates
             await Append(@event);
         }
 
-        public async Task TransferFrom(Guid toAccountID, decimal amount, string description)
+        public async Task TransferFrom(Guid toAccountID, decimal amount, string? description)
         {
             if (amount < 0)
                 throw new ArgumentException("Invalid Amount");
@@ -89,7 +89,7 @@ namespace ZerraDemo.Domain.Ledger2.Aggregates
             await Append(@eventTo, true);
         }
 
-        public async Task TransferTo(Guid fromAccountID, decimal amount, string description)
+        public async Task TransferTo(Guid fromAccountID, decimal amount, string? description)
         {
             if (amount < 0)
                 throw new ArgumentException("Invalid Amount");

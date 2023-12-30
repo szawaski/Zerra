@@ -30,15 +30,15 @@ namespace Zerra
                 AddProperties(properties);
         }
 
-        public Graph(params Expression<Func<T, object>>[]? properties) : this(null, false, (ICollection<Expression<Func<T, object>>>?)properties) { }
-        public Graph(string? name, params Expression<Func<T, object>>[]? properties) : this(name, false, (ICollection<Expression<Func<T, object>>>?)properties) { }
-        public Graph(bool includeAllProperties, params Expression<Func<T, object>>[]? properties) : this(null, includeAllProperties, (ICollection<Expression<Func<T, object>>>?)properties) { }
-        public Graph(string? name, bool includeAllProperties, params Expression<Func<T, object>>[]? properties) : this(name, includeAllProperties, (ICollection<Expression<Func<T, object>>>?)properties) { }
+        public Graph(params Expression<Func<T, object?>>[]? properties) : this(null, false, (ICollection<Expression<Func<T, object?>>>?)properties) { }
+        public Graph(string? name, params Expression<Func<T, object?>>[]? properties) : this(name, false, (ICollection<Expression<Func<T, object?>>>?)properties) { }
+        public Graph(bool includeAllProperties, params Expression<Func<T, object?>>[]? properties) : this(null, includeAllProperties, (ICollection<Expression<Func<T, object?>>>?)properties) { }
+        public Graph(string? name, bool includeAllProperties, params Expression<Func<T, object?>>[]? properties) : this(name, includeAllProperties, (ICollection<Expression<Func<T, object?>>>?)properties) { }
 
-        public Graph(IEnumerable<Expression<Func<T, object>>>? properties) : this(null, false, properties) { }
-        public Graph(string? name, IEnumerable<Expression<Func<T, object>>>? properties) : this(name, false, properties) { }
-        public Graph(bool includeAllProperties, IEnumerable<Expression<Func<T, object>>>? properties) : this(null, includeAllProperties, properties) { }
-        public Graph(string? name, bool includeAllProperties, IEnumerable<Expression<Func<T, object>>>? properties)
+        public Graph(IEnumerable<Expression<Func<T, object?>>>? properties) : this(null, false, properties) { }
+        public Graph(string? name, IEnumerable<Expression<Func<T, object?>>>? properties) : this(name, false, properties) { }
+        public Graph(bool includeAllProperties, IEnumerable<Expression<Func<T, object?>>>? properties) : this(null, includeAllProperties, properties) { }
+        public Graph(string? name, bool includeAllProperties, IEnumerable<Expression<Func<T, object?>>>? properties)
             : base(name, includeAllProperties, (IReadOnlyCollection<string>?)null, null)
         {
             this.type = GetModelType().FullName;
@@ -91,8 +91,8 @@ namespace Zerra
             }
         }
 
-        public void AddProperties(params Expression<Func<T, object>>[] properties) { AddProperties((IEnumerable<Expression<Func<T, object>>>)properties); }
-        public void AddProperties(IEnumerable<Expression<Func<T, object>>> properties)
+        public void AddProperties(params Expression<Func<T, object?>>[] properties) { AddProperties((IEnumerable<Expression<Func<T, object?>>>)properties); }
+        public void AddProperties(IEnumerable<Expression<Func<T, object?>>> properties)
         {
             if (properties == null)
                 throw new ArgumentNullException(nameof(properties));
@@ -106,8 +106,8 @@ namespace Zerra
             }
             this.signature = null;
         }
-        public void RemoveProperties(params Expression<Func<T, object>>[] properties) { RemoveProperties((IEnumerable<Expression<Func<T, object>>>)properties); }
-        public void RemoveProperties(IEnumerable<Expression<Func<T, object>>> properties)
+        public void RemoveProperties(params Expression<Func<T, object?>>[] properties) { RemoveProperties((IEnumerable<Expression<Func<T, object?>>>)properties); }
+        public void RemoveProperties(IEnumerable<Expression<Func<T, object?>>> properties)
         {
             if (properties == null)
                 throw new ArgumentNullException(nameof(properties));

@@ -18,10 +18,13 @@ namespace ZerraDemo.Common
         private readonly SymmetricKey encryptionKey;
         public DemoCookieApiAuthorizer()
         {
-            this.encryptionKey = SymmetricEncryptor.GetKey(Config.GetSetting("AuthenticationKey"));
+            var authenticationKey = Config.GetSetting("AuthenticationKey");
+            if (authenticationKey == null)
+                throw new Exception("Missing Config AuthenticationKey");
+            this.encryptionKey = SymmetricEncryptor.GetKey(authenticationKey);
         }
 
-        public void Authorize(IDictionary<string, IList<string>> headers)
+        public void Authorize(IDictionary<string, IList<string?>> headers)
         {
             if (!headers.TryGetValue(cookieHeader, out var cookieHeaderValue))
             {
@@ -31,7 +34,11 @@ namespace ZerraDemo.Common
                 }
             }
 
-            var cookies = CookieParser.CookiesFromString(cookieHeaderValue[0]);
+            var cookieValue = cookieHeaderValue[0];
+            if (String.IsNullOrWhiteSpace(cookieValue))
+                return;
+
+            var cookies = CookieParser.CookiesFromString(cookieValue);
             if (cookies.TryGetValue(cookieName, out var authCookieDataEncoded))
             {
                 var authCookieDataEncrypted = Base64UrlEncoder.FromBase64String(authCookieDataEncoded);
@@ -53,7 +60,7 @@ namespace ZerraDemo.Common
             }
         }
 
-        public IDictionary<string, IList<string>> BuildAuthHeaders()
+        public IDictionary<string, IList<string?>> BuildAuthHeaders()
         {
             var authCookieData = "I can access this";
             var authCookieDataBytes = Encoding.UTF8.GetBytes(authCookieData);
@@ -66,9 +73,9 @@ namespace ZerraDemo.Common
             };
 
             var cookieHeaderValue = CookieParser.CookiesToString(cookies);
-            var headers = new Dictionary<string, IList<string>>
+            var headers = new Dictionary<string, IList<string?>>
             {
-                { cookieHeader, new List<string>() { cookieHeaderValue } }
+                { cookieHeader, new List<string?>() { cookieHeaderValue } }
             };
 
             return headers;

@@ -255,7 +255,7 @@ namespace Zerra.Repository.MsSql
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private string GenerateSqlInsert<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail, bool getIdentities) where TModel : class, new()
+        private static string GenerateSqlInsert<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail, bool getIdentities) where TModel : class, new()
         {
             var sbColumns = new CharWriter();
             var sbValues = new CharWriter();
@@ -313,7 +313,7 @@ namespace Zerra.Repository.MsSql
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private string? GenerateSqlUpdate<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        private static string? GenerateSqlUpdate<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             if (modelDetail.IdentityProperties.Count == 0)
                 return null;
@@ -372,7 +372,7 @@ namespace Zerra.Repository.MsSql
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private string GenerateSqlDelete(ICollection ids, ModelDetail modelDetail)
+        private static string GenerateSqlDelete(ICollection ids, ModelDetail modelDetail)
         {
             var sbWhere = new CharWriter();
             try
@@ -841,7 +841,7 @@ namespace Zerra.Repository.MsSql
 
         public ICollection<object> ExecuteInsertGetIdentities<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = GenerateSqlInsert(model, graph, modelDetail, true);
+            var sql = MsSqlEngine.GenerateSqlInsert(model, graph, modelDetail, true);
 
             var allValues = new List<object>();
             using (var connection = new SqlConnection(connectionString))
@@ -882,7 +882,7 @@ namespace Zerra.Repository.MsSql
         }
         public int ExecuteInsert<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = GenerateSqlInsert(model, graph, modelDetail, false);
+            var sql = MsSqlEngine.GenerateSqlInsert(model, graph, modelDetail, false);
 
             using (var connection = new SqlConnection(connectionString))
             {
@@ -897,7 +897,7 @@ namespace Zerra.Repository.MsSql
         }
         public int ExecuteUpdate<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = GenerateSqlUpdate(model, graph, modelDetail);
+            var sql = MsSqlEngine.GenerateSqlUpdate(model, graph, modelDetail);
 
             using (var connection = new SqlConnection(connectionString))
             {
@@ -912,7 +912,7 @@ namespace Zerra.Repository.MsSql
         }
         public int ExecuteDelete(ICollection ids, ModelDetail modelDetail)
         {
-            var sql = GenerateSqlDelete(ids, modelDetail);
+            var sql = MsSqlEngine.GenerateSqlDelete(ids, modelDetail);
 
             using (var connection = new SqlConnection(connectionString))
             {
@@ -928,7 +928,7 @@ namespace Zerra.Repository.MsSql
 
         public async Task<ICollection<object>> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = GenerateSqlInsert(model, graph, modelDetail, true);
+            var sql = MsSqlEngine.GenerateSqlInsert(model, graph, modelDetail, true);
 
             var allValues = new List<object>();
             using (var connection = new SqlConnection(connectionString))
@@ -969,7 +969,7 @@ namespace Zerra.Repository.MsSql
         }
         public async Task<int> ExecuteInsertAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = GenerateSqlInsert(model, graph, modelDetail, false);
+            var sql = MsSqlEngine.GenerateSqlInsert(model, graph, modelDetail, false);
 
             using (var connection = new SqlConnection(connectionString))
             {
@@ -984,7 +984,7 @@ namespace Zerra.Repository.MsSql
         }
         public async Task<int> ExecuteUpdateAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = GenerateSqlUpdate(model, graph, modelDetail);
+            var sql = MsSqlEngine.GenerateSqlUpdate(model, graph, modelDetail);
             if (sql == null)
                 return 0;
 
@@ -1001,7 +1001,7 @@ namespace Zerra.Repository.MsSql
         }
         public async Task<int> ExecuteDeleteAsync(ICollection ids, ModelDetail modelDetail)
         {
-            var sql = GenerateSqlDelete(ids, modelDetail);
+            var sql = MsSqlEngine.GenerateSqlDelete(ids, modelDetail);
 
             using (var connection = new SqlConnection(connectionString))
             {
@@ -1248,7 +1248,7 @@ namespace Zerra.Repository.MsSql
                         _ = sb.Clear();
                         if (column.IsDataSourceNotNull && !column.IsIdentityAutoGenerated)
                         {
-                            _ = sb.Append("ALTER TABLE [").Append(model.DataSourceEntityName).Append("] DROP CONSTRAINT [DF_").Append(column.Name).Append("]");
+                            _ = sb.Append("ALTER TABLE [").Append(model.DataSourceEntityName).Append("] DROP CONSTRAINT [DF_").Append(column.Name).Append(']');
                             sql.Add(sb.ToString());
                             _ = sb.Clear();
                         }
@@ -1269,7 +1269,7 @@ namespace Zerra.Repository.MsSql
                             {
                                 foreach (var sqlConstraint in theseSqlConstraints)
                                 {
-                                    _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append("]");
+                                    _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append(']');
                                     sql.Add(sb.ToString());
                                     _ = sb.Clear();
                                 }
@@ -1297,7 +1297,7 @@ namespace Zerra.Repository.MsSql
                         {
                             foreach (var sqlConstraint in theseSqlConstraints)
                             {
-                                _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append("]");
+                                _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append(']');
                                 sql.Add(sb.ToString());
                                 _ = sb.Clear();
                             }
@@ -1349,7 +1349,7 @@ namespace Zerra.Repository.MsSql
                         {
                             constraintNameIndex++;
                             constraintName = baseConstraintName + constraintNameIndex;
-                            while (constraintNameDictionary.Keys.Contains(constraintName))
+                            while (constraintNameDictionary.ContainsKey(constraintName))
                             {
                                 constraintNameIndex++;
                                 constraintName = baseConstraintName + constraintNameIndex;
@@ -1379,7 +1379,7 @@ namespace Zerra.Repository.MsSql
                 {
                     if (!usedSqlConstraints.Contains(sqlConstraint))
                     {
-                        _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append("]");
+                        _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append(']');
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
                     }

@@ -17,7 +17,7 @@ namespace Zerra.Repository
         public TModel[]? Models { get; set; }
         public ICollection? IDs { get; set; }
 
-        private string GetEventName(PersistOperation operation)
+        private static string GetEventName(PersistOperation operation)
         {
             return $"{operation} {typeof(TModel).Name}";
         }
@@ -25,12 +25,12 @@ namespace Zerra.Repository
         public Persist(PersistOperation operation)
         {
             this.Operation = operation;
-            this.Event = new PersistEvent(Guid.NewGuid(), GetEventName(operation), null);
+            this.Event = new PersistEvent(Guid.NewGuid(), Persist<TModel>.GetEventName(operation), null);
         }
         public Persist(PersistOperation operation, string? eventName, object? source)
         {
             this.Operation = operation;
-            this.Event = new PersistEvent(Guid.NewGuid(), String.IsNullOrWhiteSpace(eventName) ? GetEventName(operation) : eventName, source);
+            this.Event = new PersistEvent(Guid.NewGuid(), String.IsNullOrWhiteSpace(eventName) ? Persist<TModel>.GetEventName(operation) : eventName, source);
         }
         public Persist(PersistOperation operation, PersistEvent @event)
         {

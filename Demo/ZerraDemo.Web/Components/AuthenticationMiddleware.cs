@@ -20,10 +20,10 @@ namespace ZerraDemo.Web.Components
         {
             var claims = new Claim[]
             { 
-                new Claim(ClaimTypes.Authentication, Boolean.TrueString),
-                new Claim(ClaimTypes.NameIdentifier, "1234", ClaimValueTypes.String),
-                new Claim(ClaimTypes.Name, "Tester", ClaimValueTypes.String),
-                new Claim(ClaimTypes.Role, "Admin", ClaimValueTypes.String)
+                new(ClaimTypes.Authentication, Boolean.TrueString),
+                new(ClaimTypes.NameIdentifier, "1234", ClaimValueTypes.String),
+                new(ClaimTypes.Name, "Tester", ClaimValueTypes.String),
+                new(ClaimTypes.Role, "Admin", ClaimValueTypes.String)
             };
             var identity = new ClaimsIdentity(claims, "HardCoded");
             var principal = new ClaimsPrincipal(identity);

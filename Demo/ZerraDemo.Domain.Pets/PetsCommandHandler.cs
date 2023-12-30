@@ -44,6 +44,8 @@ namespace ZerraDemo.Domain.Pets
                 x => x.LastEaten,
                 x => x.AmountEaten
             )));
+            if (item == null)
+                throw new Exception("Pet not found");
 
             item.AmountEaten ??= 0;
 
@@ -101,7 +103,7 @@ namespace ZerraDemo.Domain.Pets
             {
                 var name = Repo.Query(new QuerySingle<PetDataModel>(x => x.ID == command.PetID, new Graph<PetDataModel>(
                     x => x.Name
-                ))).Name;
+                )))?.Name;
                 throw new Exception($"{name} will not go out to poop in {weather.WeatherType.EnumName()} weather.");
             }
 

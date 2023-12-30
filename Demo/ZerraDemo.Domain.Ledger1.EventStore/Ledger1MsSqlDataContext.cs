@@ -1,4 +1,5 @@
-﻿using Zerra;
+﻿using System;
+using Zerra;
 using Zerra.Repository;
 using Zerra.Repository.MsSql;
 
@@ -12,7 +13,10 @@ namespace ZerraDemo.Domain.Ledger1.EventStore
         private readonly string connectionString;
         public Ledger1MsSqlDataContext()
         {
-            this.connectionString = Config.GetSetting("Ledger1SqlConnectionStringMSSQL");
+            var connectionString = Config.GetSetting("Ledger1SqlConnectionStringMSSQL");
+            if (String.IsNullOrWhiteSpace(connectionString))
+                throw new Exception("Missing Config Ledger1SqlConnectionStringMSSQL");
+            this.connectionString = connectionString;
         }
     }
 }

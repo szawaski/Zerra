@@ -84,11 +84,11 @@ namespace Zerra.TestDev
             ArrayPool<int>.Shared.Return(stuff);
         }
 
-        public ref struct GooberClass
+        public readonly ref struct GooberClass
         {
-            private int length;
-            private byte[] data;
-            private Span<byte> span;
+            private readonly int length;
+            private readonly byte[] data;
+            private readonly Span<byte> span;
 
             public GooberClass(int length, byte[] data, Span<byte> span)
             {
@@ -97,7 +97,7 @@ namespace Zerra.TestDev
                 this.span = span;
             }
 
-            public void GoobInternal()
+            public readonly void GoobInternal()
             {
                 var t1 = Stopwatch.StartNew();
                 for (var i = 0; i < length; i++)

@@ -254,7 +254,7 @@ namespace Zerra.Repository.PostgreSql
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private string GenerateSqlInsert<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail, bool getIdentities) where TModel : class, new()
+        private static string GenerateSqlInsert<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail, bool getIdentities) where TModel : class, new()
         {
             var sbColumns = new CharWriter();
             var sbValues = new CharWriter();
@@ -337,7 +337,7 @@ namespace Zerra.Repository.PostgreSql
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private string? GenerateSqlUpdate<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        private static string? GenerateSqlUpdate<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             if (modelDetail.IdentityProperties.Count == 0)
                 return null;
@@ -392,7 +392,7 @@ namespace Zerra.Repository.PostgreSql
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private string GenerateSqlDelete(ICollection ids, ModelDetail modelDetail)
+        private static string GenerateSqlDelete(ICollection ids, ModelDetail modelDetail)
         {
             var sbWhere = new CharWriter();
             try
@@ -859,7 +859,7 @@ namespace Zerra.Repository.PostgreSql
 
         public ICollection<object> ExecuteInsertGetIdentities<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = GenerateSqlInsert(model, graph, modelDetail, true);
+            var sql = PostgreSqlEngine.GenerateSqlInsert(model, graph, modelDetail, true);
 
             var allValues = new List<object>();
             using (var connection = new NpgsqlConnection(connectionString))
@@ -900,7 +900,7 @@ namespace Zerra.Repository.PostgreSql
         }
         public int ExecuteInsert<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = GenerateSqlInsert(model, graph, modelDetail, false);
+            var sql = PostgreSqlEngine.GenerateSqlInsert(model, graph, modelDetail, false);
 
             using (var connection = new NpgsqlConnection(connectionString))
             {
@@ -915,7 +915,7 @@ namespace Zerra.Repository.PostgreSql
         }
         public int ExecuteUpdate<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = GenerateSqlUpdate(model, graph, modelDetail);
+            var sql = PostgreSqlEngine.GenerateSqlUpdate(model, graph, modelDetail);
             if (sql == null)
                 return 0;
 
@@ -932,7 +932,7 @@ namespace Zerra.Repository.PostgreSql
         }
         public int ExecuteDelete(ICollection ids, ModelDetail modelDetail)
         {
-            var sql = GenerateSqlDelete(ids, modelDetail);
+            var sql = PostgreSqlEngine.GenerateSqlDelete(ids, modelDetail);
 
             using (var connection = new NpgsqlConnection(connectionString))
             {
@@ -948,7 +948,7 @@ namespace Zerra.Repository.PostgreSql
 
         public async Task<ICollection<object>> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = GenerateSqlInsert(model, graph, modelDetail, true);
+            var sql = PostgreSqlEngine.GenerateSqlInsert(model, graph, modelDetail, true);
 
             var allValues = new List<object>();
             using (var connection = new NpgsqlConnection(connectionString))
@@ -989,7 +989,7 @@ namespace Zerra.Repository.PostgreSql
         }
         public async Task<int> ExecuteInsertAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = GenerateSqlInsert(model, graph, modelDetail, false);
+            var sql = PostgreSqlEngine.GenerateSqlInsert(model, graph, modelDetail, false);
 
             using (var connection = new NpgsqlConnection(connectionString))
             {
@@ -1004,7 +1004,7 @@ namespace Zerra.Repository.PostgreSql
         }
         public async Task<int> ExecuteUpdateAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = GenerateSqlUpdate(model, graph, modelDetail);
+            var sql = PostgreSqlEngine.GenerateSqlUpdate(model, graph, modelDetail);
             if (sql == null)
                 return 0;
 
@@ -1021,7 +1021,7 @@ namespace Zerra.Repository.PostgreSql
         }
         public async Task<int> ExecuteDeleteAsync(ICollection ids, ModelDetail modelDetail)
         {
-            var sql = GenerateSqlDelete(ids, modelDetail);
+            var sql = PostgreSqlEngine.GenerateSqlDelete(ids, modelDetail);
 
             using (var connection = new NpgsqlConnection(connectionString))
             {
@@ -1232,7 +1232,7 @@ namespace Zerra.Repository.PostgreSql
                     var property = identityColumns[i];
                     if (i > 0)
                         _ = sb.Append(",\r\n");
-                    _ = sb.Append("\t").Append(property.PropertySourceName).Append(" ");
+                    _ = sb.Append('\t').Append(property.PropertySourceName).Append(' ');
                     WriteSqlTypeFromModel(sb, property);
                     WriteTypeEndingFromModel(sb, property);
                 }
@@ -1241,7 +1241,7 @@ namespace Zerra.Repository.PostgreSql
                     var property = nonIdentityColumns[i];
                     if (i > 0 || identityColumns.Length > 0)
                         _ = sb.Append(",\r\n");
-                    _ = sb.Append("\t").Append(property.PropertySourceName).Append(" ");
+                    _ = sb.Append('\t').Append(property.PropertySourceName).Append(' ');
                     WriteSqlTypeFromModel(sb, property);
                     WriteTypeEndingFromModel(sb, property);
                 }
@@ -1280,10 +1280,10 @@ namespace Zerra.Repository.PostgreSql
                 {
                     if (create)
                     {
-                        _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ADD ").Append(column.Name).Append(" ");
+                        _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ADD ").Append(column.Name).Append(' ');
                         WriteSqlTypeFromModel(sb, column);
                         WriteTypeEndingFromModel(sb, column);
-                        _ = sb.Append(";");
+                        _ = sb.Append(';');
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
                     }
@@ -1303,7 +1303,7 @@ namespace Zerra.Repository.PostgreSql
                             {
                                 foreach (var sqlConstraint in theseSqlConstraints)
                                 {
-                                    _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(";");
+                                    _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(';');
                                     sql.Add(sb.ToString());
                                     _ = sb.Clear();
                                 }
@@ -1311,7 +1311,7 @@ namespace Zerra.Repository.PostgreSql
 
                             _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.Name.ToLower()).Append(" TYPE ");
                             WriteSqlTypeFromModel(sb, column);
-                            _ = sb.Append(";");
+                            _ = sb.Append(';');
                             sql.Add(sb.ToString());
                             _ = sb.Clear();
 
@@ -1329,7 +1329,7 @@ namespace Zerra.Repository.PostgreSql
                             {
                                 _ = sb.Append(" DROP NOT NULL");
                             }
-                            _ = sb.Append(";");
+                            _ = sb.Append(';');
                             sql.Add(sb.ToString());
                             _ = sb.Clear();
                         }
@@ -1350,7 +1350,7 @@ namespace Zerra.Repository.PostgreSql
                         {
                             foreach (var sqlConstraint in theseSqlConstraints)
                             {
-                                _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(";");
+                                _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(';');
                                 sql.Add(sb.ToString());
                                 _ = sb.Clear();
                             }
@@ -1403,7 +1403,7 @@ namespace Zerra.Repository.PostgreSql
                         {
                             constraintNameIndex++;
                             constraintName = baseConstraintName + constraintNameIndex;
-                            while (constraintNameDictionary.Keys.Contains(constraintName))
+                            while (constraintNameDictionary.ContainsKey(constraintName))
                             {
                                 constraintNameIndex++;
                                 constraintName = baseConstraintName + constraintNameIndex;
@@ -1415,7 +1415,7 @@ namespace Zerra.Repository.PostgreSql
                             constraintNameDictionary.Add(baseConstraintName, 0);
                             constraintName = baseConstraintName;
                         }
-                        _ = sb.Append("ALTER TABLE ").Append(fkTable.ToLower()).Append(" ADD CONSTRAINT ").Append(constraintName).Append(" FOREIGN KEY (").Append(fkColumn.ToLower()).Append(") REFERENCES ").Append(pkTable.ToLower()).Append("(").Append(pkColumn.ToLower()).Append(");");
+                        _ = sb.Append("ALTER TABLE ").Append(fkTable.ToLower()).Append(" ADD CONSTRAINT ").Append(constraintName).Append(" FOREIGN KEY (").Append(fkColumn.ToLower()).Append(") REFERENCES ").Append(pkTable.ToLower()).Append('(').Append(pkColumn.ToLower()).Append(");");
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
                     }
@@ -1433,7 +1433,7 @@ namespace Zerra.Repository.PostgreSql
                 {
                     if (!usedSqlConstraints.Contains(sqlConstraint))
                     {
-                        _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(";");
+                        _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(';');
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
                     }

@@ -1,4 +1,5 @@
-﻿using Zerra;
+﻿using System;
+using Zerra;
 using Zerra.Repository;
 using Zerra.Repository.PostgreSql;
 
@@ -12,7 +13,10 @@ namespace ZerraDemo.Domain.Ledger1.EventStore
         private readonly string connectionString;
         public Ledger1PostgreSqlDataContext()
         {
-            this.connectionString = Config.GetSetting("Ledger1SqlConnectionStringPOSTGRESQL");
+            var connectionString = Config.GetSetting("Ledger1SqlConnectionStringPOSTGRESQL");
+            if (String.IsNullOrWhiteSpace(connectionString))
+                throw new Exception("Missing Config Ledger1SqlConnectionStringPOSTGRESQL");
+            this.connectionString = connectionString;
         }
     }
 }

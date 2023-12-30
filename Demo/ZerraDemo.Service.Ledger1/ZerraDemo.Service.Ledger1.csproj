@@ -1,15 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-  </PropertyGroup>
-    
-  <ItemGroup>
-    <ProjectReference Include="..\..\Framework\Zerra.Logger\Zerra.Logger.csproj" />
-    <ProjectReference Include="..\ZerraDemo.Domain.Ledger1.EventStore\ZerraDemo.Domain.Ledger1.EventStore.csproj" />
-    <ProjectReference Include="..\ZerraDemo.Domain.Ledger1\ZerraDemo.Domain.Ledger1.csproj" />
-    <ProjectReference Include="..\ZerraDemo.Common\ZerraDemo.Common.csproj" />
-  </ItemGroup>
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Framework\Zerra.Logger\Zerra.Logger.csproj" />
+        <ProjectReference Include="..\ZerraDemo.Domain.Ledger1.EventStore\ZerraDemo.Domain.Ledger1.EventStore.csproj" />
+        <ProjectReference Include="..\ZerraDemo.Domain.Ledger1\ZerraDemo.Domain.Ledger1.csproj" />
+        <ProjectReference Include="..\ZerraDemo.Common\ZerraDemo.Common.csproj" />
+    </ItemGroup>
 
 </Project>

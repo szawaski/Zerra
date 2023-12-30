@@ -12,7 +12,7 @@ namespace Zerra.T4.CSharp
         public Type Type { get; private set; }
         public IReadOnlyList<CSharpEnumValue> Values { get; private set; }
         public CSharpEnum(CSharpSolution solution, CSharpNamespace ns, IReadOnlyList<CSharpNamespace> usings, string name, Type type, bool isPublic, IReadOnlyList<CSharpEnumValue> values, IReadOnlyList<CSharpAttribute> attributes)
-            : base(ns, usings, name, CSharpObjectType.Enum, new CSharpUnresolvedType[] { new CSharpUnresolvedType(solution, ns, usings, type.Name) }, isPublic, false, false, false, Array.Empty<CSharpObject>(), Array.Empty<CSharpObject>(), Array.Empty<CSharpObject>(), Array.Empty<CSharpEnum>(), Array.Empty<CSharpDelegate>(), Array.Empty<CSharpProperty>(), Array.Empty<CSharpMethod>(), attributes)
+            : base(ns, usings, name, CSharpObjectType.Enum, new CSharpUnresolvedType[] { new(solution, ns, usings, type.Name) }, isPublic, false, false, false, Array.Empty<CSharpObject>(), Array.Empty<CSharpObject>(), Array.Empty<CSharpObject>(), Array.Empty<CSharpEnum>(), Array.Empty<CSharpDelegate>(), Array.Empty<CSharpProperty>(), Array.Empty<CSharpMethod>(), attributes)
         {
             this.Type = type;
             this.Values = values;

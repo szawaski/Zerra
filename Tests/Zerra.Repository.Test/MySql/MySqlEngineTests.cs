@@ -14,7 +14,7 @@ namespace Zerra.Repository.Test
     [TestClass]
     public class MySqlEngineTests
     {
-        private int ExecuteSql(MySqlTestSqlDataContext context, string sql)
+        private static int ExecuteSql(MySqlTestSqlDataContext context, string sql)
         {
             using (var connection = new MySqlConnection(context.ConnectionString))
             {
@@ -27,7 +27,7 @@ namespace Zerra.Repository.Test
             }
         }
 
-        private void DropDatabase(MySqlTestSqlDataContext context)
+        private static void DropDatabase(MySqlTestSqlDataContext context)
         {
             var builder = new MySqlConnectionStringBuilder(context.ConnectionString);
             var testDatabase = builder.Database;

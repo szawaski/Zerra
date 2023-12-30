@@ -23,7 +23,7 @@ namespace Zerra
 
         private readonly TypeDetail sourceType;
         private readonly TypeDetail targetType;
-        private readonly Dictionary<string, Tuple<Expression<Func<TSource, object>>, Expression<Func<TTarget, object>>>> memberMaps;
+        private readonly Dictionary<string, Tuple<Expression<Func<TSource, object?>>, Expression<Func<TTarget, object?>>>> memberMaps;
         private readonly ConcurrentFactoryDictionary<Graph, Func<TSource, TTarget, Dictionary<MapRecursionKey, object>, TTarget>> compiledGraphMaps;
         private Func<TSource, TTarget, Dictionary<MapRecursionKey, object>, TTarget>? compiledMap;
 
@@ -69,7 +69,7 @@ namespace Zerra
             RunInitializers();
         }
 
-        void IMapSetup<TSource, TTarget>.Define(Expression<Func<TTarget, object>> property, Expression<Func<TSource, object>> value)
+        void IMapSetup<TSource, TTarget>.Define(Expression<Func<TTarget, object?>> property, Expression<Func<TSource, object?>> value)
         {
             lock (locker)
             {
@@ -88,17 +88,17 @@ namespace Zerra
 
                 if (memberMaps.ContainsKey(name))
                     _ = memberMaps.Remove(name);
-                memberMaps.Add(name, new Tuple<Expression<Func<TSource, object>>, Expression<Func<TTarget, object>>>(value, property));
+                memberMaps.Add(name, new Tuple<Expression<Func<TSource, object?>>, Expression<Func<TTarget, object?>>>(value, property));
             }
         }
-        void IMapSetup<TSource, TTarget>.DefineTwoWay(Expression<Func<TTarget, object>> propertyU, Expression<Func<TSource, object>> propertyT)
+        void IMapSetup<TSource, TTarget>.DefineTwoWay(Expression<Func<TTarget, object?>> propertyU, Expression<Func<TSource, object?>> propertyT)
         {
             ((IMapSetup<TSource, TTarget>)this).Define(propertyU, propertyT);
 
             var otherWay = (IMapSetup<TTarget, TSource>)Map<TTarget, TSource>.GetMap();
             otherWay.Define(propertyT, propertyU);
         }
-        void IMapSetup<TSource, TTarget>.Undefine(Expression<Func<TTarget, object>> property)
+        void IMapSetup<TSource, TTarget>.Undefine(Expression<Func<TTarget, object?>> property)
         {
             lock (locker)
             {
@@ -119,7 +119,7 @@ namespace Zerra
                     _ = memberMaps.Remove(name);
             }
         }
-        void IMapSetup<TSource, TTarget>.UndefineTwoWay(Expression<Func<TTarget, object>> propertyU, Expression<Func<TSource, object>> propertyT)
+        void IMapSetup<TSource, TTarget>.UndefineTwoWay(Expression<Func<TTarget, object?>> propertyU, Expression<Func<TSource, object?>> propertyT)
         {
             ((IMapSetup<TSource, TTarget>)this).Undefine(propertyU);
 
@@ -271,7 +271,7 @@ namespace Zerra
                     else
                         sourceMemberAccess = Expression.Field(sourceParameter, (FieldInfo)memberT.MemberInfo);
                     var convertSourceMemberAccess = Expression.Convert(sourceMemberAccess, objectType);
-                    var sourceLambda = Expression.Lambda<Func<TSource, object>>(convertSourceMemberAccess, sourceParameter);
+                    var sourceLambda = Expression.Lambda<Func<TSource, object?>>(convertSourceMemberAccess, sourceParameter);
 
                     Expression targetMemberAccess;
                     if (memberU.MemberInfo.MemberType == MemberTypes.Property)
@@ -279,10 +279,10 @@ namespace Zerra
                     else
                         targetMemberAccess = Expression.Field(targetParameter, (FieldInfo)memberU.MemberInfo);
                     var convertTargetMemberAccess = Expression.Convert(targetMemberAccess, objectType);
-                    var targetLambda = Expression.Lambda<Func<TTarget, object>>(convertTargetMemberAccess, targetParameter);
+                    var targetLambda = Expression.Lambda<Func<TTarget, object?>>(convertTargetMemberAccess, targetParameter);
 
                     var name = sourceLambda.ReadMemberName();
-                    memberMaps.Add(name, new Tuple<Expression<Func<TSource, object>>, Expression<Func<TTarget, object>>>(sourceLambda, targetLambda));
+                    memberMaps.Add(name, new Tuple<Expression<Func<TSource, object?>>, Expression<Func<TTarget, object?>>>(sourceLambda, targetLambda));
                 }
             }
         }

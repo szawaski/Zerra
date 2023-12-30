@@ -8,10 +8,10 @@ namespace ZerraDemo.Domain.Pets.DataModels
     {
         [Identity]
         public Guid ID { get; set; }
-        public string Name { get; set; }
+        public string? Name { get; set; }
         public Guid SpeciesID { get; set; }
 
         [Relation("SpeciesID")]
-        public SpeciesDataModel Species { get; set; }
+        public SpeciesDataModel? Species { get; set; }
     }
 }

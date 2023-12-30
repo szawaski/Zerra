@@ -160,10 +160,10 @@ namespace Zerra.Threading
         }
 
         //for .NET versions before Parallel.ForEachAsync which is more efficient
-        public static Task ForEachAsync<TSource>(IEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, cancellationToken, body); }
-        public static Task ForEachAsync<TSource>(IEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, CancellationToken.None, body); }
-        public static Task ForEachAsync<TSource>(int maxRunningTasks, IEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(maxRunningTasks, source, CancellationToken.None, body); }
-        public static async Task ForEachAsync<TSource>(int maxRunningTasks, IEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body)
+        public static Task ForEachAsync<TSource>(IEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body, CancellationToken cancellationToken) => ForEachAsync(defaultMaxRunningTasks, source, body, cancellationToken);
+        public static Task ForEachAsync<TSource>(IEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) => ForEachAsync(defaultMaxRunningTasks, source, body, CancellationToken.None);
+        public static Task ForEachAsync<TSource>(int maxRunningTasks, IEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) => ForEachAsync(maxRunningTasks, source, body, CancellationToken.None);
+        public static async Task ForEachAsync<TSource>(int maxRunningTasks, IEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body, CancellationToken cancellationToken)
         {
             if (maxRunningTasks <= 0)
                 throw new ArgumentException("maxRunningTasks must be greater than zero");
@@ -174,7 +174,7 @@ namespace Zerra.Threading
             {
                 foreach (var item in source)
                 {
-                    await taskLimiter.WaitAsync();
+                    await taskLimiter.WaitAsync(cancellationToken);
                     lock (waiter)
                         runningCount++;
                     _ = Task.Run(async () =>
@@ -199,10 +199,10 @@ namespace Zerra.Threading
             }
         }
 
-        public static Task ForEachAsync<TSource>(IAsyncEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, cancellationToken, body); }
-        public static Task ForEachAsync<TSource>(IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, CancellationToken.None, body); }
-        public static Task ForEachAsync<TSource>(int maxRunningTasks, IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(maxRunningTasks, source, CancellationToken.None, body); }
-        public static async Task ForEachAsync<TSource>(int maxRunningTasks, IAsyncEnumerable<TSource> source, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body)
+        public static Task ForEachAsync<TSource>(IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body, CancellationToken cancellationToken) { return ForEachAsync(defaultMaxRunningTasks, source, body, cancellationToken); }
+        public static Task ForEachAsync<TSource>(IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(defaultMaxRunningTasks, source, body, CancellationToken.None); }
+        public static Task ForEachAsync<TSource>(int maxRunningTasks, IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body) { return ForEachAsync(maxRunningTasks, source, body, CancellationToken.None); }
+        public static async Task ForEachAsync<TSource>(int maxRunningTasks, IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, ValueTask> body, CancellationToken cancellationToken)
         {
             if (maxRunningTasks <= 0)
                 throw new ArgumentException("maxRunningTasks must be greater than zero");
@@ -213,7 +213,7 @@ namespace Zerra.Threading
             {
                 await foreach (var item in source)
                 {
-                    await taskLimiter.WaitAsync();
+                    await taskLimiter.WaitAsync(cancellationToken);
                     lock (waiter)
                         runningCount++;
                     _ = Task.Run(async () =>

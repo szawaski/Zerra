@@ -19,7 +19,7 @@ namespace Zerra.Repository.EventStoreDB
                 {
                     if (engine == null)
                     {
-                        var engine = new EventStoreDBEngine(ConnectionString, Insecure);
+                        engine = new EventStoreDBEngine(ConnectionString, Insecure);
                         return engine;
                     }
                 }

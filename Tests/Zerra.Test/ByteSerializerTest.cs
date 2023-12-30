@@ -56,8 +56,8 @@ namespace Zerra.Test
             Assert.IsNotNull(model2);
 
             var model3 = new NoPropertiesModel[] {
-                new NoPropertiesModel(),
-                new NoPropertiesModel()
+                new(),
+                new()
             };
             var bytes3 = ByteSerializer.Serialize(model3);
             var model4 = ByteSerializer.Deserialize<NoPropertiesModel[]>(bytes3);
@@ -89,7 +89,7 @@ namespace Zerra.Test
             Assert.AreEqual(model9.GetType(), model10?.GetType());
 
             var model11 = new ArrayChainModel[]{
-                new ArrayChainModel()
+                new()
                 {
                     ID = Guid.NewGuid(),
                     Children = null

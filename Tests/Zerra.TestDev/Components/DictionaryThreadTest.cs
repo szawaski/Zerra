@@ -16,7 +16,7 @@ namespace Zerra.TestDev
 {
     public static class DictionaryThreadTest
     {
-        private static Dictionary<int, DateTime> test = new();
+        private static readonly Dictionary<int, DateTime> test = new();
         private static DateTime Get(int id)
         {
             if (!test.TryGetValue(id, out var value))
@@ -248,12 +248,11 @@ namespace Zerra.TestDev
             get
             {
                 if (key == null)
-                    throw new ArgumentNullException("key");
+                    throw new ArgumentNullException(nameof(key));
 
                 locker.EnterReadLock();
-                if (dictionary.ContainsKey(key))
+                if (dictionary.TryGetValue(key, out var value))
                 {
-                    var value = dictionary[key];
                     locker.ExitReadLock();
                     return value;
                 }

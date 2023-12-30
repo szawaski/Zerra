@@ -559,7 +559,7 @@ namespace Zerra.Test
                 ClassArrayEmpty = [],
                 ClassArrayNull = null,
 
-                ClassEnumerable = new List<BasicModel>() { new BasicModel { Value1 = 12, Value2 = "S-12" }, new BasicModel { Value1 = 13, Value2 = "S-13" } },
+                ClassEnumerable = new List<BasicModel>() { new() { Value1 = 12, Value2 = "S-12" }, new() { Value1 = 13, Value2 = "S-13" } },
 
                 ClassList = new() { new BasicModel { Value1 = 14, Value2 = "S-14" }, new BasicModel { Value1 = 15, Value2 = "S-15" } },
                 ClassListEmpty = new(0),
@@ -1751,9 +1751,9 @@ namespace Zerra.Test
         {
             var model = new BasicModel[]
             {
-                new BasicModel() { Value1 = 1, Value2 = "S-1" },
-                new BasicModel() { Value1 = 2, Value2 = "S-2" },
-                new BasicModel() { Value1 = 3, Value2 = "S-3" }
+                new() { Value1 = 1, Value2 = "S-1" },
+                new() { Value1 = 2, Value2 = "S-2" },
+                new() { Value1 = 3, Value2 = "S-3" }
             };
             return model;
         }
