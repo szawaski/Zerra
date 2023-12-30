@@ -230,7 +230,7 @@ namespace Zerra.CQRS.AzureServiceBus
                             if (symmetricConfig != null)
                                 response = SymmetricEncryptor.Decrypt(symmetricConfig, response, false);
                             ack = await AzureServiceBusCommon.DeserializeAsync<Acknowledgement>(response);
-                            ack = new Acknowledgement()
+                            ack ??= new Acknowledgement()
                             {
                                 Success = false,
                                 ErrorMessage = "Invalid Acknowledgement"
