@@ -282,16 +282,16 @@ namespace Zerra.Reflection
                             var items = new List<MemberDetail>();
                             if (!Type.IsGenericTypeDefinition)
                             {
-                                var properties = Type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                                var fields = Type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                                IEnumerable<PropertyInfo> properties = Type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                                IEnumerable<FieldInfo> fields = Type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                                 if (Type.IsInterface)
                                 {
                                     foreach (var i in Interfaces)
                                     {
                                         var iProperties = i.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                                         var iFields = i.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                                        properties = properties.Concat(iProperties.Where(x => !properties.Select(y => y.Name).Contains(x.Name))).ToArray();
-                                        fields = fields.Concat(iFields.Where(x => !fields.Select(y => y.Name).Contains(x.Name))).ToArray();
+                                        properties = properties.Concat(iProperties.Where(x => !properties.Select(y => y.Name).Contains(x.Name)));
+                                        fields = fields.Concat(iFields.Where(x => !fields.Select(y => y.Name).Contains(x.Name)));
                                     }
                                 }
                                 foreach (var property in properties)
