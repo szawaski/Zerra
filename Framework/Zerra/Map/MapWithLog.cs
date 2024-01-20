@@ -30,6 +30,7 @@ namespace Zerra
         private static readonly Type genericMapType = typeof(MapWithLog<,>);
         private static readonly Type genericListType = typeof(List<>);
         private static readonly Type genericHashSetType = typeof(HashSet<>);
+        private static readonly Type genericDictionaryType = typeof(Dictionary<,>);
         private static readonly Type genericEnumerableType = typeof(IEnumerable<>);
         private static readonly Type genericEnumeratorType = typeof(IEnumerator<>);
         private static readonly TypeDetail enumeratorTypeDetail = TypeAnalyzer.GetTypeDetail(typeof(IEnumerator));
@@ -504,10 +505,6 @@ namespace Zerra
                     var enumerable = Expression.Convert(source, enumerableGeneric.Type);
                     var enumerator = Expression.Variable(enumeratorGeneric.Type, "enumerator");
                     var assignEnumeratorVariable = Expression.Assign(enumerator, Expression.Call(enumerable, getEnumeratorMethod.MethodInfo));
-
-                    var loopIndex = Expression.Variable(intType, "index");
-                    var assignLoopIndexVariable = Expression.Assign(loopIndex, Expression.Constant(0, intType));
-
                     var listItem = Expression.Variable(targetType.InnerTypes[0], "listitem");
 
                     var loopBreakTarget = Expression.Label();
@@ -518,12 +515,52 @@ namespace Zerra
                     var addElementToList = Expression.Call(target, addMethod.MethodInfo, listItem);
                     var clearListItem = Expression.Assign(listItem, Expression.Default(listItem.Type));
 
-                    var increment = Expression.AddAssign(loopIndex, Expression.Constant(1, intType));
-
-                    var loopBlock = Expression.Block(moveNextOrBreak, clearListItem, newElementBlock, addElementToList, increment);
+                    var loopBlock = Expression.Block(moveNextOrBreak, clearListItem, newElementBlock, addElementToList);
                     var loop = Expression.Loop(loopBlock, loopBreakTarget);
 
-                    var newArrayBlock = Expression.Block(new[] { enumerator, listItem, loopIndex }, assignEnumeratorVariable, assignLoopIndexVariable, loop);
+                    var newArrayBlock = Expression.Block(new[] { enumerator, listItem }, assignEnumeratorVariable, loop);
+                    var conditionalNewArrayBlock = Expression.IfThen(Expression.Not(Expression.Equal(source, Expression.Constant(null))), newArrayBlock);
+
+                    if (Mapper.DebugMode)
+                    {
+                        var tryCatch = Expression.TryCatch(conditionalNewArrayBlock, Expression.Catch(exceptionType, Expression.Throw(Expression.Constant(new MapException($"Failed mapping {source} of {sourceType.Type} to {target} of {targetType.Type}")), conditionalNewArrayBlock.Type)));
+                        blockExpressions.Add(tryCatch);
+                    }
+                    else
+                    {
+                        blockExpressions.Add(conditionalNewArrayBlock);
+                    }
+                }
+                else if (targetType.SpecialType == SpecialType.Dictionary)
+                {
+                    //source enumerable, target dictionary
+                    var enumerableGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumerableType, sourceType.IEnumerableGenericInnerType);
+                    var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);
+                    var getEnumeratorMethod = enumerableGeneric.GetMethod("GetEnumerator");
+                    var moveNextMethod = enumeratorTypeDetail.GetMethod("MoveNext");
+                    var currentMethod = enumeratorGeneric.GetMethod("get_Current");
+                    var addMethod = targetType.GetMethod("Add");
+
+                    var enumerable = Expression.Convert(source, enumerableGeneric.Type);
+                    var enumerator = Expression.Variable(enumeratorGeneric.Type, "enumerator");
+                    var assignEnumeratorVariable = Expression.Assign(enumerator, Expression.Call(enumerable, getEnumeratorMethod.MethodInfo));
+
+                    var key = Expression.Variable(targetType.InnerTypeDetails[0].InnerTypes[1], "key");
+                    var value = Expression.Variable(targetType.InnerTypeDetails[0].InnerTypes[1], "value");
+
+                    var loopBreakTarget = Expression.Label();
+                    var moveNextOrBreak = Expression.IfThen(Expression.Not(Expression.Call(enumerator, moveNextMethod.MethodInfo)), Expression.Break(loopBreakTarget));
+
+                    var sourceElement = Expression.Convert(Expression.Call(enumerator, currentMethod.MethodInfo), sourceType.IEnumerableGenericInnerType);
+                    var assignKey = Expression.Assign(key, Expression.MakeMemberAccess(sourceElement, targetType.InnerTypeDetails[0].GetMember("Key").MemberInfo));
+                    var assignValue = Expression.Assign(value, Expression.MakeMemberAccess(sourceElement, targetType.InnerTypeDetails[0].GetMember("Value").MemberInfo));
+
+                    var addElementToList = Expression.Call(target, addMethod.MethodInfo, key, value);
+
+                    var loopBlock = Expression.Block(moveNextOrBreak, assignKey, assignValue, addElementToList);
+                    var loop = Expression.Loop(loopBlock, loopBreakTarget);
+
+                    var newArrayBlock = Expression.Block(new[] { enumerator, key, value }, assignEnumeratorVariable, loop);
                     var conditionalNewArrayBlock = Expression.IfThen(Expression.Not(Expression.Equal(source, Expression.Constant(null))), newArrayBlock);
 
                     if (Mapper.DebugMode)
@@ -668,9 +705,6 @@ namespace Zerra
                     var enumerator = Expression.Variable(enumeratorGeneric.Type, "enumerator");
                     var assignEnumeratorVariable = Expression.Assign(enumerator, Expression.Call(enumerable, getEnumeratorMethod.MethodInfo));
 
-                    var loopIndex = Expression.Variable(intType, "index");
-                    var assignLoopIndexVariable = Expression.Assign(loopIndex, Expression.Constant(0, intType));
-
                     var listItem = Expression.Variable(targetType.InnerTypes[0], "listitem");
 
                     var loopBreakTarget = Expression.Label();
@@ -681,12 +715,10 @@ namespace Zerra
                     var addElementToList = Expression.Call(casted, addMethod.MethodInfo, listItem);
                     var clearListItem = Expression.Assign(listItem, Expression.Default(listItem.Type));
 
-                    var increment = Expression.AddAssign(loopIndex, Expression.Constant(1, intType));
-
-                    var loopBlock = Expression.Block(moveNextOrBreak, clearListItem, newElementBlock, addElementToList, increment);
+                    var loopBlock = Expression.Block(moveNextOrBreak, clearListItem, newElementBlock, addElementToList);
                     var loop = Expression.Loop(loopBlock, loopBreakTarget);
 
-                    var newArrayBlock = Expression.Block(new[] { casted, enumerator, listItem, loopIndex }, assignCastedVariable, assignEnumeratorVariable, assignLoopIndexVariable, loop);
+                    var newArrayBlock = Expression.Block(new[] { casted, enumerator, listItem }, assignCastedVariable, assignEnumeratorVariable, loop);
                     var conditionalNewArrayBlock = Expression.IfThen(Expression.Not(Expression.Equal(source, Expression.Constant(null))), newArrayBlock);
 
                     if (Mapper.DebugMode)
@@ -894,6 +926,13 @@ namespace Zerra
                         var hashSetType = TypeAnalyzer.GetGenericType(genericHashSetType, targetType.InnerTypes[0]);
                         newTarget = Expression.Variable(hashSetType, "newTarget");
                         assignNewTarget = Expression.Assign(newTarget, Expression.New(hashSetType));
+                    }
+                    else if (targetType.SpecialType == SpecialType.Dictionary)
+                    {
+                        //source enumerable, target dictionary
+                        var dictionaryType = TypeAnalyzer.GetGenericType(genericDictionaryType, targetType.InnerTypeDetails[0].InnerTypes[0], targetType.InnerTypeDetails[0].InnerTypes[1]);
+                        newTarget = Expression.Variable(dictionaryType, "newTarget");
+                        assignNewTarget = Expression.Assign(newTarget, Expression.New(dictionaryType));
                     }
                     else
                     {

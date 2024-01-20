@@ -7,113 +7,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Zerra.Test
+namespace Zerra.Test.Map
 {
-    public class MapperLog : IMapLogger
-    {
-        private readonly List<string> log = new();
-
-        public void LogPropertyChange(string source, string sourceValue, string target, string targetValue)
-        {
-            log.Add($"Changed {target} From {targetValue} To {sourceValue} Source {source}");
-        }
-
-        public void LogPropertyNoChange(string source, string target, string targetValue)
-        {
-            log.Add($"No Change From {target} To {source}");
-        }
-
-        public void LogNewObject(string source, string target, string type)
-        {
-            log.Add($"New {type} On {target}");
-        }
-    }
-
     [TestClass]
-    public partial class MapTest
+    public class MapTest
     {
-        private static ModelA GetModelA()
-        {
-            return new ModelA()
-            {
-                PropA = 64,
-                PropC = 128,
-
-                Prop1 = 5,
-                Prop2 = 15,
-
-                ArrayToArray = new int[] { 4, 5, 6 },
-                ArrayToList = new int[] { 7, 8, 9 },
-                ArrayToIList = new int[] { 10, 11, 12 },
-                ArrayToSet = new int[] { 13, 14, 15 },
-                ArrayToISet = new int[] { 16, 17, 18 },
-                ArrayToICollection = new int[] { 19, 20, 21 },
-                ArrayToIEnumerable = new int[] { 22, 23, 24 },
-
-                ListToArray = new List<int> { 4, 5, 6 },
-                ListToList = new List<int> { 7, 8, 9 },
-                ListToIList = new List<int> { 10, 11, 12 },
-                ListToSet = new List<int> { 13, 14, 15 },
-                ListToISet = new List<int> { 16, 17, 18 },
-                ListToICollection = new List<int> { 19, 20, 21 },
-                ListToIEnumerable = new List<int> { 22, 23, 24 },
-
-                CollectionToArray = new List<int> { 4, 5, 6 },
-                CollectionToList = new List<int> { 7, 8, 9 },
-                CollectionToIList = new List<int> { 10, 11, 12 },
-                CollectionToSet = new List<int> { 13, 14, 15 },
-                CollectionToISet = new List<int> { 16, 17, 18 },
-                CollectionToICollection = new List<int> { 19, 20, 21 },
-                CollectionToIEnumerable = new List<int> { 22, 23, 24 },
-
-                EnumerableToArray = new List<int> { 4, 5, 6 },
-                EnumerableToList = new List<int> { 7, 8, 9 },
-                EnumerableToIList = new List<int> { 10, 11, 12 },
-                EnumerableToSet = new List<int> { 13, 14, 15 },
-                EnumerableToISet = new List<int> { 16, 17, 18 },
-                EnumerableToICollection = new List<int> { 19, 20, 21 },
-                EnumerableToIEnumerable = new List<int> { 22, 23, 24 },
-
-                ModelToModel = new ModelA()
-                {
-                    Prop1 = 101,
-                    PropA = 102,
-                    Prop2 = 103,
-                    ArrayToArray = new int[] { 1, 2, 3 }
-                },
-                ModelToModelArray = new ModelA[]
-                {
-                    new()
-                    {
-                        Prop1 = 101,
-                        PropA = 102,
-                        Prop2 = 103,
-                        ArrayToArray = new int[] { 1, 2, 3 },
-                    },
-                    new()
-                    {
-                        Prop1 = 104,
-                        PropA = 105,
-                        Prop2 = 106,
-                        ArrayToArray = new int[] { 4, 5, 6 }
-                    },
-                    new()
-                    {
-                        Prop1 = 107,
-                        PropA = 108,
-                        Prop2 = 109,
-                        ArrayToArray = new int[] { 7, 8, 9 }
-                    }
-                }
-            };
-        }
-
-        private struct Test
-        {
-            public double P1 { get; set; }
-            public double P2 { get; set; }
-        }
-
         [TestMethod]
         public void ValueTypes()
         {
@@ -121,7 +19,7 @@ namespace Zerra.Test
             var result1 = value1.Copy();
             Assert.AreEqual(value1, result1);
 
-            var value2 = new Test { P1 = 1, P2 = 2 };
+            var value2 = new TestStruct { P1 = 1, P2 = 2 };
             var result2 = value2.Copy();
             Assert.AreEqual(value2.P1, result2.P1);
             Assert.AreEqual(value2.P2, result2.P2);
@@ -134,7 +32,7 @@ namespace Zerra.Test
             var result1 = value1.Copy(log);
             Assert.AreEqual(value1, result1);
 
-            var value2 = new Test { P1 = 1, P2 = 2 };
+            var value2 = new TestStruct { P1 = 1, P2 = 2 };
             var result2 = value2.Copy(log);
             Assert.AreEqual(value2.P1, result2.P1);
             Assert.AreEqual(value2.P2, result2.P2);
@@ -143,7 +41,7 @@ namespace Zerra.Test
         [TestMethod]
         public void ComplexTypes()
         {
-            var modelA = GetModelA();
+            var modelA = ModelA.GetModelA();
             var modelB = modelA.Map<ModelB>();
 
             Assert.IsNotNull(modelB);
@@ -219,12 +117,24 @@ namespace Zerra.Test
             Assert.IsTrue(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[0]));
             Assert.IsTrue(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[1]));
             Assert.IsTrue(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[2]));
+
+            Assert.AreEqual(modelA.Dictionary.Count, modelB.Dictionary.Count);
+            foreach(var item in modelA.Dictionary)
+                Assert.AreEqual(item.Value, modelB.Dictionary[item.Key]);
+
+            Assert.AreEqual(modelA.Dictionary.Count, modelB.Dictionary.Count);
+            foreach (var item in modelA.Dictionary)
+                Assert.AreEqual(item.Value, modelB.Dictionary[item.Key]);
+
+            Assert.AreEqual(modelA.DictionaryToIDiciontary.Count, modelB.DictionaryToIDiciontary.Count);
+            foreach (var item in modelA.DictionaryToIDiciontary)
+                Assert.AreEqual(item.Value, modelB.DictionaryToIDiciontary[item.Key]);
         }
         [TestMethod]
         public void ComplexTypesLogger()
         {
             var log = new MapperLog();
-            var modelA = GetModelA();
+            var modelA = ModelA.GetModelA();
             var modelB = modelA.Map<ModelB>(log);
 
             Assert.IsNotNull(modelB);
@@ -300,6 +210,14 @@ namespace Zerra.Test
             Assert.IsTrue(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[0]));
             Assert.IsTrue(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[1]));
             Assert.IsTrue(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[2]));
+
+            Assert.AreEqual(modelA.Dictionary.Count, modelB.Dictionary.Count);
+            foreach (var item in modelA.Dictionary)
+                Assert.AreEqual(item.Value, modelB.Dictionary[item.Key]);
+
+            Assert.AreEqual(modelA.DictionaryToIDiciontary.Count, modelB.DictionaryToIDiciontary.Count);
+            foreach (var item in modelA.DictionaryToIDiciontary)
+                Assert.AreEqual(item.Value, modelB.DictionaryToIDiciontary[item.Key]);
         }
 
         [TestMethod]
@@ -307,9 +225,9 @@ namespace Zerra.Test
         {
             var modelA = new ModelA[]
             {
-                GetModelA(),
-                GetModelA(),
-                GetModelA()
+                ModelA.GetModelA(),
+                ModelA.GetModelA(),
+                ModelA.GetModelA()
             };
 
             var modelB = modelA.Map<ModelB[]>();
@@ -322,9 +240,9 @@ namespace Zerra.Test
             var log = new MapperLog();
             var modelA = new ModelA[]
             {
-                GetModelA(),
-                GetModelA(),
-                GetModelA()
+                ModelA.GetModelA(),
+                ModelA.GetModelA(),
+                ModelA.GetModelA()
             };
 
             var modelB = modelA.Map<ModelB[]>(log);
@@ -332,19 +250,11 @@ namespace Zerra.Test
             Assert.AreEqual(modelA.Length, modelB.Length);
         }
 
-        public class DefineModelAToModelB : IMapDefinition<ModelA, ModelB>
-        {
-            public void Define(IMapSetup<ModelA, ModelB> map)
-            {
-                map.Define(x => x.PropB, x => Int32.Parse(x.PropA.ToString() + "1"));
-                map.DefineTwoWay(x => x.PropD, x => x.PropC);
-            }
-        }
 
         [TestMethod]
         public void Define()
         {
-            var modelA = GetModelA();
+            var modelA = ModelA.GetModelA();
             var modelB = modelA.Map<ModelA, ModelB>();
             Assert.AreEqual(Int32.Parse(modelA.PropA.ToString() + "1"), modelB.PropB);
             Assert.AreEqual(modelA.PropC, modelB.PropD);
@@ -357,7 +267,7 @@ namespace Zerra.Test
         public void DefineLogger()
         {
             var log = new MapperLog();
-            var modelA = GetModelA();
+            var modelA = ModelA.GetModelA();
             var modelB = modelA.Map<ModelA, ModelB>(log);
             Assert.AreEqual(Int32.Parse(modelA.PropA.ToString() + "1"), modelB.PropB);
             Assert.AreEqual(modelA.PropC, modelB.PropD);
@@ -370,7 +280,7 @@ namespace Zerra.Test
         [TestMethod]
         public void Graph()
         {
-            var modelA = GetModelA();
+            var modelA = ModelA.GetModelA();
             var modelB = modelA.Map<ModelA, ModelB>(new Graph<ModelB>(
                 x => x.Prop1,
                 x => x.ArrayToList
@@ -385,7 +295,7 @@ namespace Zerra.Test
         public void GraphLogger()
         {
             var log = new MapperLog();
-            var modelA = GetModelA();
+            var modelA = ModelA.GetModelA();
             var modelB = modelA.Map<ModelA, ModelB>(log, new Graph<ModelB>(
                 x => x.Prop1,
                 x => x.ArrayToList
@@ -414,7 +324,7 @@ namespace Zerra.Test
         [TestMethod]
         public void Collections()
         {
-            var modelAs = new ModelA[] { GetModelA(), GetModelA(), GetModelA() };
+            var modelAs = new ModelA[] { ModelA.GetModelA(), ModelA.GetModelA(), ModelA.GetModelA() };
 
             var modelBs = modelAs.Map<ICollection<ModelB>>();
             var modelCs = modelAs.Select(x => x).Map<ICollection<ModelB>>();
@@ -450,7 +360,7 @@ namespace Zerra.Test
         public void CollectionsLogger()
         {
             var log = new MapperLog();
-            var modelAs = new ModelA[] { GetModelA(), GetModelA(), GetModelA() };
+            var modelAs = new ModelA[] { ModelA.GetModelA(), ModelA.GetModelA(), ModelA.GetModelA() };
 
             var modelBs = modelAs.Map<ICollection<ModelB>>(log);
             var modelCs = modelAs.Select(x => x).Map<ICollection<ModelB>>();
@@ -483,27 +393,6 @@ namespace Zerra.Test
             Assert.AreEqual(typeof(ModelB[]), modelMs.GetType());
         }
 
-        public class TA
-        {
-            public int ID { get; set; }
-            public TA Prop1 { get; set; }
-            public TA Prop2 { get; set; }
-        }
-
-        public class TB
-        {
-            public int ID { get; set; }
-            public TB Prop1 { get; set; }
-            public TC Prop2 { get; set; }
-        }
-
-        public class TC
-        {
-            public int ID { get; set; }
-            public TB Prop1 { get; set; }
-            public TB Prop2 { get; set; }
-        }
-
         [TestMethod]
         public void Recursion()
         {
@@ -529,9 +418,9 @@ namespace Zerra.Test
         {
             var modelA = new ModelA[]
             {
-                GetModelA(),
-                GetModelA(),
-                GetModelA()
+                ModelA.GetModelA(),
+                ModelA.GetModelA(),
+                ModelA.GetModelA()
             };
 
             var modelB = modelA.Map<ICollection<ModelB>>();
@@ -544,32 +433,14 @@ namespace Zerra.Test
             var log = new MapperLog();
             var modelA = new ModelA[]
             {
-                GetModelA(),
-                GetModelA(),
-                GetModelA()
+                ModelA.GetModelA(),
+                ModelA.GetModelA(),
+                ModelA.GetModelA()
             };
 
             var modelB = modelA.Map<ICollection<ModelB>>(log);
             Assert.IsNotNull(modelB);
             Assert.AreEqual(modelA.Length, modelB.Count);
-        }
-
-        public struct TestDebug1
-        {
-            public string Prop { get; set; }
-        }
-
-        public struct TestDebug2
-        {
-            public string Prop { get; set; }
-        }
-
-        public class DefineTestDebug1ToTestDebug2 : IMapDefinition<TestDebug1, TestDebug2>
-        {
-            public void Define(IMapSetup<TestDebug1, TestDebug2> map)
-            {
-                map.Define(x => x.Prop, x => x.Prop.Remove(10));
-            }
         }
 
         [TestMethod]
