@@ -6,7 +6,7 @@ using System;
 
 public static class StringExtensions
 {
-    public static string Truncate(this string it, int maxLength)
+    public static string Truncate(this string? it, int maxLength)
     {
 		if (it == null) throw new ArgumentNullException(nameof(it));
         if (maxLength < 0) throw new ArgumentException("Cannot be less than zero", nameof(maxLength));
@@ -193,38 +193,46 @@ public static class StringExtensions
         return result;
     }
 
-    public static bool ToBoolean(this string obj, bool defaultValue = default)
+    public static bool ToBoolean(this string? it, bool defaultValue = default)
     {
-        if (obj == null)
+        if (it == null)
             return defaultValue;
-        if (obj == String.Empty)
+        if (it == String.Empty)
             return defaultValue;
 
-        if (obj == "1")
+        if (it == "1")
             return true;
-        if (obj == "0")
+        if (it == "0")
             return false;
-        if (obj == "-1")
+        if (it == "-1")
             return false;
 
-        if (Boolean.TryParse(obj, out var tryvalue))
+        if (Boolean.TryParse(it, out var tryvalue))
             return tryvalue;
         else
             return defaultValue;
     }
-    public static bool? ToBooleanNullable(this string it)
+    public static bool? ToBooleanNullable(this string? it)
     {
         if (it == null)
             return null;
         if (it == String.Empty)
             return null;
+
+        if (it == "1")
+            return true;
+        if (it == "0")
+            return false;
+        if (it == "-1")
+            return false;
+
         if (Boolean.TryParse(it, out var tryvalue))
             return tryvalue;
         else
             return null;
     }
 
-    public static byte ToByte(this string it, byte defaultValue = default)
+    public static byte ToByte(this string? it, byte defaultValue = default)
     {
         if (it == null)
             return defaultValue;
@@ -235,7 +243,7 @@ public static class StringExtensions
         else
             return defaultValue;
     }
-    public static byte? ToByteNullable(this string it)
+    public static byte? ToByteNullable(this string? it)
     {
         if (it == null)
             return null;
@@ -247,7 +255,7 @@ public static class StringExtensions
             return null;
     }
 
-    public static short ToInt16(this string it, short defaultValue = default)
+    public static short ToInt16(this string? it, short defaultValue = default)
     {
         if (it == null)
             return defaultValue;
@@ -258,7 +266,7 @@ public static class StringExtensions
         else
             return defaultValue;
     }
-    public static short? ToInt16Nullable(this string it)
+    public static short? ToInt16Nullable(this string? it)
     {
         if (it == null)
             return null;
@@ -270,7 +278,7 @@ public static class StringExtensions
             return null;
     }
 
-    public static ushort ToUInt16(this string it, ushort defaultValue = default)
+    public static ushort ToUInt16(this string? it, ushort defaultValue = default)
     {
         if (it == null)
             return defaultValue;
@@ -281,7 +289,7 @@ public static class StringExtensions
         else
             return defaultValue;
     }
-    public static ushort? ToUInt16Nullable(this string it)
+    public static ushort? ToUInt16Nullable(this string? it)
     {
         if (it == null)
             return null;
@@ -293,7 +301,7 @@ public static class StringExtensions
             return null;
     }
 
-    public static int ToInt32(this string it, int defaultValue = default)
+    public static int ToInt32(this string? it, int defaultValue = default)
     {
         if (it == null)
             return defaultValue;
@@ -304,7 +312,7 @@ public static class StringExtensions
         else
             return defaultValue;
     }
-    public static int? ToInt32Nullable(this string it)
+    public static int? ToInt32Nullable(this string? it)
     {
         if (it == null)
             return null;
@@ -316,7 +324,7 @@ public static class StringExtensions
             return null;
     }
 
-    public static uint ToUInt32(this string it, uint defaultValue = default)
+    public static uint ToUInt32(this string? it, uint defaultValue = default)
     {
         if (it == null)
             return defaultValue;
@@ -327,7 +335,7 @@ public static class StringExtensions
         else
             return defaultValue;
     }
-    public static uint? ToUInt32Nullable(this string it)
+    public static uint? ToUInt32Nullable(this string? it)
     {
         if (it == null)
             return null;
@@ -339,7 +347,7 @@ public static class StringExtensions
             return null;
     }
 
-    public static long ToInt64(this string it, long defaultValue = default)
+    public static long ToInt64(this string? it, long defaultValue = default)
     {
         if (it == null)
             return defaultValue;
@@ -350,7 +358,7 @@ public static class StringExtensions
         else
             return defaultValue;
     }
-    public static long? ToInt64Nullable(this string it)
+    public static long? ToInt64Nullable(this string? it)
     {
         if (it == null)
             return null;
@@ -362,7 +370,7 @@ public static class StringExtensions
             return null;
     }
 
-    public static ulong ToUInt64(this string it, ulong defaultValue = default)
+    public static ulong ToUInt64(this string? it, ulong defaultValue = default)
     {
         if (it == null)
             return defaultValue;
@@ -373,7 +381,7 @@ public static class StringExtensions
         else
             return defaultValue;
     }
-    public static ulong? ToUInt64Nullable(this string it)
+    public static ulong? ToUInt64Nullable(this string? it)
     {
         if (it == null)
             return null;
@@ -385,7 +393,7 @@ public static class StringExtensions
             return null;
     }
 
-    public static float ToFloat(this string it, float defaultValue = default)
+    public static float ToFloat(this string? it, float defaultValue = default)
     {
         if (it == null)
             return defaultValue;
@@ -396,7 +404,7 @@ public static class StringExtensions
         else
             return defaultValue;
     }
-    public static float? ToFloatNullable(this string it)
+    public static float? ToFloatNullable(this string? it)
     {
         if (it == null)
             return null;
@@ -408,7 +416,7 @@ public static class StringExtensions
             return null;
     }
 
-    public static double ToDouble(this string it, double defaultValue = default)
+    public static double ToDouble(this string? it, double defaultValue = default)
     {
         if (it == null)
             return defaultValue;
@@ -419,7 +427,7 @@ public static class StringExtensions
         else
             return defaultValue;
     }
-    public static double? ToDoubleNullable(this string it)
+    public static double? ToDoubleNullable(this string? it)
     {
         if (it == null)
             return null;
@@ -431,7 +439,7 @@ public static class StringExtensions
             return null;
     }
 
-    public static decimal ToDecimal(this string it, decimal defaultValue = default)
+    public static decimal ToDecimal(this string? it, decimal defaultValue = default)
     {
         if (it == null)
             return defaultValue;
@@ -442,7 +450,7 @@ public static class StringExtensions
         else
             return defaultValue;
     }
-    public static decimal? ToDecimalNullable(this string it)
+    public static decimal? ToDecimalNullable(this string? it)
     {
         if (it == null)
             return null;
@@ -454,7 +462,7 @@ public static class StringExtensions
             return null;
     }
 
-    public static DateTime ToDateTime(this string it, DateTime defaultValue = default)
+    public static DateTime ToDateTime(this string? it, DateTime defaultValue = default)
     {
         if (it == null)
             return defaultValue;
@@ -465,7 +473,7 @@ public static class StringExtensions
         else
             return defaultValue;
     }
-    public static DateTime? ToDateTimeNullable(this string it)
+    public static DateTime? ToDateTimeNullable(this string? it)
     {
         if (it == null)
             return null;
@@ -477,7 +485,7 @@ public static class StringExtensions
             return null;
     }
 
-    public static DateTimeOffset ToDateTimeOffset(this string it, DateTimeOffset defaultValue = default)
+    public static DateTimeOffset ToDateTimeOffset(this string? it, DateTimeOffset defaultValue = default)
     {
         if (it == null)
             return defaultValue;
@@ -488,7 +496,7 @@ public static class StringExtensions
         else
             return defaultValue;
     }
-    public static DateTimeOffset? ToDateTimeOffsetNullable(this string it)
+    public static DateTimeOffset? ToDateTimeOffsetNullable(this string? it)
     {
         if (it == null)
             return null;
@@ -500,7 +508,7 @@ public static class StringExtensions
             return null;
     }
 
-    public static TimeSpan ToTimeSpan(this string it, TimeSpan defaultValue = default)
+    public static TimeSpan ToTimeSpan(this string? it, TimeSpan defaultValue = default)
     {
         if (it == null)
             return defaultValue;
@@ -511,7 +519,7 @@ public static class StringExtensions
         else
             return defaultValue;
     }
-    public static TimeSpan? ToTimeSpanNullable(this string it)
+    public static TimeSpan? ToTimeSpanNullable(this string? it)
     {
         if (it == null)
             return null;
@@ -523,7 +531,7 @@ public static class StringExtensions
             return null;
     }
 
-    public static Guid ToGuid(this string it, Guid defaultValue = default)
+    public static Guid ToGuid(this string? it, Guid defaultValue = default)
     {
         if (it == null)
             return defaultValue;
@@ -534,7 +542,7 @@ public static class StringExtensions
         else
             return defaultValue;
     }
-    public static Guid? ToGuidNullable(this string it)
+    public static Guid? ToGuidNullable(this string? it)
     {
         if (it == null)
             return null;
@@ -557,7 +565,7 @@ public static class StringExtensions
     }
 #endif
 
-    public static unsafe bool MatchWildcard(this string it, string pattern, char wildcard = '*')
+    public static unsafe bool MatchWildcard(this string? it, string pattern, char wildcard = '*')
     {
         if (String.IsNullOrEmpty(pattern))
             throw new ArgumentException(nameof(pattern));
