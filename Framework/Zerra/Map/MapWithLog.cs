@@ -505,7 +505,9 @@ namespace Zerra
                     var enumerable = Expression.Convert(source, enumerableGeneric.Type);
                     var enumerator = Expression.Variable(enumeratorGeneric.Type, "enumerator");
                     var assignEnumeratorVariable = Expression.Assign(enumerator, Expression.Call(enumerable, getEnumeratorMethod.MethodInfo));
+
                     var listItem = Expression.Variable(targetType.InnerTypes[0], "listitem");
+                    var clearListItemForLog = Expression.Assign(listItem, Expression.Default(listItem.Type));
 
                     var loopBreakTarget = Expression.Label();
                     var moveNextOrBreak = Expression.IfThen(Expression.Not(Expression.Call(enumerator, moveNextMethod.MethodInfo)), Expression.Break(loopBreakTarget));
@@ -513,9 +515,8 @@ namespace Zerra
                     var sourceElement = Expression.Convert(Expression.Call(enumerator, currentMethod.MethodInfo), sourceType.IEnumerableGenericInnerType);
                     var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, listItem, logger, recursionDictionary, ref depth);
                     var addElementToList = Expression.Call(target, addMethod.MethodInfo, listItem);
-                    var clearListItem = Expression.Assign(listItem, Expression.Default(listItem.Type));
 
-                    var loopBlock = Expression.Block(moveNextOrBreak, clearListItem, newElementBlock, addElementToList);
+                    var loopBlock = Expression.Block(moveNextOrBreak, clearListItemForLog, newElementBlock, addElementToList);
                     var loop = Expression.Loop(loopBlock, loopBreakTarget);
 
                     var newArrayBlock = Expression.Block(new[] { enumerator, listItem }, assignEnumeratorVariable, loop);
@@ -545,8 +546,11 @@ namespace Zerra
                     var enumerator = Expression.Variable(enumeratorGeneric.Type, "enumerator");
                     var assignEnumeratorVariable = Expression.Assign(enumerator, Expression.Call(enumerable, getEnumeratorMethod.MethodInfo));
 
-                    var targetKey = Expression.Variable(targetType.InnerTypeDetails[0].InnerTypes[1], "key");
+                    var targetKey = Expression.Variable(targetType.InnerTypeDetails[0].InnerTypes[0], "key");
                     var targetValue = Expression.Variable(targetType.InnerTypeDetails[0].InnerTypes[1], "value");
+
+                    var clearTargetKeyForLog = Expression.Assign(targetKey, Expression.Default(targetType.InnerTypeDetails[0].InnerTypes[0]));
+                    var clearTargetValueForLog = Expression.Assign(targetValue, Expression.Default(targetType.InnerTypeDetails[0].InnerTypes[1]));
 
                     var loopBreakTarget = Expression.Label();
                     var moveNextOrBreak = Expression.IfThen(Expression.Not(Expression.Call(enumerator, moveNextMethod.MethodInfo)), Expression.Break(loopBreakTarget));
@@ -561,7 +565,7 @@ namespace Zerra
 
                     var addElementToList = Expression.Call(target, addMethod.MethodInfo, newKeyElementBlock, newValueElementBlock);
 
-                    var loopBlock = Expression.Block(moveNextOrBreak, addElementToList);
+                    var loopBlock = Expression.Block(moveNextOrBreak, clearTargetKeyForLog, clearTargetValueForLog, addElementToList);
                     var loop = Expression.Loop(loopBlock, loopBreakTarget);
 
                     var newArrayBlock = Expression.Block(new[] { enumerator, targetKey, targetValue }, assignEnumeratorVariable, loop);
@@ -710,6 +714,7 @@ namespace Zerra
                     var assignEnumeratorVariable = Expression.Assign(enumerator, Expression.Call(enumerable, getEnumeratorMethod.MethodInfo));
 
                     var listItem = Expression.Variable(targetType.InnerTypes[0], "listitem");
+                    var clearListItemForLog = Expression.Assign(listItem, Expression.Default(listItem.Type));
 
                     var loopBreakTarget = Expression.Label();
                     var moveNextOrBreak = Expression.IfThen(Expression.Not(Expression.Call(enumerator, moveNextMethod.MethodInfo)), Expression.Break(loopBreakTarget));
@@ -717,9 +722,8 @@ namespace Zerra
                     var sourceElement = Expression.Convert(Expression.Call(enumerator, currentMethod.MethodInfo), sourceType.IEnumerableGenericInnerType);
                     var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, listItem, logger, recursionDictionary, ref depth);
                     var addElementToList = Expression.Call(casted, addMethod.MethodInfo, listItem);
-                    var clearListItem = Expression.Assign(listItem, Expression.Default(listItem.Type));
 
-                    var loopBlock = Expression.Block(moveNextOrBreak, clearListItem, newElementBlock, addElementToList);
+                    var loopBlock = Expression.Block(moveNextOrBreak, clearListItemForLog, newElementBlock, addElementToList);
                     var loop = Expression.Loop(loopBlock, loopBreakTarget);
 
                     var newArrayBlock = Expression.Block(new[] { casted, enumerator, listItem }, assignCastedVariable, assignEnumeratorVariable, loop);

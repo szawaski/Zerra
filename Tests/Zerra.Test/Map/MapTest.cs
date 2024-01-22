@@ -44,91 +44,11 @@ namespace Zerra.Test.Map
             var modelA = ModelA.GetModelA();
             var modelB = modelA.Map<ModelB>();
 
-            Assert.IsNotNull(modelB);
-            Assert.AreEqual(modelA.Prop1, modelB.Prop1);
-            Assert.AreEqual(modelA.Prop2, modelB.Prop2);
+            ValidateModelAModelB(modelA, modelB);
 
-            Assert.AreEqual(modelA.ArrayToArray.Length, modelB.ArrayToArray.Length);
-            Assert.AreEqual(modelA.ArrayToArray[0], modelB.ArrayToArray[0]);
-            Assert.AreEqual(modelA.ArrayToArray[1], modelB.ArrayToArray[1]);
-            Assert.AreEqual(modelA.ArrayToArray[2], modelB.ArrayToArray[2]);
+            modelA = modelB.Map<ModelA>();
 
-            Assert.AreEqual(modelA.ArrayToList.Length, modelB.ArrayToList.Count);
-            Assert.AreEqual(modelA.ArrayToList[0], modelB.ArrayToList[0]);
-            Assert.AreEqual(modelA.ArrayToList[1], modelB.ArrayToList[1]);
-            Assert.AreEqual(modelA.ArrayToList[2], modelB.ArrayToList[2]);
-
-            Assert.AreEqual(modelA.ArrayToIList.Length, modelB.ArrayToIList.Count);
-            Assert.AreEqual(modelA.ArrayToIList[0], modelB.ArrayToIList[0]);
-            Assert.AreEqual(modelA.ArrayToIList[1], modelB.ArrayToIList[1]);
-            Assert.AreEqual(modelA.ArrayToIList[2], modelB.ArrayToIList[2]);
-
-            Assert.AreEqual(modelA.ArrayToSet.Length, modelB.ArrayToSet.Count);
-            Assert.IsTrue(modelB.ArrayToSet.Contains(modelA.ArrayToSet[0]));
-            Assert.IsTrue(modelB.ArrayToSet.Contains(modelA.ArrayToSet[1]));
-            Assert.IsTrue(modelB.ArrayToSet.Contains(modelA.ArrayToSet[2]));
-
-            Assert.AreEqual(modelA.ArrayToISet.Length, modelB.ArrayToISet.Count);
-            Assert.IsTrue(modelB.ArrayToISet.Contains(modelA.ArrayToISet[0]));
-            Assert.IsTrue(modelB.ArrayToISet.Contains(modelA.ArrayToISet[1]));
-            Assert.IsTrue(modelB.ArrayToISet.Contains(modelA.ArrayToISet[2]));
-
-            Assert.AreEqual(modelA.ArrayToICollection.Length, modelB.ArrayToICollection.Count);
-            Assert.IsTrue(modelB.ArrayToICollection.Contains(modelA.ArrayToICollection[0]));
-            Assert.IsTrue(modelB.ArrayToICollection.Contains(modelA.ArrayToICollection[1]));
-            Assert.IsTrue(modelB.ArrayToICollection.Contains(modelA.ArrayToICollection[2]));
-
-            Assert.AreEqual(modelA.ArrayToIEnumerable.Length, modelB.ArrayToIEnumerable.Count());
-            Assert.IsTrue(modelB.ArrayToIEnumerable.Any(x => x == modelA.ArrayToIEnumerable[0]));
-            Assert.IsTrue(modelB.ArrayToIEnumerable.Any(x => x == modelA.ArrayToIEnumerable[1]));
-            Assert.IsTrue(modelB.ArrayToIEnumerable.Any(x => x == modelA.ArrayToIEnumerable[2]));
-
-            Assert.AreEqual(modelA.ListToArray.Count, modelB.ListToArray.Length);
-            Assert.AreEqual(modelA.ListToArray[0], modelB.ListToArray[0]);
-            Assert.AreEqual(modelA.ListToArray[1], modelB.ListToArray[1]);
-            Assert.AreEqual(modelA.ListToArray[2], modelB.ListToArray[2]);
-
-            Assert.AreEqual(modelA.ListToList.Count, modelB.ListToList.Count);
-            Assert.AreEqual(modelA.ListToList[0], modelB.ListToList[0]);
-            Assert.AreEqual(modelA.ListToList[1], modelB.ListToList[1]);
-            Assert.AreEqual(modelA.ListToList[2], modelB.ListToList[2]);
-
-            Assert.AreEqual(modelA.ListToIList.Count, modelB.ListToIList.Count);
-            Assert.AreEqual(modelA.ListToIList[0], modelB.ListToIList[0]);
-            Assert.AreEqual(modelA.ListToIList[1], modelB.ListToIList[1]);
-            Assert.AreEqual(modelA.ListToIList[2], modelB.ListToIList[2]);
-
-            Assert.AreEqual(modelA.ListToSet.Count, modelB.ListToSet.Count);
-            Assert.IsTrue(modelB.ListToSet.Contains(modelA.ListToSet[0]));
-            Assert.IsTrue(modelB.ListToSet.Contains(modelA.ListToSet[1]));
-            Assert.IsTrue(modelB.ListToSet.Contains(modelA.ListToSet[2]));
-
-            Assert.AreEqual(modelA.ListToISet.Count, modelB.ListToISet.Count);
-            Assert.IsTrue(modelB.ListToISet.Contains(modelA.ListToISet[0]));
-            Assert.IsTrue(modelB.ListToISet.Contains(modelA.ListToISet[1]));
-            Assert.IsTrue(modelB.ListToISet.Contains(modelA.ListToISet[2]));
-
-            Assert.AreEqual(modelA.ListToICollection.Count, modelB.ListToICollection.Count);
-            Assert.IsTrue(modelB.ListToICollection.Contains(modelA.ListToICollection[0]));
-            Assert.IsTrue(modelB.ListToICollection.Contains(modelA.ListToICollection[1]));
-            Assert.IsTrue(modelB.ListToICollection.Contains(modelA.ListToICollection[2]));
-
-            Assert.AreEqual(modelA.ListToIEnumerable.Count, modelB.ListToIEnumerable.Count());
-            Assert.IsTrue(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[0]));
-            Assert.IsTrue(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[1]));
-            Assert.IsTrue(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[2]));
-
-            Assert.AreEqual(modelA.Dictionary.Count, modelB.Dictionary.Count);
-            foreach(var item in modelA.Dictionary)
-                Assert.AreEqual(item.Value, modelB.Dictionary[item.Key]);
-
-            Assert.AreEqual(modelA.Dictionary.Count, modelB.Dictionary.Count);
-            foreach (var item in modelA.Dictionary)
-                Assert.AreEqual(item.Value, modelB.Dictionary[item.Key]);
-
-            Assert.AreEqual(modelA.DictionaryToIDiciontary.Count, modelB.DictionaryToIDiciontary.Count);
-            foreach (var item in modelA.DictionaryToIDiciontary)
-                Assert.AreEqual(item.Value, modelB.DictionaryToIDiciontary[item.Key]);
+            ValidateModelAModelB(modelA, modelB);
         }
         [TestMethod]
         public void ComplexTypesLogger()
@@ -137,6 +57,16 @@ namespace Zerra.Test.Map
             var modelA = ModelA.GetModelA();
             var modelB = modelA.Map<ModelB>(log);
 
+            ValidateModelAModelB(modelA, modelB);
+
+            log = new MapperLog();
+            modelA = modelB.Map<ModelA>(log);
+
+            ValidateModelAModelB(modelA, modelB);
+        }
+
+        private static void ValidateModelAModelB(ModelA modelA, ModelB modelB)
+        {
             Assert.IsNotNull(modelB);
             Assert.AreEqual(modelA.Prop1, modelB.Prop1);
             Assert.AreEqual(modelA.Prop2, modelB.Prop2);

@@ -531,7 +531,7 @@ namespace Zerra
                     var enumerator = Expression.Variable(enumeratorGeneric.Type, "enumerator");
                     var assignEnumeratorVariable = Expression.Assign(enumerator, Expression.Call(enumerable, getEnumeratorMethod.MethodInfo));
 
-                    var targetKey = Expression.Variable(targetType.InnerTypeDetails[0].InnerTypes[1], "key");
+                    var targetKey = Expression.Variable(targetType.InnerTypeDetails[0].InnerTypes[0], "key");
                     var targetValue = Expression.Variable(targetType.InnerTypeDetails[0].InnerTypes[1], "value");
 
                     var loopBreakTarget = Expression.Label();
