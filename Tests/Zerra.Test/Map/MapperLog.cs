@@ -12,12 +12,12 @@ namespace Zerra.Test.Map
 
         public void LogPropertyChange(string source, string sourceValue, string target, string targetValue)
         {
-            log.Add($"Changed {target} From {targetValue} To {sourceValue} Source {source}");
+            log.Add($"Changed {targetValue} To {sourceValue} - {target} to {source}");
         }
 
         public void LogPropertyNoChange(string source, string target, string targetValue)
         {
-            log.Add($"No Change From {target} To {source}");
+            log.Add($"No Change {targetValue} - {target} to {source}");
         }
 
         public void LogNewObject(string source, string target, string type)

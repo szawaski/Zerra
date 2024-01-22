@@ -347,7 +347,7 @@ namespace Zerra
                 );
                 var ifExpression = Expression.Condition(Expression.NotEqual(target, Expression.Convert(source, targetType.Type)),
                     Expression.Block(callLogChange, assigner),
-                    Expression.Block(callLogNoChange, Expression.Default(targetType.Type)));
+                    Expression.Block(callLogNoChange, assigner));
 
                 if (Mapper.DebugMode)
                 {
@@ -389,7 +389,7 @@ namespace Zerra
                 );
                 var ifExpression = Expression.Condition(Expression.NotEqual(target, Expression.Convert(source, targetType.Type)),
                     Expression.Block(callLogChange, assigner),
-                    Expression.Block(callLogNoChange, Expression.Default(targetType.Type)));
+                    Expression.Block(callLogNoChange, assigner));
 
                 if (Mapper.DebugMode)
                 {
@@ -545,22 +545,26 @@ namespace Zerra
                     var enumerator = Expression.Variable(enumeratorGeneric.Type, "enumerator");
                     var assignEnumeratorVariable = Expression.Assign(enumerator, Expression.Call(enumerable, getEnumeratorMethod.MethodInfo));
 
-                    var key = Expression.Variable(targetType.InnerTypeDetails[0].InnerTypes[1], "key");
-                    var value = Expression.Variable(targetType.InnerTypeDetails[0].InnerTypes[1], "value");
+                    var targetKey = Expression.Variable(targetType.InnerTypeDetails[0].InnerTypes[1], "key");
+                    var targetValue = Expression.Variable(targetType.InnerTypeDetails[0].InnerTypes[1], "value");
 
                     var loopBreakTarget = Expression.Label();
                     var moveNextOrBreak = Expression.IfThen(Expression.Not(Expression.Call(enumerator, moveNextMethod.MethodInfo)), Expression.Break(loopBreakTarget));
 
                     var sourceElement = Expression.Convert(Expression.Call(enumerator, currentMethod.MethodInfo), sourceType.IEnumerableGenericInnerType);
-                    var assignKey = Expression.Assign(key, Expression.MakeMemberAccess(sourceElement, targetType.InnerTypeDetails[0].GetMember("Key").MemberInfo));
-                    var assignValue = Expression.Assign(value, Expression.MakeMemberAccess(sourceElement, targetType.InnerTypeDetails[0].GetMember("Value").MemberInfo));
 
-                    var addElementToList = Expression.Call(target, addMethod.MethodInfo, key, value);
+                    var sourceKey = Expression.MakeMemberAccess(sourceElement, targetType.InnerTypeDetails[0].GetMember("Key").MemberInfo);
+                    var sourceValue = Expression.MakeMemberAccess(sourceElement, targetType.InnerTypeDetails[0].GetMember("Value").MemberInfo);
 
-                    var loopBlock = Expression.Block(moveNextOrBreak, assignKey, assignValue, addElementToList);
+                    var newKeyElementBlock = GenerateMapAssignTarget(graph, sourceKey, targetKey, logger, recursionDictionary, ref depth);
+                    var newValueElementBlock = GenerateMapAssignTarget(graph, sourceValue, targetValue, logger, recursionDictionary, ref depth);
+
+                    var addElementToList = Expression.Call(target, addMethod.MethodInfo, newKeyElementBlock, newValueElementBlock);
+
+                    var loopBlock = Expression.Block(moveNextOrBreak, addElementToList);
                     var loop = Expression.Loop(loopBlock, loopBreakTarget);
 
-                    var newArrayBlock = Expression.Block(new[] { enumerator, key, value }, assignEnumeratorVariable, loop);
+                    var newArrayBlock = Expression.Block(new[] { enumerator, targetKey, targetValue }, assignEnumeratorVariable, loop);
                     var conditionalNewArrayBlock = Expression.IfThen(Expression.Not(Expression.Equal(source, Expression.Constant(null))), newArrayBlock);
 
                     if (Mapper.DebugMode)
