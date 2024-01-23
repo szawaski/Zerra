@@ -38,7 +38,8 @@ namespace Zerra.Encryption
             }
         }
 
-        public static int GetRandomNumber(RandomNumberGenerator rng, int minValue, int maxValue)
+#if NETSTANDARD2_0
+        public static unsafe int GetRandomNumber(RandomNumberGenerator rng, int minValue, int maxValue)
         {
             if (minValue > maxValue)
                 throw new ArgumentOutOfRangeException(nameof(minValue));
@@ -51,5 +52,20 @@ namespace Zerra.Encryption
             var rand = BitConverter.ToUInt32(intBuffer, 0);
             return (int)Math.Round(((rand / (double)UInt32.MaxValue) * diff) + minValue);
         }
+#else
+        public static unsafe int GetRandomNumber(RandomNumberGenerator rng, int minValue, int maxValue)
+        {
+            if (minValue > maxValue)
+                throw new ArgumentOutOfRangeException(nameof(minValue));
+            if (minValue == maxValue)
+                return minValue;
+            long diff = maxValue - minValue;
+            Span<byte> intBuffer = stackalloc byte[4];
+
+            rng.GetBytes(intBuffer);
+            var rand = BitConverter.ToUInt32(intBuffer);
+            return (int)Math.Round(((rand / (double)UInt32.MaxValue) * diff) + minValue);
+        }
+#endif
     }
 }
