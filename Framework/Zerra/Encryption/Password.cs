@@ -14,7 +14,7 @@ namespace Zerra.Encryption
         private static readonly char[] passwordCharactersLower = "abcdefghijklmnopqrstuvwxyz".ToCharArray();
         private static readonly char[] passwordCharactersNumeric = "0123456789".ToCharArray();
         private static readonly char[] passwordCharactersSpecial = " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~".ToCharArray(); //OWASP
-        public static string GeneratePassword(int length, bool upperCase, bool lowerCase, bool numeric, bool owaspSpecialCharacters)
+        public static unsafe string GeneratePassword(int length, bool upperCase, bool lowerCase, bool numeric, bool owaspSpecialCharacters)
         {
             using (var rng = RandomNumberGenerator.Create())
             {
@@ -28,11 +28,11 @@ namespace Zerra.Encryption
                 if (owaspSpecialCharacters)
                     passwordChars.AddRange(passwordCharactersSpecial);
 
-                var chars = new char[length];
-                for (var x = 0; x < length; x++)
+                var chars = stackalloc char[length];
+                for (var i = 0; i < length; i++)
                 {
-                    var random = GetRandomNumber(rng, 0, passwordChars.Count);
-                    chars[x] = passwordChars[random];
+                    var random = GetRandomNumber(rng, 0, passwordChars.Count - 1);
+                    chars[i] = passwordChars[random];
                 }
                 return new string(chars);
             }

@@ -244,5 +244,28 @@ namespace Zerra.Test
             var test = bytes.ToArray();
             return test;
         }
+
+        [TestMethod]
+        public void GeneratePassword()
+        {
+            var test = Password.GeneratePassword(10, true, true, true, true);
+            Assert.AreEqual(10, test.Length);
+
+            test = Password.GeneratePassword(10, true, false, false, false);
+            Assert.AreEqual(10, test.Length);
+            Assert.IsTrue(test.All(Char.IsUpper));
+
+            test = Password.GeneratePassword(10, false, true, false, false);
+            Assert.AreEqual(10, test.Length);
+            Assert.IsTrue(test.All(Char.IsLower));
+
+            test = Password.GeneratePassword(10, false, false, true, false);
+            Assert.AreEqual(10, test.Length);
+            Assert.IsTrue(test.All(Char.IsNumber));
+
+            test = Password.GeneratePassword(10, false, false, false, true);
+            Assert.AreEqual(10, test.Length);
+            Assert.IsTrue(test.All(x => !Char.IsLetterOrDigit(x)));
+        }
     }
 }
