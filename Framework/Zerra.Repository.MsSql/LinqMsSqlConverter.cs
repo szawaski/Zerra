@@ -371,6 +371,32 @@ namespace Zerra.Repository.MsSql
                                 break;
                         }
                     }
+                    else if (member.Type == typeof(DateOnly))
+                    {
+                        memberPropertyHandled = true;
+                        closeBrace = true;
+                        switch (memberProperty.Member.Name)
+                        {
+                            case "Year":
+                                sb.Write("DATEPART(year,");
+                                break;
+                            case "Month":
+                                sb.Write("DATEPART(month,");
+                                break;
+                            case "Day":
+                                sb.Write("DATEPART(day,");
+                                break;
+                            case "DayOfYear":
+                                sb.Write("DATEPART(dayofyear,");
+                                break;
+                            case "DayOfWeek":
+                                sb.Write("DATEPART(weekday,");
+                                break;
+                            default:
+                                memberPropertyHandled = false;
+                                break;
+                        }
+                    }
 
                     if (!memberPropertyHandled)
                         throw new NotSupportedException($"{member.Member.Name}.{memberProperty.Member.Name} not supported");

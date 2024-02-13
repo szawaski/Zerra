@@ -371,6 +371,32 @@ namespace Zerra.Repository.MySql
                                 break;
                         }
                     }
+                    else if (member.Type == typeof(DateOnly))
+                    {
+                        memberPropertyHandled = true;
+                        closeBrace = true;
+                        switch (memberProperty.Member.Name)
+                        {
+                            case "Year":
+                                sb.Write("YEAR(");
+                                break;
+                            case "Month":
+                                sb.Write("MONTH(");
+                                break;
+                            case "Day":
+                                sb.Write("DAY(day,");
+                                break;
+                            case "DayOfYear":
+                                sb.Write("DAYOFYEAR(");
+                                break;
+                            case "DayOfWeek":
+                                sb.Write("WEEKDAY(");
+                                break;
+                            default:
+                                memberPropertyHandled = false;
+                                break;
+                        }
+                    }
 
                     if (!memberPropertyHandled)
                         throw new NotSupportedException($"{member.Member.Name}.{memberProperty.Member.Name} not supported");

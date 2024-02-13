@@ -371,6 +371,32 @@ namespace Zerra.Repository.PostgreSql
                                 break;
                         }
                     }
+                    else if (member.Type == typeof(DateOnly))
+                    {
+                        memberPropertyHandled = true;
+                        closeBrace = true;
+                        switch (memberProperty.Member.Name)
+                        {
+                            case "Year":
+                                sb.Write("DATE_PART('year',");
+                                break;
+                            case "Month":
+                                sb.Write("DATE_PART('month',");
+                                break;
+                            case "Day":
+                                sb.Write("DATE_PART('day',");
+                                break;
+                            case "DayOfYear":
+                                sb.Write("DATE_PART('doy',");
+                                break;
+                            case "DayOfWeek":
+                                sb.Write("DATE_PART('dow',");
+                                break;
+                            default:
+                                memberPropertyHandled = false;
+                                break;
+                        }
+                    }
 
                     if (!memberPropertyHandled)
                         throw new NotSupportedException($"{member.Member.Name}.{memberProperty.Member.Name} not supported");
@@ -695,6 +721,73 @@ namespace Zerra.Repository.PostgreSql
                         }
                         sb.Write('\'');
                         sb.Write((TimeSpan)value, TimeFormat.PostgreSql);
+                        sb.Write('\'');
+                        return false;
+                    case CoreType.DateOnly:
+                        if (memberProperty != null)
+                        {
+                            switch (memberProperty.Member.Name)
+                            {
+                                case "Year":
+                                    sb.Write('\'');
+                                    sb.Write(((DateOnly)value).Year);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Month":
+                                    sb.Write('\'');
+                                    sb.Write(((DateOnly)value).Month);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Day":
+                                    sb.Write('\'');
+                                    sb.Write(((DateOnly)value).Day);
+                                    sb.Write('\'');
+                                    return true;
+                                case "DayOfYear":
+                                    sb.Write('\'');
+                                    sb.Write(((DateOnly)value).DayOfYear);
+                                    sb.Write('\'');
+                                    return true;
+                                case "DayOfWeek":
+                                    sb.Write('\'');
+                                    sb.Write(((int)((DateOnly)value).DayOfWeek).ToString());
+                                    sb.Write('\'');
+                                    return true;
+                            }
+                        }
+                        sb.Write('\'');
+                        sb.Write((DateOnly)value, DateTimeFormat.PostgreSql);
+                        sb.Write('\'');
+                        return false;
+                    case CoreType.TimeOnly:
+                        if (memberProperty != null)
+                        {
+                            switch (memberProperty.Member.Name)
+                            {
+                                case "Hour":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeOnly)value).Hour);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Minute":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeOnly)value).Minute);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Second":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeOnly)value).Second);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Millisecond":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeOnly)value).Millisecond);
+                                    sb.Write('\'');
+                                    return true;
+                            }
+                        }
+                        sb.Write('\'');
+                        sb.Write((TimeOnly)value, TimeFormat.PostgreSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.Guid:
