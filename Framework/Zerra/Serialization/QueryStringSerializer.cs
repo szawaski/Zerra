@@ -242,6 +242,10 @@ namespace Zerra.Serialization
                 CoreType.DateTime => DateTime.Parse(value),
                 CoreType.DateTimeOffset => DateTimeOffset.Parse(value),
                 CoreType.TimeSpan => TimeSpan.Parse(value),
+#if NET6_0_OR_GREATER
+                CoreType.DateOnly => DateOnly.Parse(value),
+                CoreType.TimeOnly => TimeOnly.Parse(value),
+#endif
                 CoreType.Guid => Guid.Parse(value),
                 CoreType.String => value,
                 CoreType.BooleanNullable => value == null ? null : Boolean.Parse(value),
@@ -260,6 +264,10 @@ namespace Zerra.Serialization
                 CoreType.DateTimeNullable => value == null ? null : DateTime.Parse(value),
                 CoreType.DateTimeOffsetNullable => value == null ? null : DateTimeOffset.Parse(value),
                 CoreType.TimeSpanNullable => value == null ? null : TimeSpan.Parse(value),
+#if NET6_0_OR_GREATER
+                CoreType.DateOnlyNullable => value == null ? null : DateOnly.Parse(value),
+                CoreType.TimeOnlyNullable => value == null ? null : TimeOnly.Parse(value),
+#endif
                 CoreType.GuidNullable => value == null ? null : Guid.Parse(value),
                 _ => throw new NotImplementedException($"Type conversion not available for {member.Type.Name}"),
             };

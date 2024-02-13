@@ -524,6 +524,66 @@ namespace Zerra.Serialization
                     }
                     state.EndFrame();
                     return;
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnly:
+                case CoreType.DateOnlyNullable:
+                    if (state.CurrentFrame.State == 0)
+                    {
+                        if (!writer.TryWrite('\"', out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 1;
+                    }
+
+                    if (state.CurrentFrame.State == 1)
+                    {
+                        if (!writer.TryWrite((DateOnly)state.CurrentFrame.Object!, DateTimeFormat.ISO8601, out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 2;
+                    }
+
+                    if (!writer.TryWrite('\"', out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
+                    return;
+                case CoreType.TimeOnly:
+                case CoreType.TimeOnlyNullable:
+                    if (state.CurrentFrame.State == 0)
+                    {
+                        if (!writer.TryWrite('\"', out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 1;
+                    }
+
+                    if (state.CurrentFrame.State == 1)
+                    {
+                        if (!writer.TryWrite((TimeOnly)state.CurrentFrame.Object!, TimeFormat.ISO8601, out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 2;
+                    }
+
+                    if (!writer.TryWrite('\"', out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return;
+                    }
+                    state.EndFrame();
+                    return;
+#endif
                 case CoreType.Guid:
                 case CoreType.GuidNullable:
                     if (state.CurrentFrame.State == 0)
@@ -1298,6 +1358,64 @@ namespace Zerra.Serialization
                         }
                         state.CurrentFrame.State = 1;
                         break;
+#if NET6_0_OR_GREATER
+                    case CoreType.DateOnly:
+                        if (state.CurrentFrame.State == 3)
+                        {
+                            if (!writer.TryWrite('\"', out sizeNeeded))
+                            {
+                                state.CharsNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.State = 4;
+                        }
+
+                        if (state.CurrentFrame.State == 4)
+                        {
+                            if (!writer.TryWrite((DateOnly)state.CurrentFrame.Enumerator!.Current, DateTimeFormat.ISO8601, out sizeNeeded))
+                            {
+                                state.CharsNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.State = 5;
+                        }
+
+                        if (!writer.TryWrite('\"', out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 1;
+                        break;
+                    case CoreType.TimeOnly:
+                        if (state.CurrentFrame.State == 3)
+                        {
+                            if (!writer.TryWrite('\"', out sizeNeeded))
+                            {
+                                state.CharsNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.State = 4;
+                        }
+
+                        if (state.CurrentFrame.State == 4)
+                        {
+                            if (!writer.TryWrite((TimeOnly)state.CurrentFrame.Enumerator!.Current, TimeFormat.ISO8601, out sizeNeeded))
+                            {
+                                state.CharsNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.State = 5;
+                        }
+
+                        if (!writer.TryWrite('\"', out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.State = 1;
+                        break;
+#endif
                     case CoreType.Guid:
                         if (state.CurrentFrame.State == 3)
                         {

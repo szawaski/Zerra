@@ -22,6 +22,10 @@ namespace Zerra.Reflection
         DateTime,
         DateTimeOffset,
         TimeSpan,
+#if NET6_0_OR_GREATER
+        DateOnly,
+        TimeOnly,
+#endif
         Guid,
 
         BooleanNullable,
@@ -40,6 +44,10 @@ namespace Zerra.Reflection
         DateTimeNullable,
         DateTimeOffsetNullable,
         TimeSpanNullable,
+#if NET6_0_OR_GREATER
+        DateOnlyNullable,
+        TimeOnlyNullable,
+#endif
         GuidNullable,
 
         String

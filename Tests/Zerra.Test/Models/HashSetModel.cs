@@ -25,6 +25,10 @@ namespace Zerra.Test
         public HashSet<DateTime> DateTimeHashSet { get; set; }
         public HashSet<DateTimeOffset> DateTimeOffsetHashSet { get; set; }
         public HashSet<TimeSpan> TimeSpanHashSet { get; set; }
+#if NET6_0_OR_GREATER
+        public HashSet<DateOnly> DateOnlyHashSet { get; set; }
+        public HashSet<TimeOnly> TimeOnlyHashSet { get; set; }
+#endif
         public HashSet<Guid> GuidHashSet { get; set; }
 
         public HashSet<bool?> BooleanHashSetNullable { get; set; }
@@ -43,6 +47,10 @@ namespace Zerra.Test
         public HashSet<DateTime?> DateTimeHashSetNullable { get; set; }
         public HashSet<DateTimeOffset?> DateTimeOffsetHashSetNullable { get; set; }
         public HashSet<TimeSpan?> TimeSpanHashSetNullable { get; set; }
+#if NET6_0_OR_GREATER
+        public HashSet<DateOnly?> DateOnlyHashSetNullable { get; set; }
+        public HashSet<TimeOnly?> TimeOnlyHashSetNullable { get; set; }
+#endif
         public HashSet<Guid?> GuidHashSetNullable { get; set; }
 
         public HashSet<string> StringHashSet { get; set; }

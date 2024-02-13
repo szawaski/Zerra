@@ -699,6 +699,28 @@ namespace Zerra.Serialization
                         state.CurrentFrame.ResultObject = value;
                         break;
                     }
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnly:
+                    {
+                        if (!reader.TryReadDateOnly(out var value, out sizeNeeded))
+                        {
+                            state.BytesNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.ResultObject = value;
+                        break;
+                    }
+                case CoreType.TimeOnly:
+                    {
+                        if (!reader.TryReadTimeOnly(out var value, out sizeNeeded))
+                        {
+                            state.BytesNeeded = sizeNeeded;
+                            return;
+                        }
+                        state.CurrentFrame.ResultObject = value;
+                        break;
+                    }
+#endif
                 case CoreType.Guid:
                     {
                         if (!reader.TryReadGuid(out var value, out sizeNeeded))
@@ -1530,6 +1552,28 @@ namespace Zerra.Serialization
                             state.CurrentFrame.ResultObject = value;
                             break;
                         }
+#if NET6_0_OR_GREATER
+                    case CoreType.DateOnly:
+                        {
+                            if (!reader.TryReadDateOnlyList(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.TimeOnly:
+                        {
+                            if (!reader.TryReadTimeOnlyList(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+#endif
                     case CoreType.Guid:
                         {
                             if (!reader.TryReadGuidList(length, out var value, out sizeNeeded))
@@ -1936,6 +1980,28 @@ namespace Zerra.Serialization
                             state.CurrentFrame.ResultObject = value;
                             break;
                         }
+#if NET6_0_OR_GREATER
+                    case CoreType.DateOnly:
+                        {
+                            if (!reader.TryReadDateOnlyHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.TimeOnly:
+                        {
+                            if (!reader.TryReadTimeOnlyHashSet(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+#endif
                     case CoreType.Guid:
                         {
                             if (!reader.TryReadGuidHashSet(length, out var value, out sizeNeeded))
@@ -2342,6 +2408,28 @@ namespace Zerra.Serialization
                             state.CurrentFrame.ResultObject = value;
                             break;
                         }
+#if NET6_0_OR_GREATER
+                    case CoreType.DateOnly:
+                        {
+                            if (!reader.TryReadDateOnlyArray(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+                    case CoreType.TimeOnly:
+                        {
+                            if (!reader.TryReadTimeOnlyArray(length, out var value, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                return;
+                            }
+                            state.CurrentFrame.ResultObject = value;
+                            break;
+                        }
+#endif
                     case CoreType.Guid:
                         {
                             if (!reader.TryReadGuidArray(length, out var value, out sizeNeeded))

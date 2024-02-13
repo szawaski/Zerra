@@ -190,6 +190,26 @@ namespace Zerra.Serialization
                                 return value;
                             return null;
                         }
+#if NET6_0_OR_GREATER
+                    case CoreType.DateOnly:
+                    case CoreType.DateOnlyNullable:
+                        {
+                            if (s.Length == 0)
+                                return null;
+                            if (DateOnly.TryParse(s, null, DateTimeStyles.RoundtripKind, out var value))
+                                return value;
+                            return null;
+                        }
+                    case CoreType.TimeOnly:
+                    case CoreType.TimeOnlyNullable:
+                        {
+                            if (s.Length == 0)
+                                return null;
+                            if (TimeSpan.TryParse(s, out var value))
+                                return value;
+                            return null;
+                        }
+#endif
                     case CoreType.Guid:
                     case CoreType.GuidNullable:
                         {
@@ -247,6 +267,10 @@ namespace Zerra.Serialization
                 CoreType.DateTime => default(DateTime),
                 CoreType.DateTimeOffset => default(DateTimeOffset),
                 CoreType.TimeSpan => default(TimeSpan),
+#if NET6_0_OR_GREATER
+                CoreType.DateOnly => default(DateOnly),
+                CoreType.TimeOnly => default(TimeOnly),
+#endif
                 CoreType.Guid => default(Guid),
                 CoreType.BooleanNullable => null,
                 CoreType.ByteNullable => null,
@@ -264,6 +288,10 @@ namespace Zerra.Serialization
                 CoreType.DateTimeNullable => null,
                 CoreType.DateTimeOffsetNullable => null,
                 CoreType.TimeSpanNullable => null,
+#if NET6_0_OR_GREATER
+                CoreType.DateOnlyNullable => null,
+                CoreType.TimeOnlyNullable => null,
+#endif
                 CoreType.GuidNullable => null,
                 _ => throw new NotImplementedException(),
             };
@@ -290,11 +318,19 @@ namespace Zerra.Serialization
                 CoreType.DateTime => default(DateTime),
                 CoreType.DateTimeOffset => default(DateTimeOffset),
                 CoreType.TimeSpan => default(TimeSpan),
+#if NET6_0_OR_GREATER
+                CoreType.DateOnly => default(DateOnly),
+                CoreType.TimeOnly => default(TimeOnly),
+#endif
                 CoreType.Guid => default(Guid),
                 CoreType.CharNullable => null,
                 CoreType.DateTimeNullable => null,
                 CoreType.DateTimeOffsetNullable => null,
                 CoreType.TimeSpanNullable => null,
+#if NET6_0_OR_GREATER
+                CoreType.DateOnlyNullable => null,
+                CoreType.TimeOnlyNullable => null,
+#endif
                 CoreType.GuidNullable => null,
                 _ => throw new NotImplementedException(),
             };

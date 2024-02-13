@@ -1799,6 +1799,254 @@ namespace Zerra.IO
             return set;
         }
 
+#if NET6_0_OR_GREATER
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public DateOnly ReadDateOnly()
+        {
+            var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            return DateOnly.FromDayNumber(dayNumber);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public DateOnly? ReadDateOnlyNullable(bool nullFlags)
+        {
+            if (nullFlags)
+            {
+                if (buffer[position++] == nullByte)
+                    return null;
+            }
+            var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            return DateOnly.FromDayNumber(dayNumber);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public DateOnly[] ReadDateOnlyArray(int length)
+        {
+            var array = new DateOnly[length];
+            for (var i = 0; i < length; i++)
+            {
+                var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var item = DateOnly.FromDayNumber(dayNumber);
+                array[i] = item;
+            }
+            return array;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public List<DateOnly> ReadDateOnlyList(int length)
+        {
+            var list = new List<DateOnly>(length);
+            for (var i = 0; i < length; i++)
+            {
+                var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var item = DateOnly.FromDayNumber(dayNumber);
+                list.Add(item);
+            }
+            return list;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public HashSet<DateOnly> ReadDateOnlyHashSet(int length)
+        {
+#if NETSTANDARD2_0
+            var set = new HashSet<DateOnly>();
+#else
+            var set = new HashSet<DateOnly>(length);
+#endif
+            for (var i = 0; i < length; i++)
+            {
+                var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var item = DateOnly.FromDayNumber(dayNumber);
+                set.Add(item);
+            }
+            return set;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public DateOnly?[] ReadDateOnlyNullableArray(int length)
+        {
+            var array = new DateOnly?[length];
+            for (var i = 0; i < length; i++)
+            {
+                if (buffer[position++] != nullByte)
+                {
+                    var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var item = DateOnly.FromDayNumber(dayNumber);
+                    array[i] = item;
+                }
+            }
+            return array;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public List<DateOnly?> ReadDateOnlyNullableList(int length)
+        {
+            var list = new List<DateOnly?>(length);
+            for (var i = 0; i < length; i++)
+            {
+                if (buffer[position++] != nullByte)
+                {
+                    var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var item = DateOnly.FromDayNumber(dayNumber);
+                    list.Add(item);
+                }
+                else
+                {
+                    list.Add(null);
+                }
+            }
+            return list;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public HashSet<DateOnly?> ReadDateOnlyNullableHashSet(int length)
+        {
+#if NETSTANDARD2_0
+            var set = new HashSet<DateOnly?>();
+#else
+            var set = new HashSet<DateOnly?>(length);
+#endif
+            for (var i = 0; i < length; i++)
+            {
+                if (buffer[position++] != nullByte)
+                {
+                    var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var item = DateOnly.FromDayNumber(dayNumber);
+                    set.Add(item);
+                }
+                else
+                {
+                    set.Add(null);
+                }
+            }
+            return set;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public TimeOnly ReadTimeOnly()
+        {
+            var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var ticks = (long)((ulong)hi) << 32 | lo;
+            return new TimeOnly(ticks);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public TimeOnly? ReadTimeOnlyNullable(bool nullFlags)
+        {
+            if (nullFlags)
+            {
+                if (buffer[position++] == nullByte)
+                    return null;
+            }
+            var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            var ticks = (long)((ulong)hi) << 32 | lo;
+            return new TimeOnly(ticks);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public TimeOnly[] ReadTimeOnlyArray(int length)
+        {
+            var array = new TimeOnly[length];
+            for (var i = 0; i < length; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var ticks = (long)((ulong)hi) << 32 | lo;
+                var item = new TimeOnly(ticks);
+                array[i] = item;
+            }
+            return array;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public List<TimeOnly> ReadTimeOnlyList(int length)
+        {
+            var list = new List<TimeOnly>(length);
+            for (var i = 0; i < length; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var ticks = (long)((ulong)hi) << 32 | lo;
+                var item = new TimeOnly(ticks);
+                list.Add(item);
+            }
+            return list;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public HashSet<TimeOnly> ReadTimeOnlyHashSet(int length)
+        {
+#if NETSTANDARD2_0
+            var set = new HashSet<TimeOnly>();
+#else
+            var set = new HashSet<TimeOnly>(length);
+#endif
+            for (var i = 0; i < length; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var ticks = (long)((ulong)hi) << 32 | lo;
+                var item = new TimeOnly(ticks);
+                set.Add(item);
+            }
+            return set;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public TimeOnly?[] ReadTimeOnlyNullableArray(int length)
+        {
+            var array = new TimeOnly?[length];
+            for (var i = 0; i < length; i++)
+            {
+                if (buffer[position++] != nullByte)
+                {
+                    var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var ticks = (long)((ulong)hi) << 32 | lo;
+                    var item = new TimeOnly(ticks);
+                    array[i] = item;
+                }
+            }
+            return array;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public List<TimeOnly?> ReadTimeOnlyNullableList(int length)
+        {
+            var list = new List<TimeOnly?>(length);
+            for (var i = 0; i < length; i++)
+            {
+                if (buffer[position++] != nullByte)
+                {
+                    var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var ticks = (long)((ulong)hi) << 32 | lo;
+                    var item = new TimeOnly(ticks);
+                    list.Add(item);
+                }
+                else
+                {
+                    list.Add(null);
+                }
+            }
+            return list;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public HashSet<TimeOnly?> ReadTimeOnlyNullableHashSet(int length)
+        {
+#if NETSTANDARD2_0
+            var set = new HashSet<TimeOnly?>();
+#else
+            var set = new HashSet<TimeOnly?>(length);
+#endif
+            for (var i = 0; i < length; i++)
+            {
+                if (buffer[position++] != nullByte)
+                {
+                    var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    var ticks = (long)((ulong)hi) << 32 | lo;
+                    var item = new TimeOnly(ticks);
+                    set.Add(item);
+                }
+                else
+                {
+                    set.Add(null);
+                }
+            }
+            return set;
+        }
+#endif
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe Guid ReadGuid()
         {

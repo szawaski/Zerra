@@ -392,6 +392,10 @@ namespace Zerra.Serialization
                 CoreType.DateTime => reader.ReadDateTime(),
                 CoreType.DateTimeOffset => reader.ReadDateTimeOffset(),
                 CoreType.TimeSpan => reader.ReadTimeSpan(),
+#if NET6_0_OR_GREATER
+                CoreType.DateOnly => reader.ReadDateOnly(),
+                CoreType.TimeOnly => reader.ReadTimeOnly(),
+#endif
                 CoreType.Guid => reader.ReadGuid(),
                 CoreType.String => reader.ReadString(nullFlags),
                 CoreType.BooleanNullable => reader.ReadBooleanNullable(nullFlags),
@@ -410,6 +414,10 @@ namespace Zerra.Serialization
                 CoreType.DateTimeNullable => reader.ReadDateTimeNullable(nullFlags),
                 CoreType.DateTimeOffsetNullable => reader.ReadDateTimeOffsetNullable(nullFlags),
                 CoreType.TimeSpanNullable => reader.ReadTimeSpanNullable(nullFlags),
+#if NET6_0_OR_GREATER
+                CoreType.DateOnlyNullable => reader.ReadDateOnlyNullable(nullFlags),
+                CoreType.TimeOnlyNullable => reader.ReadTimeOnlyNullable(nullFlags),
+#endif
                 CoreType.GuidNullable => reader.ReadGuidNullable(nullFlags),
                 _ => throw new NotImplementedException(),
             };

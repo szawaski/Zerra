@@ -428,6 +428,24 @@ namespace Zerra.Serialization
                 return null;
             return TimeSpan.Parse(obj.valueString);
         }
+#if NET6_0_OR_GREATER
+        public static explicit operator DateOnly?(JsonObject obj)
+        {
+            if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
+                throw new InvalidCastException();
+            if (obj.valueString == null || obj.valueString == String.Empty)
+                return null;
+            return DateOnly.Parse(obj.valueString);
+        }
+        public static explicit operator TimeOnly?(JsonObject obj)
+        {
+            if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
+                throw new InvalidCastException();
+            if (obj.valueString == null || obj.valueString == String.Empty)
+                return null;
+            return TimeOnly.Parse(obj.valueString);
+        }
+#endif
         public static explicit operator Guid?(JsonObject obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
@@ -617,6 +635,30 @@ namespace Zerra.Serialization
                 array[i] = (TimeSpan)obj.valueArray[i];
             return array;
         }
+#if NET6_0_OR_GREATER
+        public static explicit operator DateOnly[]?(JsonObject obj)
+        {
+            if (obj.IsNull)
+                return null;
+            if (obj.jsonType != JsonObjectType.Array)
+                throw new InvalidCastException();
+            var array = new DateOnly[obj.valueArray!.Length];
+            for (var i = 0; i < array.Length; i++)
+                array[i] = (DateOnly)obj.valueArray[i];
+            return array;
+        }
+        public static explicit operator TimeOnly[]?(JsonObject obj)
+        {
+            if (obj.IsNull)
+                return null;
+            if (obj.jsonType != JsonObjectType.Array)
+                throw new InvalidCastException();
+            var array = new TimeOnly[obj.valueArray!.Length];
+            for (var i = 0; i < array.Length; i++)
+                array[i] = (TimeOnly)obj.valueArray[i];
+            return array;
+        }
+#endif
         public static explicit operator Guid[]?(JsonObject obj)
         {
             if (obj.IsNull)
@@ -817,6 +859,30 @@ namespace Zerra.Serialization
                 array[i] = (TimeSpan?)obj.valueArray[i];
             return array;
         }
+#if NET6_0_OR_GREATER
+        public static explicit operator DateOnly?[]?(JsonObject obj)
+        {
+            if (obj.IsNull)
+                return null;
+            if (obj.jsonType != JsonObjectType.Array)
+                throw new InvalidCastException();
+            var array = new DateOnly?[obj.valueArray!.Length];
+            for (var i = 0; i < array.Length; i++)
+                array[i] = (DateOnly?)obj.valueArray[i];
+            return array;
+        }
+        public static explicit operator TimeOnly?[]?(JsonObject obj)
+        {
+            if (obj.IsNull)
+                return null;
+            if (obj.jsonType != JsonObjectType.Array)
+                throw new InvalidCastException();
+            var array = new TimeOnly?[obj.valueArray!.Length];
+            for (var i = 0; i < array.Length; i++)
+                array[i] = (TimeOnly?)obj.valueArray[i];
+            return array;
+        }
+#endif
         public static explicit operator Guid?[]?(JsonObject obj)
         {
             if (obj.IsNull)
@@ -943,6 +1009,10 @@ namespace Zerra.Serialization
                     CoreType.DateTime => (DateTime)this,
                     CoreType.DateTimeOffset => (DateTimeOffset)this,
                     CoreType.TimeSpan => (TimeSpan)this,
+#if NET6_0_OR_GREATER
+                    CoreType.DateOnly => (DateOnly)this,
+                    CoreType.TimeOnly => (TimeOnly)this,
+#endif
                     CoreType.Guid => (Guid)this,
                     CoreType.String => (string?)this,
                     CoreType.BooleanNullable => (bool?)this,
@@ -961,6 +1031,10 @@ namespace Zerra.Serialization
                     CoreType.DateTimeNullable => (DateTime?)this,
                     CoreType.DateTimeOffsetNullable => (DateTimeOffset?)this,
                     CoreType.TimeSpanNullable => (TimeSpan?)this,
+#if NET6_0_OR_GREATER
+                    CoreType.DateOnlyNullable => (DateOnly?)this,
+                    CoreType.TimeOnlyNullable => (TimeOnly?)this,
+#endif
                     CoreType.GuidNullable => (Guid?)this,
                     _ => throw new NotImplementedException(),
                 };
