@@ -127,6 +127,18 @@ namespace Zerra.Repository.MySql
                                     columnProperty.Setter(model, value);
                                 }
                                 break;
+                            case CoreType.DateOnly:
+                                {
+                                    var value = reader.GetDateTime(i);
+                                    columnProperty.Setter(model, DateOnly.FromDateTime(value));
+                                }
+                                break;
+                            case CoreType.TimeOnly:
+                                {
+                                    var value = ((MySqlDataReader)reader).GetTimeSpan(i);
+                                    columnProperty.Setter(model, TimeOnly.FromTimeSpan(value));
+                                }
+                                break;
                             case CoreType.Guid:
                                 {
                                     var value = reader.GetGuid(i);
@@ -222,6 +234,20 @@ namespace Zerra.Repository.MySql
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
                                         columnProperty.Setter(model, (TimeSpan?)value);
+                                }
+                                break;
+                            case CoreType.DateOnlyNullable:
+                                {
+                                    var value = reader.GetValue(i);
+                                    if (value != DBNull.Value)
+                                        columnProperty.Setter(model, (DateOnly?)DateOnly.FromDateTime((DateTime)value));
+                                }
+                                break;
+                            case CoreType.TimeOnlyNullable:
+                                {
+                                    var value = reader.GetValue(i);
+                                    if (value != DBNull.Value)
+                                        columnProperty.Setter(model, (TimeOnly?)TimeOnly.FromTimeSpan((TimeSpan)value));
                                 }
                                 break;
                             case CoreType.GuidNullable:
@@ -522,6 +548,18 @@ namespace Zerra.Repository.MySql
                     case CoreType.TimeSpanNullable:
                         writer.Write('\'');
                         writer.Write((TimeSpan)value, TimeFormat.MySql);
+                        writer.Write('\'');
+                        return;
+                    case CoreType.DateOnly:
+                    case CoreType.DateOnlyNullable:
+                        writer.Write('\'');
+                        writer.Write((DateOnly)value, DateTimeFormat.MySql);
+                        writer.Write('\'');
+                        return;
+                    case CoreType.TimeOnly:
+                    case CoreType.TimeOnlyNullable:
+                        writer.Write('\'');
+                        writer.Write((TimeOnly)value, TimeFormat.MySql);
                         writer.Write('\'');
                         return;
                     case CoreType.Guid:
@@ -1455,6 +1493,14 @@ namespace Zerra.Repository.MySql
                     case CoreType.TimeSpanNullable:
                         _ = sb.Append("time(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
                         break;
+                    case CoreType.DateOnly:
+                    case CoreType.DateOnlyNullable:
+                        _ = sb.Append("date");
+                        break;
+                    case CoreType.TimeOnly:
+                    case CoreType.TimeOnlyNullable:
+                        _ = sb.Append("time(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
+                        break;
                     case CoreType.Guid:
                     case CoreType.GuidNullable:
                         _ = sb.Append("char(32)");
@@ -1540,6 +1586,12 @@ namespace Zerra.Repository.MySql
                     case CoreType.TimeSpanNullable:
                         _ = sb.Append("CONVERT(timestamp, 0)");
                         break;
+                    case CoreType.DateOnly:
+                    case CoreType.DateOnlyNullable:
+                    case CoreType.TimeOnly:
+                    case CoreType.TimeOnlyNullable:
+                        _ = sb.Append("CONVERT(timestamp, 0)");
+                        break;
                     case CoreType.Guid:
                     case CoreType.GuidNullable:
                         _ = sb.Append("UUID()");
@@ -1573,6 +1625,8 @@ namespace Zerra.Repository.MySql
                 case "real":
                 case "float":
                 case "double":
+
+                case "date":
 
                 case "text":
                     _ = sb.Append(sqlColumn.DataType);
@@ -1622,6 +1676,8 @@ namespace Zerra.Repository.MySql
                     case CoreType.DateTime: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == false;
                     case CoreType.DateTimeOffset: return sqlColumn.DataType == "timestamp" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.TimeSpan: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.DateOnly: return sqlColumn.DataType == "date" && sqlColumn.IsNullable == false;
+                    case CoreType.TimeOnly: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.Guid: return sqlColumn.DataType == "char" && sqlColumn.IsNullable == false && sqlColumn.CharacterMaximumLength == 32;
 
                     case CoreType.BooleanNullable: return sqlColumn.DataType == "bit" && sqlColumn.IsNullable == true;
@@ -1636,6 +1692,8 @@ namespace Zerra.Repository.MySql
                     case CoreType.DateTimeNullable: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == true;
                     case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "timestamp" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.DateOnlyNullable: return sqlColumn.DataType == "date" && sqlColumn.IsNullable == true;
+                    case CoreType.TimeOnlyNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.GuidNullable: return sqlColumn.DataType == "char" && sqlColumn.IsNullable == true && sqlColumn.CharacterMaximumLength == 32;
 
                     case CoreType.String:

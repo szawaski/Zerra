@@ -19,7 +19,7 @@ Zerra.Repository.MsSql.MsSqlDataContext
         <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, SQL</PackageTags>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <LangVersion>10.0</LangVersion>
-        <Version>4.9.0</Version>
+        <Version>4.10.0</Version>
     </PropertyGroup>
 
     <ItemGroup>
@@ -28,7 +28,7 @@ Zerra.Repository.MsSql.MsSqlDataContext
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
+        <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
     </ItemGroup>
 
     <ItemGroup>

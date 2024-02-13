@@ -28,6 +28,12 @@ namespace Zerra.Repository.Test
         public DateTimeOffset DateTimeOffsetThing { get; set; }
         [StoreProperties(true, 6)]
         public TimeSpan TimeSpanThing { get; set; }
+#if NET6_0_OR_GREATER
+        [StoreProperties(true, 6)]
+        public DateOnly DateOnlyThing { get; set; }
+        [StoreProperties(true, 6)]
+        public TimeOnly TimeOnlyThing { get; set; }
+#endif
         public Guid GuidThing { get; set; }
 
         public byte? ByteNullableThing { get; set; }
@@ -44,6 +50,12 @@ namespace Zerra.Repository.Test
         public DateTimeOffset? DateTimeOffsetNullableThing { get; set; }
         [StoreProperties(false, 6)]
         public TimeSpan? TimeSpanNullableThing { get; set; }
+#if NET6_0_OR_GREATER
+        [StoreProperties(false, 6)]
+        public DateOnly? DateOnlyNullableThing { get; set; }
+        [StoreProperties(false, 6)]
+        public TimeOnly? TimeOnlyNullableThing { get; set; }
+#endif
         public Guid? GuidNullableThing { get; set; }
 
         public byte? ByteNullableThingNull { get; set; }
@@ -60,6 +72,12 @@ namespace Zerra.Repository.Test
         public DateTimeOffset? DateTimeOffsetNullableThingNull { get; set; }
         [StoreProperties(false, 6)]
         public TimeSpan? TimeSpanNullableThingNull { get; set; }
+#if NET6_0_OR_GREATER
+        [StoreProperties(false, 6)]
+        public DateOnly? DateOnlyNullableThingNull { get; set; }
+        [StoreProperties(false, 6)]
+        public TimeOnly? TimeOnlyNullableThingNull { get; set; }
+#endif
         public Guid? GuidNullableThingNull { get; set; }
 
         public string StringThing { get; set; }
