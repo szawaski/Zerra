@@ -1054,6 +1054,52 @@ namespace Zerra.Serialization
                         }
                     }
                     return;
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnlyNullable:
+                    {
+                        var first = true;
+                        foreach (var value in (IEnumerable<DateOnly?>)values)
+                        {
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
+                            if (value.HasValue)
+                            {
+                                writer.Write('\"');
+                                writer.Write(value.Value, DateTimeFormat.ISO8601);
+                                writer.Write('\"');
+                            }
+                            else
+                            {
+                                writer.Write("null");
+                            }
+                        }
+                    }
+                    return;
+                case CoreType.TimeOnlyNullable:
+                    {
+                        var first = true;
+                        foreach (var value in (IEnumerable<TimeOnly?>)values)
+                        {
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
+                            if (value.HasValue)
+                            {
+                                writer.Write('\"');
+                                writer.Write(value.Value, TimeFormat.ISO8601);
+                                writer.Write('\"');
+                            }
+                            else
+                            {
+                                writer.Write("null");
+                            }
+                        }
+                    }
+                    return;
+#endif
                 case CoreType.GuidNullable:
                     {
                         var first = true;

@@ -540,6 +540,22 @@ namespace Zerra.Serialization
                         return reader.ReadTimeSpanHashSet(length);
                     else
                         return reader.ReadTimeSpanArray(length);
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnly:
+                    if (asList)
+                        return reader.ReadDateOnlyList(length);
+                    else if (asSet)
+                        return reader.ReadDateOnlyHashSet(length);
+                    else
+                        return reader.ReadDateOnlyArray(length);
+                case CoreType.TimeOnly:
+                    if (asList)
+                        return reader.ReadTimeOnlyList(length);
+                    else if (asSet)
+                        return reader.ReadTimeOnlyHashSet(length);
+                    else
+                        return reader.ReadTimeOnlyArray(length);
+#endif
                 case CoreType.Guid:
                     if (asList)
                         return reader.ReadGuidList(length);
@@ -668,6 +684,22 @@ namespace Zerra.Serialization
                         return reader.ReadTimeSpanNullableHashSet(length);
                     else
                         return reader.ReadTimeSpanNullableArray(length);
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnlyNullable:
+                    if (asList)
+                        return reader.ReadDateOnlyNullableList(length);
+                    else if (asSet)
+                        return reader.ReadDateOnlyNullableHashSet(length);
+                    else
+                        return reader.ReadDateOnlyNullableArray(length);
+                case CoreType.TimeOnlyNullable:
+                    if (asList)
+                        return reader.ReadTimeOnlyNullableList(length);
+                    else if (asSet)
+                        return reader.ReadTimeOnlyNullableHashSet(length);
+                    else
+                        return reader.ReadTimeOnlyNullableArray(length);
+#endif
                 case CoreType.GuidNullable:
                     if (asList)
                         return reader.ReadGuidNullableList(length);

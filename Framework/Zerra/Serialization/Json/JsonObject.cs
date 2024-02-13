@@ -410,7 +410,7 @@ namespace Zerra.Serialization
                 throw new InvalidCastException();
             if (obj.valueString == null || obj.valueString == String.Empty)
                 return null;
-            return DateTime.Parse(obj.valueString);
+            return DateTime.Parse(obj.valueString, null, DateTimeStyles.RoundtripKind);
         }
         public static explicit operator DateTimeOffset?(JsonObject obj)
         {

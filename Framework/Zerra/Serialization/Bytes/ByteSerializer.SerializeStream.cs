@@ -616,6 +616,22 @@ namespace Zerra.Serialization
                         return;
                     }
                     break;
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnlyNullable:
+                    if (!writer.TryWrite((DateOnly?)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return;
+                    }
+                    break;
+                case CoreType.TimeOnlyNullable:
+                    if (!writer.TryWrite((TimeOnly?)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return;
+                    }
+                    break;
+#endif
                 case CoreType.GuidNullable:
                     if (!writer.TryWrite((Guid?)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {

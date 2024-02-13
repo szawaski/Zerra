@@ -189,16 +189,26 @@ namespace Zerra.Serialization
                             break;
                         case CoreType.DateTime:
                         case CoreType.DateTimeNullable:
-                            writer.Write((DateTime)value, DateTimeFormat.ISO8601);
+                            writer.Write(WebUtility.UrlEncode(((DateTime)value).ToString("yyyy-MM-ddTHH:mm:ss.fffffff+00:00")));
                             break;
                         case CoreType.DateTimeOffset:
                         case CoreType.DateTimeOffsetNullable:
-                            writer.Write((DateTimeOffset)value, DateTimeFormat.ISO8601);
+                            writer.Write(WebUtility.UrlEncode(((DateTimeOffset)value).ToString("yyyy-MM-ddTHH:mm:ss.fffffff+00:00")));
                             break;
                         case CoreType.TimeSpan:
                         case CoreType.TimeSpanNullable:
                             writer.Write((TimeSpan)value, TimeFormat.ISO8601);
                             break;
+#if NET6_0_OR_GREATER
+                        case CoreType.DateOnly:
+                        case CoreType.DateOnlyNullable:
+                            writer.Write((DateOnly)value, DateTimeFormat.ISO8601);
+                            break;
+                        case CoreType.TimeOnly:
+                        case CoreType.TimeOnlyNullable:
+                            writer.Write((TimeOnly)value, TimeFormat.ISO8601);
+                            break;
+#endif
                         case CoreType.Guid:
                         case CoreType.GuidNullable:
                             writer.Write((Guid)value);

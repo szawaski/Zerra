@@ -93,6 +93,10 @@ namespace Zerra.Test
                 DateTimeThing = DateTime.UtcNow,
                 DateTimeOffsetThing = DateTimeOffset.UtcNow.AddDays(1),
                 TimeSpanThing = DateTime.UtcNow.TimeOfDay,
+#if NET6_0_OR_GREATER
+                DateOnlyThing = DateOnly.FromDateTime(DateTime.UtcNow),
+                TimeOnlyThing = TimeOnly.FromDateTime(DateTime.UtcNow),
+#endif
                 GuidThing = Guid.NewGuid(),
 
                 BooleanThingNullable = true,
@@ -111,6 +115,10 @@ namespace Zerra.Test
                 DateTimeThingNullable = DateTime.UtcNow.AddMonths(1),
                 DateTimeOffsetThingNullable = DateTimeOffset.UtcNow.AddMonths(1).AddDays(1),
                 TimeSpanThingNullable = DateTime.UtcNow.AddHours(1).TimeOfDay,
+#if NET6_0_OR_GREATER
+                DateOnlyThingNullable = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)),
+                TimeOnlyThingNullable = TimeOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)),
+#endif
                 GuidThingNullable = Guid.NewGuid(),
             };
             return model;
@@ -134,9 +142,13 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DoubleThing, model2.DoubleThing);
             Assert.AreEqual(model1.DecimalThing, model2.DecimalThing);
             Assert.AreEqual(model1.CharThing, model2.CharThing);
-            Assert.AreEqual(model1.DateTimeThing, model2.DateTimeThing);
+            Assert.AreEqual(model1.DateTimeThing.ToUniversalTime(), model2.DateTimeThing.ToUniversalTime());
             Assert.AreEqual(model1.DateTimeOffsetThing, model2.DateTimeOffsetThing);
             Assert.AreEqual(model1.TimeSpanThing, model2.TimeSpanThing);
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThing, model2.DateOnlyThing);
+            Assert.AreEqual(model1.TimeOnlyThing, model2.TimeOnlyThing);
+#endif
             Assert.AreEqual(model1.GuidThing, model2.GuidThing);
 
             Assert.AreEqual(model1.BooleanThingNullable, model2.BooleanThingNullable);
@@ -152,9 +164,13 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DoubleThingNullable, model2.DoubleThingNullable);
             Assert.AreEqual(model1.DecimalThingNullable, model2.DecimalThingNullable);
             Assert.AreEqual(model1.CharThingNullable, model2.CharThingNullable);
-            Assert.AreEqual(model1.DateTimeThingNullable, model2.DateTimeThingNullable);
+            Assert.AreEqual(model1.DateTimeThingNullable?.ToUniversalTime(), model2.DateTimeThingNullable?.ToUniversalTime());
             Assert.AreEqual(model1.DateTimeOffsetThingNullable, model2.DateTimeOffsetThingNullable);
             Assert.AreEqual(model1.TimeSpanThingNullable, model2.TimeSpanThingNullable);
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThingNullable, model2.DateOnlyThingNullable);
+            Assert.AreEqual(model1.TimeOnlyThingNullable, model2.TimeOnlyThingNullable);
+#endif
             Assert.AreEqual(model1.GuidThingNullable, model2.GuidThingNullable);
         }
         public static void AssertAreEqual(CoreTypesModel model1, CoreTypesAsStringsModel model2)
@@ -179,6 +195,10 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DateTimeThing.ToString(), model2.DateTimeThing);
             Assert.AreEqual(model1.DateTimeOffsetThing.ToString(), model2.DateTimeOffsetThing);
             Assert.AreEqual(model1.TimeSpanThing.ToString(), model2.TimeSpanThing);
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThing.ToString(), model2.DateOnlyThing);
+            Assert.AreEqual(model1.TimeOnlyThing.ToString(), model2.TimeOnlyThing);
+#endif
             Assert.AreEqual(model1.GuidThing.ToString(), model2.GuidThing);
 
             Assert.AreEqual(model1.BooleanThingNullable?.ToString(), model2.BooleanThingNullable);
@@ -197,6 +217,10 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DateTimeThingNullable?.ToString(), model2.DateTimeThingNullable);
             Assert.AreEqual(model1.DateTimeOffsetThingNullable?.ToString(), model2.DateTimeOffsetThingNullable);
             Assert.AreEqual(model1.TimeSpanThingNullable?.ToString(), model2.TimeSpanThingNullable);
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThingNullable.ToString(), model2.DateOnlyThingNullable);
+            Assert.AreEqual(model1.TimeOnlyThingNullable.ToString(), model2.TimeOnlyThingNullable);
+#endif
             Assert.AreEqual(model1.GuidThingNullable?.ToString(), model2.GuidThingNullable);
         }
 
@@ -1713,7 +1737,7 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DateTimeOffsetThing, DateTimeOffset.Parse(model2.DateTimeOffsetThing, null, DateTimeStyles.RoundtripKind));//extra zeros removed at end of fractional sectons
             Assert.AreEqual(model1.TimeSpanThing, TimeSpan.Parse(model2.TimeSpanThing));
 #if NET6_0_OR_GREATER
-            Assert.AreEqual(model1.DateOnlyThing, DateOnly.Parse(model2.DateOnlyThing, null, DateTimeStyles.RoundtripKind)); //extra zeros removed at end of fractional sectons
+            Assert.AreEqual(model1.DateOnlyThing, DateOnly.Parse(model2.DateOnlyThing)); //extra zeros removed at end of fractional sectons
             Assert.AreEqual(model1.TimeOnlyThing, TimeOnly.Parse(model2.TimeOnlyThing));
 #endif
             Assert.AreEqual(model1.GuidThing, Guid.Parse(model2.GuidThing));
@@ -1731,11 +1755,11 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DoubleThingNullable?.ToString(), model2.DoubleThingNullable);
             Assert.AreEqual(model1.DecimalThingNullable?.ToString(), model2.DecimalThingNullable);
             Assert.AreEqual(model1.CharThingNullable?.ToString(), model2.CharThingNullable);
-            Assert.AreEqual(model1.DateTimeThingNullable, DateTime.Parse(model2.DateTimeThingNullable));//extra zeros removed at end of fractional sectons
+            Assert.AreEqual(model1.DateTimeThingNullable, DateTime.Parse(model2.DateTimeThingNullable, null, DateTimeStyles.RoundtripKind));//extra zeros removed at end of fractional sectons
             Assert.AreEqual(model1.DateTimeOffsetThingNullable, DateTimeOffset.Parse(model2.DateTimeOffsetThingNullable));//extra zeros removed at end of fractional sectons
             Assert.AreEqual(model1.TimeSpanThingNullable, TimeSpan.Parse(model2.TimeSpanThingNullable));
 #if NET6_0_OR_GREATER
-            Assert.AreEqual(model1.DateOnlyThingNullable, DateOnly.Parse(model2.DateOnlyThingNullable, null, DateTimeStyles.RoundtripKind)); //extra zeros removed at end of fractional sectons
+            Assert.AreEqual(model1.DateOnlyThingNullable, DateOnly.Parse(model2.DateOnlyThingNullable)); //extra zeros removed at end of fractional sectons
             Assert.AreEqual(model1.TimeOnlyThingNullable, TimeOnly.Parse(model2.TimeOnlyThingNullable));
 #endif
             Assert.AreEqual(model1.GuidThingNullable, Guid.Parse(model2.GuidThingNullable));

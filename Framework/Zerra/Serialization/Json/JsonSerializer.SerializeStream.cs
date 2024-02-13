@@ -1854,6 +1854,92 @@ namespace Zerra.Serialization
                             state.CurrentFrame.State = 1;
                             break;
                         }
+#if NET6_0_OR_GREATER
+                    case CoreType.DateOnlyNullable:
+                        {
+                            var value = (DateOnly?)state.CurrentFrame.Enumerator!.Current;
+                            if (value.HasValue)
+                            {
+                                if (state.CurrentFrame.State == 3)
+                                {
+                                    if (!writer.TryWrite('\"', out sizeNeeded))
+                                    {
+                                        state.CharsNeeded = sizeNeeded;
+                                        return;
+                                    }
+                                    state.CurrentFrame.State = 4;
+                                }
+
+                                if (state.CurrentFrame.State == 4)
+                                {
+                                    if (!writer.TryWrite(value.Value, DateTimeFormat.ISO8601, out sizeNeeded))
+                                    {
+                                        state.CharsNeeded = sizeNeeded;
+                                        return;
+                                    }
+                                    state.CurrentFrame.State = 5;
+                                }
+
+                                if (!writer.TryWrite('\"', out sizeNeeded))
+                                {
+                                    state.CharsNeeded = sizeNeeded;
+                                    return;
+                                }
+                            }
+                            else
+                            {
+                                if (!writer.TryWrite("null", out sizeNeeded))
+                                {
+                                    state.CharsNeeded = sizeNeeded;
+                                    return;
+                                }
+                            }
+                            state.CurrentFrame.State = 1;
+                            break;
+                        }
+                    case CoreType.TimeOnlyNullable:
+                        {
+                            var value = (TimeOnly?)state.CurrentFrame.Enumerator!.Current;
+                            if (value.HasValue)
+                            {
+                                if (state.CurrentFrame.State == 3)
+                                {
+                                    if (!writer.TryWrite('\"', out sizeNeeded))
+                                    {
+                                        state.CharsNeeded = sizeNeeded;
+                                        return;
+                                    }
+                                    state.CurrentFrame.State = 4;
+                                }
+
+                                if (state.CurrentFrame.State == 4)
+                                {
+                                    if (!writer.TryWrite(value.Value, TimeFormat.ISO8601, out sizeNeeded))
+                                    {
+                                        state.CharsNeeded = sizeNeeded;
+                                        return;
+                                    }
+                                    state.CurrentFrame.State = 5;
+                                }
+
+                                if (!writer.TryWrite('\"', out sizeNeeded))
+                                {
+                                    state.CharsNeeded = sizeNeeded;
+                                    return;
+                                }
+                            }
+                            else
+                            {
+                                if (!writer.TryWrite("null", out sizeNeeded))
+                                {
+                                    state.CharsNeeded = sizeNeeded;
+                                    return;
+                                }
+                            }
+                            state.CurrentFrame.State = 1;
+                            break;
+                        }
+#endif
                     case CoreType.GuidNullable:
                         {
                             var value = (Guid?)state.CurrentFrame.Enumerator!.Current;

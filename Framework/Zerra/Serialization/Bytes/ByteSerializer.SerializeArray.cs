@@ -346,6 +346,14 @@ namespace Zerra.Serialization
                 case CoreType.TimeSpanNullable:
                     writer.Write((TimeSpan?)value, nullFlags);
                     return;
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnlyNullable:
+                    writer.Write((DateOnly?)value, nullFlags);
+                    return;
+                case CoreType.TimeOnlyNullable:
+                    writer.Write((TimeOnly?)value, nullFlags);
+                    return;
+#endif
                 case CoreType.GuidNullable:
                     writer.Write((Guid?)value, nullFlags);
                     return;
@@ -471,6 +479,14 @@ namespace Zerra.Serialization
                 case CoreType.TimeSpanNullable:
                     writer.Write((IEnumerable<TimeSpan?>)values, length);
                     return;
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnlyNullable:
+                    writer.Write((IEnumerable<DateOnly?>)values, length);
+                    return;
+                case CoreType.TimeOnlyNullable:
+                    writer.Write((IEnumerable<TimeOnly?>)values, length);
+                    return;
+#endif
                 case CoreType.GuidNullable:
                     writer.Write((IEnumerable<Guid?>)values, length);
                     return;

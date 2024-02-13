@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Linq;
 using System.Reflection;
 using Zerra.Collections;
 
@@ -125,17 +126,19 @@ namespace Zerra.Reflection
             return Guid.Parse(obj.ToString() ?? String.Empty);
         }
 
-        private static DateOnly ConvertToDateOnly(object obj)
-        {
-            if (obj == null)
-                return DateOnly.MinValue;
-            return DateOnly.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
-        }
+
         private static TimeSpan ConvertToTimeSpan(object obj)
         {
             if (obj == null)
                 return TimeSpan.MinValue;
             return TimeSpan.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
+        }
+#if NET6_0_OR_GREATER
+        private static DateOnly ConvertToDateOnly(object obj)
+        {
+            if (obj == null)
+                return DateOnly.MinValue;
+            return DateOnly.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
         }
         private static TimeOnly ConvertToTimeOnly(object obj)
         {
@@ -143,6 +146,7 @@ namespace Zerra.Reflection
                 return TimeOnly.MinValue;
             return TimeOnly.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
         }
+#endif
 
         private static DateTimeOffset ConvertToDateTimeOffset(object obj)
         {
@@ -168,7 +172,7 @@ namespace Zerra.Reflection
             var method = methodDetailsByType.GetOrAdd(key, (_) =>
             {
                 var typeDetails = GetTypeDetail(type);
-                foreach (var methodDetail in typeDetails.MethodDetails)
+                foreach (var methodDetail in typeDetails.MethodDetails.OrderBy(x => x.ParametersInfo.Count))
                 {
                     if (methodDetail.Name == name && (parameterTypes == null || methodDetail.ParametersInfo.Count == parameterTypes.Length))
                     {

@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System;
+
 namespace Zerra.Test
 {
     public class CoreTypesAsStringsModel
@@ -22,6 +24,10 @@ namespace Zerra.Test
         public string DateTimeThing { get; set; }
         public string DateTimeOffsetThing { get; set; }
         public string TimeSpanThing { get; set; }
+#if NET6_0_OR_GREATER
+        public string DateOnlyThing { get; set; }
+        public string TimeOnlyThing { get; set; }
+#endif
         public string GuidThing { get; set; }
 
         public string BooleanThingNullable { get; set; }
@@ -40,6 +46,10 @@ namespace Zerra.Test
         public string DateTimeThingNullable { get; set; }
         public string DateTimeOffsetThingNullable { get; set; }
         public string TimeSpanThingNullable { get; set; }
+#if NET6_0_OR_GREATER
+        public string DateOnlyThingNullable { get; set; }
+        public string TimeOnlyThingNullable { get; set; }
+#endif
         public string GuidThingNullable { get; set; }
     }
 }

@@ -208,10 +208,10 @@ namespace Zerra.IO
                             case DateTimeKind.Local:
                                 {
                                     var offset = (DateTimeOffset)value;
-                                    if (offset.Offset.Hours > 0)
-                                        buffer[position++] = '+';
-                                    else
+                                    if (offset.Offset.Hours < 0)
                                         buffer[position++] = '-';
+                                    else
+                                        buffer[position++] = '+';
                                     if (offset.Offset.Hours < 10)
                                         buffer[position++] = '0';
                                     WriteInt64(offset.Offset.Hours < 0 ? -offset.Offset.Hours : offset.Offset.Hours);
@@ -475,10 +475,10 @@ namespace Zerra.IO
                             WriteInt64(fraction);
                         }
 
-                        if (value.Offset.Hours > 0)
-                            buffer[position++] = '+';
-                        else
+                        if (value.Offset.Hours < 0)
                             buffer[position++] = '-';
+                        else
+                            buffer[position++] = '+';
                         if (value.Offset.Hours < 10)
                             buffer[position++] = '0';
                         WriteInt64(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
@@ -542,10 +542,10 @@ namespace Zerra.IO
                             WriteInt64(fraction);
                         }
 
-                        if (value.Offset.Hours > 0)
-                            buffer[position++] = '+';
-                        else
+                        if (value.Offset.Hours < 0)
                             buffer[position++] = '-';
+                        else
+                            buffer[position++] = '+';
                         if (value.Offset.Hours < 10)
                             buffer[position++] = '0';
                         WriteInt64(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
@@ -676,10 +676,10 @@ namespace Zerra.IO
                         }
 
 
-                        if (value.Offset.Hours > 0)
-                            buffer[position++] = '+';
-                        else
+                        if (value.Offset.Hours < 0)
                             buffer[position++] = '-';
+                        else
+                            buffer[position++] = '+';
                         if (value.Offset.Hours < 10)
                             buffer[position++] = '0';
                         WriteInt64(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);

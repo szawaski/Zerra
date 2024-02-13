@@ -196,7 +196,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (DateOnly.TryParse(s, null, DateTimeStyles.RoundtripKind, out var value))
+                            if (DateOnly.TryParse(s, out var value))
                                 return value;
                             return null;
                         }
@@ -205,7 +205,7 @@ namespace Zerra.Serialization
                         {
                             if (s.Length == 0)
                                 return null;
-                            if (TimeSpan.TryParse(s, out var value))
+                            if (TimeOnly.TryParse(s, out var value))
                                 return value;
                             return null;
                         }

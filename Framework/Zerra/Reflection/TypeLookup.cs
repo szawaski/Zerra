@@ -80,6 +80,10 @@ namespace Zerra.Reflection
             typeof(DateTime),
             typeof(DateTimeOffset),
             typeof(TimeSpan),
+#if NET6_0_OR_GREATER
+            typeof(DateOnly),
+            typeof(TimeOnly),
+#endif
             typeof(Guid),
 
             typeof(string),
@@ -103,6 +107,10 @@ namespace Zerra.Reflection
             typeof(DateTime),
             typeof(DateTimeOffset),
             typeof(TimeSpan),
+#if NET6_0_OR_GREATER
+            typeof(DateOnly),
+            typeof(TimeOnly),
+#endif
             typeof(Guid),
 
             typeof(string),
@@ -123,6 +131,10 @@ namespace Zerra.Reflection
             typeof(DateTime?),
             typeof(DateTimeOffset?),
             typeof(TimeSpan?),
+#if NET6_0_OR_GREATER
+            typeof(DateOnly?),
+            typeof(TimeOnly?),
+#endif
             typeof(Guid?)
         };
 
