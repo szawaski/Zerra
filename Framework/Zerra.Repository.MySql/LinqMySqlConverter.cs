@@ -932,7 +932,7 @@ namespace Zerra.Repository.MySql
         }
         protected override void GenerateFrom(ModelDetail modelDetail, ref CharWriter sb)
         {
-            sb.Write("FROM`");
+            sb.Write(" FROM`");
             sb.Write(modelDetail.DataSourceEntityName);
             sb.Write('`');
             AppendLineBreak(ref sb);

@@ -111,13 +111,13 @@ namespace Zerra.Repository.MySql
                                 break;
                             case CoreType.DateTime:
                                 {
-                                    var value = reader.GetDateTime(i);
+                                    var value = new DateTime(reader.GetDateTime(i).Ticks, DateTimeKind.Utc);
                                     columnProperty.Setter(model, value);
                                 }
                                 break;
                             case CoreType.DateTimeOffset:
                                 {
-                                    var value = new DateTimeOffset(reader.GetDateTime(i));
+                                    var value = new DateTimeOffset(new DateTime(reader.GetDateTime(i).Ticks, DateTimeKind.Utc));
                                     columnProperty.Setter(model, value);
                                 }
                                 break;
@@ -219,14 +219,14 @@ namespace Zerra.Repository.MySql
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (DateTime?)value);
+                                        columnProperty.Setter(model, (DateTime?)new DateTime(((DateTime)value).Ticks, DateTimeKind.Utc));
                                 }
                                 break;
                             case CoreType.DateTimeOffsetNullable:
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (DateTimeOffset?)new DateTimeOffset((DateTime)value));
+                                        columnProperty.Setter(model, (DateTimeOffset?)new DateTimeOffset(new DateTime(((DateTime)value).Ticks, DateTimeKind.Utc)));
                                 }
                                 break;
                             case CoreType.TimeSpanNullable:
@@ -535,13 +535,13 @@ namespace Zerra.Repository.MySql
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
                         writer.Write('\'');
-                        writer.Write((DateTime)value, DateTimeFormat.MySql);
+                        writer.Write(((DateTime)value).ToUniversalTime(), DateTimeFormat.MySql);
                         writer.Write('\'');
                         return;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
                         writer.Write('\'');
-                        writer.Write((DateTimeOffset)value, DateTimeFormat.MySql);
+                        writer.Write(((DateTimeOffset)value).ToUniversalTime(), DateTimeFormat.MySql);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeSpan:
@@ -1584,13 +1584,11 @@ namespace Zerra.Repository.MySql
                     case CoreType.DateTimeOffsetNullable:
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:
-                        _ = sb.Append("CONVERT(timestamp, 0)");
-                        break;
                     case CoreType.DateOnly:
                     case CoreType.DateOnlyNullable:
                     case CoreType.TimeOnly:
                     case CoreType.TimeOnlyNullable:
-                        _ = sb.Append("CONVERT(timestamp, 0)");
+                        _ = sb.Append("CONVERT(datetime, 0)");
                         break;
                     case CoreType.Guid:
                     case CoreType.GuidNullable:
@@ -1636,7 +1634,6 @@ namespace Zerra.Repository.MySql
                     _ = sb.Append(sqlColumn.DataType).Append('(').Append(sqlColumn.NumericPrecision ?? 0).Append(", ").Append(sqlColumn.NumericScale ?? 0).Append(')');
                     break;
                 case "datetime":
-                case "timestamp":
                 case "time":
                     _ = sb.Append(sqlColumn.DataType).Append('(').Append(sqlColumn.DatetimePrecision ?? 0).Append(')');
                     break;
@@ -1674,7 +1671,7 @@ namespace Zerra.Repository.MySql
                     case CoreType.Decimal: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == false && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
                     case CoreType.Char: return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == false && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
                     case CoreType.DateTime: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == false;
-                    case CoreType.DateTimeOffset: return sqlColumn.DataType == "timestamp" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.DateTimeOffset: return sqlColumn.DataType == "datetime" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.TimeSpan: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.DateOnly: return sqlColumn.DataType == "date" && sqlColumn.IsNullable == false;
                     case CoreType.TimeOnly: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
@@ -1690,7 +1687,7 @@ namespace Zerra.Repository.MySql
                     case CoreType.DecimalNullable: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == true && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
                     case CoreType.CharNullable: return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == true && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
                     case CoreType.DateTimeNullable: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == true;
-                    case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "timestamp" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "datetime" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.DateOnlyNullable: return sqlColumn.DataType == "date" && sqlColumn.IsNullable == true;
                     case CoreType.TimeOnlyNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);

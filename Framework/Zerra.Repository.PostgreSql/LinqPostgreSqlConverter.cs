@@ -924,7 +924,7 @@ namespace Zerra.Repository.PostgreSql
         }
         protected override void GenerateFrom(ModelDetail modelDetail, ref CharWriter sb)
         {
-            sb.Write("FROM ");
+            sb.Write(" FROM ");
             sb.Write(modelDetail.DataSourceEntityName.ToLower());
             AppendLineBreak(ref sb);
         }
