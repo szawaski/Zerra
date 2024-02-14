@@ -11,32 +11,28 @@ using Zerra.Reflection;
 
 namespace Zerra.Repository
 {
-    public sealed class EventStoreEntityAttribute : BaseGenerateAttribute
+    public sealed class EventStoreEntityAttribute<T> : BaseGenerateAttribute
     {
-        private readonly Type entityType;
         private readonly bool? eventLinking;
         private readonly bool? queryLinking;
         private readonly bool? persistLinking;
 
-        public EventStoreEntityAttribute(Type entityType)
+        public EventStoreEntityAttribute()
         {
-            this.entityType = entityType;
             this.eventLinking = null;
             this.queryLinking = null;
             this.persistLinking = null;
         }
 
-        public EventStoreEntityAttribute(Type entityType, bool linking)
+        public EventStoreEntityAttribute(bool linking)
         {
-            this.entityType = entityType;
             this.eventLinking = linking;
             this.queryLinking = linking;
             this.persistLinking = linking;
         }
 
-        public EventStoreEntityAttribute(Type entityType, bool eventLinking, bool queryLinking, bool persistLinking)
+        public EventStoreEntityAttribute(bool eventLinking, bool queryLinking, bool persistLinking)
         {
-            this.entityType = entityType;
             this.eventLinking = eventLinking;
             this.queryLinking = queryLinking;
             this.persistLinking = persistLinking;
@@ -47,13 +43,15 @@ namespace Zerra.Repository
         private static readonly Type dataContextType = typeof(DataContext);
         public override Type Generate(Type type)
         {
+            var entityType = typeof(T);
+
             var entityTypeDetail = TypeAnalyzer.GetTypeDetail(entityType);
             if (!entityTypeDetail.Attributes.Select(x => x.GetType()).Contains(entityAttributeType))
-                throw new Exception($"{nameof(TransactStoreEntityAttribute)} {nameof(entityType)} argument {type.Name} does not inherit {entityAttributeType.Name}");
+                throw new Exception($"{nameof(EventStoreEntityAttribute<T>)} {nameof(entityType)} argument {type.Name} does not inherit {entityAttributeType.Name}");
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
             if (!typeDetail.BaseTypes.Contains(dataContextType))
-                throw new Exception($"{nameof(TransactStoreEntityAttribute)} is not placed on a {dataContextType.Name}");
+                throw new Exception($"{nameof(EventStoreEntityAttribute<T>)} is not placed on a {dataContextType.Name}");
 
             var baseType = TypeAnalyzer.GetGenericType(providerType, type, entityType);
 

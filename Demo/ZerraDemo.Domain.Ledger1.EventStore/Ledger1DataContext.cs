@@ -4,7 +4,7 @@ using ZerraDemo.Domain.Ledger1.DataModels;
 
 namespace ZerraDemo.Domain.Ledger1.EventStore
 {
-    [TransactStoreEntity(typeof(Ledger1AccountDataModel))]
+    [TransactStoreEntity<Ledger1AccountDataModel>]
     public class Ledger1DataContext : DataContextSelector
     {
         protected override ICollection<DataContext> LoadDataContexts()
