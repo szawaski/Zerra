@@ -1,5 +1,8 @@
-﻿namespace Zerra.Repository
+﻿using System;
+
+namespace Zerra.Repository
 {
+    [Flags]
     public enum DataStoreGenerationType
     {
         None = 0,
