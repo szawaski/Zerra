@@ -6,8 +6,8 @@ using Zerra.Repository.PostgreSql;
 
 namespace Zerra.Repository.Test
 {
-    [TransactStoreEntity(typeof(PostgreSqlTestTypesModel))]
-    [TransactStoreEntity(typeof(PostgreSqlTestRelationsModel))]
+    [TransactStoreEntity<PostgreSqlTestTypesModel>]
+    [TransactStoreEntity<PostgreSqlTestRelationsModel>]
     public class PostgreSqlTestSqlDataContext : PostgreSqlDataContext
     {
         protected override DataStoreGenerationType DataStoreGenerationType => DataStoreGenerationType.CodeFirst;

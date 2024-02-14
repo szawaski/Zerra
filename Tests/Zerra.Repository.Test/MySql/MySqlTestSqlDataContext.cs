@@ -6,8 +6,8 @@ using Zerra.Repository.MySql;
 
 namespace Zerra.Repository.Test
 {
-    [TransactStoreEntity(typeof(MySqlTestTypesModel))]
-    [TransactStoreEntity(typeof(MySqlTestRelationsModel))]
+    [TransactStoreEntity<MySqlTestTypesModel>]
+    [TransactStoreEntity<MySqlTestRelationsModel>]
     public class MySqlTestSqlDataContext : MySqlDataContext
     {
         protected override DataStoreGenerationType DataStoreGenerationType => DataStoreGenerationType.CodeFirst;

@@ -6,7 +6,7 @@ using ZerraDemo.Domain.Ledger2.Aggregates;
 
 namespace ZerraDemo.Domain.Ledger2.EventStore
 {
-    [EventStoreAggregate(typeof(Transaction2Aggregate))]
+    [EventStoreAggregate<Transaction2Aggregate>]
     public class Ledger2EventStoreDataContext : EventStoreDBDataContext
     {
         protected override DataStoreGenerationType DataStoreGenerationType => DataStoreGenerationType.CodeFirst;

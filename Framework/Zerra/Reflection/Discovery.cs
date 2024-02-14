@@ -37,7 +37,6 @@ namespace Zerra.Reflection
             Generate();
         }
 
-        private static readonly string[] pathSplits = new string[] { "\\", "/" };
         private static void LoadAssemblies()
         {
             var loadedAssemblies = new HashSet<string>();
@@ -56,7 +55,11 @@ namespace Zerra.Reflection
             {
                 try
                 {
-                    var assemblyFileName = assemblyFilePath.Split(pathSplits, StringSplitOptions.RemoveEmptyEntries).Last();
+#if NETSTANDARD2_0
+                    var assemblyFileName = assemblyFilePath.Split(new char[] { System.IO.Path.PathSeparator }, StringSplitOptions.RemoveEmptyEntries).Last();
+#else
+                    var assemblyFileName = assemblyFilePath.Split(System.IO.Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries).Last();
+#endif
                     if (Config.DiscoveryAssemblyNameStartsWiths.Length > 0 && !Config.DiscoveryAssemblyNameStartsWiths.Any(x => assemblyFileName.StartsWith(x)))
                         continue;
 
@@ -93,23 +96,6 @@ namespace Zerra.Reflection
                     }
                 }
                 catch { }
-            }
-        }
-
-        private static void Generate()
-        {
-            var generationTypes = GetTypesFromAttribute(typeof(BaseGenerateAttribute));
-            foreach (var generationType in generationTypes)
-            {
-                var typeDetail = TypeAnalyzer.GetTypeDetail(generationType);
-                foreach (var attribute in typeDetail.Attributes)
-                {
-                    if (attribute is BaseGenerateAttribute generateAttribute)
-                    {
-                        var newType = generateAttribute.Generate(generationType);
-                        DiscoverType(newType);
-                    }
-                }
             }
         }
         private static void Discover()
@@ -184,6 +170,22 @@ namespace Zerra.Reflection
                     var list = typeByAttribute.GetOrAdd(thisAttributeType, (key) => { return new(); });
                     list.Add(typeInAssembly);
                     thisAttributeType = thisAttributeType.BaseType;
+                }
+            }
+        }
+        private static void Generate()
+        {
+            var generationTypes = GetTypesFromAttribute(typeof(BaseGenerateAttribute));
+            foreach (var generationType in generationTypes)
+            {
+                var typeDetail = TypeAnalyzer.GetTypeDetail(generationType);
+                foreach (var attribute in typeDetail.Attributes)
+                {
+                    if (attribute is BaseGenerateAttribute generateAttribute)
+                    {
+                        var newType = generateAttribute.Generate(generationType);
+                        DiscoverType(newType);
+                    }
                 }
             }
         }

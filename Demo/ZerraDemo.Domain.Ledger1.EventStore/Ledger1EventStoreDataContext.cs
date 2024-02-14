@@ -6,7 +6,7 @@ using ZerraDemo.Domain.Ledger1.DataModels;
 
 namespace ZerraDemo.Domain.Ledger1.EventStore
 {
-    [EventStoreEntity(typeof(Ledger1DataModel))]
+    [EventStoreEntity<Ledger1DataModel>]
     public class Ledger1EventStoreDataContext : EventStoreDBDataContext
     {
         protected override DataStoreGenerationType DataStoreGenerationType => DataStoreGenerationType.CodeFirst;
