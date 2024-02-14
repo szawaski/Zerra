@@ -3,23 +3,27 @@
 // Licensed to you under the MIT license
 
 using System.Collections.Generic;
+using Zerra.Collections;
+using Zerra.Reflection;
 
 namespace Zerra.CQRS
 {
-    public static partial class Bus
+    partial class BusInstance
     {
-        private class MethodMetadata
+        private class CallMetadata
         {
-            public bool Blocked { get; private set; }
+            public bool Exposed { get; private set; }
             public BusLogging BusLogging { get; private set; }
             public bool Authenticate { get; private set; }
             public IReadOnlyCollection<string>? Roles { get; private set; }
-            public MethodMetadata(bool blocked, BusLogging busLogging, bool authenticate, IReadOnlyCollection<string>? roles)
+            public ConcurrentFactoryDictionary<MethodDetail, MethodMetadata> MethodMetadata { get; private set; }
+            public CallMetadata(bool exposed, BusLogging busLogging, bool authenticate, IReadOnlyCollection<string>? roles)
             {
-                this.Blocked = blocked;
+                this.Exposed = exposed;
                 this.BusLogging = busLogging;
                 this.Authenticate = authenticate;
                 this.Roles = roles;
+                this.MethodMetadata = new();
             }
         }
     }

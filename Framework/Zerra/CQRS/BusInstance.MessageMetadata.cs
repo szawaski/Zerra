@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace Zerra.CQRS
 {
-    public static partial class Bus
+    partial class BusInstance
     {
         private class MessageMetadata
         {
