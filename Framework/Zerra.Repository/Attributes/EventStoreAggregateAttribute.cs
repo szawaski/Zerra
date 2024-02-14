@@ -9,27 +9,22 @@ using Zerra.Reflection;
 
 namespace Zerra.Repository
 {
-    public sealed class EventStoreAggregateAttribute : BaseGenerateAttribute
+    public sealed class EventStoreAggregateAttribute<T> : BaseGenerateAttribute
     {
-        private readonly Type aggregateType;
-
-        public EventStoreAggregateAttribute(Type aggregateType)
-        {
-            this.aggregateType = aggregateType;
-        }
-
         private static readonly Type aggregateRootType = typeof(AggregateRoot);
         private static readonly Type dataContextType = typeof(DataContext);
         private static readonly Type eventProviderType = typeof(BaseEventStoreContextProvider<,>);
         public override Type Generate(Type type)
         {
+            var aggregateType = typeof(T);
+
             var aggregateTypeDetails = TypeAnalyzer.GetTypeDetail(aggregateType);
             if (!aggregateTypeDetails.BaseTypes.Contains(aggregateRootType))
-                throw new Exception($"{nameof(TransactStoreEntityAttribute)} {nameof(aggregateType)} argument {type.Name} does not inherit {aggregateRootType.Name}");
+                throw new Exception($"{nameof(EventStoreAggregateAttribute<T>)} {nameof(aggregateType)} argument {type.Name} does not inherit {aggregateRootType.Name}");
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
             if (!typeDetail.BaseTypes.Contains(dataContextType))
-                throw new Exception($"{nameof(TransactStoreEntityAttribute)} is not placed on a {dataContextType.Name}");
+                throw new Exception($"{nameof(EventStoreAggregateAttribute<T>)} is not placed on a {dataContextType.Name}");
 
             var baseType = TypeAnalyzer.GetGenericType(eventProviderType, type, aggregateType);
 

@@ -4,9 +4,9 @@ using ZerraDemo.Domain.Pets.DataModels;
 
 namespace ZerraDemo.Domain.Pets.Sql
 {
-    [TransactStoreEntity(typeof(BreedDataModel))]
-    [TransactStoreEntity(typeof(PetDataModel))]
-    [TransactStoreEntity(typeof(SpeciesDataModel))]
+    [TransactStoreEntity<BreedDataModel>]
+    [TransactStoreEntity<PetDataModel>]
+    [TransactStoreEntity<SpeciesDataModel>]
     public class PetsDataContext : DataContextSelector
     {
         protected override ICollection<DataContext> LoadDataContexts()

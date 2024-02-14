@@ -6,8 +6,8 @@ using Zerra.Repository.MsSql;
 
 namespace Zerra.Repository.Test
 {
-    [TransactStoreEntity(typeof(MsSqlTestTypesModel), false, true, true)]
-    [TransactStoreEntity(typeof(MsSqlTestRelationsModel), false)]
+    [TransactStoreEntity<MsSqlTestTypesModel>(false, true, true)]
+    [TransactStoreEntity<MsSqlTestRelationsModel>(false)]
     public class MsSqlTestSqlDataContext : MsSqlDataContext
     {
         protected override DataStoreGenerationType DataStoreGenerationType => DataStoreGenerationType.CodeFirst;
