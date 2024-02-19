@@ -90,9 +90,13 @@ namespace Zerra.Test
                 DoubleThing = -10.2,
                 DecimalThing = -11.3m,
                 CharThing = 'Z',
-                DateTimeThing = DateTime.Now,
-                DateTimeOffsetThing = DateTimeOffset.Now.AddDays(1),
-                TimeSpanThing = DateTime.Now.TimeOfDay,
+                DateTimeThing = DateTime.UtcNow,
+                DateTimeOffsetThing = DateTimeOffset.UtcNow.AddDays(1),
+                TimeSpanThing = DateTime.UtcNow.TimeOfDay,
+#if NET6_0_OR_GREATER
+                DateOnlyThing = DateOnly.FromDateTime(DateTime.UtcNow),
+                TimeOnlyThing = TimeOnly.FromDateTime(DateTime.UtcNow),
+#endif
                 GuidThing = Guid.NewGuid(),
 
                 BooleanThingNullable = true,
@@ -108,9 +112,13 @@ namespace Zerra.Test
                 DoubleThingNullable = -110.2,
                 DecimalThingNullable = -111.3m,
                 CharThingNullable = 'X',
-                DateTimeThingNullable = DateTime.Now.AddMonths(1),
-                DateTimeOffsetThingNullable = DateTimeOffset.Now.AddMonths(1).AddDays(1),
-                TimeSpanThingNullable = DateTime.Now.AddHours(1).TimeOfDay,
+                DateTimeThingNullable = DateTime.UtcNow.AddMonths(1),
+                DateTimeOffsetThingNullable = DateTimeOffset.UtcNow.AddMonths(1).AddDays(1),
+                TimeSpanThingNullable = DateTime.UtcNow.AddHours(1).TimeOfDay,
+#if NET6_0_OR_GREATER
+                DateOnlyThingNullable = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)),
+                TimeOnlyThingNullable = TimeOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)),
+#endif
                 GuidThingNullable = Guid.NewGuid(),
             };
             return model;
@@ -134,9 +142,13 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DoubleThing, model2.DoubleThing);
             Assert.AreEqual(model1.DecimalThing, model2.DecimalThing);
             Assert.AreEqual(model1.CharThing, model2.CharThing);
-            Assert.AreEqual(model1.DateTimeThing, model2.DateTimeThing);
+            Assert.AreEqual(model1.DateTimeThing.ToUniversalTime(), model2.DateTimeThing.ToUniversalTime());
             Assert.AreEqual(model1.DateTimeOffsetThing, model2.DateTimeOffsetThing);
             Assert.AreEqual(model1.TimeSpanThing, model2.TimeSpanThing);
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThing, model2.DateOnlyThing);
+            Assert.AreEqual(model1.TimeOnlyThing, model2.TimeOnlyThing);
+#endif
             Assert.AreEqual(model1.GuidThing, model2.GuidThing);
 
             Assert.AreEqual(model1.BooleanThingNullable, model2.BooleanThingNullable);
@@ -152,9 +164,13 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DoubleThingNullable, model2.DoubleThingNullable);
             Assert.AreEqual(model1.DecimalThingNullable, model2.DecimalThingNullable);
             Assert.AreEqual(model1.CharThingNullable, model2.CharThingNullable);
-            Assert.AreEqual(model1.DateTimeThingNullable, model2.DateTimeThingNullable);
+            Assert.AreEqual(model1.DateTimeThingNullable?.ToUniversalTime(), model2.DateTimeThingNullable?.ToUniversalTime());
             Assert.AreEqual(model1.DateTimeOffsetThingNullable, model2.DateTimeOffsetThingNullable);
             Assert.AreEqual(model1.TimeSpanThingNullable, model2.TimeSpanThingNullable);
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThingNullable, model2.DateOnlyThingNullable);
+            Assert.AreEqual(model1.TimeOnlyThingNullable, model2.TimeOnlyThingNullable);
+#endif
             Assert.AreEqual(model1.GuidThingNullable, model2.GuidThingNullable);
         }
         public static void AssertAreEqual(CoreTypesModel model1, CoreTypesAsStringsModel model2)
@@ -179,6 +195,10 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DateTimeThing.ToString(), model2.DateTimeThing);
             Assert.AreEqual(model1.DateTimeOffsetThing.ToString(), model2.DateTimeOffsetThing);
             Assert.AreEqual(model1.TimeSpanThing.ToString(), model2.TimeSpanThing);
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThing.ToString(), model2.DateOnlyThing);
+            Assert.AreEqual(model1.TimeOnlyThing.ToString(), model2.TimeOnlyThing);
+#endif
             Assert.AreEqual(model1.GuidThing.ToString(), model2.GuidThing);
 
             Assert.AreEqual(model1.BooleanThingNullable?.ToString(), model2.BooleanThingNullable);
@@ -197,6 +217,10 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DateTimeThingNullable?.ToString(), model2.DateTimeThingNullable);
             Assert.AreEqual(model1.DateTimeOffsetThingNullable?.ToString(), model2.DateTimeOffsetThingNullable);
             Assert.AreEqual(model1.TimeSpanThingNullable?.ToString(), model2.TimeSpanThingNullable);
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThingNullable.ToString(), model2.DateOnlyThingNullable);
+            Assert.AreEqual(model1.TimeOnlyThingNullable.ToString(), model2.TimeOnlyThingNullable);
+#endif
             Assert.AreEqual(model1.GuidThingNullable?.ToString(), model2.GuidThingNullable);
         }
 
@@ -211,7 +235,7 @@ namespace Zerra.Test
                 UInt64Thing = 8,
                 DoubleThing = -10.2,
                 CharThing = 'Z',
-                DateTimeOffsetThing = DateTimeOffset.Now.AddDays(1),
+                DateTimeOffsetThing = DateTimeOffset.UtcNow.AddDays(1),
                 GuidThing = Guid.NewGuid(),
 
                 ByteThingNullable = 11,
@@ -220,8 +244,8 @@ namespace Zerra.Test
                 Int64ThingNullable = -17,
                 SingleThingNullable = -19.1f,
                 DecimalThingNullable = -111.3m,
-                DateTimeThingNullable = DateTime.Now.AddMonths(1),
-                TimeSpanThingNullable = DateTime.Now.AddHours(1).TimeOfDay,
+                DateTimeThingNullable = DateTime.UtcNow.AddMonths(1),
+                TimeSpanThingNullable = DateTime.UtcNow.AddHours(1).TimeOfDay,
             };
             return model;
         }
@@ -269,8 +293,12 @@ namespace Zerra.Test
                 DecimalThing = -11.3m,
                 CharThing = 'Z',
                 DateTimeThing = DateTime.UtcNow.Date,
-                DateTimeOffsetThing = DateTimeOffset.Now.AddDays(1),
-                TimeSpanThing = DateTime.Now.TimeOfDay,
+                DateTimeOffsetThing = DateTimeOffset.UtcNow.AddDays(1),
+                TimeSpanThing = DateTime.UtcNow.TimeOfDay,
+#if NET6_0_OR_GREATER
+                DateOnlyThing = DateOnly.FromDateTime(DateTime.UtcNow.Date),
+                TimeOnlyThing = TimeOnly.FromDateTime(DateTime.UtcNow),
+#endif
                 GuidThing = Guid.NewGuid(),
 
                 BooleanThingNullable = true,
@@ -286,9 +314,13 @@ namespace Zerra.Test
                 DoubleThingNullable = -110.2,
                 DecimalThingNullable = -111.3m,
                 CharThingNullable = 'X',
-                DateTimeThingNullable = DateTime.Now.AddMonths(1),
-                DateTimeOffsetThingNullable = DateTimeOffset.Now.AddMonths(1).AddDays(1),
-                TimeSpanThingNullable = DateTime.Now.AddHours(1).TimeOfDay,
+                DateTimeThingNullable = DateTime.UtcNow.AddMonths(1),
+                DateTimeOffsetThingNullable = DateTimeOffset.UtcNow.AddMonths(1).AddDays(1),
+                TimeSpanThingNullable = DateTime.UtcNow.AddHours(1).TimeOfDay,
+#if NET6_0_OR_GREATER
+                DateOnlyThingNullable = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)),
+                TimeOnlyThingNullable = TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)),
+#endif
                 GuidThingNullable = Guid.NewGuid(),
 
                 BooleanThingNullableNull = null,
@@ -307,6 +339,10 @@ namespace Zerra.Test
                 DateTimeThingNullableNull = null,
                 DateTimeOffsetThingNullableNull = null,
                 TimeSpanThingNullableNull = null,
+#if NET6_0_OR_GREATER
+                DateOnlyThingNullableNull = null,
+                TimeOnlyThingNullableNull = null,
+#endif
                 GuidThingNullableNull = null,
 
                 StringThing = "Hello\r\nWorld!",
@@ -330,9 +366,13 @@ namespace Zerra.Test
                 DoubleArray = [28, 29, 30],
                 DecimalArray = [31, 32, 33],
                 CharArray = ['A', 'B', 'C'],
-                DateTimeArray = [DateTime.Now.AddMonths(1), DateTime.Now.AddMonths(2), DateTime.Now.AddMonths(3)],
-                DateTimeOffsetArray = [DateTimeOffset.Now.AddMonths(4), DateTimeOffset.Now.AddMonths(5), DateTimeOffset.Now.AddMonths(6)],
-                TimeSpanArray = [DateTime.Now.AddHours(1).TimeOfDay, DateTime.Now.AddHours(2).TimeOfDay, DateTime.Now.AddHours(3).TimeOfDay],
+                DateTimeArray = [DateTime.UtcNow.AddMonths(1), DateTime.UtcNow.AddMonths(2), DateTime.UtcNow.AddMonths(3)],
+                DateTimeOffsetArray = [DateTimeOffset.UtcNow.AddMonths(4), DateTimeOffset.UtcNow.AddMonths(5), DateTimeOffset.UtcNow.AddMonths(6)],
+                TimeSpanArray = [DateTime.UtcNow.AddHours(1).TimeOfDay, DateTime.UtcNow.AddHours(2).TimeOfDay, DateTime.UtcNow.AddHours(3).TimeOfDay],
+#if NET6_0_OR_GREATER
+                DateOnlyArray = [DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(2)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3))],
+                TimeOnlyArray = [TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(2)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3))],
+#endif
                 GuidArray = [Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()],
 
                 BooleanArrayEmpty = [],
@@ -351,6 +391,10 @@ namespace Zerra.Test
                 DateTimeArrayEmpty = [],
                 DateTimeOffsetArrayEmpty = [],
                 TimeSpanArrayEmpty = [],
+#if NET6_0_OR_GREATER
+                DateOnlyArrayEmpty = [],
+                TimeOnlyArrayEmpty = [],
+#endif
                 GuidArrayEmpty = [],
 
                 BooleanArrayNull = null,
@@ -369,6 +413,10 @@ namespace Zerra.Test
                 DateTimeArrayNull = null,
                 DateTimeOffsetArrayNull = null,
                 TimeSpanArrayNull = null,
+#if NET6_0_OR_GREATER
+                DateOnlyArrayNull = [],
+                TimeOnlyArrayNull = [],
+#endif
                 GuidArrayNull = null,
 
                 BooleanArrayNullable = [true, null, true],
@@ -384,9 +432,13 @@ namespace Zerra.Test
                 DoubleArrayNullable = [28, null, 30],
                 DecimalArrayNullable = [31, null, 33],
                 CharArrayNullable = ['A', null, 'C'],
-                DateTimeArrayNullable = [DateTime.Now.AddMonths(1), null, DateTime.Now.AddMonths(3)],
-                DateTimeOffsetArrayNullable = [DateTimeOffset.Now.AddMonths(4), null, DateTimeOffset.Now.AddMonths(6)],
-                TimeSpanArrayNullable = [DateTime.Now.AddHours(1).TimeOfDay, null, DateTime.Now.AddHours(3).TimeOfDay],
+                DateTimeArrayNullable = [DateTime.UtcNow.AddMonths(1), null, DateTime.UtcNow.AddMonths(3)],
+                DateTimeOffsetArrayNullable = [DateTimeOffset.UtcNow.AddMonths(4), null, DateTimeOffset.UtcNow.AddMonths(6)],
+                TimeSpanArrayNullable = [DateTime.UtcNow.AddHours(1).TimeOfDay, null, DateTime.UtcNow.AddHours(3).TimeOfDay],
+#if NET6_0_OR_GREATER
+                DateOnlyArrayNullable = [DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), null, DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3))],
+                TimeOnlyArrayNullable = [TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), null, TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3))],
+#endif
                 GuidArrayNullable = [Guid.NewGuid(), null, Guid.NewGuid()],
 
                 BooleanArrayNullableEmpty = [],
@@ -405,6 +457,10 @@ namespace Zerra.Test
                 DateTimeArrayNullableEmpty = [],
                 DateTimeOffsetArrayNullableEmpty = [],
                 TimeSpanArrayNullableEmpty = [],
+#if NET6_0_OR_GREATER
+                DateOnlyArrayNullableEmpty = [],
+                TimeOnlyArrayNullableEmpty = [],
+#endif
                 GuidArrayNullableEmpty = [],
 
                 BooleanArrayNullableNull = null,
@@ -423,6 +479,10 @@ namespace Zerra.Test
                 DateTimeArrayNullableNull = null,
                 DateTimeOffsetArrayNullableNull = null,
                 TimeSpanArrayNullableNull = null,
+#if NET6_0_OR_GREATER
+                DateOnlyArrayNullableNull = null,
+                TimeOnlyArrayNullableNull = null,
+#endif
                 GuidArrayNullableNull = null,
 
                 StringArray = ["Hello", "World", "People", "", null],
@@ -445,9 +505,13 @@ namespace Zerra.Test
                 DoubleList = new() { 28, 29, 30 },
                 DecimalList = new() { 31, 32, 33 },
                 CharList = new() { 'A', 'B', 'C' },
-                DateTimeList = new() { DateTime.Now.AddMonths(1), DateTime.Now.AddMonths(2), DateTime.Now.AddMonths(3) },
-                DateTimeOffsetList = new() { DateTimeOffset.Now.AddMonths(4), DateTimeOffset.Now.AddMonths(5), DateTimeOffset.Now.AddMonths(6) },
-                TimeSpanList = new() { DateTime.Now.AddHours(1).TimeOfDay, DateTime.Now.AddHours(2).TimeOfDay, DateTime.Now.AddHours(3).TimeOfDay },
+                DateTimeList = new() { DateTime.UtcNow.AddMonths(1), DateTime.UtcNow.AddMonths(2), DateTime.UtcNow.AddMonths(3) },
+                DateTimeOffsetList = new() { DateTimeOffset.UtcNow.AddMonths(4), DateTimeOffset.UtcNow.AddMonths(5), DateTimeOffset.UtcNow.AddMonths(6) },
+                TimeSpanList = new() { DateTime.UtcNow.AddHours(1).TimeOfDay, DateTime.UtcNow.AddHours(2).TimeOfDay, DateTime.UtcNow.AddHours(3).TimeOfDay },
+#if NET6_0_OR_GREATER
+                DateOnlyList = new() { DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(2)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3)) },
+                TimeOnlyList = new() { TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(2)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3)) },
+#endif
                 GuidList = new() { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() },
 
                 BooleanListEmpty = new(0),
@@ -466,6 +530,10 @@ namespace Zerra.Test
                 DateTimeListEmpty = new(0),
                 DateTimeOffsetListEmpty = new(0),
                 TimeSpanListEmpty = new(0),
+#if NET6_0_OR_GREATER
+                DateOnlyListEmpty = new(0),
+                TimeOnlyListEmpty = new(0),
+#endif
                 GuidListEmpty = new(0),
 
                 BooleanListNull = null,
@@ -484,6 +552,10 @@ namespace Zerra.Test
                 DateTimeListNull = null,
                 DateTimeOffsetListNull = null,
                 TimeSpanListNull = null,
+#if NET6_0_OR_GREATER
+                DateOnlyListNull = null,
+                TimeOnlyListNull = null,
+#endif
                 GuidListNull = null,
 
                 BooleanListNullable = new() { true, null, true },
@@ -499,9 +571,13 @@ namespace Zerra.Test
                 DoubleListNullable = new() { 28, null, 30 },
                 DecimalListNullable = new() { 31, null, 33 },
                 CharListNullable = new() { 'A', null, 'C' },
-                DateTimeListNullable = new() { DateTime.Now.AddMonths(1), null, DateTime.Now.AddMonths(3) },
-                DateTimeOffsetListNullable = new() { DateTimeOffset.Now.AddMonths(4), null, DateTimeOffset.Now.AddMonths(6) },
-                TimeSpanListNullable = new() { DateTime.Now.AddHours(1).TimeOfDay, null, DateTime.Now.AddHours(3).TimeOfDay },
+                DateTimeListNullable = new() { DateTime.UtcNow.AddMonths(1), null, DateTime.UtcNow.AddMonths(3) },
+                DateTimeOffsetListNullable = new() { DateTimeOffset.UtcNow.AddMonths(4), null, DateTimeOffset.UtcNow.AddMonths(6) },
+                TimeSpanListNullable = new() { DateTime.UtcNow.AddHours(1).TimeOfDay, null, DateTime.UtcNow.AddHours(3).TimeOfDay },
+#if NET6_0_OR_GREATER
+                DateOnlyListNullable = new() { DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), null, DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3)) },
+                TimeOnlyListNullable = new() { TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), null, TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3)) },
+#endif
                 GuidListNullable = new() { Guid.NewGuid(), null, Guid.NewGuid() },
 
                 BooleanListNullableEmpty = new(0),
@@ -520,6 +596,10 @@ namespace Zerra.Test
                 DateTimeListNullableEmpty = new(0),
                 DateTimeOffsetListNullableEmpty = new(0),
                 TimeSpanListNullableEmpty = new(0),
+#if NET6_0_OR_GREATER
+                DateOnlyListNullableEmpty = new(0),
+                TimeOnlyListNullableEmpty = new(0),
+#endif
                 GuidListNullableEmpty = new(0),
 
                 BooleanListNullableNull = null,
@@ -538,6 +618,10 @@ namespace Zerra.Test
                 DateTimeListNullableNull = null,
                 DateTimeOffsetListNullableNull = null,
                 TimeSpanListNullableNull = null,
+#if NET6_0_OR_GREATER
+                DateOnlyListNullableNull = null,
+                TimeOnlyListNullableNull = null,
+#endif
                 GuidListNullableNull = null,
 
                 StringList = new() { "Hello", "World", "People" },
@@ -592,6 +676,10 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DateTimeThing, model2.DateTimeThing);
             Assert.AreEqual(model1.DateTimeOffsetThing, model2.DateTimeOffsetThing);
             Assert.AreEqual(model1.TimeSpanThing, model2.TimeSpanThing);
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThing, model2.DateOnlyThing);
+            Assert.AreEqual(model1.TimeOnlyThing, model2.TimeOnlyThing);
+#endif
             Assert.AreEqual(model1.GuidThing, model2.GuidThing);
 
             Assert.AreEqual(model1.BooleanThingNullable, model2.BooleanThingNullable);
@@ -610,25 +698,11 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DateTimeThingNullable, model2.DateTimeThingNullable);
             Assert.AreEqual(model1.DateTimeOffsetThingNullable, model2.DateTimeOffsetThingNullable);
             Assert.AreEqual(model1.TimeSpanThingNullable, model2.TimeSpanThingNullable);
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThingNullable, model2.DateOnlyThingNullable);
+            Assert.AreEqual(model1.TimeOnlyThingNullable, model2.TimeOnlyThingNullable);
+#endif
             Assert.AreEqual(model1.GuidThingNullable, model2.GuidThingNullable);
-
-            Assert.IsNull(model1.BooleanThingNullableNull);
-            Assert.IsNull(model1.ByteThingNullableNull);
-            Assert.IsNull(model1.SByteThingNullableNull);
-            Assert.IsNull(model1.Int16ThingNullableNull);
-            Assert.IsNull(model1.UInt16ThingNullableNull);
-            Assert.IsNull(model1.Int32ThingNullableNull);
-            Assert.IsNull(model1.UInt32ThingNullableNull);
-            Assert.IsNull(model1.Int64ThingNullableNull);
-            Assert.IsNull(model1.UInt64ThingNullableNull);
-            Assert.IsNull(model1.SingleThingNullableNull);
-            Assert.IsNull(model1.DoubleThingNullableNull);
-            Assert.IsNull(model1.DecimalThingNullableNull);
-            Assert.IsNull(model1.CharThingNullableNull);
-            Assert.IsNull(model1.DateTimeThingNullableNull);
-            Assert.IsNull(model1.DateTimeOffsetThingNullableNull);
-            Assert.IsNull(model1.TimeSpanThingNullableNull);
-            Assert.IsNull(model1.GuidThingNullableNull);
 
             Assert.IsNull(model2.BooleanThingNullableNull);
             Assert.IsNull(model2.ByteThingNullableNull);
@@ -646,6 +720,10 @@ namespace Zerra.Test
             Assert.IsNull(model2.DateTimeThingNullableNull);
             Assert.IsNull(model2.DateTimeOffsetThingNullableNull);
             Assert.IsNull(model2.TimeSpanThingNullableNull);
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThingNullableNull, model2.DateOnlyThingNullableNull);
+            Assert.AreEqual(model1.TimeOnlyThingNullableNull, model2.TimeOnlyThingNullableNull);
+#endif
             Assert.IsNull(model2.GuidThingNullableNull);
 
             Assert.AreEqual(model1.StringThing, model2.StringThing);
@@ -676,6 +754,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeArray, model2.DateTimeArray);
             AssertOrderedEnumerable(model1.DateTimeOffsetArray, model2.DateTimeOffsetArray);
             AssertOrderedEnumerable(model1.TimeSpanArray, model2.TimeSpanArray);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyArray, model2.DateOnlyArray);
+            AssertOrderedEnumerable(model1.TimeOnlyArray, model2.TimeOnlyArray);
+#endif
             AssertOrderedEnumerable(model1.GuidArray, model2.GuidArray);
 
             AssertOrderedEnumerable(model1.BooleanArrayEmpty, model2.BooleanArrayEmpty);
@@ -694,6 +776,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeArrayEmpty, model2.DateTimeArrayEmpty);
             AssertOrderedEnumerable(model1.DateTimeOffsetArrayEmpty, model2.DateTimeOffsetArrayEmpty);
             AssertOrderedEnumerable(model1.TimeSpanArrayEmpty, model2.TimeSpanArrayEmpty);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyArrayEmpty, model2.DateOnlyArrayEmpty);
+            AssertOrderedEnumerable(model1.TimeOnlyArrayEmpty, model2.TimeOnlyArrayEmpty);
+#endif
             AssertOrderedEnumerable(model1.GuidArrayEmpty, model2.GuidArrayEmpty);
 
             AssertOrderedEnumerable(model1.BooleanArrayNull, model2.BooleanArrayNull);
@@ -712,6 +798,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeArrayNull, model2.DateTimeArrayNull);
             AssertOrderedEnumerable(model1.DateTimeOffsetArrayNull, model2.DateTimeOffsetArrayNull);
             AssertOrderedEnumerable(model1.TimeSpanArrayNull, model2.TimeSpanArrayNull);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyArrayNull, model2.DateOnlyArrayNull);
+            AssertOrderedEnumerable(model1.TimeOnlyArrayNull, model2.TimeOnlyArrayNull);
+#endif
             AssertOrderedEnumerable(model1.GuidArrayNull, model2.GuidArrayNull);
 
             AssertOrderedEnumerable(model1.BooleanArrayNullable, model2.BooleanArrayNullable);
@@ -730,6 +820,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeArrayNullable, model2.DateTimeArrayNullable);
             AssertOrderedEnumerable(model1.DateTimeOffsetArrayNullable, model2.DateTimeOffsetArrayNullable);
             AssertOrderedEnumerable(model1.TimeSpanArrayNullable, model2.TimeSpanArrayNullable);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyArrayNullable, model2.DateOnlyArrayNullable);
+            AssertOrderedEnumerable(model1.TimeOnlyArrayNullable, model2.TimeOnlyArrayNullable);
+#endif
             AssertOrderedEnumerable(model1.GuidArrayNullable, model2.GuidArrayNullable);
 
             AssertOrderedEnumerable(model1.BooleanArrayNullableEmpty, model2.BooleanArrayNullableEmpty);
@@ -748,6 +842,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeArrayNullableEmpty, model2.DateTimeArrayNullableEmpty);
             AssertOrderedEnumerable(model1.DateTimeOffsetArrayNullableEmpty, model2.DateTimeOffsetArrayNullableEmpty);
             AssertOrderedEnumerable(model1.TimeSpanArrayNullableEmpty, model2.TimeSpanArrayNullableEmpty);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyArrayNullableEmpty, model2.DateOnlyArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.TimeOnlyArrayNullableEmpty, model2.TimeOnlyArrayNullableEmpty);
+#endif
             AssertOrderedEnumerable(model1.GuidArrayNullableEmpty, model2.GuidArrayNullableEmpty);
 
             AssertOrderedEnumerable(model1.BooleanArrayNullableNull, model2.BooleanArrayNullableNull);
@@ -766,6 +864,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeArrayNullableNull, model2.DateTimeArrayNullableNull);
             AssertOrderedEnumerable(model1.DateTimeOffsetArrayNullableNull, model2.DateTimeOffsetArrayNullableNull);
             AssertOrderedEnumerable(model1.TimeSpanArrayNullableNull, model2.TimeSpanArrayNullableNull);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyArrayNullableNull, model2.DateOnlyArrayNullableNull);
+            AssertOrderedEnumerable(model1.TimeOnlyArrayNullableNull, model2.TimeOnlyArrayNullableNull);
+#endif
             AssertOrderedEnumerable(model1.GuidArrayNullableNull, model2.GuidArrayNullableNull);
 
             AssertOrderedEnumerable(model1.StringArray, model2.StringArray);
@@ -791,6 +893,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeList, model2.DateTimeList);
             AssertOrderedEnumerable(model1.DateTimeOffsetList, model2.DateTimeOffsetList);
             AssertOrderedEnumerable(model1.TimeSpanList, model2.TimeSpanList);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyList, model2.DateOnlyList);
+            AssertOrderedEnumerable(model1.TimeOnlyList, model2.TimeOnlyList);
+#endif
             AssertOrderedEnumerable(model1.GuidList, model2.GuidList);
 
             AssertOrderedEnumerable(model1.BooleanListEmpty, model2.BooleanListEmpty);
@@ -809,6 +915,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeListEmpty, model2.DateTimeListEmpty);
             AssertOrderedEnumerable(model1.DateTimeOffsetListEmpty, model2.DateTimeOffsetListEmpty);
             AssertOrderedEnumerable(model1.TimeSpanListEmpty, model2.TimeSpanListEmpty);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyListEmpty, model2.DateOnlyListEmpty);
+            AssertOrderedEnumerable(model1.TimeOnlyListEmpty, model2.TimeOnlyListEmpty);
+#endif
             AssertOrderedEnumerable(model1.GuidListEmpty, model2.GuidListEmpty);
 
             AssertOrderedEnumerable(model1.BooleanListNull, model2.BooleanListNull);
@@ -827,6 +937,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeListNull, model2.DateTimeListNull);
             AssertOrderedEnumerable(model1.DateTimeOffsetListNull, model2.DateTimeOffsetListNull);
             AssertOrderedEnumerable(model1.TimeSpanListNull, model2.TimeSpanListNull);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyListNull, model2.DateOnlyListNull);
+            AssertOrderedEnumerable(model1.TimeOnlyListNull, model2.TimeOnlyListNull);
+#endif
             AssertOrderedEnumerable(model1.GuidListNull, model2.GuidListNull);
 
             AssertOrderedEnumerable(model1.BooleanListNullable, model2.BooleanListNullable);
@@ -845,6 +959,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeListNullable, model2.DateTimeListNullable);
             AssertOrderedEnumerable(model1.DateTimeOffsetListNullable, model2.DateTimeOffsetListNullable);
             AssertOrderedEnumerable(model1.TimeSpanListNullable, model2.TimeSpanListNullable);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyListNullable, model2.DateOnlyListNullable);
+            AssertOrderedEnumerable(model1.TimeOnlyListNullable, model2.TimeOnlyListNullable);
+#endif
             AssertOrderedEnumerable(model1.GuidListNullable, model2.GuidListNullable);
 
             AssertOrderedEnumerable(model1.BooleanListNullableEmpty, model2.BooleanListNullableEmpty);
@@ -863,6 +981,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeListNullableEmpty, model2.DateTimeListNullableEmpty);
             AssertOrderedEnumerable(model1.DateTimeOffsetListNullableEmpty, model2.DateTimeOffsetListNullableEmpty);
             AssertOrderedEnumerable(model1.TimeSpanListNullableEmpty, model2.TimeSpanListNullableEmpty);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyListNullableEmpty, model2.DateOnlyListNullableEmpty);
+            AssertOrderedEnumerable(model1.TimeOnlyListNullableEmpty, model2.TimeOnlyListNullableEmpty);
+#endif
             AssertOrderedEnumerable(model1.GuidListNullableEmpty, model2.GuidListNullableEmpty);
 
             AssertOrderedEnumerable(model1.BooleanListNullableNull, model2.BooleanListNullableNull);
@@ -881,6 +1003,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeListNullableNull, model2.DateTimeListNullableNull);
             AssertOrderedEnumerable(model1.DateTimeOffsetListNullableNull, model2.DateTimeOffsetListNullableNull);
             AssertOrderedEnumerable(model1.TimeSpanListNullableNull, model2.TimeSpanListNullableNull);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyListNullableNull, model2.DateOnlyListNullableNull);
+            AssertOrderedEnumerable(model1.TimeOnlyListNullableNull, model2.TimeOnlyListNullableNull);
+#endif
             AssertOrderedEnumerable(model1.GuidListNullableNull, model2.GuidListNullableNull);
 
             AssertOrderedEnumerable(model1.StringList, model2.StringList);
@@ -1062,6 +1188,7 @@ namespace Zerra.Test
         {
             Assert.IsNotNull(model1);
             Assert.IsNotNull(model2);
+            Assert.AreNotEqual<object>(model1, model2);
 
             Assert.AreEqual(model1.BooleanThing, model2.BooleanThing);
             Assert.AreEqual(model1.ByteThing, model2.ByteThing);
@@ -1079,6 +1206,10 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DateTimeThing, model2.DateTimeThing);
             Assert.AreEqual(model1.DateTimeOffsetThing, model2.DateTimeOffsetThing);
             Assert.AreEqual(model1.TimeSpanThing, model2.TimeSpanThing);
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThing, model2.DateOnlyThing);
+            Assert.AreEqual(model1.TimeOnlyThing, model2.TimeOnlyThing);
+#endif
             Assert.AreEqual(model1.GuidThing, model2.GuidThing);
 
             Assert.AreEqual(model1.BooleanThingNullable, model2.BooleanThingNullable);
@@ -1097,25 +1228,11 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DateTimeThingNullable, model2.DateTimeThingNullable);
             Assert.AreEqual(model1.DateTimeOffsetThingNullable, model2.DateTimeOffsetThingNullable);
             Assert.AreEqual(model1.TimeSpanThingNullable, model2.TimeSpanThingNullable);
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThingNullable, model2.DateOnlyThingNullable);
+            Assert.AreEqual(model1.TimeOnlyThingNullable, model2.TimeOnlyThingNullable);
+#endif
             Assert.AreEqual(model1.GuidThingNullable, model2.GuidThingNullable);
-
-            Assert.IsNull(model1.BooleanThingNullableNull);
-            Assert.IsNull(model1.ByteThingNullableNull);
-            Assert.IsNull(model1.SByteThingNullableNull);
-            Assert.IsNull(model1.Int16ThingNullableNull);
-            Assert.IsNull(model1.UInt16ThingNullableNull);
-            Assert.IsNull(model1.Int32ThingNullableNull);
-            Assert.IsNull(model1.UInt32ThingNullableNull);
-            Assert.IsNull(model1.Int64ThingNullableNull);
-            Assert.IsNull(model1.UInt64ThingNullableNull);
-            Assert.IsNull(model1.SingleThingNullableNull);
-            Assert.IsNull(model1.DoubleThingNullableNull);
-            Assert.IsNull(model1.DecimalThingNullableNull);
-            Assert.IsNull(model1.CharThingNullableNull);
-            Assert.IsNull(model1.DateTimeThingNullableNull);
-            Assert.IsNull(model1.DateTimeOffsetThingNullableNull);
-            Assert.IsNull(model1.TimeSpanThingNullableNull);
-            Assert.IsNull(model1.GuidThingNullableNull);
 
             Assert.IsNull(model2.BooleanThingNullableNull);
             Assert.IsNull(model2.ByteThingNullableNull);
@@ -1133,6 +1250,10 @@ namespace Zerra.Test
             Assert.IsNull(model2.DateTimeThingNullableNull);
             Assert.IsNull(model2.DateTimeOffsetThingNullableNull);
             Assert.IsNull(model2.TimeSpanThingNullableNull);
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThingNullableNull, model2.DateOnlyThingNullableNull);
+            Assert.AreEqual(model1.TimeOnlyThingNullableNull, model2.TimeOnlyThingNullableNull);
+#endif
             Assert.IsNull(model2.GuidThingNullableNull);
 
             Assert.AreEqual(model1.StringThing, model2.StringThing);
@@ -1163,6 +1284,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeArray, model2.DateTimeArray);
             AssertOrderedEnumerable(model1.DateTimeOffsetArray, model2.DateTimeOffsetArray);
             AssertOrderedEnumerable(model1.TimeSpanArray, model2.TimeSpanArray);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyArray, model2.DateOnlyArray);
+            AssertOrderedEnumerable(model1.TimeOnlyArray, model2.TimeOnlyArray);
+#endif
             AssertOrderedEnumerable(model1.GuidArray, model2.GuidArray);
 
             AssertOrderedEnumerable(model1.BooleanArrayEmpty, model2.BooleanArrayEmpty);
@@ -1181,6 +1306,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeArrayEmpty, model2.DateTimeArrayEmpty);
             AssertOrderedEnumerable(model1.DateTimeOffsetArrayEmpty, model2.DateTimeOffsetArrayEmpty);
             AssertOrderedEnumerable(model1.TimeSpanArrayEmpty, model2.TimeSpanArrayEmpty);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyArrayEmpty, model2.DateOnlyArrayEmpty);
+            AssertOrderedEnumerable(model1.TimeOnlyArrayEmpty, model2.TimeOnlyArrayEmpty);
+#endif
             AssertOrderedEnumerable(model1.GuidArrayEmpty, model2.GuidArrayEmpty);
 
             AssertOrderedEnumerable(model1.BooleanArrayNull, model2.BooleanArrayNull);
@@ -1199,6 +1328,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeArrayNull, model2.DateTimeArrayNull);
             AssertOrderedEnumerable(model1.DateTimeOffsetArrayNull, model2.DateTimeOffsetArrayNull);
             AssertOrderedEnumerable(model1.TimeSpanArrayNull, model2.TimeSpanArrayNull);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyArrayNull, model2.DateOnlyArrayNull);
+            AssertOrderedEnumerable(model1.TimeOnlyArrayNull, model2.TimeOnlyArrayNull);
+#endif
             AssertOrderedEnumerable(model1.GuidArrayNull, model2.GuidArrayNull);
 
             AssertOrderedEnumerable(model1.BooleanArrayNullable, model2.BooleanArrayNullable);
@@ -1217,6 +1350,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeArrayNullable, model2.DateTimeArrayNullable);
             AssertOrderedEnumerable(model1.DateTimeOffsetArrayNullable, model2.DateTimeOffsetArrayNullable);
             AssertOrderedEnumerable(model1.TimeSpanArrayNullable, model2.TimeSpanArrayNullable);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyArrayNullable, model2.DateOnlyArrayNullable);
+            AssertOrderedEnumerable(model1.TimeOnlyArrayNullable, model2.TimeOnlyArrayNullable);
+#endif
             AssertOrderedEnumerable(model1.GuidArrayNullable, model2.GuidArrayNullable);
 
             AssertOrderedEnumerable(model1.BooleanArrayNullableEmpty, model2.BooleanArrayNullableEmpty);
@@ -1235,6 +1372,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeArrayNullableEmpty, model2.DateTimeArrayNullableEmpty);
             AssertOrderedEnumerable(model1.DateTimeOffsetArrayNullableEmpty, model2.DateTimeOffsetArrayNullableEmpty);
             AssertOrderedEnumerable(model1.TimeSpanArrayNullableEmpty, model2.TimeSpanArrayNullableEmpty);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyArrayNullableEmpty, model2.DateOnlyArrayNullableEmpty);
+            AssertOrderedEnumerable(model1.TimeOnlyArrayNullableEmpty, model2.TimeOnlyArrayNullableEmpty);
+#endif
             AssertOrderedEnumerable(model1.GuidArrayNullableEmpty, model2.GuidArrayNullableEmpty);
 
             AssertOrderedEnumerable(model1.BooleanArrayNullableNull, model2.BooleanArrayNullableNull);
@@ -1253,6 +1394,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeArrayNullableNull, model2.DateTimeArrayNullableNull);
             AssertOrderedEnumerable(model1.DateTimeOffsetArrayNullableNull, model2.DateTimeOffsetArrayNullableNull);
             AssertOrderedEnumerable(model1.TimeSpanArrayNullableNull, model2.TimeSpanArrayNullableNull);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyArrayNullableNull, model2.DateOnlyArrayNullableNull);
+            AssertOrderedEnumerable(model1.TimeOnlyArrayNullableNull, model2.TimeOnlyArrayNullableNull);
+#endif
             AssertOrderedEnumerable(model1.GuidArrayNullableNull, model2.GuidArrayNullableNull);
 
             AssertOrderedEnumerable(model1.StringArray, model2.StringArray);
@@ -1278,6 +1423,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeList, model2.DateTimeList);
             AssertOrderedEnumerable(model1.DateTimeOffsetList, model2.DateTimeOffsetList);
             AssertOrderedEnumerable(model1.TimeSpanList, model2.TimeSpanList);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyList, model2.DateOnlyList);
+            AssertOrderedEnumerable(model1.TimeOnlyList, model2.TimeOnlyList);
+#endif
             AssertOrderedEnumerable(model1.GuidList, model2.GuidList);
 
             AssertOrderedEnumerable(model1.BooleanListEmpty, model2.BooleanListEmpty);
@@ -1296,6 +1445,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeListEmpty, model2.DateTimeListEmpty);
             AssertOrderedEnumerable(model1.DateTimeOffsetListEmpty, model2.DateTimeOffsetListEmpty);
             AssertOrderedEnumerable(model1.TimeSpanListEmpty, model2.TimeSpanListEmpty);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyListEmpty, model2.DateOnlyListEmpty);
+            AssertOrderedEnumerable(model1.TimeOnlyListEmpty, model2.TimeOnlyListEmpty);
+#endif
             AssertOrderedEnumerable(model1.GuidListEmpty, model2.GuidListEmpty);
 
             AssertOrderedEnumerable(model1.BooleanListNull, model2.BooleanListNull);
@@ -1314,6 +1467,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeListNull, model2.DateTimeListNull);
             AssertOrderedEnumerable(model1.DateTimeOffsetListNull, model2.DateTimeOffsetListNull);
             AssertOrderedEnumerable(model1.TimeSpanListNull, model2.TimeSpanListNull);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyListNull, model2.DateOnlyListNull);
+            AssertOrderedEnumerable(model1.TimeOnlyListNull, model2.TimeOnlyListNull);
+#endif
             AssertOrderedEnumerable(model1.GuidListNull, model2.GuidListNull);
 
             AssertOrderedEnumerable(model1.BooleanListNullable, model2.BooleanListNullable);
@@ -1332,6 +1489,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeListNullable, model2.DateTimeListNullable);
             AssertOrderedEnumerable(model1.DateTimeOffsetListNullable, model2.DateTimeOffsetListNullable);
             AssertOrderedEnumerable(model1.TimeSpanListNullable, model2.TimeSpanListNullable);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyListNullable, model2.DateOnlyListNullable);
+            AssertOrderedEnumerable(model1.TimeOnlyListNullable, model2.TimeOnlyListNullable);
+#endif
             AssertOrderedEnumerable(model1.GuidListNullable, model2.GuidListNullable);
 
             AssertOrderedEnumerable(model1.BooleanListNullableEmpty, model2.BooleanListNullableEmpty);
@@ -1350,6 +1511,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeListNullableEmpty, model2.DateTimeListNullableEmpty);
             AssertOrderedEnumerable(model1.DateTimeOffsetListNullableEmpty, model2.DateTimeOffsetListNullableEmpty);
             AssertOrderedEnumerable(model1.TimeSpanListNullableEmpty, model2.TimeSpanListNullableEmpty);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyListNullableEmpty, model2.DateOnlyListNullableEmpty);
+            AssertOrderedEnumerable(model1.TimeOnlyListNullableEmpty, model2.TimeOnlyListNullableEmpty);
+#endif
             AssertOrderedEnumerable(model1.GuidListNullableEmpty, model2.GuidListNullableEmpty);
 
             AssertOrderedEnumerable(model1.BooleanListNullableNull, model2.BooleanListNullableNull);
@@ -1368,6 +1533,10 @@ namespace Zerra.Test
             AssertOrderedEnumerable(model1.DateTimeListNullableNull, model2.DateTimeListNullableNull);
             AssertOrderedEnumerable(model1.DateTimeOffsetListNullableNull, model2.DateTimeOffsetListNullableNull);
             AssertOrderedEnumerable(model1.TimeSpanListNullableNull, model2.TimeSpanListNullableNull);
+#if NET6_0_OR_GREATER
+            AssertOrderedEnumerable(model1.DateOnlyListNullableNull, model2.DateOnlyListNullableNull);
+            AssertOrderedEnumerable(model1.TimeOnlyListNullableNull, model2.TimeOnlyListNullableNull);
+#endif
             AssertOrderedEnumerable(model1.GuidListNullableNull, model2.GuidListNullableNull);
 
             AssertOrderedEnumerable(model1.StringList, model2.StringList);
@@ -1567,6 +1736,10 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DateTimeThing, DateTime.Parse(model2.DateTimeThing, null, DateTimeStyles.RoundtripKind)); //extra zeros removed at end of fractional sectons
             Assert.AreEqual(model1.DateTimeOffsetThing, DateTimeOffset.Parse(model2.DateTimeOffsetThing, null, DateTimeStyles.RoundtripKind));//extra zeros removed at end of fractional sectons
             Assert.AreEqual(model1.TimeSpanThing, TimeSpan.Parse(model2.TimeSpanThing));
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThing, DateOnly.Parse(model2.DateOnlyThing)); //extra zeros removed at end of fractional sectons
+            Assert.AreEqual(model1.TimeOnlyThing, TimeOnly.Parse(model2.TimeOnlyThing));
+#endif
             Assert.AreEqual(model1.GuidThing, Guid.Parse(model2.GuidThing));
 
             Assert.AreEqual(model1.BooleanThingNullable?.ToString().ToLower(), model2.BooleanThingNullable);
@@ -1582,9 +1755,13 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DoubleThingNullable?.ToString(), model2.DoubleThingNullable);
             Assert.AreEqual(model1.DecimalThingNullable?.ToString(), model2.DecimalThingNullable);
             Assert.AreEqual(model1.CharThingNullable?.ToString(), model2.CharThingNullable);
-            Assert.AreEqual(model1.DateTimeThingNullable, DateTime.Parse(model2.DateTimeThingNullable));//extra zeros removed at end of fractional sectons
+            Assert.AreEqual(model1.DateTimeThingNullable, DateTime.Parse(model2.DateTimeThingNullable, null, DateTimeStyles.RoundtripKind));//extra zeros removed at end of fractional sectons
             Assert.AreEqual(model1.DateTimeOffsetThingNullable, DateTimeOffset.Parse(model2.DateTimeOffsetThingNullable));//extra zeros removed at end of fractional sectons
             Assert.AreEqual(model1.TimeSpanThingNullable, TimeSpan.Parse(model2.TimeSpanThingNullable));
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThingNullable, DateOnly.Parse(model2.DateOnlyThingNullable)); //extra zeros removed at end of fractional sectons
+            Assert.AreEqual(model1.TimeOnlyThingNullable, TimeOnly.Parse(model2.TimeOnlyThingNullable));
+#endif
             Assert.AreEqual(model1.GuidThingNullable, Guid.Parse(model2.GuidThingNullable));
 
             Assert.IsNull(model1.ByteThingNullableNull);
@@ -1602,24 +1779,11 @@ namespace Zerra.Test
             Assert.IsNull(model1.DateTimeThingNullableNull);
             Assert.IsNull(model1.DateTimeOffsetThingNullableNull);
             Assert.IsNull(model1.TimeSpanThingNullableNull);
+#if NET6_0_OR_GREATER
+            Assert.IsNull(model1.DateOnlyThingNullableNull);
+            Assert.IsNull(model1.TimeOnlyThingNullableNull);
+#endif
             Assert.IsNull(model1.GuidThingNullableNull);
-
-            Assert.IsNull(model2.ByteThingNullableNull);
-            Assert.IsNull(model2.SByteThingNullableNull);
-            Assert.IsNull(model2.Int16ThingNullableNull);
-            Assert.IsNull(model2.UInt16ThingNullableNull);
-            Assert.IsNull(model2.Int32ThingNullableNull);
-            Assert.IsNull(model2.UInt32ThingNullableNull);
-            Assert.IsNull(model2.Int64ThingNullableNull);
-            Assert.IsNull(model2.UInt64ThingNullableNull);
-            Assert.IsNull(model2.SingleThingNullableNull);
-            Assert.IsNull(model2.DoubleThingNullableNull);
-            Assert.IsNull(model2.DecimalThingNullableNull);
-            Assert.IsNull(model2.CharThingNullableNull);
-            Assert.IsNull(model2.DateTimeThingNullableNull);
-            Assert.IsNull(model2.DateTimeOffsetThingNullableNull);
-            Assert.IsNull(model2.TimeSpanThingNullableNull);
-            Assert.IsNull(model2.GuidThingNullableNull);
 
             Assert.AreEqual(model1.EnumThing.ToString(), model2.EnumThing);
             Assert.AreEqual(model1.EnumThingNullable?.ToString(), model2.EnumThingNullable);
@@ -1651,9 +1815,11 @@ namespace Zerra.Test
                 DoubleThing = -10.2,
                 DecimalThing = -11.3m,
                 CharThing = 'Z',
-                DateTimeThing = DateTime.Now,
-                DateTimeOffsetThing = DateTimeOffset.Now.AddDays(1),
-                TimeSpanThing = DateTime.Now.TimeOfDay,
+                DateTimeThing = DateTime.UtcNow,
+                DateTimeOffsetThing = DateTimeOffset.UtcNow.AddDays(1),
+                TimeSpanThing = DateTime.UtcNow.TimeOfDay,
+                DateOnlyThing = DateOnly.FromDateTime(DateTime.UtcNow),
+                TimeOnlyThing = TimeOnly.FromDateTime(DateTime.UtcNow),
                 GuidThing = Guid.NewGuid(),
 
                 EnumThing = EnumModel.EnumItem1,
@@ -1708,6 +1874,10 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DateTimeThing, model2.DateTimeThing.Value);
             Assert.AreEqual(model1.DateTimeOffsetThing, model2.DateTimeOffsetThing.Value);
             Assert.AreEqual(model1.TimeSpanThing, model2.TimeSpanThing.Value);
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThing, model2.DateOnlyThing.Value);
+            Assert.AreEqual(model1.TimeOnlyThing, model2.TimeOnlyThing.Value);
+#endif
             Assert.AreEqual(model1.GuidThing, model2.GuidThing.Value);
 
             Assert.AreEqual(model1.EnumThing, model2.EnumThing.Value);
@@ -1838,9 +2008,13 @@ namespace Zerra.Test
                 DoubleHashSet = new HashSet<double> { 28, 29, 30 },
                 DecimalHashSet = new HashSet<decimal> { 31, 32, 33 },
                 CharHashSet = new HashSet<char> { 'A', 'B', 'C' },
-                DateTimeHashSet = new HashSet<DateTime> { DateTime.Now.AddMonths(1), DateTime.Now.AddMonths(2), DateTime.Now.AddMonths(3) },
-                DateTimeOffsetHashSet = new HashSet<DateTimeOffset> { DateTimeOffset.Now.AddMonths(4), DateTimeOffset.Now.AddMonths(5), DateTimeOffset.Now.AddMonths(6) },
-                TimeSpanHashSet = new HashSet<TimeSpan> { DateTime.Now.AddHours(1).TimeOfDay, DateTime.Now.AddHours(2).TimeOfDay, DateTime.Now.AddHours(3).TimeOfDay },
+                DateTimeHashSet = new HashSet<DateTime> { DateTime.UtcNow.AddMonths(1), DateTime.UtcNow.AddMonths(2), DateTime.UtcNow.AddMonths(3) },
+                DateTimeOffsetHashSet = new HashSet<DateTimeOffset> { DateTimeOffset.UtcNow.AddMonths(4), DateTimeOffset.UtcNow.AddMonths(5), DateTimeOffset.UtcNow.AddMonths(6) },
+                TimeSpanHashSet = new HashSet<TimeSpan> { DateTime.UtcNow.AddHours(1).TimeOfDay, DateTime.UtcNow.AddHours(2).TimeOfDay, DateTime.UtcNow.AddHours(3).TimeOfDay },
+#if NET6_0_OR_GREATER
+                DateOnlyHashSet = new HashSet<DateOnly> { DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(2)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3)) },
+                TimeOnlyHashSet = new HashSet<TimeOnly> { TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(2)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3)) },
+#endif
                 GuidHashSet = new HashSet<Guid> { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() },
 
                 BooleanHashSetNullable = new HashSet<bool?> { true, null, true },
@@ -1856,9 +2030,13 @@ namespace Zerra.Test
                 DoubleHashSetNullable = new HashSet<double?> { 28, null, 30 },
                 DecimalHashSetNullable = new HashSet<decimal?> { 31, null, 33 },
                 CharHashSetNullable = new HashSet<char?> { 'A', null, 'C' },
-                DateTimeHashSetNullable = new HashSet<DateTime?> { DateTime.Now.AddMonths(1), null, DateTime.Now.AddMonths(3) },
-                DateTimeOffsetHashSetNullable = new HashSet<DateTimeOffset?> { DateTimeOffset.Now.AddMonths(4), null, DateTimeOffset.Now.AddMonths(6) },
-                TimeSpanHashSetNullable = new HashSet<TimeSpan?> { DateTime.Now.AddHours(1).TimeOfDay, null, DateTime.Now.AddHours(3).TimeOfDay },
+                DateTimeHashSetNullable = new HashSet<DateTime?> { DateTime.UtcNow.AddMonths(1), null, DateTime.UtcNow.AddMonths(3) },
+                DateTimeOffsetHashSetNullable = new HashSet<DateTimeOffset?> { DateTimeOffset.UtcNow.AddMonths(4), null, DateTimeOffset.UtcNow.AddMonths(6) },
+                TimeSpanHashSetNullable = new HashSet<TimeSpan?> { DateTime.UtcNow.AddHours(1).TimeOfDay, null, DateTime.UtcNow.AddHours(3).TimeOfDay },
+#if NET6_0_OR_GREATER
+                DateOnlyHashSetNullable = new HashSet<DateOnly?> { DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), null, DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3)) },
+                TimeOnlyHashSetNullable = new HashSet<TimeOnly?> { TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), null, TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3)) },
+#endif
                 GuidHashSetNullable = new HashSet<Guid?> { Guid.NewGuid(), null, Guid.NewGuid() },
 
                 StringHashSet = new HashSet<string> { "Hello", "World", "People" },
@@ -1888,6 +2066,10 @@ namespace Zerra.Test
             AssertUnorderedEnumerable(model1.DateTimeHashSet, model2.DateTimeHashSet);
             AssertUnorderedEnumerable(model1.DateTimeOffsetHashSet, model2.DateTimeOffsetHashSet);
             AssertUnorderedEnumerable(model1.TimeSpanHashSet, model2.TimeSpanHashSet);
+#if NET6_0_OR_GREATER
+            AssertUnorderedEnumerable(model1.DateOnlyHashSet, model2.DateOnlyHashSet);
+            AssertUnorderedEnumerable(model1.TimeOnlyHashSet, model2.TimeOnlyHashSet);
+#endif
             AssertUnorderedEnumerable(model1.GuidHashSet, model2.GuidHashSet);
 
             AssertUnorderedEnumerable(model1.BooleanHashSetNullable, model2.BooleanHashSetNullable);
@@ -1906,6 +2088,10 @@ namespace Zerra.Test
             AssertUnorderedEnumerable(model1.DateTimeHashSetNullable, model2.DateTimeHashSetNullable);
             AssertUnorderedEnumerable(model1.DateTimeOffsetHashSetNullable, model2.DateTimeOffsetHashSetNullable);
             AssertUnorderedEnumerable(model1.TimeSpanHashSetNullable, model2.TimeSpanHashSetNullable);
+#if NET6_0_OR_GREATER
+            AssertUnorderedEnumerable(model1.DateOnlyHashSetNullable, model2.DateOnlyHashSetNullable);
+            AssertUnorderedEnumerable(model1.TimeOnlyHashSetNullable, model2.TimeOnlyHashSetNullable);
+#endif
             AssertUnorderedEnumerable(model1.GuidHashSetNullable, model2.GuidHashSetNullable);
 
             AssertUnorderedEnumerable(model1.StringHashSet, model2.StringHashSet);

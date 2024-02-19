@@ -126,6 +126,18 @@ namespace Zerra.Repository.MsSql
                                     columnProperty.Setter(model, value);
                                 }
                                 break;
+                            case CoreType.DateOnly:
+                                {
+                                    var value = reader.GetDateTime(i);
+                                    columnProperty.Setter(model, DateOnly.FromDateTime(value));
+                                }
+                                break;
+                            case CoreType.TimeOnly:
+                                {
+                                    var value = reader.GetTimeSpan(i);
+                                    columnProperty.Setter(model, TimeOnly.FromTimeSpan(value));
+                                }
+                                break;
                             case CoreType.Guid:
                                 {
                                     var value = reader.GetGuid(i);
@@ -221,6 +233,20 @@ namespace Zerra.Repository.MsSql
                                     var value = reader.GetValue(i); //GetSqlDateTime doesn't handle null
                                     if (value != DBNull.Value)
                                         columnProperty.Setter(model, (TimeSpan?)value);
+                                }
+                                break;
+                            case CoreType.DateOnlyNullable:
+                                {
+                                    var value = reader.GetValue(i);
+                                    if (value != DBNull.Value)
+                                        columnProperty.Setter(model, (DateOnly?)DateOnly.FromDateTime((DateTime)value));
+                                }
+                                break;
+                            case CoreType.TimeOnlyNullable:
+                                {
+                                    var value = reader.GetValue(i);
+                                    if (value != DBNull.Value)
+                                        columnProperty.Setter(model, (TimeOnly?)TimeOnly.FromTimeSpan((TimeSpan)value));
                                 }
                                 break;
                             case CoreType.GuidNullable:
@@ -521,6 +547,18 @@ namespace Zerra.Repository.MsSql
                     case CoreType.TimeSpanNullable:
                         writer.Write('\'');
                         writer.Write((TimeSpan)value, TimeFormat.MsSql);
+                        writer.Write('\'');
+                        return;
+                    case CoreType.DateOnly:
+                    case CoreType.DateOnlyNullable:
+                        writer.Write('\'');
+                        writer.Write((DateOnly)value, DateTimeFormat.MsSql);
+                        writer.Write('\'');
+                        return;
+                    case CoreType.TimeOnly:
+                    case CoreType.TimeOnlyNullable:
+                        writer.Write('\'');
+                        writer.Write((TimeOnly)value, TimeFormat.MsSql);
                         writer.Write('\'');
                         return;
                     case CoreType.Guid:
@@ -1450,6 +1488,14 @@ namespace Zerra.Repository.MsSql
                     case CoreType.TimeSpanNullable:
                         _ = sb.Append("[time](").Append(property.DataSourcePrecisionLength ?? 7).Append(')');
                         break;
+                    case CoreType.DateOnly:
+                    case CoreType.DateOnlyNullable:
+                        _ = sb.Append("[date]");
+                        break;
+                    case CoreType.TimeOnly:
+                    case CoreType.TimeOnlyNullable:
+                        _ = sb.Append("[time](").Append(property.DataSourcePrecisionLength ?? 7).Append(')');
+                        break;
                     case CoreType.Guid:
                     case CoreType.GuidNullable:
                         _ = sb.Append("[uniqueidentifier]");
@@ -1531,6 +1577,10 @@ namespace Zerra.Repository.MsSql
                     case CoreType.DateTimeOffsetNullable:
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:
+                    case CoreType.DateOnly:
+                    case CoreType.DateOnlyNullable:                   
+                    case CoreType.TimeOnly:
+                    case CoreType.TimeOnlyNullable:
                         _ = sb.Append("CONVERT(datetime, 0)");
                         break;
                     case CoreType.Guid:
@@ -1623,6 +1673,8 @@ namespace Zerra.Repository.MsSql
                     case CoreType.DateTime: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 3)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == false;
                     case CoreType.DateTimeOffset: return sqlColumn.DataType == "datetimeoffset" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 7);
                     case CoreType.TimeSpan: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 7);
+                    case CoreType.DateOnly: return sqlColumn.DataType == "date" && sqlColumn.IsNullable == false;
+                    case CoreType.TimeOnly: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 7);
                     case CoreType.Guid: return sqlColumn.DataType == "uniqueidentifier" && sqlColumn.IsNullable == false;
 
                     case CoreType.BooleanNullable: return sqlColumn.DataType == "bit" && sqlColumn.IsNullable == true;
@@ -1637,6 +1689,8 @@ namespace Zerra.Repository.MsSql
                     case CoreType.DateTimeNullable: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 3)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == true;
                     case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "datetimeoffset" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 7);
                     case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 7);
+                    case CoreType.DateOnlyNullable: return sqlColumn.DataType == "date" && sqlColumn.IsNullable == true;
+                    case CoreType.TimeOnlyNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 7);
                     case CoreType.GuidNullable: return sqlColumn.DataType == "uniqueidentifier" && sqlColumn.IsNullable == true;
 
                     case CoreType.String:

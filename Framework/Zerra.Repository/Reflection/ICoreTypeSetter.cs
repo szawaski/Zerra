@@ -28,6 +28,8 @@ namespace Zerra.Repository.Reflection
         void Setter(T model, DateTime value);
         void Setter(T model, DateTimeOffset value);
         void Setter(T model, TimeSpan value);
+        void Setter(T model, DateOnly value);
+        void Setter(T model, TimeOnly value);
         void Setter(T model, Guid value);
 
         void Setter(T model, string value);
@@ -48,6 +50,8 @@ namespace Zerra.Repository.Reflection
         void Setter(T model, DateTime? value);
         void Setter(T model, DateTimeOffset? value);
         void Setter(T model, TimeSpan? value);
+        void Setter(T model, DateOnly? value);
+        void Setter(T model, TimeOnly? value);
         void Setter(T model, Guid? value);
 
         void Setter(T model, byte[] value);

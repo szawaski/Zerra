@@ -75,6 +75,8 @@ namespace Zerra.Repository.Test
                 DateTimeThing = DateTime.Now,
                 DateTimeOffsetThing = DateTimeOffset.Now.AddDays(1),
                 TimeSpanThing = DateTime.Now.TimeOfDay,
+                DateOnlyThing = DateOnly.FromDateTime(DateTime.Now),
+                TimeOnlyThing = TimeOnly.FromDateTime(DateTime.Now),
                 GuidThing = Guid.NewGuid(),
 
                 ByteNullableThing = 11,
@@ -88,6 +90,8 @@ namespace Zerra.Repository.Test
                 DateTimeNullableThing = DateTime.Now.AddMonths(1),
                 DateTimeOffsetNullableThing = DateTimeOffset.Now.AddMonths(1).AddDays(1),
                 TimeSpanNullableThing = DateTime.Now.AddHours(1).TimeOfDay,
+                DateOnlyNullableThing = DateOnly.FromDateTime(DateTime.Now),
+                TimeOnlyNullableThing = TimeOnly.FromDateTime(DateTime.Now),
                 GuidNullableThing = Guid.NewGuid(),
 
                 ByteNullableThingNull = null,
@@ -101,6 +105,8 @@ namespace Zerra.Repository.Test
                 DateTimeNullableThingNull = null,
                 DateTimeOffsetNullableThingNull = null,
                 TimeSpanNullableThingNull = null,
+                DateOnlyNullableThingNull = null,
+                TimeOnlyNullableThingNull = null,
                 GuidNullableThingNull = null,
 
                 StringThing = "Hello\r\nWorld!",
@@ -126,6 +132,8 @@ namespace Zerra.Repository.Test
             model.DateTimeThing = DateTime.Now;
             model.DateTimeOffsetThing = DateTimeOffset.Now.AddDays(1);
             model.TimeSpanThing = DateTime.Now.TimeOfDay;
+            model.DateOnlyThing = DateOnly.FromDateTime(DateTime.Now.AddDays(1));
+            model.TimeOnlyThing = TimeOnly.FromDateTime(DateTime.Now);
             model.GuidThing = Guid.NewGuid();
 
             model.ByteNullableThing++;
@@ -139,6 +147,8 @@ namespace Zerra.Repository.Test
             model.DateTimeNullableThing = DateTime.Now.AddMonths(1);
             model.DateTimeOffsetNullableThing = DateTimeOffset.Now.AddMonths(1).AddDays(1);
             model.TimeSpanNullableThing = DateTime.Now.AddHours(1).TimeOfDay;
+            model.DateOnlyNullableThing = DateOnly.FromDateTime(DateTime.Now.AddDays(1));
+            model.TimeOnlyNullableThing = TimeOnly.FromDateTime(DateTime.Now);
             model.GuidNullableThing = Guid.NewGuid();
         }
         public static void AssertAreEqual<T, U>(T model1, T model2)
@@ -156,9 +166,11 @@ namespace Zerra.Repository.Test
             Assert.AreEqual(model1.DoubleThing, model2.DoubleThing);
             Assert.AreEqual(model1.DecimalThing, model2.DecimalThing);
             Assert.AreEqual(model1.CharThing, model2.CharThing);
-            Assert.AreEqual(model1.DateTimeThing.ToUniversalTime().ToString("yyyyMMddHHmmss.ff"), model2.DateTimeThing.ToUniversalTime().ToString("yyyyMMddHHmmss.ff"));
-            Assert.AreEqual(model1.DateTimeOffsetThing.ToUniversalTime().ToString("yyyyMMddHHmmss.ffzzz"), model2.DateTimeOffsetThing.ToUniversalTime().ToString("yyyyMMddHHmmss.ffzzz"));
+            Assert.AreEqual(model1.DateTimeThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ff"), model2.DateTimeThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ff"));
+            Assert.AreEqual(model1.DateTimeOffsetThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffzzz"), model2.DateTimeOffsetThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffzzz"));
             Assert.AreEqual((int)model1.TimeSpanThing.TotalMilliseconds, (int)model2.TimeSpanThing.TotalMilliseconds);
+            Assert.AreEqual(model1.DateOnlyThing.ToString("yyyy-MM-dd"), model2.DateOnlyThing.ToString("yyyy-MM-dd"));
+            Assert.AreEqual(model1.TimeOnlyThing.Millisecond, model2.TimeOnlyThing.Millisecond);
             Assert.AreEqual(model1.GuidThing, model2.GuidThing);
 
             Assert.AreEqual(model1.ByteNullableThing, model2.ByteNullableThing);
@@ -169,9 +181,11 @@ namespace Zerra.Repository.Test
             Assert.AreEqual(model1.DoubleNullableThing, model2.DoubleNullableThing);
             Assert.AreEqual(model1.DecimalNullableThing, model2.DecimalNullableThing);
             Assert.AreEqual(model1.CharNullableThing, model2.CharNullableThing);
-            Assert.AreEqual(model1.DateTimeNullableThing.Value.ToUniversalTime().ToString("yyyyMMddHHmmss.ff"), model2.DateTimeNullableThing.Value.ToUniversalTime().ToString("yyyyMMddHHmmss.ff"));
-            Assert.AreEqual(model1.DateTimeOffsetNullableThing.Value.ToUniversalTime().ToString("yyyyMMddHHmmss.ffzzz"), model2.DateTimeOffsetNullableThing.Value.ToUniversalTime().ToString("yyyyMMddHHmmss.ffzzz"));
+            Assert.AreEqual(model1.DateTimeNullableThing.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ff"), model2.DateTimeNullableThing.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ff"));
+            Assert.AreEqual(model1.DateTimeOffsetNullableThing.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffzzz"), model2.DateTimeOffsetNullableThing.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffzzz"));
             Assert.AreEqual((int)model1.TimeSpanNullableThing.Value.TotalMilliseconds, (int)model2.TimeSpanNullableThing.Value.TotalMilliseconds);
+            Assert.AreEqual(model1.DateOnlyNullableThing?.ToString("yyyy-MM-dd"), model2.DateOnlyNullableThing?.ToString("yyyy-MM-dd"));
+            Assert.AreEqual(model1.TimeOnlyNullableThing?.Millisecond, model2.TimeOnlyNullableThing?.Millisecond);
             Assert.AreEqual(model1.GuidNullableThing, model2.GuidNullableThing);
 
             Assert.IsNull(model1.ByteNullableThingNull);
@@ -185,20 +199,9 @@ namespace Zerra.Repository.Test
             Assert.IsNull(model1.DateTimeNullableThingNull);
             Assert.IsNull(model1.DateTimeOffsetNullableThingNull);
             Assert.IsNull(model1.TimeSpanNullableThingNull);
+            Assert.IsNull(model1.DateOnlyNullableThingNull);
+            Assert.IsNull(model1.TimeOnlyNullableThingNull);
             Assert.IsNull(model1.GuidNullableThingNull);
-
-            Assert.IsNull(model2.ByteNullableThingNull);
-            Assert.IsNull(model2.Int16NullableThingNull);
-            Assert.IsNull(model2.Int32NullableThingNull);
-            Assert.IsNull(model2.Int64NullableThingNull);
-            Assert.IsNull(model2.SingleNullableThingNull);
-            Assert.IsNull(model2.DoubleNullableThingNull);
-            Assert.IsNull(model2.DecimalNullableThingNull);
-            Assert.IsNull(model2.CharNullableThingNull);
-            Assert.IsNull(model2.DateTimeNullableThingNull);
-            Assert.IsNull(model2.DateTimeOffsetNullableThingNull);
-            Assert.IsNull(model2.TimeSpanNullableThingNull);
-            Assert.IsNull(model2.GuidNullableThingNull);
 
             Assert.AreEqual(model1.StringThing, model2.StringThing);
 

@@ -24,6 +24,10 @@ namespace Zerra.Test
         public DateTime DateTimeThing { get; set; }
         public DateTimeOffset DateTimeOffsetThing { get; set; }
         public TimeSpan TimeSpanThing { get; set; }
+#if NET6_0_OR_GREATER
+        public DateOnly DateOnlyThing { get; set; }
+        public TimeOnly TimeOnlyThing { get; set; }
+#endif
         public Guid GuidThing { get; set; }
 
         public bool? BooleanThingNullable { get; set; }
@@ -42,6 +46,10 @@ namespace Zerra.Test
         public DateTime? DateTimeThingNullable { get; set; }
         public DateTimeOffset? DateTimeOffsetThingNullable { get; set; }
         public TimeSpan? TimeSpanThingNullable { get; set; }
+#if NET6_0_OR_GREATER
+        public DateOnly? DateOnlyThingNullable { get; set; }
+        public TimeOnly? TimeOnlyThingNullable { get; set; }
+#endif
         public Guid? GuidThingNullable { get; set; }
     }
 }

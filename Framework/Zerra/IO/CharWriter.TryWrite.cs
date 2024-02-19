@@ -260,10 +260,10 @@ namespace Zerra.IO
                             case DateTimeKind.Local:
                                 {
                                     var offset = (DateTimeOffset)value;
-                                    if (offset.Offset.Hours > 0)
-                                        buffer[position++] = '+';
-                                    else
+                                    if (offset.Offset.Hours < 0)
                                         buffer[position++] = '-';
+                                    else
+                                        buffer[position++] = '+';
                                     if (offset.Offset.Hours < 10)
                                         buffer[position++] = '0';
                                     WriteInt64(offset.Offset.Hours < 0 ? -offset.Offset.Hours : offset.Offset.Hours);
@@ -536,10 +536,10 @@ namespace Zerra.IO
                             WriteInt64(fraction);
                         }
 
-                        if (value.Offset.Hours > 0)
-                            buffer[position++] = '+';
-                        else
+                        if (value.Offset.Hours < 0)
                             buffer[position++] = '-';
+                        else
+                            buffer[position++] = '+';
                         if (value.Offset.Hours < 10)
                             buffer[position++] = '0';
                         WriteInt64(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
@@ -605,10 +605,10 @@ namespace Zerra.IO
                             WriteInt64(fraction);
                         }
 
-                        if (value.Offset.Hours > 0)
-                            buffer[position++] = '+';
-                        else
+                        if (value.Offset.Hours < 0)
                             buffer[position++] = '-';
+                        else
+                            buffer[position++] = '+';
                         if (value.Offset.Hours < 10)
                             buffer[position++] = '0';
                         WriteInt64(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
@@ -742,10 +742,10 @@ namespace Zerra.IO
                             WriteInt64(fraction);
                         }
 
-                        if (value.Offset.Hours > 0)
-                            buffer[position++] = '+';
-                        else
+                        if (value.Offset.Hours < 0)
                             buffer[position++] = '-';
+                        else
+                            buffer[position++] = '+';
                         if (value.Offset.Hours < 10)
                             buffer[position++] = '0';
                         WriteInt64(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
@@ -774,7 +774,7 @@ namespace Zerra.IO
                         if (length - position < sizeNeeded)
                             return false;
 
-                        if (value.TotalHours < 10)
+                        if (value.Hours < 10)
                             buffer[position++] = '0';
                         WriteInt64(value.Hours);
                         buffer[position++] = ':';
@@ -904,6 +904,269 @@ namespace Zerra.IO
                     throw new NotImplementedException();
             }
         }
+
+#if NET6_0_OR_GREATER
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryWrite(DateOnly value, DateTimeFormat format, out int sizeNeeded)
+        {
+            switch (format)
+            {
+                case DateTimeFormat.ISO8601:
+                    {
+                        //yyyy-MM-dd
+                        sizeNeeded = 10;
+                        if (length - position < sizeNeeded)
+                            return false;
+
+                        if (value.Year < 10)
+                            buffer[position++] = '0';
+                        if (value.Year < 100)
+                            buffer[position++] = '0';
+                        if (value.Year < 1000)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Year);
+                        buffer[position++] = '-';
+
+                        if (value.Month < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Month);
+                        buffer[position++] = '-';
+
+                        if (value.Day < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Day);
+
+                        return true;
+                    }
+                case DateTimeFormat.MsSql:
+                    {
+                        //yyyy-MM-dd
+                        sizeNeeded = 10;
+                        if (length - position < sizeNeeded)
+                            return false;
+
+                        if (value.Year < 10)
+                            buffer[position++] = '0';
+                        if (value.Year < 100)
+                            buffer[position++] = '0';
+                        if (value.Year < 1000)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Year);
+                        buffer[position++] = '-';
+
+                        if (value.Month < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Month);
+                        buffer[position++] = '-';
+
+                        if (value.Day < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Day);
+
+                        return true;
+                    }
+                case DateTimeFormat.MySql:
+                    {
+                        //yyyy-MM-dd
+                        sizeNeeded = 10;
+                        if (length - position < sizeNeeded)
+                            return false;
+
+                        if (value.Year < 10)
+                            buffer[position++] = '0';
+                        if (value.Year < 100)
+                            buffer[position++] = '0';
+                        if (value.Year < 1000)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Year);
+                        buffer[position++] = '-';
+
+                        if (value.Month < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Month);
+                        buffer[position++] = '-';
+
+                        if (value.Day < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Day);
+
+                        return true;
+                    }
+                case DateTimeFormat.PostgreSql:
+                    {
+                        //yyyy-MM-dd
+                        sizeNeeded = 10;
+                        if (length - position < sizeNeeded)
+                            return false;
+
+                        if (value.Year < 10)
+                            buffer[position++] = '0';
+                        if (value.Year < 100)
+                            buffer[position++] = '0';
+                        if (value.Year < 1000)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Year);
+                        buffer[position++] = '-';
+
+                        if (value.Month < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Month);
+                        buffer[position++] = '-';
+
+                        if (value.Day < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Day);
+
+                        return true;
+                    }
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryWrite(TimeOnly value, TimeFormat format, out int sizeNeeded)
+        {
+            switch (format)
+            {
+                case TimeFormat.ISO8601:
+                    {
+                        //HH:mm:ss.fffffff
+                        sizeNeeded = 16;
+                        if (length - position < sizeNeeded)
+                            return false;
+
+                        if (value.Hour < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Hour);
+                        buffer[position++] = ':';
+
+                        if (value.Minute < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Minute);
+                        buffer[position++] = ':';
+
+                        if (value.Second < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Second);
+
+                        var fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
+                        if (fraction > 0)
+                        {
+                            buffer[position++] = '.';
+                            if (fraction < 10)
+                                buffer[position++] = '0';
+                            if (fraction < 100)
+                                buffer[position++] = '0';
+                            if (fraction < 1000)
+                                buffer[position++] = '0';
+                            if (fraction < 10000)
+                                buffer[position++] = '0';
+                            if (fraction < 100000)
+                                buffer[position++] = '0';
+                            if (fraction < 1000000)
+                                buffer[position++] = '0';
+                            //while (fraction % 10 == 0)  System.Text.Json does all figures
+                            //    fraction /= 10;
+                            WriteInt64(fraction);
+                        }
+
+                        return true;
+                    }
+                case TimeFormat.MsSql:
+                    {
+                        //HH:mm:ss.fffffff
+                        sizeNeeded = 16;
+                        if (length - position < sizeNeeded)
+                            return false;
+
+                        if (value.Hour < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Hour);
+                        buffer[position++] = ':';
+
+                        if (value.Minute < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Minute);
+                        buffer[position++] = ':';
+
+                        if (value.Second < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Second);
+
+                        var fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
+                        if (fraction > 0)
+                        {
+                            buffer[position++] = '.';
+                            if (fraction < 10)
+                                buffer[position++] = '0';
+                            if (fraction < 100)
+                                buffer[position++] = '0';
+                            if (fraction < 1000)
+                                buffer[position++] = '0';
+                            if (fraction < 10000)
+                                buffer[position++] = '0';
+                            if (fraction < 100000)
+                                buffer[position++] = '0';
+                            if (fraction < 1000000)
+                                buffer[position++] = '0';
+                            while (fraction % 10 == 0)
+                                fraction /= 10;
+                            WriteInt64(fraction);
+                        }
+
+                        return true;
+                    }
+                case TimeFormat.MySql:
+                case TimeFormat.PostgreSql:
+                    {
+                        //HH:mm:ss.ffffff
+                        sizeNeeded = 16;
+                        if (length - position < sizeNeeded)
+                            return false;
+
+                        if (value.Hour < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Hour);
+                        buffer[position++] = ':';
+
+                        if (value.Minute < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Minute);
+                        buffer[position++] = ':';
+
+                        if (value.Second < 10)
+                            buffer[position++] = '0';
+                        WriteInt64(value.Second);
+
+                        var fraction = (value.Ticks - (value.Ticks / 10000000) * 10000000) / 10;
+                        if (fraction > 0)
+                        {
+                            buffer[position++] = '.';
+                            if (fraction < 10)
+                                buffer[position++] = '0';
+                            if (fraction < 100)
+                                buffer[position++] = '0';
+                            if (fraction < 1000)
+                                buffer[position++] = '0';
+                            if (fraction < 10000)
+                                buffer[position++] = '0';
+                            if (fraction < 100000)
+                                buffer[position++] = '0';
+                            if (fraction < 1000000)
+                                buffer[position++] = '0';
+                            while (fraction % 10 == 0)
+                                fraction /= 10;
+                            WriteInt64(fraction);
+                        }
+
+                        return true;
+                    }
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+#endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(Guid value, out int sizeNeeded)

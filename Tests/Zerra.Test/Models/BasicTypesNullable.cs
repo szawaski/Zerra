@@ -24,6 +24,10 @@ namespace Zerra.Test
         public DateTime? DateTimeThing { get; set; }
         public DateTimeOffset? DateTimeOffsetThing { get; set; }
         public TimeSpan? TimeSpanThing { get; set; }
+#if NET6_0_OR_GREATER
+        public DateOnly? DateOnlyThing { get; set; }
+        public TimeOnly? TimeOnlyThing { get; set; }
+#endif
         public Guid? GuidThing { get; set; }
 
         public EnumModel? EnumThing { get; set; }

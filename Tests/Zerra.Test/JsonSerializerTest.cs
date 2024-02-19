@@ -28,11 +28,17 @@ namespace Zerra.Test
         {
             var baseModel = Factory.GetAllTypesModel();
             var json1 = JsonSerializer.Serialize(baseModel);
-            var json2 = Newtonsoft.Json.JsonConvert.SerializeObject(baseModel, new Newtonsoft.Json.Converters.StringEnumConverter());
+            var json2 = Newtonsoft.Json.JsonConvert.SerializeObject(baseModel, 
+                new Newtonsoft.Json.Converters.StringEnumConverter(),
+                new NewtonsoftDateOnlyConverter(),
+                new NewtonsoftTimeOnlyConverter());
 
             //swap serializers
             var model1 = JsonSerializer.Deserialize<AllTypesModel>(json2);
-            var model2 = Newtonsoft.Json.JsonConvert.DeserializeObject<AllTypesModel>(json1, new Newtonsoft.Json.Converters.StringEnumConverter());
+            var model2 = Newtonsoft.Json.JsonConvert.DeserializeObject<AllTypesModel>(json1, 
+                new Newtonsoft.Json.Converters.StringEnumConverter(),
+                new NewtonsoftDateOnlyConverter(),
+                new NewtonsoftTimeOnlyConverter());
             Factory.AssertAreEqual(model1, model2);
         }
 
@@ -413,6 +419,10 @@ namespace Zerra.Test
             model1.DateTimeThing = (DateTime)jsonObject[nameof(AllTypesModel.DateTimeThing)];
             model1.DateTimeOffsetThing = (DateTimeOffset)jsonObject[nameof(AllTypesModel.DateTimeOffsetThing)];
             model1.TimeSpanThing = (TimeSpan)jsonObject[nameof(AllTypesModel.TimeSpanThing)];
+#if NET6_0_OR_GREATER
+            model1.DateOnlyThing = (DateOnly)jsonObject[nameof(AllTypesModel.DateOnlyThing)];
+            model1.TimeOnlyThing = (TimeOnly)jsonObject[nameof(AllTypesModel.TimeOnlyThing)];
+#endif
             model1.GuidThing = (Guid)jsonObject[nameof(AllTypesModel.GuidThing)];
 
             model1.BooleanThingNullable = (bool?)jsonObject[nameof(AllTypesModel.BooleanThingNullable)];
@@ -431,6 +441,10 @@ namespace Zerra.Test
             model1.DateTimeThingNullable = (DateTime?)jsonObject[nameof(AllTypesModel.DateTimeThingNullable)];
             model1.DateTimeOffsetThingNullable = (DateTimeOffset?)jsonObject[nameof(AllTypesModel.DateTimeOffsetThingNullable)];
             model1.TimeSpanThingNullable = (TimeSpan?)jsonObject[nameof(AllTypesModel.TimeSpanThingNullable)];
+#if NET6_0_OR_GREATER
+            model1.DateOnlyThingNullable = (DateOnly?)jsonObject[nameof(AllTypesModel.DateOnlyThingNullable)];
+            model1.TimeOnlyThingNullable = (TimeOnly?)jsonObject[nameof(AllTypesModel.TimeOnlyThingNullable)];
+#endif
             model1.GuidThingNullable = (Guid?)jsonObject[nameof(AllTypesModel.GuidThingNullable)];
 
             model1.BooleanThingNullableNull = (bool?)jsonObject[nameof(AllTypesModel.BooleanThingNullableNull)];
@@ -449,6 +463,10 @@ namespace Zerra.Test
             model1.DateTimeThingNullableNull = (DateTime?)jsonObject[nameof(AllTypesModel.DateTimeThingNullableNull)];
             model1.DateTimeOffsetThingNullableNull = (DateTimeOffset?)jsonObject[nameof(AllTypesModel.DateTimeOffsetThingNullableNull)];
             model1.TimeSpanThingNullableNull = (TimeSpan?)jsonObject[nameof(AllTypesModel.TimeSpanThingNullableNull)];
+#if NET6_0_OR_GREATER
+            model1.DateOnlyThingNullableNull = (DateOnly?)jsonObject[nameof(AllTypesModel.DateOnlyThingNullableNull)];
+            model1.TimeOnlyThingNullableNull = (TimeOnly?)jsonObject[nameof(AllTypesModel.TimeOnlyThingNullableNull)];
+#endif
             model1.GuidThingNullableNull = (Guid?)jsonObject[nameof(AllTypesModel.GuidThingNullableNull)];
 
             model1.StringThing = (string)jsonObject[nameof(AllTypesModel.StringThing)];
@@ -475,6 +493,10 @@ namespace Zerra.Test
             model1.DateTimeArray = (DateTime[])jsonObject[nameof(AllTypesModel.DateTimeArray)];
             model1.DateTimeOffsetArray = (DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetArray)];
             model1.TimeSpanArray = (TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanArray)];
+#if NET6_0_OR_GREATER
+            model1.DateOnlyArray = (DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyArray)];
+            model1.TimeOnlyArray = (TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyArray)];
+#endif
             model1.GuidArray = (Guid[])jsonObject[nameof(AllTypesModel.GuidArray)];
 
             model1.BooleanArrayEmpty = (bool[])jsonObject[nameof(AllTypesModel.BooleanArrayEmpty)];
@@ -493,6 +515,10 @@ namespace Zerra.Test
             model1.DateTimeArrayEmpty = (DateTime[])jsonObject[nameof(AllTypesModel.DateTimeArrayEmpty)];
             model1.DateTimeOffsetArrayEmpty = (DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetArrayEmpty)];
             model1.TimeSpanArrayEmpty = (TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanArrayEmpty)];
+#if NET6_0_OR_GREATER
+            model1.DateOnlyArrayEmpty = (DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyArrayEmpty)];
+            model1.TimeOnlyArrayEmpty = (TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyArrayEmpty)];
+#endif
             model1.GuidArrayEmpty = (Guid[])jsonObject[nameof(AllTypesModel.GuidArrayEmpty)];
 
             model1.BooleanArrayNull = (bool[])jsonObject[nameof(AllTypesModel.BooleanArrayNull)];
@@ -511,6 +537,10 @@ namespace Zerra.Test
             model1.DateTimeArrayNull = (DateTime[])jsonObject[nameof(AllTypesModel.DateTimeArrayNull)];
             model1.DateTimeOffsetArrayNull = (DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetArrayNull)];
             model1.TimeSpanArrayNull = (TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanArrayNull)];
+#if NET6_0_OR_GREATER
+            model1.DateOnlyArrayNull = (DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyArrayNull)];
+            model1.TimeOnlyArrayNull = (TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyArrayNull)];
+#endif
             model1.GuidArrayNull = (Guid[])jsonObject[nameof(AllTypesModel.GuidArrayNull)];
 
             model1.BooleanArrayNullable = (bool?[])jsonObject[nameof(AllTypesModel.BooleanArrayNullable)];
@@ -529,6 +559,10 @@ namespace Zerra.Test
             model1.DateTimeArrayNullable = (DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeArrayNullable)];
             model1.DateTimeOffsetArrayNullable = (DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetArrayNullable)];
             model1.TimeSpanArrayNullable = (TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanArrayNullable)];
+#if NET6_0_OR_GREATER
+            model1.DateOnlyArrayNullable = (DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyArrayNullable)];
+            model1.TimeOnlyArrayNullable = (TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyArrayNullable)];
+#endif
             model1.GuidArrayNullable = (Guid?[])jsonObject[nameof(AllTypesModel.GuidArrayNullable)];
 
             model1.BooleanArrayNullableEmpty = (bool?[])jsonObject[nameof(AllTypesModel.BooleanArrayNullableEmpty)];
@@ -547,6 +581,10 @@ namespace Zerra.Test
             model1.DateTimeArrayNullableEmpty = (DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeArrayNullableEmpty)];
             model1.DateTimeOffsetArrayNullableEmpty = (DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetArrayNullableEmpty)];
             model1.TimeSpanArrayNullableEmpty = (TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanArrayNullableEmpty)];
+#if NET6_0_OR_GREATER
+            model1.DateOnlyArrayNullableEmpty = (DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyArrayNullableEmpty)];
+            model1.TimeOnlyArrayNullableEmpty = (TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyArrayNullableEmpty)];
+#endif
             model1.GuidArrayNullableEmpty = (Guid?[])jsonObject[nameof(AllTypesModel.GuidArrayNullableEmpty)];
 
             model1.BooleanArrayNullableNull = (bool?[])jsonObject[nameof(AllTypesModel.BooleanArrayNullableNull)];
@@ -565,6 +603,10 @@ namespace Zerra.Test
             model1.DateTimeArrayNullableNull = (DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeArrayNullableNull)];
             model1.DateTimeOffsetArrayNullableNull = (DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetArrayNullableNull)];
             model1.TimeSpanArrayNullableNull = (TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanArrayNullableNull)];
+#if NET6_0_OR_GREATER
+            model1.DateOnlyArrayNullableNull = (DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyArrayNullableNull)];
+            model1.TimeOnlyArrayNullableNull = (TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyArrayNullableNull)];
+#endif
             model1.GuidArrayNullableNull = (Guid?[])jsonObject[nameof(AllTypesModel.GuidArrayNullableNull)];
 
             model1.StringArray = (string[])jsonObject[nameof(AllTypesModel.StringArray)];
@@ -589,6 +631,10 @@ namespace Zerra.Test
             model1.DateTimeList = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeList)]).ToList();
             model1.DateTimeOffsetList = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetList)]).ToList();
             model1.TimeSpanList = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanList)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyList = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyList)]).ToList();
+            model1.TimeOnlyList = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyList)]).ToList();
+#endif
             model1.GuidList = ((Guid[])jsonObject[nameof(AllTypesModel.GuidList)]).ToList();
 
             model1.BooleanListEmpty = ((bool[])jsonObject[nameof(AllTypesModel.BooleanListEmpty)]).ToList();
@@ -607,6 +653,10 @@ namespace Zerra.Test
             model1.DateTimeListEmpty = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeListEmpty)]).ToList();
             model1.DateTimeOffsetListEmpty = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListEmpty)]).ToList();
             model1.TimeSpanListEmpty = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanListEmpty)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyListEmpty = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyListEmpty)]).ToList();
+            model1.TimeOnlyListEmpty = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyListEmpty)]).ToList();
+#endif
             model1.GuidListEmpty = ((Guid[])jsonObject[nameof(AllTypesModel.GuidListEmpty)]).ToList();
 
             model1.BooleanListNull = ((bool[])jsonObject[nameof(AllTypesModel.BooleanListNull)])?.ToList();
@@ -625,6 +675,10 @@ namespace Zerra.Test
             model1.DateTimeListNull = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeListNull)])?.ToList();
             model1.DateTimeOffsetListNull = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListNull)])?.ToList();
             model1.TimeSpanListNull = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanListNull)])?.ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyListNull = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyListNull)])?.ToList();
+            model1.TimeOnlyListNull = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyListNull)])?.ToList();
+#endif
             model1.GuidListNull = ((Guid[])jsonObject[nameof(AllTypesModel.GuidListNull)])?.ToList();
 
             model1.BooleanListNullable = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanListNullable)]).ToList();
@@ -643,6 +697,10 @@ namespace Zerra.Test
             model1.DateTimeListNullable = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeListNullable)]).ToList();
             model1.DateTimeOffsetListNullable = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListNullable)]).ToList();
             model1.TimeSpanListNullable = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanListNullable)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyListNullable = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyListNullable)]).ToList();
+            model1.TimeOnlyListNullable = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyListNullable)]).ToList();
+#endif
             model1.GuidListNullable = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidListNullable)]).ToList();
 
             model1.BooleanListNullableEmpty = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanListNullableEmpty)]).ToList();
@@ -661,6 +719,10 @@ namespace Zerra.Test
             model1.DateTimeListNullableEmpty = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeListNullableEmpty)]).ToList();
             model1.DateTimeOffsetListNullableEmpty = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListNullableEmpty)]).ToList();
             model1.TimeSpanListNullableEmpty = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanListNullableEmpty)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyListNullableEmpty = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyListNullableEmpty)]).ToList();
+            model1.TimeOnlyListNullableEmpty = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyListNullableEmpty)]).ToList();
+#endif
             model1.GuidListNullableEmpty = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidListNullableEmpty)]).ToList();
 
             model1.BooleanListNullableNull = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanListNullableNull)])?.ToList();
@@ -679,6 +741,10 @@ namespace Zerra.Test
             model1.DateTimeListNullableNull = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeListNullableNull)])?.ToList();
             model1.DateTimeOffsetListNullableNull = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListNullableNull)])?.ToList();
             model1.TimeSpanListNullableNull = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanListNullableNull)])?.ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyListNullableNull = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyListNullableNull)])?.ToList();
+            model1.TimeOnlyListNullableNull = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyListNullableNull)])?.ToList();
+#endif
             model1.GuidListNullableNull = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidListNullableNull)])?.ToList();
 
             model1.StringList = ((string[])jsonObject[nameof(AllTypesModel.StringList)]).ToList();
@@ -981,12 +1047,18 @@ namespace Zerra.Test
             using var sr1 = new StreamReader(stream1, Encoding.UTF8);
             var json1 = await sr1.ReadToEndAsync();
 
-            var json2 = Newtonsoft.Json.JsonConvert.SerializeObject(baseModel, new Newtonsoft.Json.Converters.StringEnumConverter());
+            var json2 = Newtonsoft.Json.JsonConvert.SerializeObject(baseModel, 
+                new Newtonsoft.Json.Converters.StringEnumConverter(),
+                new NewtonsoftDateOnlyConverter(),
+                new NewtonsoftTimeOnlyConverter());
 
             //swap serializers
             using var stream2 = new MemoryStream(Encoding.UTF8.GetBytes(json2));
             var model1 = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream2);
-            var model2 = Newtonsoft.Json.JsonConvert.DeserializeObject<AllTypesModel>(json1, new Newtonsoft.Json.Converters.StringEnumConverter());
+            var model2 = Newtonsoft.Json.JsonConvert.DeserializeObject<AllTypesModel>(json1, 
+                new Newtonsoft.Json.Converters.StringEnumConverter(),
+                new NewtonsoftDateOnlyConverter(),
+                new NewtonsoftTimeOnlyConverter());
             Factory.AssertAreEqual(model1, model2);
         }
 

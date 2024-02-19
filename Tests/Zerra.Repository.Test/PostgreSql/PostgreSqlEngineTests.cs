@@ -38,7 +38,9 @@ namespace Zerra.Repository.Test
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = $"SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = '{testDatabase}'; DROP DATABASE IF EXISTS {testDatabase};";
+                    command.CommandText = $"SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname='{testDatabase}';";
+                    _ = command.ExecuteNonQuery();
+                    command.CommandText = $"DROP DATABASE IF EXISTS {testDatabase};";
                     _ = command.ExecuteNonQuery();
                 }
             }

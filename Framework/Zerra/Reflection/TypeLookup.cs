@@ -27,6 +27,10 @@ namespace Zerra.Reflection
             { typeof(DateTime), CoreType.DateTime },
             { typeof(DateTimeOffset), CoreType.DateTimeOffset },
             { typeof(TimeSpan), CoreType.TimeSpan },
+#if NET6_0_OR_GREATER
+            { typeof(DateOnly), CoreType.DateOnly },
+            { typeof(TimeOnly), CoreType.TimeOnly },
+#endif
             { typeof(Guid), CoreType.Guid },
 
             { typeof(string), CoreType.String },
@@ -47,6 +51,10 @@ namespace Zerra.Reflection
             { typeof(DateTime?), CoreType.DateTimeNullable },
             { typeof(DateTimeOffset?), CoreType.DateTimeOffsetNullable },
             { typeof(TimeSpan?), CoreType.TimeSpanNullable },
+#if NET6_0_OR_GREATER
+            { typeof(DateOnly?), CoreType.DateOnlyNullable },
+            { typeof(TimeOnly?), CoreType.TimeOnlyNullable },
+#endif
             { typeof(Guid?), CoreType.GuidNullable }
         };
         public static bool CoreTypeLookup(Type type, out CoreType coreType)
@@ -72,6 +80,10 @@ namespace Zerra.Reflection
             typeof(DateTime),
             typeof(DateTimeOffset),
             typeof(TimeSpan),
+#if NET6_0_OR_GREATER
+            typeof(DateOnly),
+            typeof(TimeOnly),
+#endif
             typeof(Guid),
 
             typeof(string),
@@ -95,6 +107,10 @@ namespace Zerra.Reflection
             typeof(DateTime),
             typeof(DateTimeOffset),
             typeof(TimeSpan),
+#if NET6_0_OR_GREATER
+            typeof(DateOnly),
+            typeof(TimeOnly),
+#endif
             typeof(Guid),
 
             typeof(string),
@@ -115,6 +131,10 @@ namespace Zerra.Reflection
             typeof(DateTime?),
             typeof(DateTimeOffset?),
             typeof(TimeSpan?),
+#if NET6_0_OR_GREATER
+            typeof(DateOnly?),
+            typeof(TimeOnly?),
+#endif
             typeof(Guid?)
         };
 

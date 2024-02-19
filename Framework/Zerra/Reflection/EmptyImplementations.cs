@@ -201,6 +201,10 @@ namespace Zerra.Reflection
                     case CoreType.DateTime:
                     case CoreType.DateTimeOffset:
                     case CoreType.TimeSpan:
+#if NET6_0_OR_GREATER
+                    case CoreType.DateOnly:
+                    case CoreType.TimeOnly:
+#endif
                     case CoreType.Guid:
                         _ = il.DeclareLocal(type);
                         _ = il.DeclareLocal(type);

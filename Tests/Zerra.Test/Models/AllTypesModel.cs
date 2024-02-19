@@ -25,6 +25,10 @@ namespace Zerra.Test
         public DateTime DateTimeThing { get; set; }
         public DateTimeOffset DateTimeOffsetThing { get; set; }
         public TimeSpan TimeSpanThing { get; set; }
+#if NET6_0_OR_GREATER
+        public DateOnly DateOnlyThing { get; set; }
+        public TimeOnly TimeOnlyThing { get; set; }
+#endif
         public Guid GuidThing { get; set; }
 
         public bool? BooleanThingNullable { get; set; }
@@ -43,6 +47,10 @@ namespace Zerra.Test
         public DateTime? DateTimeThingNullable { get; set; }
         public DateTimeOffset? DateTimeOffsetThingNullable { get; set; }
         public TimeSpan? TimeSpanThingNullable { get; set; }
+#if NET6_0_OR_GREATER
+        public DateOnly? DateOnlyThingNullable { get; set; }
+        public TimeOnly? TimeOnlyThingNullable { get; set; }
+#endif
         public Guid? GuidThingNullable { get; set; }
 
         public bool? BooleanThingNullableNull { get; set; }
@@ -61,6 +69,10 @@ namespace Zerra.Test
         public DateTime? DateTimeThingNullableNull { get; set; }
         public DateTimeOffset? DateTimeOffsetThingNullableNull { get; set; }
         public TimeSpan? TimeSpanThingNullableNull { get; set; }
+#if NET6_0_OR_GREATER
+        public DateOnly? DateOnlyThingNullableNull { get; set; }
+        public TimeOnly? TimeOnlyThingNullableNull { get; set; }
+#endif
         public Guid? GuidThingNullableNull { get; set; }
 
         public string StringThing { get; set; }
@@ -87,6 +99,10 @@ namespace Zerra.Test
         public DateTime[] DateTimeArray { get; set; }
         public DateTimeOffset[] DateTimeOffsetArray { get; set; }
         public TimeSpan[] TimeSpanArray { get; set; }
+#if NET6_0_OR_GREATER
+        public DateOnly[] DateOnlyArray { get; set; }
+        public TimeOnly[] TimeOnlyArray { get; set; }
+#endif
         public Guid[] GuidArray { get; set; }
 
         public bool[] BooleanArrayEmpty { get; set; }
@@ -105,6 +121,10 @@ namespace Zerra.Test
         public DateTime[] DateTimeArrayEmpty { get; set; }
         public DateTimeOffset[] DateTimeOffsetArrayEmpty { get; set; }
         public TimeSpan[] TimeSpanArrayEmpty { get; set; }
+#if NET6_0_OR_GREATER
+        public DateOnly[] DateOnlyArrayEmpty { get; set; }
+        public TimeOnly[] TimeOnlyArrayEmpty { get; set; }
+#endif
         public Guid[] GuidArrayEmpty { get; set; }
 
         public bool[] BooleanArrayNull { get; set; }
@@ -123,6 +143,10 @@ namespace Zerra.Test
         public DateTime[] DateTimeArrayNull { get; set; }
         public DateTimeOffset[] DateTimeOffsetArrayNull { get; set; }
         public TimeSpan[] TimeSpanArrayNull { get; set; }
+#if NET6_0_OR_GREATER
+        public DateOnly[] DateOnlyArrayNull { get; set; }
+        public TimeOnly[] TimeOnlyArrayNull { get; set; }
+#endif
         public Guid[] GuidArrayNull { get; set; }
 
         public bool?[] BooleanArrayNullable { get; set; }
@@ -141,6 +165,10 @@ namespace Zerra.Test
         public DateTime?[] DateTimeArrayNullable { get; set; }
         public DateTimeOffset?[] DateTimeOffsetArrayNullable { get; set; }
         public TimeSpan?[] TimeSpanArrayNullable { get; set; }
+#if NET6_0_OR_GREATER
+        public DateOnly?[] DateOnlyArrayNullable { get; set; }
+        public TimeOnly?[] TimeOnlyArrayNullable { get; set; }
+#endif
         public Guid?[] GuidArrayNullable { get; set; }
 
         public bool?[] BooleanArrayNullableEmpty { get; set; }
@@ -159,6 +187,10 @@ namespace Zerra.Test
         public DateTime?[] DateTimeArrayNullableEmpty { get; set; }
         public DateTimeOffset?[] DateTimeOffsetArrayNullableEmpty { get; set; }
         public TimeSpan?[] TimeSpanArrayNullableEmpty { get; set; }
+#if NET6_0_OR_GREATER
+        public DateOnly?[] DateOnlyArrayNullableEmpty { get; set; }
+        public TimeOnly?[] TimeOnlyArrayNullableEmpty { get; set; }
+#endif
         public Guid?[] GuidArrayNullableEmpty { get; set; }
 
         public bool?[] BooleanArrayNullableNull { get; set; }
@@ -177,6 +209,10 @@ namespace Zerra.Test
         public DateTime?[] DateTimeArrayNullableNull { get; set; }
         public DateTimeOffset?[] DateTimeOffsetArrayNullableNull { get; set; }
         public TimeSpan?[] TimeSpanArrayNullableNull { get; set; }
+#if NET6_0_OR_GREATER
+        public DateOnly?[] DateOnlyArrayNullableNull { get; set; }
+        public TimeOnly?[] TimeOnlyArrayNullableNull { get; set; }
+#endif
         public Guid?[] GuidArrayNullableNull { get; set; }
 
         public string[] StringArray { get; set; }
@@ -202,6 +238,10 @@ namespace Zerra.Test
         public List<DateTime> DateTimeList { get; set; }
         public List<DateTimeOffset> DateTimeOffsetList { get; set; }
         public List<TimeSpan> TimeSpanList { get; set; }
+#if NET6_0_OR_GREATER
+        public List<DateOnly> DateOnlyList { get; set; }
+        public List<TimeOnly> TimeOnlyList { get; set; }
+#endif
         public List<Guid> GuidList { get; set; }
 
         public List<bool> BooleanListEmpty { get; set; }
@@ -220,6 +260,10 @@ namespace Zerra.Test
         public List<DateTime> DateTimeListEmpty { get; set; }
         public List<DateTimeOffset> DateTimeOffsetListEmpty { get; set; }
         public List<TimeSpan> TimeSpanListEmpty { get; set; }
+#if NET6_0_OR_GREATER
+        public List<DateOnly> DateOnlyListEmpty { get; set; }
+        public List<TimeOnly> TimeOnlyListEmpty { get; set; }
+#endif
         public List<Guid> GuidListEmpty { get; set; }
 
         public List<bool> BooleanListNull { get; set; }
@@ -238,6 +282,10 @@ namespace Zerra.Test
         public List<DateTime> DateTimeListNull { get; set; }
         public List<DateTimeOffset> DateTimeOffsetListNull { get; set; }
         public List<TimeSpan> TimeSpanListNull { get; set; }
+#if NET6_0_OR_GREATER
+        public List<DateOnly> DateOnlyListNull { get; set; }
+        public List<TimeOnly> TimeOnlyListNull { get; set; }
+#endif
         public List<Guid> GuidListNull { get; set; }
 
         public List<bool?> BooleanListNullable { get; set; }
@@ -256,6 +304,10 @@ namespace Zerra.Test
         public List<DateTime?> DateTimeListNullable { get; set; }
         public List<DateTimeOffset?> DateTimeOffsetListNullable { get; set; }
         public List<TimeSpan?> TimeSpanListNullable { get; set; }
+#if NET6_0_OR_GREATER
+        public List<DateOnly?> DateOnlyListNullable { get; set; }
+        public List<TimeOnly?> TimeOnlyListNullable { get; set; }
+#endif
         public List<Guid?> GuidListNullable { get; set; }
 
         public List<bool?> BooleanListNullableEmpty { get; set; }
@@ -274,6 +326,10 @@ namespace Zerra.Test
         public List<DateTime?> DateTimeListNullableEmpty { get; set; }
         public List<DateTimeOffset?> DateTimeOffsetListNullableEmpty { get; set; }
         public List<TimeSpan?> TimeSpanListNullableEmpty { get; set; }
+#if NET6_0_OR_GREATER
+        public List<DateOnly?> DateOnlyListNullableEmpty { get; set; }
+        public List<TimeOnly?> TimeOnlyListNullableEmpty { get; set; }
+#endif
         public List<Guid?> GuidListNullableEmpty { get; set; }
 
         public List<bool?> BooleanListNullableNull { get; set; }
@@ -292,6 +348,10 @@ namespace Zerra.Test
         public List<DateTime?> DateTimeListNullableNull { get; set; }
         public List<DateTimeOffset?> DateTimeOffsetListNullableNull { get; set; }
         public List<TimeSpan?> TimeSpanListNullableNull { get; set; }
+#if NET6_0_OR_GREATER
+        public List<DateOnly?> DateOnlyListNullableNull { get; set; }
+        public List<TimeOnly?> TimeOnlyListNullableNull { get; set; }
+#endif
         public List<Guid?> GuidListNullableNull { get; set; }
 
         public List<string> StringList { get; set; }
