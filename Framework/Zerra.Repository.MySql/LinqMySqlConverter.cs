@@ -371,6 +371,32 @@ namespace Zerra.Repository.MySql
                                 break;
                         }
                     }
+                    else if (member.Type == typeof(DateOnly))
+                    {
+                        memberPropertyHandled = true;
+                        closeBrace = true;
+                        switch (memberProperty.Member.Name)
+                        {
+                            case "Year":
+                                sb.Write("YEAR(");
+                                break;
+                            case "Month":
+                                sb.Write("MONTH(");
+                                break;
+                            case "Day":
+                                sb.Write("DAY(day,");
+                                break;
+                            case "DayOfYear":
+                                sb.Write("DAYOFYEAR(");
+                                break;
+                            case "DayOfWeek":
+                                sb.Write("WEEKDAY(");
+                                break;
+                            default:
+                                memberPropertyHandled = false;
+                                break;
+                        }
+                    }
 
                     if (!memberPropertyHandled)
                         throw new NotSupportedException($"{member.Member.Name}.{memberProperty.Member.Name} not supported");
@@ -700,6 +726,73 @@ namespace Zerra.Repository.MySql
                         sb.Write((TimeSpan)value, TimeFormat.MySql);
                         sb.Write('\'');
                         return false;
+                    case CoreType.DateOnly:
+                        if (memberProperty != null)
+                        {
+                            switch (memberProperty.Member.Name)
+                            {
+                                case "Year":
+                                    sb.Write('\'');
+                                    sb.Write(((DateOnly)value).Year);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Month":
+                                    sb.Write('\'');
+                                    sb.Write(((DateOnly)value).Month);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Day":
+                                    sb.Write('\'');
+                                    sb.Write(((DateOnly)value).Day);
+                                    sb.Write('\'');
+                                    return true;
+                                case "DayOfYear":
+                                    sb.Write('\'');
+                                    sb.Write(((DateOnly)value).DayOfYear);
+                                    sb.Write('\'');
+                                    return true;
+                                case "DayOfWeek":
+                                    sb.Write('\'');
+                                    sb.Write(((int)((DateOnly)value).DayOfWeek).ToString());
+                                    sb.Write('\'');
+                                    return true;
+                            }
+                        }
+                        sb.Write('\'');
+                        sb.Write((DateOnly)value, DateTimeFormat.MySql);
+                        sb.Write('\'');
+                        return false;
+                    case CoreType.TimeOnly:
+                        if (memberProperty != null)
+                        {
+                            switch (memberProperty.Member.Name)
+                            {
+                                case "Hour":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeOnly)value).Hour);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Minute":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeOnly)value).Minute);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Second":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeOnly)value).Second);
+                                    sb.Write('\'');
+                                    return true;
+                                case "Millisecond":
+                                    sb.Write('\'');
+                                    sb.Write(((TimeOnly)value).Millisecond);
+                                    sb.Write('\'');
+                                    return true;
+                            }
+                        }
+                        sb.Write('\'');
+                        sb.Write((TimeOnly)value, TimeFormat.MySql);
+                        sb.Write('\'');
+                        return false;
                     case CoreType.Guid:
                         sb.Write('\'');
                         sb.Write(((Guid)value).ToString("N"));
@@ -839,7 +932,7 @@ namespace Zerra.Repository.MySql
         }
         protected override void GenerateFrom(ModelDetail modelDetail, ref CharWriter sb)
         {
-            sb.Write("FROM`");
+            sb.Write(" FROM`");
             sb.Write(modelDetail.DataSourceEntityName);
             sb.Write('`');
             AppendLineBreak(ref sb);

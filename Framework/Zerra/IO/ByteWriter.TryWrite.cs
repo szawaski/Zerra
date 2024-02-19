@@ -2163,6 +2163,286 @@ namespace Zerra.IO
             return true;
         }
 
+#if NET6_0_OR_GREATER
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryWrite(DateOnly value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded)
+                return false;
+            buffer[position++] = (byte)value.DayNumber;
+            buffer[position++] = (byte)(value.DayNumber >> 8);
+            buffer[position++] = (byte)(value.DayNumber >> 16);
+            buffer[position++] = (byte)(value.DayNumber >> 24);
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryWrite(DateOnly? value, bool nullFlags, out int sizeNeeded)
+        {
+            if (value.HasValue)
+            {
+                if (nullFlags)
+                {
+                    sizeNeeded = 5;
+                    if (length - position < sizeNeeded)
+                        return false;
+                    buffer[position++] = notNullByte;
+                }
+                else
+                {
+                    sizeNeeded = 4;
+                    if (length - position < sizeNeeded)
+                        return false;
+                }
+                buffer[position++] = (byte)value.Value.DayNumber;
+                buffer[position++] = (byte)(value.Value.DayNumber >> 8);
+                buffer[position++] = (byte)(value.Value.DayNumber >> 16);
+                buffer[position++] = (byte)(value.Value.DayNumber >> 24);
+            }
+            else if (nullFlags)
+            {
+                sizeNeeded = 1;
+                if (length - position < sizeNeeded)
+                    return false;
+                buffer[position++] = nullByte;
+            }
+            else
+            {
+                sizeNeeded = 0;
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryWrite(IEnumerable<DateOnly> values, int maxLength, out int sizeNeeded)
+        {
+            sizeNeeded = maxLength * 4;
+            if (length - position < sizeNeeded)
+                return false;
+            foreach (var value in values)
+            {
+                buffer[position++] = (byte)value.DayNumber;
+                buffer[position++] = (byte)(value.DayNumber >> 8);
+                buffer[position++] = (byte)(value.DayNumber >> 16);
+                buffer[position++] = (byte)(value.DayNumber >> 24);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryWrite(IEnumerable<DateOnly?> values, int maxLength, out int sizeNeeded)
+        {
+            sizeNeeded = maxLength * 5;
+            if (length - position < sizeNeeded)
+                return false;
+            foreach (var value in values)
+            {
+                if (value.HasValue)
+                {
+                    buffer[position++] = notNullByte;
+                    buffer[position++] = (byte)value.Value.DayNumber;
+                    buffer[position++] = (byte)(value.Value.DayNumber >> 8);
+                    buffer[position++] = (byte)(value.Value.DayNumber >> 16);
+                    buffer[position++] = (byte)(value.Value.DayNumber >> 24);
+                }
+                else
+                {
+                    buffer[position++] = nullByte;
+                }
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryWriteDateOnlyCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        {
+            sizeNeeded = maxLength * 4;
+            if (length - position < sizeNeeded)
+                return false;
+            foreach (var value in values)
+            {
+                var cast = (DateOnly)value;
+                buffer[position++] = (byte)cast.DayNumber;
+                buffer[position++] = (byte)(cast.DayNumber >> 8);
+                buffer[position++] = (byte)(cast.DayNumber >> 16);
+                buffer[position++] = (byte)(cast.DayNumber >> 24);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryWriteDateOnlyNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        {
+            sizeNeeded = maxLength * 9;
+            if (length - position < sizeNeeded)
+                return false;
+            foreach (var value in values)
+            {
+                var cast = value == null ? null : (DateOnly?)(DateOnly)value;
+                if (cast.HasValue)
+                {
+                    buffer[position++] = notNullByte;
+                    buffer[position++] = (byte)cast.Value.DayNumber;
+                    buffer[position++] = (byte)(cast.Value.DayNumber >> 8);
+                    buffer[position++] = (byte)(cast.Value.DayNumber >> 16);
+                    buffer[position++] = (byte)(cast.Value.DayNumber >> 24);
+                }
+                else
+                {
+                    buffer[position++] = nullByte;
+                }
+            }
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryWrite(TimeOnly value, out int sizeNeeded)
+        {
+            sizeNeeded = 8;
+            if (length - position < sizeNeeded)
+                return false;
+            buffer[position++] = (byte)value.Ticks;
+            buffer[position++] = (byte)(value.Ticks >> 8);
+            buffer[position++] = (byte)(value.Ticks >> 16);
+            buffer[position++] = (byte)(value.Ticks >> 24);
+            buffer[position++] = (byte)(value.Ticks >> 32);
+            buffer[position++] = (byte)(value.Ticks >> 40);
+            buffer[position++] = (byte)(value.Ticks >> 48);
+            buffer[position++] = (byte)(value.Ticks >> 56);
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryWrite(TimeOnly? value, bool nullFlags, out int sizeNeeded)
+        {
+            if (value.HasValue)
+            {
+                if (nullFlags)
+                {
+                    sizeNeeded = 9;
+                    if (length - position < sizeNeeded)
+                        return false;
+                    buffer[position++] = notNullByte;
+                }
+                else
+                {
+                    sizeNeeded = 8;
+                    if (length - position < sizeNeeded)
+                        return false;
+                }
+                buffer[position++] = (byte)value.Value.Ticks;
+                buffer[position++] = (byte)(value.Value.Ticks >> 8);
+                buffer[position++] = (byte)(value.Value.Ticks >> 16);
+                buffer[position++] = (byte)(value.Value.Ticks >> 24);
+                buffer[position++] = (byte)(value.Value.Ticks >> 32);
+                buffer[position++] = (byte)(value.Value.Ticks >> 40);
+                buffer[position++] = (byte)(value.Value.Ticks >> 48);
+                buffer[position++] = (byte)(value.Value.Ticks >> 56);
+            }
+            else if (nullFlags)
+            {
+                sizeNeeded = 1;
+                if (length - position < sizeNeeded)
+                    return false;
+                buffer[position++] = nullByte;
+            }
+            else
+            {
+                sizeNeeded = 0;
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryWrite(IEnumerable<TimeOnly> values, int maxLength, out int sizeNeeded)
+        {
+            sizeNeeded = maxLength * 8;
+            if (length - position < sizeNeeded)
+                return false;
+            foreach (var value in values)
+            {
+                buffer[position++] = (byte)value.Ticks;
+                buffer[position++] = (byte)(value.Ticks >> 8);
+                buffer[position++] = (byte)(value.Ticks >> 16);
+                buffer[position++] = (byte)(value.Ticks >> 24);
+                buffer[position++] = (byte)(value.Ticks >> 32);
+                buffer[position++] = (byte)(value.Ticks >> 40);
+                buffer[position++] = (byte)(value.Ticks >> 48);
+                buffer[position++] = (byte)(value.Ticks >> 56);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryWrite(IEnumerable<TimeOnly?> values, int maxLength, out int sizeNeeded)
+        {
+            sizeNeeded = maxLength * 9;
+            if (length - position < sizeNeeded)
+                return false;
+            foreach (var value in values)
+            {
+                if (value.HasValue)
+                {
+                    buffer[position++] = notNullByte;
+                    buffer[position++] = (byte)value.Value.Ticks;
+                    buffer[position++] = (byte)(value.Value.Ticks >> 8);
+                    buffer[position++] = (byte)(value.Value.Ticks >> 16);
+                    buffer[position++] = (byte)(value.Value.Ticks >> 24);
+                    buffer[position++] = (byte)(value.Value.Ticks >> 32);
+                    buffer[position++] = (byte)(value.Value.Ticks >> 40);
+                    buffer[position++] = (byte)(value.Value.Ticks >> 48);
+                    buffer[position++] = (byte)(value.Value.Ticks >> 56);
+                }
+                else
+                {
+                    buffer[position++] = nullByte;
+                }
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryWriteTimeOnlyCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        {
+            sizeNeeded = maxLength * 8;
+            if (length - position < sizeNeeded)
+                return false;
+            foreach (var value in values)
+            {
+                var cast = (TimeOnly)value;
+                buffer[position++] = (byte)cast.Ticks;
+                buffer[position++] = (byte)(cast.Ticks >> 8);
+                buffer[position++] = (byte)(cast.Ticks >> 16);
+                buffer[position++] = (byte)(cast.Ticks >> 24);
+                buffer[position++] = (byte)(cast.Ticks >> 32);
+                buffer[position++] = (byte)(cast.Ticks >> 40);
+                buffer[position++] = (byte)(cast.Ticks >> 48);
+                buffer[position++] = (byte)(cast.Ticks >> 56);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryWriteTimeOnlyNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        {
+            sizeNeeded = maxLength * 9;
+            if (length - position < sizeNeeded)
+                return false;
+            foreach (var value in values)
+            {
+                var cast = value == null ? null : (TimeOnly?)(TimeOnly)value;
+                if (cast.HasValue)
+                {
+                    buffer[position++] = notNullByte;
+                    buffer[position++] = (byte)cast.Value.Ticks;
+                    buffer[position++] = (byte)(cast.Value.Ticks >> 8);
+                    buffer[position++] = (byte)(cast.Value.Ticks >> 16);
+                    buffer[position++] = (byte)(cast.Value.Ticks >> 24);
+                    buffer[position++] = (byte)(cast.Value.Ticks >> 32);
+                    buffer[position++] = (byte)(cast.Value.Ticks >> 40);
+                    buffer[position++] = (byte)(cast.Value.Ticks >> 48);
+                    buffer[position++] = (byte)(cast.Value.Ticks >> 56);
+                }
+                else
+                {
+                    buffer[position++] = nullByte;
+                }
+            }
+            return true;
+        }
+#endif
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(Guid value, out int sizeNeeded)
         {

@@ -95,6 +95,16 @@ namespace Zerra.TestDev
             throw new NotImplementedException();
         }
 
+        public void Setter(thing model, DateOnly value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Setter(thing model, TimeOnly value)
+        {
+            throw new NotImplementedException();
+        }
+
         public void Setter(thing model, Guid value)
         {
             model.ID = value;
@@ -181,6 +191,16 @@ namespace Zerra.TestDev
         }
 
         public void Setter(thing model, TimeSpan? value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Setter(thing model, DateOnly? value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Setter(thing model, TimeOnly? value)
         {
             throw new NotImplementedException();
         }

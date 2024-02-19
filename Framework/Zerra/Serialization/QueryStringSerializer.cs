@@ -189,16 +189,26 @@ namespace Zerra.Serialization
                             break;
                         case CoreType.DateTime:
                         case CoreType.DateTimeNullable:
-                            writer.Write((DateTime)value, DateTimeFormat.ISO8601);
+                            writer.Write(WebUtility.UrlEncode(((DateTime)value).ToString("yyyy-MM-ddTHH:mm:ss.fffffff+00:00")));
                             break;
                         case CoreType.DateTimeOffset:
                         case CoreType.DateTimeOffsetNullable:
-                            writer.Write((DateTimeOffset)value, DateTimeFormat.ISO8601);
+                            writer.Write(WebUtility.UrlEncode(((DateTimeOffset)value).ToString("yyyy-MM-ddTHH:mm:ss.fffffff+00:00")));
                             break;
                         case CoreType.TimeSpan:
                         case CoreType.TimeSpanNullable:
                             writer.Write((TimeSpan)value, TimeFormat.ISO8601);
                             break;
+#if NET6_0_OR_GREATER
+                        case CoreType.DateOnly:
+                        case CoreType.DateOnlyNullable:
+                            writer.Write((DateOnly)value, DateTimeFormat.ISO8601);
+                            break;
+                        case CoreType.TimeOnly:
+                        case CoreType.TimeOnlyNullable:
+                            writer.Write((TimeOnly)value, TimeFormat.ISO8601);
+                            break;
+#endif
                         case CoreType.Guid:
                         case CoreType.GuidNullable:
                             writer.Write((Guid)value);
@@ -242,6 +252,10 @@ namespace Zerra.Serialization
                 CoreType.DateTime => DateTime.Parse(value),
                 CoreType.DateTimeOffset => DateTimeOffset.Parse(value),
                 CoreType.TimeSpan => TimeSpan.Parse(value),
+#if NET6_0_OR_GREATER
+                CoreType.DateOnly => DateOnly.Parse(value),
+                CoreType.TimeOnly => TimeOnly.Parse(value),
+#endif
                 CoreType.Guid => Guid.Parse(value),
                 CoreType.String => value,
                 CoreType.BooleanNullable => value == null ? null : Boolean.Parse(value),
@@ -260,6 +274,10 @@ namespace Zerra.Serialization
                 CoreType.DateTimeNullable => value == null ? null : DateTime.Parse(value),
                 CoreType.DateTimeOffsetNullable => value == null ? null : DateTimeOffset.Parse(value),
                 CoreType.TimeSpanNullable => value == null ? null : TimeSpan.Parse(value),
+#if NET6_0_OR_GREATER
+                CoreType.DateOnlyNullable => value == null ? null : DateOnly.Parse(value),
+                CoreType.TimeOnlyNullable => value == null ? null : TimeOnly.Parse(value),
+#endif
                 CoreType.GuidNullable => value == null ? null : Guid.Parse(value),
                 _ => throw new NotImplementedException($"Type conversion not available for {member.Type.Name}"),
             };

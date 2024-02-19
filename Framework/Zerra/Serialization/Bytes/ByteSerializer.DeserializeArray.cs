@@ -392,6 +392,10 @@ namespace Zerra.Serialization
                 CoreType.DateTime => reader.ReadDateTime(),
                 CoreType.DateTimeOffset => reader.ReadDateTimeOffset(),
                 CoreType.TimeSpan => reader.ReadTimeSpan(),
+#if NET6_0_OR_GREATER
+                CoreType.DateOnly => reader.ReadDateOnly(),
+                CoreType.TimeOnly => reader.ReadTimeOnly(),
+#endif
                 CoreType.Guid => reader.ReadGuid(),
                 CoreType.String => reader.ReadString(nullFlags),
                 CoreType.BooleanNullable => reader.ReadBooleanNullable(nullFlags),
@@ -410,6 +414,10 @@ namespace Zerra.Serialization
                 CoreType.DateTimeNullable => reader.ReadDateTimeNullable(nullFlags),
                 CoreType.DateTimeOffsetNullable => reader.ReadDateTimeOffsetNullable(nullFlags),
                 CoreType.TimeSpanNullable => reader.ReadTimeSpanNullable(nullFlags),
+#if NET6_0_OR_GREATER
+                CoreType.DateOnlyNullable => reader.ReadDateOnlyNullable(nullFlags),
+                CoreType.TimeOnlyNullable => reader.ReadTimeOnlyNullable(nullFlags),
+#endif
                 CoreType.GuidNullable => reader.ReadGuidNullable(nullFlags),
                 _ => throw new NotImplementedException(),
             };
@@ -532,6 +540,22 @@ namespace Zerra.Serialization
                         return reader.ReadTimeSpanHashSet(length);
                     else
                         return reader.ReadTimeSpanArray(length);
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnly:
+                    if (asList)
+                        return reader.ReadDateOnlyList(length);
+                    else if (asSet)
+                        return reader.ReadDateOnlyHashSet(length);
+                    else
+                        return reader.ReadDateOnlyArray(length);
+                case CoreType.TimeOnly:
+                    if (asList)
+                        return reader.ReadTimeOnlyList(length);
+                    else if (asSet)
+                        return reader.ReadTimeOnlyHashSet(length);
+                    else
+                        return reader.ReadTimeOnlyArray(length);
+#endif
                 case CoreType.Guid:
                     if (asList)
                         return reader.ReadGuidList(length);
@@ -660,6 +684,22 @@ namespace Zerra.Serialization
                         return reader.ReadTimeSpanNullableHashSet(length);
                     else
                         return reader.ReadTimeSpanNullableArray(length);
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnlyNullable:
+                    if (asList)
+                        return reader.ReadDateOnlyNullableList(length);
+                    else if (asSet)
+                        return reader.ReadDateOnlyNullableHashSet(length);
+                    else
+                        return reader.ReadDateOnlyNullableArray(length);
+                case CoreType.TimeOnlyNullable:
+                    if (asList)
+                        return reader.ReadTimeOnlyNullableList(length);
+                    else if (asSet)
+                        return reader.ReadTimeOnlyNullableHashSet(length);
+                    else
+                        return reader.ReadTimeOnlyNullableArray(length);
+#endif
                 case CoreType.GuidNullable:
                     if (asList)
                         return reader.ReadGuidNullableList(length);

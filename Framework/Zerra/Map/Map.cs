@@ -311,6 +311,7 @@ namespace Zerra
             return lambda.Compile();
         }
 
+        private static readonly Type[] typeArgumentsForParse = new Type[] { typeof(string) };
         private Expression GenerateMap(Graph? graph, Expression source, Expression target, Expression recursionDictionary, ref int depth)
         {
             if (sourceType.CoreType.HasValue || targetType.CoreType.HasValue)
@@ -334,10 +335,19 @@ namespace Zerra
                     {
                         Expression convert = targetType.CoreType switch
                         {
-                            CoreType.Boolean or CoreType.Byte or CoreType.SByte or CoreType.Int16 or CoreType.UInt16 or CoreType.Int32 or CoreType.UInt32 or CoreType.Int64 or CoreType.UInt64 or CoreType.Single or CoreType.Double or CoreType.Decimal or CoreType.Char or CoreType.DateTime or CoreType.DateTimeOffset or CoreType.TimeSpan or CoreType.Guid
-                                => Expression.Call(TypeAnalyzer.GetMethodDetail(targetType.Type, "Parse")!.MethodInfo, source),
-                            CoreType.BooleanNullable or CoreType.ByteNullable or CoreType.SByteNullable or CoreType.Int16Nullable or CoreType.UInt16Nullable or CoreType.Int32Nullable or CoreType.UInt32Nullable or CoreType.Int64Nullable or CoreType.UInt64Nullable or CoreType.SingleNullable or CoreType.DoubleNullable or CoreType.DecimalNullable or CoreType.CharNullable or CoreType.DateTimeNullable or CoreType.DateTimeOffsetNullable or CoreType.TimeSpanNullable or CoreType.GuidNullable
-                                => Expression.Condition(Expression.Equal(source, Expression.Constant(null)), Expression.Constant(null, targetType.Type), Expression.Convert(Expression.Call(TypeAnalyzer.GetMethodDetail(targetType.InnerTypes[0], "Parse").MethodInfo, source), targetType.Type)),
+                            CoreType.Boolean or CoreType.Byte or CoreType.SByte or CoreType.Int16 or CoreType.UInt16 or CoreType.Int32 or CoreType.UInt32 or CoreType.Int64 or CoreType.UInt64 or CoreType.Single or CoreType.Double or CoreType.Decimal or CoreType.Char or CoreType.DateTime or CoreType.DateTimeOffset or CoreType.TimeSpan
+#if NET6_0_OR_GREATER
+                            or CoreType.DateOnly or CoreType.TimeOnly
+#endif
+
+                            or CoreType.Guid
+                                => Expression.Call(TypeAnalyzer.GetMethodDetail(targetType.Type, "Parse", typeArgumentsForParse)!.MethodInfo, source),
+                            CoreType.BooleanNullable or CoreType.ByteNullable or CoreType.SByteNullable or CoreType.Int16Nullable or CoreType.UInt16Nullable or CoreType.Int32Nullable or CoreType.UInt32Nullable or CoreType.Int64Nullable or CoreType.UInt64Nullable or CoreType.SingleNullable or CoreType.DoubleNullable or CoreType.DecimalNullable or CoreType.CharNullable or CoreType.DateTimeNullable or CoreType.DateTimeOffsetNullable or CoreType.TimeSpanNullable
+#if NET6_0_OR_GREATER
+                            or CoreType.DateOnlyNullable or CoreType.TimeOnlyNullable
+#endif
+                            or CoreType.GuidNullable
+                                => Expression.Condition(Expression.Equal(source, Expression.Constant(null)), Expression.Constant(null, targetType.Type), Expression.Convert(Expression.Call(TypeAnalyzer.GetMethodDetail(targetType.InnerTypes[0], "Parse", typeArgumentsForParse).MethodInfo, source), targetType.Type)),
                             CoreType.String => throw new Exception("Should not happen"),
                             _ => throw new NotImplementedException(),
                         };

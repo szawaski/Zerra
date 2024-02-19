@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Linq;
 using System.Reflection;
 using Zerra.Collections;
 
@@ -36,6 +37,10 @@ namespace Zerra.Reflection
                     CoreType.DateTime => default(DateTime),
                     CoreType.DateTimeOffset => default(DateTimeOffset),
                     CoreType.TimeSpan => default(TimeSpan),
+#if NET6_0_OR_GREATER
+                    CoreType.DateOnly => default(DateOnly),              
+                    CoreType.TimeOnly => default(TimeOnly),
+#endif
                     CoreType.Guid => default(Guid),
                     CoreType.String => default(string),
                     CoreType.BooleanNullable => null,
@@ -54,6 +59,10 @@ namespace Zerra.Reflection
                     CoreType.DateTimeNullable => null,
                     CoreType.DateTimeOffsetNullable => null,
                     CoreType.TimeSpanNullable => null,
+#if NET6_0_OR_GREATER
+                    CoreType.DateOnlyNullable => null,
+                    CoreType.TimeOnlyNullable => null,
+#endif
                     CoreType.GuidNullable => null,
                     _ => throw new NotImplementedException($"Type conversion not available for {type.Name}"),
                 };
@@ -78,6 +87,10 @@ namespace Zerra.Reflection
                     CoreType.DateTime => System.Convert.ToDateTime(obj),
                     CoreType.DateTimeOffset => ConvertToDateTimeOffset(obj),
                     CoreType.TimeSpan => ConvertToTimeSpan(obj),
+#if NET6_0_OR_GREATER
+                    CoreType.DateOnly => ConvertToDateOnly(obj),
+                    CoreType.TimeOnly => ConvertToTimeOnly(obj),
+#endif
                     CoreType.Guid => ConvertToGuid(obj),
                     CoreType.String => System.Convert.ToString(obj),
                     CoreType.BooleanNullable => System.Convert.ToBoolean(obj),
@@ -96,6 +109,10 @@ namespace Zerra.Reflection
                     CoreType.DateTimeNullable => System.Convert.ToDateTime(obj),
                     CoreType.DateTimeOffsetNullable => System.Convert.ToDateTime(obj),
                     CoreType.TimeSpanNullable => ConvertToTimeSpan(obj),
+#if NET6_0_OR_GREATER
+                    CoreType.DateOnlyNullable => ConvertToDateOnly(obj),
+                    CoreType.TimeOnlyNullable => ConvertToTimeOnly(obj),
+#endif
                     CoreType.GuidNullable => ConvertToGuid(obj),
                     _ => throw new NotImplementedException($"Type conversion not available for {type.Name}"),
                 };
@@ -109,12 +126,27 @@ namespace Zerra.Reflection
             return Guid.Parse(obj.ToString() ?? String.Empty);
         }
 
+
         private static TimeSpan ConvertToTimeSpan(object obj)
         {
             if (obj == null)
                 return TimeSpan.MinValue;
             return TimeSpan.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
         }
+#if NET6_0_OR_GREATER
+        private static DateOnly ConvertToDateOnly(object obj)
+        {
+            if (obj == null)
+                return DateOnly.MinValue;
+            return DateOnly.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
+        }
+        private static TimeOnly ConvertToTimeOnly(object obj)
+        {
+            if (obj == null)
+                return TimeOnly.MinValue;
+            return TimeOnly.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
+        }
+#endif
 
         private static DateTimeOffset ConvertToDateTimeOffset(object obj)
         {
@@ -140,7 +172,7 @@ namespace Zerra.Reflection
             var method = methodDetailsByType.GetOrAdd(key, (_) =>
             {
                 var typeDetails = GetTypeDetail(type);
-                foreach (var methodDetail in typeDetails.MethodDetails)
+                foreach (var methodDetail in typeDetails.MethodDetails.OrderBy(x => x.ParametersInfo.Count))
                 {
                     if (methodDetail.Name == name && (parameterTypes == null || methodDetail.ParametersInfo.Count == parameterTypes.Length))
                     {

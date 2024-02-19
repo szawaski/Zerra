@@ -480,6 +480,22 @@ namespace Zerra.Serialization
                         return;
                     }
                     break;
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnly:
+                    if (!writer.TryWrite((DateOnly)state.CurrentFrame.Object!, out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return;
+                    }
+                    break;
+                case CoreType.TimeOnly:
+                    if (!writer.TryWrite((TimeOnly)state.CurrentFrame.Object!, out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return;
+                    }
+                    break;
+#endif
                 case CoreType.Guid:
                     if (!writer.TryWrite((Guid)state.CurrentFrame.Object!, out sizeNeeded))
                     {
@@ -600,6 +616,22 @@ namespace Zerra.Serialization
                         return;
                     }
                     break;
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnlyNullable:
+                    if (!writer.TryWrite((DateOnly?)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return;
+                    }
+                    break;
+                case CoreType.TimeOnlyNullable:
+                    if (!writer.TryWrite((TimeOnly?)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return;
+                    }
+                    break;
+#endif
                 case CoreType.GuidNullable:
                     if (!writer.TryWrite((Guid?)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
@@ -1088,6 +1120,22 @@ namespace Zerra.Serialization
                         return;
                     }
                     break;
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnly:
+                    if (!writer.TryWrite((IEnumerable<DateOnly>)values, length, out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return;
+                    }
+                    break;
+                case CoreType.TimeOnly:
+                    if (!writer.TryWrite((IEnumerable<TimeOnly>)values, length, out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return;
+                    }
+                    break;
+#endif
                 case CoreType.Guid:
                     if (!writer.TryWrite((IEnumerable<Guid>)values, length, out sizeNeeded))
                     {
@@ -1216,6 +1264,22 @@ namespace Zerra.Serialization
                         return;
                     }
                     break;
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnlyNullable:
+                    if (!writer.TryWrite((IEnumerable<DateOnly?>)values, length, out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return;
+                    }
+                    break;
+                case CoreType.TimeOnlyNullable:
+                    if (!writer.TryWrite((IEnumerable<TimeOnly?>)values, length, out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return;
+                    }
+                    break;
+#endif
                 case CoreType.GuidNullable:
                     if (!writer.TryWrite((IEnumerable<Guid?>)values, length, out sizeNeeded))
                     {

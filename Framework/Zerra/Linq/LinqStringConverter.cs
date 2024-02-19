@@ -720,6 +720,10 @@ namespace Zerra.Linq
                     case CoreType.DateTime: _ = context.Builder.Append("DateTime.Parse(\"").Append(value).Append("\")"); return;
                     case CoreType.DateTimeOffset: _ = context.Builder.Append("DateTimeOffset.Parse(\"").Append(value).Append("\")"); return;
                     case CoreType.TimeSpan: _ = context.Builder.Append("TimeSpan.Parse(\"").Append(value).Append("\")"); return;
+#if NET6_0_OR_GREATER
+                    case CoreType.DateOnly: _ = context.Builder.Append("DateOnly.Parse(\"").Append(value).Append("\")"); return;
+                    case CoreType.TimeOnly: _ = context.Builder.Append("TimeOnly.Parse(\"").Append(value).Append("\")"); return;
+#endif
                     case CoreType.Guid: _ = context.Builder.Append('\"').Append(value.ToString()).Append('\"'); return;
                     case CoreType.String: _ = context.Builder.Append('\"').Append(((string)value).Replace("\"", "\"\"")).Append('\"'); return;
                 }

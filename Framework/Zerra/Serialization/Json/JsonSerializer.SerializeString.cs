@@ -469,6 +469,20 @@ namespace Zerra.Serialization
                     writer.Write((TimeSpan)value, TimeFormat.ISO8601);
                     writer.Write('\"');
                     return;
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnly:
+                case CoreType.DateOnlyNullable:
+                    writer.Write('\"');
+                    writer.Write((DateOnly)value, DateTimeFormat.ISO8601);
+                    writer.Write('\"');
+                    return;
+                case CoreType.TimeOnly:
+                case CoreType.TimeOnlyNullable:
+                    writer.Write('\"');
+                    writer.Write((TimeOnly)value, TimeFormat.ISO8601);
+                    writer.Write('\"');
+                    return;
+#endif
                 case CoreType.Guid:
                 case CoreType.GuidNullable:
                     writer.Write('\"');
@@ -714,6 +728,38 @@ namespace Zerra.Serialization
                         }
                     }
                     return;
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnly:
+                    {
+                        var first = true;
+                        foreach (var value in (IEnumerable<DateOnly>)values)
+                        {
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
+                            writer.Write('\"');
+                            writer.Write(value, DateTimeFormat.ISO8601);
+                            writer.Write('\"');
+                        }
+                    }
+                    return;
+                case CoreType.TimeOnly:
+                    {
+                        var first = true;
+                        foreach (var value in (IEnumerable<TimeOnly>)values)
+                        {
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
+                            writer.Write('\"');
+                            writer.Write(value, TimeFormat.ISO8601);
+                            writer.Write('\"');
+                        }
+                    }
+                    return;
+#endif
                 case CoreType.Guid:
                     {
                         var first = true;
@@ -1008,6 +1054,52 @@ namespace Zerra.Serialization
                         }
                     }
                     return;
+#if NET6_0_OR_GREATER
+                case CoreType.DateOnlyNullable:
+                    {
+                        var first = true;
+                        foreach (var value in (IEnumerable<DateOnly?>)values)
+                        {
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
+                            if (value.HasValue)
+                            {
+                                writer.Write('\"');
+                                writer.Write(value.Value, DateTimeFormat.ISO8601);
+                                writer.Write('\"');
+                            }
+                            else
+                            {
+                                writer.Write("null");
+                            }
+                        }
+                    }
+                    return;
+                case CoreType.TimeOnlyNullable:
+                    {
+                        var first = true;
+                        foreach (var value in (IEnumerable<TimeOnly?>)values)
+                        {
+                            if (first)
+                                first = false;
+                            else
+                                writer.Write(',');
+                            if (value.HasValue)
+                            {
+                                writer.Write('\"');
+                                writer.Write(value.Value, TimeFormat.ISO8601);
+                                writer.Write('\"');
+                            }
+                            else
+                            {
+                                writer.Write("null");
+                            }
+                        }
+                    }
+                    return;
+#endif
                 case CoreType.GuidNullable:
                     {
                         var first = true;

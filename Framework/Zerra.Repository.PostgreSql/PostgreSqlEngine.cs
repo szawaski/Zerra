@@ -115,7 +115,7 @@ namespace Zerra.Repository.PostgreSql
                                 break;
                             case CoreType.DateTimeOffset:
                                 {
-                                    var value = new DateTimeOffset(new DateTime(reader.GetDateTime(i).Ticks, DateTimeKind.Utc));
+                                    var value = new DateTimeOffset(reader.GetDateTime(i));
                                     columnProperty.Setter(model, value);
                                 }
                                 break;
@@ -123,6 +123,18 @@ namespace Zerra.Repository.PostgreSql
                                 {
                                     var value = reader.GetTimeSpan(i);
                                     columnProperty.Setter(model, value);
+                                }
+                                break;
+                            case CoreType.DateOnly:
+                                {
+                                    var value = new DateTime(reader.GetDateTime(i).Ticks, DateTimeKind.Utc);
+                                    columnProperty.Setter(model, DateOnly.FromDateTime(value));
+                                }
+                                break;
+                            case CoreType.TimeOnly:
+                                {
+                                    var value = reader.GetTimeSpan(i);
+                                    columnProperty.Setter(model, TimeOnly.FromTimeSpan(value));
                                 }
                                 break;
                             case CoreType.Guid:
@@ -212,7 +224,7 @@ namespace Zerra.Repository.PostgreSql
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (DateTimeOffset?)new DateTimeOffset(new DateTime(((DateTime)value).Ticks, DateTimeKind.Utc)));
+                                        columnProperty.Setter(model, (DateTimeOffset?)new DateTimeOffset((DateTime)value));
                                 }
                                 break;
                             case CoreType.TimeSpanNullable:
@@ -220,6 +232,20 @@ namespace Zerra.Repository.PostgreSql
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
                                         columnProperty.Setter(model, (TimeSpan?)value);
+                                }
+                                break;
+                            case CoreType.DateOnlyNullable:
+                                {
+                                    var value = reader.GetValue(i);
+                                    if (value != DBNull.Value)
+                                        columnProperty.Setter(model, (DateOnly?)DateOnly.FromDateTime(new DateTime(((DateTime)value).Ticks, DateTimeKind.Utc)));
+                                }
+                                break;
+                            case CoreType.TimeOnlyNullable:
+                                {
+                                    var value = reader.GetValue(i);
+                                    if (value != DBNull.Value)
+                                        columnProperty.Setter(model, (TimeOnly?)TimeOnly.FromTimeSpan((TimeSpan)value));
                                 }
                                 break;
                             case CoreType.GuidNullable:
@@ -531,13 +557,25 @@ namespace Zerra.Repository.PostgreSql
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
                         writer.Write('\'');
-                        writer.Write(((DateTimeOffset)value).ToUniversalTime(), DateTimeFormat.PostgreSql);
+                        writer.Write((DateTimeOffset)value, DateTimeFormat.PostgreSql);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:
                         writer.Write('\'');
                         writer.Write((TimeSpan)value, TimeFormat.PostgreSql);
+                        writer.Write('\'');
+                        return;
+                    case CoreType.DateOnly:
+                    case CoreType.DateOnlyNullable:
+                        writer.Write('\'');
+                        writer.Write((DateOnly)value, DateTimeFormat.PostgreSql);
+                        writer.Write('\'');
+                        return;
+                    case CoreType.TimeOnly:
+                    case CoreType.TimeOnlyNullable:
+                        writer.Write('\'');
+                        writer.Write((TimeOnly)value, TimeFormat.PostgreSql);
                         writer.Write('\'');
                         return;
                     case CoreType.Guid:
@@ -1495,10 +1533,18 @@ namespace Zerra.Repository.PostgreSql
                         break;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
-                        _ = sb.Append("timestamp(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
+                        _ = sb.Append("timestamp(").Append(property.DataSourcePrecisionLength ?? 0).Append(") with time zone");
                         break;
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:
+                        _ = sb.Append("time(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
+                        break;
+                    case CoreType.DateOnly:
+                    case CoreType.DateOnlyNullable:
+                        _ = sb.Append("timestamp(0)");
+                        break;
+                    case CoreType.TimeOnly:
+                    case CoreType.TimeOnlyNullable:
                         _ = sb.Append("time(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
                         break;
                     case CoreType.Guid:
@@ -1645,8 +1691,10 @@ namespace Zerra.Repository.PostgreSql
                     case CoreType.Decimal: return sqlColumn.DataType == "numeric" && sqlColumn.IsNullable == false && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
                     case CoreType.Char: return sqlColumn.DataType == "character varying" && sqlColumn.IsNullable == false && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
                     case CoreType.DateTime: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
-                    case CoreType.DateTimeOffset: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.DateTimeOffset: return sqlColumn.DataType == "timestamp with time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.TimeSpan: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.DateOnly: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == 0;
+                    case CoreType.TimeOnly: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.Guid: return sqlColumn.DataType == "uuid" && sqlColumn.IsNullable == false;
 
                     case CoreType.BooleanNullable: return sqlColumn.DataType == "boolean" && sqlColumn.IsNullable == true;
@@ -1659,8 +1707,10 @@ namespace Zerra.Repository.PostgreSql
                     case CoreType.DecimalNullable: return sqlColumn.DataType == "numeric" && sqlColumn.IsNullable == true && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
                     case CoreType.CharNullable: return sqlColumn.DataType == "character varying" && sqlColumn.IsNullable == true && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
                     case CoreType.DateTimeNullable: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
-                    case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "timestamp with time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.DateOnlyNullable: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == 0;
+                    case CoreType.TimeOnlyNullable: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
                     case CoreType.GuidNullable: return sqlColumn.DataType == "uuid" && sqlColumn.IsNullable == true;
 
                     case CoreType.String:
