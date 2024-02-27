@@ -3,10 +3,11 @@
 // Licensed to you under the MIT license
 
 using System;
+using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.Kafka
 {
-    public sealed class AcknowledgementException : Exception
+    public sealed class AcknowledgementException : RemoteServiceException
     {
         public string Topic { get; private set; }
         public Acknowledgement Acknowledgement { get; private set; }

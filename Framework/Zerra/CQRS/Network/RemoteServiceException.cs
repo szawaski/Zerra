@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.CQRS.Network
 {
-    public sealed class RemoteServiceException : Exception
+    public class RemoteServiceException : Exception
     {
         public RemoteServiceException(string? message) 
             : base($"Error From Remote Service: {(String.IsNullOrWhiteSpace(message) ? "(Unknown)" : message )}")
