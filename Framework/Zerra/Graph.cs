@@ -266,8 +266,7 @@ namespace Zerra
             else
             {
                 _ = this.localProperties.Add(property);
-                if (removedProperties.Contains(property))
-                    _ = this.localProperties.Remove(property);
+                _ = this.removedProperties.Remove(property);
             }
         }
         private void RemoveProperty(string property)
