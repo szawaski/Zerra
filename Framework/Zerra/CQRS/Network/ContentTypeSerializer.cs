@@ -245,17 +245,17 @@ namespace Zerra.CQRS.Network
                 case ContentType.Bytes:
                     {
                         var model = ByteSerializer.Deserialize<ExceptionModel>(stream);
-                        return new Exception(model?.Message);
+                        return new RemoteServiceException(model?.Message);
                     }
                 case ContentType.Json:
                     {
                         var model = JsonSerializer.Deserialize<ExceptionModel>(stream);
-                        return new Exception(model?.Message);
+                        return new RemoteServiceException(model?.Message);
                     }
                 case ContentType.JsonNameless:
                     {
                         var model = JsonSerializer.Deserialize<ExceptionModel>(stream, jsonSerializerNamelessOptions);
-                        return new Exception(model?.Message);
+                        return new RemoteServiceException(model?.Message);
                     }
                 default:
                     throw new NotImplementedException();
@@ -294,17 +294,17 @@ namespace Zerra.CQRS.Network
                 case ContentType.Bytes:
                     {
                         var model = await ByteSerializer.DeserializeAsync<ExceptionModel>(stream);
-                        return new Exception(model?.Message);
+                        return new RemoteServiceException(model?.Message);
                     }
                 case ContentType.Json:
                     {
                         var model = await JsonSerializer.DeserializeAsync<ExceptionModel>(stream);
-                        return new Exception(model?.Message);
+                        return new RemoteServiceException(model?.Message);
                     }
                 case ContentType.JsonNameless:
                     {
                         var model = await JsonSerializer.DeserializeAsync<ExceptionModel>(stream, jsonSerializerNamelessOptions);
-                        return new Exception(model?.Message);
+                        return new RemoteServiceException(model?.Message);
                     }
                 default:
                     throw new NotImplementedException();
