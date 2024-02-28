@@ -7,8 +7,8 @@ namespace Zerra.Mathematics
     {
         private sealed class BinaryOperator
         {
-            public string Token { get; private set; }
-            public LambdaExpression Operation { get; private set; }
+            public string Token { get; }
+            public LambdaExpression Operation { get; }
             public BinaryOperator(string tokens, Expression<Func<double, double, double>> operation)
             {
                 this.Token = tokens;

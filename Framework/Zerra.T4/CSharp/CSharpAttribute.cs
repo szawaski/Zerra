@@ -9,8 +9,8 @@ namespace Zerra.T4.CSharp
 {
     public class CSharpAttribute
     {
-        public string Name { get; private set; }
-        public IReadOnlyList<string> Arguments { get; private set; }
+        public string Name { get; }
+        public IReadOnlyList<string> Arguments { get; }
         public CSharpAttribute(string name, IReadOnlyList<string> arguments)
         {
             this.Name = name;

@@ -10,10 +10,10 @@ namespace Zerra.CQRS
     {
         private class MethodMetadata
         {
-            public bool Blocked { get; private set; }
-            public BusLogging BusLogging { get; private set; }
-            public bool Authenticate { get; private set; }
-            public IReadOnlyCollection<string>? Roles { get; private set; }
+            public bool Blocked { get; }
+            public BusLogging BusLogging { get; }
+            public bool Authenticate { get; }
+            public IReadOnlyCollection<string>? Roles { get; }
             public MethodMetadata(bool blocked, BusLogging busLogging, bool authenticate, IReadOnlyCollection<string>? roles)
             {
                 this.Blocked = blocked;

@@ -12,8 +12,8 @@ namespace Zerra.Linq
     {
         private sealed class ConvertContext
         {
-            public StringBuilder Builder { get; private set; }
-            public Stack<MemberExpression> MemberAccessStack { get; private set; }
+            public StringBuilder Builder { get; }
+            public Stack<MemberExpression> MemberAccessStack { get; }
 
             public ConvertContext(StringBuilder sb)
             {

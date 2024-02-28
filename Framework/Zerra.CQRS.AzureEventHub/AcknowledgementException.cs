@@ -9,8 +9,8 @@ namespace Zerra.CQRS.AzureEventHub
 {
     public sealed class AcknowledgementException : RemoteServiceException
     {
-        public string Partition { get; private set; }
-        public Acknowledgement Acknowledgement { get; private set; }
+        public string Partition { get; }
+        public Acknowledgement Acknowledgement { get; }
         public AcknowledgementException(Acknowledgement acknowledgement, string partition) : base(acknowledgement.ErrorMessage)
         {
             this.Acknowledgement = acknowledgement ?? throw new ArgumentNullException(nameof(acknowledgement));

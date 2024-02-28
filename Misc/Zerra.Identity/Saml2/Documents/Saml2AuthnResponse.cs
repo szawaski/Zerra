@@ -11,21 +11,21 @@ namespace Zerra.Identity.Saml2.Documents
 {
     public sealed class Saml2AuthnResponse : Saml2Document
     {
-        public string ID { get; private set; }
-        public string Issuer { get; private set; }
-        public string Audience { get; private set; }
-        public string DestinationUrl { get; private set; }
-        public string InResponseTo { get; private set; }
-        public string UserID { get; private set; }
-        public string UserName { get; private set; }
-        public string[] Roles { get; private set; }
+        public string ID { get; }
+        public string Issuer { get; }
+        public string Audience { get; }
+        public string DestinationUrl { get; }
+        public string InResponseTo { get; }
+        public string UserID { get; }
+        public string UserName { get; }
+        public string[] Roles { get; }
 
-        public string IssueInstant { get; private set; }
-        public string NotBefore { get; private set; }
-        public string NotOnOrAfter { get; private set; }
-        public string AssertionID { get; private set; }
-        public string SubjectNameID { get; private set; }
-        public string SessionIndex { get; private set; }
+        public string IssueInstant { get; }
+        public string NotBefore { get; }
+        public string NotOnOrAfter { get; }
+        public string AssertionID { get; }
+        public string SubjectNameID { get; }
+        public string SessionIndex { get; }
 
         public override BindingDirection BindingDirection => BindingDirection.Response;
 

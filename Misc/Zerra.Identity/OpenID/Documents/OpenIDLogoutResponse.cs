@@ -10,8 +10,8 @@ namespace Zerra.Identity.OpenID.Documents
 {
     public sealed class OpenIDLogoutResponse : OpenIDDocument
     {
-        public string ServiceProvider { get; private set; }
-        public string State { get; private set; }
+        public string ServiceProvider { get; }
+        public string State { get; }
         public Dictionary<string, string> OtherClaims { get; set; }
 
         public override BindingDirection BindingDirection => BindingDirection.Response;

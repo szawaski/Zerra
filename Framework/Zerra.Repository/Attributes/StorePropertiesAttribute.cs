@@ -9,11 +9,11 @@ namespace Zerra.Repository
     [AttributeUsage(AttributeTargets.Property)]
     public sealed class StorePropertiesAttribute : Attribute
     {
-        public StoreTextEncoding TextEncoding { get; private set; }
-        public StoreDatePart DatePart { get; private set; }
-        public bool NotNull { get; private set; }
-        public int? PrecisionLength { get; private set; }
-        public int? Scale { get; private set; }
+        public StoreTextEncoding TextEncoding { get; }
+        public StoreDatePart DatePart { get; }
+        public bool NotNull { get; }
+        public int? PrecisionLength { get; }
+        public int? Scale { get; }
 
         //attribute parameters cannot be null
         public StorePropertiesAttribute(bool notNull) : this(null, null, notNull, null, null) { }

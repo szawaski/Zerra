@@ -8,12 +8,12 @@ namespace Zerra.T4.CSharp
 {
     public class CSharpSolution
     {
-        public IList<CSharpNamespace> Namespaces { get; private set; }
-        public IList<CSharpObject> Classes { get; private set; }
-        public IList<CSharpObject> Structs { get; private set; }
-        public IList<CSharpObject> Interfaces { get; private set; }
-        public IList<CSharpEnum> Enums { get; private set; }
-        public IList<CSharpDelegate> Delegates { get; private set; }
+        public IList<CSharpNamespace> Namespaces { get; }
+        public IList<CSharpObject> Classes { get; }
+        public IList<CSharpObject> Structs { get; }
+        public IList<CSharpObject> Interfaces { get; }
+        public IList<CSharpEnum> Enums { get; }
+        public IList<CSharpDelegate> Delegates { get; }
         public CSharpSolution()
         {
             this.Namespaces = new List<CSharpNamespace>();

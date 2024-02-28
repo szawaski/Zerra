@@ -7,9 +7,9 @@ namespace Zerra.Mathematics
     {
         private sealed class UnaryOperator
         {
-            public string Token { get; private set; }
-            public bool LeftSideOperand { get; private set; }
-            public LambdaExpression Operation { get; private set; }
+            public string Token { get; }
+            public bool LeftSideOperand { get; }
+            public LambdaExpression Operation { get; }
             public UnaryOperator(string tokens, bool leftSideOperand, Expression<Func<double, double>> operation)
             {
                 this.Token = tokens;

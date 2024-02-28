@@ -10,7 +10,7 @@ namespace Zerra.Identity.OpenID.Documents
 {
     public sealed class OpenIDTokenResponse : OpenIDDocument
     {
-        public string Token { get; private set; }
+        public string Token { get; }
 
         public override BindingDirection BindingDirection => BindingDirection.Response;
 

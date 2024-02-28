@@ -10,12 +10,12 @@ namespace Zerra.Identity.Saml2.Documents
 {
     public sealed class Saml2LogoutResponse : Saml2Document
     {
-        public string ID { get; private set; }
-        public string Issuer { get; private set; }
-        public string Destination { get; private set; }
-        public string InResponseTo { get; private set; }
-        public BindingType BindingType { get; private set; }
-        public string IssueInstant { get; private set; }
+        public string ID { get; }
+        public string Issuer { get; }
+        public string Destination { get; }
+        public string InResponseTo { get; }
+        public BindingType BindingType { get; }
+        public string IssueInstant { get; }
 
         public override BindingDirection BindingDirection => BindingDirection.Response;
 

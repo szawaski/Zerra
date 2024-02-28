@@ -9,10 +9,10 @@ namespace Zerra.T4.CSharp
 {
     public class CSharpType
     {
-        public string Name { get; private set; }
-        public Type NativeType { get; private set; }
-        public CSharpObject SolutionType { get; private set; }
-        public IReadOnlyList<CSharpType> GenericArguments { get; private set; }
+        public string Name { get; }
+        public Type NativeType { get; }
+        public CSharpObject SolutionType { get; }
+        public IReadOnlyList<CSharpType> GenericArguments { get; }
         public CSharpType(string name, Type nativeType, CSharpObject solutionType, IReadOnlyList<CSharpType> genericArguments)
         {
             this.Name = name;

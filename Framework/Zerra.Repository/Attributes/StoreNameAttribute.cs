@@ -10,7 +10,7 @@ namespace Zerra.Repository
     [AttributeUsage(AttributeTargets.Property)]
     public sealed class StoreNameAttribute : Attribute
     {
-        public string StoreName { get; private set; }
+        public string StoreName { get; }
         public StoreNameAttribute(string storeName)
         {
             if (!storeName.All(x => Char.IsLetterOrDigit(x) || x == '_' || x == '`'))

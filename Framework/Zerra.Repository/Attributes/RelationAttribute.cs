@@ -10,7 +10,7 @@ namespace Zerra.Repository
     [AttributeUsage(AttributeTargets.Property)]
     public sealed class RelationAttribute : Attribute
     {
-        public string ForeignIdentity { get; private set; }
+        public string ForeignIdentity { get; }
         public RelationAttribute(string foreignIdentity)
         {
             if (!foreignIdentity.All(x => Char.IsLetterOrDigit(x) || x == '_' || x == '`'))

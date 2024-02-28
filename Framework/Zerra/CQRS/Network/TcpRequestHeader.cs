@@ -8,11 +8,11 @@ namespace Zerra.CQRS.Network
 {
     public sealed class TcpRequestHeader
     {
-        public ReadOnlyMemory<byte> BodyStartBuffer { get; private set; }
+        public ReadOnlyMemory<byte> BodyStartBuffer { get; }
 
-        public bool IsError { get; private set; }
-        public ContentType? ContentType { get; private set; }
-        public string? ProviderType { get; private set; }
+        public bool IsError { get; }
+        public ContentType? ContentType { get; }
+        public string? ProviderType { get; }
 
         public TcpRequestHeader(ReadOnlyMemory<byte> bodyStartBuffer, bool isError, ContentType? contentType, string? providerType)
         {

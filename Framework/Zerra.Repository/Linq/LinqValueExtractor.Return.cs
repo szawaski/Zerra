@@ -10,9 +10,9 @@ namespace Zerra.Repository
     {
         private sealed class Return
         {
-            public Type? PropertyModelType { get; private set; }
-            public string? PropertyName { get; private set; }
-            public object?[]? Values { get; private set; }
+            public Type? PropertyModelType { get; }
+            public string? PropertyName { get; }
+            public object?[]? Values { get; }
 
             public Return(Type propertyModelType, string propertyName)
             {

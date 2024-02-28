@@ -16,13 +16,13 @@ namespace Zerra.Serialization
             private readonly ByteSerializerIndexSize indexSize;
             private readonly bool ignoreIndexAttribute;
 
-            public Type Type { get; private set; }
-            public IReadOnlyDictionary<ushort, SerializerMemberDetail>? IndexedProperties { get; private set; }
-            public TypeDetail TypeDetail { get; private set; }
-            public Func<int, object> ListCreator { get; private set; }
-            public MethodDetail ListAdder { get; private set; }
-            public Func<int, object> HashSetCreator { get; private set; }
-            public MethodDetail HashSetAdder { get; private set; }
+            public Type Type { get; }
+            public IReadOnlyDictionary<ushort, SerializerMemberDetail>? IndexedProperties { get; }
+            public TypeDetail TypeDetail { get; }
+            public Func<int, object> ListCreator { get; }
+            public MethodDetail ListAdder { get; }
+            public Func<int, object> HashSetCreator { get; }
+            public MethodDetail HashSetAdder { get; }
 
             private SerializerTypeDetail? innerTypeDetails = null;
             public SerializerTypeDetail InnerTypeDetail

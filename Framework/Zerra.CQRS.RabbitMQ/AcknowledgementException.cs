@@ -9,8 +9,8 @@ namespace Zerra.CQRS.RabbitMQ
 {
     public sealed class AcknowledgementException : RemoteServiceException
     {
-        public string Exchange { get; private set; }
-        public Acknowledgement Acknowledgement { get; private set; }
+        public string Exchange { get; }
+        public Acknowledgement Acknowledgement { get; }
         public AcknowledgementException(Acknowledgement acknowledgement, string exchange) : base(acknowledgement.ErrorMessage)
         {
             this.Acknowledgement = acknowledgement ?? throw new ArgumentNullException(nameof(acknowledgement));

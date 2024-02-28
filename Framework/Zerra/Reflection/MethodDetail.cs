@@ -13,7 +13,7 @@ namespace Zerra.Reflection
 {
     public sealed class MethodDetail
     {
-        public MethodInfo MethodInfo { get; private set; }
+        public MethodInfo MethodInfo { get; }
         public string Name => MethodInfo.Name;
 
         private ParameterInfo[]? parameterInfos = null;

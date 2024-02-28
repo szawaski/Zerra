@@ -8,12 +8,12 @@ namespace Zerra.Repository
     {
         protected sealed class MemberContext
         {
-            public Dictionary<string, ModelDetail> ModelContexts { get; private set; }
-            public Stack<ModelDetail> ModelStack { get; private set; }
-            public Stack<Operator> OperatorStack { get; private set; }
-            public Stack<MemberExpression> MemberAccessStack { get; private set; }
-            public Stack<MemberExpression> MemberLambdaStack { get; private set; }
-            public Stack<ParameterDependant> DependantStack { get; private set; }
+            public Dictionary<string, ModelDetail> ModelContexts { get; }
+            public Stack<ModelDetail> ModelStack { get; }
+            public Stack<Operator> OperatorStack { get; }
+            public Stack<MemberExpression> MemberAccessStack { get; }
+            public Stack<MemberExpression> MemberLambdaStack { get; }
+            public Stack<ParameterDependant> DependantStack { get; }
             public int InCallRenderIdentity { get; set; }
             public int InCallNoRender { get; set; }
 

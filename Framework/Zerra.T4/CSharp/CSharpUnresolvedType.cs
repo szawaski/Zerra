@@ -13,7 +13,7 @@ namespace Zerra.T4.CSharp
         private readonly CSharpSolution solution;
         private readonly CSharpNamespace ns;
         private readonly IReadOnlyList<CSharpNamespace> usings;
-        public string Name { get; private set; }
+        public string Name { get; }
         public CSharpUnresolvedType(CSharpSolution solution, CSharpNamespace ns, IReadOnlyList<CSharpNamespace> usings, string name)
         {
             this.solution = solution;

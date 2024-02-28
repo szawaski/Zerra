@@ -9,10 +9,10 @@ namespace Zerra.Identity.OpenID.Documents
 {
     public sealed class OpenIDTokenRequest : OpenIDDocument
     {
-        public OpenIDGrantType? GrantType { get; private set; }
-        public string Code { get; private set; }
-        public string Secret { get; private set; }
-        public string RedirectUrl { get; private set; }
+        public OpenIDGrantType? GrantType { get; }
+        public string Code { get; }
+        public string Secret { get; }
+        public string RedirectUrl { get; }
 
         public override BindingDirection BindingDirection => BindingDirection.Request;
 

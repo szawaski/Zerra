@@ -11,7 +11,7 @@ namespace Zerra.CQRS.Network
     public class SocketPoolStream : StreamWrapper
     {
         public bool Connected => socket?.Connected ?? false;
-        public bool NewConnection { get; private set; }
+        public bool NewConnection { get; }
 
         private Socket? socket;
         private bool closeSocket;

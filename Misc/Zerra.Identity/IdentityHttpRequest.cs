@@ -9,11 +9,11 @@ namespace Zerra.Identity
 {
     public sealed class IdentityHttpRequest
     {
-        public string QueryString { get; private set; }
-        public IReadOnlyDictionary<string, string> Query { get; private set; }
+        public string QueryString { get; }
+        public IReadOnlyDictionary<string, string> Query { get; }
 
-        public bool HasFormContentType { get; private set; }
-        public IReadOnlyDictionary<string, string> Form { get; private set; }
+        public bool HasFormContentType { get; }
+        public IReadOnlyDictionary<string, string> Form { get; }
 
         public IdentityHttpRequest(string queryString, Dictionary<string, string> query, bool hasFormContentType, Dictionary<string, string> form)
         {
