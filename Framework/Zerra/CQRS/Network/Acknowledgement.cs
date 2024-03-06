@@ -62,23 +62,5 @@ namespace Zerra.CQRS.Network
             }
             throw new RemoteServiceException(ack.ErrorMessage, ex);
         }
-
-        public static Exception GetException(Acknowledgement? ack)
-        {
-            if (ack == null)
-                return new RemoteServiceException("Acknowledgement Failed");
-
-            Exception? ex = null;
-            if (!String.IsNullOrEmpty(ack.ErrorType) && ack.ErrorData != null && ack.ErrorData.Length > 0)
-            {
-                try
-                {
-                    var type = Discovery.GetTypeFromName(ack.ErrorType);
-                    ex = (Exception?)ByteSerializer.Deserialize(type, ack.ErrorData);
-                }
-                catch { }
-            }
-            return new RemoteServiceException(ack.ErrorMessage, ex);
-        }
     }
 }
