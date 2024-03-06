@@ -1308,7 +1308,9 @@ namespace Zerra.Serialization
                         return;
                     }
                     state.CurrentFrame.StringLength = null;
-                    property = typeDetail.IndexedProperties?.Values.FirstOrDefault(x => x.Name == name);
+
+                    property = null;
+                    _ = typeDetail.PropertiesByName?.TryGetValue(name!, out property);
                     state.CurrentFrame.ObjectProperty = property;
 
                     if (property == null)
@@ -1363,8 +1365,8 @@ namespace Zerra.Serialization
                         return;
                     }
 
-                    if (typeDetail.IndexedProperties != null && typeDetail.IndexedProperties.Keys.Contains(propertyIndex))
-                        property = typeDetail.IndexedProperties[propertyIndex];
+                    property = null;
+                    _ = typeDetail.PropertiesByIndex?.TryGetValue(propertyIndex, out property);
                     state.CurrentFrame.ObjectProperty = property;
 
                     if (property == null)
