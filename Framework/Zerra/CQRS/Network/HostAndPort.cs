@@ -8,8 +8,8 @@ namespace Zerra.CQRS.Network
 {
     public class HostAndPort
     {
-        public string Host { get; private set; }
-        public int Port { get; private set; }
+        public string Host { get; }
+        public int Port { get; }
         public HostAndPort(string host, int port)
         {
             this.Host = host;

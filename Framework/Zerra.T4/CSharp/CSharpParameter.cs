@@ -8,13 +8,13 @@ namespace Zerra.T4.CSharp
 {
     public class CSharpParameter
     {
-        public string Name { get; private set; }
-        public CSharpUnresolvedType Type { get; private set; }
-        public bool IsIn { get; private set; }
-        public bool IsOut { get; private set; }
-        public bool IsRef { get; private set; }
-        public string DefaultValue { get; private set; }
-        public IReadOnlyList<CSharpAttribute> Attributes { get; private set; }
+        public string Name { get; }
+        public CSharpUnresolvedType Type { get; }
+        public bool IsIn { get; }
+        public bool IsOut { get; }
+        public bool IsRef { get; }
+        public string DefaultValue { get; }
+        public IReadOnlyList<CSharpAttribute> Attributes { get; }
         public CSharpParameter(string name, CSharpUnresolvedType type, bool isIn, bool isOut, bool isRef, string defaultValue)
         {
             this.Name = name;

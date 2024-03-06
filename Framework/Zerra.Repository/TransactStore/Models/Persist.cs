@@ -9,8 +9,8 @@ namespace Zerra.Repository
 {
     public class Persist<TModel> where TModel : class, new()
     {
-        public PersistOperation Operation { get; private set; }
-        public PersistEvent Event { get; private set; }
+        public PersistOperation Operation { get; }
+        public PersistEvent Event { get; }
 
         public Graph<TModel>? Graph { get; set; }
 

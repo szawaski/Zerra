@@ -9,7 +9,7 @@ namespace Zerra.Repository
 {
     public class Query<TModel> where TModel : class, new()
     {
-        public QueryOperation Operation { get; private set; }
+        public QueryOperation Operation { get; }
 
         public Expression<Func<TModel, bool>>? Where { get; set; }
         public QueryOrder<TModel>? Order { get; set; }

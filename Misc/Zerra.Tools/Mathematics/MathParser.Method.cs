@@ -12,10 +12,10 @@ namespace Zerra.Mathematics
             public static readonly char ArgumentCloser = ')';
             public static readonly char ArgumentSeperator = ',';
 
-            public string Token { get; private set; }
-            internal string TokenWithOpener { get; private set; }
-            public LambdaExpression Operation { get; private set; }
-            public MethodInfo InvokeMethod { get; private set; }
+            public string Token { get; }
+            internal string TokenWithOpener { get; }
+            public LambdaExpression Operation { get; }
+            public MethodInfo InvokeMethod { get; }
             public MethodOperator(string token, Expression<Func<double[], double>> operation)
             {
                 this.Token = token;

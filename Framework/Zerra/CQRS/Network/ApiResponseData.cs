@@ -8,8 +8,8 @@ namespace Zerra.CQRS.Network
 {
     public sealed class ApiResponseData
     {
-        public byte[]? Bytes { get; private set; }
-        public Stream? Stream { get; private set; }
+        public byte[]? Bytes { get; }
+        public Stream? Stream { get; }
         public bool Void { get { return Bytes == null && Stream == null; } }
         public ApiResponseData()
         {

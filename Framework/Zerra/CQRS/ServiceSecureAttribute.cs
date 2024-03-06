@@ -10,7 +10,7 @@ namespace Zerra.CQRS
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Method)]
     public sealed class ServiceSecureAttribute : Attribute
     {
-        public IReadOnlyCollection<string>? Roles { get; private set; }
+        public IReadOnlyCollection<string>? Roles { get; }
 
         public ServiceSecureAttribute()
         {

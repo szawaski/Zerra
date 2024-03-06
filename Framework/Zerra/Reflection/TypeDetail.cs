@@ -29,10 +29,10 @@ namespace Zerra.Reflection
         private static readonly string listGenericTypeName = typeof(IList<>).Name;
         private static readonly Type keyValuePairType = typeof(KeyValuePair<,>);
 
-        public Type Type { get; private set; }
-        public bool IsNullable { get; private set; }
-        public CoreType? CoreType { get; private set; }
-        public SpecialType? SpecialType { get; private set; }
+        public Type Type { get; }
+        public bool IsNullable { get;  }
+        public CoreType? CoreType { get;  }
+        public SpecialType? SpecialType { get;  }
 
         private Type[]? innerTypes = null;
         public IReadOnlyList<Type> InnerTypes

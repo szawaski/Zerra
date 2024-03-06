@@ -8,9 +8,9 @@ namespace Zerra.Mathematics
     {
         private ref struct ParserContext
         {
-            public ReadOnlySpan<char> Chars { get; private set; }
-            public Stack<char> GroupStack { get; private set; }
-            public List<ParameterExpression> LinqParameters { get; private set; }
+            public ReadOnlySpan<char> Chars { get; }
+            public Stack<char> GroupStack { get; }
+            public List<ParameterExpression> LinqParameters { get; }
             public int Index { get; private set; }
             public char Current { get; private set; }
 

@@ -52,7 +52,7 @@ namespace Zerra.Repository
             return engineCache;
         }
 
-        public Guid ID { get; private set; }
+        public Guid ID { get; set; }
         public ulong? LastEventNumber { get; private set; }
         public DateTime? LastEventDate { get; private set; }
         public string? LastEventName { get; private set; }

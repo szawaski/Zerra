@@ -7,7 +7,7 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
-    public sealed class CQRSRequestData
+    public sealed class CqrsRequestData
     {
         public string? ProviderType { get; set; }
         public string? ProviderMethod { get; set; }

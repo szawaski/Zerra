@@ -10,10 +10,10 @@ namespace Zerra.CQRS
     {
         private class MessageMetadata
         {
-            public bool Exposed { get; private set; }
-            public BusLogging BusLogging { get; private set; }
-            public bool Authenticate { get; private set; }
-            public IReadOnlyCollection<string>? Roles { get; private set; }
+            public bool Exposed { get; }
+            public BusLogging BusLogging { get; }
+            public bool Authenticate { get; }
+            public IReadOnlyCollection<string>? Roles { get; }
             public MessageMetadata(bool exposed, BusLogging busLogging, bool authenticate, IReadOnlyCollection<string>? roles)
             {
                 this.Exposed = exposed;

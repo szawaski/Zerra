@@ -12,19 +12,19 @@ namespace Zerra.Identity.OpenID.Documents
 {
     public sealed class OpenIDMetadataResponse : OpenIDDocument
     {
-        public string Issuer { get; private set; }
-        public string LoginUrl { get; private set; }
-        public string TokenUrl { get; private set; }
-        public string UserInfoUrl { get; private set; }
-        public string KeysUrl { get; private set; }
-        public string LogoutUrl { get; private set; }
-        public XmlSignatureAlgorithmType[] SignatureAlgorithms { get; private set; }
+        public string Issuer { get; }
+        public string LoginUrl { get; }
+        public string TokenUrl { get; }
+        public string UserInfoUrl { get; }
+        public string KeysUrl { get; }
+        public string LogoutUrl { get; }
+        public XmlSignatureAlgorithmType[] SignatureAlgorithms { get; }
 
-        public string[] ScopesSupported { get; private set; }
-        public OpenIDResponseType[] ResponseTypesSupported { get; private set; }
-        public OpenIDSubjectIdentifier[] SubjectTypeSupported { get; private set; }
-        public OpenIDResponseMode[] ResponseModesSupported { get; private set; }
-        public string[] ClaimsSupported { get; private set; }
+        public string[] ScopesSupported { get; }
+        public OpenIDResponseType[] ResponseTypesSupported { get; }
+        public OpenIDSubjectIdentifier[] SubjectTypeSupported { get; }
+        public OpenIDResponseMode[] ResponseModesSupported { get; }
+        public string[] ClaimsSupported { get; }
 
         public override BindingDirection BindingDirection => BindingDirection.Response;
 

@@ -9,7 +9,7 @@ namespace Zerra.CQRS
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Method)]
     public sealed class ServiceLogAttribute : Attribute
     {
-        public BusLogging BusLogging { get; private set; }
+        public BusLogging BusLogging { get; }
         public ServiceLogAttribute(BusLogging busLogging)
         {
             BusLogging = busLogging;

@@ -166,9 +166,9 @@ namespace Zerra.Threading
 
         private sealed class WorkItem
         {
-            public MulticastDelegate Delegate { get; private set; }
-            public ZerraAsyncResult AsyncResult { get; private set; }
-            public IPrincipal Principal { get; private set; }
+            public MulticastDelegate Delegate { get; }
+            public ZerraAsyncResult AsyncResult { get; }
+            public IPrincipal Principal { get; }
 
             public WorkItem(MulticastDelegate del, ZerraAsyncResult asyncResult, IPrincipal princical)
             {

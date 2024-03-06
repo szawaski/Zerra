@@ -14,6 +14,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.RabbitMQ
 {
@@ -131,7 +132,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                     if (requireAcknowledgement)
                     {
-                        Exception? exception = null;
+                        Acknowledgement? ack = null;
                         using var waiter = new SemaphoreSlim(0, 1);
 
                         consumer!.Received += (sender, e) =>
@@ -147,16 +148,20 @@ namespace Zerra.CQRS.RabbitMQ
                                 if (symmetricConfig != null)
                                     acknowledgementBody = SymmetricEncryptor.Decrypt(symmetricConfig, acknowledgementBody);
 
-                                var acknowledgement = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
-                                if (acknowledgement == null)
-                                    throw new Exception("Invalid Acknowledgement");
-
-                                if (!acknowledgement.Success)
-                                    exception = new AcknowledgementException(acknowledgement, topic);
+                                ack = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
+                                ack ??= new Acknowledgement()
+                                {
+                                    Success = false,
+                                    ErrorMessage = "Invalid Acknowledgement"
+                                };
                             }
                             catch (Exception ex)
                             {
-                                exception = ex;
+                                ack = new Acknowledgement()
+                                {
+                                    Success = false,
+                                    ErrorMessage = ex.Message
+                                };
                             }
                             finally
                             {
@@ -166,10 +171,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                         await waiter.WaitAsync();
 
-                        if (exception != null)
-                        {
-                            throw exception;
-                        }
+                        Acknowledgement.ThrowIfFailed(ack);
                     }
 
                     channel.Close();

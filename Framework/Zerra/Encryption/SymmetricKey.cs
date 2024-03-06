@@ -8,10 +8,10 @@ namespace Zerra.Encryption
 {
     public sealed class SymmetricKey
     {
-        public byte[] Key { get; private set; }
-        public byte[] IV { get; private set; }
-        public int KeySize { get; private set; }
-        public int BlockSize { get; private set; }
+        public byte[] Key { get; }
+        public byte[] IV { get; }
+        public int KeySize { get; }
+        public int BlockSize { get; }
         public SymmetricKey(byte[] key, byte[] iv)
         {
             this.Key = key ?? throw new ArgumentNullException(nameof(key));

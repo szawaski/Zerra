@@ -8,8 +8,8 @@ namespace Zerra.T4.CSharp
 {
     public class CSharpNamespace
     {
-        public string[] Names { get; private set; }
-        public string Name { get; private set; }
+        public string[] Names { get; }
+        public string Name { get; }
         public CSharpNamespace(string name)
         {
             this.Name = name;

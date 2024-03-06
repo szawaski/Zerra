@@ -56,9 +56,9 @@ namespace Zerra.Reflection
                 try
                 {
 #if NETSTANDARD2_0
-                    var assemblyFileName = assemblyFilePath.Split(new char[] { System.IO.Path.PathSeparator }, StringSplitOptions.RemoveEmptyEntries).Last();
+                    var assemblyFileName = assemblyFilePath.Split(new char[] { System.IO.Path.DirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries).Last();
 #else
-                    var assemblyFileName = assemblyFilePath.Split(System.IO.Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries).Last();
+                    var assemblyFileName = assemblyFilePath.Split(System.IO.Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries).Last();
 #endif
                     if (Config.DiscoveryAssemblyNameStartsWiths.Length > 0 && !Config.DiscoveryAssemblyNameStartsWiths.Any(x => assemblyFileName.StartsWith(x)))
                         continue;
@@ -176,7 +176,7 @@ namespace Zerra.Reflection
         private static void Generate()
         {
             var generationTypes = GetTypesFromAttribute(typeof(BaseGenerateAttribute));
-            foreach (var generationType in generationTypes)
+            foreach (var generationType in generationTypes.Distinct())
             {
                 var typeDetail = TypeAnalyzer.GetTypeDetail(generationType);
                 foreach (var attribute in typeDetail.Attributes)

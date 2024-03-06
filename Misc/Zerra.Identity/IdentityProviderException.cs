@@ -8,7 +8,7 @@ namespace Zerra.Identity
 {
     public sealed class IdentityProviderException : Exception
     {
-        public string DebugMessage { get; private set; }
+        public string DebugMessage { get; }
         public IdentityProviderException(string message, string debugMessage = null) : base(message)
         {
             this.DebugMessage = debugMessage;

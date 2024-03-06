@@ -12,7 +12,7 @@ namespace Zerra.Reflection
 {
     public sealed class ConstructorDetail
     {
-        public ConstructorInfo ConstructorInfo { get; private set; }
+        public ConstructorInfo ConstructorInfo { get; }
         public string Name => ConstructorInfo.Name;
 
         private ParameterInfo[]? parameterInfos = null;

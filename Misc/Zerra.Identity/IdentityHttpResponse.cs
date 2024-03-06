@@ -7,9 +7,9 @@ namespace Zerra.Identity
 {
     public sealed class IdentityHttpResponse
     {
-        public string RedirectUrl { get; private set; }
-        public string ContentType { get; private set; }
-        public string Content { get; private set; }
+        public string RedirectUrl { get; }
+        public string ContentType { get; }
+        public string Content { get; }
 
         public IdentityHttpResponse(string redirectUrl)
         {

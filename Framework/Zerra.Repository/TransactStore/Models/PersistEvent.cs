@@ -8,9 +8,9 @@ namespace Zerra.Repository
 {
     public sealed class PersistEvent
     {
-        public Guid ID { get; private set; }
-        public string Name { get; private set; }
-        public object? Source { get; private set; }
+        public Guid ID { get; }
+        public string Name { get; }
+        public object? Source { get; }
         public PersistEvent(Guid id, string name, object? source)
         {
             this.ID = id;

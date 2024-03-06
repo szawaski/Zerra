@@ -9,7 +9,7 @@ namespace Zerra.CQRS
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
     public sealed class ServiceExposedAttribute : Attribute
     {
-        public NetworkType NetworkType { get; private set; }
+        public NetworkType NetworkType { get; }
         public ServiceExposedAttribute(NetworkType networkType = NetworkType.Api)
         {
             this.NetworkType = networkType;

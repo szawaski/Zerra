@@ -142,7 +142,12 @@ const Bus = {
 
     _onFail: function (jqXHR, url, onFail) {
         let errorText;
-        if (jqXHR.responseText) {
+        if (jqXHR.responseJSON) {
+            const exception = JSON.parse(jqXHR.responseJSON.ErrorString);
+            errorText = "Error " + jqXHR.status + ": " + exception["_message"];
+            console.log(errorText);
+        }
+        else if (jqXHR.responseText) {
             errorText = "Error " + jqXHR.status + ": " + jqXHR.responseText;
             console.log(errorText);
         }

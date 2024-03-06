@@ -12,8 +12,8 @@ namespace Zerra.Web
 {
     public sealed class KestrelCQRSServerLinkedSettings : IDisposable
     {
-        public ConcurrentDictionary<Type, SemaphoreSlim> InterfaceTypes { get; private set; }
-        public ConcurrentDictionary<Type, SemaphoreSlim> CommandTypes { get; private set; }
+        public ConcurrentDictionary<Type, SemaphoreSlim> InterfaceTypes { get; }
+        public ConcurrentDictionary<Type, SemaphoreSlim> CommandTypes { get; }
 
         public CommandCounter? ReceiveCounter { get; set; }
 
@@ -21,9 +21,9 @@ namespace Zerra.Web
         public HandleRemoteCommandDispatch? HandlerAsync { get; set; }
         public HandleRemoteCommandDispatch? HandlerAwaitAsync { get; set; }
 
-        public string? Route { get; private set; }
-        public ICqrsAuthorizer? Authorizer { get; private set; }
-        public ContentType ContentType { get; private set; }
+        public string? Route { get; }
+        public ICqrsAuthorizer? Authorizer { get; }
+        public ContentType ContentType { get; }
 
         private string[]? allowOrigins;
         public string[]? AllowOrigins

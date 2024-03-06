@@ -11,14 +11,14 @@ namespace Zerra.Identity.OpenID.Documents
 {
     public sealed class OpenIDLogoutRequest : OpenIDDocument
     {
-        public string ServiceProvider { get; private set; }
-        public string RedirectUrlPostLogout { get; private set; }
-        public string State { get; private set; }
+        public string ServiceProvider { get; }
+        public string RedirectUrlPostLogout { get; }
+        public string State { get; }
 
         public Dictionary<string, string> OtherClaims { get; set; }
 
-        public string Error { get; private set; }
-        public string ErrorDescription { get; private set; }
+        public string Error { get; }
+        public string ErrorDescription { get; }
 
         public override BindingDirection BindingDirection => BindingDirection.Request;
 

@@ -12,12 +12,12 @@ namespace Zerra.Reflection
 {
     public sealed class MemberDetail
     {
-        public MemberDetail? BackingFieldDetail { get; private set; }
+        public MemberDetail? BackingFieldDetail { get; }
 
-        public MemberInfo MemberInfo { get; private set; }
-        public string Name { get; private set; }
-        public Type Type { get; private set; }
-        public bool IsBacked { get; private set; }
+        public MemberInfo MemberInfo { get; }
+        public string Name { get; }
+        public Type Type { get; }
+        public bool IsBacked { get; }
 
         private Attribute[]? attributes = null;
         public IReadOnlyList<Attribute> Attributes

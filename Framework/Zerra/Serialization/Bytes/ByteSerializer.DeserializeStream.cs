@@ -1308,7 +1308,9 @@ namespace Zerra.Serialization
                         return;
                     }
                     state.CurrentFrame.StringLength = null;
-                    property = typeDetail.IndexedProperties?.Values.FirstOrDefault(x => x.Name == name);
+
+                    property = null;
+                    _ = typeDetail.PropertiesByName?.TryGetValue(name!, out property);
                     state.CurrentFrame.ObjectProperty = property;
 
                     if (property == null)
@@ -1363,8 +1365,8 @@ namespace Zerra.Serialization
                         return;
                     }
 
-                    if (typeDetail.IndexedProperties != null && typeDetail.IndexedProperties.Keys.Contains(propertyIndex))
-                        property = typeDetail.IndexedProperties[propertyIndex];
+                    property = null;
+                    _ = typeDetail.PropertiesByIndex?.TryGetValue(propertyIndex, out property);
                     state.CurrentFrame.ObjectProperty = property;
 
                     if (property == null)
@@ -2996,6 +2998,11 @@ namespace Zerra.Serialization
                         state.CurrentFrame.AddMethodArgs![0] = enumValue;
                         _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
                     }
+                    else if (asSet)
+                    {
+                        state.CurrentFrame.AddMethodArgs![0] = enumValue;
+                        _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                    }
                     else
                     {
                         state.CurrentFrame.EnumerableArray!.SetValue(enumValue, state.CurrentFrame.EnumerablePosition);
@@ -3082,6 +3089,11 @@ namespace Zerra.Serialization
                             state.CurrentFrame.AddMethodArgs![0] = null;
                             _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
                         }
+                        else if (asSet)
+                        {
+                            state.CurrentFrame.AddMethodArgs![0] = null;
+                            _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                        }
                         state.CurrentFrame.EnumerablePosition++;
                         if (state.CurrentFrame.EnumerablePosition == length)
                         {
@@ -3104,6 +3116,11 @@ namespace Zerra.Serialization
                 if (!state.CurrentFrame.DrainBytes)
                 {
                     if (asList)
+                    {
+                        state.CurrentFrame.AddMethodArgs![0] = state.LastFrameResultObject;
+                        _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                    }
+                    else if (asSet)
                     {
                         state.CurrentFrame.AddMethodArgs![0] = state.LastFrameResultObject;
                         _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);

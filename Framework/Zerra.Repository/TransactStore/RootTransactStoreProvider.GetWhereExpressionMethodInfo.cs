@@ -10,9 +10,9 @@ namespace Zerra.Repository
     {
         private sealed class GetWhereExpressionMethodInfo
         {
-            public Type PropertyType { get; private set; }
-            public bool Enumerable { get; private set; }
-            public Type RelatedProviderType { get; private set; }
+            public Type PropertyType { get; }
+            public bool Enumerable { get; }
+            public Type RelatedProviderType { get; }
             public GetWhereExpressionMethodInfo(Type propertyType, bool enumerable, Type relatedProviderType)
             {
                 this.PropertyType = propertyType;

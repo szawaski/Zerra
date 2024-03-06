@@ -13,12 +13,12 @@ namespace Zerra.Repository
     {
         private sealed class Context
         {
-            public Type PropertyModelType { get; private set; }
-            public string[] PropertyNames { get; private set; }
-            public Dictionary<string, List<object?>> Values { get; private set; }
+            public Type PropertyModelType { get; }
+            public string[] PropertyNames { get; }
+            public Dictionary<string, List<object?>> Values { get; }
 
-            public Stack<ModelDetail> ModelStack { get; private set; }
-            public Stack<MemberExpression> MemberAccessStack { get; private set; }
+            public Stack<ModelDetail> ModelStack { get; }
+            public Stack<MemberExpression> MemberAccessStack { get; }
 
             public int InvertStack { get; set; }
             public bool Inverted { get { return InvertStack % 2 != 0; } }

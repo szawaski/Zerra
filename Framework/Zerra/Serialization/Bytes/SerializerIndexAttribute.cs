@@ -9,7 +9,7 @@ namespace Zerra.Serialization
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public sealed class SerializerIndexAttribute : Attribute
     {
-        public ushort Index { get; private set; }
+        public ushort Index { get; }
         public SerializerIndexAttribute(ushort index)
         {
             this.Index = index;

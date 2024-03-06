@@ -8,12 +8,12 @@ namespace Zerra.T4.CSharp
 {
     public class CSharpField
     {
-        public string Name { get; private set; }
-        public CSharpUnresolvedType Type { get; private set; }
-        public bool IsPublic { get; private set; }
-        public bool IsStatic { get; private set; }
-        public bool IsReadOnly { get; private set; }
-        public IReadOnlyList<CSharpAttribute> Attributes { get; private set; }
+        public string Name { get; }
+        public CSharpUnresolvedType Type { get; }
+        public bool IsPublic { get; }
+        public bool IsStatic { get; }
+        public bool IsReadOnly { get; }
+        public IReadOnlyList<CSharpAttribute> Attributes { get; }
         public CSharpField(string name, CSharpUnresolvedType type, bool isPublic, bool isStatic, bool isReadOnly, IReadOnlyList<CSharpAttribute> attribues)
         {
             this.Name = name;

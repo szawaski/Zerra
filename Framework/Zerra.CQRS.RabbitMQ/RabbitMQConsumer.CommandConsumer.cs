@@ -11,6 +11,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.RabbitMQ
 {
@@ -130,11 +131,7 @@ namespace Zerra.CQRS.RabbitMQ
                             if (!inHandlerContext)
                                 _ = Log.ErrorAsync(topic, ex);
 
-                            if (acknowledgment != null)
-                            {
-                                acknowledgment.Success = false;
-                                acknowledgment.ErrorMessage = ex.Message;
-                            }
+                            Acknowledgement.ApplyException(acknowledgment, ex);
                         }
                         finally
                         {

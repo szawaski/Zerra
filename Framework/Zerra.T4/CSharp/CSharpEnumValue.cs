@@ -8,9 +8,9 @@ namespace Zerra.T4.CSharp
 {
     public class CSharpEnumValue
     {
-        public string Name { get; private set; }
-        public long Value { get; private set; }
-        public IReadOnlyList<CSharpAttribute> Attributes { get; private set; }
+        public string Name { get; }
+        public long Value { get; }
+        public IReadOnlyList<CSharpAttribute> Attributes { get; }
         public CSharpEnumValue(string name, long value, IReadOnlyList<CSharpAttribute> attributes)
         {
             this.Name = name;

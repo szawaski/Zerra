@@ -121,13 +121,13 @@ namespace Zerra.Web
             try
             {
                 Stream body = context.Request.Body;
-                CQRSRequestData? data;
+                CqrsRequestData? data;
                 try
                 {
                     if (symmetricConfig != null)
                         body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
 
-                    data = await ContentTypeSerializer.DeserializeAsync<CQRSRequestData>(contentType.Value, body);
+                    data = await ContentTypeSerializer.DeserializeAsync<CqrsRequestData>(contentType.Value, body);
 
                     if (data == null)
                         throw new Exception("Invalid Request");

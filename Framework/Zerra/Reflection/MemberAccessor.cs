@@ -23,7 +23,7 @@
 //            return instance;
 //        }
 
-//        public Type Type { get; private set; }
+//        public Type Type { get; }
 //        private readonly Func<object, int, object> getter;
 //        private readonly Action<object, int, object> setter;
 //        private readonly Dictionary<string, int> indexMap;

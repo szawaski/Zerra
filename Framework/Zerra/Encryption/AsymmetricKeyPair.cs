@@ -6,8 +6,8 @@ namespace Zerra.Encryption
 {
     public sealed class AsymmetricKeyPair
     {
-        public string PublicKey { get; private set; }
-        public string PrivateKey { get; private set; }
+        public string PublicKey { get; }
+        public string PrivateKey { get; }
         public AsymmetricKeyPair(string publicKey, string privateKey)
         {
             this.PublicKey = publicKey;

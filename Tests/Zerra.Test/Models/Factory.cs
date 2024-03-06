@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace Zerra.Test
 {
@@ -2040,6 +2041,8 @@ namespace Zerra.Test
                 GuidHashSetNullable = new HashSet<Guid?> { Guid.NewGuid(), null, Guid.NewGuid() },
 
                 StringHashSet = new HashSet<string> { "Hello", "World", "People" },
+
+                ClassHashSet = new HashSet<BasicModel> { new() { Value1 = 1, Value2 = "1" }, new() { Value1 = 2, Value2 = "2" }, null, new() { Value1 = 3, Value2 = "3" } }
             };
 
             return model;
@@ -2095,6 +2098,27 @@ namespace Zerra.Test
             AssertUnorderedEnumerable(model1.GuidHashSetNullable, model2.GuidHashSetNullable);
 
             AssertUnorderedEnumerable(model1.StringHashSet, model2.StringHashSet);
+
+            if (model1.ClassHashSet != null)
+            {
+                Assert.AreEqual(model1.ClassHashSet.Count, model2.ClassHashSet.Count);
+                foreach(var item1 in model1.ClassHashSet)
+                {
+                    if (item1 == null)
+                    {
+                        Assert.IsTrue(model2.ClassHashSet.Any(x => x == null));
+                    }
+                    else
+                    {
+                        var item2 = model2.ClassHashSet.FirstOrDefault(x => x != null && x.Value1 == item1.Value1 && x.Value2 == item1.Value2);
+                        Assert.IsNotNull(item2);
+                    }
+                }
+            }
+            else
+            {
+                Assert.IsNull(model2.ClassHashSet);
+            }
         }
     }
 }

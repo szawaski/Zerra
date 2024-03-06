@@ -51,7 +51,7 @@ namespace Zerra.CQRS.Network
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
-                var data = new CQRSRequestData()
+                var data = new CqrsRequestData()
                 {
                     ProviderType = interfaceType.Name,
                     ProviderMethod = methodName,
@@ -209,7 +209,7 @@ namespace Zerra.CQRS.Network
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
-                var data = new CQRSRequestData()
+                var data = new CqrsRequestData()
                 {
                     ProviderType = interfaceType.Name,
                     ProviderMethod = methodName,
@@ -405,7 +405,7 @@ namespace Zerra.CQRS.Network
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
-                var data = new CQRSRequestData()
+                var data = new CqrsRequestData()
                 {
                     MessageType = messageTypeName,
                     MessageData = messageData,

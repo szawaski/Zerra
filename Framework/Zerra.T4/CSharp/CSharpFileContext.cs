@@ -8,10 +8,10 @@ namespace Zerra.T4.CSharp
 {
     public class CSharpFileContext
     {
-        public string FileName { get; private set; }
+        public string FileName { get; }
         public int Line { get; set; }
-        public List<CSharpNamespace> Usings { get; private set; }
-        public Stack<CSharpNamespace> Namespaces { get; private set; }
+        public List<CSharpNamespace> Usings { get; }
+        public Stack<CSharpNamespace> Namespaces { get; }
         public CSharpNamespace CurrentNamespace { get { return Namespaces.Count > 0 ? Namespaces.Peek() : null; } }
         public CSharpFileContext(string fileName)
         {
