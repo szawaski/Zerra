@@ -5,7 +5,6 @@
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Producer;
-using Microsoft.Azure.Amqp;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -16,6 +15,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.AzureEventHub
 {
@@ -131,8 +131,8 @@ namespace Zerra.CQRS.AzureEventHub
                             await producer.SendAsync(new EventData[] { eventData });
 
                             await waiter.WaitAsync();
-                            if (!ack!.Success)
-                                throw new AcknowledgementException(ack, type);
+
+                            Acknowledgement.ThrowIfFailed(ack);
                         }
                         finally
                         {

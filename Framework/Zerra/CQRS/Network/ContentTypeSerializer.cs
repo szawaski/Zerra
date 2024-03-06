@@ -5,6 +5,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Zerra.Reflection;
 using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
@@ -24,63 +25,33 @@ namespace Zerra.CQRS.Network
 
         public static byte[] Serialize(ContentType contentType, object? obj)
         {
-            switch (contentType)
+            return contentType switch
             {
-                case ContentType.Bytes:
-                    {
-                        return ByteSerializer.Serialize(obj, byteSerializerOptions);
-                    }
-                case ContentType.Json:
-                    {
-                        return JsonSerializer.SerializeBytes(obj);
-                    }
-                case ContentType.JsonNameless:
-                    {
-                        return JsonSerializer.SerializeBytes(obj, jsonSerializerNamelessOptions);
-                    }
-                default:
-                    throw new NotImplementedException();
-            }
+                ContentType.Bytes => ByteSerializer.Serialize(obj, byteSerializerOptions),
+                ContentType.Json => JsonSerializer.SerializeBytes(obj),
+                ContentType.JsonNameless => JsonSerializer.SerializeBytes(obj, jsonSerializerNamelessOptions),
+                _ => throw new NotImplementedException(),
+            };
         }
         public static T? Deserialize<T>(ContentType contentType, byte[] bytes)
         {
-            switch (contentType)
+            return contentType switch
             {
-                case ContentType.Bytes:
-                    {
-                        return ByteSerializer.Deserialize<T>(bytes, byteSerializerOptions);
-                    }
-                case ContentType.Json:
-                    {
-                        return JsonSerializer.Deserialize<T>(bytes);
-                    }
-                case ContentType.JsonNameless:
-                    {
-                        return JsonSerializer.Deserialize<T>(bytes, jsonSerializerNamelessOptions);
-                    }
-                default:
-                    throw new NotImplementedException();
-            }
+                ContentType.Bytes => ByteSerializer.Deserialize<T>(bytes, byteSerializerOptions),
+                ContentType.Json => JsonSerializer.Deserialize<T>(bytes),
+                ContentType.JsonNameless => JsonSerializer.Deserialize<T>(bytes, jsonSerializerNamelessOptions),
+                _ => throw new NotImplementedException(),
+            };
         }
         public static object? Deserialize<T>(ContentType contentType, Type type, byte[] bytes)
         {
-            switch (contentType)
+            return contentType switch
             {
-                case ContentType.Bytes:
-                    {
-                        return ByteSerializer.Deserialize(type, bytes, byteSerializerOptions);
-                    }
-                case ContentType.Json:
-                    {
-                        return JsonSerializer.Deserialize(type, bytes);
-                    }
-                case ContentType.JsonNameless:
-                    {
-                        return JsonSerializer.Deserialize(type, bytes, jsonSerializerNamelessOptions);
-                    }
-                default:
-                    throw new NotImplementedException();
-            }
+                ContentType.Bytes => ByteSerializer.Deserialize(type, bytes, byteSerializerOptions),
+                ContentType.Json => JsonSerializer.Deserialize(type, bytes),
+                ContentType.JsonNameless => JsonSerializer.Deserialize(type, bytes, jsonSerializerNamelessOptions),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static void Serialize(ContentType contentType, Stream stream, object? obj)
@@ -88,227 +59,199 @@ namespace Zerra.CQRS.Network
             switch (contentType)
             {
                 case ContentType.Bytes:
-                    {
-                        ByteSerializer.Serialize(stream, obj, byteSerializerOptions);
-                        return;
-                    }
+                    ByteSerializer.Serialize(stream, obj, byteSerializerOptions);
+                    return;
                 case ContentType.Json:
-                    {
-                        JsonSerializer.Serialize(stream, obj);
-                        return;
-                    }
+                    JsonSerializer.Serialize(stream, obj);
+                    return;
                 case ContentType.JsonNameless:
-                    {
-                        JsonSerializer.Serialize(stream, obj, jsonSerializerNamelessOptions);
-                        return;
-                    }
+                    JsonSerializer.Serialize(stream, obj, jsonSerializerNamelessOptions);
+                    return;
                 default:
                     throw new NotImplementedException();
             }
         }
         public static T? Deserialize<T>(ContentType contentType, Stream stream)
         {
-            switch (contentType)
+            return contentType switch
             {
-                case ContentType.Bytes:
-                    {
-                        return ByteSerializer.Deserialize<T>(stream, byteSerializerOptions);
-                    }
-                case ContentType.Json:
-                    {
-                        return JsonSerializer.Deserialize<T>(stream);
-                    }
-                case ContentType.JsonNameless:
-                    {
-                        return JsonSerializer.Deserialize<T>(stream, jsonSerializerNamelessOptions);
-                    }
-                default:
-                    throw new NotImplementedException();
-            }
+                ContentType.Bytes => ByteSerializer.Deserialize<T>(stream, byteSerializerOptions),
+                ContentType.Json => JsonSerializer.Deserialize<T>(stream),
+                ContentType.JsonNameless => JsonSerializer.Deserialize<T>(stream, jsonSerializerNamelessOptions),
+                _ => throw new NotImplementedException(),
+            };
         }
         public static object? Deserialize(ContentType contentType, Type type, Stream stream)
         {
-            switch (contentType)
+            return contentType switch
             {
-                case ContentType.Bytes:
-                    {
-                        return ByteSerializer.Deserialize(type, stream, byteSerializerOptions);
-                    }
-                case ContentType.Json:
-                    {
-                        return JsonSerializer.Deserialize(type, stream);
-                    }
-                case ContentType.JsonNameless:
-                    {
-                        return JsonSerializer.Deserialize(type, stream, jsonSerializerNamelessOptions);
-                    }
-                default:
-                    throw new NotImplementedException();
-            }
+                ContentType.Bytes => ByteSerializer.Deserialize(type, stream, byteSerializerOptions),
+                ContentType.Json => JsonSerializer.Deserialize(type, stream),
+                ContentType.JsonNameless => JsonSerializer.Deserialize(type, stream, jsonSerializerNamelessOptions),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Task SerializeAsync(ContentType contentType, Stream stream, object? obj)
         {
-            switch (contentType)
+            return contentType switch
             {
-                case ContentType.Bytes:
-                    {
-                        return ByteSerializer.SerializeAsync(stream, obj, byteSerializerOptions);
-                    }
-                case ContentType.Json:
-                    {
-                        return JsonSerializer.SerializeAsync(stream, obj);
-                    }
-                case ContentType.JsonNameless:
-                    {
-                        return JsonSerializer.SerializeAsync(stream, obj, jsonSerializerNamelessOptions);
-                    }
-                default:
-                    throw new NotImplementedException();
-            }
+                ContentType.Bytes => ByteSerializer.SerializeAsync(stream, obj, byteSerializerOptions),
+                ContentType.Json => JsonSerializer.SerializeAsync(stream, obj),
+                ContentType.JsonNameless => JsonSerializer.SerializeAsync(stream, obj, jsonSerializerNamelessOptions),
+                _ => throw new NotImplementedException(),
+            };
         }
         public static Task<T?> DeserializeAsync<T>(ContentType contentType, Stream stream)
         {
-            switch (contentType)
+            return contentType switch
             {
-                case ContentType.Bytes:
-                    {
-                        return ByteSerializer.DeserializeAsync<T>(stream, byteSerializerOptions);
-                    }
-                case ContentType.Json:
-                    {
-                        return JsonSerializer.DeserializeAsync<T>(stream);
-                    }
-                case ContentType.JsonNameless:
-                    {
-
-                        return JsonSerializer.DeserializeAsync<T>(stream, jsonSerializerNamelessOptions);
-                    }
-                default:
-                    throw new NotImplementedException();
-            }
+                ContentType.Bytes => ByteSerializer.DeserializeAsync<T>(stream, byteSerializerOptions),
+                ContentType.Json => JsonSerializer.DeserializeAsync<T>(stream),
+                ContentType.JsonNameless => JsonSerializer.DeserializeAsync<T>(stream, jsonSerializerNamelessOptions),
+                _ => throw new NotImplementedException(),
+            };
         }
         public static Task<object?> DeserializeAsync(ContentType contentType, Type type, Stream stream)
         {
-            switch (contentType)
+            return contentType switch
             {
-                case ContentType.Bytes:
-                    {
-                        return ByteSerializer.DeserializeAsync(type, stream, byteSerializerOptions);
-                    }
-                case ContentType.Json:
-                    {
-                        return JsonSerializer.DeserializeAsync(type, stream);
-                    }
-                case ContentType.JsonNameless:
-                    {
-
-                        return JsonSerializer.DeserializeAsync(type, stream, jsonSerializerNamelessOptions);
-                    }
-                default:
-                    throw new NotImplementedException();
-            }
+                ContentType.Bytes => ByteSerializer.DeserializeAsync(type, stream, byteSerializerOptions),
+                ContentType.Json => JsonSerializer.DeserializeAsync(type, stream),
+                ContentType.JsonNameless => JsonSerializer.DeserializeAsync(type, stream, jsonSerializerNamelessOptions),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static void SerializeException(ContentType contentType, Stream stream, Exception ex)
         {
-            var model = new ExceptionModel()
+            var errorType = ex.GetType();
+            var content = new ExceptionContent()
             {
-                Message = ex.Message
+                ErrorMessage = ex.Message,
+                ErrorType = errorType.FullName
             };
 
             switch (contentType)
             {
                 case ContentType.Bytes:
-                    {
-                        ByteSerializer.Serialize(stream, model);
-                        return;
-                    }
+                    content.ErrorBytes = ByteSerializer.Serialize(ex, errorType, byteSerializerOptions);
+                    ByteSerializer.Serialize(stream, content);
+                    return;
                 case ContentType.Json:
-                    {
-                        JsonSerializer.SerializeBytes(model);
-                        return;
-                    }
+                    content.ErrorString = JsonSerializer.Serialize(ex, errorType);
+                    JsonSerializer.Serialize(stream, content);
+                    return;
                 case ContentType.JsonNameless:
-                    {
-                        JsonSerializer.Serialize(stream, model, jsonSerializerNamelessOptions);
-                        return;
-                    }
+                    content.ErrorString = JsonSerializer.Serialize(ex, errorType, jsonSerializerNamelessOptions);
+                    JsonSerializer.Serialize(stream, content, jsonSerializerNamelessOptions);
+                    return;
                 default:
                     throw new NotImplementedException();
             }
         }
         public static Exception DeserializeException(ContentType contentType, Stream stream)
         {
-            switch (contentType)
+            ExceptionContent? content = contentType switch
             {
-                case ContentType.Bytes:
+                ContentType.Bytes => ByteSerializer.Deserialize<ExceptionContent>(stream),
+                ContentType.Json => JsonSerializer.Deserialize<ExceptionContent>(stream),
+                ContentType.JsonNameless => JsonSerializer.Deserialize<ExceptionContent>(stream, jsonSerializerNamelessOptions),
+                _ => throw new NotImplementedException(),
+            };
+            if (content == null)
+                throw new RemoteServiceException("Invalid Exception Content");
+
+            Exception? ex = null;
+            if (content.ErrorType != null)
+            {
+                try
+                {
+                    var type = Discovery.GetTypeFromName(content.ErrorType);
+                    switch (contentType)
                     {
-                        var model = ByteSerializer.Deserialize<ExceptionModel>(stream);
-                        return new RemoteServiceException(model?.Message);
+                        case ContentType.Bytes:
+                            if (content.ErrorBytes != null && content.ErrorBytes.Length > 0)
+                                ex = (Exception?)ByteSerializer.Deserialize(type, content.ErrorBytes, byteSerializerOptions);
+                            break;
+                        case ContentType.Json:
+                            if (!String.IsNullOrEmpty(content.ErrorString))
+                                ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString);
+                            break;
+                        case ContentType.JsonNameless:
+                            if (!String.IsNullOrEmpty(content.ErrorString))
+                                ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString, jsonSerializerNamelessOptions);
+                            break;
                     }
-                case ContentType.Json:
-                    {
-                        var model = JsonSerializer.Deserialize<ExceptionModel>(stream);
-                        return new RemoteServiceException(model?.Message);
-                    }
-                case ContentType.JsonNameless:
-                    {
-                        var model = JsonSerializer.Deserialize<ExceptionModel>(stream, jsonSerializerNamelessOptions);
-                        return new RemoteServiceException(model?.Message);
-                    }
-                default:
-                    throw new NotImplementedException();
+                }
+                catch { }
             }
+
+            return new RemoteServiceException(content?.ErrorMessage, ex);
         }
 
         public static Task SerializeExceptionAsync(ContentType contentType, Stream stream, Exception ex)
         {
-            var model = new ExceptionModel()
+            var errorType = ex.GetType();
+            var content = new ExceptionContent()
             {
-                Message = ex.Message
+                ErrorMessage = ex.Message,
+                ErrorType = errorType.FullName
             };
 
             switch (contentType)
             {
                 case ContentType.Bytes:
-                    {
-                        return ByteSerializer.SerializeAsync(stream, model);
-                    }
+                    content.ErrorBytes = ByteSerializer.Serialize(ex, errorType, byteSerializerOptions);
+                    return ByteSerializer.SerializeAsync(stream, content);
                 case ContentType.Json:
-                    {
-                        return JsonSerializer.SerializeAsync(stream, model);
-                    }
+                    content.ErrorString = JsonSerializer.Serialize(ex, errorType);
+                    return JsonSerializer.SerializeAsync(stream, content);
                 case ContentType.JsonNameless:
-                    {
-                        return JsonSerializer.SerializeAsync(stream, model, jsonSerializerNamelessOptions);
-                    }
+                    content.ErrorString = JsonSerializer.Serialize(ex, errorType, jsonSerializerNamelessOptions);
+                    return JsonSerializer.SerializeAsync(stream, content, jsonSerializerNamelessOptions);
                 default:
                     throw new NotImplementedException();
             }
         }
         public static async Task<Exception> DeserializeExceptionAsync(ContentType contentType, Stream stream)
         {
-            switch (contentType)
+            ExceptionContent? content = contentType switch
             {
-                case ContentType.Bytes:
+                ContentType.Bytes => await ByteSerializer.DeserializeAsync<ExceptionContent>(stream),
+                ContentType.Json => await JsonSerializer.DeserializeAsync<ExceptionContent>(stream),
+                ContentType.JsonNameless => await JsonSerializer.DeserializeAsync<ExceptionContent>(stream, jsonSerializerNamelessOptions),
+                _ => throw new NotImplementedException(),
+            };
+            if (content == null)
+                throw new RemoteServiceException("Invalid Exception Content");
+
+            Exception? ex = null;
+            if (content.ErrorType != null)
+            {
+                try
+                {
+                    var type = Discovery.GetTypeFromName(content.ErrorType);
+                    switch (contentType)
                     {
-                        var model = await ByteSerializer.DeserializeAsync<ExceptionModel>(stream);
-                        return new RemoteServiceException(model?.Message);
+                        case ContentType.Bytes:
+                            if (content.ErrorBytes != null && content.ErrorBytes.Length > 0)
+                                ex = (Exception?)ByteSerializer.Deserialize(type, content.ErrorBytes, byteSerializerOptions);
+                            break;
+                        case ContentType.Json:
+                            if (!String.IsNullOrEmpty(content.ErrorString))
+                                ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString);
+                            break;
+                        case ContentType.JsonNameless:
+                            if (!String.IsNullOrEmpty(content.ErrorString))
+                                ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString, jsonSerializerNamelessOptions);
+                            break;
                     }
-                case ContentType.Json:
-                    {
-                        var model = await JsonSerializer.DeserializeAsync<ExceptionModel>(stream);
-                        return new RemoteServiceException(model?.Message);
-                    }
-                case ContentType.JsonNameless:
-                    {
-                        var model = await JsonSerializer.DeserializeAsync<ExceptionModel>(stream, jsonSerializerNamelessOptions);
-                        return new RemoteServiceException(model?.Message);
-                    }
-                default:
-                    throw new NotImplementedException();
+                }
+                catch { }
             }
+
+            return new RemoteServiceException(content?.ErrorMessage, ex);
         }
     }
 }

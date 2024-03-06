@@ -12,8 +12,10 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using Zerra.CQRS.Network;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.Reflection;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
@@ -137,8 +139,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                         await waiter.WaitAsync();
 
-                        if (!ack!.Success)
-                            throw new AcknowledgementException(ack, queue);
+                        Acknowledgement.ThrowIfFailed(ack);
                     }
                     finally
                     {

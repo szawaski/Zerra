@@ -15,6 +15,7 @@ using Zerra.Collections;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Reflection;
+using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.AzureEventHub
 {
@@ -239,11 +240,7 @@ namespace Zerra.CQRS.AzureEventHub
 
             try
             {
-                var ack = new Acknowledgement()
-                {
-                    Success = error == null,
-                    ErrorMessage = error?.Message
-                };
+                var ack = new Acknowledgement(error);
                 var ackBody = AzureEventHubCommon.Serialize(ack);
                 if (symmetricConfig != null)
                     ackBody = SymmetricEncryptor.Encrypt(symmetricConfig, ackBody);

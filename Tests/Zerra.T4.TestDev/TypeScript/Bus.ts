@@ -123,8 +123,10 @@ export class Bus {
     private static _onReject(retry: () => void, retryCount: number, responseText: string, url: string, reject: (reason?: any) => void): void {
         let errorText: string;
         if (responseText) {
-            errorText = responseText;
-            console.log("Error: " + errorText);
+            const exceptionContent = JSON.parse(responseText);
+            const exception = JSON.parse(exceptionContent.ErrorString);
+            errorText = exception._message;
+            console.log("Error: " + exception._message);
         }
         else {
             errorText = "Server Error";
