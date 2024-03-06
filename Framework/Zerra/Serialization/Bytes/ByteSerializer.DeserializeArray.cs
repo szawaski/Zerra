@@ -46,7 +46,7 @@ namespace Zerra.Serialization
                     throw new NotSupportedException("Cannot deserialize without type information");
 
                 var typeFromBytes = Discovery.GetTypeFromName(typeName);
-        
+
                 if (typeFromBytes != null)
                 {
                     var newTypeDetail = GetTypeInformation(typeFromBytes, options.IndexSize, options.IgnoreIndexAttribute);
@@ -134,7 +134,7 @@ namespace Zerra.Serialization
                     if (name == String.Empty)
                         return obj;
 
-                    indexProperty = typeDetail.IndexedProperties?.Values.FirstOrDefault(x => x.Name == name);
+                    _ = typeDetail.PropertiesByName?.TryGetValue(name!, out indexProperty);
 
                     if (indexProperty == null)
                     {
@@ -162,8 +162,8 @@ namespace Zerra.Serialization
                     if (propertyIndex == endObjectFlagUShort)
                         return obj;
 
-                    if (typeDetail.IndexedProperties != null && typeDetail.IndexedProperties.Keys.Contains(propertyIndex))
-                        indexProperty = typeDetail.IndexedProperties[propertyIndex];
+                    if (typeDetail.PropertiesByIndex != null && typeDetail.PropertiesByIndex.Keys.Contains(propertyIndex))
+                        indexProperty = typeDetail.PropertiesByIndex[propertyIndex];
 
                     if (indexProperty == null)
                     {

@@ -142,7 +142,7 @@ namespace Zerra.Serialization
                 }
                 writer.Write(true); //has object
             }
-            foreach (var indexProperty in typeDetail.IndexedProperties!)
+            foreach (var indexProperty in typeDetail.PropertiesByIndex!)
             {
                 var propertyValue = indexProperty.Value.Getter(value!);
                 if (propertyValue != null)

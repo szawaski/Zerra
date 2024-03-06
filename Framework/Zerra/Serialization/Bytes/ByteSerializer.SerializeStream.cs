@@ -878,7 +878,7 @@ namespace Zerra.Serialization
                 state.CurrentFrame.HasWrittenIsNull = true;
             }
 
-            state.CurrentFrame.MemberEnumerator ??= typeDetail.IndexedProperties!.GetEnumerator();
+            state.CurrentFrame.MemberEnumerator ??= typeDetail.PropertiesByIndex!.GetEnumerator();
 
             while (state.CurrentFrame.EnumeratorObjectInProgress || state.CurrentFrame.MemberEnumerator.MoveNext())
             {
