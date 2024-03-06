@@ -135,15 +135,15 @@ namespace Zerra.CQRS.Network
             switch (contentType)
             {
                 case ContentType.Bytes:
-                    content.ErrorBytes = ByteSerializer.Serialize(ex);
+                    content.ErrorBytes = ByteSerializer.Serialize(ex, errorType);
                     ByteSerializer.Serialize(stream, content);
                     return;
                 case ContentType.Json:
-                    content.ErrorString = JsonSerializer.Serialize(ex);
+                    content.ErrorString = JsonSerializer.Serialize(ex, errorType);
                     JsonSerializer.Serialize(stream, content);
                     return;
                 case ContentType.JsonNameless:
-                    content.ErrorString = JsonSerializer.Serialize(ex, jsonSerializerNamelessOptions);
+                    content.ErrorString = JsonSerializer.Serialize(ex, errorType, jsonSerializerNamelessOptions);
                     JsonSerializer.Serialize(stream, content, jsonSerializerNamelessOptions);
                     return;
                 default:
@@ -202,13 +202,13 @@ namespace Zerra.CQRS.Network
             switch (contentType)
             {
                 case ContentType.Bytes:
-                    content.ErrorBytes = ByteSerializer.Serialize(ex);
+                    content.ErrorBytes = ByteSerializer.Serialize(ex, errorType);
                     return ByteSerializer.SerializeAsync(stream, content);
                 case ContentType.Json:
-                    content.ErrorString = JsonSerializer.Serialize(ex);
+                    content.ErrorString = JsonSerializer.Serialize(ex, errorType);
                     return JsonSerializer.SerializeAsync(stream, content);
                 case ContentType.JsonNameless:
-                    content.ErrorString = JsonSerializer.Serialize(ex, jsonSerializerNamelessOptions);
+                    content.ErrorString = JsonSerializer.Serialize(ex, errorType, jsonSerializerNamelessOptions);
                     return JsonSerializer.SerializeAsync(stream, content, jsonSerializerNamelessOptions);
                 default:
                     throw new NotImplementedException();
