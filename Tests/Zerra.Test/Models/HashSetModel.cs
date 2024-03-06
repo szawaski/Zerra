@@ -54,5 +54,7 @@ namespace Zerra.Test
         public HashSet<Guid?> GuidHashSetNullable { get; set; }
 
         public HashSet<string> StringHashSet { get; set; }
+
+        public HashSet<BasicModel> ClassHashSet { get; set; }
     }
 }
