@@ -135,7 +135,7 @@ namespace Zerra.CQRS.Network
             switch (contentType)
             {
                 case ContentType.Bytes:
-                    content.ErrorBytes = ByteSerializer.Serialize(ex, errorType);
+                    content.ErrorBytes = ByteSerializer.Serialize(ex, errorType, byteSerializerOptions);
                     ByteSerializer.Serialize(stream, content);
                     return;
                 case ContentType.Json:
@@ -172,7 +172,7 @@ namespace Zerra.CQRS.Network
                     {
                         case ContentType.Bytes:
                             if (content.ErrorBytes != null && content.ErrorBytes.Length > 0)
-                                ex = (Exception?)ByteSerializer.Deserialize(type, content.ErrorBytes);
+                                ex = (Exception?)ByteSerializer.Deserialize(type, content.ErrorBytes, byteSerializerOptions);
                             break;
                         case ContentType.Json:
                             if (!String.IsNullOrEmpty(content.ErrorString))
@@ -202,7 +202,7 @@ namespace Zerra.CQRS.Network
             switch (contentType)
             {
                 case ContentType.Bytes:
-                    content.ErrorBytes = ByteSerializer.Serialize(ex, errorType);
+                    content.ErrorBytes = ByteSerializer.Serialize(ex, errorType, byteSerializerOptions);
                     return ByteSerializer.SerializeAsync(stream, content);
                 case ContentType.Json:
                     content.ErrorString = JsonSerializer.Serialize(ex, errorType);
@@ -236,7 +236,7 @@ namespace Zerra.CQRS.Network
                     {
                         case ContentType.Bytes:
                             if (content.ErrorBytes != null && content.ErrorBytes.Length > 0)
-                                ex = (Exception?)ByteSerializer.Deserialize(type, content.ErrorBytes);
+                                ex = (Exception?)ByteSerializer.Deserialize(type, content.ErrorBytes, byteSerializerOptions);
                             break;
                         case ContentType.Json:
                             if (!String.IsNullOrEmpty(content.ErrorString))

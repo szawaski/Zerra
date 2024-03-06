@@ -21,6 +21,12 @@ namespace Zerra.CQRS.Network
             ApplyException(this, ex);
         }
 
+        private static readonly ByteSerializerOptions byteSerializerOptions = new()
+        {
+            UsePropertyNames = true,
+            IgnoreIndexAttribute = true
+        };
+
         public static void ApplyException(Acknowledgement? ack, Exception? ex)
         {
             if (ack == null)
@@ -39,7 +45,7 @@ namespace Zerra.CQRS.Network
                 ack.Success = false;
                 ack.ErrorMessage = ex.Message;
                 ack.ErrorType = type.FullName;
-                ack.ErrorData = ByteSerializer.Serialize(ex, type);
+                ack.ErrorData = ByteSerializer.Serialize(ex, type, byteSerializerOptions);
             }
         }
 
@@ -56,7 +62,7 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     var type = Discovery.GetTypeFromName(ack.ErrorType);
-                    ex = (Exception?)ByteSerializer.Deserialize(type, ack.ErrorData);
+                    ex = (Exception?)ByteSerializer.Deserialize(type, ack.ErrorData, byteSerializerOptions);
                 }
                 catch { }
             }
