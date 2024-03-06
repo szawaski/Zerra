@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
@@ -164,11 +165,8 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 try
                 {
-                    var ack = new Acknowledgement()
-                    {
-                        Success = error == null,
-                        ErrorMessage = error?.Message
-                    };
+                    var ack = new Acknowledgement(error);
+
                     var body = AzureServiceBusCommon.Serialize(ack);
                     if (symmetricConfig != null)
                         body = SymmetricEncryptor.Encrypt(symmetricConfig, body);

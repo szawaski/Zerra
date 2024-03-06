@@ -12,6 +12,7 @@ using ZerraDemo.Domain.Weather.Constants;
 using ZerraDemo.Common;
 using System.Collections.Generic;
 using System.Linq;
+using ZerraDemo.Domain.Pets.Exceptions;
 
 namespace ZerraDemo.Domain.Pets
 {
@@ -103,8 +104,9 @@ namespace ZerraDemo.Domain.Pets
             {
                 var name = Repo.Query(new QuerySingle<PetDataModel>(x => x.ID == command.PetID, new Graph<PetDataModel>(
                     x => x.Name
-                )))?.Name;
-                throw new Exception($"{name} will not go out to poop in {weather.WeatherType.EnumName()} weather.");
+                )))?.Name!;
+
+                throw new PoopException(name, weather.WeatherType);
             }
 
             var item = new PetDataModel()

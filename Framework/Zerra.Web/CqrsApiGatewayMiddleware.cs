@@ -131,23 +131,20 @@ namespace Zerra.Web
                 ex = ex.GetBaseException();
 
                 if (ex is SecurityException)
-                {
                     context.Response.StatusCode = 401;
-                    context.Response.ContentType = "text/plain";
-                    var errorBytes = Encoding.UTF8.GetBytes(!String.IsNullOrEmpty(ex.Message) ? ex.Message : "Unauthorized");
-                    context.Response.ContentLength = errorBytes.Length;
-                    await context.Response.Body.WriteAsync(errorBytes.AsMemory(0, errorBytes.Length));
-                    await context.Response.Body.FlushAsync();
-                }
                 else
-                {
                     context.Response.StatusCode = 500;
-                    context.Response.ContentType = "text/plain";
-                    var errorBytes = Encoding.UTF8.GetBytes(!String.IsNullOrEmpty(ex.Message) ? ex.Message : ex.GetType().Name);
-                    context.Response.ContentLength = errorBytes.Length;
-                    await context.Response.Body.WriteAsync(errorBytes.AsMemory(0, errorBytes.Length));
-                    await context.Response.Body.FlushAsync();
-                }
+
+                context.Response.ContentType = acceptContentType switch
+                {
+                    ContentType.Bytes => "application/octet-stream",
+                    //ContentType.JsonNameless => "application/jsonnameless; charset=utf-8",
+                    //can't deserialize nameless in JavaScript without knowing Exception model
+                    ContentType.Json or ContentType.JsonNameless or null => "application/json; charset=utf-8",
+                    _ => throw new NotImplementedException(),
+                }; ;
+                await ContentTypeSerializer.SerializeExceptionAsync(acceptContentType ?? ContentType.Json, context.Response.Body, ex);
+                await context.Response.Body.FlushAsync();
             }
         }
     }

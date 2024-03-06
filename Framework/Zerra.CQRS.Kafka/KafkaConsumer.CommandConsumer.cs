@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.Kafka
 {
@@ -176,11 +177,7 @@ namespace Zerra.CQRS.Kafka
 
                 try
                 {
-                    var ack = new Acknowledgement()
-                    {
-                        Success = error == null,
-                        ErrorMessage = error?.Message
-                    };
+                    var ack = new Acknowledgement(error);
                     var body = KafkaCommon.Serialize(ack);
                     if (symmetricConfig != null)
                         body = SymmetricEncryptor.Encrypt(symmetricConfig, body);

@@ -176,7 +176,7 @@ namespace Zerra.Reflection
         private static void Generate()
         {
             var generationTypes = GetTypesFromAttribute(typeof(BaseGenerateAttribute));
-            foreach (var generationType in generationTypes)
+            foreach (var generationType in generationTypes.Distinct())
             {
                 var typeDetail = TypeAnalyzer.GetTypeDetail(generationType);
                 foreach (var attribute in typeDetail.Attributes)

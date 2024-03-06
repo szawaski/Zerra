@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.Kafka
 {
@@ -140,8 +141,7 @@ namespace Zerra.CQRS.Kafka
 
                         await waiter.WaitAsync();
 
-                        if (!ack!.Success)
-                            throw new AcknowledgementException(ack, topic);
+                        Acknowledgement.ThrowIfFailed(ack);
                     }
                     finally
                     {

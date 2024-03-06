@@ -129,7 +129,7 @@ namespace Zerra.CQRS.Network
                         if (symmetricConfig != null)
                             requestBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, requestBodyStream, false);
 
-                        var data = await ContentTypeSerializer.DeserializeAsync<CQRSRequestData>(requestHeader.ContentType.Value, requestBodyStream);
+                        var data = await ContentTypeSerializer.DeserializeAsync<CqrsRequestData>(requestHeader.ContentType.Value, requestBodyStream);
                         if (data == null)
                             throw new CqrsNetworkException("Empty request body");
 
