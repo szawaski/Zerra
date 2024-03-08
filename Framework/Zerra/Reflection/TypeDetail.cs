@@ -290,8 +290,10 @@ namespace Zerra.Reflection
                                     {
                                         var iProperties = i.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                                         var iFields = i.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                                        properties = properties.Concat(iProperties.Where(x => !properties.Select(y => y.Name).Contains(x.Name)));
-                                        fields = fields.Concat(iFields.Where(x => !fields.Select(y => y.Name).Contains(x.Name)));
+                                        var existingPropertyNames = properties.Select(y => y.Name).ToArray();
+                                        properties = properties.Concat(iProperties.Where(x => !existingPropertyNames.Contains(x.Name)));
+                                        var existingFieldNames = fields.Select(y => y.Name).ToArray();
+                                        fields = fields.Concat(iFields.Where(x => !existingFieldNames.Contains(x.Name)));
                                     }
                                 }
                                 foreach (var property in properties)
