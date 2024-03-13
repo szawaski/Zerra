@@ -121,7 +121,7 @@ namespace Zerra.Serialization
                 }
             }
 
-            var obj = typeDetail.TypeDetail.Creator();
+            var obj = typeDetail.TypeDetail.HasCreator ? typeDetail.TypeDetail.Creator() : null;
 
             for (; ; )
             {
@@ -147,7 +147,8 @@ namespace Zerra.Serialization
                     else
                     {
                         var value = FromBytes(ref reader, indexProperty.SerailzierTypeDetails, false, false, ref options);
-                        indexProperty.Setter(obj, value);
+                        if (obj != null)
+                            indexProperty.Setter(obj, value);
                     }
                 }
                 else
@@ -176,7 +177,8 @@ namespace Zerra.Serialization
                     else
                     {
                         var value = FromBytes(ref reader, indexProperty.SerailzierTypeDetails, false, false, ref options);
-                        indexProperty.Setter(obj, value);
+                        if (obj != null)
+                            indexProperty.Setter(obj, value);
                     }
                 }
             }

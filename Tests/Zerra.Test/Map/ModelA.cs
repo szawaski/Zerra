@@ -3,11 +3,13 @@
 // Licensed to you under the MIT license
 
 using System.Collections.Generic;
+using Zerra.Encryption;
 
 namespace Zerra.Test.Map
 {
     public class ModelA
     {
+        public Secret<int> Secret { get; set; }
         public int PropA { get; set; }
         public int PropC { get; set; }
 
@@ -57,6 +59,8 @@ namespace Zerra.Test.Map
         {
             return new ModelA()
             {
+                Secret = new Secret<int>(5),
+
                 PropA = 64,
                 PropC = 128,
 

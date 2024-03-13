@@ -1053,13 +1053,13 @@ namespace Zerra.Serialization
 
             if (jsonType != JsonObjectType.Object)
                 throw new InvalidCastException();
-            var obj = typeDetail.Creator();
+            var obj = typeDetail.HasCreator ? typeDetail.Creator() : null;
             foreach (var item in valueProperties!)
             {
                 if (typeDetail.TryGetSerializableMemberCaseInsensitive(item.Key, out var member))
                 {
                     var value = item.Value.Bind(member.Type);
-                    if (value != null)
+                    if (value != null && obj != null)
                         member.Setter(obj, value);
                 }
             }

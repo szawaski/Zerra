@@ -420,7 +420,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object? FromStringJsonArrayNameless(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
         {
-            var obj = typeDetail != null && typeDetail.Creator != null ? typeDetail.Creator() : null;
+            var obj = typeDetail != null && typeDetail.HasCreator ? typeDetail.Creator() : null;
             var canExpectComma = false;
             var propertyIndexForNameless = 0;
             while (reader.TryReadSkipWhiteSpace(out var c))

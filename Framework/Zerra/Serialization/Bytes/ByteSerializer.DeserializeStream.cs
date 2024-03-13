@@ -1268,8 +1268,10 @@ namespace Zerra.Serialization
 
             if (!state.CurrentFrame.HasObjectStarted)
             {
-                if (!state.CurrentFrame.DrainBytes)
+                if (!state.CurrentFrame.DrainBytes && typeDetail.TypeDetail.HasCreator)
                     state.CurrentFrame.ResultObject = typeDetail.TypeDetail.Creator();
+                else
+                    state.CurrentFrame.ResultObject = null;
                 state.CurrentFrame.HasObjectStarted = true;
             }
 
@@ -1277,7 +1279,8 @@ namespace Zerra.Serialization
             {
                 if (!state.CurrentFrame.DrainBytes && state.CurrentFrame.ObjectProperty != null)
                 {
-                    state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject!, state.LastFrameResultObject);
+                    if (state.CurrentFrame.ResultObject != null)
+                        state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                     state.CurrentFrame.ObjectProperty = null;
                 }
 
