@@ -80,7 +80,7 @@ namespace Zerra
             }
             else
             {
-                this.include = GraphInclude.Local;
+                this.include = GraphInclude.None;
                 this.localProperties = new();
                 this.removedProperties = new();
                 this.childGraphs = new();
@@ -152,8 +152,8 @@ namespace Zerra
                 writer.Write(this.name);
             }
 
-            if (this.include > GraphInclude.None)
-                writer.Write(this.include.EnumName());
+            writer.Write("I:");
+            writer.Write(this.include.EnumName());
 
             foreach (var property in this.localProperties.OrderBy(x => x))
             {
@@ -252,7 +252,8 @@ namespace Zerra
         {
             if (childGraphs.TryGetValue(property, out var childGraph))
             {
-                childGraph.Include = GraphInclude.Local;
+                if (childGraph.Include < GraphInclude.Local)
+                    childGraph.Include = GraphInclude.Local;
             }
             else
             {
@@ -276,11 +277,13 @@ namespace Zerra
             {
                 if (graph.include == GraphInclude.Local && childGraph.include == GraphInclude.None)
                     childGraph.include = GraphInclude.Local;
+
                 childGraph.AddProperties(graph.localProperties);
 
                 if (this.localProperties.Contains(childGraph.name))
                 {
-                    childGraph.include = GraphInclude.Local;
+                    if (childGraph.Include < GraphInclude.Local)
+                        childGraph.Include = GraphInclude.Local;
                     _ = this.localProperties.Remove(childGraph.name);
                 }
             }
@@ -324,7 +327,8 @@ namespace Zerra
                 }
                 if (childGraph.name != null && this.localProperties.Contains(childGraph.name))
                 {
-                    childGraph.include = GraphInclude.Local;
+                    if (childGraph.Include < GraphInclude.Local)
+                        childGraph.Include = GraphInclude.Local;
                     _ = this.localProperties.Remove(childGraph.name);
                 }
                 childGraph.AddMembers(members);
@@ -371,32 +375,41 @@ namespace Zerra
         }
         public bool HasChild(string name)
         {
-            return this.localProperties.Contains(name) || childGraphs.ContainsKey(name);
+            return (this.include == GraphInclude.All && !this.removedProperties.Contains(name)) || this.localProperties.Contains(name) || childGraphs.ContainsKey(name);
         }
 
         public Graph? GetChildGraph(string name)
         {
-            if (childGraphs.Count == 0)
-                return null;
-            if (!childGraphs.TryGetValue(name, out var childGraph))
-                return null;
-            return childGraph;
+            if (childGraphs.Count > 0)
+            {
+                if (childGraphs.TryGetValue(name, out var childGraph))
+                    return childGraph;
+            }
+            if (this.include == GraphInclude.All)
+                return new Graph(GraphInclude.Local);
+            return null;
         }
         public Graph? GetChildGraph(string name, Type type)
         {
-            if (childGraphs.Count == 0)
-                return null;
-            if (!childGraphs.TryGetValue(name, out var nonGenericGraph))
-                return null;
-            return Convert(nonGenericGraph, type);
+            if (childGraphs.Count > 0)
+            {
+                if (childGraphs.TryGetValue(name, out var nonGenericGraph))
+                    return Convert(nonGenericGraph, type);
+            }
+            if (this.include == GraphInclude.All)
+                return Convert(new Graph(GraphInclude.Local), type);
+            return null;
         }
         public Graph<T>? GetChildGraph<T>(string name)
         {
-            if (childGraphs.Count == 0)
-                return null;
-            if (!childGraphs.TryGetValue(name, out var nonGenericGraph))
-                return null;
-            return new Graph<T>(nonGenericGraph);
+            if (childGraphs.Count > 0)
+            {
+                if (childGraphs.TryGetValue(name, out var nonGenericGraph))
+                    return new Graph<T>(nonGenericGraph);
+            }
+            if (this.include == GraphInclude.All)
+                return new Graph<T>(GraphInclude.Local);
+            return null;
         }
 
         public static Graph Convert(Graph graph, Type type)
