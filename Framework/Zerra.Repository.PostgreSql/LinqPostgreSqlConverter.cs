@@ -890,7 +890,7 @@ namespace Zerra.Repository.PostgreSql
         protected override void GenerateSelectProperties(Graph? graph, ModelDetail modelDetail, ref CharWriter sb)
         {
             AppendLineBreak(ref sb);
-            if (graph == null || graph.IncludeAllProperties)
+            if (graph == null || graph.Include > GraphInclude.None)
             {
                 sb.Write(modelDetail.DataSourceEntityName.ToLower());
                 sb.Write(".*");

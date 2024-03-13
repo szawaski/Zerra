@@ -895,7 +895,7 @@ namespace Zerra.Repository.MySql
         protected override void GenerateSelectProperties(Graph? graph, ModelDetail modelDetail, ref CharWriter sb)
         {
             //AppendLineBreak(ref sb);
-            if (graph == null || graph.IncludeAllProperties)
+            if (graph == null || graph.Include > GraphInclude.None)
             {
                 sb.Write('`');
                 sb.Write(modelDetail.DataSourceEntityName);

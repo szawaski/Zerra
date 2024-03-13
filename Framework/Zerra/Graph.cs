@@ -18,21 +18,29 @@ namespace Zerra
         protected string? name;
         protected string? type;
 
-        protected bool includeAllProperties;
+        protected GraphInclude include;
         protected readonly HashSet<string> localProperties;
         protected readonly HashSet<string> removedProperties;
         protected readonly Dictionary<string, Graph> childGraphs;
 
-        public bool IncludeAllProperties => includeAllProperties;
+        public GraphInclude Include
+        {
+            get => include;
+            set
+            {
+                include = value;
+                this.signature = null;
+            }
+        }
         public IEnumerable<string> LocalProperties
         {
             get
             {
-                if (includeAllProperties)
+                if (include > GraphInclude.None)
                 {
                     var type = GetModelType();
                     if (type == null)
-                        throw new Exception($"{nameof(Graph)} has no type information so cannot enumerate {nameof(LocalProperties)} with {nameof(IncludeAllProperties)}");
+                        throw new Exception($"{nameof(Graph)} has no type information so cannot enumerate {nameof(LocalProperties)} with {nameof(Include)}");
                     return type.GetTypeDetail().MemberDetails.Where(x => !removedProperties.Contains(x.Name) && !childGraphs.ContainsKey(x.Name)).Select(x => x.Name);
                 }
                 else
@@ -63,7 +71,7 @@ namespace Zerra
             if (graph != null)
             {
                 this.name = graph.name;
-                this.includeAllProperties = graph.includeAllProperties;
+                this.include = graph.include;
                 this.localProperties = new(graph.localProperties);
                 this.removedProperties = new(graph.removedProperties);
                 this.childGraphs = new(graph.childGraphs);
@@ -72,7 +80,7 @@ namespace Zerra
             }
             else
             {
-                this.includeAllProperties = true;
+                this.include = GraphInclude.Local;
                 this.localProperties = new();
                 this.removedProperties = new();
                 this.childGraphs = new();
@@ -81,24 +89,24 @@ namespace Zerra
             }
         }
 
-        public Graph() : this(null, false, null, (IReadOnlyCollection<Graph>?)null)
+        public Graph() : this(null, GraphInclude.None, null, (IReadOnlyCollection<Graph>?)null)
         {
             this.signature = "";
         }
-        public Graph(bool includeAllProperties) : this(null, includeAllProperties, null, (IReadOnlyCollection<Graph>?)null) { }
-        public Graph(params string[] properties) : this(null, false, properties, null) { }
-        public Graph(bool includeAllProperties, params string[]? properties) : this(null, includeAllProperties, properties, null) { }
-        public Graph(string? name, bool includeAllProperties, params string[]? properties) : this(name, includeAllProperties, properties, null) { }
+        public Graph(GraphInclude include) : this(null, include, null, (IReadOnlyCollection<Graph>?)null) { }
+        public Graph(params string[] properties) : this(null, GraphInclude.None, properties, null) { }
+        public Graph(GraphInclude include, params string[]? properties) : this(null, include, properties, null) { }
+        public Graph(string? name, GraphInclude include, params string[]? properties) : this(name, include, properties, null) { }
 
-        public Graph(IReadOnlyCollection<string>? properties) : this(null, false, properties, null) { }
-        public Graph(bool includeAllProperties, IReadOnlyCollection<string>? properties) : this(null, includeAllProperties, properties, null) { }
-        public Graph(bool includeAllProperties, IReadOnlyCollection<string>? properties, IReadOnlyCollection<Graph>? childGraphs) : this(null, includeAllProperties, properties, childGraphs) { }
-        public Graph(string? name, IReadOnlyCollection<string> properties) : this(name, false, properties, null) { }
-        public Graph(string? name, bool includeAllProperties, IReadOnlyCollection<string>? properties) : this(name, includeAllProperties, properties, null) { }
-        public Graph(string? name, bool includeAllProperties, IReadOnlyCollection<string>? properties, IReadOnlyCollection<Graph>? childGraphs)
+        public Graph(IReadOnlyCollection<string>? properties) : this(null, GraphInclude.None, properties, null) { }
+        public Graph(GraphInclude include, IReadOnlyCollection<string>? properties) : this(null, include, properties, null) { }
+        public Graph(GraphInclude include, IReadOnlyCollection<string>? properties, IReadOnlyCollection<Graph>? childGraphs) : this(null, include, properties, childGraphs) { }
+        public Graph(string? name, IReadOnlyCollection<string> properties) : this(name, GraphInclude.None, properties, null) { }
+        public Graph(string? name, GraphInclude include, IReadOnlyCollection<string>? properties) : this(name, include, properties, null) { }
+        public Graph(string? name, GraphInclude include, IReadOnlyCollection<string>? properties, IReadOnlyCollection<Graph>? childGraphs)
         {
             this.name = name;
-            this.includeAllProperties = includeAllProperties;
+            this.include = include;
             this.localProperties = new();
             removedProperties = new();
             this.childGraphs = new();
@@ -110,7 +118,7 @@ namespace Zerra
                 AddChildGraphs(childGraphs);
         }
 
-        public bool IsEmpty => !includeAllProperties && localProperties.Count == 0 && childGraphs.Count == 0;
+        public bool IsEmpty => include == GraphInclude.None && localProperties.Count == 0 && childGraphs.Count == 0;
 
         public override bool Equals(object? obj)
         {
@@ -144,8 +152,8 @@ namespace Zerra
                 writer.Write(this.name);
             }
 
-            if (this.includeAllProperties)
-                writer.Write("A");
+            if (this.include > GraphInclude.None)
+                writer.Write(this.include.EnumName());
 
             foreach (var property in this.localProperties.OrderBy(x => x))
             {
@@ -153,7 +161,7 @@ namespace Zerra
                 writer.Write(property);
             }
 
-            if (includeAllProperties)
+            if (this.include > GraphInclude.None)
             {
                 foreach (var property in this.removedProperties.OrderBy(x => x))
                 {
@@ -189,23 +197,6 @@ namespace Zerra
 
             foreach (var property in properties)
                 RemoveProperty(property);
-        }
-
-        public void AddAllProperties()
-        {
-            if (!includeAllProperties)
-            {
-                includeAllProperties = true;
-                this.signature = null;
-            }
-        }
-        public void RemoveAllProperties()
-        {
-            if (includeAllProperties)
-            {
-                includeAllProperties = false;
-                this.signature = null;
-            }
         }
 
         public void AddChildGraphs(params Graph[] graphs) { AddChildGraphs((IEnumerable<Graph>)graphs); }
@@ -261,7 +252,7 @@ namespace Zerra
         {
             if (childGraphs.TryGetValue(property, out var childGraph))
             {
-                childGraph.includeAllProperties = true;
+                childGraph.Include = GraphInclude.Local;
             }
             else
             {
@@ -283,12 +274,13 @@ namespace Zerra
 
             if (childGraphs.TryGetValue(graph.name, out var childGraph) && childGraph.name != null)
             {
-                childGraph.includeAllProperties |= graph.includeAllProperties;
+                if (graph.include == GraphInclude.Local && childGraph.include == GraphInclude.None)
+                    childGraph.include = GraphInclude.Local;
                 childGraph.AddProperties(graph.localProperties);
 
                 if (this.localProperties.Contains(childGraph.name))
                 {
-                    childGraph.includeAllProperties = true;
+                    childGraph.include = GraphInclude.Local;
                     _ = this.localProperties.Remove(childGraph.name);
                 }
             }
@@ -332,7 +324,7 @@ namespace Zerra
                 }
                 if (childGraph.name != null && this.localProperties.Contains(childGraph.name))
                 {
-                    childGraph.includeAllProperties = true;
+                    childGraph.include = GraphInclude.Local;
                     _ = this.localProperties.Remove(childGraph.name);
                 }
                 childGraph.AddMembers(members);
@@ -371,11 +363,11 @@ namespace Zerra
 
         public bool HasLocalProperty(string name)
         {
-            return (this.includeAllProperties && !this.removedProperties.Contains(name) && !childGraphs.ContainsKey(name)) || this.localProperties.Contains(name);
+            return (this.include > GraphInclude.None && !this.removedProperties.Contains(name) && !childGraphs.ContainsKey(name)) || this.localProperties.Contains(name);
         }
         public bool HasProperty(string name)
         {
-            return (this.includeAllProperties && !this.removedProperties.Contains(name)) || this.localProperties.Contains(name) || childGraphs.ContainsKey(name);
+            return (this.include > GraphInclude.None && !this.removedProperties.Contains(name)) || this.localProperties.Contains(name) || childGraphs.ContainsKey(name);
         }
         public bool HasChild(string name)
         {

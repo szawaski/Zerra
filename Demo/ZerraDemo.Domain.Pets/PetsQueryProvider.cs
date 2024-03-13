@@ -40,11 +40,8 @@ namespace ZerraDemo.Domain.Pets
             Access.CheckRole("Admin");
 
             var items = await Repo.QueryAsync(new QueryMany<PetDataModel>(
-                new Graph<PetDataModel>(
-                    true,
-                    x => x.Breed,
-                    x => x.Breed!.Species
-            )));
+                new Graph<PetDataModel>(GraphInclude.All)
+            ));
 
             var models = items.Map<PetModel[]>();
             foreach (var model in models)
@@ -61,11 +58,7 @@ namespace ZerraDemo.Domain.Pets
 
             var item = await Repo.QueryAsync(new QuerySingle<PetDataModel>(
                 x => x.ID == id,
-                new Graph<PetDataModel>(
-                    true,
-                    x => x.Breed,
-                    x => x.Breed!.Species
-            )));
+                new Graph<PetDataModel>(GraphInclude.All)));
             if (item == null)
                 throw new Exception("Pet not found");
 

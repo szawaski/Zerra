@@ -16,13 +16,13 @@ namespace Zerra
         {
         }
 
-        public Graph() : this(null, false, (string[]?)null) { }
-        public Graph(bool includeProperties) : this(null, includeProperties, (string[]?)null) { }
-        public Graph(string? name, bool includeProperties) : this(name, includeProperties, (string[]?)null) { }
-        public Graph(params string[] properties) : this(null, false, properties) { }
-        public Graph(bool includeAllProperties, params string[]? properties) : this(null, includeAllProperties, properties) { }
-        public Graph(string? name, bool includeAllProperties, params string[]? properties)
-            : base(name, includeAllProperties, null)
+        public Graph() : this(null, GraphInclude.None, (string[]?)null) { }
+        public Graph(GraphInclude include) : this(null, include, (string[]?)null) { }
+        public Graph(string? name, GraphInclude include) : this(name, include, (string[]?)null) { }
+        public Graph(params string[] properties) : this(null, GraphInclude.None, properties) { }
+        public Graph(GraphInclude include, params string[]? properties) : this(null, include, properties) { }
+        public Graph(string? name, GraphInclude include, params string[]? properties)
+            : base(name, include, null)
         {
             this.type = GetModelType().FullName;
 
@@ -30,16 +30,16 @@ namespace Zerra
                 AddProperties(properties);
         }
 
-        public Graph(params Expression<Func<T, object?>>[]? properties) : this(null, false, (ICollection<Expression<Func<T, object?>>>?)properties) { }
-        public Graph(string? name, params Expression<Func<T, object?>>[]? properties) : this(name, false, (ICollection<Expression<Func<T, object?>>>?)properties) { }
-        public Graph(bool includeAllProperties, params Expression<Func<T, object?>>[]? properties) : this(null, includeAllProperties, (ICollection<Expression<Func<T, object?>>>?)properties) { }
-        public Graph(string? name, bool includeAllProperties, params Expression<Func<T, object?>>[]? properties) : this(name, includeAllProperties, (ICollection<Expression<Func<T, object?>>>?)properties) { }
+        public Graph(params Expression<Func<T, object?>>[]? properties) : this(null, GraphInclude.None, (ICollection<Expression<Func<T, object?>>>?)properties) { }
+        public Graph(string? name, params Expression<Func<T, object?>>[]? properties) : this(name, GraphInclude.None, (ICollection<Expression<Func<T, object?>>>?)properties) { }
+        public Graph(GraphInclude include, params Expression<Func<T, object?>>[]? properties) : this(null, include, (ICollection<Expression<Func<T, object?>>>?)properties) { }
+        public Graph(string? name, GraphInclude include, params Expression<Func<T, object?>>[]? properties) : this(name, include, (ICollection<Expression<Func<T, object?>>>?)properties) { }
 
-        public Graph(IEnumerable<Expression<Func<T, object?>>>? properties) : this(null, false, properties) { }
-        public Graph(string? name, IEnumerable<Expression<Func<T, object?>>>? properties) : this(name, false, properties) { }
-        public Graph(bool includeAllProperties, IEnumerable<Expression<Func<T, object?>>>? properties) : this(null, includeAllProperties, properties) { }
-        public Graph(string? name, bool includeAllProperties, IEnumerable<Expression<Func<T, object?>>>? properties)
-            : base(name, includeAllProperties, (IReadOnlyCollection<string>?)null, null)
+        public Graph(IEnumerable<Expression<Func<T, object?>>>? properties) : this(null, GraphInclude.None, properties) { }
+        public Graph(string? name, IEnumerable<Expression<Func<T, object?>>>? properties) : this(name, GraphInclude.None, properties) { }
+        public Graph(GraphInclude include, IEnumerable<Expression<Func<T, object?>>>? properties) : this(null, include, properties) { }
+        public Graph(string? name, GraphInclude include, IEnumerable<Expression<Func<T, object?>>>? properties)
+            : base(name, include, (IReadOnlyCollection<string>?)null, null)
         {
             this.type = GetModelType().FullName;
 
