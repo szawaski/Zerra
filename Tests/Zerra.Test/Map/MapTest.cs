@@ -67,6 +67,10 @@ namespace Zerra.Test.Map
             modelA = modelB.Map<ModelA>(log);
 
             ValidateModelAModelB(modelA, modelB);
+
+            var modelC = modelB.Copy();
+
+            ValidateModelBModelB(modelB, modelC);
         }
 
         private static void ValidateModelAModelB(ModelA modelA, ModelB modelB)
@@ -145,9 +149,9 @@ namespace Zerra.Test.Map
             Assert.IsTrue(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[1]));
             Assert.IsTrue(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[2]));
 
-            Assert.AreEqual(modelA.Dictionary.Count, modelB.Dictionary.Count);
-            foreach (var item in modelA.Dictionary)
-                Assert.AreEqual(item.Value, modelB.Dictionary[item.Key]);
+            Assert.AreEqual(modelA.Dictionary1.Count, modelB.Dictionary1.Count);
+            foreach (var item in modelA.Dictionary1)
+                Assert.AreEqual(item.Value, modelB.Dictionary1[item.Key]);
 
             Assert.AreEqual(modelA.DictionaryToIDiciontary.Count, modelB.DictionaryToIDiciontary.Count);
             foreach (var item in modelA.DictionaryToIDiciontary)
@@ -221,9 +225,9 @@ namespace Zerra.Test.Map
             foreach (var item in modelA.ListToIEnumerable)
                 Assert.IsTrue(modelB.ListToIEnumerable.Contains(item));
 
-            Assert.AreEqual(modelA.Dictionary.Count, modelB.Dictionary.Count);
-            foreach (var item in modelA.Dictionary)
-                Assert.AreEqual(item.Value, modelB.Dictionary[item.Key]);
+            Assert.AreEqual(modelA.Dictionary1.Count, modelB.Dictionary1.Count);
+            foreach (var item in modelA.Dictionary1)
+                Assert.AreEqual(item.Value, modelB.Dictionary1[item.Key]);
 
             Assert.AreEqual(modelA.DictionaryToIDiciontary.Count, modelB.DictionaryToIDiciontary.Count);
             foreach (var item in modelA.DictionaryToIDiciontary)

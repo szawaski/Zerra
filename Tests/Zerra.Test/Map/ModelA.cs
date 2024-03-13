@@ -49,7 +49,8 @@ namespace Zerra.Test.Map
         public ModelA ModelToModel { get; set; }
         public ModelA[] ModelToModelArray { get; set; }
 
-        public Dictionary<string, string> Dictionary { get; set; }
+        public Dictionary<string, string> Dictionary1 { get; set; }
+        public Dictionary<string, BasicModel> Dictionary2 { get; set; }
         public Dictionary<string, string> DictionaryToIDiciontary { get; set; }
 
         public static ModelA GetModelA()
@@ -126,7 +127,8 @@ namespace Zerra.Test.Map
                     }
                 },
 
-                Dictionary = new() { { "1", "A" }, { "2", "B" }, { "3", "C" } },
+                Dictionary1 = new() { { "1", "A" }, { "2", "B" }, { "3", "C" } },
+                Dictionary2 = new() { { "1", new() { Value1 = 1, Value2 = "A" } }, { "2", new() { Value1 = 2, Value2 = "B" } }, { "3", new() { Value1 = 3, Value2 = "C" } } },
                 DictionaryToIDiciontary = new() { { "4", "D" }, { "5", "E" }, { "6", "F" } }
             };
         }

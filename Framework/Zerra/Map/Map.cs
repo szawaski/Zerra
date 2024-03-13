@@ -555,9 +555,9 @@ namespace Zerra
                     var newKeyElementBlock = GenerateMapAssignTarget(graph, sourceKey, targetKey, recursionDictionary, ref depth);
                     var newValueElementBlock = GenerateMapAssignTarget(graph, sourceValue, targetValue, recursionDictionary, ref depth);
 
-                    var addElementToList = Expression.Call(target, addMethod.MethodInfo, newKeyElementBlock, newValueElementBlock);
+                    var addElementToList = Expression.Call(target, addMethod.MethodInfo, targetKey, targetValue);
 
-                    var loopBlock = Expression.Block(moveNextOrBreak, addElementToList);
+                    var loopBlock = Expression.Block(moveNextOrBreak, newKeyElementBlock, newValueElementBlock, addElementToList);
                     var loop = Expression.Loop(loopBlock, loopBreakTarget);
 
                     var newArrayBlock = Expression.Block(new[] { enumerator, targetKey, targetValue }, assignEnumeratorVariable, loop);
@@ -978,7 +978,7 @@ namespace Zerra
                 var recursionCondition = Expression.IfThenElse(recursionTryGet, recursionTargetAssign, block);
                 var recursionCheck = Expression.Block(new[] { tryGetValue }, recursionCondition);
 
-                var nullCheck = Expression.IfThen(Expression.Not(Expression.Equal(source, Expression.Constant(null, source.Type))), recursionCheck);
+                var nullCheck = Expression.IfThen(Expression.NotEqual(source, Expression.Constant(null, source.Type)), recursionCheck);
                 return nullCheck;
             }
         }
