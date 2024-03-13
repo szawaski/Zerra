@@ -650,7 +650,8 @@ namespace Zerra.Test
                 ClassListEmpty = new(0),
                 ClassListNull = null,
 
-                DictionaryThing = new Dictionary<int, string>() { { 1, "A" }, { 2, "B" }, { 3, "C" }, { 4, null } },
+                DictionaryThing1 = new Dictionary<int, string>() { { 1, "A" }, { 2, "B" }, { 3, "C" }, { 4, null } },
+                DictionaryThing2 = new Dictionary<int, BasicModel>() { { 1, new() { Value1 = 1, Value2 = "A" } }, { 2, new() { Value1 = 2, Value2 = "B" } }, { 3, new() { Value1 = 3, Value2 = "C" } }, { 4, null } },
                 StringArrayOfArrayThing = [["a", "b", "c"], null, ["d", "e", "f"], ["", null, ""]]
             };
             return model;
@@ -1145,19 +1146,38 @@ namespace Zerra.Test
                 Assert.IsNull(model2.ClassListNull);
             }
 
-            if (model1.DictionaryThing != null)
+            if (model1.DictionaryThing1 != null)
             {
-                Assert.IsNotNull(model2.DictionaryThing);
-                Assert.AreEqual(model1.DictionaryThing.Count, model2.DictionaryThing.Count);
-                foreach (var key in model1.DictionaryThing.Keys)
+                Assert.IsNotNull(model2.DictionaryThing1);
+                Assert.AreEqual(model1.DictionaryThing1.Count, model2.DictionaryThing1.Count);
+                foreach (var key in model1.DictionaryThing1.Keys)
                 {
-                    Assert.IsTrue(model2.DictionaryThing.ContainsKey(key));
-                    Assert.AreEqual(model1.DictionaryThing[key], model2.DictionaryThing[key]);
+                    Assert.IsTrue(model2.DictionaryThing1.ContainsKey(key));
+                    Assert.AreEqual(model1.DictionaryThing1[key], model2.DictionaryThing1[key]);
                 }
             }
             else
             {
-                Assert.IsNull(model2.DictionaryThing);
+                Assert.IsNull(model2.DictionaryThing1);
+            }
+
+            if (model1.DictionaryThing2 != null)
+            {
+                Assert.IsNotNull(model2.DictionaryThing2);
+                Assert.AreEqual(model1.DictionaryThing2.Count, model2.DictionaryThing2.Count);
+                foreach (var key in model1.DictionaryThing2.Keys)
+                {
+                    Assert.IsTrue(model2.DictionaryThing2.ContainsKey(key));
+                    if (model1.DictionaryThing2[key] != null && model2.DictionaryThing2[key] != null)
+                    {
+                        Assert.AreEqual(model1.DictionaryThing2[key].Value1, model2.DictionaryThing2[key].Value1);
+                        Assert.AreEqual(model1.DictionaryThing2[key].Value2, model2.DictionaryThing2[key].Value2);
+                    }
+                }
+            }
+            else
+            {
+                Assert.IsNull(model2.DictionaryThing2);
             }
 
             if (model1.StringArrayOfArrayThing != null)
@@ -1675,19 +1695,38 @@ namespace Zerra.Test
                 Assert.IsNull(model2.ClassListNull);
             }
 
-            if (model1.DictionaryThing != null)
+            if (model1.DictionaryThing1 != null)
             {
-                Assert.IsNotNull(model2.DictionaryThing);
-                Assert.AreEqual(model1.DictionaryThing.Count, model2.DictionaryThing.Count);
-                foreach (var key in model1.DictionaryThing.Keys)
+                Assert.IsNotNull(model2.DictionaryThing1);
+                Assert.AreEqual(model1.DictionaryThing1.Count, model2.DictionaryThing1.Count);
+                foreach (var key in model1.DictionaryThing1.Keys)
                 {
-                    Assert.IsTrue(model2.DictionaryThing.ContainsKey(key));
-                    Assert.AreEqual(model1.DictionaryThing[key], model2.DictionaryThing[key]);
+                    Assert.IsTrue(model2.DictionaryThing1.ContainsKey(key));
+                    Assert.AreEqual(model1.DictionaryThing1[key], model2.DictionaryThing1[key]);
                 }
             }
             else
             {
-                Assert.IsNull(model2.DictionaryThing);
+                Assert.IsNull(model2.DictionaryThing1);
+            }
+
+            if (model1.DictionaryThing2 != null)
+            {
+                Assert.IsNotNull(model2.DictionaryThing2);
+                Assert.AreEqual(model1.DictionaryThing2.Count, model2.DictionaryThing2.Count);
+                foreach (var key in model1.DictionaryThing2.Keys)
+                {
+                    Assert.IsTrue(model2.DictionaryThing2.ContainsKey(key));
+                    if (model1.DictionaryThing2[key] != null && model2.DictionaryThing2[key] != null)
+                    {
+                        Assert.AreEqual(model1.DictionaryThing2[key].Value1, model2.DictionaryThing2[key].Value1);
+                        Assert.AreEqual(model1.DictionaryThing2[key].Value2, model2.DictionaryThing2[key].Value2);
+                    }
+                }
+            }
+            else
+            {
+                Assert.IsNull(model2.DictionaryThing2);
             }
 
             if (model1.StringArrayOfArrayThing != null)
@@ -2102,7 +2141,7 @@ namespace Zerra.Test
             if (model1.ClassHashSet != null)
             {
                 Assert.AreEqual(model1.ClassHashSet.Count, model2.ClassHashSet.Count);
-                foreach(var item1 in model1.ClassHashSet)
+                foreach (var item1 in model1.ClassHashSet)
                 {
                     if (item1 == null)
                     {

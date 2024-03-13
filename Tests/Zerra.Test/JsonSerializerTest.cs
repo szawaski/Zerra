@@ -867,14 +867,25 @@ namespace Zerra.Test
             }
             model1.ClassListEmpty = classListEmpty;
 
-            var dictionaryThingJsonObject = jsonObject[nameof(AllTypesModel.DictionaryThing)];
-            model1.DictionaryThing = new Dictionary<int, string>(
+            var dictionaryThingJsonObject1 = jsonObject[nameof(AllTypesModel.DictionaryThing1)];
+            model1.DictionaryThing1 = new Dictionary<int, string>(
                 new KeyValuePair<int, string>[]
                 {
-                    new(1, (string)dictionaryThingJsonObject["1"]),
-                    new(2, (string)dictionaryThingJsonObject["2"]),
-                    new(3, (string)dictionaryThingJsonObject["3"]),
-                    new(4, (string)dictionaryThingJsonObject["4"]),
+                    new(1, (string)dictionaryThingJsonObject1["1"]),
+                    new(2, (string)dictionaryThingJsonObject1["2"]),
+                    new(3, (string)dictionaryThingJsonObject1["3"]),
+                    new(4, (string)dictionaryThingJsonObject1["4"]),
+                }
+            );
+
+            var dictionaryThingJsonObject2 = jsonObject[nameof(AllTypesModel.DictionaryThing2)];
+            model1.DictionaryThing2 = new Dictionary<int, BasicModel>(
+                new KeyValuePair<int, BasicModel>[]
+                {
+                    new(1, dictionaryThingJsonObject2["1"].Bind<BasicModel>()),
+                    new(2, dictionaryThingJsonObject2["2"].Bind<BasicModel>()),
+                    new(3, dictionaryThingJsonObject2["3"].Bind<BasicModel>()),
+                    new(4, dictionaryThingJsonObject2["4"].Bind<BasicModel>()),
                 }
             );
 

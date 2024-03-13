@@ -49,6 +49,10 @@ namespace Zerra.Test.Map
             modelA = modelB.Map<ModelA>();
 
             ValidateModelAModelB(modelA, modelB);
+
+            var modelC = modelB.Copy();
+
+            ValidateModelBModelB(modelB, modelC);
         }
         [TestMethod]
         public void ComplexTypesLogger()
@@ -140,6 +144,82 @@ namespace Zerra.Test.Map
             Assert.IsTrue(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[0]));
             Assert.IsTrue(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[1]));
             Assert.IsTrue(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[2]));
+
+            Assert.AreEqual(modelA.Dictionary.Count, modelB.Dictionary.Count);
+            foreach (var item in modelA.Dictionary)
+                Assert.AreEqual(item.Value, modelB.Dictionary[item.Key]);
+
+            Assert.AreEqual(modelA.DictionaryToIDiciontary.Count, modelB.DictionaryToIDiciontary.Count);
+            foreach (var item in modelA.DictionaryToIDiciontary)
+                Assert.AreEqual(item.Value, modelB.DictionaryToIDiciontary[item.Key]);
+        }
+        private static void ValidateModelBModelB(ModelB modelA, ModelB modelB)
+        {
+            Assert.IsNotNull(modelB);
+            Assert.AreEqual(modelA.Prop1, modelB.Prop1);
+            Assert.AreEqual(modelA.Prop2, modelB.Prop2);
+
+            Assert.AreEqual(modelA.ArrayToArray.Length, modelB.ArrayToArray.Length);
+            Assert.AreEqual(modelA.ArrayToArray[0], modelB.ArrayToArray[0]);
+            Assert.AreEqual(modelA.ArrayToArray[1], modelB.ArrayToArray[1]);
+            Assert.AreEqual(modelA.ArrayToArray[2], modelB.ArrayToArray[2]);
+
+            Assert.AreEqual(modelA.ArrayToList.Count, modelB.ArrayToList.Count);
+            Assert.AreEqual(modelA.ArrayToList[0], modelB.ArrayToList[0]);
+            Assert.AreEqual(modelA.ArrayToList[1], modelB.ArrayToList[1]);
+            Assert.AreEqual(modelA.ArrayToList[2], modelB.ArrayToList[2]);
+
+            Assert.AreEqual(modelA.ArrayToIList.Count, modelB.ArrayToIList.Count);
+            Assert.AreEqual(modelA.ArrayToIList[0], modelB.ArrayToIList[0]);
+            Assert.AreEqual(modelA.ArrayToIList[1], modelB.ArrayToIList[1]);
+            Assert.AreEqual(modelA.ArrayToIList[2], modelB.ArrayToIList[2]);
+
+            Assert.AreEqual(modelA.ArrayToSet.Count, modelB.ArrayToSet.Count);
+            foreach (var item in modelA.ArrayToSet)
+                Assert.IsTrue(modelB.ArrayToSet.Contains(item));
+
+            Assert.AreEqual(modelA.ArrayToISet.Count, modelB.ArrayToISet.Count);
+            foreach (var item in modelA.ArrayToISet)
+                Assert.IsTrue(modelB.ArrayToISet.Contains(item));
+
+            Assert.AreEqual(modelA.ArrayToICollection.Count, modelB.ArrayToICollection.Count);
+            foreach (var item in modelA.ArrayToICollection)
+                Assert.IsTrue(modelB.ArrayToICollection.Contains(item));
+
+            Assert.AreEqual(modelA.ArrayToIEnumerable.Count(), modelB.ArrayToIEnumerable.Count());
+            foreach (var item in modelA.ArrayToIEnumerable)
+                Assert.IsTrue(modelB.ArrayToIEnumerable.Contains(item));
+
+            Assert.AreEqual(modelA.ListToArray.Count(), modelB.ListToArray.Length);
+            Assert.AreEqual(modelA.ListToArray[0], modelB.ListToArray[0]);
+            Assert.AreEqual(modelA.ListToArray[1], modelB.ListToArray[1]);
+            Assert.AreEqual(modelA.ListToArray[2], modelB.ListToArray[2]);
+
+            Assert.AreEqual(modelA.ListToList.Count, modelB.ListToList.Count);
+            Assert.AreEqual(modelA.ListToList[0], modelB.ListToList[0]);
+            Assert.AreEqual(modelA.ListToList[1], modelB.ListToList[1]);
+            Assert.AreEqual(modelA.ListToList[2], modelB.ListToList[2]);
+
+            Assert.AreEqual(modelA.ListToIList.Count, modelB.ListToIList.Count);
+            Assert.AreEqual(modelA.ListToIList[0], modelB.ListToIList[0]);
+            Assert.AreEqual(modelA.ListToIList[1], modelB.ListToIList[1]);
+            Assert.AreEqual(modelA.ListToIList[2], modelB.ListToIList[2]);
+
+            Assert.AreEqual(modelA.ListToSet.Count, modelB.ListToSet.Count);
+            foreach (var item in modelA.ListToSet)
+                Assert.IsTrue(modelB.ListToSet.Contains(item));
+
+            Assert.AreEqual(modelA.ListToISet.Count, modelB.ListToISet.Count);
+            foreach (var item in modelA.ListToISet)
+                Assert.IsTrue(modelB.ListToISet.Contains(item));
+
+            Assert.AreEqual(modelA.ListToICollection.Count, modelB.ListToICollection.Count);
+            foreach (var item in modelA.ListToICollection)
+                Assert.IsTrue(modelB.ListToICollection.Contains(item));
+
+            Assert.AreEqual(modelA.ListToIEnumerable.Count(), modelB.ListToIEnumerable.Count());
+            foreach (var item in modelA.ListToIEnumerable)
+                Assert.IsTrue(modelB.ListToIEnumerable.Contains(item));
 
             Assert.AreEqual(modelA.Dictionary.Count, modelB.Dictionary.Count);
             foreach (var item in modelA.Dictionary)
