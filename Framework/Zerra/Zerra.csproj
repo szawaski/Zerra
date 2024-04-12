@@ -30,7 +30,7 @@ Zerra.Reflection.TypeAnalyzer
         <Company>KaKush LLC</Company>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
 		<LangVersion>11.0</LangVersion>
-        <Version>4.10.3</Version>
+        <Version>4.10.4</Version>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

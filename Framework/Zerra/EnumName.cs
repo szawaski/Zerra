@@ -4,9 +4,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using Zerra.Collections;
+using Zerra.IO;
 using Zerra.Reflection;
 
 [AttributeUsage(AttributeTargets.Field)]
@@ -14,6 +16,17 @@ public sealed class EnumName : Attribute
 {
     public string Text { get; set; }
     public EnumName(string text) { this.Text = text; }
+
+    private const char seperator = '|';
+
+    private static readonly ConcurrentFactoryDictionary<Type, bool> hasFlags = new();
+    private static bool HasFlagsAttribute(Type type)
+    {
+        return hasFlags.GetOrAdd(type, (type) =>
+        {
+            return type.GetCustomAttribute<FlagsAttribute>() != null;
+        });
+    }
 
     private static readonly ConcurrentFactoryDictionary<Type, CoreType> underlyingTypes = new();
     private static CoreType GetUnderlyingType(Type type)
@@ -35,68 +48,148 @@ public sealed class EnumName : Attribute
             var fields = type.GetFields();
             var underlyingType = GetUnderlyingType(type);
 
-            foreach (var enumValue in Enum.GetValues(type))
+            var values = Enum.GetValues(type);
+            if (HasFlagsAttribute(type))
             {
-                var name = enumValue.ToString();
-                if (name == null)
-                    continue;
-
-                var field = fields.First(x => x.Name == name);
-                var attribute = field.GetCustomAttribute<EnumName>(false);
-
-                unchecked
+                long maxValue = 0;
+                foreach (var enumValue in values)
                 {
-                    switch (underlyingType)
+                    unchecked
                     {
-                        case CoreType.Byte:
-                            if (attribute != null)
-                                items.Add((byte)enumValue, (string)attribute.Text);
-                            else
+                        switch (underlyingType)
+                        {
+                            case CoreType.Byte: maxValue |= (byte)enumValue; break;
+                            case CoreType.SByte: maxValue |= (sbyte)enumValue; break;
+                            case CoreType.Int16: maxValue |= (short)enumValue; break;
+                            case CoreType.UInt16: maxValue |= (ushort)enumValue; break;
+                            case CoreType.Int32: maxValue |= (int)enumValue; break;
+                            case CoreType.UInt32: maxValue |= (uint)enumValue; break;
+                            case CoreType.Int64: maxValue |= (long)enumValue; break;
+                            case CoreType.UInt64: maxValue |= (long)(ulong)enumValue; break;
+                            default: throw new NotImplementedException();
+                        }
+                    }
+                }
+
+                var writer = new CharWriter();
+                try
+                {
+                    for (long value = 0; value < maxValue; value++)
+                    {
+                        foreach (var enumValue in values)
+                        {
+                            switch (underlyingType)
+                            {
+                                case CoreType.Byte:
+                                    var byteValue = (byte)enumValue;
+                                    if ((byteValue > 0 || value == 0) && (value & byteValue) == byteValue)
+                                        break;
+                                    continue;
+                                case CoreType.SByte:
+                                    var sbyteValue = (sbyte)enumValue;
+                                    if ((sbyteValue > 0 || value == 0) && (value & sbyteValue) == sbyteValue)
+                                        break;
+                                    continue;
+                                case CoreType.Int16:
+                                    var shortValue = (short)enumValue;
+                                    if ((shortValue > 0 || value == 0) && (value & shortValue) == shortValue)
+                                        break;
+                                    continue;
+                                case CoreType.UInt16:
+                                    var ushortValue = (ushort)enumValue;
+                                    if ((ushortValue > 0 || value == 0) && (value & ushortValue) == ushortValue)
+                                        break;
+                                    continue;
+                                case CoreType.Int32:
+                                    var intValue = (int)enumValue;
+                                    if ((intValue > 0 || value == 0) && (value & intValue) == intValue)
+                                        break;
+                                    continue;
+                                case CoreType.UInt32:
+                                    var uintValue = (uint)enumValue;
+                                    if ((uintValue > 0 || value == 0) && (value & uintValue) == uintValue)
+                                        break;
+                                    continue;
+                                case CoreType.Int64:
+                                    var longValue = (long)enumValue;
+                                    if ((longValue > 0 || value == 0) && (value & longValue) == longValue)
+                                        break;
+                                    continue;
+                                case CoreType.UInt64:
+                                    var ulongValue = (long)(ulong)enumValue;
+                                    if ((ulongValue > 0 || value == 0) && (value & ulongValue) == ulongValue)
+                                        break;
+                                    continue;
+                                default: throw new NotImplementedException();
+                            }
+
+                            var name = enumValue.ToString();
+                            if (name == null)
+                                continue;
+
+                            var field = fields.First(x => x.Name == name);
+                            var attribute = field.GetCustomAttribute<EnumName>(false);
+                            if (attribute != null && attribute.Text != null)
+                                name = attribute.Text;
+
+                            if (writer.Length != 0)
+                                writer.Write(seperator);
+                            writer.Write(name);
+                        }
+
+                        var valueString = writer.ToString();
+                        items.Add(value, valueString);
+                        writer.Clear();
+                    }
+                }
+                finally
+                {
+                    writer.Dispose();
+                }
+            }
+            else
+            {
+                foreach (var enumValue in values)
+                {
+                    var name = enumValue.ToString();
+                    if (name == null)
+                        continue;
+
+                    var field = fields.First(x => x.Name == name);
+                    var attribute = field.GetCustomAttribute<EnumName>(false);
+                    if (attribute != null && attribute.Text != null)
+                        name = attribute.Text;
+
+                    unchecked
+                    {
+                        switch (underlyingType)
+                        {
+                            case CoreType.Byte:
                                 items.Add((byte)enumValue, name);
-                            break;
-                        case CoreType.SByte:
-                            if (attribute != null)
-                                items.Add((sbyte)enumValue, (string)attribute.Text);
-                            else
+                                break;
+                            case CoreType.SByte:
                                 items.Add((sbyte)enumValue, name);
-                            break;
-                        case CoreType.Int16:
-                            if (attribute != null)
-                                items.Add((int)enumValue, (string)attribute.Text);
-                            else
-                                items.Add((int)enumValue, name);
-                            break;
-                        case CoreType.UInt16:
-                            if (attribute != null)
-                                items.Add((short)enumValue, (string)attribute.Text);
-                            else
+                                break;
+                            case CoreType.Int16:
+                                items.Add((short)enumValue, name);
+                                break;
+                            case CoreType.UInt16:
                                 items.Add((ushort)enumValue, name);
-                            break;
-                        case CoreType.Int32:
-                            if (attribute != null)
-                                items.Add((int)enumValue, (string)attribute.Text);
-                            else
+                                break;
+                            case CoreType.Int32:
                                 items.Add((int)enumValue, name);
-                            break;
-                        case CoreType.UInt32:
-                            if (attribute != null)
-                                items.Add((uint)enumValue, (string)attribute.Text);
-                            else
+                                break;
+                            case CoreType.UInt32:
                                 items.Add((uint)enumValue, name);
-                            break;
-                        case CoreType.Int64:
-                            if (attribute != null)
-                                items.Add((long)enumValue, (string)attribute.Text);
-                            else
+                                break;
+                            case CoreType.Int64:
                                 items.Add((long)enumValue, name);
-                            break;
-                        case CoreType.UInt64:
-                            if (attribute != null)
-                                items.Add((long)(ulong)enumValue, (string)attribute.Text);
-                            else
+                                break;
+                            case CoreType.UInt64:
                                 items.Add((long)(ulong)enumValue, name);
-                            break;
-                        default: throw new NotImplementedException();
+                                break;
+                            default: throw new NotImplementedException();
+                        }
                     }
                 }
             }
@@ -115,17 +208,43 @@ public sealed class EnumName : Attribute
 
         unchecked
         {
-            return underlyingType switch
+            string? name;
+            switch (underlyingType)
             {
-                CoreType.Byte => namesLookup[(byte)value],
-                CoreType.SByte => namesLookup[(sbyte)value],
-                CoreType.Int16 => namesLookup[(int)value],
-                CoreType.UInt16 => namesLookup[(uint)value],
-                CoreType.Int32 => namesLookup[(int)value],
-                CoreType.UInt32 => namesLookup[(uint)value],
-                CoreType.Int64 => namesLookup[(long)value],
-                CoreType.UInt64 => namesLookup[(long)(ulong)value],
-                _ => throw new NotImplementedException(),
+                case CoreType.Byte:
+                    if (namesLookup.TryGetValue((byte)value, out name))
+                        return name;
+                    throw new InvalidOperationException($"Value {(byte)value} is not found in enum {type.Name}");
+                case CoreType.SByte:
+                    if (namesLookup.TryGetValue((sbyte)value, out name))
+                        return name;
+                    throw new InvalidOperationException($"Value {(sbyte)value} is not found in enum {type.Name}");
+                case CoreType.Int16:
+                    if (namesLookup.TryGetValue((short)value, out name))
+                        return name;
+                    throw new InvalidOperationException($"Value {(short)value} is not found in enum {type.Name}");
+                case CoreType.UInt16:
+                    if (namesLookup.TryGetValue((ushort)value, out name))
+                        return name;
+                    throw new InvalidOperationException($"Value {(ushort)value} is not found in enum {type.Name}");
+                case CoreType.Int32:
+                    if (namesLookup.TryGetValue((int)value, out name))
+                        return name;
+                    throw new InvalidOperationException($"Value {(int)value} is not found in enum {type.Name}");
+                case CoreType.UInt32:
+                    if (namesLookup.TryGetValue((uint)value, out name))
+                        return name;
+                    throw new InvalidOperationException($"Value {(uint)value} is not found in enum {type.Name}");
+                case CoreType.Int64:
+                    if (namesLookup.TryGetValue((long)value, out name))
+                        return name;
+                    throw new InvalidOperationException($"Value {(long)value} is not found in enum {type.Name}");
+                case CoreType.UInt64:
+                    if (namesLookup.TryGetValue((long)(ulong)value, out name))
+                        return name;
+                    throw new InvalidOperationException($"Value {(long)(ulong)value} is not found in enum {type.Name}");
+                default:
+                    throw new NotImplementedException();
             };
         }
     }
@@ -137,6 +256,7 @@ public sealed class EnumName : Attribute
             type = value.GetType();
         return GetName(type, value);
     }
+
     public static string[] GetNames(Type type)
     {
         if (!type.IsEnum)
@@ -155,7 +275,7 @@ public sealed class EnumName : Attribute
     {
         var valueLookup = valueLookups.GetOrAdd(type, (type) =>
         {
-            var items = new Dictionary<string, object>();
+            var items = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             var fields = type.GetFields();
             foreach (var enumValue in Enum.GetValues(type))
             {
@@ -164,16 +284,15 @@ public sealed class EnumName : Attribute
                     continue;
 
                 var field = fields.First(x => x.Name == name);
-                items.Add(name.ToLower(), enumValue);
+                items.Add(name, enumValue);
                 var attribute = field.GetCustomAttribute<EnumName>(false);
                 if (attribute != null)
                 {
-                    var attributeName = attribute.Text.ToLower();
 #if NETSTANDARD2_0
-                    if (!items.ContainsKey(attributeName))
-                        items.Add(attributeName, enumValue);
+                    if (!items.ContainsKey(attribute.Text))
+                        items.Add(attribute.Text, enumValue);
 #else
-                    _ = items.TryAdd(attributeName, enumValue);
+                    _ = items.TryAdd(attribute.Text, enumValue);
 #endif
                 }
             }
@@ -188,19 +307,22 @@ public sealed class EnumName : Attribute
     }
     public static object Parse(string enumString, Type type)
     {
-        var valueLookup = GetValuesForType(type);
-        if (valueLookup.TryGetValue(enumString.ToLower(), out var value))
+        if (TryParse(enumString, type, out var value))
             return value;
 
         throw new Exception($"Could not parse \"{enumString}\" into enum type {type.GetNiceName()}");
     }
 
-    public static bool TryParse<T>(string enumString, out T? value)
+    public static bool TryParse<T>(string enumString,
+#if !NETSTANDARD2_0
+        [NotNullWhen(true)]
+#endif
+    out T? value)
         where T : Enum
     {
         if (TryParse(enumString, typeof(T), out var valueObject))
         {
-            value = (T?)valueObject;
+            value = (T)valueObject;
             return true;
         }
         else
@@ -209,13 +331,85 @@ public sealed class EnumName : Attribute
             return false;
         }
     }
-    public static bool TryParse(string enumString, Type type, out object? value)
+    public static bool TryParse(string enumString, Type type,
+#if !NETSTANDARD2_0
+        [NotNullWhen(true)]
+#endif
+    out object? value)
     {
         var valueLookup = GetValuesForType(type);
-        if (valueLookup.TryGetValue(enumString.ToLower(), out value))
-            return true;
+        if (HasFlagsAttribute(type))
+        {
+            var found = false;
+            var args = new object?[3];
+            value = type.GetTypeDetail().Creator();
 
-        value = default;
-        return false;
+            Span<char> chars = enumString.ToCharArray();
+            var start = 0;
+            var i = 0;
+            for (; i < chars.Length; i++)
+            {
+                var c = chars[i];
+                if (c != seperator)
+                    continue;
+
+                var str = chars.Slice(start, i - start).ToString();
+                start = i + 1;
+                if (!valueLookup.TryGetValue(str, out var valueSplitItem))
+                    continue;
+
+                found = true;
+                args[0] = type;
+                args[1] = value;
+                args[2] = valueSplitItem;
+                var method = bitOrMethod.GetGenericMethodDetail(type);
+                value = method.Caller(null, args);
+            }
+            if (i > start)
+            {
+                var str = chars.Slice(start, i - start).ToString();
+                if (valueLookup.TryGetValue(str, out var valueSplitItem))
+                {
+                    found = true;
+                    args[0] = type;
+                    args[1] = value;
+                    args[2] = valueSplitItem;
+                    var method = bitOrMethod.GetGenericMethodDetail(type);
+                    value = method.Caller(null, args);
+                }
+            }
+            return found;
+        }
+        else
+        {
+            if (valueLookup.TryGetValue(enumString, out value))
+                return true;
+
+            value = default;
+            return false;
+        }
+    }
+
+    private static readonly MethodDetail bitOrMethod = typeof(EnumName).GetTypeDetail().GetMethod(nameof(BitOr));
+    private static T BitOr<T>(Type type, object value1, object value2)
+         where T : Enum
+    {
+        var underlyingType = GetUnderlyingType(type);
+
+        unchecked
+        {
+            return underlyingType switch
+            {
+                CoreType.Byte => (T)(object)((byte)value1 | (byte)value2),
+                CoreType.SByte => (T)(object)((sbyte)value1 | (sbyte)value2),
+                CoreType.Int16 => (T)(object)((short)value1 | (short)value2),
+                CoreType.UInt16 => (T)(object)((ushort)value1 | (ushort)value2),
+                CoreType.Int32 => (T)(object)((int)value1 | (int)value2),
+                CoreType.UInt32 => (T)(object)((uint)value1 | (uint)value2),
+                CoreType.Int64 => (T)(object)((long)value1 | (long)value2),
+                CoreType.UInt64 => (T)(object)((ulong)value1 | (ulong)value2),
+                _ => throw new NotImplementedException(),
+            };
+        }
     }
 }
