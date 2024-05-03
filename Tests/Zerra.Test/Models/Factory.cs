@@ -93,7 +93,7 @@ namespace Zerra.Test
                 CharThing = 'Z',
                 DateTimeThing = DateTime.UtcNow,
                 DateTimeOffsetThing = DateTimeOffset.UtcNow.AddDays(1),
-                TimeSpanThing = DateTime.UtcNow.TimeOfDay,
+                TimeSpanThing = -DateTime.UtcNow.TimeOfDay,
 #if NET6_0_OR_GREATER
                 DateOnlyThing = DateOnly.FromDateTime(DateTime.UtcNow),
                 TimeOnlyThing = TimeOnly.FromDateTime(DateTime.UtcNow),
@@ -295,7 +295,7 @@ namespace Zerra.Test
                 CharThing = 'Z',
                 DateTimeThing = DateTime.UtcNow.Date,
                 DateTimeOffsetThing = DateTimeOffset.UtcNow.AddDays(1),
-                TimeSpanThing = DateTime.UtcNow.TimeOfDay,
+                TimeSpanThing = -DateTime.UtcNow.TimeOfDay,
 #if NET6_0_OR_GREATER
                 DateOnlyThing = DateOnly.FromDateTime(DateTime.UtcNow.Date),
                 TimeOnlyThing = TimeOnly.FromDateTime(DateTime.UtcNow),

@@ -769,26 +769,62 @@ namespace Zerra.IO
             {
                 case TimeFormat.ISO8601:
                     {
-                        //HH:mm:ss.fffffff
-                        sizeNeeded = 16;
+                        //(-)HH:mm:ss.fffffff
+                        sizeNeeded = 17;
                         if (length - position < sizeNeeded)
                             return false;
 
-                        if (value.Hours < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Hours);
-                        buffer[position++] = ':';
+                        if (value.Ticks < 0)
+                            buffer[position++] = '-';
 
-                        if (value.Minutes < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Minutes);
-                        buffer[position++] = ':';
+                        if (value.TotalHours > -1)
+                        {
+                            if (value.TotalHours < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(value.Hours);
+                            buffer[position++] = ':';
+                        }
+                        else
+                        {
+                            if (-value.Hours < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(-value.Hours);
+                            buffer[position++] = ':';
+                        }
 
-                        if (value.Seconds < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Seconds);
+                        if (value.Minutes > -1)
+                        {
+                            if (value.Minutes < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(value.Minutes);
+                            buffer[position++] = ':';
+                        }
+                        else
+                        {
+                            if (-value.Minutes < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(-value.Minutes);
+                            buffer[position++] = ':';
+                        }
 
-                        var fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
+                        if (value.Seconds > -1)
+                        {
+                            if (value.Seconds < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(value.Seconds);
+                        }
+                        else
+                        {
+                            if (-value.Seconds < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(-value.Seconds);
+                        }
+
+                        long fraction;
+                        if (value.Ticks > -1)
+                            fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
+                        else
+                            fraction = -value.Ticks - (-value.Ticks / 10000000) * 10000000;
                         if (fraction > 0)
                         {
                             buffer[position++] = '.';
@@ -813,26 +849,62 @@ namespace Zerra.IO
                     }
                 case TimeFormat.MsSql:
                     {
-                        //HH:mm:ss.fffffff
-                        sizeNeeded = 16;
+                        //(-)HH:mm:ss.fffffff
+                        sizeNeeded = 17;
                         if (length - position < sizeNeeded)
                             return false;
 
-                        if (value.TotalHours < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Hours);
-                        buffer[position++] = ':';
+                        if (value.Ticks < 0)
+                            buffer[position++] = '-';
 
-                        if (value.Minutes < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Minutes);
-                        buffer[position++] = ':';
+                        if (value.TotalHours > -1)
+                        {
+                            if (value.TotalHours < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(value.Hours);
+                            buffer[position++] = ':';
+                        }
+                        else
+                        {
+                            if (-value.Hours < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(-value.Hours);
+                            buffer[position++] = ':';
+                        }
 
-                        if (value.Seconds < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Seconds);
+                        if (value.Minutes > -1)
+                        {
+                            if (value.Minutes < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(value.Minutes);
+                            buffer[position++] = ':';
+                        }
+                        else
+                        {
+                            if (-value.Minutes < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(-value.Minutes);
+                            buffer[position++] = ':';
+                        }
 
-                        var fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
+                        if (value.Seconds > -1)
+                        {
+                            if (value.Seconds < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(value.Seconds);
+                        }
+                        else
+                        {
+                            if (-value.Seconds < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(-value.Seconds);
+                        }
+
+                        long fraction;
+                        if (value.Ticks > -1)
+                            fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
+                        else
+                            fraction = -value.Ticks - (-value.Ticks / 10000000) * 10000000;
                         if (fraction > 0)
                         {
                             buffer[position++] = '.';
@@ -858,26 +930,62 @@ namespace Zerra.IO
                 case TimeFormat.MySql:
                 case TimeFormat.PostgreSql:
                     {
-                        //HH:mm:ss.ffffff
-                        sizeNeeded = 16;
+                        //(-)HH:mm:ss.ffffff
+                        sizeNeeded = 17;
                         if (length - position < sizeNeeded)
                             return false;
 
-                        if (value.TotalHours < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Hours);
-                        buffer[position++] = ':';
+                        if (value.Ticks < 0)
+                            buffer[position++] = '-';
 
-                        if (value.Minutes < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Minutes);
-                        buffer[position++] = ':';
+                        if (value.TotalHours > -1)
+                        {
+                            if (value.TotalHours < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(value.Hours);
+                            buffer[position++] = ':';
+                        }
+                        else
+                        {
+                            if (-value.Hours < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(-value.Hours);
+                            buffer[position++] = ':';
+                        }
 
-                        if (value.Seconds < 10)
-                            buffer[position++] = '0';
-                        WriteInt64(value.Seconds);
+                        if (value.Minutes > -1)
+                        {
+                            if (value.Minutes < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(value.Minutes);
+                            buffer[position++] = ':';
+                        }
+                        else
+                        {
+                            if (-value.Minutes < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(-value.Minutes);
+                            buffer[position++] = ':';
+                        }
 
-                        var fraction = (value.Ticks - (value.Ticks / 10000000) * 10000000) / 10;
+                        if (value.Seconds > -1)
+                        {
+                            if (value.Seconds < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(value.Seconds);
+                        }
+                        else
+                        {
+                            if (-value.Seconds < 10)
+                                buffer[position++] = '0';
+                            WriteInt64(-value.Seconds);
+                        }
+
+                        long fraction;
+                        if (value.Ticks > -1)
+                            fraction = (value.Ticks - (value.Ticks / 10000000) * 10000000) / 10;
+                        else
+                            fraction = (-value.Ticks - (-value.Ticks / 10000000) * 10000000) / 10;
                         if (fraction > 0)
                         {
                             buffer[position++] = '.';
