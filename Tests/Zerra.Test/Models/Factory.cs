@@ -93,7 +93,7 @@ namespace Zerra.Test
                 CharThing = 'Z',
                 DateTimeThing = DateTime.UtcNow,
                 DateTimeOffsetThing = DateTimeOffset.UtcNow.AddDays(1),
-                TimeSpanThing = -DateTime.UtcNow.TimeOfDay,
+                TimeSpanThing = -(new TimeSpan(2, DateTime.UtcNow.Hour, DateTime.UtcNow.Minute, DateTime.UtcNow.Second, DateTime.UtcNow.Millisecond, 1)),
 #if NET6_0_OR_GREATER
                 DateOnlyThing = DateOnly.FromDateTime(DateTime.UtcNow),
                 TimeOnlyThing = TimeOnly.FromDateTime(DateTime.UtcNow),
@@ -115,7 +115,7 @@ namespace Zerra.Test
                 CharThingNullable = 'X',
                 DateTimeThingNullable = DateTime.UtcNow.AddMonths(1),
                 DateTimeOffsetThingNullable = DateTimeOffset.UtcNow.AddMonths(1).AddDays(1),
-                TimeSpanThingNullable = DateTime.UtcNow.AddHours(1).TimeOfDay,
+                TimeSpanThingNullable = new TimeSpan(0, 0, 0, DateTime.UtcNow.Second, DateTime.UtcNow.Millisecond, 1),
 #if NET6_0_OR_GREATER
                 DateOnlyThingNullable = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)),
                 TimeOnlyThingNullable = TimeOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)),
@@ -295,7 +295,7 @@ namespace Zerra.Test
                 CharThing = 'Z',
                 DateTimeThing = DateTime.UtcNow.Date,
                 DateTimeOffsetThing = DateTimeOffset.UtcNow.AddDays(1),
-                TimeSpanThing = -DateTime.UtcNow.TimeOfDay,
+                TimeSpanThing = -(new TimeSpan(2, DateTime.UtcNow.Hour, DateTime.UtcNow.Minute, DateTime.UtcNow.Second, DateTime.UtcNow.Millisecond, 1)),
 #if NET6_0_OR_GREATER
                 DateOnlyThing = DateOnly.FromDateTime(DateTime.UtcNow.Date),
                 TimeOnlyThing = TimeOnly.FromDateTime(DateTime.UtcNow),
@@ -317,7 +317,7 @@ namespace Zerra.Test
                 CharThingNullable = 'X',
                 DateTimeThingNullable = DateTime.UtcNow.AddMonths(1),
                 DateTimeOffsetThingNullable = DateTimeOffset.UtcNow.AddMonths(1).AddDays(1),
-                TimeSpanThingNullable = DateTime.UtcNow.AddHours(1).TimeOfDay,
+                TimeSpanThingNullable = new TimeSpan(0, 0, 0, DateTime.UtcNow.Second, DateTime.UtcNow.Millisecond, 1),
 #if NET6_0_OR_GREATER
                 DateOnlyThingNullable = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)),
                 TimeOnlyThingNullable = TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)),
