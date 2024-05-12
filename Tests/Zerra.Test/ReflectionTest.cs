@@ -5,25 +5,36 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using Zerra.Reflection;
 
 namespace Zerra.Test
 {
-    [TestClass]
+    //[TestClass]
     public class ReflectionTest
     {
-        //[TestMethod]
+        [TestMethod]
         public void TestTypeDetails()
         {
-            var type = typeof(AllTypesModel);
-            var typeDetail = type.GetTypeDetail();
+            var typeDetail = TypeAnalyzer<AllTypesModel>.GetTypeDetail();
             InspectTypeDetail(typeDetail, new Stack<Type>());
         }
 
 
+        private static readonly MethodInfo methodInspectTypeDetail = typeof(ReflectionTest).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance).First(x => x.Name == nameof(InspectTypeDetail) && x.GetGenericArguments().Length == 1);
         private void InspectTypeDetail(TypeDetail typeDetail, Stack<Type> stack)
         {
-            if (typeDetail.CoreType.HasValue)
+            if (typeDetail.CoreType.HasValue || typeDetail.Type.Name == "Void")
+                return;
+            methodInspectTypeDetail.MakeGenericMethod(typeDetail.Type).Invoke(this, new object[] { typeDetail, stack });
+        }
+        private void InspectTypeDetail<T>(TypeDetail<T> typeDetail, Stack<Type> stack)
+        {
+            if (stack.Count > 2)
+                return;
+
+            if (typeDetail.CoreType.HasValue || typeDetail.Type.Name == "Void")
                 return;
 
             if (stack.Contains(typeDetail.Type))
@@ -54,9 +65,9 @@ namespace Zerra.Test
             {
                 _ = member.Attributes;
                 _ = member.HasGetter;
-                _ = member.HasGetterTyped;
+                //_ = member.HasGetterTyped;
                 _ = member.HasSetter;
-                _ = member.HasSetterTyped;
+                //_ = member.HasSetterTyped;
 
                 InspectTypeDetail(member.TypeDetail, stack);
             }

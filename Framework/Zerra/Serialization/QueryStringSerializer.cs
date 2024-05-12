@@ -13,7 +13,7 @@ namespace Zerra.Serialization
         public static T Deserialize<T>(IEnumerable<KeyValuePair<string, string>> query)
         {
             var model = Instantiator.Create<T>();
-            var typeDetail = TypeAnalyzer.GetTypeDetail(typeof(T));
+            var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
 
             foreach (var item in query)
             {
@@ -25,7 +25,7 @@ namespace Zerra.Serialization
         public static T Deserialize<T>(IEnumerable<KeyValuePair<string, StringValues>> query)
         {
             var model = Instantiator.Create<T>();
-            var typeDetail = TypeAnalyzer.GetTypeDetail(typeof(T));
+            var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
 
             foreach (var item in query)
             {
@@ -40,7 +40,7 @@ namespace Zerra.Serialization
         public static unsafe T Deserialize<T>(string queryString)
         {
             var model = Instantiator.Create<T>();
-            var typeDetail = TypeAnalyzer.GetTypeDetail(typeof(T));
+            var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
 
             var bufferOwner = BufferArrayPool<char>.Rent(256);
             var buffer = bufferOwner.AsSpan();
@@ -112,7 +112,7 @@ namespace Zerra.Serialization
 
         public static string Serialize<T>(T model)
         {
-            var typeDetail = TypeAnalyzer.GetTypeDetail(typeof(T));
+            var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
 
             var writer = new CharWriter(256);
             try
@@ -226,7 +226,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void SetValue<T>(TypeDetail typeDetail, T model, string name, string value)
+        private static void SetValue<T>(TypeDetail<T> typeDetail, T model, string name, string value)
         {
             if (!typeDetail.TryGetSerializableMemberCaseInsensitive(name, out var member))
                 return;

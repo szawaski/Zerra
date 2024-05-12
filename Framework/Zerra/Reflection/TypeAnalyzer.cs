@@ -38,7 +38,7 @@ namespace Zerra.Reflection
                     CoreType.DateTimeOffset => default(DateTimeOffset),
                     CoreType.TimeSpan => default(TimeSpan),
 #if NET6_0_OR_GREATER
-                    CoreType.DateOnly => default(DateOnly),              
+                    CoreType.DateOnly => default(DateOnly),
                     CoreType.TimeOnly => default(TimeOnly),
 #endif
                     CoreType.Guid => default(Guid),
@@ -160,7 +160,7 @@ namespace Zerra.Reflection
         {
             var typeInfo = typeDetailsByType.GetOrAdd(type, (type) =>
             {
-                return new TypeDetail(type);
+                return TypeDetail.New(type);
             });
             return typeInfo;
         }
@@ -232,11 +232,13 @@ namespace Zerra.Reflection
         private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethodDetailsByMethod = new();
         public static MethodDetail GetGenericMethodDetail(MethodInfo method, params Type[] types)
         {
+            if (method.ReflectedType == null)
+                throw new ArgumentNullException("method.ReflectedType");
             var key = new TypeKey(method.ToString(), types);
             var genericMethod = genericMethodDetailsByMethod.GetOrAdd(key, (_) =>
             {
                 var generic = method.MakeGenericMethod(types);
-                return new MethodDetail(generic, new object());
+                return MethodDetail.New(method.ReflectedType, generic, new object());
             });
             return genericMethod;
         }

@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 
 namespace Zerra.Reflection
 {
-    public sealed class ConstructorDetail
+    public abstract class ConstructorDetail
     {
         public ConstructorInfo ConstructorInfo { get; }
         public string Name => ConstructorInfo.Name;
@@ -89,11 +89,19 @@ namespace Zerra.Reflection
             return $"new({(String.Join(", ", ParametersInfo.Select(x => $"{x.ParameterType.Name} {x.Name}").ToArray()))})";
         }
 
-        private readonly object locker;
-        internal ConstructorDetail(ConstructorInfo constructor, object locker)
+        protected readonly object locker;
+        protected ConstructorDetail(ConstructorInfo constructor, object locker)
         {
             this.locker = locker;
             this.ConstructorInfo = constructor;
+        }
+
+        private static readonly Type typeDetailT = typeof(ConstructorDetail<>);
+        internal static ConstructorDetail New(Type type, ConstructorInfo constructor, object locker)
+        {
+            var typeDetailGeneric = typeDetailT.MakeGenericType(type);
+            var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { constructor, locker });
+            return (ConstructorDetail)obj;
         }
     }
 }

@@ -15,9 +15,9 @@ using Zerra.Collections;
 
 namespace Zerra.Reflection
 {
-    public sealed class TypeDetail
+    public abstract class TypeDetail
     {
-        private readonly object locker = new();
+        protected readonly object locker = new();
 
         private static readonly string nullaleTypeName = typeof(Nullable<>).Name;
         private static readonly string enumberableTypeName = nameof(IEnumerable);
@@ -30,9 +30,9 @@ namespace Zerra.Reflection
         private static readonly Type keyValuePairType = typeof(KeyValuePair<,>);
 
         public Type Type { get; }
-        public bool IsNullable { get;  }
-        public CoreType? CoreType { get;  }
-        public SpecialType? SpecialType { get;  }
+        public bool IsNullable { get; }
+        public CoreType? CoreType { get; }
+        public SpecialType? SpecialType { get; }
 
         private Type[]? innerTypes = null;
         public IReadOnlyList<Type> InnerTypes
@@ -307,13 +307,13 @@ namespace Zerra.Reflection
                                     var backingName = $"<{property.Name}>";
                                     var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
                                     if (backingField != null)
-                                        backingMember = new MemberDetail(backingField, null, locker);
+                                        backingMember = MemberDetail.New(Type, property.PropertyType, backingField, null, locker);
 
-                                    items.Add(new MemberDetail(property, backingMember, locker));
+                                    items.Add(MemberDetail.New(Type, property.PropertyType, property, backingMember, locker));
                                 }
                                 foreach (var field in fields.Where(x => !items.Any(y => y.BackingFieldDetail?.MemberInfo == x)))
                                 {
-                                    items.Add(new MemberDetail(field, null, locker));
+                                    items.Add(MemberDetail.New(Type, field.FieldType, field, null, locker));
                                 }
                             }
 
@@ -341,14 +341,14 @@ namespace Zerra.Reflection
                             {
                                 var methods = Type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                                 foreach (var method in methods)
-                                    items.Add(new MethodDetail(method, locker));
+                                    items.Add(MethodDetail.New(Type, method, locker));
                                 if (Type.IsInterface)
                                 {
                                     foreach (var i in Interfaces)
                                     {
                                         var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                                         foreach (var method in iMethods)
-                                            items.Add(new MethodDetail(method, locker));
+                                            items.Add(MethodDetail.New(Type, method, locker));
                                     }
                                 }
                             }
@@ -376,7 +376,7 @@ namespace Zerra.Reflection
                                 var constructors = Type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                                 var items = new ConstructorDetail[constructors.Length];
                                 for (var i = 0; i < items.Length; i++)
-                                    items[i] = new ConstructorDetail(constructors[i], locker);
+                                    items[i] = ConstructorDetail.New(Type, constructors[i], locker);
                                 constructorDetails = items;
                             }
                             else
@@ -816,7 +816,7 @@ namespace Zerra.Reflection
             return Type.GetNiceFullName();
         }
 
-        internal TypeDetail(Type type)
+        protected TypeDetail(Type type)
         {
             this.Type = type;
 
@@ -829,7 +829,15 @@ namespace Zerra.Reflection
                 this.SpecialType = specialTypeLookup;
         }
 
-        private static bool IsSerializableType(TypeDetail typeDetail)
+        private static readonly Type typeDetailT = typeof(TypeDetail<>);
+        internal static TypeDetail New(Type type)
+        {
+            var typeDetailGeneric = typeDetailT.MakeGenericType(type);
+            var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { type });
+            return (TypeDetail)obj;
+        }
+
+        protected static bool IsSerializableType(TypeDetail typeDetail)
         {
             if (typeDetail.CoreType.HasValue)
                 return true;
