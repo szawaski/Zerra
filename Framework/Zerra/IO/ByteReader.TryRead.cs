@@ -3096,7 +3096,7 @@ namespace Zerra.IO
 #endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadGuid(out Guid value, out int sizeNeeded)
+        public bool TryReadGuid(out Guid value, out int sizeNeeded)
         {
             sizeNeeded = 16;
             if (length - position < sizeNeeded)
@@ -3105,24 +3105,16 @@ namespace Zerra.IO
                 return false;
             }
 
-            fixed (byte* pBuffer = &buffer[position], pGuidBuffer = guidBuffer)
-            {
-                for (var p = 0; p < 16; p++)
-                {
-                    pGuidBuffer[p] = pBuffer[p];
-                }
-            }
-            position += 16;
-
 #if NETSTANDARD2_0
-            value = new Guid(guidBuffer.ToArray());
+            value = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-            value = new Guid(guidBuffer);
+            value = new Guid(buffer.Slice(position, 16));
 #endif
+            position += 16;
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadGuidNullable(bool nullFlags, out Guid? value, out int sizeNeeded)
+        public bool TryReadGuidNullable(bool nullFlags, out Guid? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 17 : 16;
             if (length - position < sizeNeeded)
@@ -3140,24 +3132,17 @@ namespace Zerra.IO
                 }
             }
 
-            fixed (byte* pBuffer = &buffer[position], pGuidBuffer = guidBuffer)
-            {
-                for (var p = 0; p < 16; p++)
-                {
-                    pGuidBuffer[p] = pBuffer[p];
-                }
-            }
-            position += 16;
 
 #if NETSTANDARD2_0
-            value = new Guid(guidBuffer.ToArray());
+            value = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-            value = new Guid(guidBuffer);
+            value = new Guid(buffer.Slice(position, 16));
 #endif
+            position += 16;
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadGuidArray(int length, out Guid[]? value, out int sizeNeeded)
+        public bool TryReadGuidArray(int length, out Guid[]? value, out int sizeNeeded)
         {
             sizeNeeded = length * 16;
             if (this.length - position < sizeNeeded)
@@ -3169,25 +3154,18 @@ namespace Zerra.IO
             value = new Guid[length];
             for (var i = 0; i < length; i++)
             {
-                fixed (byte* pBuffer = &buffer[position], pGuidBuffer = guidBuffer)
-                {
-                    for (var p = 0; p < 16; p++)
-                    {
-                        pGuidBuffer[p] = pBuffer[p];
-                    }
-                }
-                position += 16;
 #if NETSTANDARD2_0
-                var item = new Guid(guidBuffer.ToArray());
+                var item = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-                var item = new Guid(guidBuffer);
+                var item = new Guid(buffer.Slice(position, 16));
 #endif
+                position += 16;
                 value[i] = item;
             }
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadGuidList(int length, out List<Guid>? value, out int sizeNeeded)
+        public bool TryReadGuidList(int length, out List<Guid>? value, out int sizeNeeded)
         {
             sizeNeeded = length * 16;
             if (this.length - position < sizeNeeded)
@@ -3199,25 +3177,18 @@ namespace Zerra.IO
             value = new List<Guid>(length);
             for (var i = 0; i < length; i++)
             {
-                fixed (byte* pBuffer = &buffer[position], pGuidBuffer = guidBuffer)
-                {
-                    for (var p = 0; p < 16; p++)
-                    {
-                        pGuidBuffer[p] = pBuffer[p];
-                    }
-                }
-                position += 16;
 #if NETSTANDARD2_0
-                var item = new Guid(guidBuffer.ToArray());
+                var item = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-                var item = new Guid(guidBuffer);
+                var item = new Guid(buffer.Slice(position, 16));
 #endif
+                position += 16;
                 value.Add(item);
             }
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadGuidHashSet(int length, out HashSet<Guid>? value, out int sizeNeeded)
+        public bool TryReadGuidHashSet(int length, out HashSet<Guid>? value, out int sizeNeeded)
         {
             sizeNeeded = length * 16;
             if (this.length - position < sizeNeeded)
@@ -3233,25 +3204,18 @@ namespace Zerra.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                fixed (byte* pBuffer = &buffer[position], pGuidBuffer = guidBuffer)
-                {
-                    for (var p = 0; p < 16; p++)
-                    {
-                        pGuidBuffer[p] = pBuffer[p];
-                    }
-                }
-                position += 16;
 #if NETSTANDARD2_0
-                var item = new Guid(guidBuffer.ToArray());
+                var item = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-                var item = new Guid(guidBuffer);
+                var item = new Guid(buffer.Slice(position, 16));
 #endif
+                position += 16;
                 value.Add(item);
             }
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadGuidNullableArray(int length, out Guid?[]? value, out int sizeNeeded)
+        public bool TryReadGuidNullableArray(int length, out Guid?[]? value, out int sizeNeeded)
         {
             sizeNeeded = length * 17;
             if (this.length - position < sizeNeeded)
@@ -3265,26 +3229,19 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    fixed (byte* pBuffer = &buffer[position], pGuidBuffer = guidBuffer)
-                    {
-                        for (var p = 0; p < 16; p++)
-                        {
-                            pGuidBuffer[p] = pBuffer[p];
-                        }
-                    }
-                    position += 16;
 #if NETSTANDARD2_0
-                    var item = new Guid(guidBuffer.ToArray());
+                    var item = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-                    var item = new Guid(guidBuffer);
+                    var item = new Guid(buffer.Slice(position, 16));
 #endif
+                    position += 16;
                     value[i] = item;
                 }
             }
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadGuidNullableList(int length, out List<Guid?>? value, out int sizeNeeded)
+        public bool TryReadGuidNullableList(int length, out List<Guid?>? value, out int sizeNeeded)
         {
             sizeNeeded = length * 17;
             if (this.length - position < sizeNeeded)
@@ -3298,19 +3255,12 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    fixed (byte* pBuffer = &buffer[position], pGuidBuffer = guidBuffer)
-                    {
-                        for (var p = 0; p < 16; p++)
-                        {
-                            pGuidBuffer[p] = pBuffer[p];
-                        }
-                    }
-                    position += 16;
 #if NETSTANDARD2_0
-                    var item = new Guid(guidBuffer.ToArray());
+                    var item = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-                    var item = new Guid(guidBuffer);
+                    var item = new Guid(buffer.Slice(position, 16));
 #endif
+                    position += 16;
                     value.Add(item);
                 }
                 else
@@ -3321,7 +3271,7 @@ namespace Zerra.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadGuidNullableHashSet(int length, out HashSet<Guid?>? value, out int sizeNeeded)
+        public bool TryReadGuidNullableHashSet(int length, out HashSet<Guid?>? value, out int sizeNeeded)
         {
             sizeNeeded = length * 17;
             if (this.length - position < sizeNeeded)
@@ -3339,19 +3289,12 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    fixed (byte* pBuffer = &buffer[position], pGuidBuffer = guidBuffer)
-                    {
-                        for (var p = 0; p < 16; p++)
-                        {
-                            pGuidBuffer[p] = pBuffer[p];
-                        }
-                    }
-                    position += 16;
 #if NETSTANDARD2_0
-                    var item = new Guid(guidBuffer.ToArray());
+                    var item = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-                    var item = new Guid(guidBuffer);
+                    var item = new Guid(buffer.Slice(position, 16));
 #endif
+                    position += 16;
                     value.Add(item);
                 }
                 else

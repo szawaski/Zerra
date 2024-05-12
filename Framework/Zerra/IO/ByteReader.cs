@@ -14,7 +14,6 @@ namespace Zerra.IO
         private const byte nullByte = 0;
 
         private readonly ReadOnlySpan<byte> buffer;
-        private readonly Span<byte> guidBuffer;
 
         private int position;
         private readonly int length;
@@ -29,7 +28,6 @@ namespace Zerra.IO
             if (bytes == null)
                 throw new ArgumentNullException(nameof(bytes));
             this.buffer = bytes;
-            this.guidBuffer = new byte[16];
             this.encoding = encoding ?? defaultEncoding;
             this.position = 0;
             this.length = bytes.Length;

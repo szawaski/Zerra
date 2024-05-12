@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Zerra.IO
@@ -61,6 +62,7 @@ namespace Zerra.IO
             this.length = buffer.Length;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureBufferSize(int additionalSize)
         {
             if (position + additionalSize <= buffer.Length)

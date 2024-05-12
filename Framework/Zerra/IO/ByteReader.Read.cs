@@ -2050,20 +2050,13 @@ namespace Zerra.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe Guid ReadGuid()
         {
-            fixed (byte* pBuffer = &buffer[position], pGuidBuffer = guidBuffer)
-            {
-                for (var p = 0; p < 16; p++)
-                {
-                    pGuidBuffer[p] = pBuffer[p];
-                }
-            }
-            position += 16;
-
 #if NETSTANDARD2_0
-            return new Guid(guidBuffer.ToArray());
+            var value = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-            return new Guid(guidBuffer);
+            var value = new Guid(buffer.Slice(position, 16));
 #endif
+            position += 16;
+            return value;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe Guid? ReadGuidNullable(bool nullFlags)
@@ -2074,20 +2067,13 @@ namespace Zerra.IO
                     return null;
             }
 
-            fixed (byte* pBuffer = &buffer[position], pGuidBuffer = guidBuffer)
-            {
-                for (var p = 0; p < 16; p++)
-                {
-                    pGuidBuffer[p] = pBuffer[p];
-                }
-            }
-            position += 16;
-
 #if NETSTANDARD2_0
-            return new Guid(guidBuffer.ToArray());
+            var value = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-            return new Guid(guidBuffer);
+            var value = new Guid(buffer.Slice(position, 16));
 #endif
+            position += 16;
+            return value;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe Guid[] ReadGuidArray(int length)
@@ -2095,19 +2081,12 @@ namespace Zerra.IO
             var array = new Guid[length];
             for (var i = 0; i < length; i++)
             {
-                fixed (byte* pBuffer = &buffer[position], pGuidBuffer = guidBuffer)
-                {
-                    for (var p = 0; p < 16; p++)
-                    {
-                        pGuidBuffer[p] = pBuffer[p];
-                    }
-                }
-                position += 16;
 #if NETSTANDARD2_0
-                var item = new Guid(guidBuffer.ToArray());
+                var item = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-                var item = new Guid(guidBuffer);
+                var item = new Guid(buffer.Slice(position, 16));
 #endif
+                position += 16;
                 array[i] = item;
             }
             return array;
@@ -2118,19 +2097,12 @@ namespace Zerra.IO
             var list = new List<Guid>(length);
             for (var i = 0; i < length; i++)
             {
-                fixed (byte* pBuffer = &buffer[position], pGuidBuffer = guidBuffer)
-                {
-                    for (var p = 0; p < 16; p++)
-                    {
-                        pGuidBuffer[p] = pBuffer[p];
-                    }
-                }
-                position += 16;
 #if NETSTANDARD2_0
-                var item = new Guid(guidBuffer.ToArray());
+                var item = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-                var item = new Guid(guidBuffer);
+                var item = new Guid(buffer.Slice(position, 16));
 #endif
+                position += 16;
                 list.Add(item);
             }
             return list;
@@ -2145,19 +2117,12 @@ namespace Zerra.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                fixed (byte* pBuffer = &buffer[position], pGuidBuffer = guidBuffer)
-                {
-                    for (var p = 0; p < 16; p++)
-                    {
-                        pGuidBuffer[p] = pBuffer[p];
-                    }
-                }
-                position += 16;
 #if NETSTANDARD2_0
-                var item = new Guid(guidBuffer.ToArray());
+                var item = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-                var item = new Guid(guidBuffer);
+                var item = new Guid(buffer.Slice(position, 16));
 #endif
+                position += 16;
                 set.Add(item);
             }
             return set;
@@ -2170,19 +2135,12 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    fixed (byte* pBuffer = &buffer[position], pGuidBuffer = guidBuffer)
-                    {
-                        for (var p = 0; p < 16; p++)
-                        {
-                            pGuidBuffer[p] = pBuffer[p];
-                        }
-                    }
-                    position += 16;
 #if NETSTANDARD2_0
-                    var item = new Guid(guidBuffer.ToArray());
+                    var item = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-                    var item = new Guid(guidBuffer);
+                    var item = new Guid(buffer.Slice(position, 16));
 #endif
+                    position += 16;
                     array[i] = item;
                 }
             }
@@ -2196,19 +2154,12 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    fixed (byte* pBuffer = &buffer[position], pGuidBuffer = guidBuffer)
-                    {
-                        for (var p = 0; p < 16; p++)
-                        {
-                            pGuidBuffer[p] = pBuffer[p];
-                        }
-                    }
-                    position += 16;
 #if NETSTANDARD2_0
-                    var item = new Guid(guidBuffer.ToArray());
+                    var item = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-                    var item = new Guid(guidBuffer);
+                    var item = new Guid(buffer.Slice(position, 16));
 #endif
+                    position += 16;
                     list.Add(item);
                 }
                 else
@@ -2230,19 +2181,12 @@ namespace Zerra.IO
             {
                 if (buffer[position++] != nullByte)
                 {
-                    fixed (byte* pBuffer = &buffer[position], pGuidBuffer = guidBuffer)
-                    {
-                        for (var p = 0; p < 16; p++)
-                        {
-                            pGuidBuffer[p] = pBuffer[p];
-                        }
-                    }
-                    position += 16;
 #if NETSTANDARD2_0
-                    var item = new Guid(guidBuffer.ToArray());
+                    var item = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-                    var item = new Guid(guidBuffer);
+                    var item = new Guid(buffer.Slice(position, 16));
 #endif
+                    position += 16;
                     set.Add(item);
                 }
                 else
