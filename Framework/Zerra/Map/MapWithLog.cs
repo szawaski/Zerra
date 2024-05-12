@@ -647,8 +647,7 @@ namespace Zerra
                     var moveNextMethod = enumeratorTypeDetail.GetMethod("MoveNext");
                     var currentMethod = enumeratorGeneric.GetMethod("get_Current");
 
-                    var collectionTypeDetails = TypeAnalyzer.GetTypeDetail(collectionGenericType);
-                    var collectionGenericTypeDetails = TypeAnalyzer.GetGenericTypeDetail(collectionTypeDetails, sourceType.IEnumerableGenericInnerType);
+                    var collectionGenericTypeDetails = TypeAnalyzer.GetGenericTypeDetail(collectionGenericType, sourceType.IEnumerableGenericInnerType);
                     var countMember = collectionGenericTypeDetails.GetMember("Count");
 
                     var array = Expression.Convert(target, arrayType);
@@ -874,8 +873,7 @@ namespace Zerra
                             var arrayType = Discovery.GetTypeFromName(targetType.InnerTypes[0] + "[]");
                             newTarget = Expression.Variable(arrayType, "newTarget");
 
-                            var collectionTypeDetails = TypeAnalyzer.GetTypeDetail(collectionGenericType);
-                            var collectionGenericTypeDetails = TypeAnalyzer.GetGenericTypeDetail(collectionTypeDetails, sourceType.IEnumerableGenericInnerType);
+                            var collectionGenericTypeDetails = TypeAnalyzer.GetGenericTypeDetail(collectionGenericType, sourceType.IEnumerableGenericInnerType);
                             var countMember = collectionGenericTypeDetails.GetMember("Count");
                             var collection = Expression.Convert(source, collectionGenericTypeDetails.Type);
                             var collectionCount = Expression.MakeMemberAccess(collection, countMember.MemberInfo);

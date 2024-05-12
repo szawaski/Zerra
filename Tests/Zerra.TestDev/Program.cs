@@ -4,6 +4,7 @@
 
 
 using System;
+using System.IO;
 
 namespace Zerra.TestDev
 {
@@ -11,7 +12,9 @@ namespace Zerra.TestDev
     {
         static void Main(string[] args)
         {
-            
+            var model = Zerra.Test.Factory.GetAllTypesModel();
+            using var stream = new MemoryStream();
+            System.Text.Json.JsonSerializer.SerializeAsync(stream, model).GetAwaiter().GetResult();
 
             //var tester = new EncryptionTest();
             //tester.RandomShiftStreamRead();
@@ -22,7 +25,7 @@ namespace Zerra.TestDev
             //TestMemory.TryFinallyOrDisposed();
             //InlineTest.Test();
 
-            JsonSerializerTest.TestSpeed().GetAwaiter().GetResult();
+            //JsonSerializerTest.TestSpeed().GetAwaiter().GetResult();
             //ByteSerializerTest.TestSpeed();
 
             //TestMath.Test();
