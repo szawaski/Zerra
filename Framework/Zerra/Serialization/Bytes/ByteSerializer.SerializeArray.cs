@@ -59,7 +59,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytes(object? value, SerializerTypeDetail typeDetail, bool nullFlags, ref ByteWriter writer, ref OptionsStruct options)
+        private static void ToBytes(object? value, ByteConverter typeDetail, bool nullFlags, ref ByteWriter writer, ref OptionsStruct options)
         {
             if (options.IncludePropertyTypes)
             {
@@ -189,7 +189,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytesEnumerable(IEnumerable? values, int length, SerializerTypeDetail typeDetail, ref ByteWriter writer, ref OptionsStruct options)
+        private static void ToBytesEnumerable(IEnumerable? values, int length, ByteConverter typeDetail, ref ByteWriter writer, ref OptionsStruct options)
         {
             writer.Write(length); //object count
 
@@ -615,7 +615,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytesSpecialType(object? value, SerializerTypeDetail typeDetail, bool nullFlags, ref ByteWriter writer, ref OptionsStruct options)
+        private static void ToBytesSpecialType(object? value, ByteConverter typeDetail, bool nullFlags, ref ByteWriter writer, ref OptionsStruct options)
         {
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType!.Value : typeDetail.TypeDetail.SpecialType!.Value;
             switch (specialType)
@@ -648,7 +648,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytesSpecialTypeEnumerable(IEnumerable values, int length, SerializerTypeDetail typeDetail, ref ByteWriter writer, ref OptionsStruct options)
+        private static void ToBytesSpecialTypeEnumerable(IEnumerable values, int length, ByteConverter typeDetail, ref ByteWriter writer, ref OptionsStruct options)
         {
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType!.Value : typeDetail.TypeDetail.SpecialType!.Value;
             switch (specialType)

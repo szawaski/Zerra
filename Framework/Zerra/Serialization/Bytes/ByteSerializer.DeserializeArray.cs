@@ -37,7 +37,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object? FromBytes(ref ByteReader reader, SerializerTypeDetail? typeDetail, bool nullFlags, bool drainBytes, ref OptionsStruct options)
+        private static object? FromBytes(ref ByteReader reader, ByteConverter? typeDetail, bool nullFlags, bool drainBytes, ref OptionsStruct options)
         {
             if (options.IncludePropertyTypes)
             {
@@ -125,7 +125,7 @@ namespace Zerra.Serialization
 
             for (; ; )
             {
-                SerializerMemberDetail? indexProperty = null;
+                ByteConverterMember? indexProperty = null;
 
                 if (options.UsePropertyNames)
                 {
@@ -186,7 +186,7 @@ namespace Zerra.Serialization
             throw new Exception("Expected end of object marker");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromBytesEnumerable(ref ByteReader reader, SerializerTypeDetail typeDetail, bool asList, bool asSet, ref OptionsStruct options)
+        private static object FromBytesEnumerable(ref ByteReader reader, ByteConverter typeDetail, bool asList, bool asSet, ref OptionsStruct options)
         {
             var length = reader.ReadInt32();
 
@@ -715,7 +715,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object? FromBytesSpecialType(ref ByteReader reader, SerializerTypeDetail typeDetail, bool nullFlags, ref OptionsStruct options)
+        private static object? FromBytesSpecialType(ref ByteReader reader, ByteConverter typeDetail, bool nullFlags, ref OptionsStruct options)
         {
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType!.Value : typeDetail.TypeDetail.SpecialType!.Value;
 
@@ -752,7 +752,7 @@ namespace Zerra.Serialization
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromBytesSpecialTypeEnumerable(ref ByteReader reader, int length, SerializerTypeDetail typeDetail, bool asList, ref OptionsStruct options)
+        private static object FromBytesSpecialTypeEnumerable(ref ByteReader reader, int length, ByteConverter typeDetail, bool asList, ref OptionsStruct options)
         {
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType!.Value : typeDetail.TypeDetail.SpecialType!.Value;
             switch (specialType)

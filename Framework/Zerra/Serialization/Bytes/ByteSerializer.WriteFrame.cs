@@ -7,24 +7,21 @@ using System.Collections.Generic;
 
 namespace Zerra.Serialization
 {
-    public static partial class ByteSerializer
+    internal sealed class WriteFrame
     {
-        private sealed class WriteFrame
-        {
-            public SerializerTypeDetail? TypeDetail;
-            public bool NullFlags;
-            public WriteFrameType FrameType;
+        public ByteConverter? TypeDetail;
+        public bool NullFlags;
+        public WriteFrameType FrameType;
 
-            public object? Object;
+        public object? Object;
 
-            public bool HasWrittenPropertyType;
-            public bool HasWrittenIsNull;
-            public int? EnumerableLength;
-            public bool ObjectInProgress;
+        public bool HasWrittenPropertyType;
+        public bool HasWrittenIsNull;
+        public int? EnumerableLength;
+        public bool ObjectInProgress;
 
-            public IEnumerator<KeyValuePair<ushort, SerializerMemberDetail>>? MemberEnumerator;
-            public IEnumerator? ObjectEnumerator;
-            public bool EnumeratorObjectInProgress;
-        }
+        public IEnumerator<KeyValuePair<ushort, ByteConverterMember>>? MemberEnumerator;
+        public IEnumerator? ObjectEnumerator;
+        public bool EnumeratorObjectInProgress;
     }
 }

@@ -4,22 +4,19 @@
 
 namespace Zerra.Serialization
 {
-    public static partial class ByteSerializer
+    internal enum ReadFrameType : byte
     {
-        private enum ReadFrameType : byte
-        {
-            PropertyType,
+        PropertyType,
 
-            CoreType,
-            EnumType,
-            SpecialType,
-            Object,
-            ObjectProperty,
+        CoreType,
+        EnumType,
+        SpecialType,
+        Object,
+        ObjectProperty,
 
-            CoreTypeEnumerable,
-            EnumTypeEnumerable,
-            //SpecialTypeEnumerable,
-            ObjectEnumerable,
-        }
+        CoreTypeEnumerable,
+        EnumTypeEnumerable,
+        //SpecialTypeEnumerable,
+        ObjectEnumerable,
     }
 }

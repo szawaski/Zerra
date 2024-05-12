@@ -261,7 +261,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static WriteFrame WriteFrameFromType(ref WriteState state, object? obj, SerializerTypeDetail typeDetail, bool hasWrittenPropertyType, bool nullFlags)
+        private static WriteFrame WriteFrameFromType(ref WriteState state, object? obj, ByteConverter typeDetail, bool hasWrittenPropertyType, bool nullFlags)
         {
             var frame = new WriteFrame();
             frame.TypeDetail = typeDetail;

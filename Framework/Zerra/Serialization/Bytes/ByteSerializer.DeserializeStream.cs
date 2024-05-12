@@ -162,9 +162,8 @@ namespace Zerra.Serialization
 
             options ??= defaultOptions;
 
-            var type = typeof(T);
-
-            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
+            var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
+            var converter = ByteConverterFactory.Get<object, T>(options.IndexSize, options.IgnoreIndexAttribute, typeDetail, null);
 
             var isFinalBlock = false;
 #if DEBUG
@@ -203,8 +202,6 @@ namespace Zerra.Serialization
                 {
                     UsePropertyNames = options.UsePropertyNames,
                     IncludePropertyTypes = options.IncludePropertyTypes,
-                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSize = options.IndexSize
                 };
                 state.CurrentFrame = ReadFrameFromType(ref state, typeDetail, false, true);
 
@@ -363,23 +360,13 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Read(ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding)
+        private static int Read<T>(ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding)
         {
             var reader = new ByteReader(buffer, encoding);
             for (; ; )
             {
-                switch (state.CurrentFrame.FrameType)
-                {
-                    case ReadFrameType.PropertyType: ReadPropertyType(ref reader, ref state); break;
-                    case ReadFrameType.CoreType: ReadCoreType(ref reader, ref state); break;
-                    case ReadFrameType.EnumType: ReadEnumType(ref reader, ref state); break;
-                    case ReadFrameType.SpecialType: ReadSpecialType(ref reader, ref state); break;
-                    case ReadFrameType.Object: ReadObject(ref reader, ref state); break;
-                    case ReadFrameType.CoreTypeEnumerable: ReadCoreTypeEnumerable(ref reader, ref state); break;
-                    case ReadFrameType.EnumTypeEnumerable: ReadEnumTypeEnumerable(ref reader, ref state); break;
-                    //case ReadFrameType.SpecialTypeEnumerable: ReadSpecialTypeEnumerable(ref reader, ref state); break;
-                    case ReadFrameType.ObjectEnumerable: ReadObjectEnumerable(ref reader, ref state); break;
-                }
+                state.CurrentFrame.Converter.Read(ref reader, ref state);
+
                 if (state.Ended)
                 {
                     return -1;
@@ -392,7 +379,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ReadFrame ReadFrameFromType(ref ReadState state, SerializerTypeDetail? typeDetail, bool hasReadPropertyType, bool nullFlags)
+        private static ReadFrame ReadFrameFromType(ref ReadState state, ByteConverter? typeDetail, bool hasReadPropertyType, bool nullFlags)
         {
             var frame = new ReadFrame();
             frame.TypeDetail = typeDetail;
@@ -1284,7 +1271,7 @@ namespace Zerra.Serialization
                     state.CurrentFrame.ObjectProperty = null;
                 }
 
-                SerializerMemberDetail? property = null;
+                ByteConverterMember? property = null;
 
                 if (state.UsePropertyNames)
                 {

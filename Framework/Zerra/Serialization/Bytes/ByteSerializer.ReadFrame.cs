@@ -7,31 +7,28 @@ using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
-    public static partial class ByteSerializer
+    internal sealed class ReadFrame
     {
-        private sealed class ReadFrame
-        {
-            public SerializerTypeDetail? TypeDetail;
-            public bool NullFlags;
-            public ReadFrameType FrameType;
+        public ByteConverter Converter;
+        public bool NullFlags;
+        //public ReadFrameType FrameType;
 
-            public bool HasReadPropertyType;
+        //public bool HasReadPropertyType;
 
-            public bool HasNullChecked;
-            public bool HasObjectStarted;
-            public object? ResultObject;
-            public SerializerMemberDetail? ObjectProperty;
+        public bool HasNullChecked;
+        public bool HasObjectStarted;
+        public object? ResultObject;
+        //public ByteConverterMember? ObjectProperty;
 
-            public int? StringLength;
-            public int? EnumerableLength;
+        public int? StringLength;
+        public int? EnumerableLength;
 
-            public MethodDetail? AddMethod;
-            public object?[]? AddMethodArgs;
-            public Array? EnumerableArray;
+        public MethodDetail? AddMethod;
+        public object?[]? AddMethodArgs;
+        public Array? EnumerableArray;
 
-            public int EnumerablePosition;
+        public int EnumerablePosition;
 
-            public bool DrainBytes;
-        }
+        public bool DrainBytes;
     }
 }
