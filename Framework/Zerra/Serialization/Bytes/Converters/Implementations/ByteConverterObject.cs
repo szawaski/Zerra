@@ -12,8 +12,8 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterObject<TParent, TValue> : ByteConverter<TParent, TValue>
     {
-        private readonly Dictionary<ushort, ByteConverterObjectMember<TValue>> propertiesByIndex = new();
-        private readonly Dictionary<string, ByteConverterObjectMember<TValue>> propertiesByName = new();
+        private readonly Dictionary<ushort, ByteConverterObjectMember> propertiesByIndex = new();
+        private readonly Dictionary<string, ByteConverterObjectMember> propertiesByName = new();
 
         private bool usePropertyNames;
         private bool indexSizeUInt16;
@@ -121,7 +121,7 @@ namespace Zerra.Serialization
 
             for (; ; )
             {
-                ByteConverterObjectMember<TValue>? property;
+                ByteConverterObjectMember? property;
                 if (usePropertyNames)
                 {
                     int sizeNeeded;
@@ -257,7 +257,7 @@ namespace Zerra.Serialization
                 state.CurrentFrame.HasWrittenIsNull = true;
             }
 
-            IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember<TValue>>> enumerator;
+            IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember>> enumerator;
             if (state.CurrentFrame.Enumerator == null)
             {
                 enumerator = propertiesByIndex.GetEnumerator();
@@ -265,7 +265,7 @@ namespace Zerra.Serialization
             }
             else
             {
-                enumerator = (IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember<TValue>>>)state.CurrentFrame.Enumerator;
+                enumerator = (IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember>>)state.CurrentFrame.Enumerator;
             }
 
             while (state.CurrentFrame.EnumeratorInProgress || enumerator.MoveNext())
@@ -339,6 +339,42 @@ namespace Zerra.Serialization
             }
 
             return true;
+        }
+
+        private sealed class ByteConverterObjectMember
+        {
+            private ByteConverterOptions options;
+            private TypeDetail parent;
+            public MemberDetail Member { get; private set; }
+
+            public ByteConverterObjectMember(ByteConverterOptions options, TypeDetail parent, MemberDetail member)
+            {
+                this.options = options;
+                this.parent = parent;
+                this.Member = member;
+            }
+
+            private ByteConverter<TParent>? converter = null;
+            public ByteConverter<TParent> Converter
+            {
+                get
+                {
+                    if (converter == null)
+                    {
+                        lock (this)
+                        {
+                            converter ??= ByteConverterFactory<TParent>.Get(options, Member.TypeDetail, parent, Member.Getter, Member.Setter);
+                        }
+                    }
+                    return converter;
+                }
+            }
+
+            //helps with debug
+            public override string ToString()
+            {
+                return Member.Name;
+            }
         }
     }
 }
