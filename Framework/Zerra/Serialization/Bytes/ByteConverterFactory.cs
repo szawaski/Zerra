@@ -28,7 +28,7 @@ namespace Zerra.Serialization
             return newConverter;
         }
 
-        public static ByteConverter<TParent> GetMayNeedTypeInfo(ByteConverterOptions options, TypeDetail typeDetail)
+        public static ByteConverter<TParent> GetRoot(ByteConverterOptions options, TypeDetail typeDetail)
         {
             if (options.HasFlag(ByteConverterOptions.IncludePropertyTypes) || (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerableGeneric))
             {

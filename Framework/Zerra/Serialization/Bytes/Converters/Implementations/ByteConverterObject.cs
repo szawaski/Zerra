@@ -48,7 +48,7 @@ namespace Zerra.Serialization
 
                         var index = (ushort)(member.Item2.Index + indexOffset);
 
-                        var detail = new ByteConverterObjectMember<TValue>(options, member.Item1);
+                        var detail = new ByteConverterObjectMember(options, typeDetail, member.Item1);
                         propertiesByIndex.Add(index, detail);
                         propertiesByName.Add(member.Item1.Name, detail);
                     }
@@ -73,7 +73,7 @@ namespace Zerra.Serialization
 
                     var index = (ushort)(orderIndex + indexOffset);
 
-                    var detail = new ByteConverterObjectMember<TValue>(options, member.Item1);
+                    var detail = new ByteConverterObjectMember(options, typeDetail, member.Item1);
                     propertiesByIndex.Add(index, detail);
                     propertiesByName.Add(member.Item1.Name, detail);
 
@@ -354,8 +354,8 @@ namespace Zerra.Serialization
                 this.Member = member;
             }
 
-            private ByteConverter<TParent>? converter = null;
-            public ByteConverter<TParent> Converter
+            private ByteConverter<TValue>? converter = null;
+            public ByteConverter<TValue> Converter
             {
                 get
                 {
@@ -363,7 +363,7 @@ namespace Zerra.Serialization
                     {
                         lock (this)
                         {
-                            converter ??= ByteConverterFactory<TParent>.Get(options, Member.TypeDetail, parent, Member.Getter, Member.Setter);
+                            converter ??= ByteConverterFactory<TValue>.Get(options, Member.TypeDetail, parent, Member.Getter, Member.Setter);
                         }
                     }
                     return converter;

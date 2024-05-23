@@ -22,7 +22,7 @@ namespace Zerra.Serialization
             var byteConverterOptions = GetByteConverterOptions(options);
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetMayNeedTypeInfo(byteConverterOptions, typeDetail);
+            var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
 
             var state = new ReadState();
             state.CurrentFrame = new ReadFrame() { Converter = converter, NullFlags = true };
@@ -43,7 +43,7 @@ namespace Zerra.Serialization
             var byteConverterOptions = GetByteConverterOptions(options);
 
             var typeDetail = type.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetMayNeedTypeInfo(byteConverterOptions, typeDetail);
+            var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
 
             var state = new ReadState();
             state.CurrentFrame = new ReadFrame() { Converter = converter, NullFlags = true };
@@ -65,7 +65,7 @@ namespace Zerra.Serialization
             var byteConverterOptions = GetByteConverterOptions(options);
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetMayNeedTypeInfo(byteConverterOptions, typeDetail);
+            var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
 
             var isFinalBlock = false;
 #if DEBUG
@@ -164,7 +164,7 @@ namespace Zerra.Serialization
             var byteConverterOptions = GetByteConverterOptions(options);
 
             var typeDetail = type.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetMayNeedTypeInfo(byteConverterOptions, typeDetail);
+            var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
 
             var isFinalBlock = false;
 #if DEBUG
@@ -262,7 +262,7 @@ namespace Zerra.Serialization
             var byteConverterOptions = GetByteConverterOptions(options);
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetMayNeedTypeInfo(byteConverterOptions, typeDetail);
+            var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
 
             var isFinalBlock = false;
 #if DEBUG
@@ -361,7 +361,7 @@ namespace Zerra.Serialization
             var byteConverterOptions = GetByteConverterOptions(options);
 
             var typeDetail = type.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetMayNeedTypeInfo(byteConverterOptions, typeDetail);
+            var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
 
             var isFinalBlock = false;
 #if DEBUG

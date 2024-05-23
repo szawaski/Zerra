@@ -5,6 +5,7 @@
 using System;
 using Zerra.Reflection;
 using Zerra.IO;
+using System.Runtime.CompilerServices;
 
 namespace Zerra.Serialization
 {
@@ -56,7 +57,9 @@ namespace Zerra.Serialization
 
         public virtual void Setup() { }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected abstract bool Read(ref ByteReader reader, ref ReadState state, out TValue? value);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected abstract bool Write(ref ByteWriter writer, ref WriteState state, TValue? value);
     }
 }
