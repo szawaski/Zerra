@@ -84,6 +84,8 @@ namespace Zerra.Reflection
             }
         }
 
+        public abstract Delegate? CreatorTyped { get; }
+
         public override string ToString()
         {
             return $"new({(String.Join(", ", ParametersInfo.Select(x => $"{x.ParameterType.Name} {x.Name}").ToArray()))})";

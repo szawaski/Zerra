@@ -47,6 +47,8 @@ namespace Zerra.Reflection
             }
         }
 
+        public override Delegate? CreatorTyped => Creator; 
+
         internal ConstructorDetail(ConstructorInfo constructor, object locker) : base(constructor, locker) { }
     }
 }

@@ -22,7 +22,7 @@ namespace Zerra.Reflection
             if (!propertyInfo.CanRead)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Getter", typeof(object), new Type[] { typeof(object) }, true);
+            var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Getter", typeof(object), new Type[] { typeof(object) }, typeof(object), true);
             var il = dynamicMethod.GetILGenerator();
 
             var getMethod = propertyInfo.GetGetMethod(true);
@@ -55,13 +55,13 @@ namespace Zerra.Reflection
         }
         public static Func<T, TValue?>? GenerateGetter<T, TValue>(PropertyInfo propertyInfo)
         {
-            if (propertyInfo.ReflectedType == null || propertyInfo.DeclaringType == null)
+            if (propertyInfo.ReflectedType == null)
                 return null;
 
             if (!propertyInfo.CanRead)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Getter`2", propertyInfo.PropertyType, new Type[] { propertyInfo.DeclaringType }, true);
+            var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Getter`2", propertyInfo.PropertyType, new Type[] { propertyInfo.ReflectedType }, propertyInfo.ReflectedType, true);
             var il = dynamicMethod.GetILGenerator();
 
             var getMethod = propertyInfo.GetGetMethod(true);
@@ -81,39 +81,6 @@ namespace Zerra.Reflection
             var method = dynamicMethod.CreateDelegate(typeof(Func<T, TValue?>));
             return (Func<T, TValue?>)method;
         }
-        //public static Func<T, object?>? GenerateGetter<T>(PropertyInfo propertyInfo)
-        //{
-        //    if (propertyInfo.ReflectedType == null || propertyInfo.DeclaringType == null)
-        //        return null;
-
-        //    if (!propertyInfo.CanRead)
-        //        return null;
-
-        //    var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Getter`1", typeof(object), new Type[] { propertyInfo.DeclaringType }, true);
-        //    var il = dynamicMethod.GetILGenerator();
-
-        //    var getMethod = propertyInfo.GetGetMethod(true);
-        //    if (getMethod == null)
-        //        return null;
-
-        //    if (!getMethod.IsStatic)
-        //        il.Emit(OpCodes.Ldarg_0);
-
-        //    if (getMethod.IsFinal || !getMethod.IsVirtual)
-        //        il.Emit(OpCodes.Call, getMethod);
-        //    else
-        //        il.Emit(OpCodes.Callvirt, getMethod);
-
-        //    if (propertyInfo.PropertyType.IsValueType)
-        //        il.Emit(OpCodes.Box, propertyInfo.PropertyType);
-        //    else
-        //        il.Emit(OpCodes.Castclass, propertyInfo.PropertyType);
-
-        //    il.Emit(OpCodes.Ret);
-
-        //    var method = dynamicMethod.CreateDelegate(typeof(Func<T, object?>));
-        //    return (Func<T, object?>)method;
-        //}
 
         public static Action<object, object?>? GenerateSetter(PropertyInfo propertyInfo)
         {
@@ -123,7 +90,7 @@ namespace Zerra.Reflection
             if (!propertyInfo.CanWrite)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Setter", null, new Type[] { typeof(object), typeof(object) }, true);
+            var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Setter", null, new Type[] { typeof(object), typeof(object) }, typeof(object), true);
             var il = dynamicMethod.GetILGenerator();
 
             var setMethod = propertyInfo.GetSetMethod(true);
@@ -157,13 +124,13 @@ namespace Zerra.Reflection
         }
         public static Action<T, TValue?>? GenerateSetter<T, TValue>(PropertyInfo propertyInfo)
         {
-            if (propertyInfo.ReflectedType == null || propertyInfo.DeclaringType == null)
+            if (propertyInfo.ReflectedType == null)
                 return null;
 
             if (!propertyInfo.CanWrite)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Setter`2", null, new Type[] { propertyInfo.DeclaringType, propertyInfo.PropertyType }, true);
+            var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Setter`2", null, new Type[] { propertyInfo.ReflectedType, propertyInfo.PropertyType }, propertyInfo.ReflectedType, true);
             var il = dynamicMethod.GetILGenerator();
 
             var setMethod = propertyInfo.GetSetMethod(true);
@@ -185,47 +152,13 @@ namespace Zerra.Reflection
             var method = dynamicMethod.CreateDelegate(typeof(Action<T, TValue?>));
             return (Action<T, TValue?>)method;
         }
-        //public static Action<T, object?>? GenerateSetter<T>(PropertyInfo propertyInfo)
-        //{
-        //    if (propertyInfo.ReflectedType == null || propertyInfo.DeclaringType == null)
-        //        return null;
-
-        //    if (!propertyInfo.CanWrite)
-        //        return null;
-
-        //    var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Setter`", null, new Type[] { propertyInfo.DeclaringType, typeof(object) }, true);
-        //    var il = dynamicMethod.GetILGenerator();
-
-        //    var setMethod = propertyInfo.GetSetMethod(true);
-        //    if (setMethod == null)
-        //        return null;
-
-        //    if (!setMethod.IsStatic)
-        //        il.Emit(OpCodes.Ldarg_0);
-
-        //    il.Emit(OpCodes.Ldarg_1);
-        //    if (propertyInfo.PropertyType.IsValueType)
-        //        il.Emit(OpCodes.Unbox_Any, propertyInfo.PropertyType);
-        //    else
-        //        il.Emit(OpCodes.Castclass, propertyInfo.PropertyType);
-
-        //    if (setMethod.IsFinal || !setMethod.IsVirtual)
-        //        il.Emit(OpCodes.Call, setMethod);
-        //    else
-        //        il.Emit(OpCodes.Callvirt, setMethod);
-
-        //    il.Emit(OpCodes.Ret);
-
-        //    var method = dynamicMethod.CreateDelegate(typeof(Action<T, object?>));
-        //    return (Action<T, object?>)method;
-        //}
 
         public static Func<object, object?>? GenerateGetter(FieldInfo fieldInfo)
         {
             if (fieldInfo.ReflectedType == null)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Getter", typeof(object), new Type[] { typeof(object) }, true);
+            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Getter", typeof(object), new Type[] { typeof(object) }, typeof(object), true);
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
@@ -254,7 +187,7 @@ namespace Zerra.Reflection
             if (fieldInfo.ReflectedType == null || fieldInfo.DeclaringType == null)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Getter`2", fieldInfo.FieldType, new Type[] { fieldInfo.ReflectedType }, true);
+            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Getter`2", fieldInfo.FieldType, new Type[] { fieldInfo.ReflectedType }, fieldInfo.ReflectedType, true);
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
@@ -267,36 +200,13 @@ namespace Zerra.Reflection
             var method = dynamicMethod.CreateDelegate(typeof(Func<T, TValue?>));
             return (Func<T, TValue?>)method;
         }
-        //public static Func<T, object?>? GenerateGetter<T>(FieldInfo fieldInfo)
-        //{
-        //    if (fieldInfo.ReflectedType == null)
-        //        return null;
-
-        //    var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Getter`1", typeof(object), new Type[] { fieldInfo.ReflectedType }, true);
-        //    var il = dynamicMethod.GetILGenerator();
-
-        //    if (!fieldInfo.IsStatic)
-        //        il.Emit(OpCodes.Ldarg_0);
-
-        //    il.Emit(OpCodes.Ldfld, fieldInfo);
-
-        //    if (fieldInfo.FieldType.IsValueType)
-        //        il.Emit(OpCodes.Box, fieldInfo.FieldType);
-        //    else
-        //        il.Emit(OpCodes.Castclass, fieldInfo.FieldType);
-
-        //    il.Emit(OpCodes.Ret);
-
-        //    var method = dynamicMethod.CreateDelegate(typeof(Func<T, object?>));
-        //    return (Func<T, object?>)method;
-        //}
 
         public static Action<object, object?>? GenerateSetter(FieldInfo fieldInfo)
         {
             if (fieldInfo.ReflectedType == null)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter", null, new Type[] { typeof(object), typeof(object) }, true);
+            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter", null, new Type[] { typeof(object), typeof(object) }, typeof(object), true);
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
@@ -329,7 +239,7 @@ namespace Zerra.Reflection
             if (fieldInfo.ReflectedType == null)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`2", null, new Type[] { fieldInfo.ReflectedType, fieldInfo.FieldType }, true);
+            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`2", null, new Type[] { fieldInfo.ReflectedType, fieldInfo.FieldType }, fieldInfo.ReflectedType, true);
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
@@ -347,33 +257,6 @@ namespace Zerra.Reflection
             var method = dynamicMethod.CreateDelegate(typeof(Action<T, TValue?>));
             return (Action<T, TValue?>)method;
         }
-        //public static Action<T, object?>? GenerateSetter<T>(FieldInfo fieldInfo)
-        //{
-        //    if (fieldInfo.ReflectedType == null)
-        //        return null;
-
-        //    var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`1", null, new Type[] { fieldInfo.ReflectedType, typeof(object) }, true);
-        //    var il = dynamicMethod.GetILGenerator();
-
-        //    if (!fieldInfo.IsStatic)
-        //        il.Emit(OpCodes.Ldarg_0);
-
-        //    il.Emit(OpCodes.Ldarg_1);
-        //    if (fieldInfo.FieldType.IsValueType)
-        //        il.Emit(OpCodes.Unbox_Any, fieldInfo.FieldType);
-        //    else
-        //        il.Emit(OpCodes.Castclass, fieldInfo.FieldType);
-
-        //    if (!fieldInfo.IsStatic)
-        //        il.Emit(OpCodes.Stfld, fieldInfo);
-        //    else
-        //        il.Emit(OpCodes.Stsfld, fieldInfo);
-
-        //    il.Emit(OpCodes.Ret);
-
-        //    var method = dynamicMethod.CreateDelegate(typeof(Action<T, object?>));
-        //    return (Action<T, object?>)method;
-        //}
 
         public static Func<object?[]?, object>? GenerateCreator(ConstructorInfo constructorInfo)
         {
