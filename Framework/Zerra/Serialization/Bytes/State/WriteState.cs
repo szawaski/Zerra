@@ -12,11 +12,14 @@ namespace Zerra.Serialization
         public WriteFrame CurrentFrame;
         public bool Ended;
 
-        public void PushFrame(ByteConverter converter, bool nullFlags)
+        public void PushFrame(ByteConverter converter, bool nullFlags, object? parent)
         {
-            var frame = new WriteFrame();
-            frame.Converter = converter;
-            frame.NullFlags = nullFlags;
+            var frame = new WriteFrame()
+            {
+                Converter = converter,
+                NullFlags = nullFlags,
+                Parent = parent
+            };
             stack ??= new Stack<WriteFrame>();
             stack.Push(CurrentFrame);
             CurrentFrame = frame;

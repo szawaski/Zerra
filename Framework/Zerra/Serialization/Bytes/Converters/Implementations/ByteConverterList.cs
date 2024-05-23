@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Zerra.IO;
 using Zerra.Reflection;
@@ -120,7 +121,76 @@ namespace Zerra.Serialization
 
         protected override bool Write(ref ByteWriter writer, ref WriteState state, List<TValue?>? obj)
         {
-            throw new NotImplementedException();
+            if (obj == null)
+                throw new NotSupportedException();
+
+            int sizeNeeded;
+
+            if (!state.CurrentFrame.EnumerableLength.HasValue)
+            {
+                int length;
+
+                if (typeDetail.IsICollection)
+                {
+                    var collection = (ICollection)obj;
+                    length = collection.Count;
+                }
+                else if (typeDetail.IsICollectionGeneric)
+                {
+                    length = (int)typeDetail.GetMember("Count").Getter(obj)!;
+                }
+                else
+                {
+                    var enumerable = (IEnumerable)obj;
+                    length = 0;
+                    foreach (var item in enumerable)
+                        length++;
+                }
+
+                if (!writer.TryWrite(length, out sizeNeeded))
+                {
+                    state.BytesNeeded = sizeNeeded;
+                    return false;
+                }
+                state.CurrentFrame.EnumerableLength = length;
+            }
+
+            if (state.CurrentFrame.EnumerableLength > 0)
+            {
+                state.CurrentFrame.Enumerator ??= obj!.GetEnumerator();
+
+                while (state.CurrentFrame.EnumeratorInProgress || state.CurrentFrame.Enumerator.MoveNext())
+                {
+                    var value = state.CurrentFrame.Enumerator.Current;
+                    state.CurrentFrame.EnumeratorInProgress = true;
+
+                    if (value == null)
+                    {
+                        if (!writer.TryWriteNull(out sizeNeeded))
+                        {
+                            state.BytesNeeded = sizeNeeded;
+                            return false;
+                        }
+                        state.CurrentFrame.EnumeratorInProgress = false;
+                        continue;
+                    }
+                    else
+                    {
+                        if (!writer.TryWriteNotNull(out sizeNeeded))
+                        {
+                            state.BytesNeeded = sizeNeeded;
+                            return false;
+                        }
+                    }
+
+                    state.CurrentFrame.EnumeratorInProgress = false;
+                    var frame = WriteFrameFromType(ref state, value, typeDetail.IEnumerableGenericInnerTypeDetail, false, false);
+                    state.PushFrame(frame);
+                    return;
+                }
+            }
+
+            return true;
         }
     }
 }

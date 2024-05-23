@@ -17,7 +17,7 @@ namespace Zerra.Serialization
         }
         public override sealed void Write(ref ByteWriter writer, ref WriteState state)
         {
-            Write(ref writer, ref state, (TParent?)state.CurrentFrame.Object);
+            Write(ref writer, ref state, (TParent?)state.CurrentFrame.Parent);
         }
 
         public abstract void Read(ref ByteReader reader, ref ReadState state, TParent? parent);

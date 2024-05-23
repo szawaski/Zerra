@@ -232,14 +232,12 @@ namespace Zerra.Serialization
         {
             var nullFlags = state.CurrentFrame.NullFlags;
 
-            var value = state.CurrentFrame.Object;
-
             int sizeNeeded;
             if (!state.CurrentFrame.HasWrittenIsNull)
             {
                 if (nullFlags)
                 {
-                    if (value == null)
+                    if (obj == null)
                     {
                         if (!writer.TryWriteNull(out sizeNeeded))
                         {
@@ -304,7 +302,7 @@ namespace Zerra.Serialization
                 state.CurrentFrame.EnumeratorInProgress = false;
 
                 var converter = ByteConverterFactory<TValue>.GetMayNeedTypeInfo(options, indexProperty.Value.Member.TypeDetail, indexProperty.Value.Converter);
-                state.PushFrame(converter, false);
+                state.PushFrame(converter, false, obj);
                 converter.Write(ref writer, ref state, obj);
                 if (state.BytesNeeded > 0)
                     return false;

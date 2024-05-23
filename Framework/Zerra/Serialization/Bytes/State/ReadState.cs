@@ -15,9 +15,11 @@ namespace Zerra.Serialization
 
         public void PushFrame(ByteConverter converter, bool nullFlags)
         {
-            var frame = new ReadFrame();
-            frame.Converter = converter;
-            frame.NullFlags = nullFlags;
+            var frame = new ReadFrame()
+            {
+                Converter = converter,
+                NullFlags = nullFlags
+            };
             stack ??= new Stack<ReadFrame>();
             stack.Push(CurrentFrame);
             CurrentFrame = frame;
