@@ -10,12 +10,11 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Xml.Linq;
 using Zerra.Collections;
 
 namespace Zerra.Reflection
 {
-    public abstract class TypeDetail
+    public class TypeDetail
     {
         protected readonly object locker = new();
 
@@ -811,6 +810,8 @@ namespace Zerra.Reflection
             }
         }
 
+        public virtual Delegate? CreatorTyped => throw new NotSupportedException();
+
         public override string ToString()
         {
             return Type.GetNiceFullName();
@@ -832,9 +833,16 @@ namespace Zerra.Reflection
         private static readonly Type typeDetailT = typeof(TypeDetail<>);
         internal static TypeDetail New(Type type)
         {
-            var typeDetailGeneric = typeDetailT.MakeGenericType(type);
-            var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { type });
-            return (TypeDetail)obj;
+            if (!type.IsGenericType || type.IsConstructedGenericType)
+            {
+                var typeDetailGeneric = typeDetailT.MakeGenericType(type);
+                var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { type });
+                return (TypeDetail)obj;
+            }
+            else
+            {
+                return new TypeDetail(type);
+            }
         }
 
         protected static bool IsSerializableType(TypeDetail typeDetail)

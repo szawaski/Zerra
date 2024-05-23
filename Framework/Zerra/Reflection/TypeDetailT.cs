@@ -14,63 +14,6 @@ namespace Zerra.Reflection
 {
     public sealed class TypeDetail<T> : TypeDetail
     {
-        //private MemberDetail<T>[]? memberDetails = null;
-        //public new IReadOnlyList<MemberDetail<T>> MemberDetails
-        //{
-        //    get
-        //    {
-        //        if (memberDetails == null)
-        //        {
-        //            lock (locker)
-        //            {
-        //                if (memberDetails == null)
-        //                {
-        //                    var items = new List<MemberDetail<T>>();
-        //                    if (!Type.IsGenericTypeDefinition)
-        //                    {
-        //                        IEnumerable<PropertyInfo> properties = Type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        //                        IEnumerable<FieldInfo> fields = Type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        //                        if (Type.IsInterface)
-        //                        {
-        //                            foreach (var i in Interfaces)
-        //                            {
-        //                                var iProperties = i.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        //                                var iFields = i.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        //                                var existingPropertyNames = properties.Select(y => y.Name).ToArray();
-        //                                properties = properties.Concat(iProperties.Where(x => !existingPropertyNames.Contains(x.Name)));
-        //                                var existingFieldNames = fields.Select(y => y.Name).ToArray();
-        //                                fields = fields.Concat(iFields.Where(x => !existingFieldNames.Contains(x.Name)));
-        //                            }
-        //                        }
-        //                        foreach (var property in properties)
-        //                        {
-        //                            if (property.GetIndexParameters().Length > 0)
-        //                                continue;
-        //                            MemberDetail<T>? backingMember = null;
-
-        //                            //<{property.Name}>k__BackingField
-        //                            //<{property.Name}>i__Field
-        //                            var backingName = $"<{property.Name}>";
-        //                            var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
-        //                            if (backingField != null)
-        //                                backingMember = MemberDetail<T>.New(property.PropertyType, backingField, null, locker);
-
-        //                            items.Add(MemberDetail<T>.New(property.PropertyType, property, backingMember, locker));
-        //                        }
-        //                        foreach (var field in fields.Where(x => !items.Any(y => y.BackingFieldDetail?.MemberInfo == x)))
-        //                        {
-        //                            items.Add(MemberDetail<T>.New(field.FieldType, field, null, locker));
-        //                        }
-        //                    }
-
-        //                    memberDetails = items.ToArray();
-        //                }
-        //            }
-        //        }
-        //        return memberDetails;
-        //    }
-        //}
-
         private MethodDetail<T>[]? methodDetails = null;
         public new IReadOnlyList<MethodDetail<T>> MethodDetails
         {
@@ -136,92 +79,6 @@ namespace Zerra.Reflection
             }
         }
 
-//        private Dictionary<string, MemberDetail<T>>? membersByName = null;
-//        public new MemberDetail<T> GetMember(string name)
-//        {
-//            if (membersByName == null)
-//            {
-//                lock (locker)
-//                {
-//                    membersByName ??= this.MemberDetails.ToDictionary(x => x.Name);
-//                }
-//            }
-//            if (!this.membersByName.TryGetValue(name, out var member))
-//                throw new Exception($"{Type.Name} does not contain member {name}");
-//            return member;
-//        }
-//        public new bool TryGetMember(string name,
-//#if !NETSTANDARD2_0
-//            [MaybeNullWhen(false)]
-//#endif
-//        out MemberDetail<T> member)
-//        {
-//            if (membersByName == null)
-//            {
-//                lock (locker)
-//                {
-//                    membersByName ??= this.MemberDetails.ToDictionary(x => x.Name);
-//                }
-//            }
-//            return this.membersByName.TryGetValue(name, out member);
-//        }
-
-//        private readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail<T>?> methodLookups = new();
-//        private MethodDetail<T>? GetMethodInternal(string name, Type[]? parameterTypes = null)
-//        {
-//            var key = new TypeKey(name, parameterTypes);
-//            var method = methodLookups.GetOrAdd(key, (_) =>
-//            {
-//                foreach (var methodDetail in MethodDetails)
-//                {
-//                    if (methodDetail.Name == name && (parameterTypes == null || methodDetail.ParametersInfo.Count == parameterTypes.Length))
-//                    {
-//                        var match = true;
-//                        if (parameterTypes != null)
-//                        {
-//                            for (var i = 0; i < parameterTypes.Length; i++)
-//                            {
-//                                if (parameterTypes[i].Name != methodDetail.ParametersInfo[i].ParameterType.Name || parameterTypes[i].Namespace != methodDetail.ParametersInfo[i].ParameterType.Namespace)
-//                                {
-//                                    match = false;
-//                                    break;
-//                                }
-//                            }
-//                        }
-//                        if (match)
-//                            return methodDetail;
-//                    }
-//                }
-//                return null;
-//            });
-//            return method;
-//        }
-//        public new MethodDetail<T> GetMethod(string name, Type[]? parameterTypes = null)
-//        {
-//            var method = GetMethodInternal(name, parameterTypes);
-//            if (method == null)
-//                throw new MissingMethodException($"{Type.Name}.{name} method not found for the given parameters {(parameterTypes == null || parameterTypes.Length == 0 ? "(none)" : String.Join(",", parameterTypes.Select(x => x.GetNiceName())))}");
-//            return method;
-//        }
-//        public new bool TryGetMethod(string name,
-//#if !NETSTANDARD2_0
-//            [MaybeNullWhen(false)]
-//#endif
-//        out MethodDetail<T> method)
-//        {
-//            method = GetMethodInternal(name, null);
-//            return method != null;
-//        }
-//        public new bool TryGetMethod(string name, Type[] parameterTypes,
-//#if !NETSTANDARD2_0
-//            [MaybeNullWhen(false)]
-//#endif
-//        out MethodDetail<T> method)
-//        {
-//            method = GetMethodInternal(name, parameterTypes);
-//            return method != null;
-//        }
-
         private bool creatorLoaded = false;
         private Func<T>? creator = null;
         public new Func<T> Creator
@@ -270,6 +127,8 @@ namespace Zerra.Reflection
                 }
             }
         }
+
+        public override Delegate? CreatorTyped => Creator;
 
         private readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetail<T>?> constructorLookups = new();
         private ConstructorDetail<T>? GetConstructorInternal(Type[]? parameterTypes)
@@ -326,82 +185,6 @@ namespace Zerra.Reflection
             constructor = GetConstructorInternal(parameterTypes);
             return constructor != null;
         }
-
-//        private IReadOnlyList<MemberDetail<T>>? serializableMemberDetails = null;
-//        public new IReadOnlyList<MemberDetail<T>> SerializableMemberDetails
-//        {
-//            get
-//            {
-//                if (serializableMemberDetails == null)
-//                {
-//                    lock (locker)
-//                    {
-//                        serializableMemberDetails ??= MemberDetails.Where(x => x.IsBacked && IsSerializableType(x.TypeDetail)).ToArray();
-//                    }
-//                }
-//                return serializableMemberDetails;
-//            }
-//        }
-
-//        private Dictionary<string, MemberDetail<T>>? serializableMembersByNameLower = null;
-//        public new MemberDetail<T> GetSerializableMemberCaseInsensitive(string name)
-//        {
-//            if (serializableMembersByNameLower == null)
-//            {
-//                lock (locker)
-//                {
-//                    serializableMembersByNameLower ??= this.SerializableMemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First(), new StringOrdinalIgnoreCaseComparer());
-//                }
-//            }
-//            if (!this.serializableMembersByNameLower.TryGetValue(name, out var member))
-//                throw new Exception($"{Type.Name} does not contain member {name}");
-//            return member;
-//        }
-//        public new bool TryGetSerializableMemberCaseInsensitive(string name,
-//#if !NETSTANDARD2_0
-//            [MaybeNullWhen(false)]
-//#endif
-//         out MemberDetail<T> member)
-//        {
-//            if (serializableMembersByNameLower == null)
-//            {
-//                lock (locker)
-//                {
-//                    serializableMembersByNameLower ??= this.SerializableMemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First(), new StringOrdinalIgnoreCaseComparer());
-//                }
-//            }
-//            return this.serializableMembersByNameLower.TryGetValue(name, out member);
-//        }
-
-//        private Dictionary<string, MemberDetail<T>>? membersFieldBackedByName = null;
-//        public new MemberDetail<T> GetMemberFieldBacked(string name)
-//        {
-//            if (membersFieldBackedByName == null)
-//            {
-//                lock (locker)
-//                {
-//                    membersFieldBackedByName ??= MemberDetails.ToDictionary(x => x.Name);
-//                }
-//            }
-//            if (!this.membersFieldBackedByName.TryGetValue(name, out var member))
-//                throw new Exception($"{Type.Name} does not contain member {name}");
-//            return member;
-//        }
-//        public new bool TryGetGetMemberFieldBacked(string name,
-//#if !NETSTANDARD2_0
-//            [MaybeNullWhen(false)]
-//#endif
-//        out MemberDetail<T> member)
-//        {
-//            if (membersFieldBackedByName == null)
-//            {
-//                lock (locker)
-//                {
-//                    membersFieldBackedByName ??= MemberDetails.ToDictionary(x => x.Name);
-//                }
-//            }
-//            return this.membersFieldBackedByName.TryGetValue(name, out member);
-//        }
 
         internal TypeDetail(Type type) : base(type) { }
     }

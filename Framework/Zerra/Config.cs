@@ -47,13 +47,12 @@ namespace Zerra
             var executingAssemblyName = executingAssembly.GetName().Name;
 
             entryNameSpace = entryAssemblyName != null ? entryAssemblyName.Split('.')[0] + '.' : null;
-            frameworkNameSpace = executingAssemblyName != null ? executingAssemblyName?.Split('.')[0] + '.' : null;
             executingAssemblyPath = Path.GetDirectoryName(executingAssembly.Location);
 
-            if (!String.IsNullOrWhiteSpace(frameworkNameSpace))
-                DiscoveryAssemblyNameStartsWiths = entryNameSpace != null ? (new string[] { entryNameSpace, frameworkNameSpace }) : (new string[] { frameworkNameSpace });
+            if (!String.IsNullOrWhiteSpace(entryNameSpace))
+                DiscoveryAssemblyNameStartsWiths = new string[] { "Zerra,", "Zerra.", entryNameSpace };
             else
-                DiscoveryAssemblyNameStartsWiths = entryNameSpace != null ? (new string[] { entryNameSpace }) : Array.Empty<string>();
+                DiscoveryAssemblyNameStartsWiths = new string[] { "Zerra,", "Zerra." };
 
             discoveryStarted = false;
         }
