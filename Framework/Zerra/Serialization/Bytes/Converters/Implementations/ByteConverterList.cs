@@ -18,6 +18,8 @@ namespace Zerra.Serialization
         private ByteConverter<List<TValue?>> readConverter = null!;
         private ByteConverter<IEnumerator<TValue?>> writeConverter = null!;
 
+        private bool valueIsNullable;
+
         public override void Setup()
         {
             var parent = TypeAnalyzer<List<TValue?>>.GetTypeDetail();
@@ -36,6 +38,8 @@ namespace Zerra.Serialization
             Func<IEnumerator<TValue?>, TValue?> getter = (parent) => parent.Current;
             var writeConverterRoot = ByteConverterFactory<IEnumerator<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, parent, getter, null);
             writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, writeConverterRoot);
+
+            valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
         }
 
         protected override bool Read(ref ByteReader reader, ref ReadState state, out List<TValue?>? obj)
@@ -50,6 +54,13 @@ namespace Zerra.Serialization
                     obj = default;
                     return false;
                 }
+
+                if (length == 0)
+                {
+                    obj = (List<TValue?>?)state.CurrentFrame.ResultObject;
+                    return true;
+                }
+
                 state.CurrentFrame.EnumerableLength = length;
 
                 if (!state.CurrentFrame.DrainBytes)
@@ -61,12 +72,6 @@ namespace Zerra.Serialization
                 {
                     obj = default;
                 }
-
-                if (length == 0)
-                {
-                    obj = (List<TValue?>?)state.CurrentFrame.ResultObject;
-                    return true;
-                }
             }
             else
             {
@@ -77,45 +82,15 @@ namespace Zerra.Serialization
 
             for (; ; )
             {
-                if (!state.CurrentFrame.HasNullChecked)
-                {
-                    if (!reader.TryReadIsNull(out var isNull, out sizeNeeded))
-                    {
-                        state.BytesNeeded = sizeNeeded;
-                        obj = default;
-                        return false;
-                    }
+                state.PushFrame(readConverter, valueIsNullable);
+                readConverter.Read(ref reader, ref state, obj);
+                if (state.BytesNeeded > 0)
+                    return false;
 
-                    if (isNull)
-                    {
-                        obj!.Add(default);
-                        state.CurrentFrame.EnumerablePosition++;
-                        if (state.CurrentFrame.EnumerablePosition == length)
-                        {
-                            obj = default;
-                            return true;
-                        }
-                        continue;
-                    }
-                    state.CurrentFrame.HasNullChecked = true;
-                }
-
-                if (!state.CurrentFrame.HasObjectStarted)
-                {
-                    state.PushFrame(readConverter, false);
-                    readConverter.Read(ref reader, ref state, obj);
-                    if (state.BytesNeeded > 0)
-                        return false;
-                }
-
-                state.CurrentFrame.HasObjectStarted = false;
-                state.CurrentFrame.HasNullChecked = false;
                 state.CurrentFrame.EnumerablePosition++;
 
                 if (state.CurrentFrame.EnumerablePosition == length)
-                {
                     return true;
-                }
             }
         }
 
@@ -128,24 +103,7 @@ namespace Zerra.Serialization
 
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
-                int length;
-
-                if (typeDetail.IsICollection)
-                {
-                    var collection = (ICollection)obj;
-                    length = collection.Count;
-                }
-                else if (typeDetail.IsICollectionGeneric)
-                {
-                    length = (int)typeDetail.GetMember("Count").Getter(obj)!;
-                }
-                else
-                {
-                    var enumerable = (IEnumerable)obj;
-                    length = 0;
-                    foreach (var item in enumerable)
-                        length++;
-                }
+                var length = obj.Count;
 
                 if (!writer.TryWrite(length, out sizeNeeded))
                 {
@@ -157,36 +115,18 @@ namespace Zerra.Serialization
 
             if (state.CurrentFrame.EnumerableLength > 0)
             {
-                state.CurrentFrame.Enumerator ??= obj!.GetEnumerator();
+                state.CurrentFrame.Enumerator ??= obj.GetEnumerator();
 
-                while (state.CurrentFrame.EnumeratorInProgress || state.CurrentFrame.Enumerator.MoveNext())
+                while (state.CurrentFrame.EnumeratorInProgress || state.CurrentFrame.Enumerator!.MoveNext())
                 {
-                    var value = state.CurrentFrame.Enumerator.Current;
                     state.CurrentFrame.EnumeratorInProgress = true;
 
-                    if (value == null)
-                    {
-                        if (!writer.TryWriteNull(out sizeNeeded))
-                        {
-                            state.BytesNeeded = sizeNeeded;
-                            return false;
-                        }
-                        state.CurrentFrame.EnumeratorInProgress = false;
-                        continue;
-                    }
-                    else
-                    {
-                        if (!writer.TryWriteNotNull(out sizeNeeded))
-                        {
-                            state.BytesNeeded = sizeNeeded;
-                            return false;
-                        }
-                    }
+                    state.PushFrame(writeConverter, valueIsNullable, obj);
+                    readConverter.Write(ref writer, ref state, obj);
+                    if (state.BytesNeeded > 0)
+                        return false;
 
                     state.CurrentFrame.EnumeratorInProgress = false;
-                    var frame = WriteFrameFromType(ref state, value, typeDetail.IEnumerableGenericInnerTypeDetail, false, false);
-                    state.PushFrame(frame);
-                    return;
                 }
             }
 

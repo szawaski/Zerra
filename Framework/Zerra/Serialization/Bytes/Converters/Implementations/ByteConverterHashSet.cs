@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Zerra.IO;
 using Zerra.Reflection;
@@ -16,6 +17,8 @@ namespace Zerra.Serialization
         private Func<int, HashSet<TValue?>> creator = null!;
         private ByteConverter<HashSet<TValue?>> readConverter = null!;
         private ByteConverter<IEnumerator<TValue?>> writeConverter = null!;
+
+        private bool valueIsNullable;
 
         public override void Setup()
         {
@@ -35,6 +38,8 @@ namespace Zerra.Serialization
             Func<IEnumerator<TValue?>, TValue?> getter = (parent) => parent.Current;
             var writeConverterRoot = ByteConverterFactory<IEnumerator<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, parent, getter, null);
             writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, writeConverterRoot);
+
+            valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
         }
 
         protected override bool Read(ref ByteReader reader, ref ReadState state, out HashSet<TValue?>? obj)
@@ -49,6 +54,13 @@ namespace Zerra.Serialization
                     obj = default;
                     return false;
                 }
+
+                if (length == 0)
+                {
+                    obj = (HashSet<TValue?>?)state.CurrentFrame.ResultObject;
+                    return true;
+                }
+
                 state.CurrentFrame.EnumerableLength = length;
 
                 if (!state.CurrentFrame.DrainBytes)
@@ -60,12 +72,6 @@ namespace Zerra.Serialization
                 {
                     obj = default;
                 }
-
-                if (length == 0)
-                {
-                    obj = (HashSet<TValue?>?)state.CurrentFrame.ResultObject;
-                    return true;
-                }
             }
             else
             {
@@ -76,51 +82,55 @@ namespace Zerra.Serialization
 
             for (; ; )
             {
-                if (!state.CurrentFrame.HasNullChecked)
-                {
-                    if (!reader.TryReadIsNull(out var isNull, out sizeNeeded))
-                    {
-                        state.BytesNeeded = sizeNeeded;
-                        obj = default;
-                        return false;
-                    }
+                state.PushFrame(readConverter, valueIsNullable);
+                readConverter.Read(ref reader, ref state, obj);
+                if (state.BytesNeeded > 0)
+                    return false;
 
-                    if (isNull)
-                    {
-                        obj!.Add(default);
-                        state.CurrentFrame.EnumerablePosition++;
-                        if (state.CurrentFrame.EnumerablePosition == length)
-                        {
-                            obj = default;
-                            return true;
-                        }
-                        continue;
-                    }
-                    state.CurrentFrame.HasNullChecked = true;
-                }
-
-                if (!state.CurrentFrame.HasObjectStarted)
-                {
-                    state.PushFrame(readConverter, false);
-                    readConverter.Read(ref reader, ref state, obj);
-                    if (state.BytesNeeded > 0)
-                        return false;
-                }
-
-                state.CurrentFrame.HasObjectStarted = false;
-                state.CurrentFrame.HasNullChecked = false;
                 state.CurrentFrame.EnumerablePosition++;
 
                 if (state.CurrentFrame.EnumerablePosition == length)
-                {
                     return true;
-                }
             }
         }
 
         protected override bool Write(ref ByteWriter writer, ref WriteState state, HashSet<TValue?>? obj)
         {
-            throw new NotImplementedException();
+            if (obj == null)
+                throw new NotSupportedException();
+
+            int sizeNeeded;
+
+            if (!state.CurrentFrame.EnumerableLength.HasValue)
+            {
+                var length = obj.Count;
+
+                if (!writer.TryWrite(length, out sizeNeeded))
+                {
+                    state.BytesNeeded = sizeNeeded;
+                    return false;
+                }
+                state.CurrentFrame.EnumerableLength = length;
+            }
+
+            if (state.CurrentFrame.EnumerableLength > 0)
+            {
+                state.CurrentFrame.Enumerator ??= obj.GetEnumerator();
+
+                while (state.CurrentFrame.EnumeratorInProgress || state.CurrentFrame.Enumerator!.MoveNext())
+                {
+                    state.CurrentFrame.EnumeratorInProgress = true;
+
+                    state.PushFrame(writeConverter, valueIsNullable, obj);
+                    readConverter.Write(ref writer, ref state, obj);
+                    if (state.BytesNeeded > 0)
+                        return false;
+
+                    state.CurrentFrame.EnumeratorInProgress = false;
+                }
+            }
+
+            return true;
         }
     }
 }

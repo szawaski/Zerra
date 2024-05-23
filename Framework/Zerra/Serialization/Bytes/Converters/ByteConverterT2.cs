@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 
 namespace Zerra.Serialization
 {
-    internal abstract class ByteConverter<TParent, TValue> : ByteConverter<TParent>
+    internal abstract class ByteConverter<TParent, TValue> : ByteConverter<TParent>, IByteConverterDiscoverable<TValue>
     {
         protected new TypeDetail<TValue> typeDetail { get; private set; } = null!;
         private new Func<TParent, TValue?>? getter;
@@ -18,10 +18,6 @@ namespace Zerra.Serialization
         protected override sealed void SetupRoot()
         {
             if (base.typeDetail == null)
-                throw new InvalidOperationException();
-            if (base.getter == null)
-                throw new InvalidOperationException();
-            if (base.setter == null)
                 throw new InvalidOperationException();
 
             this.typeDetail = (TypeDetail<TValue>)base.typeDetail;

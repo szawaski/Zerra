@@ -7,7 +7,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
-    internal abstract class ByteConverter<TParent> : ByteConverter, IByteConverterDiscoverable<TParent>
+    internal abstract class ByteConverter<TParent> : ByteConverter
     {
         protected readonly TypeDetail parentTypeDetail = TypeAnalyzer<TParent>.GetTypeDetail();
 

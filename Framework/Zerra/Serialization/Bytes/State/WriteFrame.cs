@@ -15,6 +15,7 @@ namespace Zerra.Serialization
         //public WriteFrameType FrameType;
 
         public object? Parent;
+        public object? Object;
 
         public bool HasWrittenPropertyType;
         public bool HasWrittenIsNull;

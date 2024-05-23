@@ -62,12 +62,12 @@ namespace Zerra.Serialization
                 {
                     if (options.HasFlag(ByteConverterOptions.IndexSizeUInt16))
                     {
-                        if (member.Item2!.Index > UInt16.MaxValue - indexOffset)
+                        if (member.Item2?.Index > UInt16.MaxValue - indexOffset)
                             throw new Exception("Index attribute too large for the index size");
                     }
                     else
                     {
-                        if (member.Item2!.Index > Byte.MaxValue - indexOffset)
+                        if (member.Item2?.Index > Byte.MaxValue - indexOffset)
                             throw new Exception("Index attribute too large for the index size");
                     }
 
@@ -87,9 +87,7 @@ namespace Zerra.Serialization
 
         protected override bool Read(ref ByteReader reader, ref ReadState state, out TValue? obj)
         {
-            var nullFlags = state.CurrentFrame.NullFlags;
-
-            if (nullFlags)
+            if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasNullChecked)
             {
                 if (!reader.TryReadIsNull(out var isNull, out var sizeNeeded))
                 {
@@ -103,6 +101,8 @@ namespace Zerra.Serialization
                     obj = default;
                     return true;
                 }
+
+                state.CurrentFrame.HasNullChecked = true;
             }
 
             if (!state.CurrentFrame.HasObjectStarted)
@@ -230,27 +230,22 @@ namespace Zerra.Serialization
 
         protected override bool Write(ref ByteWriter writer, ref WriteState state, TValue? obj)
         {
-            var nullFlags = state.CurrentFrame.NullFlags;
-
             int sizeNeeded;
-            if (!state.CurrentFrame.HasWrittenIsNull)
+            if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasWrittenIsNull)
             {
-                if (nullFlags)
+                if (obj == null)
                 {
-                    if (obj == null)
-                    {
-                        if (!writer.TryWriteNull(out sizeNeeded))
-                        {
-                            state.BytesNeeded = sizeNeeded;
-                            return false;
-                        }
-                        return true;
-                    }
-                    if (!writer.TryWriteNotNull(out sizeNeeded))
+                    if (!writer.TryWriteNull(out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return false;
                     }
+                    return true;
+                }
+                if (!writer.TryWriteNotNull(out sizeNeeded))
+                {
+                    state.BytesNeeded = sizeNeeded;
+                    return false;
                 }
                 state.CurrentFrame.HasWrittenIsNull = true;
             }
@@ -361,7 +356,7 @@ namespace Zerra.Serialization
                     {
                         lock (this)
                         {
-                            converter ??= ByteConverterFactory<TValue>.Get(options, Member.TypeDetail, parent, Member.Getter, Member.Setter);
+                            converter ??= ByteConverterFactory<TValue>.Get(options, Member.TypeDetail, parent, Member.GetterTyped, Member.SetterTyped);
                         }
                     }
                     return converter;

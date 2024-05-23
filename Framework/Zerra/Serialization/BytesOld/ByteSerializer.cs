@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Zerra.Collections;
 
 namespace Zerra.Serialization
 {
@@ -35,32 +36,44 @@ namespace Zerra.Serialization
     /// <summary>
     /// Converts objects to bytes and back with minimal size and maximum speed.
     /// </summary>
-    public static partial class ByteSerializer
+    public static partial class ByteSerializerOld
     {
         private const int defaultBufferSize = 8 * 1024;
 #if DEBUG
         public static bool Testing { get; set; }
 #endif
 
+        private static readonly Type genericListType = typeof(List<>);
+        private static readonly Type genericHashSetType = typeof(HashSet<>);
         private static readonly MethodInfo enumerableToArrayMethod = typeof(Enumerable).GetMethod("ToArray") ?? throw new Exception($"{nameof(Enumerable)}.ToArray method not found");
         private static readonly Type enumerableType = typeof(IEnumerable<>);
         private static readonly Type dictionaryType = typeof(Dictionary<,>);
 
         private static readonly Encoding defaultEncoding = Encoding.UTF8;
 
+        //In byte array, object properties start with index values from SerializerIndexAttribute or property order
+        private const ushort indexOffset = 1; //offset index values to reseve for Flag: 0
+
+        //Flag: 0 indicating the end of an object
+        private const ushort endObjectFlagUShort = 0;
+        private const byte endObjectFlagByte = 0;
+        private static readonly byte[] endObjectFlagUInt16 = new byte[2] { 0, 0 };
+
         private static readonly ByteSerializerOptions defaultOptions = new();
-        private static ByteConverterOptions GetByteConverterOptions(ByteSerializerOptions options)
+
+        private static readonly ConcurrentFactoryDictionary<int, ConcurrentFactoryDictionary<Type, SerializerTypeDetail>> typeInfoCache = new();
+        private static SerializerTypeDetail GetTypeInformation(Type type, ByteSerializerIndexSize indexSize, bool ignoreIndexAttribute)
         {
-            var optionsEnum = ByteConverterOptions.None;
-            if (options.UsePropertyNames)
-                optionsEnum |= ByteConverterOptions.UsePropertyNames;
-            if (options.IncludePropertyTypes)
-                optionsEnum |= ByteConverterOptions.IncludePropertyTypes;
-            if (options.IgnoreIndexAttribute)
-                optionsEnum |= ByteConverterOptions.IgnoreIndexAttribute;
-            if (options.IndexSize == ByteSerializerIndexSize.UInt16)
-                optionsEnum |= ByteConverterOptions.IndexSizeUInt16;
-            return optionsEnum;
+            var dictionarySetIndex = ((int)indexSize + 1) * (ignoreIndexAttribute ? 1 : 2);
+            var dictionarySet = typeInfoCache.GetOrAdd(dictionarySetIndex, (_) =>
+            {
+                return new ConcurrentFactoryDictionary<Type, SerializerTypeDetail>();
+            });
+            var typeInfo = dictionarySet.GetOrAdd(type, (_) =>
+            {
+                return new SerializerTypeDetail(indexSize, ignoreIndexAttribute, type);
+            });
+            return typeInfo;
         }
     }
 }
