@@ -9,9 +9,10 @@ namespace Zerra.Serialization
 {
     internal sealed class WriteFrame
     {
-        public ByteConverter? TypeDetail;
+        public ByteConverter Converter;
+        //public ByteConverter? TypeDetail;
         public bool NullFlags;
-        public WriteFrameType FrameType;
+        //public WriteFrameType FrameType;
 
         public object? Object;
 
@@ -20,8 +21,7 @@ namespace Zerra.Serialization
         public int? EnumerableLength;
         public bool ObjectInProgress;
 
-        public IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember>>? MemberEnumerator;
-        public IEnumerator? ObjectEnumerator;
-        public bool EnumeratorObjectInProgress;
+        public IEnumerator? Enumerator;
+        public bool EnumeratorInProgress;
     }
 }

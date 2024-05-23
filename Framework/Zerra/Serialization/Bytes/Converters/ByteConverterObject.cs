@@ -15,6 +15,9 @@ namespace Zerra.Serialization
         private readonly Dictionary<ushort, ByteConverterObjectMember<TValue>> propertiesByIndex = new();
         private readonly Dictionary<string, ByteConverterObjectMember<TValue>> propertiesByName = new();
 
+        private bool usePropertyNames;
+        private bool indexSizeUInt16;
+
         public override void Setup()
         {
             var memberSets = new List<Tuple<MemberDetail, SerializerIndexAttribute?, NonSerializedAttribute?>>();
@@ -77,6 +80,9 @@ namespace Zerra.Serialization
                     orderIndex++;
                 }
             }
+
+            this.usePropertyNames = options.HasFlag(ByteConverterOptions.UsePropertyNames);
+            this.indexSizeUInt16 = options.HasFlag(ByteConverterOptions.IndexSizeUInt16);
         }
 
         protected override bool Read(ref ByteReader reader, ref ReadState state, out TValue? obj)
@@ -113,9 +119,6 @@ namespace Zerra.Serialization
                 obj = (TValue?)state.CurrentFrame.ResultObject;
             }
 
-            var usePropertyNames = options.HasFlag(ByteConverterOptions.UsePropertyNames);
-            var indexSizeUInt16 = options.HasFlag(ByteConverterOptions.IndexSizeUInt16);
-
             for (; ; )
             {
                 ByteConverterObjectMember<TValue>? property;
@@ -134,8 +137,7 @@ namespace Zerra.Serialization
 
                     if (state.CurrentFrame.StringLength!.Value == 0)
                     {
-                        state.EndFrame();
-                        return false;
+                        return true;
                     }
 
                     if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out var name, out sizeNeeded))
@@ -195,7 +197,6 @@ namespace Zerra.Serialization
 
                     if (propertyIndex == endObjectFlagUShort)
                     {
-                        //state.EndFrame();
                         return true;
                     }
 
@@ -229,7 +230,115 @@ namespace Zerra.Serialization
 
         protected override bool Write(ref ByteWriter writer, ref WriteState state, TValue? obj)
         {
-            throw new NotImplementedException();
+            var nullFlags = state.CurrentFrame.NullFlags;
+
+            var value = state.CurrentFrame.Object;
+
+            int sizeNeeded;
+            if (!state.CurrentFrame.HasWrittenIsNull)
+            {
+                if (nullFlags)
+                {
+                    if (value == null)
+                    {
+                        if (!writer.TryWriteNull(out sizeNeeded))
+                        {
+                            state.BytesNeeded = sizeNeeded;
+                            return false;
+                        }
+                        return true;
+                    }
+                    if (!writer.TryWriteNotNull(out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return false;
+                    }
+                }
+                state.CurrentFrame.HasWrittenIsNull = true;
+            }
+
+            IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember<TValue>>> enumerator;
+            if (state.CurrentFrame.Enumerator == null)
+            {
+                enumerator = propertiesByIndex.GetEnumerator();
+                state.CurrentFrame.Enumerator = enumerator;
+            }
+            else
+            {
+                enumerator = (IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember<TValue>>>)state.CurrentFrame.Enumerator;
+            }
+
+            while (state.CurrentFrame.EnumeratorInProgress || enumerator.MoveNext())
+            {
+                var indexProperty = enumerator.Current;
+                state.CurrentFrame.EnumeratorInProgress = true;
+
+                if (usePropertyNames)
+                {
+                    if (!writer.TryWrite(indexProperty.Value.Member.Name, false, out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return false;
+                    }
+                }
+                else
+                {
+                    if (indexSizeUInt16)
+                    {
+                        if (!writer.TryWrite(indexProperty.Key, out sizeNeeded))
+                        {
+                            state.BytesNeeded = sizeNeeded;
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        if (!writer.TryWrite((byte)indexProperty.Key, out sizeNeeded))
+                        {
+                            state.BytesNeeded = sizeNeeded;
+                            return false;
+                        }
+                    }
+                }
+
+                state.CurrentFrame.EnumeratorInProgress = false;
+
+                var converter = ByteConverterFactory<TValue>.GetMayNeedTypeInfo(options, indexProperty.Value.Member.TypeDetail, indexProperty.Value.Converter);
+                state.PushFrame(converter, false);
+                converter.Write(ref writer, ref state, obj);
+                if (state.BytesNeeded > 0)
+                    return false;
+            }
+
+            if (usePropertyNames)
+            {
+                if (!writer.TryWrite(0, out sizeNeeded))
+                {
+                    state.BytesNeeded = sizeNeeded;
+                    return false;
+                }
+            }
+            else
+            {
+                if (indexSizeUInt16)
+                {
+                    if (!writer.TryWrite(endObjectFlagUInt16, out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return false;
+                    }
+                }
+                else
+                {
+                    if (!writer.TryWrite(endObjectFlagByte, out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
     }
 }

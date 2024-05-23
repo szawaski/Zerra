@@ -880,15 +880,15 @@ namespace Zerra.Serialization
 
             state.CurrentFrame.MemberEnumerator ??= typeDetail.PropertiesByIndex!.GetEnumerator();
 
-            while (state.CurrentFrame.EnumeratorObjectInProgress || state.CurrentFrame.MemberEnumerator.MoveNext())
+            while (state.CurrentFrame.EnumeratorInProgress || state.CurrentFrame.MemberEnumerator.MoveNext())
             {
                 var indexProperty = state.CurrentFrame.MemberEnumerator.Current;
-                state.CurrentFrame.EnumeratorObjectInProgress = true;
+                state.CurrentFrame.EnumeratorInProgress = true;
 
                 var propertyValue = indexProperty.Value.Getter(value!);
                 if (propertyValue == null)
                 {
-                    state.CurrentFrame.EnumeratorObjectInProgress = false;
+                    state.CurrentFrame.EnumeratorInProgress = false;
                     continue;
                 }
 
@@ -923,7 +923,7 @@ namespace Zerra.Serialization
                     }
                 }
 
-                state.CurrentFrame.EnumeratorObjectInProgress = false;
+                state.CurrentFrame.EnumeratorInProgress = false;
                 var frame = WriteFrameFromType(ref state, propertyValue, indexProperty.Value.SerailzierTypeDetails, false, false);
                 state.PushFrame(frame);
                 return;
@@ -1508,10 +1508,10 @@ namespace Zerra.Serialization
 
                 state.CurrentFrame.ObjectEnumerator ??= values!.GetEnumerator();
 
-                while (state.CurrentFrame.EnumeratorObjectInProgress || state.CurrentFrame.ObjectEnumerator.MoveNext())
+                while (state.CurrentFrame.EnumeratorInProgress || state.CurrentFrame.ObjectEnumerator.MoveNext())
                 {
                     var value = state.CurrentFrame.ObjectEnumerator.Current;
-                    state.CurrentFrame.EnumeratorObjectInProgress = true;
+                    state.CurrentFrame.EnumeratorInProgress = true;
 
                     if (value == null)
                     {
@@ -1520,7 +1520,7 @@ namespace Zerra.Serialization
                             state.BytesNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.EnumeratorObjectInProgress = false;
+                        state.CurrentFrame.EnumeratorInProgress = false;
                         continue;
                     }
                     else
@@ -1532,7 +1532,7 @@ namespace Zerra.Serialization
                         }
                     }
 
-                    state.CurrentFrame.EnumeratorObjectInProgress = false;
+                    state.CurrentFrame.EnumeratorInProgress = false;
                     var frame = WriteFrameFromType(ref state, value, typeDetail, false, false);
                     state.PushFrame(frame);
                     return;

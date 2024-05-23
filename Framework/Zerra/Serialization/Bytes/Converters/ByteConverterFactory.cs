@@ -10,20 +10,21 @@ namespace Zerra.Serialization
 {
     internal static class ByteConverterFactory<TParent>
     {
-        private static readonly ConcurrentFactoryDictionary<ByteConverterOptions, ConcurrentFactoryDictionary<Type, ConcurrentFactoryDictionary<string, ByteConverter<TParent>>>> cache = new();
+        private static readonly ConcurrentFactoryDictionary<ByteConverterOptions, ConcurrentFactoryDictionary<Type, ConcurrentFactoryDictionary<Type, ByteConverter<TParent>>>> cache = new();
         private static readonly ConcurrentFactoryDictionary<ByteConverterOptions, ByteConverterTypeInfo<TParent>> cacheByteConverterTypeInfo = new();
+        private static readonly Type defaultType = typeof(object);
 
-        public static ByteConverter<TParent> Get(ByteConverterOptions options, TypeDetail typeDetail, Delegate? getter = null, Delegate? setter = null)
+        public static ByteConverter<TParent> Get(ByteConverterOptions options, TypeDetail typeDetail, TypeDetail? parentTypeDetail = null, Delegate? getter = null, Delegate? setter = null)
         {
             var cache1 = cache.GetOrAdd(options, x => new());
             var cache2 = cache1.GetOrAdd(typeDetail.Type, x => new());
-            var newConverter = cache2.GetOrAdd(member?.Name ?? String.Empty, x =>
+            var newConverter = cache2.GetOrAdd(parentTypeDetail?.Type ?? defaultType, x =>
             {
                 var newConverter = Create(typeDetail);
                 newConverter.Setup(options, typeDetail, getter, setter);
                 return newConverter;
             });
-        
+
             return newConverter;
         }
 
@@ -39,7 +40,7 @@ namespace Zerra.Serialization
                 });
                 return newConverter;
             }
-            return Get(options, typeDetail, null);
+            return Get(options, typeDetail);
         }
 
         public static ByteConverter<TParent> GetMayNeedTypeInfo(ByteConverterOptions options, TypeDetail typeDetail, ByteConverter<TParent> converter)
@@ -49,7 +50,7 @@ namespace Zerra.Serialization
                 var newConverter = cacheByteConverterTypeInfo.GetOrAdd(options, key =>
                 {
                     var newConverter = new ByteConverterTypeInfo<TParent>();
-                    newConverter.Setup(options, null, null);
+                    newConverter.Setup(options, null, null, null);
                     return newConverter;
                 });
                 return newConverter;
@@ -62,7 +63,7 @@ namespace Zerra.Serialization
             var newConverter = cacheByteConverterTypeInfo.GetOrAdd(options, key =>
             {
                 var newConverter = new ByteConverterTypeInfo<TParent>();
-                newConverter.Setup(options, null, null);
+                newConverter.Setup(options, null, null, null);
                 return newConverter;
             });
             return newConverter;

@@ -3,11 +3,14 @@
 // Licensed to you under the MIT license
 
 using Zerra.IO;
+using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
     internal abstract class ByteConverter<TParent> : ByteConverter, IByteConverterDiscoverable<TParent>
     {
+        protected readonly TypeDetail parentTypeDetail = TypeAnalyzer<TParent>.GetTypeDetail();
+
         public override sealed void Read(ref ByteReader reader, ref ReadState state)
         {
             Read(ref reader, ref state, (TParent?)state.CurrentFrame.ResultObject);

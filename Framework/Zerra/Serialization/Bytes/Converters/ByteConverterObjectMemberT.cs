@@ -8,8 +8,8 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterObjectMember<TParent> : ByteConverterObjectMember
     {
-        public ByteConverterObjectMember(ByteConverterOptions options, MemberDetail member)
-            : base(options, member)
+        public ByteConverterObjectMember(ByteConverterOptions options, TypeDetail parent, MemberDetail member)
+            : base(options, parent, member)
         {
 
         }
@@ -23,7 +23,7 @@ namespace Zerra.Serialization
                 {
                     lock (this)
                     {
-                        converter ??= ByteConverterFactory<TParent>.Get(options, Member.TypeDetail, Member.Getter, Member.Setter);
+                        converter ??= ByteConverterFactory<TParent>.Get(options, Member.TypeDetail, parent, Member.Getter, Member.Setter);
                     }
                 }
                 return converter;

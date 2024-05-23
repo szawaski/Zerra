@@ -9,11 +9,13 @@ namespace Zerra.Serialization
     internal abstract class ByteConverterObjectMember
     {
         protected ByteConverterOptions options { get; private set; }
+        protected TypeDetail parent { get; private set; }
         public MemberDetail Member { get; private set; }
 
-        public ByteConverterObjectMember(ByteConverterOptions options, MemberDetail member)
+        public ByteConverterObjectMember(ByteConverterOptions options, TypeDetail parent, MemberDetail member)
         {
             this.options = options;
+            this.parent = parent;
             this.Member = member;
         }
 

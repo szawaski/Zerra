@@ -8,21 +8,20 @@ namespace Zerra.Serialization
 {
     internal struct WriteState
     {
-        public bool UsePropertyNames;
-        public bool IncludePropertyTypes;
-        public bool IgnoreIndexAttribute;
-        public ByteSerializerIndexSize IndexSize;
-
         private Stack<WriteFrame> stack;
         public WriteFrame CurrentFrame;
         public bool Ended;
 
-        public void PushFrame(WriteFrame frame)
+        public void PushFrame(ByteConverter converter, bool nullFlags)
         {
+            var frame = new WriteFrame();
+            frame.Converter = converter;
+            frame.NullFlags = nullFlags;
             stack ??= new Stack<WriteFrame>();
             stack.Push(CurrentFrame);
             CurrentFrame = frame;
         }
+
         public void EndFrame()
         {
             stack ??= new Stack<WriteFrame>();
