@@ -850,7 +850,7 @@ namespace Zerra.Serialization
                                 break;
 
                             case 4: //Key
-                                var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").Getter;
+                                var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").GetterBoxed;
                                 var key = keyGetter(state.CurrentFrame.Enumerator!.Current)!.ToString()!;
                                 if (!WriteJsonString(ref writer, ref state, key))
                                     return;
@@ -866,7 +866,7 @@ namespace Zerra.Serialization
                                 state.CurrentFrame.State = 6;
                                 break;
                             case 6: //Value
-                                var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").Getter;
+                                var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").GetterBoxed;
                                 var value = valueGetter(state.CurrentFrame.Enumerator!.Current);
                                 state.CurrentFrame.State = 2;
                                 state.PushFrame(CreateWriteFrame(ref state, innerTypeDetail.InnerTypeDetails[1], value));
@@ -881,7 +881,7 @@ namespace Zerra.Serialization
                                 state.CurrentFrame.State = 8;
                                 break;
                             case 8: //Nameless Key
-                                keyGetter = innerTypeDetail.GetMemberFieldBacked("key").Getter;
+                                keyGetter = innerTypeDetail.GetMemberFieldBacked("key").GetterBoxed;
                                 key = keyGetter(state.CurrentFrame.Enumerator!.Current)!.ToString()!;
                                 if (!WriteJsonString(ref writer, ref state, key))
                                     return;
@@ -896,7 +896,7 @@ namespace Zerra.Serialization
                                 state.CurrentFrame.State = 10;
                                 break;
                             case 10: //Nameless Value
-                                valueGetter = innerTypeDetail.GetMemberFieldBacked("value").Getter;
+                                valueGetter = innerTypeDetail.GetMemberFieldBacked("value").GetterBoxed;
                                 value = valueGetter(state.CurrentFrame.Enumerator!.Current);
                                 state.CurrentFrame.State = 11;
                                 state.PushFrame(CreateWriteFrame(ref state, innerTypeDetail.InnerTypeDetails[1], value));
@@ -1017,10 +1017,10 @@ namespace Zerra.Serialization
                             state.CurrentFrame.State = 7;
                             break;
                         }
-                        if (!state.CurrentFrame.MemberEnumerator.Current.HasGetter)
+                        if (!state.CurrentFrame.MemberEnumerator.Current.HasGetterBoxed)
                             break;
 
-                        state.CurrentFrame.ObjectPropertyValue = state.CurrentFrame.MemberEnumerator.Current.Getter(state.CurrentFrame.Object!);
+                        state.CurrentFrame.ObjectPropertyValue = state.CurrentFrame.MemberEnumerator.Current.GetterBoxed(state.CurrentFrame.Object!);
                         if (state.DoNotWriteNull && state.CurrentFrame.ObjectPropertyValue == null)
                             break;
 
@@ -2550,10 +2550,10 @@ namespace Zerra.Serialization
                     }
                     else
                     {
-                        if (!state.CurrentFrame.MemberEnumerator.Current.HasGetter)
+                        if (!state.CurrentFrame.MemberEnumerator.Current.HasGetterBoxed)
                             goto nextprop;
 
-                        state.CurrentFrame.ObjectPropertyValue = state.CurrentFrame.MemberEnumerator.Current.Getter(state.CurrentFrame.Enumerator!.Current!);
+                        state.CurrentFrame.ObjectPropertyValue = state.CurrentFrame.MemberEnumerator.Current.GetterBoxed(state.CurrentFrame.Enumerator!.Current!);
                         if (state.DoNotWriteNull && state.CurrentFrame.ObjectPropertyValue == null)
                             goto nextprop;
 

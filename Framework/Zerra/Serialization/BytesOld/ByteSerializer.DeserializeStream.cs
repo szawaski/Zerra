@@ -1268,8 +1268,8 @@ namespace Zerra.Serialization
 
             if (!state.CurrentFrame.HasObjectStarted)
             {
-                if (!state.CurrentFrame.DrainBytes && typeDetail.TypeDetail.HasCreator)
-                    state.CurrentFrame.ResultObject = typeDetail.TypeDetail.Creator();
+                if (!state.CurrentFrame.DrainBytes && typeDetail.TypeDetail.HasCreatorBoxed)
+                    state.CurrentFrame.ResultObject = typeDetail.TypeDetail.CreatorBoxed();
                 else
                     state.CurrentFrame.ResultObject = null;
                 state.CurrentFrame.HasObjectStarted = true;

@@ -315,7 +315,7 @@ namespace Zerra.Serialization
                 }
                 if (typeDetail.Type.IsValueType)
                 {
-                    value = (TValue?)parameterConstructor.ConstructorInfo.Invoke(args);
+                    value = (TValue?)parameterConstructor.CreatorBoxed(args);
                 }
                 else
                 {
@@ -473,7 +473,7 @@ namespace Zerra.Serialization
             public static ByteConverterObjectMember New(ByteConverterOptions options, TypeDetail parent, MemberDetail member)
             {
                 var generic = byteConverterObjectMemberT.GetGenericTypeDetail(typeof(TParent), parent.Type, member.Type);
-                var obj = generic.ConstructorDetails[0].Creator(new object?[] { options, parent, member });
+                var obj = generic.ConstructorDetails[0].CreatorBoxed(new object?[] { options, parent, member });
                 return (ByteConverterObjectMember)obj;
             }
         }

@@ -178,7 +178,7 @@ namespace Zerra.Serialization
             var firstProperty = true;
             foreach (var member in typeDetail.SerializableMemberDetails)
             {
-                if (!member.HasGetter)
+                if (!member.HasGetterBoxed)
                     continue;
 
                 if (graph != null)
@@ -195,7 +195,7 @@ namespace Zerra.Serialization
                     }
                 }
 
-                var propertyValue = member.Getter(value);
+                var propertyValue = member.GetterBoxed(value);
 
                 if (options.DoNotWriteNullProperties && propertyValue == null)
                     continue;
@@ -338,10 +338,10 @@ namespace Zerra.Serialization
                         var firstProperty = true;
                         foreach (var member in typeDetail.SerializableMemberDetails)
                         {
-                            if (!member.HasGetter)
+                            if (!member.HasGetterBoxed)
                                 continue;
 
-                            var propertyValue = member.Getter(value);
+                            var propertyValue = member.GetterBoxed(value);
 
                             if (options.DoNotWriteNullProperties && propertyValue == null)
                                 continue;
@@ -1148,8 +1148,8 @@ namespace Zerra.Serialization
                         {
                             var innerTypeDetail = typeDetail.InnerTypeDetails[0];
 
-                            var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").Getter;
-                            var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").Getter;
+                            var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").GetterBoxed;
+                            var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").GetterBoxed;
                             var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.InnerTypes[0]);
 
                             var innerValue = (ICollection)method.Caller(null, new object[] { value })!;
@@ -1232,8 +1232,8 @@ namespace Zerra.Serialization
                             {
                                 var innerTypeDetail = typeDetail.InnerTypeDetails[0];
 
-                                var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").Getter;
-                                var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").Getter;
+                                var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").GetterBoxed;
+                                var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").GetterBoxed;
                                 var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.InnerTypes[0]);
 
                                 var innerValue = (ICollection)method.Caller(null, new object[] { value })!;

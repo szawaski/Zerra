@@ -121,7 +121,7 @@ namespace Zerra.Serialization
                 }
             }
 
-            var obj = typeDetail.TypeDetail.HasCreator ? typeDetail.TypeDetail.Creator() : null;
+            var obj = typeDetail.TypeDetail.HasCreatorBoxed ? typeDetail.TypeDetail.CreatorBoxed() : null;
 
             for (; ; )
             {

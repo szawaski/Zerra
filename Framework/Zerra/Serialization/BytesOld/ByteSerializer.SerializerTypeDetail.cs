@@ -51,12 +51,12 @@ namespace Zerra.Serialization
 
                 var listTypeDetail = TypeAnalyzer.GetGenericTypeDetail(genericListType, type);
                 this.ListAdder = listTypeDetail.GetMethod("Add");
-                var listCreator = listTypeDetail.GetConstructor(typeof(int)).Creator;
+                var listCreator = listTypeDetail.GetConstructor(typeof(int)).CreatorBoxed;
                 this.ListCreator = (length) => { return listCreator(new object[] { length }); };
 
                 var hashSetTypeDetail = TypeAnalyzer.GetGenericTypeDetail(genericHashSetType, type);
                 this.HashSetAdder = hashSetTypeDetail.GetMethod("Add");
-                var hashSetCreator = hashSetTypeDetail.GetConstructor(typeof(int)).Creator;
+                var hashSetCreator = hashSetTypeDetail.GetConstructor(typeof(int)).CreatorBoxed;
                 this.HashSetCreator = (length) => { return hashSetCreator(new object[] { length }); };
 
                 if (!this.Type.IsEnum && !this.TypeDetail.CoreType.HasValue && !this.TypeDetail.SpecialType.HasValue && !this.TypeDetail.IsNullable && !this.TypeDetail.IsIEnumerableGeneric)

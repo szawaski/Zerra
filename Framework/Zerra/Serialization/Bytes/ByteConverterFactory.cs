@@ -77,54 +77,54 @@ namespace Zerra.Serialization
             var discoveredType = Discovery.GetImplementationType(byteConverterDiscoverableType.GetGenericType(typeDetail.Type), false);
             if (discoveredType != null)
             {
-                var converter = discoveredType.GetGenericTypeDetail(parentType).Creator();
+                var converter = discoveredType.GetGenericTypeDetail(parentType).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 
             //enum
             if (typeDetail.Type.IsEnum || typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
             {
-                var converter = typeof(ByteConverterEnum<,>).GetGenericTypeDetail(parentType, typeDetail.Type).Creator();
+                var converter = typeof(ByteConverterEnum<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 
             //array
             if (typeDetail.Type.IsArray)
             {
-                var converter = typeof(ByteConverterArray<,>).GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]).Creator();
+                var converter = typeof(ByteConverterArray<,>).GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 
             //list
             if (typeDetail.IsIList && typeDetail.Type.IsGenericType)
             {
-                var converter = typeof(ByteConverterList<,>).GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]).Creator();
+                var converter = typeof(ByteConverterList<,>).GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 
             //set
             if (typeDetail.IsISet && typeDetail.Type.IsGenericType)
             {
-                var converter = typeof(ByteConverterHashSet<,>).GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]).Creator();
+                var converter = typeof(ByteConverterHashSet<,>).GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 
             //dictionary
             if (typeDetail.SpecialType == SpecialType.Dictionary)
             {
-                var converter = typeof(ByteConverterDictionary<,,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypeDetails[0].InnerTypes[0], typeDetail.InnerTypeDetails[0].InnerTypes[1]).Creator();
+                var converter = typeof(ByteConverterDictionary<,,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypeDetails[0].InnerTypes[0], typeDetail.InnerTypeDetails[0].InnerTypes[1]).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 
             //enumerable
             if (typeDetail.IsIEnumerableGeneric)
             {
-                var converter = typeof(ByteConverterEnumerable<,>).GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]).Creator();
+                var converter = typeof(ByteConverterEnumerable<,>).GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 
             //object
-            var converterObject = typeof(ByteConverterObject<,>).GetGenericTypeDetail(parentType, typeDetail.Type).Creator();
+            var converterObject = typeof(ByteConverterObject<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
             return (ByteConverter<TParent>)converterObject;
         }
     }

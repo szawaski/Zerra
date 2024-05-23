@@ -108,7 +108,7 @@ namespace Zerra.Serialization
                 }
                 else if (typeDetail.IsICollectionGeneric)
                 {
-                    length = (int)typeDetail.GetMember("Count").Getter(value)!;
+                    length = (int)typeDetail.GetMember("Count").GetterBoxed(value)!;
                 }
                 else
                 {

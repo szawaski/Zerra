@@ -185,7 +185,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object? FromStringJsonObject(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
         {
-            var obj = typeDetail != null && typeDetail.HasCreator ? typeDetail.Creator() : null;
+            var obj = typeDetail != null && typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
             var canExpectComma = false;
             while (reader.TryReadSkipWhiteSpace(out var c))
             {
@@ -209,7 +209,7 @@ namespace Zerra.Serialization
                             {
                                 var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
                                 var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail.TypeDetail, propertyGraph, ref options);
-                                if (value != null && memberDetail.HasSetter)
+                                if (value != null && memberDetail.HasSetterBoxed)
                                 {
                                     //special case nullable enum
                                     if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
@@ -220,17 +220,17 @@ namespace Zerra.Serialization
                                         if (memberDetail.TypeDetail.IsGraphLocalProperty)
                                         {
                                             if (graph.HasLocalProperty(memberDetail.Name))
-                                                memberDetail.Setter(obj, value);
+                                                memberDetail.SetterBoxed(obj, value);
                                         }
                                         else
                                         {
                                             if (propertyGraph != null)
-                                                memberDetail.Setter(obj, value);
+                                                memberDetail.SetterBoxed(obj, value);
                                         }
                                     }
                                     else
                                     {
-                                        memberDetail.Setter(obj, value);
+                                        memberDetail.SetterBoxed(obj, value);
                                     }
                                 }
                             }
@@ -272,7 +272,7 @@ namespace Zerra.Serialization
                     typeDetail = TypeAnalyzer.GetGenericTypeDetail(dictionaryType, (Type[])typeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes);
                 }
 
-                obj = typeDetail.Creator();
+                obj = typeDetail.CreatorBoxed();
                 method = typeDetail.GetMethod("Add");
                 addMethodArgs = new object?[2];
             }
@@ -336,40 +336,40 @@ namespace Zerra.Serialization
                 if (typeDetail.Type.IsArray)
                 {
                     var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
-                    collection = genericListType.Creator();
+                    collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
                 }
                 else if (typeDetail.IsIList && typeDetail.Type.IsInterface)
                 {
                     var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
-                    collection = genericListType.Creator();
+                    collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
                 }
                 else if (typeDetail.IsIList && !typeDetail.Type.IsInterface)
                 {
-                    collection = typeDetail.Creator();
+                    collection = typeDetail.CreatorBoxed();
                     addMethod = typeDetail.GetMethod("Add");
                     addMethodArgs = new object[1];
                 }
                 else if (typeDetail.IsISet && typeDetail.Type.IsInterface)
                 {
                     var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, typeDetail.InnerTypeDetails[0].Type));
-                    collection = genericListType.Creator();
+                    collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
                 }
                 else if (typeDetail.IsISet && !typeDetail.Type.IsInterface)
                 {
-                    collection = typeDetail.Creator();
+                    collection = typeDetail.CreatorBoxed();
                     addMethod = typeDetail.GetMethod("Add");
                     addMethodArgs = new object[1];
                 }
                 else
                 {
                     var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
-                    collection = genericListType.Creator();
+                    collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
                 }
@@ -420,7 +420,7 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object? FromStringJsonArrayNameless(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
         {
-            var obj = typeDetail != null && typeDetail.HasCreator ? typeDetail.Creator() : null;
+            var obj = typeDetail != null && typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
             var canExpectComma = false;
             var propertyIndexForNameless = 0;
             while (reader.TryReadSkipWhiteSpace(out var c))
@@ -443,7 +443,7 @@ namespace Zerra.Serialization
                             var memberDetail = typeDetail != null && propertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
                                 ? typeDetail.SerializableMemberDetails[propertyIndexForNameless++]
                                 : null;
-                            if (memberDetail != null && memberDetail.HasSetter)
+                            if (memberDetail != null && memberDetail.HasSetterBoxed)
                             {
                                 var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
                                 var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail?.TypeDetail, propertyGraph, ref options);
@@ -460,7 +460,7 @@ namespace Zerra.Serialization
                                     {
                                         dictionary = Instantiator.Create(typeDetail!.Type, new Type[] { innerItemEnumerable }, value);
                                     }
-                                    memberDetail.Setter(obj, dictionary);
+                                    memberDetail.SetterBoxed(obj, dictionary);
                                 }
                                 else
                                 {
@@ -475,17 +475,17 @@ namespace Zerra.Serialization
                                             if (memberDetail.TypeDetail.IsGraphLocalProperty)
                                             {
                                                 if (graph.HasLocalProperty(memberDetail.Name))
-                                                    memberDetail.Setter(obj, value);
+                                                    memberDetail.SetterBoxed(obj, value);
                                             }
                                             else
                                             {
                                                 if (propertyGraph != null)
-                                                    memberDetail.Setter(obj, value);
+                                                    memberDetail.SetterBoxed(obj, value);
                                             }
                                         }
                                         else
                                         {
-                                            memberDetail.Setter(obj, value);
+                                            memberDetail.SetterBoxed(obj, value);
                                         }
                                     }
                                 }

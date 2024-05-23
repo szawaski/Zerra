@@ -119,7 +119,7 @@ namespace Zerra.Serialization
             {
                 foreach (var member in typeDetail.MemberDetails)
                 {
-                    var value = member.Getter(model!);
+                    var value = member.GetterBoxed(model!);
                     if (value == null)
                         continue;
 
@@ -282,7 +282,7 @@ namespace Zerra.Serialization
                 _ => throw new NotImplementedException($"Type conversion not available for {member.Type.Name}"),
             };
 
-            member.Setter(model!, parsed);
+            member.SetterBoxed(model!, parsed);
         }
     }
 }

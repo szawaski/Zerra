@@ -114,7 +114,7 @@ namespace Zerra.Serialization
                     }
                     else if (typeDetail.TypeDetail.IsICollectionGeneric)
                     {
-                        var count = (int)typeDetail.TypeDetail.GetMember("Count").Getter(value)!;
+                        var count = (int)typeDetail.TypeDetail.GetMember("Count").GetterBoxed(value)!;
                         ToBytesEnumerable((IEnumerable)value, count, typeDetail.InnerTypeDetail, ref writer, ref options);
                     }
                     else

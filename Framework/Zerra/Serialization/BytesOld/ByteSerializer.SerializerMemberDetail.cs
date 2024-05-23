@@ -46,8 +46,8 @@ namespace Zerra.Serialization
                 this.Type = member.Type;
                 this.CoreType = member.TypeDetail.CoreType;
 
-                this.Getter = member.Getter;
-                this.Setter = member.Setter;
+                this.Getter = member.GetterBoxed;
+                this.Setter = member.SetterBoxed;
             }
 
             public override string ToString()

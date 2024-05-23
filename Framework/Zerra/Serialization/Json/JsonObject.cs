@@ -940,7 +940,7 @@ namespace Zerra.Serialization
                     }
                     else
                     {
-                        dictionary = (IDictionary)typeDetail.Creator();
+                        dictionary = (IDictionary)typeDetail.CreatorBoxed();
                     }
                     foreach (var item in valueProperties!)
                     {
@@ -966,7 +966,7 @@ namespace Zerra.Serialization
                     if (!typeDetail.Type.IsArray && typeDetail.IsIList)
                     {
                         var listType = TypeAnalyzer.GetGenericTypeDetail(plainListType, innerType);
-                        var list = (IList)listType.Creator();
+                        var list = (IList)listType.CreatorBoxed();
                         foreach (var item in valueArray!)
                         {
                             var value = item.Bind(innerType);
@@ -1053,14 +1053,14 @@ namespace Zerra.Serialization
 
             if (jsonType != JsonObjectType.Object)
                 throw new InvalidCastException();
-            var obj = typeDetail.HasCreator ? typeDetail.Creator() : null;
+            var obj = typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
             foreach (var item in valueProperties!)
             {
                 if (typeDetail.TryGetSerializableMemberCaseInsensitive(item.Key, out var member))
                 {
                     var value = item.Value.Bind(member.Type);
                     if (value != null && obj != null)
-                        member.Setter(obj, value);
+                        member.SetterBoxed(obj, value);
                 }
             }
             return obj;

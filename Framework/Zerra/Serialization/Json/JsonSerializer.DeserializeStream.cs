@@ -586,7 +586,7 @@ namespace Zerra.Serialization
 
             if (state.CurrentFrame.State == 0)
             {
-                state.CurrentFrame.ResultObject = typeDetail != null && typeDetail.HasCreator ? typeDetail.Creator() : null;
+                state.CurrentFrame.ResultObject = typeDetail != null && typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
                 state.CurrentFrame.State = 1;
             }
 
@@ -642,7 +642,7 @@ namespace Zerra.Serialization
                         return;
 
                     case 3: //property value
-                        if (state.CurrentFrame.ObjectProperty != null && state.CurrentFrame.ResultObject != null && state.LastFrameResultObject != null && state.CurrentFrame.ObjectProperty.HasSetter)
+                        if (state.CurrentFrame.ObjectProperty != null && state.CurrentFrame.ResultObject != null && state.LastFrameResultObject != null && state.CurrentFrame.ObjectProperty.HasSetterBoxed)
                         {
                             //special case nullable enum
                             if (state.CurrentFrame.ObjectProperty.TypeDetail.IsNullable && state.CurrentFrame.ObjectProperty.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
@@ -653,17 +653,17 @@ namespace Zerra.Serialization
                                 if (state.CurrentFrame.ObjectProperty.TypeDetail.IsGraphLocalProperty)
                                 {
                                     if (state.CurrentFrame.Graph.HasLocalProperty(state.CurrentFrame.ObjectProperty.Name))
-                                        state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
+                                        state.CurrentFrame.ObjectProperty.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                                 }
                                 else
                                 {
                                     if (state.CurrentFrame.Graph.HasChild(state.CurrentFrame.ObjectProperty.Name))
-                                        state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
+                                        state.CurrentFrame.ObjectProperty.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                                 }
                             }
                             else
                             {
-                                state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
+                                state.CurrentFrame.ObjectProperty.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                             }
                         }
 
@@ -703,7 +703,7 @@ namespace Zerra.Serialization
                     typeDetail = TypeAnalyzer.GetGenericTypeDetail(dictionaryType, (Type[])typeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes);
                 }
 
-                state.CurrentFrame.ResultObject = typeDetail.Creator();
+                state.CurrentFrame.ResultObject = typeDetail.CreatorBoxed();
                 state.CurrentFrame.AddMethod = typeDetail.GetMethod("Add");
                 state.CurrentFrame.AddMethodArgs = new object[2];
                 state.CurrentFrame.State = 1;
@@ -790,40 +790,40 @@ namespace Zerra.Serialization
                     if (typeDetail.Type.IsArray)
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
-                        state.CurrentFrame.ResultObject = genericListType.Creator();
+                        state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.IsIList && typeDetail.Type.IsInterface)
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
-                        state.CurrentFrame.ResultObject = genericListType.Creator();
+                        state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.IsIList && !typeDetail.Type.IsInterface)
                     {
-                        state.CurrentFrame.ResultObject = typeDetail.Creator();
+                        state.CurrentFrame.ResultObject = typeDetail.CreatorBoxed();
                         state.CurrentFrame.AddMethod = typeDetail.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.IsISet && typeDetail.Type.IsInterface)
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, typeDetail.InnerTypeDetails[0].Type));
-                        state.CurrentFrame.ResultObject = genericListType.Creator();
+                        state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.IsISet && !typeDetail.Type.IsInterface)
                     {
-                        state.CurrentFrame.ResultObject = typeDetail.Creator();
+                        state.CurrentFrame.ResultObject = typeDetail.CreatorBoxed();
                         state.CurrentFrame.AddMethod = typeDetail.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
-                        state.CurrentFrame.ResultObject = genericListType.Creator();
+                        state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
@@ -919,7 +919,7 @@ namespace Zerra.Serialization
 
             if (state.CurrentFrame.State == 0)
             {
-                state.CurrentFrame.ResultObject = typeDetail != null && typeDetail.HasCreator ? typeDetail.Creator() : null;
+                state.CurrentFrame.ResultObject = typeDetail != null && typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
                 state.CurrentFrame.State = 1;
             }
 
@@ -956,7 +956,7 @@ namespace Zerra.Serialization
                             memberDetail = typeDetail != null && state.CurrentFrame.PropertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
                                 ? typeDetail.SerializableMemberDetails[state.CurrentFrame.PropertyIndexForNameless]
                                 : null;
-                            if (memberDetail != null && memberDetail.HasSetter)
+                            if (memberDetail != null && memberDetail.HasSetterBoxed)
                             {
                                 var propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name);
                                 if (memberDetail.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)
@@ -973,7 +973,7 @@ namespace Zerra.Serialization
                                         dictionary = Instantiator.Create(typeDetail!.Type, new Type[] { innerItemEnumerable }, state.LastFrameResultObject);
                                     }
 
-                                    memberDetail.Setter(state.CurrentFrame.ResultObject, dictionary);
+                                    memberDetail.SetterBoxed(state.CurrentFrame.ResultObject, dictionary);
                                 }
                                 else
                                 {
@@ -986,17 +986,17 @@ namespace Zerra.Serialization
                                         if (memberDetail.TypeDetail.IsGraphLocalProperty)
                                         {
                                             if (state.CurrentFrame.Graph.HasLocalProperty(memberDetail.Name))
-                                                memberDetail.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
+                                                memberDetail.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                                         }
                                         else
                                         {
                                             if (propertyGraph != null)
-                                                memberDetail.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
+                                                memberDetail.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                                         }
                                     }
                                     else
                                     {
-                                        memberDetail.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
+                                        memberDetail.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                                     }
                                 }
                             }

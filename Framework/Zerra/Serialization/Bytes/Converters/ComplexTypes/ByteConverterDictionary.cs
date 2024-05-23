@@ -62,7 +62,7 @@ namespace Zerra.Serialization
                     if (typeDetail.Type.IsInterface)
                     {
                         var dictionaryGenericType = TypeAnalyzer.GetGenericTypeDetail(dictionaryType, (Type[])typeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes);
-                        var obj = dictionaryGenericType.Creator();
+                        var obj = dictionaryGenericType.CreatorBoxed();
                         value = (TDictionary?)obj;
                         dictionary = (IDictionary<TKey, TValue?>?)obj;
                         state.CurrentFrame.ResultObject = obj;

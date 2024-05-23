@@ -983,7 +983,7 @@ namespace Zerra.Serialization
                 }
                 else if (typeDetail.TypeDetail.IsICollectionGeneric)
                 {
-                    length = (int)typeDetail.TypeDetail.GetMember("Count").Getter(values)!;
+                    length = (int)typeDetail.TypeDetail.GetMember("Count").GetterBoxed(values)!;
                 }
                 else
                 {
@@ -1313,7 +1313,7 @@ namespace Zerra.Serialization
                 }
                 else if (typeDetail.TypeDetail.IsICollectionGeneric)
                 {
-                    length = (int)typeDetail.TypeDetail.GetMember("Count").Getter(values)!;
+                    length = (int)typeDetail.TypeDetail.GetMember("Count").GetterBoxed(values)!;
                 }
                 else
                 {
@@ -1484,7 +1484,7 @@ namespace Zerra.Serialization
                 }
                 else if (typeDetail.TypeDetail.IsICollectionGeneric)
                 {
-                    length = (int)typeDetail.TypeDetail.GetMember("Count").Getter(values)!;
+                    length = (int)typeDetail.TypeDetail.GetMember("Count").GetterBoxed(values)!;
                 }
                 else
                 {
