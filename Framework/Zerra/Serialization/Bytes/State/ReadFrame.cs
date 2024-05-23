@@ -23,8 +23,6 @@ namespace Zerra.Serialization
         public int? StringLength;
         public int? EnumerableLength;
 
-        public MethodDetail? AddMethod;
-        public object?[]? AddMethodArgs;
         public Array? EnumerableArray;
 
         public int EnumerablePosition;

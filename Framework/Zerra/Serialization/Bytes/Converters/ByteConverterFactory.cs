@@ -2,43 +2,75 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System;
+using Zerra.Collections;
 using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
-    internal static class ByteConverterFactory
+    internal static class ByteConverterFactory<TParent>
     {
-        public static ByteConverter<TParent> Get<TParent>(OptionsStruct options, TypeDetail typeDetail, MemberDetail? member)
+        private static readonly ConcurrentFactoryDictionary<ByteConverterOptions, ConcurrentFactoryDictionary<Type, ConcurrentFactoryDictionary<string, ByteConverter<TParent>>>> cache = new();
+        private static readonly ConcurrentFactoryDictionary<ByteConverterOptions, ByteConverterTypeInfo<TParent>> cacheByteConverterTypeInfo = new();
+
+        public static ByteConverter<TParent> Get(ByteConverterOptions options, TypeDetail typeDetail, Delegate? getter = null, Delegate? setter = null)
         {
-            //TODO need to cache by options, type, member
-            var newConverter = Create<TParent>(typeDetail);
-            newConverter.Setup(options, typeDetail, member);
+            var cache1 = cache.GetOrAdd(options, x => new());
+            var cache2 = cache1.GetOrAdd(typeDetail.Type, x => new());
+            var newConverter = cache2.GetOrAdd(member?.Name ?? String.Empty, x =>
+            {
+                var newConverter = Create(typeDetail);
+                newConverter.Setup(options, typeDetail, getter, setter);
+                return newConverter;
+            });
+        
             return newConverter;
         }
 
-        public static bool NeedTypeInfo(bool includePropertyTypes, TypeDetail typeDetail)
+        public static ByteConverter<TParent> GetMayNeedTypeInfo(ByteConverterOptions options, TypeDetail typeDetail)
         {
-            return includePropertyTypes || (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerableGeneric);
+            if (options.HasFlag(ByteConverterOptions.IncludePropertyTypes) || (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerableGeneric))
+            {
+                var newConverter = cacheByteConverterTypeInfo.GetOrAdd(options, key =>
+                {
+                    var newConverter = new ByteConverterTypeInfo<TParent>();
+                    newConverter.Setup(options, null, null, null);
+                    return newConverter;
+                });
+                return newConverter;
+            }
+            return Get(options, typeDetail, null);
         }
 
-        public static ByteConverter<TParent> GetMayNeedTypeInfo<TParent>(OptionsStruct options, TypeDetail typeDetail, ByteConverter<TParent> converter)
+        public static ByteConverter<TParent> GetMayNeedTypeInfo(ByteConverterOptions options, TypeDetail typeDetail, ByteConverter<TParent> converter)
         {
-            if (NeedTypeInfo(options.IncludePropertyTypes, typeDetail))
-                return GetNeedTypeInfo(options, converter);
+            if (options.HasFlag(ByteConverterOptions.IncludePropertyTypes) || (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerableGeneric))
+            {
+                var newConverter = cacheByteConverterTypeInfo.GetOrAdd(options, key =>
+                {
+                    var newConverter = new ByteConverterTypeInfo<TParent>();
+                    newConverter.Setup(options, null, null);
+                    return newConverter;
+                });
+                return newConverter;
+            }
             return converter;
         }
 
-        public static ByteConverter<TParent> GetNeedTypeInfo<TParent>(OptionsStruct options, ByteConverter<TParent>? converter = null)
+        public static ByteConverter<TParent> GetNeedTypeInfo(ByteConverterOptions options)
         {
-            //TODO need to cache by parent, converter
-            var newConverter = new ByteConverterTypeInfo<TParent>(converter);
-            newConverter.Setup(options, null, null);
+            var newConverter = cacheByteConverterTypeInfo.GetOrAdd(options, key =>
+            {
+                var newConverter = new ByteConverterTypeInfo<TParent>();
+                newConverter.Setup(options, null, null);
+                return newConverter;
+            });
             return newConverter;
         }
 
-        private static ByteConverter<TParent> Create<TParent>(TypeDetail typeDetail)
+        private static ByteConverter<TParent> Create(TypeDetail typeDetail)
         {
-            var discoveredTypes = Discovery.GetImplementationClasses(typeof(IByteConverter<>));
+            var discoveredTypes = Discovery.GetImplementationClasses(typeof(IByteConverterDiscoverable<>));
             foreach (var discoveredType in discoveredTypes)
             {
                 var discoveredTypeDetail = discoveredType.GetTypeDetail();

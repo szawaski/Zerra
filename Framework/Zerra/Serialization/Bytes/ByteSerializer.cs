@@ -51,30 +51,19 @@ namespace Zerra.Serialization
 
         private static readonly Encoding defaultEncoding = Encoding.UTF8;
 
-        //In byte array, object properties start with index values from SerializerIndexAttribute or property order
-        private const ushort indexOffset = 1; //offset index values to reseve for Flag: 0
-
-        //Flag: 0 indicating the end of an object
-        private const ushort endObjectFlagUShort = 0;
-        private const byte endObjectFlagByte = 0;
-        private static readonly byte[] endObjectFlagUInt16 = new byte[2] { 0, 0 };
-
         private static readonly ByteSerializerOptions defaultOptions = new();
-
-        private static readonly ConcurrentFactoryDictionary<int, ConcurrentFactoryDictionary<Type, ByteConverter>> typeInfoCache = new();
-        private static ByteConverter GetTypeInformation(Type type, ByteSerializerIndexSize indexSize, bool ignoreIndexAttribute)
+        private static ByteConverterOptions GetByteConverterOptions(ByteSerializerOptions options)
         {
-            var dictionarySetIndex = ((int)indexSize + 1) * (ignoreIndexAttribute ? 1 : 2);
-            var dictionarySet = typeInfoCache.GetOrAdd(dictionarySetIndex, (_) =>
-            {
-                return new ConcurrentFactoryDictionary<Type, ByteConverter>();
-            });
-            var typeInfo = dictionarySet.GetOrAdd(type, (_) =>
-            {
-                var typeDetail = type.GetTypeDetail();
-                return ByteConverter.New(indexSize, ignoreIndexAttribute, typeDetail);
-            });
-            return typeInfo;
+            var optionsEnum = ByteConverterOptions.None;
+            if (options.UsePropertyNames)
+                optionsEnum &= ByteConverterOptions.UsePropertyNames;
+            if (options.IncludePropertyTypes)
+                optionsEnum &= ByteConverterOptions.IncludePropertyTypes;
+            if (options.IgnoreIndexAttribute)
+                optionsEnum &= ByteConverterOptions.IgnoreIndexAttribute;
+            if (options.IndexSize == ByteSerializerIndexSize.UInt16)
+                optionsEnum &= ByteConverterOptions.IndexSizeUInt16;
+            return optionsEnum;
         }
     }
 }

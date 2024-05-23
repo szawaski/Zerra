@@ -9,7 +9,7 @@ namespace Zerra.Serialization
 {
     internal struct ReadState
     {
-        public bool UsePropertyNames;
+        //public bool UsePropertyNames;
         //public bool IncludePropertyTypes;
         //public bool IgnoreIndexAttribute;
         //public ByteSerializerIndexSize IndexSize;
@@ -45,7 +45,5 @@ namespace Zerra.Serialization
         }
 
         public int BytesNeeded;
-
-
     }
 }

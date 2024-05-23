@@ -12,42 +12,40 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterObject<TParent, TValue> : ByteConverter<TParent, TValue>
     {
-        private readonly Dictionary<ushort, ByteConverterMember<TValue>> propertiesByIndex = new();
-        private readonly Dictionary<string, ByteConverterMember<TValue>> propertiesByName = new();
+        private readonly Dictionary<ushort, ByteConverterObjectMember<TValue>> propertiesByIndex = new();
+        private readonly Dictionary<string, ByteConverterObjectMember<TValue>> propertiesByName = new();
 
-        public override void SetupAdditional()
+        public override void Setup()
         {
             var memberSets = new List<Tuple<MemberDetail, SerializerIndexAttribute?, NonSerializedAttribute?>>();
-            foreach (var member in TypeDetail.SerializableMemberDetails)
+            foreach (var member in typeDetail.SerializableMemberDetails)
             {
                 var indexAttribute = member.Attributes.Select(x => x as SerializerIndexAttribute).Where(x => x != null).FirstOrDefault();
                 var nonSerializedAttribute = member.Attributes.Select(x => x as NonSerializedAttribute).Where(x => x != null).FirstOrDefault();
                 memberSets.Add(new Tuple<MemberDetail, SerializerIndexAttribute?, NonSerializedAttribute?>(member, indexAttribute, nonSerializedAttribute));
             }
 
-            if (!options.IgnoreIndexAttribute)
+            if (!options.HasFlag(ByteConverterOptions.IgnoreIndexAttribute))
             {
                 var membersWithIndexes = memberSets.Where(x => x.Item2 != null && x.Item3 == null).ToArray();
                 if (membersWithIndexes.Length > 0)
                 {
                     foreach (var member in membersWithIndexes)
                     {
-                        switch (options.IndexSize)
+                        if (options.HasFlag(ByteConverterOptions.IndexSizeUInt16))
                         {
-                            case ByteSerializerIndexSize.Byte:
-                                if (member.Item2!.Index > Byte.MaxValue - indexOffset)
-                                    throw new Exception("Index attribute too large for the index size");
-                                break;
-                            case ByteSerializerIndexSize.UInt16:
-                                if (member.Item2!.Index > UInt16.MaxValue - indexOffset)
-                                    throw new Exception("Index attribute too large for the index size");
-                                break;
-                            default:
-                                throw new NotImplementedException();
+                            if (member.Item2!.Index > UInt16.MaxValue - indexOffset)
+                                throw new Exception("Index attribute too large for the index size");
                         }
+                        else
+                        {
+                            if (member.Item2!.Index > Byte.MaxValue - indexOffset)
+                                throw new Exception("Index attribute too large for the index size");
+                        }
+
                         var index = (ushort)(member.Item2.Index + indexOffset);
 
-                        var detail = new ByteConverterMember<TValue>(options, member.Item1);
+                        var detail = new ByteConverterObjectMember<TValue>(options, member.Item1);
                         propertiesByIndex.Add(index, detail);
                         propertiesByName.Add(member.Item1.Name, detail);
                     }
@@ -59,22 +57,20 @@ namespace Zerra.Serialization
                 var orderIndex = 0;
                 foreach (var member in memberSets.Where(x => x.Item3 == null))
                 {
-                    switch (options.IndexSize)
+                    if (options.HasFlag(ByteConverterOptions.IndexSizeUInt16))
                     {
-                        case ByteSerializerIndexSize.Byte:
-                            if (orderIndex > Byte.MaxValue - indexOffset)
-                                throw new Exception("Index attribute too large for the index size");
-                            break;
-                        case ByteSerializerIndexSize.UInt16:
-                            if (orderIndex > UInt16.MaxValue - indexOffset)
-                                throw new Exception("Index attribute too large for the index size");
-                            break;
-                        default:
-                            throw new NotImplementedException();
+                        if (member.Item2!.Index > UInt16.MaxValue - indexOffset)
+                            throw new Exception("Index attribute too large for the index size");
                     }
+                    else
+                    {
+                        if (member.Item2!.Index > Byte.MaxValue - indexOffset)
+                            throw new Exception("Index attribute too large for the index size");
+                    }
+
                     var index = (ushort)(orderIndex + indexOffset);
 
-                    var detail = new ByteConverterMember<TValue>(options, member.Item1);
+                    var detail = new ByteConverterObjectMember<TValue>(options, member.Item1);
                     propertiesByIndex.Add(index, detail);
                     propertiesByName.Add(member.Item1.Name, detail);
 
@@ -87,7 +83,7 @@ namespace Zerra.Serialization
         {
             var nullFlags = state.CurrentFrame.NullFlags;
 
-            if (nullFlags && !state.CurrentFrame.HasNullChecked)
+            if (nullFlags)
             {
                 if (!reader.TryReadIsNull(out var isNull, out var sizeNeeded))
                 {
@@ -98,36 +94,32 @@ namespace Zerra.Serialization
 
                 if (isNull)
                 {
-                    state.EndFrame();
                     obj = default;
-                    return false;
+                    return true;
                 }
-
-                state.CurrentFrame.HasNullChecked = true;
             }
 
             if (!state.CurrentFrame.HasObjectStarted)
             {
-                if (!state.CurrentFrame.DrainBytes && TypeDetail.HasCreator)
-                    state.CurrentFrame.ResultObject = TypeDetail.Creator();
+                if (!state.CurrentFrame.DrainBytes && typeDetail.HasCreator)
+                    obj = typeDetail.Creator();
                 else
-                    state.CurrentFrame.ResultObject = null;
+                    obj = default;
+                state.CurrentFrame.ResultObject = obj;
                 state.CurrentFrame.HasObjectStarted = true;
             }
+            else
+            {
+                obj = (TValue?)state.CurrentFrame.ResultObject;
+            }
 
-            obj = (TValue?)state.CurrentFrame.ResultObject;
+            var usePropertyNames = options.HasFlag(ByteConverterOptions.UsePropertyNames);
+            var indexSizeUInt16 = options.HasFlag(ByteConverterOptions.IndexSizeUInt16);
 
             for (; ; )
             {
-                //if (!state.CurrentFrame.DrainBytes && state.CurrentFrame.ObjectProperty != null)
-                //{
-                //    if (state.CurrentFrame.ResultObject != null)
-                //        state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
-                //    state.CurrentFrame.ObjectProperty = null;
-                //}
-
-                ByteConverterMember<TValue>? property;
-                if (state.UsePropertyNames)
+                ByteConverterObjectMember<TValue>? property;
+                if (usePropertyNames)
                 {
                     int sizeNeeded;
                     if (!state.CurrentFrame.StringLength.HasValue)
@@ -155,15 +147,14 @@ namespace Zerra.Serialization
 
                     property = null;
                     _ = propertiesByName?.TryGetValue(name!, out property);
-                    state.CurrentFrame.ObjectProperty = property;
 
                     if (property == null)
                     {
-                        if (!state.UsePropertyNames && !options.IncludePropertyTypes)
+                        if (!usePropertyNames && !options.HasFlag(ByteConverterOptions.IncludePropertyTypes))
                             throw new Exception($"Cannot deserialize with property {name} undefined and no types.");
 
                         //consume bytes but object does not have property
-                        var converter = ByteConverterFactory.GetNeedTypeInfo<TValue>(options);
+                        var converter = ByteConverterFactory<TValue>.GetNeedTypeInfo(options);
                         state.PushFrame(converter, false);
                         state.CurrentFrame.DrainBytes = true;
                         converter.Read(ref reader, ref state, obj);
@@ -172,7 +163,7 @@ namespace Zerra.Serialization
                     }
                     else
                     {
-                        var converter = ByteConverterFactory.GetMayNeedTypeInfo(options, property.Member.TypeDetail, property.Converter);
+                        var converter = ByteConverterFactory<TValue>.GetMayNeedTypeInfo(options, property.Member.TypeDetail, property.Converter);
                         state.PushFrame(converter, false);
                         converter.Read(ref reader, ref state, obj);
                         if (state.BytesNeeded > 0)
@@ -182,30 +173,25 @@ namespace Zerra.Serialization
                 else
                 {
                     ushort propertyIndex;
-                    switch (options.IndexSize)
+                    if (indexSizeUInt16)
                     {
-                        case ByteSerializerIndexSize.Byte:
-                            {
-                                if (!reader.TryReadByte(out var value, out var sizeNeeded))
-                                {
-                                    state.BytesNeeded = sizeNeeded;
-                                    return false;
-                                }
-                                propertyIndex = value;
-                                break;
-                            }
-                        case ByteSerializerIndexSize.UInt16:
-                            {
-                                if (!reader.TryReadUInt16(out var value, out var sizeNeeded))
-                                {
-                                    state.BytesNeeded = sizeNeeded;
-                                    return false;
-                                }
-                                propertyIndex = value;
-                                break;
-                            }
-                        default: throw new NotImplementedException();
+                        if (!reader.TryReadUInt16(out var value, out var sizeNeeded))
+                        {
+                            state.BytesNeeded = sizeNeeded;
+                            return false;
+                        }
+                        propertyIndex = value;
                     }
+                    else
+                    {
+                        if (!reader.TryReadByte(out var value, out var sizeNeeded))
+                        {
+                            state.BytesNeeded = sizeNeeded;
+                            return false;
+                        }
+                        propertyIndex = value;
+                    }
+
 
                     if (propertyIndex == endObjectFlagUShort)
                     {
@@ -215,15 +201,14 @@ namespace Zerra.Serialization
 
                     property = null;
                     _ = propertiesByIndex?.TryGetValue(propertyIndex, out property);
-                    state.CurrentFrame.ObjectProperty = property;
 
                     if (property == null)
                     {
-                        if (!state.UsePropertyNames && !options.IncludePropertyTypes)
+                        if (!usePropertyNames && !options.HasFlag(ByteConverterOptions.IncludePropertyTypes))
                             throw new Exception($"Cannot deserialize with property {propertyIndex} undefined and no types.");
 
                         //consume bytes but object does not have property
-                        var converter = ByteConverterFactory.GetNeedTypeInfo<TValue>(options);
+                        var converter = ByteConverterFactory<TValue>.GetNeedTypeInfo(options);
                         state.PushFrame(converter, false);
                         state.CurrentFrame.DrainBytes = true;
                         converter.Read(ref reader, ref state, obj);
@@ -232,7 +217,7 @@ namespace Zerra.Serialization
                     }
                     else
                     {
-                        var converter = ByteConverterFactory.GetMayNeedTypeInfo(options, property.Member.TypeDetail, property.Converter);
+                        var converter = ByteConverterFactory<TValue>.GetMayNeedTypeInfo(options, property.Member.TypeDetail, property.Converter);
                         state.PushFrame(converter, false);
                         converter.Read(ref reader, ref state, obj);
                         if (state.BytesNeeded > 0)

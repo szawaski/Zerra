@@ -6,12 +6,12 @@ using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
-    internal abstract class ByteConverterMember
+    internal abstract class ByteConverterObjectMember
     {
-        protected OptionsStruct options { get; private set; }
+        protected ByteConverterOptions options { get; private set; }
         public MemberDetail Member { get; private set; }
 
-        public ByteConverterMember(OptionsStruct options, MemberDetail member)
+        public ByteConverterObjectMember(ByteConverterOptions options, MemberDetail member)
         {
             this.options = options;
             this.Member = member;

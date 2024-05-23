@@ -768,8 +768,7 @@ namespace Zerra.Reflection
             var done = false;
             while (index < chars.Length)
             {
-                var c = chars[index];
-                index++;
+                var c = chars[index++];
 
                 switch (c)
                 {

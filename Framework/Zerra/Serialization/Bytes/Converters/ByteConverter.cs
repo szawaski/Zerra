@@ -4,6 +4,7 @@
 
 using Zerra.Reflection;
 using Zerra.IO;
+using System;
 
 namespace Zerra.Serialization
 {
@@ -17,19 +18,21 @@ namespace Zerra.Serialization
         protected const byte endObjectFlagByte = 0;
         protected static readonly byte[] endObjectFlagUInt16 = new byte[2] { 0, 0 };
 
-        protected OptionsStruct options { get; private set; }
-        public TypeDetail? TypeDetail { get; private set; }
-        protected MemberDetail? memberDetail { get; private set; }
+        protected ByteConverterOptions options { get; private set; }
+        protected TypeDetail? typeDetail { get; private set; }
+        protected Delegate? getter { get; private set; }
+        protected Delegate? setter { get; private set; }
 
-        public void Setup(OptionsStruct options, TypeDetail? typeDetail, MemberDetail? memberDetail)
+        public void Setup(ByteConverterOptions options, TypeDetail? typeDetail, Delegate? getter, Delegate? setter)
         {
             this.options = options;
-            this.TypeDetail = typeDetail;
-            this.memberDetail = memberDetail;
-            Setup();
+            this.typeDetail = typeDetail;
+            this.getter = getter;
+            this.setter = setter;
+            SetupRoot();
         }
 
-        public virtual void Setup() { }
+        protected virtual void SetupRoot() { }
 
         public abstract void Read(ref ByteReader reader, ref ReadState state);
         public abstract void Write(ref ByteWriter writer, ref WriteState state);

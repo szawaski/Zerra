@@ -274,25 +274,25 @@ namespace Zerra.Serialization
                 return frame;
             }
 
-            if (typeDetail.TypeDetail.CoreType.HasValue)
+            if (typeDetail.typeDetail.CoreType.HasValue)
             {
                 frame.FrameType = WriteFrameType.CoreType;
                 return frame;
             }
 
-            if (typeDetail.TypeDetail.EnumUnderlyingType.HasValue)
+            if (typeDetail.typeDetail.EnumUnderlyingType.HasValue)
             {
                 frame.FrameType = WriteFrameType.EnumType;
                 return frame;
             }
 
-            if (typeDetail.TypeDetail.SpecialType.HasValue || typeDetail.TypeDetail.IsNullable && typeDetail.InnerTypeDetail.TypeDetail.SpecialType.HasValue)
+            if (typeDetail.typeDetail.SpecialType.HasValue || typeDetail.typeDetail.IsNullable && typeDetail.InnerTypeDetail.TypeDetail.SpecialType.HasValue)
             {
                 frame.FrameType = WriteFrameType.SpecialType;
                 return frame;
             }
 
-            if (!typeDetail.TypeDetail.IsIEnumerableGeneric)
+            if (!typeDetail.typeDetail.IsIEnumerableGeneric)
             {
                 frame.FrameType = WriteFrameType.Object;
                 return frame;
@@ -347,7 +347,7 @@ namespace Zerra.Serialization
 
                 typeDetail = GetTypeInformation(typeFromValue, state.IndexSize, state.IgnoreIndexAttribute);
             }
-            else if (typeDetail.Type.IsInterface && !typeDetail.TypeDetail.IsIEnumerableGeneric)
+            else if (typeDetail.Type.IsInterface && !typeDetail.typeDetail.IsIEnumerableGeneric)
             {
                 var objectType = state.CurrentFrame.Object!.GetType();
                 typeDetail = GetTypeInformation(objectType, state.IndexSize, state.IgnoreIndexAttribute);
@@ -365,7 +365,7 @@ namespace Zerra.Serialization
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
 
             int sizeNeeded;
-            switch (state.CurrentFrame.TypeDetail!.TypeDetail.CoreType)
+            switch (state.CurrentFrame.TypeDetail!.typeDetail.CoreType)
             {
                 case CoreType.Boolean:
 
@@ -659,7 +659,7 @@ namespace Zerra.Serialization
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
             int sizeNeeded;
-            switch (state.CurrentFrame.TypeDetail!.TypeDetail.EnumUnderlyingType)
+            switch (state.CurrentFrame.TypeDetail!.typeDetail.EnumUnderlyingType)
             {
                 case CoreType.Byte:
                     if (!writer.TryWrite((byte)state.CurrentFrame.Object!, out sizeNeeded))
@@ -784,7 +784,7 @@ namespace Zerra.Serialization
         private static void WriteSpecialType(ref ByteWriter writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
-            var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType!.Value : typeDetail.TypeDetail.SpecialType!.Value;
+            var specialType = typeDetail.typeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType!.Value : typeDetail.typeDetail.SpecialType!.Value;
 
             switch (specialType)
             {
@@ -817,7 +817,7 @@ namespace Zerra.Serialization
                                         state.CurrentFrame.HasWrittenIsNull = true;
                                     }
                                 }
-                                var method = TypeAnalyzer.GetGenericMethodDetail(enumerableToArrayMethod, typeDetail.TypeDetail.IEnumerableGenericInnerType);
+                                var method = TypeAnalyzer.GetGenericMethodDetail(enumerableToArrayMethod, typeDetail.typeDetail.IEnumerableGenericInnerType);
                                 var innerValue = (ICollection)method.Caller(null, new object[] { state.CurrentFrame.Object })!;
 
                                 state.CurrentFrame.ObjectInProgress = true;
@@ -976,14 +976,14 @@ namespace Zerra.Serialization
             int length;
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
-                if (typeDetail.TypeDetail.IsICollection)
+                if (typeDetail.typeDetail.IsICollection)
                 {
                     var collection = (ICollection)values;
                     length = collection.Count;
                 }
-                else if (typeDetail.TypeDetail.IsICollectionGeneric)
+                else if (typeDetail.typeDetail.IsICollectionGeneric)
                 {
-                    length = (int)typeDetail.TypeDetail.GetMember("Count").Getter(values)!;
+                    length = (int)typeDetail.typeDetail.GetMember("Count").Getter(values)!;
                 }
                 else
                 {
@@ -1006,7 +1006,7 @@ namespace Zerra.Serialization
             }
 
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
-            switch (typeDetail.TypeDetail.CoreType)
+            switch (typeDetail.typeDetail.CoreType)
             {
                 case CoreType.Boolean:
                     if (!writer.TryWrite((IEnumerable<bool>)values, length, out sizeNeeded))
@@ -1306,14 +1306,14 @@ namespace Zerra.Serialization
             int length;
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
-                if (typeDetail.TypeDetail.IsICollection)
+                if (typeDetail.typeDetail.IsICollection)
                 {
                     var collection = (ICollection)values;
                     length = collection.Count;
                 }
-                else if (typeDetail.TypeDetail.IsICollectionGeneric)
+                else if (typeDetail.typeDetail.IsICollectionGeneric)
                 {
-                    length = (int)typeDetail.TypeDetail.GetMember("Count").Getter(values)!;
+                    length = (int)typeDetail.typeDetail.GetMember("Count").Getter(values)!;
                 }
                 else
                 {
@@ -1336,7 +1336,7 @@ namespace Zerra.Serialization
             }
 
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
-            switch (typeDetail.TypeDetail.EnumUnderlyingType)
+            switch (typeDetail.typeDetail.EnumUnderlyingType)
             {
                 case CoreType.Byte:
                     if (!writer.TryWriteByteCast(values, length, out sizeNeeded))
@@ -1467,7 +1467,7 @@ namespace Zerra.Serialization
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
 
-            var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList;
+            var asList = !typeDetail.typeDetail.Type.IsArray && typeDetail.typeDetail.IsIList;
 
             var values = (IEnumerable?)state.CurrentFrame.Object!;
 
@@ -1477,14 +1477,14 @@ namespace Zerra.Serialization
             {
                 int length;
 
-                if (typeDetail.TypeDetail.IsICollection)
+                if (typeDetail.typeDetail.IsICollection)
                 {
                     var collection = (ICollection)values;
                     length = collection.Count;
                 }
-                else if (typeDetail.TypeDetail.IsICollectionGeneric)
+                else if (typeDetail.typeDetail.IsICollectionGeneric)
                 {
-                    length = (int)typeDetail.TypeDetail.GetMember("Count").Getter(values)!;
+                    length = (int)typeDetail.typeDetail.GetMember("Count").Getter(values)!;
                 }
                 else
                 {

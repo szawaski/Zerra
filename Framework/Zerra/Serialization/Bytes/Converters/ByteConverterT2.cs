@@ -8,24 +8,25 @@ using Zerra.IO;
 
 namespace Zerra.Serialization
 {
-    internal abstract class ByteConverter<TParent, TValue> : ByteConverter<TParent>, IByteConverter<TParent>
+    internal abstract class ByteConverter<TParent, TValue> : ByteConverter<TParent>
     {
-        protected new TypeDetail<TValue> TypeDetail { get; private set; } = null!;
-        private Func<TParent, TValue?>? getter;
-        private Action<TParent, TValue?>? setter;
+        protected new TypeDetail<TValue> typeDetail { get; private set; } = null!;
+        private new Func<TParent, TValue?>? getter;
+        private new Action<TParent, TValue?>? setter;
 
-        public override sealed void Setup()
+        protected override sealed void SetupRoot()
         {
-            if (base.TypeDetail == null)
+            if (base.typeDetail == null)
                 throw new InvalidOperationException();
-            if (base.memberDetail == null)
+            if (base.getter == null)
+                throw new InvalidOperationException();
+            if (base.setter == null)
                 throw new InvalidOperationException();
 
-            this.TypeDetail = (TypeDetail<TValue>)base.TypeDetail;
-            var memberTyped = (MemberDetail<TParent, TValue>)base.memberDetail;
-            this.getter = memberTyped.Getter;
-            this.setter = memberTyped.Setter;
-            SetupAdditional();
+            this.typeDetail = (TypeDetail<TValue>)base.typeDetail;
+            this.getter = (Func<TParent, TValue?>?)base.getter;
+            this.setter = (Action<TParent, TValue?>?)base.setter;
+            Setup();
         }
 
         public override sealed void Read(ref ByteReader reader, ref ReadState state, TParent? parent)
@@ -53,7 +54,7 @@ namespace Zerra.Serialization
             }
         }
 
-        public virtual void SetupAdditional() { }
+        public virtual void Setup() { }
 
         protected abstract bool Read(ref ByteReader reader, ref ReadState state, out TValue? value);
         protected abstract bool Write(ref ByteWriter writer, ref WriteState state, TValue? value);

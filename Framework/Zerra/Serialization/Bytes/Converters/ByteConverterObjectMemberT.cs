@@ -6,9 +6,9 @@ using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
-    internal sealed class ByteConverterMember<TParent> : ByteConverterMember
+    internal sealed class ByteConverterObjectMember<TParent> : ByteConverterObjectMember
     {
-        public ByteConverterMember(OptionsStruct options, MemberDetail member)
+        public ByteConverterObjectMember(ByteConverterOptions options, MemberDetail member)
             : base(options, member)
         {
 
@@ -23,11 +23,7 @@ namespace Zerra.Serialization
                 {
                     lock (this)
                     {
-                        if (converter == null)
-                        {
-                            var converterRaw = ByteConverterFactory.Get<TParent>(options, Member.TypeDetail, Member);
-                            converter ??= ByteConverterFactory.GetMayNeedTypeInfo(options, Member.TypeDetail, converterRaw);
-                        }
+                        converter ??= ByteConverterFactory<TParent>.Get(options, Member.TypeDetail, Member.Getter, Member.Setter);
                     }
                 }
                 return converter;
