@@ -44,7 +44,6 @@ namespace Zerra.Serialization
 
         private static readonly MethodInfo enumerableToArrayMethod = typeof(Enumerable).GetMethod("ToArray") ?? throw new Exception($"{nameof(Enumerable)}.ToArray method not found");
         private static readonly Type enumerableType = typeof(IEnumerable<>);
-        private static readonly Type dictionaryType = typeof(Dictionary<,>);
 
         private static readonly Encoding defaultEncoding = Encoding.UTF8;
 

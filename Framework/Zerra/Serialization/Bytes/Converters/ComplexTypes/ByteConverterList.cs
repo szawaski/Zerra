@@ -42,7 +42,7 @@ namespace Zerra.Serialization
             valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
         }
 
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out List<TValue?>? obj)
+        protected override bool Read(ref ByteReader reader, ref ReadState state, out List<TValue?>? value)
         {
             int length;
             int sizeNeeded;
@@ -51,13 +51,13 @@ namespace Zerra.Serialization
                 if (!reader.TryReadInt32(out length, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
-                    obj = default;
+                    value = default;
                     return false;
                 }
 
                 if (length == 0)
                 {
-                    obj = (List<TValue?>?)state.CurrentFrame.ResultObject;
+                    value = (List<TValue?>?)state.CurrentFrame.ResultObject;
                     return true;
                 }
 
@@ -65,17 +65,17 @@ namespace Zerra.Serialization
 
                 if (!state.CurrentFrame.DrainBytes)
                 {
-                    obj = creator(length);
-                    state.CurrentFrame.ResultObject = obj;
+                    value = creator(length);
+                    state.CurrentFrame.ResultObject = value;
                 }
                 else
                 {
-                    obj = default;
+                    value = default;
                 }
             }
             else
             {
-                obj = (List<TValue?>?)state.CurrentFrame.ResultObject;
+                value = (List<TValue?>?)state.CurrentFrame.ResultObject;
             }
 
             length = state.CurrentFrame.EnumerableLength.Value;
@@ -83,7 +83,7 @@ namespace Zerra.Serialization
             for (; ; )
             {
                 state.PushFrame(readConverter, valueIsNullable);
-                readConverter.Read(ref reader, ref state, obj);
+                readConverter.Read(ref reader, ref state, value);
                 if (state.BytesNeeded > 0)
                     return false;
 
@@ -94,40 +94,47 @@ namespace Zerra.Serialization
             }
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, List<TValue?>? obj)
+        protected override bool Write(ref ByteWriter writer, ref WriteState state, List<TValue?>? value)
         {
-            if (obj == null)
+            if (value == null)
                 throw new NotSupportedException();
+
+            IEnumerator<TValue?> enumerator;
 
             int sizeNeeded;
 
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
-                var length = obj.Count;
+                var length = value.Count;
 
                 if (!writer.TryWrite(length, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
                     return false;
                 }
-                state.CurrentFrame.EnumerableLength = length;
+                if (length == 0)
+                {
+                    return true;
+                }
+                state.CurrentFrame.Object = length;
+
+                enumerator = value.GetEnumerator();
+            }
+            else
+            {
+                enumerator = (IEnumerator<TValue?>)state.CurrentFrame.Object!;
             }
 
-            if (state.CurrentFrame.EnumerableLength > 0)
+            while (state.CurrentFrame.EnumeratorInProgress || enumerator.MoveNext())
             {
-                state.CurrentFrame.Enumerator ??= obj.GetEnumerator();
+                state.CurrentFrame.EnumeratorInProgress = true;
 
-                while (state.CurrentFrame.EnumeratorInProgress || state.CurrentFrame.Enumerator!.MoveNext())
-                {
-                    state.CurrentFrame.EnumeratorInProgress = true;
+                state.PushFrame(writeConverter, valueIsNullable, value);
+                writeConverter.Write(ref writer, ref state, enumerator);
+                if (state.BytesNeeded > 0)
+                    return false;
 
-                    state.PushFrame(writeConverter, valueIsNullable, obj);
-                    readConverter.Write(ref writer, ref state, obj);
-                    if (state.BytesNeeded > 0)
-                        return false;
-
-                    state.CurrentFrame.EnumeratorInProgress = false;
-                }
+                state.CurrentFrame.EnumeratorInProgress = false;
             }
 
             return true;

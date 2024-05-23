@@ -33,7 +33,7 @@ namespace Zerra.Serialization
             valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
         }
 
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out IEnumerable<TValue?>? obj)
+        protected override bool Read(ref ByteReader reader, ref ReadState state, out IEnumerable<TValue?>? value)
         {
             ArrayAccessor<TValue?> accessor;
 
@@ -44,7 +44,7 @@ namespace Zerra.Serialization
                 if (!reader.TryReadInt32(out length, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
-                    obj = default;
+                    value = default;
                     return false;
                 }
                 state.CurrentFrame.EnumerableLength = length;
@@ -52,25 +52,25 @@ namespace Zerra.Serialization
                 if (!state.CurrentFrame.DrainBytes)
                 {
                     accessor = creator(length);
-                    obj = accessor.Array;
-                    state.CurrentFrame.ResultObject = obj;
+                    value = accessor.Array;
+                    state.CurrentFrame.ResultObject = value;
                 }
                 else
                 {
-                    obj = default;
+                    value = default;
                     accessor = new ArrayAccessor<TValue?>(null, 0);
                 }
 
                 if (length == 0)
                 {
-                    obj = (TValue?[]?)state.CurrentFrame.ResultObject;
+                    value = (TValue?[]?)state.CurrentFrame.ResultObject;
                     return true;
                 }
             }
             else
             {
                 var array = (TValue?[]?)state.CurrentFrame.ResultObject;
-                obj = array;
+                value = array;
                 accessor = new ArrayAccessor<TValue?>(array, state.CurrentFrame.EnumerablePosition);
             }
 
@@ -90,9 +90,9 @@ namespace Zerra.Serialization
             }
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, IEnumerable<TValue?>? obj)
+        protected override bool Write(ref ByteWriter writer, ref WriteState state, IEnumerable<TValue?>? value)
         {
-            if (obj == null)
+            if (value == null)
                 throw new NotSupportedException();
 
             ArrayAccessor<TValue?> accessor;
@@ -103,16 +103,16 @@ namespace Zerra.Serialization
                 int length;
                 if (typeDetail.IsICollection)
                 {
-                    var collection = (ICollection)obj;
+                    var collection = (ICollection)value;
                     length = collection.Count;
                 }
                 else if (typeDetail.IsICollectionGeneric)
                 {
-                    length = (int)typeDetail.GetMember("Count").Getter(obj)!;
+                    length = (int)typeDetail.GetMember("Count").Getter(value)!;
                 }
                 else
                 {
-                    var enumerable = (IEnumerable)obj;
+                    var enumerable = (IEnumerable)value;
                     length = 0;
                     foreach (var item in enumerable)
                         length++;

@@ -32,7 +32,7 @@ namespace Zerra.Serialization
             valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
         }
 
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out TValue?[]? obj)
+        protected override bool Read(ref ByteReader reader, ref ReadState state, out TValue?[]? value)
         {
             ArrayAccessor<TValue?> accessor;
 
@@ -43,7 +43,7 @@ namespace Zerra.Serialization
                 if (!reader.TryReadInt32(out length, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
-                    obj = default;
+                    value = default;
                     return false;
                 }
                 state.CurrentFrame.EnumerableLength = length;
@@ -51,25 +51,25 @@ namespace Zerra.Serialization
                 if (!state.CurrentFrame.DrainBytes)
                 {
                     accessor = creator(length);
-                    obj = accessor.Array;
-                    state.CurrentFrame.ResultObject = obj;
+                    value = accessor.Array;
+                    state.CurrentFrame.ResultObject = value;
                 }
                 else
                 {
-                    obj = default;
-                    accessor = new ArrayAccessor<TValue?>(obj, 0);
+                    value = default;
+                    accessor = new ArrayAccessor<TValue?>(value, 0);
                 }
 
                 if (length == 0)
                 {
-                    obj = (TValue?[]?)state.CurrentFrame.ResultObject;
+                    value = (TValue?[]?)state.CurrentFrame.ResultObject;
                     return true;
                 }
             }
             else
             {
-                obj = (TValue?[]?)state.CurrentFrame.ResultObject;
-                accessor = new ArrayAccessor<TValue?>(obj, state.CurrentFrame.EnumerablePosition);
+                value = (TValue?[]?)state.CurrentFrame.ResultObject;
+                accessor = new ArrayAccessor<TValue?>(value, state.CurrentFrame.EnumerablePosition);
             }
 
             length = state.CurrentFrame.EnumerableLength.Value;
@@ -88,9 +88,9 @@ namespace Zerra.Serialization
             }
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, TValue?[]? obj)
+        protected override bool Write(ref ByteWriter writer, ref WriteState state, TValue?[]? value)
         {
-            if (obj == null)
+            if (value == null)
                 throw new NotSupportedException();
 
             ArrayAccessor<TValue?> accessor;
@@ -98,7 +98,7 @@ namespace Zerra.Serialization
             int sizeNeeded;
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
-                var length = obj.Length;
+                var length = value.Length;
 
                 if (!writer.TryWrite(length, out sizeNeeded))
                 {
@@ -107,7 +107,7 @@ namespace Zerra.Serialization
                 }
                 state.CurrentFrame.EnumerableLength = length;
 
-                accessor = new ArrayAccessor<TValue?>(obj.Length);
+                accessor = new ArrayAccessor<TValue?>(value.Length);
                 state.CurrentFrame.Object = accessor;
             }
             else

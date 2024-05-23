@@ -85,20 +85,20 @@ namespace Zerra.Serialization
             this.indexSizeUInt16 = options.HasFlag(ByteConverterOptions.IndexSizeUInt16);
         }
 
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out TValue? obj)
+        protected override bool Read(ref ByteReader reader, ref ReadState state, out TValue? value)
         {
             if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasNullChecked)
             {
                 if (!reader.TryReadIsNull(out var isNull, out var sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
-                    obj = default;
+                    value = default;
                     return false;
                 }
 
                 if (isNull)
                 {
-                    obj = default;
+                    value = default;
                     return true;
                 }
 
@@ -108,15 +108,15 @@ namespace Zerra.Serialization
             if (!state.CurrentFrame.HasObjectStarted)
             {
                 if (!state.CurrentFrame.DrainBytes && typeDetail.HasCreator)
-                    obj = typeDetail.Creator();
+                    value = typeDetail.Creator();
                 else
-                    obj = default;
-                state.CurrentFrame.ResultObject = obj;
+                    value = default;
+                state.CurrentFrame.ResultObject = value;
                 state.CurrentFrame.HasObjectStarted = true;
             }
             else
             {
-                obj = (TValue?)state.CurrentFrame.ResultObject;
+                value = (TValue?)state.CurrentFrame.ResultObject;
             }
 
             for (; ; )
@@ -159,7 +159,7 @@ namespace Zerra.Serialization
                         var converter = ByteConverterFactory<TValue>.GetNeedTypeInfo(options);
                         state.PushFrame(converter, false);
                         state.CurrentFrame.DrainBytes = true;
-                        converter.Read(ref reader, ref state, obj);
+                        converter.Read(ref reader, ref state, value);
                         if (state.BytesNeeded > 0)
                             return false;
                     }
@@ -167,7 +167,7 @@ namespace Zerra.Serialization
                     {
                         var converter = ByteConverterFactory<TValue>.GetMayNeedTypeInfo(options, property.Member.TypeDetail, property.Converter);
                         state.PushFrame(converter, false);
-                        converter.Read(ref reader, ref state, obj);
+                        converter.Read(ref reader, ref state, value);
                         if (state.BytesNeeded > 0)
                             return false;
                     }
@@ -177,21 +177,21 @@ namespace Zerra.Serialization
                     ushort propertyIndex;
                     if (indexSizeUInt16)
                     {
-                        if (!reader.TryReadUInt16(out var value, out var sizeNeeded))
+                        if (!reader.TryReadUInt16(out var propertyIndexValue, out var sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return false;
                         }
-                        propertyIndex = value;
+                        propertyIndex = propertyIndexValue;
                     }
                     else
                     {
-                        if (!reader.TryReadByte(out var value, out var sizeNeeded))
+                        if (!reader.TryReadByte(out var propertyIndexValue, out var sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return false;
                         }
-                        propertyIndex = value;
+                        propertyIndex = propertyIndexValue;
                     }
 
 
@@ -212,7 +212,7 @@ namespace Zerra.Serialization
                         var converter = ByteConverterFactory<TValue>.GetNeedTypeInfo(options);
                         state.PushFrame(converter, false);
                         state.CurrentFrame.DrainBytes = true;
-                        converter.Read(ref reader, ref state, obj);
+                        converter.Read(ref reader, ref state, value);
                         if (state.BytesNeeded > 0)
                             return false;
                     }
@@ -220,7 +220,7 @@ namespace Zerra.Serialization
                     {
                         var converter = ByteConverterFactory<TValue>.GetMayNeedTypeInfo(options, property.Member.TypeDetail, property.Converter);
                         state.PushFrame(converter, false);
-                        converter.Read(ref reader, ref state, obj);
+                        converter.Read(ref reader, ref state, value);
                         if (state.BytesNeeded > 0)
                             return false;
                     }
@@ -228,12 +228,12 @@ namespace Zerra.Serialization
             }
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, TValue? obj)
+        protected override bool Write(ref ByteWriter writer, ref WriteState state, TValue? value)
         {
             int sizeNeeded;
             if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasWrittenIsNull)
             {
-                if (obj == null)
+                if (value == null)
                 {
                     if (!writer.TryWriteNull(out sizeNeeded))
                     {
@@ -297,8 +297,8 @@ namespace Zerra.Serialization
                 state.CurrentFrame.EnumeratorInProgress = false;
 
                 var converter = ByteConverterFactory<TValue>.GetMayNeedTypeInfo(options, indexProperty.Value.Member.TypeDetail, indexProperty.Value.Converter);
-                state.PushFrame(converter, false, obj);
-                converter.Write(ref writer, ref state, obj);
+                state.PushFrame(converter, false, value);
+                converter.Write(ref writer, ref state, value);
                 if (state.BytesNeeded > 0)
                     return false;
             }
