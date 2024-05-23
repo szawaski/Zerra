@@ -87,8 +87,8 @@ namespace Zerra.Repository.Reflection
             if (!this.IsDataSourceNotNull && this.IsIdentity)
                 throw new Exception($"{this.Type.GetNiceName()} {this.Name} cannot be both an identity and nullable");
 
-            this.Getter = memberDetail.Getter;
-            this.Setter = memberDetail.Setter;
+            this.Getter = memberDetail.GetterBoxed;
+            this.Setter = memberDetail.SetterBoxed;
 
             this.CoreTypeSetter = CoreTypeSetterGenerator.Get(this.MemberInfo, this.CoreType, this.Type.IsArray && this.InnerCoreType == Zerra.Reflection.CoreType.Byte);
         }

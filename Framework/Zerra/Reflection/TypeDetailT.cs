@@ -81,7 +81,7 @@ namespace Zerra.Reflection
 
         private bool creatorLoaded = false;
         private Func<T>? creator = null;
-        public new Func<T> Creator
+        public Func<T> Creator
         {
             get
             {
@@ -89,7 +89,7 @@ namespace Zerra.Reflection
                 return creator ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(Creator)}");
             }
         }
-        public new bool HasCreator
+        public bool HasCreator
         {
             get
             {

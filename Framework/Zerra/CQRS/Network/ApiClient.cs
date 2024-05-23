@@ -290,8 +290,8 @@ namespace Zerra.CQRS.Network
         //    return RequestAsync<object>(null, false, address, null, ContentType.Json, bytes, false);
         //}
 
-        private static readonly Func<object, object?> cookieContainerGetter = TypeAnalyzer.GetTypeDetail(typeof(CookieContainer)).GetMember("m_domainTable").Getter;
-        private static readonly Func<object, object?> pathListGetter = TypeAnalyzer.GetTypeDetail(Discovery.GetTypeFromName("System.Net.PathList, System.Net.Primitives, Version=4.1.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")).GetMember("m_list").Getter;
+        private static readonly Func<object, object?> cookieContainerGetter = TypeAnalyzer.GetTypeDetail(typeof(CookieContainer)).GetMember("m_domainTable").GetterBoxed;
+        private static readonly Func<object, object?> pathListGetter = TypeAnalyzer.GetTypeDetail(Discovery.GetTypeFromName("System.Net.PathList, System.Net.Primitives, Version=4.1.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")).GetMember("m_list").GetterBoxed;
 
         private static CookieCollection GetCookiesFromContainer(CookieContainer cookieJar)
         {

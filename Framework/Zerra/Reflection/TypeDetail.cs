@@ -754,57 +754,57 @@ namespace Zerra.Reflection
             {
                 lock (locker)
                 {
-                    taskResultGetter ??= GetMember("Result").Getter;
+                    taskResultGetter ??= GetMember("Result").GetterBoxed;
                 }
             }
         }
 
-        private bool creatorLoaded = false;
-        private Func<object>? creator = null;
-        public Func<object> Creator
+        private bool creatorBoxedLoaded = false;
+        private Func<object>? creatorBoxed = null;
+        public Func<object> CreatorBoxed
         {
             get
             {
-                LoadCreator();
-                return creator ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(Creator)}");
+                LoadCreatorBoxed();
+                return creatorBoxed ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(CreatorBoxed)}");
             }
         }
-        public bool HasCreator
+        public bool HasCreatorBoxed
         {
             get
             {
-                LoadCreator();
-                return creator != null;
+                LoadCreatorBoxed();
+                return creatorBoxed != null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadCreator()
+        private void LoadCreatorBoxed()
         {
-            if (!creatorLoaded)
+            if (!creatorBoxedLoaded)
             {
                 lock (locker)
                 {
-                    if (!creatorLoaded)
+                    if (!creatorBoxedLoaded)
                     {
                         if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
                         {
                             var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParametersInfo.Count == 0);
-                            if (emptyConstructor != null && emptyConstructor.Creator != null)
+                            if (emptyConstructor != null && emptyConstructor.CreatorBoxed != null)
                             {
-                                creator = () => { return emptyConstructor.Creator(null); };
+                                creatorBoxed = () => { return emptyConstructor.CreatorBoxed(null); };
                             }
                             else if (Type.IsValueType && Type.Name != "Void")
                             {
                                 var constantExpression = Expression.Convert(Expression.Default(Type), typeof(object));
                                 var lambda = Expression.Lambda<Func<object>>(constantExpression).Compile();
-                                creator = lambda;
+                                creatorBoxed = lambda;
                             }
                             else if (Type == typeof(string))
                             {
-                                creator = () => { return String.Empty; };
+                                creatorBoxed = () => { return String.Empty; };
                             }
                         }
-                        creatorLoaded = true;
+                        creatorBoxedLoaded = true;
                     }
                 }
             }

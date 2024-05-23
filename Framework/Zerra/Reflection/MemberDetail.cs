@@ -35,32 +35,32 @@ namespace Zerra.Reflection
             }
         }
 
-        private bool getterLoaded = false;
-        private Func<object, object?>? getter = null;
-        public Func<object, object?> Getter
+        private bool getterBoxedLoaded = false;
+        private Func<object, object?>? getterBoxed = null;
+        public Func<object, object?> GetterBoxed
         {
             get
             {
-                LoadGetter();
-                return this.getter ?? throw new NotSupportedException($"{nameof(MemberDetail)} {Name} does not have a {nameof(Getter)}");
+                LoadGetterBoxed();
+                return this.getterBoxed ?? throw new NotSupportedException($"{nameof(MemberDetail)} {Name} does not have a {nameof(GetterBoxed)}");
             }
         }
-        public bool HasGetter
+        public bool HasGetterBoxed
         {
             get
             {
-                LoadGetter();
-                return this.getter != null;
+                LoadGetterBoxed();
+                return this.getterBoxed != null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadGetter()
+        private void LoadGetterBoxed()
         {
-            if (!getterLoaded)
+            if (!getterBoxedLoaded)
             {
                 lock (locker)
                 {
-                    if (!getterLoaded)
+                    if (!getterBoxedLoaded)
                     {
                         if (MemberInfo.MemberType == MemberTypes.Property)
                         {
@@ -69,11 +69,11 @@ namespace Zerra.Reflection
                             {
                                 if (BackingFieldDetail == null)
                                 {
-                                    this.getter = AccessorGenerator.GenerateGetter(property);
+                                    this.getterBoxed = AccessorGenerator.GenerateGetter(property);
                                 }
                                 else
                                 {
-                                    this.getter = BackingFieldDetail.Getter;
+                                    this.getterBoxed = BackingFieldDetail.GetterBoxed;
                                 }
                             }
                         }
@@ -82,41 +82,41 @@ namespace Zerra.Reflection
                             var field = (FieldInfo)MemberInfo;
                             if (!field.FieldType.IsPointer)
                             {
-                                this.getter = AccessorGenerator.GenerateGetter(field);
+                                this.getterBoxed = AccessorGenerator.GenerateGetter(field);
                             }
                         }
-                        getterLoaded = true;
+                        getterBoxedLoaded = true;
                     }
                 }
             }
         }
 
-        private bool setterLoaded = false;
-        private Action<object, object?>? setter = null;
-        public Action<object, object?> Setter
+        private bool setterBoxedLoaded = false;
+        private Action<object, object?>? setterBoxed = null;
+        public Action<object, object?> SetterBoxed
         {
             get
             {
-                LoadSetter();
-                return this.setter ?? throw new NotSupportedException($"{nameof(MemberDetail)} {Name} does not have a {nameof(Setter)}");
+                LoadSetterBoxed();
+                return this.setterBoxed ?? throw new NotSupportedException($"{nameof(MemberDetail)} {Name} does not have a {nameof(SetterBoxed)}");
             }
         }
-        public bool HasSetter
+        public bool HasSetterBoxed
         {
             get
             {
-                LoadSetter();
-                return this.setter != null;
+                LoadSetterBoxed();
+                return this.setterBoxed != null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadSetter()
+        private void LoadSetterBoxed()
         {
-            if (!setterLoaded)
+            if (!setterBoxedLoaded)
             {
                 lock (locker)
                 {
-                    if (!setterLoaded)
+                    if (!setterBoxedLoaded)
                     {
                         if (MemberInfo.MemberType == MemberTypes.Property)
                         {
@@ -125,11 +125,11 @@ namespace Zerra.Reflection
                             {
                                 if (BackingFieldDetail == null)
                                 {
-                                    this.setter = AccessorGenerator.GenerateSetter(property);
+                                    this.setterBoxed = AccessorGenerator.GenerateSetter(property);
                                 }
                                 else
                                 {
-                                    this.setter = BackingFieldDetail.Setter;
+                                    this.setterBoxed = BackingFieldDetail.SetterBoxed;
                                 }
                             }
                         }
@@ -138,10 +138,10 @@ namespace Zerra.Reflection
                             var field = (FieldInfo)MemberInfo;
                             if (!field.FieldType.IsPointer)
                             {
-                                this.setter = AccessorGenerator.GenerateSetter(field);
+                                this.setterBoxed = AccessorGenerator.GenerateSetter(field);
                             }
                         }
-                        setterLoaded = true;
+                        setterBoxedLoaded = true;
                     }
                 }
             }

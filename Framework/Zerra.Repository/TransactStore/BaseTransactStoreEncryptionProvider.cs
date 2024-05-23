@@ -56,7 +56,7 @@ namespace Zerra.Repository
                 {
                     if (property.TypeDetail.CoreType == CoreType.String)
                     {
-                        var encrypted = (string?)property.Getter(model);
+                        var encrypted = (string?)property.GetterBoxed(model);
                         if (encrypted != null)
                         {
                             try
@@ -65,7 +65,7 @@ namespace Zerra.Repository
                                 {
                                     encrypted = encrypted.Substring(encryptionPrefix.Length, encrypted.Length - encryptionPrefix.Length);
                                     var plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
-                                    property.Setter(model, plain);
+                                    property.SetterBoxed(model, plain);
                                 }
                             }
                             catch { }
@@ -73,13 +73,13 @@ namespace Zerra.Repository
                     }
                     else if (property.Type == typeof(byte[]))
                     {
-                        var encrypted = (byte[]?)property.Getter(model);
+                        var encrypted = (byte[]?)property.GetterBoxed(model);
                         if (encrypted != null)
                         {
                             try
                             {
                                 var plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
-                                property.Setter(model, plain);
+                                property.SetterBoxed(model, plain);
                             }
                             catch { }
                         }
@@ -111,7 +111,7 @@ namespace Zerra.Repository
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
-                            var encrypted = (string?)property.Getter(model);
+                            var encrypted = (string?)property.GetterBoxed(model);
                             if (encrypted != null)
                             {
                                 try
@@ -120,7 +120,7 @@ namespace Zerra.Repository
                                     {
                                         encrypted = encrypted.Substring(encryptionPrefix.Length, encrypted.Length - encryptionPrefix.Length);
                                         var plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
-                                        property.Setter(model, plain);
+                                        property.SetterBoxed(model, plain);
                                     }
                                 }
                                 catch { }
@@ -128,13 +128,13 @@ namespace Zerra.Repository
                         }
                         else if (property.Type == typeof(byte[]))
                         {
-                            var encrypted = (byte[]?)property.Getter(model);
+                            var encrypted = (byte[]?)property.GetterBoxed(model);
                             if (encrypted != null)
                             {
                                 try
                                 {
                                     var plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
-                                    property.Setter(model, plain);
+                                    property.SetterBoxed(model, plain);
                                 }
                                 catch { }
                             }
@@ -385,24 +385,24 @@ namespace Zerra.Repository
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
-                            var plain = (string?)property.Getter(model);
+                            var plain = (string?)property.GetterBoxed(model);
                             if (plain != null)
                             {
                                 if (plain.Length <= encryptionPrefix.Length || plain.Substring(0, encryptionPrefix.Length) != encryptionPrefix)
                                 {
                                     plain = encryptionPrefix + plain;
                                     var encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain);
-                                    property.Setter(model, encrypted);
+                                    property.SetterBoxed(model, encrypted);
                                 }
                             }
                         }
                         else if (property.Type == typeof(byte[]))
                         {
-                            var plain = (byte[]?)property.Getter(model);
+                            var plain = (byte[]?)property.GetterBoxed(model);
                             if (plain != null)
                             {
                                 var encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain);
-                                property.Setter(model, encrypted);
+                                property.SetterBoxed(model, encrypted);
                             }
                         }
                     }

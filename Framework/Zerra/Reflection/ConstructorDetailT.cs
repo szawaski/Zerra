@@ -12,7 +12,7 @@ namespace Zerra.Reflection
     {
         private bool creatorLoaded = false;
         private Func<object?[]?, T>? creator = null;
-        public new Func<object?[]?, T> Creator
+        public Func<object?[]?, T> Creator
         {
             get
             {
@@ -20,7 +20,7 @@ namespace Zerra.Reflection
                 return this.creator ?? throw new NotSupportedException($"{nameof(ConstructorDetail)} {Name} does not have a {nameof(Creator)}"); ;
             }
         }
-        public new bool HasCreator
+        public bool HasCreator
         {
             get
             {
@@ -47,7 +47,7 @@ namespace Zerra.Reflection
             }
         }
 
-        public override Delegate? CreatorTyped => Creator; 
+        public override Delegate? CreatorTyped => Creator;
 
         internal ConstructorDetail(ConstructorInfo constructor, object locker) : base(constructor, locker) { }
     }
