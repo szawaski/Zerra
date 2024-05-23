@@ -7,6 +7,7 @@ using Zerra.IO;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace Zerra.Serialization
 {
@@ -17,6 +18,8 @@ namespace Zerra.Serialization
 
         private bool usePropertyNames;
         private bool indexSizeUInt16;
+        private bool collectValues;
+        private ConstructorDetail<TValue>? parameterConstructor = null;
 
         public override void Setup()
         {
@@ -48,7 +51,7 @@ namespace Zerra.Serialization
 
                         var index = (ushort)(member.Item2.Index + indexOffset);
 
-                        var detail = new ByteConverterObjectMember(options, typeDetail, member.Item1);
+                        var detail = ByteConverterObjectMember.New(options, typeDetail, member.Item1);
                         propertiesByIndex.Add(index, detail);
                         propertiesByName.Add(member.Item1.Name, detail);
                     }
@@ -73,7 +76,7 @@ namespace Zerra.Serialization
 
                     var index = (ushort)(orderIndex + indexOffset);
 
-                    var detail = new ByteConverterObjectMember(options, typeDetail, member.Item1);
+                    var detail = ByteConverterObjectMember.New(options, typeDetail, member.Item1);
                     propertiesByIndex.Add(index, detail);
                     propertiesByName.Add(member.Item1.Name, detail);
 
@@ -83,10 +86,41 @@ namespace Zerra.Serialization
 
             this.usePropertyNames = options.HasFlag(ByteConverterOptions.UsePropertyNames);
             this.indexSizeUInt16 = options.HasFlag(ByteConverterOptions.IndexSizeUInt16);
+
+            if (typeDetail.Type.IsValueType || !typeDetail.HasCreator)
+            {
+                //find best constructor
+                foreach (var constructor in typeDetail.ConstructorDetails.OrderByDescending(x => x.ParametersInfo.Count))
+                {
+                    var skip = false;
+                    foreach (var parameter in constructor.ParametersInfo)
+                    {
+                        //cannot have argument of itself or a null name
+                        if (parameter.ParameterType == typeDetail.Type || parameter.Name == null)
+                        {
+                            skip = true;
+                            break;
+                        }
+                        //must have a matching a member
+                        if (!propertiesByName.Values.Any(x => x.Member.Type == parameter.ParameterType && String.Equals(x.Member.Name, parameter.Name, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            skip = true;
+                            break;
+                        }
+                    }
+                    if (skip)
+                        continue;
+                    this.parameterConstructor = constructor;
+                    break;
+                }
+                this.collectValues = parameterConstructor != null;
+            }
         }
 
         protected override bool Read(ref ByteReader reader, ref ReadState state, out TValue? value)
         {
+            Dictionary<string, object?>? collectedValues;
+
             if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasNullChecked)
             {
                 if (!reader.TryReadIsNull(out var isNull, out var sizeNeeded))
@@ -107,16 +141,49 @@ namespace Zerra.Serialization
 
             if (!state.CurrentFrame.HasObjectStarted)
             {
-                if (!state.CurrentFrame.DrainBytes && typeDetail.HasCreator)
-                    value = typeDetail.Creator();
+                if (!state.CurrentFrame.DrainBytes)
+                {
+                    if (collectValues)
+                    {
+                        value = default;
+                        collectedValues = new();
+
+                        state.CurrentFrame.ResultObject = collectedValues;
+                    }
+                    else if (typeDetail.HasCreator)
+                    {
+                        value = typeDetail.Creator();
+                        collectedValues = null;
+                        state.CurrentFrame.ResultObject = value;
+                    }
+                    else
+                    {
+                        value = default;
+                        collectedValues = null;
+                        state.CurrentFrame.ResultObject = value;
+                    }
+                }
                 else
+                {
                     value = default;
-                state.CurrentFrame.ResultObject = value;
+                    collectedValues = null;
+                    state.CurrentFrame.ResultObject = value;
+                }
+
                 state.CurrentFrame.HasObjectStarted = true;
             }
             else
             {
-                value = (TValue?)state.CurrentFrame.ResultObject;
+                if (collectValues)
+                {
+                    value = default;
+                    collectedValues = (Dictionary<string, object?>)state.CurrentFrame.ResultObject!;
+                }
+                else
+                {
+                    value = (TValue?)state.CurrentFrame.ResultObject;
+                    collectedValues = null;
+                }
             }
 
             for (; ; )
@@ -137,7 +204,7 @@ namespace Zerra.Serialization
 
                     if (state.CurrentFrame.StringLength!.Value == 0)
                     {
-                        return true;
+                        break;
                     }
 
                     if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out var name, out sizeNeeded))
@@ -197,7 +264,7 @@ namespace Zerra.Serialization
 
                     if (propertyIndex == endObjectFlagUShort)
                     {
-                        return true;
+                        break;
                     }
 
                     property = null;
@@ -212,20 +279,51 @@ namespace Zerra.Serialization
                         var converter = ByteConverterFactory<TValue>.GetNeedTypeInfo(options);
                         state.PushFrame(converter, false);
                         state.CurrentFrame.DrainBytes = true;
-                        converter.Read(ref reader, ref state, value);
+                        converter.Read(ref reader, ref state, default);
                         if (state.BytesNeeded > 0)
                             return false;
                     }
                     else
                     {
-                        var converter = ByteConverterFactory<TValue>.GetMayNeedTypeInfo(options, property.Member.TypeDetail, property.Converter);
-                        state.PushFrame(converter, false);
-                        converter.Read(ref reader, ref state, value);
-                        if (state.BytesNeeded > 0)
-                            return false;
+                        if (collectValues)
+                        {
+                            var converter = ByteConverterFactory<Dictionary<string, object?>>.GetMayNeedTypeInfo(options, property.Member.TypeDetail, property.ConverterSetValues);
+                            state.PushFrame(converter, false);
+                            converter.Read(ref reader, ref state, collectedValues);
+                            if (state.BytesNeeded > 0)
+                                return false;
+                        }
+                        else
+                        {
+                            var converter = ByteConverterFactory<TValue>.GetMayNeedTypeInfo(options, property.Member.TypeDetail, property.Converter);
+                            state.PushFrame(converter, false);
+                            converter.Read(ref reader, ref state, value);
+                            if (state.BytesNeeded > 0)
+                                return false;
+                        }
                     }
                 }
             }
+
+            if (collectValues)
+            {
+                var args = new object?[parameterConstructor!.ParametersInfo.Count];
+                for (var i = 0; i < args.Length; i++)
+                {
+                    if (collectedValues!.TryGetValue(parameterConstructor.ParametersInfo[i].Name!, out var parameter))
+                        args[i] = parameter;
+                }
+                if (typeDetail.Type.IsValueType)
+                {
+                    value = (TValue?)parameterConstructor.ConstructorInfo.Invoke(args);
+                }
+                else
+                {
+                    value = parameterConstructor.Creator(args);
+                }
+            }
+
+            return true;
         }
 
         protected override bool Write(ref ByteWriter writer, ref WriteState state, TValue? value)
@@ -334,10 +432,10 @@ namespace Zerra.Serialization
             return true;
         }
 
-        private sealed class ByteConverterObjectMember
+        private abstract class ByteConverterObjectMember
         {
-            private ByteConverterOptions options;
-            private TypeDetail parent;
+            protected ByteConverterOptions options;
+            protected TypeDetail parent;
             public MemberDetail Member { get; private set; }
 
             public ByteConverterObjectMember(ByteConverterOptions options, TypeDetail parent, MemberDetail member)
@@ -363,10 +461,47 @@ namespace Zerra.Serialization
                 }
             }
 
+            public abstract ByteConverter<Dictionary<string, object?>> ConverterSetValues { get; }
+
             //helps with debug
             public override string ToString()
             {
                 return Member.Name;
+            }
+
+            private static readonly Type byteConverterObjectMemberT = typeof(ByteConverterObjectMember<>);
+            public static ByteConverterObjectMember New(ByteConverterOptions options, TypeDetail parent, MemberDetail member)
+            {
+                var generic = byteConverterObjectMemberT.GetGenericTypeDetail(typeof(TParent), parent.Type, member.Type);
+                var obj = generic.ConstructorDetails[0].Creator(new object?[] { options, parent, member });
+                return (ByteConverterObjectMember)obj;
+            }
+        }
+
+        private sealed class ByteConverterObjectMember<TValue2> : ByteConverterObjectMember
+        {
+            public ByteConverterObjectMember(ByteConverterOptions options, TypeDetail parent, MemberDetail member)
+                : base(options, parent, member)
+            {
+
+            }
+
+            private ByteConverter<Dictionary<string, object?>>? converterSetValues = null;
+            public override ByteConverter<Dictionary<string, object?>> ConverterSetValues
+            {
+                get
+                {
+                    if (converterSetValues == null)
+                    {
+                        lock (this)
+                        {
+                            var type = TypeAnalyzer<Dictionary<string, object?>>.GetTypeDetail();
+                            Action<Dictionary<string, object?>, TValue2?> setter = (parent, value) => parent.Add(Member.Name, value);
+                            converterSetValues ??= ByteConverterFactory<Dictionary<string, object?>>.Get(options, Member.TypeDetail, parent, null, setter);
+                        }
+                    }
+                    return converterSetValues;
+                }
             }
         }
     }
