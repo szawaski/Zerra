@@ -164,20 +164,20 @@ namespace Zerra
                 else if (targetType.IsIList && targetType.Type.IsInterface)
                 {
                     var listType = TypeAnalyzer.GetGenericTypeDetail(genericListType, targetType.InnerTypes[0]);
-                    target = (TTarget)listType.Creator();
+                    target = (TTarget)listType.CreatorBoxed();
                 }
                 else if (targetType.IsIList && !targetType.Type.IsInterface)
                 {
-                    target = (TTarget)targetType.Creator();
+                    target = (TTarget)targetType.CreatorBoxed();
                 }
                 else if (targetType.IsISet && targetType.Type.IsInterface)
                 {
                     var setType = TypeAnalyzer.GetGenericTypeDetail(genericHashSetType, targetType.InnerTypes[0]);
-                    target = (TTarget)setType.Creator();
+                    target = (TTarget)setType.CreatorBoxed();
                 }
                 else if (targetType.IsISet && !targetType.Type.IsInterface)
                 {
-                    target = (TTarget)targetType.Creator();
+                    target = (TTarget)targetType.CreatorBoxed();
                 }
                 else if (sourceType.IsICollection)
                 {
@@ -186,18 +186,18 @@ namespace Zerra
                 }
                 else if (sourceType.IsICollectionGeneric)
                 {
-                    var length = (int)sourceType.GetMember("Count").Getter(source)!;
+                    var length = (int)sourceType.GetMember("Count").GetterBoxed(source)!;
                     target = (TTarget)(object)Array.CreateInstance(targetType.InnerTypes[0], length);
                 }
                 else
                 {
                     var listType = TypeAnalyzer.GetGenericTypeDetail(genericListType, targetType.InnerTypes[0]);
-                    target = (TTarget)listType.Creator();
+                    target = (TTarget)listType.CreatorBoxed();
                 }
             }
             else
             {
-                var creator = targetType.Creator;
+                var creator = targetType.CreatorBoxed;
                 if (creator == null)
                     throw new NotSupportedException($"{targetType.Type.GetNiceName()} does not have a default constructor");
                 target = (TTarget)creator();

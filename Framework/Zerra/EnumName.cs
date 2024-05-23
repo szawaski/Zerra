@@ -342,7 +342,7 @@ public sealed class EnumName : Attribute
         {
             var found = false;
             var args = new object?[3];
-            value = type.GetTypeDetail().Creator();
+            value = type.GetTypeDetail().CreatorBoxed();
 
             Span<char> chars = enumString.ToCharArray();
             var start = 0;

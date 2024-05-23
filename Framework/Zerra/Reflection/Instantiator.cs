@@ -50,9 +50,9 @@ namespace Zerra.Reflection
                 var typeDetail = TypeAnalyzer.GetTypeDetail(type);
                 if (parameterTypes == null || parameterTypes.Length == 0)
                 {
-                    if (typeDetail.Creator == null)
+                    if (typeDetail.CreatorBoxed == null)
                         return null;
-                    object c(object?[]? a) { return typeDetail.Creator(); }
+                    object c(object?[]? a) { return typeDetail.CreatorBoxed(); }
                     return c;
                 }
                 foreach (var constructorDetail in typeDetail.ConstructorDetails)
@@ -70,7 +70,7 @@ namespace Zerra.Reflection
                         }
                         if (match)
                         {
-                            return constructorDetail.Creator;
+                            return constructorDetail.CreatorBoxed;
                         }
                     }
                 }

@@ -47,38 +47,38 @@ namespace Zerra.Reflection
             }
         }
 
-        private bool creatorLoaded = false;
-        private Func<object?[]?, object>? creator = null;
-        public Func<object?[]?, object> Creator
+        private bool creatorBoxedLoaded = false;
+        private Func<object?[]?, object>? creatorBoxed = null;
+        public Func<object?[]?, object> CreatorBoxed
         {
             get
             {
-                LoadCreator();
-                return this.creator ?? throw new NotSupportedException($"{nameof(ConstructorDetail)} {Name} does not have a {nameof(Creator)}"); ;
+                LoadCreatorBoxed();
+                return this.creatorBoxed ?? throw new NotSupportedException($"{nameof(ConstructorDetail)} {Name} does not have a {nameof(CreatorBoxed)}"); ;
             }
         }
-        public bool HasCreator
+        public bool HasCreatorBoxed
         {
             get
             {
-                LoadCreator();
-                return this.creator != null;
+                LoadCreatorBoxed();
+                return this.creatorBoxed != null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadCreator()
+        private void LoadCreatorBoxed()
         {
-            if (!creatorLoaded)
+            if (!creatorBoxedLoaded)
             {
                 lock (locker)
                 {
-                    if (!creatorLoaded)
+                    if (!creatorBoxedLoaded)
                     {
                         if (ConstructorInfo.DeclaringType != null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
                         {
-                            this.creator = AccessorGenerator.GenerateCreator(ConstructorInfo);
+                            this.creatorBoxed = AccessorGenerator.GenerateCreator(ConstructorInfo);
                         }
-                        creatorLoaded = true;
+                        creatorBoxedLoaded = true;
                     }
                 }
             }

@@ -14,7 +14,7 @@ namespace Zerra.Reflection
 
         private bool getterLoaded = false;
         private Func<T, V?>? getter = null;
-        public new Func<T, V?> Getter
+        public Func<T, V?> Getter
         {
             get
             {
@@ -22,7 +22,7 @@ namespace Zerra.Reflection
                 return this.getter ?? throw new NotSupportedException($"{nameof(MemberDetail)} {Name} does not have a {nameof(Getter)}");
             }
         }
-        public new bool HasGetter
+        public bool HasGetter
         {
             get
             {
@@ -70,7 +70,7 @@ namespace Zerra.Reflection
 
         private bool setterLoaded = false;
         private Action<T, V?>? setter = null;
-        public new Action<T, V?> Setter
+        public Action<T, V?> Setter
         {
             get
             {
@@ -78,7 +78,7 @@ namespace Zerra.Reflection
                 return this.setter ?? throw new NotSupportedException($"{nameof(MemberDetail)} {Name} does not have a {nameof(Setter)}");
             }
         }
-        public new bool HasSetter
+        public bool HasSetter
         {
             get
             {

@@ -57,15 +57,15 @@ namespace Zerra.TestDev
             var stuff = new Stuff() { prop = 4, field = 5 };
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(typeof(Stuff));
-            var item1 = (int)typeDetail.MemberDetails[0].Getter(stuff);
-            var item2 = (int)typeDetail.MemberDetails[1].Getter(stuff);
-            typeDetail.MemberDetails[0].Setter(stuff, item1 * 2);
-            typeDetail.MemberDetails[1].Setter(stuff, item2 * 2);
+            var item1 = (int)typeDetail.MemberDetails[0].GetterBoxed(stuff);
+            var item2 = (int)typeDetail.MemberDetails[1].GetterBoxed(stuff);
+            typeDetail.MemberDetails[0].SetterBoxed(stuff, item1 * 2);
+            typeDetail.MemberDetails[1].SetterBoxed(stuff, item2 * 2);
 
             //var item3 = (int)typeDetails.GetMethod("DoThings").Caller(stuff, new object[] { 5 });
             //var item3a = (int)typeDetails.GetMethod("Other").Caller(null, new object[] { 5 });
 
-            var item4 = typeDetail.ConstructorDetails[0].Creator(null);
+            var item4 = typeDetail.ConstructorDetails[0].CreatorBoxed(null);
 
             var item5 = Instantiator.Create<Stuff>();
         }

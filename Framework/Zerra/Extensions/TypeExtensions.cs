@@ -45,7 +45,7 @@ public static class TypeExtensions
                 if (!loadedTypeGetIsZSArrayGetter)
                 {
                     if (TypeAnalyzer.GetTypeDetail(typeof(Type)).TryGetMember("IsSZArray", out var member))
-                        typeGetIsZSArrayGetter = member.Getter;
+                        typeGetIsZSArrayGetter = member.GetterBoxed;
                     loadedTypeGetIsZSArrayGetter = true;
                 }
             }
