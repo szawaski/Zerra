@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace Zerra.Serialization
 {
-    internal struct WriteState
+    internal ref struct WriteState
     {
         private Stack<WriteFrame> stack;
         public WriteFrame CurrentFrame;
