@@ -3,7 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
-using Zerra.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Zerra.Serialization
 {
@@ -11,21 +11,14 @@ namespace Zerra.Serialization
     {
         public ByteConverter Converter;
         public bool NullFlags;
-        //public ReadFrameType FrameType;
-
-        //public bool HasReadPropertyType;
 
         public bool HasNullChecked;
         public bool HasObjectStarted;
         public object? ResultObject;
-        //public ByteConverterMember? ObjectProperty;
+        public object? Parent;
 
         public int? StringLength;
         public int? EnumerableLength;
-
-        public Array? EnumerableArray;
-
-        public int EnumerablePosition;
 
         public bool DrainBytes;
     }

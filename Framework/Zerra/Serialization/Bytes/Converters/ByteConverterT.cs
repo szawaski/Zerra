@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Runtime.CompilerServices;
 using Zerra.IO;
 using Zerra.Reflection;
 
@@ -11,16 +12,20 @@ namespace Zerra.Serialization
     {
         protected readonly TypeDetail parentTypeDetail = TypeAnalyzer<TParent>.GetTypeDetail();
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed void Read(ref ByteReader reader, ref ReadState state)
         {
-            Read(ref reader, ref state, (TParent?)state.CurrentFrame.ResultObject);
+            _ = Read(ref reader, ref state, (TParent?)state.CurrentFrame.Parent);
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed void Write(ref ByteWriter writer, ref WriteState state)
         {
-            Write(ref writer, ref state, (TParent?)state.CurrentFrame.Parent);
+            _ = Write(ref writer, ref state, (TParent?)state.CurrentFrame.Parent);
         }
 
-        public abstract void Read(ref ByteReader reader, ref ReadState state, TParent? parent);
-        public abstract void Write(ref ByteWriter writer, ref WriteState state, TParent? parent);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public abstract bool Read(ref ByteReader reader, ref ReadState state, TParent? parent);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public abstract bool Write(ref ByteWriter writer, ref WriteState state, TParent? parent);
     }
 }

@@ -5,6 +5,7 @@
 
 using System;
 using System.IO;
+using Zerra.Serialization;
 
 namespace Zerra.TestDev
 {
@@ -12,9 +13,7 @@ namespace Zerra.TestDev
     {
         static void Main(string[] args)
         {
-            var model = Zerra.Test.Factory.GetAllTypesModel();
-            using var stream = new MemoryStream();
-            System.Text.Json.JsonSerializer.SerializeAsync(stream, model).GetAwaiter().GetResult();
+            ByteSerializerTest.TempTestSpeed();
 
             //var tester = new EncryptionTest();
             //tester.RandomShiftStreamRead();

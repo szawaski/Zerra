@@ -32,11 +32,11 @@ namespace Zerra.Serialization
             };
 
             Action<HashSet<TValue?>, TValue?> setter = (parent, value) => parent.Add(value);
-            var readConverterRoot = ByteConverterFactory<HashSet<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, parent, null, setter);
+            var readConverterRoot = ByteConverterFactory<HashSet<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, null, setter);
             readConverter = ByteConverterFactory<HashSet<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, readConverterRoot);
 
             Func<IEnumerator<TValue?>, TValue?> getter = (parent) => parent.Current;
-            var writeConverterRoot = ByteConverterFactory<IEnumerator<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, parent, getter, null);
+            var writeConverterRoot = ByteConverterFactory<IEnumerator<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, getter, null);
             writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, writeConverterRoot);
 
             valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
@@ -44,8 +44,26 @@ namespace Zerra.Serialization
 
         protected override bool Read(ref ByteReader reader, ref ReadState state, out HashSet<TValue?>? value)
         {
-            int length;
             int sizeNeeded;
+            if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasNullChecked)
+            {
+                if (!reader.TryReadIsNull(out var isNull, out sizeNeeded))
+                {
+                    state.BytesNeeded = sizeNeeded;
+                    value = default;
+                    return false;
+                }
+
+                if (isNull)
+                {
+                    value = default;
+                    return true;
+                }
+
+                state.CurrentFrame.HasNullChecked = true;
+            }
+
+            int length;
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
                 if (!reader.TryReadInt32(out length, out sizeNeeded))
@@ -53,12 +71,6 @@ namespace Zerra.Serialization
                     state.BytesNeeded = sizeNeeded;
                     value = default;
                     return false;
-                }
-
-                if (length == 0)
-                {
-                    value = (HashSet<TValue?>?)state.CurrentFrame.ResultObject;
-                    return true;
                 }
 
                 state.CurrentFrame.EnumerableLength = length;
@@ -72,6 +84,11 @@ namespace Zerra.Serialization
                 {
                     value = default;
                 }
+
+                if (length == 0)
+                {
+                    return true;
+                }
             }
             else
             {
@@ -79,29 +96,47 @@ namespace Zerra.Serialization
             }
 
             length = state.CurrentFrame.EnumerableLength.Value;
+            if (value.Count == length)
+                return true;
 
             for (; ; )
             {
-                state.PushFrame(readConverter, valueIsNullable);
-                readConverter.Read(ref reader, ref state, value);
-                if (state.BytesNeeded > 0)
+                state.PushFrame(readConverter, valueIsNullable, value);
+                var read = readConverter.Read(ref reader, ref state, value);
+                if (!read)
                     return false;
 
-                state.CurrentFrame.EnumerablePosition++;
-
-                if (state.CurrentFrame.EnumerablePosition == length)
+                if (value.Count == length)
                     return true;
             }
         }
 
         protected override bool Write(ref ByteWriter writer, ref WriteState state, HashSet<TValue?>? value)
         {
+            int sizeNeeded;
+            if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasWrittenIsNull)
+            {
+                if (value == null)
+                {
+                    if (!writer.TryWriteNull(out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return false;
+                    }
+                    return true;
+                }
+                if (!writer.TryWriteNotNull(out sizeNeeded))
+                {
+                    state.BytesNeeded = sizeNeeded;
+                    return false;
+                }
+                state.CurrentFrame.HasWrittenIsNull = true;
+            }
+
             if (value == null)
-                throw new NotSupportedException();
+                throw new InvalidOperationException("Bad State");
 
             IEnumerator<TValue?> enumerator;
-
-            int sizeNeeded;
 
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
@@ -130,8 +165,8 @@ namespace Zerra.Serialization
                 state.CurrentFrame.EnumeratorInProgress = true;
 
                 state.PushFrame(writeConverter, valueIsNullable, value);
-                writeConverter.Write(ref writer, ref state, enumerator);
-                if (state.BytesNeeded > 0)
+                var write = writeConverter.Write(ref writer, ref state, enumerator);
+                if (!write)
                     return false;
 
                 state.CurrentFrame.EnumeratorInProgress = false;

@@ -22,13 +22,11 @@ namespace Zerra.Serialization
         {
             var enumerableType = TypeAnalyzer<KeyValuePair<TKey, TValue?>>.GetTypeDetail();
 
-            var readParent = TypeAnalyzer<IDictionary<TKey, TValue?>>.GetTypeDetail();
             Action<IDictionary<TKey, TValue?>, KeyValuePair<TKey, TValue?>> setter = (parent, value) => parent.Add(value.Key, value.Value);
-            readConverter = ByteConverterFactory<IDictionary<TKey, TValue?>>.Get(options, enumerableType, readParent, null, setter);
+            readConverter = ByteConverterFactory<IDictionary<TKey, TValue?>>.Get(options, enumerableType, null, null, setter);
 
-            var writeParent = TypeAnalyzer<IEnumerator<KeyValuePair<TKey, TValue?>>>.GetTypeDetail();
             Func<IEnumerator<KeyValuePair<TKey, TValue?>>, KeyValuePair<TKey, TValue?>> getter = (parent) => parent.Current;
-            writeConverter = ByteConverterFactory<IEnumerator<KeyValuePair<TKey, TValue?>>>.Get(options, enumerableType, writeParent, getter, null);
+            writeConverter = ByteConverterFactory<IEnumerator<KeyValuePair<TKey, TValue?>>>.Get(options, enumerableType, null, getter, null);
 
             var valueTypeDetail = typeDetail.InnerTypeDetails[0].InnerTypeDetails[1];
             valueIsNullable = !valueTypeDetail.Type.IsValueType || valueTypeDetail.InnerTypeDetails[0].IsNullable;
@@ -36,10 +34,28 @@ namespace Zerra.Serialization
 
         protected override bool Read(ref ByteReader reader, ref ReadState state, out TDictionary? value)
         {
+            int sizeNeeded;
+            if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasNullChecked)
+            {
+                if (!reader.TryReadIsNull(out var isNull, out sizeNeeded))
+                {
+                    state.BytesNeeded = sizeNeeded;
+                    value = default;
+                    return false;
+                }
+
+                if (isNull)
+                {
+                    value = default;
+                    return true;
+                }
+
+                state.CurrentFrame.HasNullChecked = true;
+            }
+
             IDictionary<TKey, TValue?>? dictionary;
 
             int length;
-            int sizeNeeded;
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
                 if (!reader.TryReadInt32(out length, out sizeNeeded))
@@ -47,12 +63,6 @@ namespace Zerra.Serialization
                     state.BytesNeeded = sizeNeeded;
                     value = default;
                     return false;
-                }
-
-                if (length == 0)
-                {
-                    value = (TDictionary?)state.CurrentFrame.ResultObject;
-                    return true;
                 }
 
                 state.CurrentFrame.EnumerableLength = length;
@@ -80,6 +90,11 @@ namespace Zerra.Serialization
                     value = default;
                     dictionary = null;
                 }
+
+                if (length == 0)
+                {
+                    return true;
+                }
             }
             else
             {
@@ -88,29 +103,44 @@ namespace Zerra.Serialization
             }
 
             length = state.CurrentFrame.EnumerableLength.Value;
+            if (dictionary.Count == length)
+                return true;
 
             for (; ; )
             {
-                state.PushFrame(readConverter, valueIsNullable);
-                readConverter.Read(ref reader, ref state, dictionary);
-                if (state.BytesNeeded > 0)
+                state.PushFrame(readConverter, valueIsNullable, dictionary);
+                var read = readConverter.Read(ref reader, ref state, dictionary);
+                if (!read)
                     return false;
 
-                state.CurrentFrame.EnumerablePosition++;
-
-                if (state.CurrentFrame.EnumerablePosition == length)
+                if (dictionary.Count == length)
                     return true;
             }
         }
 
         protected override bool Write(ref ByteWriter writer, ref WriteState state, TDictionary? value)
         {
-            if (value == null)
-                throw new NotSupportedException();
+            int sizeNeeded;
+            if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasWrittenIsNull)
+            {
+                if (value == null)
+                {
+                    if (!writer.TryWriteNull(out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return false;
+                    }
+                    return true;
+                }
+                if (!writer.TryWriteNotNull(out sizeNeeded))
+                {
+                    state.BytesNeeded = sizeNeeded;
+                    return false;
+                }
+                state.CurrentFrame.HasWrittenIsNull = true;
+            }
 
             IEnumerator<KeyValuePair<TKey, TValue?>> enumerator;
-
-            int sizeNeeded;
 
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
@@ -141,8 +171,8 @@ namespace Zerra.Serialization
                 state.CurrentFrame.EnumeratorInProgress = true;
 
                 state.PushFrame(writeConverter, valueIsNullable, value);
-                writeConverter.Write(ref writer, ref state, enumerator);
-                if (state.BytesNeeded > 0)
+                var write = writeConverter.Write(ref writer, ref state, enumerator);
+                if (!write)
                     return false;
 
                 state.CurrentFrame.EnumeratorInProgress = false;

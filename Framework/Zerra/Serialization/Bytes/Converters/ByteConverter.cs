@@ -5,6 +5,7 @@
 using Zerra.Reflection;
 using Zerra.IO;
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Zerra.Serialization
 {
@@ -23,6 +24,7 @@ namespace Zerra.Serialization
         protected Delegate? getter { get; private set; }
         protected Delegate? setter { get; private set; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Setup(ByteConverterOptions options, TypeDetail? typeDetail, Delegate? getter, Delegate? setter)
         {
             this.options = options;
@@ -32,9 +34,12 @@ namespace Zerra.Serialization
             SetupRoot();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected virtual void SetupRoot() { }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract void Read(ref ByteReader reader, ref ReadState state);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract void Write(ref ByteWriter writer, ref WriteState state);
     }
 }

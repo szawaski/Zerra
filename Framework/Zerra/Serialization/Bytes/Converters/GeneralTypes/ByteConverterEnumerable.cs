@@ -3,36 +3,31 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Zerra.IO;
 using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
-    internal sealed class ByteConverterArray<TParent, TValue> : ByteConverter<TParent, TValue?[]>
+    internal sealed class ByteConverterEnumerable<TParent, TValue> : ByteConverter<TParent, IEnumerable<TValue?>>
     {
-        private Func<int, ArrayAccessor<TValue?>> creator = null!;
         private ByteConverter<ArrayAccessor<TValue?>> converter = null!;
 
         private bool valueIsNullable;
 
         public override void Setup()
         {
-            var parent = TypeAnalyzer<TValue?[]>.GetTypeDetail();
-
-            var args = new object[1];
-            creator = (length) => new ArrayAccessor<TValue?>(length);
-
             Func<ArrayAccessor<TValue?>, TValue?> getter = (parent) => parent.Get();
             Action<ArrayAccessor<TValue?>, TValue?> setter = (parent, value) => parent.Set(value);
 
-            var converterRoot = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, parent, getter, setter);
+            var converterRoot = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, getter, setter);
             converter = ByteConverterFactory<ArrayAccessor<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, converterRoot);
 
             valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
         }
 
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out TValue?[]? value)
+        protected override bool Read(ref ByteReader reader, ref ReadState state, out IEnumerable<TValue?>? value)
         {
             ArrayAccessor<TValue?> accessor;
 
@@ -50,64 +45,100 @@ namespace Zerra.Serialization
 
                 if (!state.CurrentFrame.DrainBytes)
                 {
-                    accessor = creator(length);
+                    accessor = new ArrayAccessor<TValue?>(length);
                     value = accessor.Array;
-                    state.CurrentFrame.ResultObject = value;
                 }
                 else
                 {
                     value = default;
-                    accessor = new ArrayAccessor<TValue?>(value, 0);
+                    accessor = new ArrayAccessor<TValue?>(0);
                 }
+
+                state.CurrentFrame.ResultObject = accessor;
 
                 if (length == 0)
                 {
-                    value = (TValue?[]?)state.CurrentFrame.ResultObject;
                     return true;
                 }
             }
             else
             {
-                value = (TValue?[]?)state.CurrentFrame.ResultObject;
-                accessor = new ArrayAccessor<TValue?>(value, state.CurrentFrame.EnumerablePosition);
+                accessor = (ArrayAccessor<TValue?>)state.CurrentFrame.ResultObject!;
+                value = accessor.Array;
             }
 
             length = state.CurrentFrame.EnumerableLength.Value;
+            if (accessor.Index == length)
+                return true;
 
             for (; ; )
             {
-                state.PushFrame(converter, valueIsNullable);
-                converter.Read(ref reader, ref state, accessor);
-                if (state.BytesNeeded > 0)
+                state.PushFrame(converter, valueIsNullable, accessor);
+                var read = converter.Read(ref reader, ref state, accessor);
+                if (!read)
                     return false;
 
-                state.CurrentFrame.EnumerablePosition = accessor.Index;
-
-                if (state.CurrentFrame.EnumerablePosition == length)
+                if (accessor.Index == length)
                     return true;
             }
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, TValue?[]? value)
+        protected override bool Write(ref ByteWriter writer, ref WriteState state, IEnumerable<TValue?>? value)
         {
+            int sizeNeeded;
+            if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasWrittenIsNull)
+            {
+                if (value == null)
+                {
+                    if (!writer.TryWriteNull(out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return false;
+                    }
+                    return true;
+                }
+                if (!writer.TryWriteNotNull(out sizeNeeded))
+                {
+                    state.BytesNeeded = sizeNeeded;
+                    return false;
+                }
+                state.CurrentFrame.HasWrittenIsNull = true;
+            }
+
             if (value == null)
-                throw new NotSupportedException();
+                throw new InvalidOperationException("Bad State");
 
             ArrayAccessor<TValue?> accessor;
 
-            int sizeNeeded;
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
-                var length = value.Length;
+                int length;
+                if (typeDetail.IsICollection)
+                {
+                    var collection = (ICollection)value;
+                    length = collection.Count;
+                }
+                else if (typeDetail.IsICollectionGeneric)
+                {
+                    length = (int)typeDetail.GetMember("Count").GetterBoxed(value)!;
+                }
+                else
+                {
+                    var enumerable = (IEnumerable)value;
+                    length = 0;
+                    foreach (var item in enumerable)
+                        length++;
+                }
 
                 if (!writer.TryWrite(length, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
                     return false;
                 }
+
                 state.CurrentFrame.EnumerableLength = length;
 
-                accessor = new ArrayAccessor<TValue?>(value.Length);
+                accessor = new ArrayAccessor<TValue?>(length);
                 state.CurrentFrame.Object = accessor;
             }
             else
@@ -120,8 +151,8 @@ namespace Zerra.Serialization
                 while (accessor.Index < accessor.Array.Length)
                 {
                     state.PushFrame(converter, valueIsNullable, accessor);
-                    converter.Write(ref writer, ref state, accessor);
-                    if (state.BytesNeeded > 0)
+                    var write = converter.Write(ref writer, ref state, accessor);
+                    if (!write)
                         return false;
                 }
             }
@@ -137,10 +168,10 @@ namespace Zerra.Serialization
             private readonly T[]? array;
             public T[]? Array => array;
 
-            public ArrayAccessor(T[]? array, int index)
+            public ArrayAccessor()
             {
-                this.array = array;
-                this.index = index;
+                this.array = null;
+                this.index = 0;
             }
             public ArrayAccessor(int length)
             {
@@ -151,7 +182,10 @@ namespace Zerra.Serialization
             public void Set(T value)
             {
                 if (array == null)
+                {
+                    index++;
                     return;
+                }
                 array[index++] = value;
             }
 

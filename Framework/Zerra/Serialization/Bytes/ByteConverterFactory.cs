@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Runtime.CompilerServices;
 using Zerra.Collections;
 using Zerra.Reflection;
 
@@ -10,16 +11,16 @@ namespace Zerra.Serialization
 {
     internal static class ByteConverterFactory<TParent>
     {
-        private static readonly ConcurrentFactoryDictionary<ByteConverterOptions, ConcurrentFactoryDictionary<Type, ConcurrentFactoryDictionary<Type, ByteConverter<TParent>>>> cache = new();
+        private static readonly ConcurrentFactoryDictionary<ByteConverterOptions, ConcurrentFactoryDictionary<Type, ConcurrentFactoryDictionary<string, ByteConverter<TParent>>>> cache = new();
         private static readonly ConcurrentFactoryDictionary<ByteConverterOptions, ByteConverterTypeInfo<TParent>> cacheByteConverterTypeInfo = new();
         private static readonly Type defaultType = typeof(object);
         private static readonly Type parentType = typeof(TParent);
 
-        public static ByteConverter<TParent> Get(ByteConverterOptions options, TypeDetail typeDetail, TypeDetail? parentTypeDetail = null, Delegate? getter = null, Delegate? setter = null)
+        public static ByteConverter<TParent> Get(ByteConverterOptions options, TypeDetail typeDetail, string? memberKey = null, Delegate? getter = null, Delegate? setter = null)
         {
             var cache1 = cache.GetOrAdd(options, x => new());
             var cache2 = cache1.GetOrAdd(typeDetail.Type, x => new());
-            var newConverter = cache2.GetOrAdd(parentTypeDetail?.Type ?? defaultType, x =>
+            var newConverter = cache2.GetOrAdd(memberKey ?? String.Empty, x =>
             {
                 var newConverter = Create(typeDetail);
                 newConverter.Setup(options, typeDetail, getter, setter);
@@ -71,6 +72,7 @@ namespace Zerra.Serialization
         }
 
         private static readonly Type byteConverterDiscoverableType = typeof(IByteConverterDiscoverable<>);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ByteConverter<TParent> Create(TypeDetail typeDetail)
         {
             //exact match
