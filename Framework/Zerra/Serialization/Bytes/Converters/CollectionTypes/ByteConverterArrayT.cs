@@ -5,34 +5,30 @@
 using System;
 using System.Collections.Generic;
 using Zerra.IO;
-using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
-    internal sealed class ByteConverterDictionary<TParent, TDictionary, TKey, TValue> : ByteConverter<TParent, TDictionary>
+    internal sealed class ByteConverterArrayT<TParent, TArray, TValue> : ByteConverter<TParent, TArray>
     {
-        private static readonly Type dictionaryType = typeof(Dictionary<,>);
-
-        private ByteConverter<IDictionary<TKey, TValue?>> readConverter = null!;
-        private ByteConverter<IEnumerator<KeyValuePair<TKey, TValue?>>> writeConverter = null!;
+        private ByteConverter<ArrayAccessor<TValue?>> readConverter = null!;
+        private ByteConverter<IEnumerator<TValue?>> writeConverter = null!;
 
         private bool valueIsNullable;
 
         public override void Setup()
         {
-            var enumerableType = TypeAnalyzer<KeyValuePair<TKey, TValue?>>.GetTypeDetail();
+            Action<ArrayAccessor<TValue?>, TValue?> setter = (parent, value) => parent.Set(value);
+            var readConverterRoot = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, null, setter);
+            readConverter = ByteConverterFactory<ArrayAccessor<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, readConverterRoot);
 
-            Action<IDictionary<TKey, TValue?>, KeyValuePair<TKey, TValue?>> setter = (parent, value) => parent.Add(value.Key, value.Value);
-            readConverter = ByteConverterFactory<IDictionary<TKey, TValue?>>.Get(options, enumerableType, null, null, setter);
+            Func<IEnumerator<TValue?>, TValue?> getter = (parent) => parent.Current;
+            var writeConverterRoot = ByteConverterFactory<IEnumerator<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, getter, null);
+            writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, writeConverterRoot);
 
-            Func<IEnumerator<KeyValuePair<TKey, TValue?>>, KeyValuePair<TKey, TValue?>> getter = (parent) => parent.Current;
-            writeConverter = ByteConverterFactory<IEnumerator<KeyValuePair<TKey, TValue?>>>.Get(options, enumerableType, null, getter, null);
-
-            var valueTypeDetail = typeDetail.InnerTypeDetails[0].InnerTypeDetails[1];
-            valueIsNullable = !valueTypeDetail.Type.IsValueType || valueTypeDetail.InnerTypeDetails[0].IsNullable;
+            valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
         }
 
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out TDictionary? value)
+        protected override bool Read(ref ByteReader reader, ref ReadState state, out TArray? value)
         {
             int sizeNeeded;
             if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasNullChecked)
@@ -53,7 +49,7 @@ namespace Zerra.Serialization
                 state.CurrentFrame.HasNullChecked = true;
             }
 
-            IDictionary<TKey, TValue?>? dictionary;
+            ArrayAccessor<TValue?> accessor;
 
             int length;
             if (!state.CurrentFrame.EnumerableLength.HasValue)
@@ -64,61 +60,48 @@ namespace Zerra.Serialization
                     value = default;
                     return false;
                 }
-
                 state.CurrentFrame.EnumerableLength = length;
 
                 if (!state.CurrentFrame.DrainBytes)
                 {
-                    if (typeDetail.Type.IsInterface)
-                    {
-                        var dictionaryGenericType = TypeAnalyzer.GetGenericTypeDetail(dictionaryType, (Type[])typeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes);
-                        var obj = dictionaryGenericType.CreatorBoxed();
-                        value = (TDictionary?)obj;
-                        dictionary = (IDictionary<TKey, TValue?>?)obj;
-                        state.CurrentFrame.ResultObject = obj;
-                    }
-                    else
-                    {
-                        var obj = typeDetail.Creator();
-                        value = obj;
-                        dictionary = (IDictionary<TKey, TValue?>?)obj;
-                        state.CurrentFrame.ResultObject = obj;
-                    }
+                    accessor = new ArrayAccessor<TValue?>(length);
+                    value = (TArray?)(object?)accessor.Array;
+                    state.CurrentFrame.ResultObject = accessor;
+                    if (length == 0)
+                        return true;
                 }
                 else
                 {
                     value = default;
-                    dictionary = null;
-                }
-
-                if (length == 0)
-                {
-                    return true;
+                    if (length == 0)
+                        return true;
+                    accessor = new ArrayAccessor<TValue?>(0);
+                    state.CurrentFrame.ResultObject = accessor;
                 }
             }
             else
             {
-                value = (TDictionary?)state.CurrentFrame.ResultObject;
-                dictionary = (IDictionary<TKey, TValue?>?)state.CurrentFrame.ResultObject;
+                accessor = (ArrayAccessor<TValue?>)state.CurrentFrame.ResultObject!;
+                value = (TArray?)(object?)accessor.Array;
             }
 
             length = state.CurrentFrame.EnumerableLength.Value;
-            if (dictionary.Count == length)
+            if (accessor.Count == length)
                 return true;
 
             for (; ; )
             {
-                state.PushFrame(readConverter, valueIsNullable, dictionary);
-                var read = readConverter.Read(ref reader, ref state, dictionary);
+                state.PushFrame(readConverter, valueIsNullable, accessor);
+                var read = readConverter.Read(ref reader, ref state, accessor);
                 if (!read)
                     return false;
 
-                if (dictionary.Count == length)
+                if (accessor.Count == length)
                     return true;
             }
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, TDictionary? value)
+        protected override bool Write(ref ByteWriter writer, ref WriteState state, TArray? value)
         {
             int sizeNeeded;
             if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasWrittenIsNull)
@@ -140,11 +123,14 @@ namespace Zerra.Serialization
                 state.CurrentFrame.HasWrittenIsNull = true;
             }
 
-            IEnumerator<KeyValuePair<TKey, TValue?>> enumerator;
+            if (value == null)
+                throw new InvalidOperationException("Bad State");
+
+            IEnumerator<TValue?> enumerator;
 
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
-                var collection = (ICollection<KeyValuePair<TKey, TValue?>>)value;
+                var collection = (IReadOnlyCollection<TValue?>)value;
 
                 var length = collection.Count;
 
@@ -163,7 +149,7 @@ namespace Zerra.Serialization
             }
             else
             {
-                enumerator = (IEnumerator<KeyValuePair<TKey, TValue?>>)state.CurrentFrame.Object!;
+                enumerator = (IEnumerator<TValue?>)state.CurrentFrame.Object!;
             }
 
             while (state.CurrentFrame.EnumeratorInProgress || enumerator.MoveNext())
@@ -179,6 +165,36 @@ namespace Zerra.Serialization
             }
 
             return true;
+        }
+
+        private sealed class ArrayAccessor<T>
+        {
+            private int index;
+            public int Count => index;
+
+            private readonly T[]? array;
+            public T[]? Array => array;
+
+            public ArrayAccessor()
+            {
+                this.array = null;
+                this.index = 0;
+            }
+            public ArrayAccessor(int length)
+            {
+                this.array = new T[length];
+                this.index = 0;
+            }
+
+            public void Set(T value)
+            {
+                if (array == null)
+                {
+                    index++;
+                    return;
+                }
+                array[index++] = value;
+            }
         }
     }
 }

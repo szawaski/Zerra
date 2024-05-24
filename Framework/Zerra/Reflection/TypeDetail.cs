@@ -21,11 +21,17 @@ namespace Zerra.Reflection
         private static readonly string nullaleTypeName = typeof(Nullable<>).Name;
         private static readonly string enumberableTypeName = nameof(IEnumerable);
         private static readonly string enumberableGenericTypeName = typeof(IEnumerable<>).Name;
+
         private static readonly string collectionTypeName = nameof(ICollection);
-        private static readonly string collectionGenericTypeName = typeof(ICollection<>).Name;
+        private static readonly string collectionGenericTypeName = typeof(ICollection<>).Name;        
         private static readonly string listTypeName = nameof(IList);
         private static readonly string setGenericTypeName = typeof(ISet<>).Name;
         private static readonly string listGenericTypeName = typeof(IList<>).Name;
+
+        //private static readonly string readOnlyCollectionGenericTypeName = typeof(IReadOnlyCollection<>).Name;
+        //private static readonly string readOnlyListGenericTypeName = typeof(IReadOnlyList<>).Name;
+        //private static readonly string readOnlySetGenericTypeName = typeof(IReadOnlySet<>).Name;
+
         private static readonly Type keyValuePairType = typeof(KeyValuePair<,>);
 
         public Type Type { get; }

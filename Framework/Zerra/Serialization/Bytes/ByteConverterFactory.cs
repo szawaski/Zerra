@@ -97,31 +97,31 @@ namespace Zerra.Serialization
                 return (ByteConverter<TParent>)converter;
             }
 
-            //list
+            //generic list
             if (typeDetail.IsIList && typeDetail.Type.IsGenericType)
             {
-                var converter = typeof(ByteConverterList<,>).GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]).CreatorBoxed();
+                var converter = typeof(ByteConverterListT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 
-            //set
+            //generic set
             if (typeDetail.IsISet && typeDetail.Type.IsGenericType)
             {
-                var converter = typeof(ByteConverterHashSet<,>).GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]).CreatorBoxed();
+                var converter = typeof(ByteConverterHashSetT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 
-            //dictionary
+            //generic dictionary
             if (typeDetail.SpecialType == SpecialType.Dictionary)
             {
-                var converter = typeof(ByteConverterDictionary<,,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypeDetails[0].InnerTypes[0], typeDetail.InnerTypeDetails[0].InnerTypes[1]).CreatorBoxed();
+                var converter = typeof(ByteConverterDictionaryT<,,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypeDetails[0].InnerTypes[0], typeDetail.InnerTypeDetails[0].InnerTypes[1]).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 
             //enumerable
             if (typeDetail.IsIEnumerableGeneric)
             {
-                var converter = typeof(ByteConverterEnumerable<,>).GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]).CreatorBoxed();
+                var converter = typeof(ByteConverterArrayT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 

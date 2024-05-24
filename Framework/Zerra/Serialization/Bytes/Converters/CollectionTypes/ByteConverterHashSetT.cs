@@ -6,34 +6,21 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Zerra.IO;
-using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
-    internal sealed class ByteConverterHashSet<TParent, TValue> : ByteConverter<TParent, HashSet<TValue?>>
+    internal sealed class ByteConverterHashSetT<TParent, TSet, TValue> : ByteConverter<TParent, TSet>
     {
-        private static readonly ConstructorDetail<HashSet<TValue?>> constructor = TypeAnalyzer<HashSet<TValue?>>.GetTypeDetail().GetConstructor(new Type[] { typeof(int) });
-
-        private Func<int, HashSet<TValue?>> creator = null!;
-        private ByteConverter<HashSet<TValue?>> readConverter = null!;
+        private ByteConverter<ISet<TValue?>> readConverter = null!;
         private ByteConverter<IEnumerator<TValue?>> writeConverter = null!;
 
         private bool valueIsNullable;
 
         public override void Setup()
         {
-            var parent = TypeAnalyzer<HashSet<TValue?>>.GetTypeDetail();
-
-            var args = new object[1];
-            creator = (length) =>
-            {
-                args[0] = length;
-                return constructor.Creator(args);
-            };
-
-            Action<HashSet<TValue?>, TValue?> setter = (parent, value) => parent.Add(value);
-            var readConverterRoot = ByteConverterFactory<HashSet<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, null, setter);
-            readConverter = ByteConverterFactory<HashSet<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, readConverterRoot);
+            Action<ISet<TValue?>, TValue?> setter = (parent, value) => parent.Add(value);
+            var readConverterRoot = ByteConverterFactory<ISet<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, null, setter);
+            readConverter = ByteConverterFactory<ISet<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, readConverterRoot);
 
             Func<IEnumerator<TValue?>, TValue?> getter = (parent) => parent.Current;
             var writeConverterRoot = ByteConverterFactory<IEnumerator<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, getter, null);
@@ -42,7 +29,7 @@ namespace Zerra.Serialization
             valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
         }
 
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out HashSet<TValue?>? value)
+        protected override bool Read(ref ByteReader reader, ref ReadState state, out TSet? value)
         {
             int sizeNeeded;
             if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasNullChecked)
@@ -63,6 +50,8 @@ namespace Zerra.Serialization
                 state.CurrentFrame.HasNullChecked = true;
             }
 
+            ISet<TValue?> set;
+
             int length;
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
@@ -77,41 +66,51 @@ namespace Zerra.Serialization
 
                 if (!state.CurrentFrame.DrainBytes)
                 {
-                    value = creator(length);
-                    state.CurrentFrame.ResultObject = value;
+#if NETSTANDARD2_0
+                    set = new HashSet<TValue?>();
+#else
+                    set = new HashSet<TValue?>(length);
+#endif
+                    value = (TSet?)set;
+                    state.CurrentFrame.ResultObject = set;
+                    if (length == 0)
+                        return true;
                 }
                 else
                 {
                     value = default;
-                }
-
-                if (length == 0)
-                {
-                    return true;
+                    if (length == 0)
+                        return true;
+                    set = new SetCounter();
+                    state.CurrentFrame.ResultObject = set;
                 }
             }
             else
             {
-                value = (HashSet<TValue?>?)state.CurrentFrame.ResultObject;
+                set = (HashSet<TValue?>?)state.CurrentFrame.ResultObject!;
+                if (!state.CurrentFrame.DrainBytes)
+                    value = (TSet?)state.CurrentFrame.ResultObject;
+                else
+                    value = default;
             }
 
             length = state.CurrentFrame.EnumerableLength.Value;
-            if (value.Count == length)
+            if (set.Count == length)
                 return true;
 
             for (; ; )
             {
                 state.PushFrame(readConverter, valueIsNullable, value);
-                var read = readConverter.Read(ref reader, ref state, value);
+                var read = readConverter.Read(ref reader, ref state, set);
                 if (!read)
                     return false;
 
-                if (value.Count == length)
+                if (set.Count == length)
                     return true;
             }
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, HashSet<TValue?>? value)
+        protected override bool Write(ref ByteWriter writer, ref WriteState state, TSet? value)
         {
             int sizeNeeded;
             if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasWrittenIsNull)
@@ -140,7 +139,9 @@ namespace Zerra.Serialization
 
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
-                var length = value.Count;
+                var collection = (IReadOnlyCollection<TValue?>)value;
+
+                var length = collection.Count;
 
                 if (!writer.TryWrite(length, out sizeNeeded))
                 {
@@ -153,7 +154,7 @@ namespace Zerra.Serialization
                 }
                 state.CurrentFrame.Object = length;
 
-                enumerator = value.GetEnumerator();
+                enumerator = collection.GetEnumerator();
             }
             else
             {
@@ -173,6 +174,36 @@ namespace Zerra.Serialization
             }
 
             return true;
+        }
+
+        private sealed class SetCounter : ISet<TValue?>
+        {
+            private int count;
+            public int Count => count;
+
+            public void Add(TValue? item)
+            {
+                count++;
+            }
+
+            public bool IsReadOnly => throw new NotImplementedException();
+            public void Clear() => throw new NotImplementedException();
+            public bool Contains(TValue? item) => throw new NotImplementedException();
+            public void CopyTo(TValue?[] array, int arrayIndex) => throw new NotImplementedException();
+            public void ExceptWith(IEnumerable<TValue?> other) => throw new NotImplementedException();
+            public IEnumerator<TValue> GetEnumerator() => throw new NotImplementedException();
+            public void IntersectWith(IEnumerable<TValue?> other) => throw new NotImplementedException();
+            public bool IsProperSubsetOf(IEnumerable<TValue?> other) => throw new NotImplementedException();
+            public bool IsProperSupersetOf(IEnumerable<TValue?> other) => throw new NotImplementedException();
+            public bool IsSubsetOf(IEnumerable<TValue?> other) => throw new NotImplementedException();
+            public bool IsSupersetOf(IEnumerable<TValue?> other) => throw new NotImplementedException();
+            public bool Overlaps(IEnumerable<TValue?> other) => throw new NotImplementedException();
+            public bool Remove(TValue? item) => throw new NotImplementedException();
+            public bool SetEquals(IEnumerable<TValue?> other) => throw new NotImplementedException();
+            public void SymmetricExceptWith(IEnumerable<TValue?> other) => throw new NotImplementedException();
+            public void UnionWith(IEnumerable<TValue?> other) => throw new NotImplementedException();
+            bool ISet<TValue?>.Add(TValue? item) => throw new NotImplementedException();
+            IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
         }
     }
 }

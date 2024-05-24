@@ -3,9 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Collections.Generic;
 using Zerra.IO;
-using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
@@ -28,8 +26,6 @@ namespace Zerra.Serialization
 
         protected override bool Read(ref ByteReader reader, ref ReadState state, out TValue?[]? value)
         {
-            ArrayAccessor<TValue?> accessor;
-
             int sizeNeeded;
             if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasNullChecked)
             {
@@ -49,6 +45,8 @@ namespace Zerra.Serialization
                 state.CurrentFrame.HasNullChecked = true;
             }
 
+            ArrayAccessor<TValue?> accessor;
+
             int length;
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
@@ -64,18 +62,17 @@ namespace Zerra.Serialization
                 {
                     accessor = new ArrayAccessor<TValue?>(length);
                     value = accessor.Array;
+                    state.CurrentFrame.ResultObject = accessor;
+                    if (length == 0)
+                        return true;
                 }
                 else
                 {
                     value = default;
+                    if (length == 0)
+                        return true;
                     accessor = new ArrayAccessor<TValue?>(0);
-                }
-
-                state.CurrentFrame.ResultObject = accessor;
-
-                if (length == 0)
-                {
-                    return true;
+                    state.CurrentFrame.ResultObject = accessor;
                 }
             }
             else
@@ -85,7 +82,7 @@ namespace Zerra.Serialization
             }
 
             length = state.CurrentFrame.EnumerableLength.Value;
-            if (accessor.Index == length)
+            if (accessor.Count == length)
                 return true;
 
             for (; ; )
@@ -95,7 +92,7 @@ namespace Zerra.Serialization
                 if (!read)
                     return false;
 
-                if (accessor.Index == length)
+                if (accessor.Count == length)
                     return true;
             }
         }
@@ -148,7 +145,7 @@ namespace Zerra.Serialization
 
             if (accessor.Array?.Length > 0)
             {
-                while (accessor.Index < accessor.Array.Length)
+                while (accessor.Count < accessor.Array.Length)
                 {
                     state.PushFrame(converter, valueIsNullable, accessor);
                     var write = converter.Write(ref writer, ref state, accessor);
@@ -163,7 +160,7 @@ namespace Zerra.Serialization
         private sealed class ArrayAccessor<T>
         {
             private int index;
-            public int Index => index;
+            public int Count => index;
 
             private readonly T[]? array;
             public T[]? Array => array;
