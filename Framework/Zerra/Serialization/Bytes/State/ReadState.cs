@@ -9,35 +9,35 @@ namespace Zerra.Serialization
 {
     internal struct ReadState
     {
-//        private static readonly Stack<ReadFrame> framePool = new();
-//        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-//        private static ReadFrame RentFrame()
-//        {
-//#if NETSTANDARD2_0
-//            if (framePool.Count > 0)
-//                return framePool.Pop();
-//            else
-//                return new();
-//#else
-//            if (framePool.TryPop(out var frame))
-//                return frame;
-//            return new();
-//#endif
-//        }
-//        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-//        private static void ReturnFrame(ReadFrame frame)
-//        {
-//            //frame.Converter = default;
-//            //frame.NullFlags = default;
-//            frame.HasNullChecked = default;
-//            frame.HasObjectStarted = default;
-//            frame.ResultObject = default;
-//            //frame.Parent = default;
-//            frame.StringLength = default;
-//            frame.EnumerableLength = default;
-//            frame.DrainBytes = default;
-//            framePool.Push(frame);
-//        }
+        //        private static readonly Stack<ReadFrame> framePool = new();
+        //        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //        private static ReadFrame RentFrame()
+        //        {
+        //#if NETSTANDARD2_0
+        //            if (framePool.Count > 0)
+        //                return framePool.Pop();
+        //            else
+        //                return new();
+        //#else
+        //            if (framePool.TryPop(out var frame))
+        //                return frame;
+        //            return new();
+        //#endif
+        //        }
+        //        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //        private static void ReturnFrame(ReadFrame frame)
+        //        {
+        //            //frame.Converter = default;
+        //            //frame.NullFlags = default;
+        //            frame.HasNullChecked = default;
+        //            frame.HasObjectStarted = default;
+        //            frame.ResultObject = default;
+        //            //frame.Parent = default;
+        //            frame.StringLength = default;
+        //            frame.EnumerableLength = default;
+        //            frame.DrainBytes = default;
+        //            framePool.Push(frame);
+        //        }
 
         private Stack<ReadFrame> stack;
         public ReadFrame CurrentFrame;
@@ -58,20 +58,13 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void EndFrame()
+        public void EndFrame(object? result)
         {
-            LastFrameResultObject = CurrentFrame.ResultObject;
+            LastFrameResultObject = result;
             //ReturnFrame(CurrentFrame);
-            if (stack.Count > 0)
-            {
-                CurrentFrame = stack.Pop();
-                if (stack.Count == 0)
-                    Ended = true;
-            }
-            else
-            {
-                CurrentFrame = null!;
-            }
+            CurrentFrame = stack.Pop();
+            if (stack.Count == 0)
+                Ended = true;
         }
 
         public int BytesNeeded;

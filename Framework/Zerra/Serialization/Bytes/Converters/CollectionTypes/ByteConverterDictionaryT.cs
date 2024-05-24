@@ -19,16 +19,17 @@ namespace Zerra.Serialization
 
         private bool valueIsNullable;
 
+        private static KeyValuePair<TKey, TValue?> Getter(IEnumerator<KeyValuePair<TKey, TValue?>> parent) => parent.Current;
+        private static void Setter(IDictionary<TKey, TValue?> parent, KeyValuePair<TKey, TValue?> value) => parent.Add(value.Key, value.Value);
+
         public override void Setup()
         {
             var enumerableType = TypeAnalyzer<KeyValuePair<TKey, TValue?>>.GetTypeDetail();
 
-            Action<IDictionary<TKey, TValue?>, KeyValuePair<TKey, TValue?>> setter = (parent, value) => parent.Add(value.Key, value.Value);
-            var readConverterRoot = ByteConverterFactory<IDictionary<TKey, TValue?>>.Get(options, enumerableType, null, null, setter);
+            var readConverterRoot = ByteConverterFactory<IDictionary<TKey, TValue?>>.Get(options, enumerableType, null, null, Setter);
             readConverter = ByteConverterFactory<IDictionary<TKey, TValue?>>.GetMayNeedTypeInfo(options, enumerableType, readConverterRoot);
 
-            Func<IEnumerator<KeyValuePair<TKey, TValue?>>, KeyValuePair<TKey, TValue?>> getter = (parent) => parent.Current;
-            var writeConverterRoot = ByteConverterFactory<IEnumerator<KeyValuePair<TKey, TValue?>>>.Get(options, enumerableType, null, getter, null);
+            var writeConverterRoot = ByteConverterFactory<IEnumerator<KeyValuePair<TKey, TValue?>>>.Get(options, enumerableType, null, Getter, null);
             writeConverter = ByteConverterFactory<IEnumerator<KeyValuePair<TKey, TValue?>>>.GetMayNeedTypeInfo(options, enumerableType, writeConverterRoot);
 
             var valueTypeDetail = typeDetail.InnerTypeDetails[0].InnerTypeDetails[1];
@@ -74,7 +75,6 @@ namespace Zerra.Serialization
                 {
                     dictionary = new Dictionary<TKey, TValue?>();
                     value = (TDictionary?)dictionary;
-                    state.CurrentFrame.ResultObject = dictionary;
                     if (length == 0)
                         return true;
                 }
@@ -84,14 +84,13 @@ namespace Zerra.Serialization
                     if (length == 0)
                         return true;
                     dictionary = new DictionaryCounter();
-                    state.CurrentFrame.ResultObject = dictionary;
                 }
             }
             else
             {
-                dictionary = (IDictionary<TKey, TValue?>)state.CurrentFrame.ResultObject!;
+                dictionary = (IDictionary<TKey, TValue?>)state.CurrentFrame.Object!;
                 if (!state.CurrentFrame.DrainBytes)
-                    value = (TDictionary?)state.CurrentFrame.ResultObject;
+                    value = (TDictionary?)state.CurrentFrame.Object;
                 else
                     value = default;
             }
@@ -105,7 +104,10 @@ namespace Zerra.Serialization
                 state.PushFrame(readConverter, valueIsNullable, dictionary);
                 var read = readConverter.Read(ref reader, ref state, dictionary);
                 if (!read)
+                {
+                    state.CurrentFrame.Object = dictionary;
                     return false;
+                }
 
                 if (dictionary.Count == length)
                     return true;

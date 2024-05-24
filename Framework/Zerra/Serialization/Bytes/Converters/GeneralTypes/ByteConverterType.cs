@@ -23,7 +23,6 @@ namespace Zerra.Serialization
                 }
                 if (!stringLength.HasValue)
                 {
-                    state.CurrentFrame.ResultObject = null;
                     value = default;
                     return false;
                 }

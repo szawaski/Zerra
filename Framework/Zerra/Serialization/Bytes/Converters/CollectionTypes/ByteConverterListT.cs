@@ -17,14 +17,15 @@ namespace Zerra.Serialization
 
         private bool valueIsNullable;
 
+        private static TValue? Getter(IEnumerator<TValue?> parent) => parent.Current;
+        private static void Setter(IList<TValue?> parent, TValue? value) => parent.Add(value);
+
         public override void Setup()
         {
-            Action<IList<TValue?>, TValue?> setter = (parent, value) => parent.Add(value);
-            var readConverterRoot = ByteConverterFactory<IList<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, null, setter);
+            var readConverterRoot = ByteConverterFactory<IList<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, null, Setter);
             readConverter = ByteConverterFactory<IList<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, readConverterRoot);
 
-            Func<IEnumerator<TValue?>, TValue?> getter = (parent) => parent.Current;
-            var writeConverterRoot = ByteConverterFactory<IEnumerator<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, getter, null);
+            var writeConverterRoot = ByteConverterFactory<IEnumerator<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, null);
             writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, writeConverterRoot);
 
             valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
@@ -69,7 +70,6 @@ namespace Zerra.Serialization
                 {
                     list = new List<TValue?>(length);
                     value = (TList?)list;
-                    state.CurrentFrame.ResultObject = list;
                     if (length == 0)
                         return true;
                 }
@@ -79,14 +79,13 @@ namespace Zerra.Serialization
                     if (length == 0)
                         return true;
                     list = new ListCounter();
-                    state.CurrentFrame.ResultObject = list;
                 }
             }
             else
             {
-                list = (List<TValue?>)state.CurrentFrame.ResultObject!;
+                list = (List<TValue?>)state.CurrentFrame.Object!;
                 if (!state.CurrentFrame.DrainBytes)
-                    value = (TList?)state.CurrentFrame.ResultObject;
+                    value = (TList?)state.CurrentFrame.Object;
                 else
                     value = default;
             }
@@ -100,7 +99,10 @@ namespace Zerra.Serialization
                 state.PushFrame(readConverter, valueIsNullable, value);
                 var read = readConverter.Read(ref reader, ref state, list);
                 if (!read)
+                {
+                    state.CurrentFrame.Object = list;
                     return false;
+                }
 
                 if (list.Count == length)
                     return true;

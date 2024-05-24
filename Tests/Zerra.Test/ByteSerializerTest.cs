@@ -240,9 +240,9 @@ namespace Zerra.Test
             var model1 = Factory.GetAllTypesModel();
             using (var ms = new MemoryStream())
             {
-                await ByteSerializerOld.SerializeAsync(ms, model1, options);
+                await ByteSerializer.SerializeAsync(ms, model1, options);
                 ms.Position = 0;
-                var model2 = await ByteSerializer.DeserializeAsync<AllTypesModel>(ms, options);
+                var model2 = await ByteSerializerOld.DeserializeAsync<AllTypesModel>(ms, options);
                 Factory.AssertAreEqual(model1, model2);
             }
         }

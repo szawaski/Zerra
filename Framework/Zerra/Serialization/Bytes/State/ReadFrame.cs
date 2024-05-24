@@ -14,7 +14,7 @@ namespace Zerra.Serialization
 
         public bool HasNullChecked;
         public bool HasObjectStarted;
-        public object? ResultObject;
+        public object? Object;
         public object? Parent;
 
         public int? StringLength;

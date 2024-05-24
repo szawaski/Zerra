@@ -15,14 +15,15 @@ namespace Zerra.Serialization
 
         private bool valueIsNullable;
 
+        private static TValue? Getter(IEnumerator<TValue?> parent) => parent.Current;
+        private static void Setter(ArrayAccessor<TValue?> parent, TValue? value) => parent.Set(value);
+
         public override void Setup()
         {
-            Action<ArrayAccessor<TValue?>, TValue?> setter = (parent, value) => parent.Set(value);
-            var readConverterRoot = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, null, setter);
+            var readConverterRoot = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, null, Setter);
             readConverter = ByteConverterFactory<ArrayAccessor<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, readConverterRoot);
 
-            Func<IEnumerator<TValue?>, TValue?> getter = (parent) => parent.Current;
-            var writeConverterRoot = ByteConverterFactory<IEnumerator<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, getter, null);
+            var writeConverterRoot = ByteConverterFactory<IEnumerator<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, null);
             writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, writeConverterRoot);
 
             valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
@@ -66,7 +67,6 @@ namespace Zerra.Serialization
                 {
                     accessor = new ArrayAccessor<TValue?>(length);
                     value = (TArray?)(object?)accessor.Array;
-                    state.CurrentFrame.ResultObject = accessor;
                     if (length == 0)
                         return true;
                 }
@@ -76,12 +76,11 @@ namespace Zerra.Serialization
                     if (length == 0)
                         return true;
                     accessor = new ArrayAccessor<TValue?>(0);
-                    state.CurrentFrame.ResultObject = accessor;
                 }
             }
             else
             {
-                accessor = (ArrayAccessor<TValue?>)state.CurrentFrame.ResultObject!;
+                accessor = (ArrayAccessor<TValue?>)state.CurrentFrame.Object!;
                 value = (TArray?)(object?)accessor.Array;
             }
 
@@ -94,7 +93,10 @@ namespace Zerra.Serialization
                 state.PushFrame(readConverter, valueIsNullable, accessor);
                 var read = readConverter.Read(ref reader, ref state, accessor);
                 if (!read)
+                {
+                    state.CurrentFrame.Object = accessor;
                     return false;
+                }
 
                 if (accessor.Count == length)
                     return true;

@@ -13,12 +13,12 @@ namespace Zerra.Serialization
 
         private bool valueIsNullable;
 
+        private static TValue? Getter(ArrayAccessor<TValue?> parent) => parent.Get();
+        private static void Setter(ArrayAccessor<TValue?> parent, TValue?  value) => parent.Set(value);
+
         public override void Setup()
         {
-            Func<ArrayAccessor<TValue?>, TValue?> getter = (parent) => parent.Get();
-            Action<ArrayAccessor<TValue?>, TValue?> setter = (parent, value) => parent.Set(value);
-
-            var converterRoot = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, getter, setter);
+            var converterRoot = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, Setter);
             converter = ByteConverterFactory<ArrayAccessor<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, converterRoot);
 
             valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
@@ -62,7 +62,6 @@ namespace Zerra.Serialization
                 {
                     accessor = new ArrayAccessor<TValue?>(length);
                     value = accessor.Array;
-                    state.CurrentFrame.ResultObject = accessor;
                     if (length == 0)
                         return true;
                 }
@@ -72,12 +71,11 @@ namespace Zerra.Serialization
                     if (length == 0)
                         return true;
                     accessor = new ArrayAccessor<TValue?>(0);
-                    state.CurrentFrame.ResultObject = accessor;
                 }
             }
             else
             {
-                accessor = (ArrayAccessor<TValue?>)state.CurrentFrame.ResultObject!;
+                accessor = (ArrayAccessor<TValue?>)state.CurrentFrame.Object!;
                 value = accessor.Array;
             }
 
@@ -90,7 +88,10 @@ namespace Zerra.Serialization
                 state.PushFrame(converter, valueIsNullable, accessor);
                 var read = converter.Read(ref reader, ref state, accessor);
                 if (!read)
+                {
+                    state.CurrentFrame.Object = accessor;
                     return false;
+                }
 
                 if (accessor.Count == length)
                     return true;

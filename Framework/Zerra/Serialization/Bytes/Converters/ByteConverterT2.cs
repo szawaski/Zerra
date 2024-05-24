@@ -12,8 +12,8 @@ namespace Zerra.Serialization
     internal abstract class ByteConverter<TParent, TValue> : ByteConverter<TParent>, IByteConverterDiscoverable<TValue>
     {
         protected new TypeDetail<TValue> typeDetail { get; private set; } = null!;
-        private new Func<TParent, TValue?>? getter;
-        private new Action<TParent, TValue?>? setter;
+        private Func<TParent, TValue?>? getter;
+        private Action<TParent, TValue?>? setter;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected override sealed void SetupRoot()
@@ -22,8 +22,8 @@ namespace Zerra.Serialization
                 throw new InvalidOperationException();
 
             this.typeDetail = (TypeDetail<TValue>)base.typeDetail;
-            this.getter = (Func<TParent, TValue?>?)base.getter;
-            this.setter = (Action<TParent, TValue?>?)base.setter;
+            this.getter = (Func<TParent, TValue?>?)base.getterBoxed;
+            this.setter = (Action<TParent, TValue?>?)base.setterBoxed;
             Setup();
         }
 
@@ -36,7 +36,7 @@ namespace Zerra.Serialization
             if (setter != null && parent != null)
                 setter(parent, value);
 
-            state.EndFrame();
+            state.EndFrame(value);
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

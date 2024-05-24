@@ -46,7 +46,7 @@ namespace Zerra.Serialization
                         throw new NotSupportedException($"{newTypeDetail.Type.GetNiceName()} does not convert to {typeDetail.Type.GetNiceName()}");
                 }
 
-                var newConverter = ByteConverterFactory<TParent>.Get(options, newTypeDetail, null, getter, setter);
+                var newConverter = ByteConverterFactory<TParent>.Get(options, newTypeDetail, null, getterBoxed, setterBoxed);
                 state.CurrentFrame.Converter = newConverter;
                 return newConverter.Read(ref reader, ref state, parent);
             }
@@ -55,7 +55,7 @@ namespace Zerra.Serialization
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 var newTypeDetail = emptyImplementationType.GetTypeDetail();
-                var newConverter = ByteConverterFactory<TParent>.Get(options, newTypeDetail, null, getter, setter);
+                var newConverter = ByteConverterFactory<TParent>.Get(options, newTypeDetail, null, getterBoxed, setterBoxed);
                 state.CurrentFrame.Converter = newConverter;
                 return newConverter.Read(ref reader, ref state, parent);
             }

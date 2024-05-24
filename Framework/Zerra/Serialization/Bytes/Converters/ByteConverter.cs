@@ -21,16 +21,16 @@ namespace Zerra.Serialization
 
         protected ByteConverterOptions options { get; private set; }
         protected TypeDetail? typeDetail { get; private set; }
-        protected Delegate? getter { get; private set; }
-        protected Delegate? setter { get; private set; }
+        protected Delegate? getterBoxed { get; private set; }
+        protected Delegate? setterBoxed { get; private set; }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Setup(ByteConverterOptions options, TypeDetail? typeDetail, Delegate? getter, Delegate? setter)
+        public void Setup(ByteConverterOptions options, TypeDetail? typeDetail, Delegate? getterBoxed, Delegate? setterBoxed)
         {
             this.options = options;
             this.typeDetail = typeDetail;
-            this.getter = getter;
-            this.setter = setter;
+            this.getterBoxed = getterBoxed;
+            this.setterBoxed = setterBoxed;
             SetupRoot();
         }
 
