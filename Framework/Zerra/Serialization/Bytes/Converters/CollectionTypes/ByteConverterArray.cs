@@ -11,16 +11,12 @@ namespace Zerra.Serialization
     {
         private ByteConverter<ArrayAccessor<TValue?>> converter = null!;
 
-        private bool valueIsNullable;
-
         private static TValue? Getter(ArrayAccessor<TValue?> parent) => parent.Get();
         private static void Setter(ArrayAccessor<TValue?> parent, TValue?  value) => parent.Set(value);
 
         protected override void Setup()
         {
             this.converter = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, Setter);
-
-            valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
         }
 
         protected override bool Read(ref ByteReader reader, ref ReadState state, out TValue?[]? value)
@@ -84,7 +80,7 @@ namespace Zerra.Serialization
 
             for (; ; )
             {
-                state.PushFrame(converter, valueIsNullable, accessor);
+                state.PushFrame(converter, true, accessor);
                 var read = converter.Read(ref reader, ref state, accessor);
                 if (!read)
                 {
@@ -146,7 +142,7 @@ namespace Zerra.Serialization
             {
                 while (accessor.Count < accessor.Array.Length)
                 {
-                    state.PushFrame(converter, valueIsNullable, accessor);
+                    state.PushFrame(converter, true, accessor);
                     var write = converter.Write(ref writer, ref state, accessor);
                     if (!write)
                     {

@@ -17,8 +17,6 @@ namespace Zerra.Serialization
         private ByteConverter<IDictionary<TKey, TValue?>> readConverter = null!;
         private ByteConverter<IEnumerator<KeyValuePair<TKey, TValue?>>> writeConverter = null!;
 
-        private bool valueIsNullable;
-
         private static KeyValuePair<TKey, TValue?> Getter(IEnumerator<KeyValuePair<TKey, TValue?>> parent) => parent.Current;
         private static void Setter(IDictionary<TKey, TValue?> parent, KeyValuePair<TKey, TValue?> value) => parent.Add(value.Key, value.Value);
 
@@ -28,9 +26,6 @@ namespace Zerra.Serialization
 
             this.readConverter = ByteConverterFactory<IDictionary<TKey, TValue?>>.Get(options, enumerableType, null, null, Setter);
             this.writeConverter = ByteConverterFactory<IEnumerator<KeyValuePair<TKey, TValue?>>>.Get(options, enumerableType, null, Getter, null);
-
-            var valueTypeDetail = typeDetail.InnerTypeDetails[0].InnerTypeDetails[1];
-            this.valueIsNullable = !valueTypeDetail.Type.IsValueType || valueTypeDetail.InnerTypeDetails[0].IsNullable;
         }
 
         protected override bool Read(ref ByteReader reader, ref ReadState state, out TDictionary? value)
@@ -98,7 +93,7 @@ namespace Zerra.Serialization
 
             for (; ; )
             {
-                state.PushFrame(readConverter, valueIsNullable, dictionary);
+                state.PushFrame(readConverter, true, dictionary);
                 var read = readConverter.Read(ref reader, ref state, dictionary);
                 if (!read)
                 {
@@ -133,6 +128,9 @@ namespace Zerra.Serialization
                 state.Current.HasWrittenIsNull = true;
             }
 
+            if (value == null)
+                throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
+
             IEnumerator<KeyValuePair<TKey, TValue?>> enumerator;
 
             if (!state.Current.EnumerableLength.HasValue)
@@ -162,7 +160,7 @@ namespace Zerra.Serialization
             {
                 state.Current.EnumeratorInProgress = true;
 
-                state.PushFrame(writeConverter, valueIsNullable, value);
+                state.PushFrame(writeConverter, true, value);
                 var write = writeConverter.Write(ref writer, ref state, enumerator);
                 if (!write)
                 {
@@ -203,10 +201,10 @@ namespace Zerra.Serialization
             public IEnumerator<KeyValuePair<TKey, TValue?>> GetEnumerator() => throw new NotImplementedException();
             public bool Remove(TKey key) => throw new NotImplementedException();
             public bool Remove(KeyValuePair<TKey, TValue?> item) => throw new NotImplementedException();
-#if NETSTANDARD2_0
-            public bool TryGetValue(TKey key, out TValue? value) => throw new NotImplementedException();
-#else
+#if NET6_0_OR_GREATER
             public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue? value) => throw new NotImplementedException();
+#else
+            public bool TryGetValue(TKey key, out TValue? value) => throw new NotImplementedException();
 #endif
             IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
         }

@@ -13,8 +13,6 @@ namespace Zerra.Serialization
         private ByteConverter<ArrayAccessor<TValue?>> readConverter = null!;
         private ByteConverter<IEnumerator<TValue?>> writeConverter = null!;
 
-        private bool valueIsNullable;
-
         private static TValue? Getter(IEnumerator<TValue?> parent) => parent.Current;
         private static void Setter(ArrayAccessor<TValue?> parent, TValue? value) => parent.Set(value);
 
@@ -22,8 +20,6 @@ namespace Zerra.Serialization
         {
             this.readConverter = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, null, Setter);
             this.writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, null);
-
-            this.valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
         }
 
         protected override bool Read(ref ByteReader reader, ref ReadState state, out TArray? value)
@@ -87,7 +83,7 @@ namespace Zerra.Serialization
 
             for (; ; )
             {
-                state.PushFrame(readConverter, valueIsNullable, accessor);
+                state.PushFrame(readConverter, true, accessor);
                 var read = readConverter.Read(ref reader, ref state, accessor);
                 if (!read)
                 {
@@ -154,7 +150,7 @@ namespace Zerra.Serialization
             {
                 state.Current.EnumeratorInProgress = true;
 
-                state.PushFrame(writeConverter, valueIsNullable, value);
+                state.PushFrame(writeConverter, true, value);
                 var write = writeConverter.Write(ref writer, ref state, enumerator);
                 if (!write)
                 {
