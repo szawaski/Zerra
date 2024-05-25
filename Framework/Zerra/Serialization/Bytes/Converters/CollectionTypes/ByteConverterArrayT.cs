@@ -123,7 +123,7 @@ namespace Zerra.Serialization
             }
 
             if (value == null)
-                throw new InvalidOperationException("Bad State");
+                throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
 
             IEnumerator<TValue?> enumerator;
 

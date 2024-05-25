@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
@@ -67,12 +68,14 @@ namespace Zerra.TestDev
             {
                 IndexSize = ByteSerializerIndexSize.UInt16
             };
-            var item = Factory.GetAllTypesModel();
+            var item = Factory.GetCoreTypesModel();
             var data = ByteSerializerOld.Serialize(item, options);
-            return TempTestSpeed<AllTypesModel>(item, data, options, 1000, 15);
+
+            var method = typeof(ByteSerializerTest).GetMethod("TempTestSpeed2", BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());
+            return (Task)method.Invoke(null, new object[] { item, data, options, 10000, 15 });
         }
 
-        private static async Task TempTestSpeed<T>(T item, byte[] data, ByteSerializerOptions options, int iterations, int loops)
+        private static async Task TempTestSpeed2<T>(T item, byte[] data, ByteSerializerOptions options, int iterations, int loops)
         {
             var stream = new MemoryStream(data);
 
@@ -167,7 +170,7 @@ namespace Zerra.TestDev
                 for (var i = 0; i < iterations; i++)
                 {
                     stream.Position = 0;
-                    await ByteSerializerOld.SerializeAsync<T>(stream, item, options);
+                    await ByteSerializerOld.SerializeAsync(stream, item, options);
                 }
                 timer.Stop();
                 totalsOld["3 SerializeAsync"] += timer.ElapsedMilliseconds;

@@ -310,7 +310,7 @@ namespace Zerra.Serialization
                     {
                         if (!reader.TryReadByte(out var propertyIndexValue, out var sizeNeeded))
                         {
-                            state.BytesNeeded = sizeNeeded; 
+                            state.BytesNeeded = sizeNeeded;
                             if (collectValues)
                                 state.Current.Object = collectedValues;
                             else
@@ -565,12 +565,12 @@ namespace Zerra.Serialization
 
         private sealed class ByteConverterObjectMember<TValue2> : ByteConverterObjectMember
         {
-            public new MemberDetail<TValue, TValue2> Member { get; private set; }
+            public Func<TValue, TValue2?> Getter { get; private set; }
 
             public ByteConverterObjectMember(ByteConverterOptions options, MemberDetail member)
                 : base(options, member)
             {
-                this.Member = (MemberDetail<TValue, TValue2>)member;
+                this.Getter = ((MemberDetail<TValue, TValue2>)member).Getter;
             }
 
             private void Setter(Dictionary<string, object?> parent, TValue2? value) => parent.Add(Member.Name, value);
@@ -595,7 +595,7 @@ namespace Zerra.Serialization
                 }
             }
 
-            public override bool IsNull(TValue parent) => Member.Getter(parent) == null;
+            public override bool IsNull(TValue parent) => Getter(parent) == null;
         }
     }
 }

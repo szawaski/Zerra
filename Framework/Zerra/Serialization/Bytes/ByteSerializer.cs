@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Zerra.Serialization
@@ -48,6 +49,8 @@ namespace Zerra.Serialization
         private static readonly Encoding defaultEncoding = Encoding.UTF8;
 
         private static readonly ByteSerializerOptions defaultOptions = new();
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ByteConverterOptions GetByteConverterOptions(ByteSerializerOptions options)
         {
             var optionsEnum = ByteConverterOptions.None;
