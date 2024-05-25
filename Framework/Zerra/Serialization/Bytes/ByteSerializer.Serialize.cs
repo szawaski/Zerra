@@ -34,7 +34,10 @@ namespace Zerra.Serialization
 
             try
             {
-                var state = new WriteState();
+                var state = new WriteState()
+                {
+                    Object = obj
+                };
                 state.PushFrame(converter, true, null);
 
                 for (; ; )
@@ -84,7 +87,10 @@ namespace Zerra.Serialization
 
             try
             {
-                var state = new WriteState();
+                var state = new WriteState()
+                {
+                    Object = obj
+                };
                 state.PushFrame(converter, true, null);
 
                 for (; ; )
@@ -136,7 +142,10 @@ namespace Zerra.Serialization
 
             try
             {
-                var state = new WriteState();
+                var state = new WriteState()
+                {
+                    Object = obj
+                };
                 state.PushFrame(converter, true, null);
 
                 for (; ; )
@@ -188,7 +197,10 @@ namespace Zerra.Serialization
 
             try
             {
-                var state = new WriteState();
+                var state = new WriteState()
+                {
+                    Object = obj
+                };
                 state.PushFrame(converter, true, null);
 
                 for (; ; )
@@ -240,7 +252,10 @@ namespace Zerra.Serialization
 
             try
             {
-                var state = new WriteState();
+                var state = new WriteState()
+                {
+                    Object = obj
+                };
                 state.PushFrame(converter, true, null);
 
                 for (; ; )
@@ -294,7 +309,10 @@ namespace Zerra.Serialization
 
             try
             {
-                var state = new WriteState();
+                var state = new WriteState()
+                {
+                    Object = obj
+                };
                 state.PushFrame(converter, true, null);
 
                 for (; ; )
@@ -347,7 +365,10 @@ namespace Zerra.Serialization
 
             try
             {
-                var state = new WriteState();
+                var state = new WriteState()
+                {
+                    Object = obj
+                };
                 state.PushFrame(converter, true, null);
 
                 for (; ; )
@@ -404,7 +425,10 @@ namespace Zerra.Serialization
 
             try
             {
-                var state = new WriteState();
+                var state = new WriteState()
+                {
+                    Object = obj
+                };
                 state.PushFrame(converter, true, null);
 
                 for (; ; )
@@ -463,7 +487,10 @@ namespace Zerra.Serialization
 
             try
             {
-                var state = new WriteState();
+                var state = new WriteState()
+                {
+                    Object = obj
+                };
                 state.PushFrame(converter, true, null);
 
                 for (; ; )

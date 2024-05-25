@@ -27,7 +27,7 @@ namespace Zerra.Serialization
             var enumerableType = TypeAnalyzer<KeyValuePair<TKey, TValue?>>.GetTypeDetail();
 
             this.readConverter = ByteConverterFactory<IDictionary<TKey, TValue?>>.Get(options, enumerableType, null, null, Setter);
-            var writeConverter = ByteConverterFactory<IEnumerator<KeyValuePair<TKey, TValue?>>>.Get(options, enumerableType, null, Getter, null);
+            this.writeConverter = ByteConverterFactory<IEnumerator<KeyValuePair<TKey, TValue?>>>.Get(options, enumerableType, null, Getter, null);
 
             var valueTypeDetail = typeDetail.InnerTypeDetails[0].InnerTypeDetails[1];
             this.valueIsNullable = !valueTypeDetail.Type.IsValueType || valueTypeDetail.InnerTypeDetails[0].IsNullable;

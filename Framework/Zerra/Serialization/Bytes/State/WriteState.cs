@@ -43,6 +43,7 @@ namespace Zerra.Serialization
 
         private Stack<WriteFrame> stack;
         public WriteFrame Current;
+        public object? Object;
         public bool Ended;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

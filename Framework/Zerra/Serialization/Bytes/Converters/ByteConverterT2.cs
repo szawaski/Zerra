@@ -36,7 +36,7 @@ namespace Zerra.Serialization
                 return false;
 
             if (setter != null && parent != null)
-                    setter(parent, value);
+                setter(parent, value);
 
             state.EndFrame(value);
             return true;
@@ -44,9 +44,18 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed bool Write(ref ByteWriter writer, ref WriteState state, TParent? parent)
         {
-            if (getter != null && parent != null)
+            if (parent != null)
             {
-                var value = getter(parent);
+                if (getter != null)
+                {
+                    var value = getter(parent);
+                    if (!Write(ref writer, ref state, value))
+                        return false;
+                }
+            }
+            else
+            {
+                var value = (TValue?)state.Object;
                 if (!Write(ref writer, ref state, value))
                     return false;
             }

@@ -439,6 +439,12 @@ namespace Zerra.Serialization
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
                 var indexProperty = enumerator.Current;
+
+                if (indexProperty.Value.IsNull(value!))
+                {
+                    continue;
+                }
+
                 state.Current.EnumeratorInProgress = true;
 
                 if (usePropertyNames)
@@ -540,6 +546,8 @@ namespace Zerra.Serialization
 
             public abstract ByteConverter<Dictionary<string, object?>> ConverterSetValues { get; }
 
+            public abstract bool IsNull(TValue parent);
+
             //helps with debug
             public override string ToString()
             {
@@ -557,10 +565,12 @@ namespace Zerra.Serialization
 
         private sealed class ByteConverterObjectMember<TValue2> : ByteConverterObjectMember
         {
+            public new MemberDetail<TValue, TValue2> Member { get; private set; }
+
             public ByteConverterObjectMember(ByteConverterOptions options, MemberDetail member)
                 : base(options, member)
             {
-
+                this.Member = (MemberDetail<TValue, TValue2>)member;
             }
 
             private void Setter(Dictionary<string, object?> parent, TValue2? value) => parent.Add(Member.Name, value);
@@ -584,6 +594,8 @@ namespace Zerra.Serialization
                     return converterSetValues;
                 }
             }
+
+            public override bool IsNull(TValue parent) => Member.Getter(parent) == null;
         }
     }
 }
