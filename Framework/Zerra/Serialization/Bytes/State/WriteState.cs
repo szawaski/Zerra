@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
@@ -46,6 +44,10 @@ namespace Zerra.Serialization
         public object? Object;
         public bool Ended;
         public int BytesNeeded;
+
+        public bool UsePropertyNames;
+        public bool IgnoreIndexAttribute;
+        public bool IndexSizeUInt16;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PushFrame(ByteConverter converter, bool nullFlags, object? parent)

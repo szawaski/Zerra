@@ -10,9 +10,6 @@ namespace Zerra.Serialization
     internal enum ByteConverterOptions : byte
     {
         None = 0,
-        UsePropertyNames = 1,
-        IncludePropertyTypes = 2,
-        IgnoreIndexAttribute = 4,
-        IndexSizeUInt16 = 8
+        IncludePropertyTypes = 1
     }
 }

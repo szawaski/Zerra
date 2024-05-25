@@ -34,11 +34,11 @@ namespace Zerra.Serialization
             collectedValuesPool.Push(collectedValues);
         }
 
-        private readonly Dictionary<ushort, ByteConverterObjectMember> propertiesByIndex = new();
-        private readonly Dictionary<string, ByteConverterObjectMember> propertiesByName = new();
+        private readonly Dictionary<ushort, ByteConverterObjectMember> membersByIndex = new();
+        private readonly Dictionary<ushort, ByteConverterObjectMember> membersByIndexIngoreAttributes = new();
+        private readonly Dictionary<string, ByteConverterObjectMember> membersByName = new();
+        private bool indexSizeUInt16Only;
 
-        private bool usePropertyNames;
-        private bool indexSizeUInt16;
         private bool collectValues;
         private ConstructorDetail<TValue>? parameterConstructor = null;
 
@@ -52,61 +52,41 @@ namespace Zerra.Serialization
                 memberSets.Add(new Tuple<MemberDetail, SerializerIndexAttribute?, NonSerializedAttribute?>(member, indexAttribute, nonSerializedAttribute));
             }
 
-            if (!options.HasFlag(ByteConverterOptions.IgnoreIndexAttribute))
+            //Members by Index with Ignore Attributes
+            var membersWithIndexes = memberSets.Where(x => x.Item2 != null && x.Item3 == null).ToArray();
+            if (membersWithIndexes.Length > 0)
             {
-                var membersWithIndexes = memberSets.Where(x => x.Item2 != null && x.Item3 == null).ToArray();
-                if (membersWithIndexes.Length > 0)
+                foreach (var member in membersWithIndexes)
                 {
-                    foreach (var member in membersWithIndexes)
-                    {
-                        if (options.HasFlag(ByteConverterOptions.IndexSizeUInt16))
-                        {
-                            if (member.Item2!.Index > UInt16.MaxValue - indexOffset)
-                                throw new Exception("Index attribute too large for the index size");
-                        }
-                        else
-                        {
-                            if (member.Item2!.Index > Byte.MaxValue - indexOffset)
-                                throw new Exception("Index attribute too large for the index size");
-                        }
+                    if (member.Item2?.Index > Byte.MaxValue - indexOffset)
+                        indexSizeUInt16Only = true;
+                    if (member.Item2?.Index > UInt16.MaxValue - indexOffset)
+                        throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members to serialize");
 
-                        var index = (ushort)(member.Item2.Index + indexOffset);
-
-                        var detail = ByteConverterObjectMember.New(options, member.Item1);
-                        propertiesByIndex.Add(index, detail);
-                        propertiesByName.Add(member.Item1.Name, detail);
-                    }
-                }
-            }
-
-            if (propertiesByIndex.Count == 0)
-            {
-                var orderIndex = 0;
-                foreach (var member in memberSets.Where(x => x.Item3 == null))
-                {
-                    if (options.HasFlag(ByteConverterOptions.IndexSizeUInt16))
-                    {
-                        if (member.Item2?.Index > UInt16.MaxValue - indexOffset)
-                            throw new Exception("Index attribute too large for the index size");
-                    }
-                    else
-                    {
-                        if (member.Item2?.Index > Byte.MaxValue - indexOffset)
-                            throw new Exception("Index attribute too large for the index size");
-                    }
-
-                    var index = (ushort)(orderIndex + indexOffset);
+                    var index = (ushort)(member.Item2!.Index + indexOffset);
 
                     var detail = ByteConverterObjectMember.New(options, member.Item1);
-                    propertiesByIndex.Add(index, detail);
-                    propertiesByName.Add(member.Item1.Name, detail);
-
-                    orderIndex++;
+                    membersByIndexIngoreAttributes.Add(index, detail);
                 }
             }
 
-            this.usePropertyNames = options.HasFlag(ByteConverterOptions.UsePropertyNames);
-            this.indexSizeUInt16 = options.HasFlag(ByteConverterOptions.IndexSizeUInt16);
+            //Members by Index and Name
+            var orderIndex = 0;
+            foreach (var member in memberSets.Where(x => x.Item3 == null))
+            {
+                if (member.Item2?.Index > Byte.MaxValue - indexOffset)
+                    indexSizeUInt16Only = true;
+                if (member.Item2?.Index > UInt16.MaxValue - indexOffset)
+                    throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members to serialize");
+
+                var index = (ushort)(orderIndex + indexOffset);
+
+                var detail = ByteConverterObjectMember.New(options, member.Item1);
+                membersByIndex.Add(index, detail);
+                membersByName.Add(member.Item1.Name, detail);
+
+                orderIndex++;
+            }
 
             if (typeDetail.Type.IsValueType || !typeDetail.HasCreator)
             {
@@ -123,7 +103,7 @@ namespace Zerra.Serialization
                             break;
                         }
                         //must have a matching a member
-                        if (!propertiesByName.Values.Any(x => x.Member.Type == parameter.ParameterType && String.Equals(x.Member.Name, parameter.Name, StringComparison.OrdinalIgnoreCase)))
+                        if (!membersByName.Values.Any(x => x.Member.Type == parameter.ParameterType && String.Equals(x.Member.Name, parameter.Name, StringComparison.OrdinalIgnoreCase)))
                         {
                             skip = true;
                             break;
@@ -140,6 +120,9 @@ namespace Zerra.Serialization
 
         protected override bool TryRead(ref ByteReader reader, ref ReadState state, out TValue? value)
         {
+            if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
+                throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
+
             Dictionary<string, object?>? collectedValues;
 
             if (state.Current.NullFlags && !state.Current.HasNullChecked)
@@ -205,7 +188,7 @@ namespace Zerra.Serialization
             for (; ; )
             {
                 ByteConverterObjectMember? property;
-                if (usePropertyNames)
+                if (state.UsePropertyNames)
                 {
                     int sizeNeeded;
                     if (!state.Current.StringLength.HasValue)
@@ -239,11 +222,11 @@ namespace Zerra.Serialization
                     state.Current.StringLength = null;
 
                     property = null;
-                    _ = propertiesByName?.TryGetValue(name!, out property);
+                    _ = membersByName?.TryGetValue(name!, out property);
 
                     if (property == null)
                     {
-                        if (!usePropertyNames && !options.HasFlag(ByteConverterOptions.IncludePropertyTypes))
+                        if (!state.UsePropertyNames && !options.HasFlag(ByteConverterOptions.IncludePropertyTypes))
                             throw new Exception($"Cannot deserialize with property {name} undefined and no types.");
 
                         //consume bytes but object does not have property
@@ -293,7 +276,7 @@ namespace Zerra.Serialization
                 else
                 {
                     ushort propertyIndex;
-                    if (indexSizeUInt16)
+                    if (state.IndexSizeUInt16)
                     {
                         if (!reader.TryReadUInt16(out var propertyIndexValue, out var sizeNeeded))
                         {
@@ -310,7 +293,7 @@ namespace Zerra.Serialization
                     {
                         if (!reader.TryReadByte(out var propertyIndexValue, out var sizeNeeded))
                         {
-                            state.BytesNeeded = sizeNeeded; 
+                            state.BytesNeeded = sizeNeeded;
                             if (collectValues)
                                 state.Current.Object = collectedValues;
                             else
@@ -327,11 +310,14 @@ namespace Zerra.Serialization
                     }
 
                     property = null;
-                    _ = propertiesByIndex?.TryGetValue(propertyIndex, out property);
+                    if (state.IgnoreIndexAttribute)
+                        _ = membersByIndexIngoreAttributes?.TryGetValue(propertyIndex, out property);
+                    else
+                        _ = membersByIndex?.TryGetValue(propertyIndex, out property);
 
                     if (property == null)
                     {
-                        if (!usePropertyNames && !options.HasFlag(ByteConverterOptions.IncludePropertyTypes))
+                        if (!state.UsePropertyNames && !options.HasFlag(ByteConverterOptions.IncludePropertyTypes))
                             throw new Exception($"Cannot deserialize with property {propertyIndex} undefined and no types.");
 
                         //consume bytes but object does not have property
@@ -405,6 +391,9 @@ namespace Zerra.Serialization
 
         protected override bool TryWrite(ref ByteWriter writer, ref WriteState state, TValue? value)
         {
+            if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
+                throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
+
             int sizeNeeded;
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
             {
@@ -431,7 +420,10 @@ namespace Zerra.Serialization
             IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember>> enumerator;
             if (state.Current.Enumerator == null)
             {
-                enumerator = propertiesByIndex.GetEnumerator();
+                if (state.IgnoreIndexAttribute)
+                    enumerator = membersByIndexIngoreAttributes.GetEnumerator();
+                else
+                    enumerator = membersByIndex.GetEnumerator();
             }
             else
             {
@@ -450,7 +442,7 @@ namespace Zerra.Serialization
 
                 state.Current.EnumeratorInProgress = true;
 
-                if (usePropertyNames)
+                if (state.UsePropertyNames)
                 {
                     if (!writer.TryWrite(indexProperty.Value.Member.Name, false, out sizeNeeded))
                     {
@@ -461,7 +453,7 @@ namespace Zerra.Serialization
                 }
                 else
                 {
-                    if (indexSizeUInt16)
+                    if (state.IndexSizeUInt16)
                     {
                         if (!writer.TryWrite(indexProperty.Key, out sizeNeeded))
                         {
@@ -489,7 +481,7 @@ namespace Zerra.Serialization
                     return false;
             }
 
-            if (usePropertyNames)
+            if (state.UsePropertyNames)
             {
                 if (!writer.TryWrite(0, out sizeNeeded))
                 {
@@ -500,7 +492,7 @@ namespace Zerra.Serialization
             }
             else
             {
-                if (indexSizeUInt16)
+                if (state.IndexSizeUInt16)
                 {
                     if (!writer.TryWrite(endObjectFlagUInt16, out sizeNeeded))
                     {

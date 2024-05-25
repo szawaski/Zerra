@@ -54,14 +54,8 @@ namespace Zerra.Serialization
         private static ByteConverterOptions GetByteConverterOptions(ByteSerializerOptions options)
         {
             var optionsEnum = ByteConverterOptions.None;
-            if (options.UsePropertyNames)
-                optionsEnum |= ByteConverterOptions.UsePropertyNames;
             if (options.IncludePropertyTypes)
                 optionsEnum |= ByteConverterOptions.IncludePropertyTypes;
-            if (options.IgnoreIndexAttribute)
-                optionsEnum |= ByteConverterOptions.IgnoreIndexAttribute;
-            if (options.IndexSize == ByteSerializerIndexSize.UInt16)
-                optionsEnum |= ByteConverterOptions.IndexSizeUInt16;
             return optionsEnum;
         }
     }

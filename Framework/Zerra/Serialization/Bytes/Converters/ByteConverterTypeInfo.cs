@@ -11,13 +11,17 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterTypeInfo<TParent> : ByteConverter<TParent>
     {
+        private ByteConverterOptions options;
         private TypeDetail? typeDetail;
+        private string? memberKey;
         private Delegate? getterBoxed;
         private Delegate? setterBoxed;
 
-        protected override void Setup(TypeDetail? typeDetail, Delegate? getterBoxed, Delegate? setterBoxed)
+        public override void Setup(ByteConverterOptions options, TypeDetail? typeDetail, string? memberKey, Delegate? getterBoxed, Delegate? setterBoxed)
         {
+            this.options = options;
             this.typeDetail = typeDetail;
+            this.memberKey = memberKey;
             this.getterBoxed = getterBoxed;
             this.setterBoxed = setterBoxed;
         }

@@ -40,6 +40,10 @@ namespace Zerra.Serialization
         //        }
 
         public Stack<ReadFrame> Stack;
+        public bool UsePropertyNames;
+        public bool IgnoreIndexAttribute;
+        public bool IndexSizeUInt16;
+
         public ReadFrame Current;
         public object? Result;
         public bool Ended;

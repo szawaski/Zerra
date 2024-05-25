@@ -37,6 +37,10 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    UsePropertyNames = options.UsePropertyNames,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
+
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -91,6 +95,10 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    UsePropertyNames = options.UsePropertyNames,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
+
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -147,6 +155,10 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    UsePropertyNames = options.UsePropertyNames,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
+
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -203,6 +215,10 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    UsePropertyNames = options.UsePropertyNames,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
+
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -259,6 +275,10 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    UsePropertyNames = options.UsePropertyNames,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
+
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -317,6 +337,10 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    UsePropertyNames = options.UsePropertyNames,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
+
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -374,6 +398,10 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    UsePropertyNames = options.UsePropertyNames,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
+
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -435,6 +463,10 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    UsePropertyNames = options.UsePropertyNames,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
+
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -498,6 +530,10 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    UsePropertyNames = options.UsePropertyNames,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
+
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);

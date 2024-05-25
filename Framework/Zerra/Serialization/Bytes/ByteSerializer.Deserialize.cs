@@ -26,7 +26,10 @@ namespace Zerra.Serialization
 
             var state = new ReadState()
             {
-                Stack = new()
+                Stack = new(),
+                UsePropertyNames = options.UsePropertyNames,
+                IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
             };
             state.PushFrame(converter, true, null);
 
@@ -108,7 +111,10 @@ namespace Zerra.Serialization
 
                 var state = new ReadState()
                 {
-                    Stack = new()
+                    Stack = new(),
+                    UsePropertyNames = options.UsePropertyNames,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
                 state.PushFrame(converter, true, null);
 
@@ -210,7 +216,10 @@ namespace Zerra.Serialization
 
                 var state = new ReadState()
                 {
-                    Stack = new()
+                    Stack = new(),
+                    UsePropertyNames = options.UsePropertyNames,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
                 state.PushFrame(converter, true, null);
 
@@ -311,7 +320,10 @@ namespace Zerra.Serialization
 
                 var state = new ReadState()
                 {
-                    Stack = new()
+                    Stack = new(),
+                    UsePropertyNames = options.UsePropertyNames,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
                 state.PushFrame(converter, true, null);
 
@@ -413,7 +425,10 @@ namespace Zerra.Serialization
 
                 var state = new ReadState()
                 {
-                    Stack = new()
+                    Stack = new(),
+                    UsePropertyNames = options.UsePropertyNames,
+                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
                 state.PushFrame(converter, true, null);
 
