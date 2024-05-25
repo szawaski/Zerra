@@ -47,8 +47,7 @@ namespace Zerra.Serialization
 
         protected override bool Write(ref ByteWriter writer, ref WriteState state, Type? value)
         {
-            var valueType = state.Current.Object == null ? null : (Type)state.Current.Object;
-            if (!writer.TryWrite(valueType?.FullName, state.Current.NullFlags, out var sizeNeeded))
+            if (!writer.TryWrite(value?.FullName, state.Current.NullFlags, out var sizeNeeded))
             {
                 state.BytesNeeded = sizeNeeded;
                 return false;

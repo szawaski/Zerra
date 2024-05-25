@@ -69,7 +69,7 @@ namespace Zerra.Serialization
                     value = default;
                     if (length == 0)
                         return true;
-                    accessor = new ArrayAccessor<TValue?>(0);
+                    accessor = new ArrayAccessor<TValue?>();
                 }
             }
             else
@@ -135,8 +135,7 @@ namespace Zerra.Serialization
                 }
                 state.Current.EnumerableLength = length;
 
-                accessor = new ArrayAccessor<TValue?>(value.Length);
-                state.Current.Object = accessor;
+                accessor = new ArrayAccessor<TValue?>(value);
             }
             else
             {
@@ -150,7 +149,10 @@ namespace Zerra.Serialization
                     state.PushFrame(converter, valueIsNullable, accessor);
                     var write = converter.Write(ref writer, ref state, accessor);
                     if (!write)
+                    {
+                        state.Current.Object = accessor;
                         return false;
+                    }
                 }
             }
 
@@ -168,6 +170,11 @@ namespace Zerra.Serialization
             public ArrayAccessor()
             {
                 this.array = null;
+                this.index = 0;
+            }
+            public ArrayAccessor(T[]? array)
+            {
+                this.array = array;
                 this.index = 0;
             }
             public ArrayAccessor(int length)

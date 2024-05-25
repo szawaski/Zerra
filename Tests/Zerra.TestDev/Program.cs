@@ -4,6 +4,7 @@
 
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using Zerra.Serialization;
 
@@ -13,6 +14,8 @@ namespace Zerra.TestDev
     {
         static void Main(string[] args)
         {
+            var timer = Stopwatch.StartNew();
+
             ByteSerializerTest.TempTestSpeed();
 
             //var tester = new EncryptionTest();
@@ -62,7 +65,7 @@ namespace Zerra.TestDev
             //GooberClass.Goob(length, data, span);
             //Console.WriteLine();
 
-            Console.WriteLine("Done");
+            Console.WriteLine($"Done {timer.ElapsedMilliseconds:n0}ms");
             _ = Console.ReadLine();
         }
     }

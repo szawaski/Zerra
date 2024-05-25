@@ -143,7 +143,7 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DoubleThing, model2.DoubleThing);
             Assert.AreEqual(model1.DecimalThing, model2.DecimalThing);
             Assert.AreEqual(model1.CharThing, model2.CharThing);
-            Assert.AreEqual(model1.DateTimeThing.ToUniversalTime(), model2.DateTimeThing.ToUniversalTime());
+            Assert.AreEqual(model1.DateTimeThing, model2.DateTimeThing);
             Assert.AreEqual(model1.DateTimeOffsetThing, model2.DateTimeOffsetThing);
             Assert.AreEqual(model1.TimeSpanThing, model2.TimeSpanThing);
 #if NET6_0_OR_GREATER
@@ -165,7 +165,7 @@ namespace Zerra.Test
             Assert.AreEqual(model1.DoubleThingNullable, model2.DoubleThingNullable);
             Assert.AreEqual(model1.DecimalThingNullable, model2.DecimalThingNullable);
             Assert.AreEqual(model1.CharThingNullable, model2.CharThingNullable);
-            Assert.AreEqual(model1.DateTimeThingNullable?.ToUniversalTime(), model2.DateTimeThingNullable?.ToUniversalTime());
+            Assert.AreEqual(model1.DateTimeThingNullable, model2.DateTimeThingNullable);
             Assert.AreEqual(model1.DateTimeOffsetThingNullable, model2.DateTimeOffsetThingNullable);
             Assert.AreEqual(model1.TimeSpanThingNullable, model2.TimeSpanThingNullable);
 #if NET6_0_OR_GREATER

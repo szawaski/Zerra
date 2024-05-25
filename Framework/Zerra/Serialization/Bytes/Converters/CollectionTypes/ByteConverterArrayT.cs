@@ -72,7 +72,7 @@ namespace Zerra.Serialization
                     value = default;
                     if (length == 0)
                         return true;
-                    accessor = new ArrayAccessor<TValue?>(0);
+                    accessor = new ArrayAccessor<TValue?>();
                 }
             }
             else
@@ -142,7 +142,6 @@ namespace Zerra.Serialization
                 {
                     return true;
                 }
-                state.Current.Object = length;
 
                 enumerator = collection.GetEnumerator();
             }
@@ -158,7 +157,10 @@ namespace Zerra.Serialization
                 state.PushFrame(writeConverter, valueIsNullable, value);
                 var write = writeConverter.Write(ref writer, ref state, enumerator);
                 if (!write)
+                {
+                    state.Current.Object = enumerator;
                     return false;
+                }
 
                 state.Current.EnumeratorInProgress = false;
             }
