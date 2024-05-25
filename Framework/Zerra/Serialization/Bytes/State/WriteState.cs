@@ -41,10 +41,11 @@ namespace Zerra.Serialization
 //            framePool.Enqueue(frame);
 //        }
 
-        private Stack<WriteFrame> stack;
+        public Stack<WriteFrame> Stack;
         public WriteFrame Current;
         public object? Object;
         public bool Ended;
+        public int BytesNeeded;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PushFrame(ByteConverter converter, bool nullFlags, object? parent)
@@ -54,8 +55,7 @@ namespace Zerra.Serialization
             frame.NullFlags = nullFlags;
             frame.Parent = parent;
 
-            stack ??= new Stack<WriteFrame>();
-            stack.Push(Current);
+            Stack.Push(Current);
             Current = frame;
         }
 
@@ -63,18 +63,9 @@ namespace Zerra.Serialization
         public void EndFrame()
         {
             //ReturnFrame(CurrentFrame);
-            if (stack.Count > 0)
-            {
-                Current = stack.Pop();
-                if (stack.Count == 0)
-                    Ended = true;
-            }
-            else
-            {
-                Current = null!;
-            }
+            Current = Stack.Pop();
+            if (Stack.Count == 0)
+                Ended = true;
         }
-
-        public int BytesNeeded;
     }
 }

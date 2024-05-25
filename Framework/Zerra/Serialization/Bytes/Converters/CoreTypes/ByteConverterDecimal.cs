@@ -8,7 +8,7 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterDecimal<TParent> : ByteConverter<TParent, decimal>
     {
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out decimal value)
+        protected override bool TryRead(ref ByteReader reader, ref ReadState state, out decimal value)
         {
             if (!reader.TryReadDecimal(out value, out var sizeNeeded))
             {
@@ -18,7 +18,7 @@ namespace Zerra.Serialization
             return true;
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, decimal value)
+        protected override bool TryWrite(ref ByteWriter writer, ref WriteState state, decimal value)
         {
             if (!writer.TryWrite(value, out var sizeNeeded))
             {

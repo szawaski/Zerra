@@ -36,6 +36,7 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
+                    Stack = new(),
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -89,6 +90,7 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
+                    Stack = new(),
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -144,6 +146,7 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
+                    Stack = new(),
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -199,6 +202,7 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
+                    Stack = new(),
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -254,6 +258,7 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
+                    Stack = new(),
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -311,6 +316,7 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
+                    Stack = new(),
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -367,6 +373,7 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
+                    Stack = new(),
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -427,6 +434,7 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
+                    Stack = new(),
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -489,6 +497,7 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
+                    Stack = new(),
                     Object = obj
                 };
                 state.PushFrame(converter, true, null);
@@ -528,16 +537,9 @@ namespace Zerra.Serialization
             var writer = new ByteWriter(buffer, encoding);
             for (; ; )
             {
-                state.Current.Converter.Write(ref writer, ref state);
-
-                if (state.Ended)
-                {
+                var write = state.Current.Converter.TryWrite(ref writer, ref state, state.Current.Parent);
+                if (write || state.BytesNeeded > 0)
                     return writer.Length;
-                }
-                if (state.BytesNeeded > 0)
-                {
-                    return writer.Length;
-                }
             }
         }
     }

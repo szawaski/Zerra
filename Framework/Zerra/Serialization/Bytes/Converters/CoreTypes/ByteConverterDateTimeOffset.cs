@@ -9,7 +9,7 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterDateTimeOffset<TParent> : ByteConverter<TParent, DateTimeOffset>
     {
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out DateTimeOffset value)
+        protected override bool TryRead(ref ByteReader reader, ref ReadState state, out DateTimeOffset value)
         {
             if (!reader.TryReadDateTimeOffset(out value, out var sizeNeeded))
             {
@@ -19,7 +19,7 @@ namespace Zerra.Serialization
             return true;
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, DateTimeOffset value)
+        protected override bool TryWrite(ref ByteWriter writer, ref WriteState state, DateTimeOffset value)
         {
             if (!writer.TryWrite(value, out var sizeNeeded))
             {

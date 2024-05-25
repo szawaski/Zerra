@@ -19,7 +19,7 @@ namespace Zerra.Serialization
             this.converter = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, Setter);
         }
 
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out TValue?[]? value)
+        protected override bool TryRead(ref ByteReader reader, ref ReadState state, out TValue?[]? value)
         {
             int sizeNeeded;
             if (state.Current.NullFlags && !state.Current.HasNullChecked)
@@ -93,7 +93,7 @@ namespace Zerra.Serialization
             }
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, TValue?[]? value)
+        protected override bool TryWrite(ref ByteWriter writer, ref WriteState state, TValue?[]? value)
         {
             int sizeNeeded;
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)

@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections;
-
 namespace Zerra.Serialization
 {
     internal sealed class WriteFrame
@@ -16,9 +14,8 @@ namespace Zerra.Serialization
 
         public bool HasWrittenIsNull;
         public int? EnumerableLength;
-        public bool ObjectInProgress;
 
-        public IEnumerator? Enumerator;
+        public object? Enumerator;
         public bool EnumeratorInProgress;
     }
 }

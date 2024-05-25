@@ -13,15 +13,12 @@ namespace Zerra.Serialization
         protected readonly TypeDetail parentTypeDetail = TypeAnalyzer<TParent>.GetTypeDetail();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed void Read(ref ByteReader reader, ref ReadState state)
-        {
-            _ = TryRead(ref reader, ref state, (TParent?)state.Current.Parent);
-        }
+        public override sealed bool TryRead(ref ByteReader reader, ref ReadState state, object? parent)
+            => TryRead(ref reader, ref state, (TParent?)parent);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed void Write(ref ByteWriter writer, ref WriteState state)
-        {
-            _ = TryWrite(ref writer, ref state, (TParent?)state.Current.Parent);
-        }
+        public override sealed bool TryWrite(ref ByteWriter writer, ref WriteState state, object? parent)
+            => TryWrite(ref writer, ref state, (TParent?)parent);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract bool TryRead(ref ByteReader reader, ref ReadState state, TParent? parent);

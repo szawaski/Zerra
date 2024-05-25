@@ -40,8 +40,8 @@ namespace Zerra.Serialization
         protected virtual void SetupT2() { }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public abstract void Read(ref ByteReader reader, ref ReadState state);
+        public abstract bool TryRead(ref ByteReader reader, ref ReadState state, object? parent);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public abstract void Write(ref ByteWriter writer, ref WriteState state);
+        public abstract bool TryWrite(ref ByteWriter writer, ref WriteState state, object? parent);
     }
 }

@@ -8,7 +8,7 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterChar<TParent> : ByteConverter<TParent, char>
     {
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out char value)
+        protected override bool TryRead(ref ByteReader reader, ref ReadState state, out char value)
         {
             if (!reader.TryReadChar(out value, out var sizeNeeded))
             {
@@ -18,7 +18,7 @@ namespace Zerra.Serialization
             return true;
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, char value)
+        protected override bool TryWrite(ref ByteWriter writer, ref WriteState state, char value)
         {
             if (!writer.TryWrite(value, out var sizeNeeded))
             {

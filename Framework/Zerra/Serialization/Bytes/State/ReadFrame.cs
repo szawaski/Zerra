@@ -13,7 +13,7 @@ namespace Zerra.Serialization
         public bool NullFlags;
 
         public bool HasNullChecked;
-        public bool HasObjectStarted;
+        public bool HasCreated;
         public object? Object;
         public object? Parent;
 

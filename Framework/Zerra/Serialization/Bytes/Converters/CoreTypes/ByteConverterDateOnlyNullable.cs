@@ -11,7 +11,7 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterDateOnlyNullable<TParent> : ByteConverter<TParent, DateOnly?>
     {
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out DateOnly? value)
+        protected override bool TryRead(ref ByteReader reader, ref ReadState state, out DateOnly? value)
         {
             if (!reader.TryReadDateOnlyNullable(state.Current.NullFlags, out value, out var sizeNeeded))
             {
@@ -21,7 +21,7 @@ namespace Zerra.Serialization
             return true;
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, DateOnly? value)
+        protected override bool TryWrite(ref ByteWriter writer, ref WriteState state, DateOnly? value)
         {
             if (!writer.TryWrite(value, state.Current.NullFlags, out var sizeNeeded))
             {

@@ -8,7 +8,7 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterInt64Nullable<TParent> : ByteConverter<TParent, long?>
     {
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out long? value)
+        protected override bool TryRead(ref ByteReader reader, ref ReadState state, out long? value)
         {
             if (!reader.TryReadInt64Nullable(state.Current.NullFlags, out value, out var sizeNeeded))
             {
@@ -18,7 +18,7 @@ namespace Zerra.Serialization
             return true;
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, long? value)
+        protected override bool TryWrite(ref ByteWriter writer, ref WriteState state, long? value)
         {
             if (!writer.TryWrite(value, state.Current.NullFlags, out var sizeNeeded))
             {

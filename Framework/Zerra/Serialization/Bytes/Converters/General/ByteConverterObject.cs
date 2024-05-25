@@ -138,7 +138,7 @@ namespace Zerra.Serialization
             }
         }
 
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out TValue? value)
+        protected override bool TryRead(ref ByteReader reader, ref ReadState state, out TValue? value)
         {
             Dictionary<string, object?>? collectedValues;
 
@@ -160,7 +160,7 @@ namespace Zerra.Serialization
                 state.Current.HasNullChecked = true;
             }
 
-            if (!state.Current.HasObjectStarted)
+            if (!state.Current.HasCreated)
             {
                 if (!state.Current.DrainBytes)
                 {
@@ -186,7 +186,7 @@ namespace Zerra.Serialization
                     collectedValues = null;
                 }
 
-                state.Current.HasObjectStarted = true;
+                state.Current.HasCreated = true;
             }
             else
             {
@@ -403,7 +403,7 @@ namespace Zerra.Serialization
             return true;
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, TValue? value)
+        protected override bool TryWrite(ref ByteWriter writer, ref WriteState state, TValue? value)
         {
             int sizeNeeded;
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
@@ -432,7 +432,6 @@ namespace Zerra.Serialization
             if (state.Current.Enumerator == null)
             {
                 enumerator = propertiesByIndex.GetEnumerator();
-                state.Current.Enumerator = enumerator;
             }
             else
             {
@@ -456,6 +455,7 @@ namespace Zerra.Serialization
                     if (!writer.TryWrite(indexProperty.Value.Member.Name, false, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
+                        state.Current.Enumerator = enumerator;
                         return false;
                     }
                 }
@@ -466,6 +466,7 @@ namespace Zerra.Serialization
                         if (!writer.TryWrite(indexProperty.Key, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
+                            state.Current.Enumerator = enumerator;
                             return false;
                         }
                     }
@@ -474,6 +475,7 @@ namespace Zerra.Serialization
                         if (!writer.TryWrite((byte)indexProperty.Key, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
+                            state.Current.Enumerator = enumerator;
                             return false;
                         }
                     }
@@ -492,6 +494,7 @@ namespace Zerra.Serialization
                 if (!writer.TryWrite(0, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
+                    state.Current.Enumerator = enumerator;
                     return false;
                 }
             }
@@ -502,6 +505,7 @@ namespace Zerra.Serialization
                     if (!writer.TryWrite(endObjectFlagUInt16, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
+                        state.Current.Enumerator = enumerator;
                         return false;
                     }
                 }
@@ -510,6 +514,7 @@ namespace Zerra.Serialization
                     if (!writer.TryWrite(endObjectFlagByte, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
+                        state.Current.Enumerator = enumerator;
                         return false;
                     }
                 }

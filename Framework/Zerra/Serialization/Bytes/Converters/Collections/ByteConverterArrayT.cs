@@ -22,7 +22,7 @@ namespace Zerra.Serialization
             this.writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, null);
         }
 
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out TArray? value)
+        protected override bool TryRead(ref ByteReader reader, ref ReadState state, out TArray? value)
         {
             int sizeNeeded;
             if (state.Current.NullFlags && !state.Current.HasNullChecked)
@@ -96,7 +96,7 @@ namespace Zerra.Serialization
             }
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, TArray? value)
+        protected override bool TryWrite(ref ByteWriter writer, ref WriteState state, TArray? value)
         {
             int sizeNeeded;
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)

@@ -24,7 +24,10 @@ namespace Zerra.Serialization
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
             var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
 
-            var state = new ReadState();
+            var state = new ReadState()
+            {
+                Stack = new()
+            };
             state.PushFrame(converter, true, null);
 
             Read(bytes, ref state, options.Encoding);
@@ -45,7 +48,10 @@ namespace Zerra.Serialization
             var typeDetail = type.GetTypeDetail();
             var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
 
-            var state = new ReadState();
+            var state = new ReadState()
+            {
+                Stack = new()
+            };
             state.PushFrame(converter, true, null);
 
             Read(bytes, ref state, options.Encoding);
@@ -100,7 +106,10 @@ namespace Zerra.Serialization
                     return default;
                 }
 
-                var state = new ReadState();
+                var state = new ReadState()
+                {
+                    Stack = new()
+                };
                 state.PushFrame(converter, true, null);
 
                 for (; ; )
@@ -199,7 +208,10 @@ namespace Zerra.Serialization
                     return default;
                 }
 
-                var state = new ReadState();
+                var state = new ReadState()
+                {
+                    Stack = new()
+                };
                 state.PushFrame(converter, true, null);
 
                 for (; ; )
@@ -297,7 +309,10 @@ namespace Zerra.Serialization
                     return default;
                 }
 
-                var state = new ReadState();
+                var state = new ReadState()
+                {
+                    Stack = new()
+                };
                 state.PushFrame(converter, true, null);
 
                 for (; ; )
@@ -396,7 +411,10 @@ namespace Zerra.Serialization
                     return default;
                 }
 
-                var state = new ReadState();
+                var state = new ReadState()
+                {
+                    Stack = new()
+                };
                 state.PushFrame(converter, true, null);
 
                 for (; ; )
@@ -456,16 +474,9 @@ namespace Zerra.Serialization
             var reader = new ByteReader(buffer, encoding);
             for (; ; )
             {
-                state.Current.Converter.Read(ref reader, ref state);
-
-                if (state.Ended)
-                {
-                    return -1;
-                }
-                if (state.BytesNeeded > 0)
-                {
+                var read = state.Current.Converter.TryRead(ref reader, ref state, state.Current.Parent);
+                if (read || state.BytesNeeded > 0)
                     return reader.Position;
-                }
             }
         }
     }
