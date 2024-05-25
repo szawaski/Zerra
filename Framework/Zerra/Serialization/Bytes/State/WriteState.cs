@@ -40,14 +40,16 @@ namespace Zerra.Serialization
 //        }
 
         public Stack<WriteFrame> Stack;
+
+        public bool IncludePropertyTypes;
+        public bool UsePropertyNames;
+        public bool IgnoreIndexAttribute;
+        public bool IndexSizeUInt16;
+
         public WriteFrame Current;
         public object? Object;
         public bool Ended;
         public int BytesNeeded;
-
-        public bool UsePropertyNames;
-        public bool IgnoreIndexAttribute;
-        public bool IndexSizeUInt16;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PushFrame(ByteConverter converter, bool nullFlags, object? parent)

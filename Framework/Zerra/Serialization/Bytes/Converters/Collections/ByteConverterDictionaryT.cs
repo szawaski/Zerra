@@ -24,8 +24,8 @@ namespace Zerra.Serialization
         {
             var enumerableType = TypeAnalyzer<KeyValuePair<TKey, TValue?>>.GetTypeDetail();
 
-            this.readConverter = ByteConverterFactory<IDictionary<TKey, TValue?>>.Get(options, enumerableType, null, null, Setter);
-            this.writeConverter = ByteConverterFactory<IEnumerator<KeyValuePair<TKey, TValue?>>>.Get(options, enumerableType, null, Getter, null);
+            this.readConverter = ByteConverterFactory<IDictionary<TKey, TValue?>>.Get(enumerableType, null, null, Setter);
+            this.writeConverter = ByteConverterFactory<IEnumerator<KeyValuePair<TKey, TValue?>>>.Get(enumerableType, null, Getter, null);
         }
 
         protected override bool TryRead(ref ByteReader reader, ref ReadState state, out TDictionary? value)

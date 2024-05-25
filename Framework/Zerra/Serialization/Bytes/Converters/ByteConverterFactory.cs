@@ -11,63 +11,41 @@ namespace Zerra.Serialization
 {
     internal static class ByteConverterFactory<TParent>
     {
-        private static readonly ConcurrentFactoryDictionary<ByteConverterOptions, ConcurrentFactoryDictionary<Type, ConcurrentFactoryDictionary<string, ByteConverter<TParent>>>> cache = new();
-        private static readonly ConcurrentFactoryDictionary<ByteConverterOptions, ByteConverterTypeInfo<TParent>> cacheByteConverterTypeInfo = new();
-        private static readonly Type defaultType = typeof(object);
+        private static readonly ConcurrentFactoryDictionary<Type, ConcurrentFactoryDictionary<string, ByteConverter<TParent>>> cache = new();
+        private static ByteConverterTypeRequired<TParent>? cacheByteConverterTypeInfo;
+
         private static readonly Type parentType = typeof(TParent);
 
-        public static ByteConverter<TParent> GetRoot(ByteConverterOptions options, TypeDetail typeDetail)
-             => Get(options, typeDetail, null, null, null);
+        public static ByteConverter<TParent> GetRoot(TypeDetail typeDetail)
+             => Get(typeDetail, null, null, null);
 
-        public static ByteConverter<TParent> Get(ByteConverterOptions options, TypeDetail typeDetail, string? memberKey, Delegate? getter, Delegate? setter)
+        public static ByteConverter<TParent> Get(TypeDetail typeDetail, string? memberKey, Delegate? getter, Delegate? setter)
         {
-            if (options.HasFlag(ByteConverterOptions.IncludePropertyTypes) || (typeDetail.Type.IsInterface && !typeDetail.IsIEnumerableGeneric))
-            {
-                var converter = cacheByteConverterTypeInfo.GetOrAdd(options, key =>
-                {
-                    var newConverter = new ByteConverterTypeInfo<TParent>();
-                    newConverter.Setup(options, typeDetail, memberKey, getter, setter);
-                    return newConverter;
-                });
-                return converter;
-            }
-            else
-            {
-                var cache1 = cache.GetOrAdd(options, x => new());
-                var cache2 = cache1.GetOrAdd(typeDetail.Type, x => new());
-                var converter = cache2.GetOrAdd(memberKey ?? String.Empty, x =>
-                {
-                    var newConverter = Create(typeDetail);
-                    newConverter.Setup(options, typeDetail, memberKey, getter, setter);
-                    return newConverter;
-                });
-                return converter;
-            }
-        }
-
-        public static ByteConverter<TParent> GetAfterTypeInfo(ByteConverterOptions options, TypeDetail typeDetail, string? memberKey, Delegate? getter, Delegate? setter)
-        {
-            var cache1 = cache.GetOrAdd(options, x => new());
-            var cache2 = cache1.GetOrAdd(typeDetail.Type, x => new());
-            var newConverter = cache2.GetOrAdd(memberKey ?? String.Empty, x =>
+            var cache2 = cache.GetOrAdd(typeDetail.Type, x => new());
+            var converter = cache2.GetOrAdd(memberKey ?? String.Empty, x =>
             {
                 var newConverter = Create(typeDetail);
-                newConverter.Setup(options, typeDetail, memberKey, getter, setter);
+                newConverter.Setup(typeDetail, memberKey, getter, setter);
                 return newConverter;
             });
-
-            return newConverter;
+            return converter;
         }
 
-        public static ByteConverter<TParent> GetForDrainWithNoTypeInfo(ByteConverterOptions options)
-        {
-            var newConverter = cacheByteConverterTypeInfo.GetOrAdd(options, key =>
+        public static ByteConverter<TParent> GetTypeRequired()
+        { 
+            if (cacheByteConverterTypeInfo == null)
             {
-                var newConverter = new ByteConverterTypeInfo<TParent>();
-                newConverter.Setup(options, null, null, null, null);
-                return newConverter;
-            });
-            return newConverter;
+                lock (cache)
+                {
+                    if (cacheByteConverterTypeInfo == null)
+                    {
+                        var newConverter = new ByteConverterTypeRequired<TParent>();
+                        newConverter.Setup(null, null, null, null);
+                        cacheByteConverterTypeInfo = newConverter;
+                    }
+                }
+            }
+            return cacheByteConverterTypeInfo;
         }
 
         private static readonly Type byteConverterDiscoverableType = typeof(IByteConverterDiscoverable<>);

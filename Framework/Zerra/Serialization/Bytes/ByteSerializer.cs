@@ -49,14 +49,5 @@ namespace Zerra.Serialization
         private static readonly Encoding defaultEncoding = Encoding.UTF8;
 
         private static readonly ByteSerializerOptions defaultOptions = new();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ByteConverterOptions GetByteConverterOptions(ByteSerializerOptions options)
-        {
-            var optionsEnum = ByteConverterOptions.None;
-            if (options.IncludePropertyTypes)
-                optionsEnum |= ByteConverterOptions.IncludePropertyTypes;
-            return optionsEnum;
-        }
     }
 }

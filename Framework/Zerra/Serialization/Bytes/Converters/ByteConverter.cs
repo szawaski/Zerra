@@ -23,7 +23,7 @@ namespace Zerra.Serialization
         protected const int maxStackDepth = 32;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public abstract void Setup(ByteConverterOptions options, TypeDetail? typeDetail, string? memberKey, Delegate? getterBoxed, Delegate? setterBoxed);
+        public abstract void Setup(TypeDetail? typeDetail, string? memberKey, Delegate? getterBoxed, Delegate? setterBoxed);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract bool TryRead(ref ByteReader reader, ref ReadState state, object? parent);

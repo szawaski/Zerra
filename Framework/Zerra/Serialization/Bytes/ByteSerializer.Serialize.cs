@@ -20,10 +20,9 @@ namespace Zerra.Serialization
                 return Array.Empty<byte>();
 
             options ??= defaultOptions;
-            var byteConverterOptions = GetByteConverterOptions(options);
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
+            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
 
 #if DEBUG
             var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
@@ -37,6 +36,7 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
@@ -78,10 +78,9 @@ namespace Zerra.Serialization
                 return Array.Empty<byte>();
 
             options ??= defaultOptions;
-            var byteConverterOptions = GetByteConverterOptions(options);
 
             var typeDetail = obj.GetType().GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
+            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
 
 #if DEBUG
             var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
@@ -95,6 +94,7 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
@@ -138,10 +138,9 @@ namespace Zerra.Serialization
                 return Array.Empty<byte>();
 
             options ??= defaultOptions;
-            var byteConverterOptions = GetByteConverterOptions(options);
 
             var typeDetail = type.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
+            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
 
 #if DEBUG
             var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
@@ -155,6 +154,7 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
@@ -199,10 +199,9 @@ namespace Zerra.Serialization
                 return;
 
             options ??= defaultOptions;
-            var byteConverterOptions = GetByteConverterOptions(options);
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
+            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
 
 #if DEBUG
             var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
@@ -215,6 +214,7 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
@@ -259,10 +259,9 @@ namespace Zerra.Serialization
                 return;
 
             options ??= defaultOptions;
-            var byteConverterOptions = GetByteConverterOptions(options);
 
             var typeDetail = obj.GetType().GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
+            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
 
 #if DEBUG
             var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
@@ -275,6 +274,7 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
@@ -321,10 +321,9 @@ namespace Zerra.Serialization
                 return;
 
             options ??= defaultOptions;
-            var byteConverterOptions = GetByteConverterOptions(options);
 
             var typeDetail = type.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
+            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
 
 #if DEBUG
             var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
@@ -337,6 +336,7 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
@@ -382,10 +382,9 @@ namespace Zerra.Serialization
                 return;
 
             options ??= defaultOptions;
-            var byteConverterOptions = GetByteConverterOptions(options);
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
+            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
 
 #if DEBUG
             var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
@@ -398,6 +397,7 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
@@ -447,10 +447,9 @@ namespace Zerra.Serialization
                 return;
 
             options ??= defaultOptions;
-            var byteConverterOptions = GetByteConverterOptions(options);
 
             var typeDetail = obj.GetType().GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
+            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
 
 #if DEBUG
             var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
@@ -463,6 +462,7 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
@@ -514,10 +514,9 @@ namespace Zerra.Serialization
                 return;
 
             options ??= defaultOptions;
-            var byteConverterOptions = GetByteConverterOptions(options);
 
             var typeDetail = type.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(byteConverterOptions, typeDetail);
+            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
 
 #if DEBUG
             var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
@@ -530,6 +529,7 @@ namespace Zerra.Serialization
                 var state = new WriteState()
                 {
                     Stack = new(),
+                    IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,

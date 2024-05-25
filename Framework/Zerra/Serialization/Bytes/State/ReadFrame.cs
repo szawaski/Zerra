@@ -12,6 +12,7 @@ namespace Zerra.Serialization
         public ByteConverter Converter;
         public bool NullFlags;
 
+        public bool HasTypeRead;
         public bool HasNullChecked;
         public bool HasCreated;
         public object? Object;

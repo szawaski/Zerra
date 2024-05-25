@@ -65,7 +65,7 @@ namespace Zerra.Serialization
 
                     var index = (ushort)(member.Item2!.Index + indexOffset);
 
-                    var detail = ByteConverterObjectMember.New(options, member.Item1);
+                    var detail = ByteConverterObjectMember.New(member.Item1);
                     membersByIndexIngoreAttributes.Add(index, detail);
                 }
             }
@@ -81,7 +81,7 @@ namespace Zerra.Serialization
 
                 var index = (ushort)(orderIndex + indexOffset);
 
-                var detail = ByteConverterObjectMember.New(options, member.Item1);
+                var detail = ByteConverterObjectMember.New(member.Item1);
                 membersByIndex.Add(index, detail);
                 membersByName.Add(member.Item1.Name, detail);
 
@@ -226,11 +226,11 @@ namespace Zerra.Serialization
 
                     if (property == null)
                     {
-                        if (!state.UsePropertyNames && !options.HasFlag(ByteConverterOptions.IncludePropertyTypes))
+                        if (!state.UsePropertyNames && !state.IncludePropertyTypes)
                             throw new Exception($"Cannot deserialize with property {name} undefined and no types.");
 
                         //consume bytes but object does not have property
-                        var converter = ByteConverterFactory<TValue>.GetForDrainWithNoTypeInfo(options);
+                        var converter = ByteConverterFactory<TValue>.GetTypeRequired();
                         state.PushFrame(converter, false, value);
                         state.Current.DrainBytes = true;
                         var read = converter.TryRead(ref reader, ref state, value);
@@ -317,11 +317,11 @@ namespace Zerra.Serialization
 
                     if (property == null)
                     {
-                        if (!state.UsePropertyNames && !options.HasFlag(ByteConverterOptions.IncludePropertyTypes))
+                        if (!state.UsePropertyNames && !state.IncludePropertyTypes)
                             throw new Exception($"Cannot deserialize with property {propertyIndex} undefined and no types.");
 
                         //consume bytes but object does not have property
-                        var converter = ByteConverterFactory<TValue>.GetForDrainWithNoTypeInfo(options);
+                        var converter = ByteConverterFactory<TValue>.GetTypeRequired();
                         state.PushFrame(converter, false, default);
                         state.Current.DrainBytes = true;
                         var read = converter.TryRead(ref reader, ref state, default);
@@ -517,7 +517,6 @@ namespace Zerra.Serialization
 
         private abstract class ByteConverterObjectMember
         {
-            protected ByteConverterOptions options;
             public readonly MemberDetail Member;
 
             public readonly ByteConverter<TValue> Converter;
@@ -525,12 +524,11 @@ namespace Zerra.Serialization
             public abstract bool IsNull(TValue parent);
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-            public ByteConverterObjectMember(ByteConverterOptions options, MemberDetail member)
+            public ByteConverterObjectMember(MemberDetail member)
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
             {
-                this.options = options;
                 this.Member = member;
-                Converter = ByteConverterFactory<TValue>.Get(options, Member.TypeDetail, Member.Name, Member.GetterTyped, Member.SetterTyped);
+                Converter = ByteConverterFactory<TValue>.Get(Member.TypeDetail, Member.Name, Member.GetterTyped, Member.SetterTyped);
             }
 
             //helps with debug
@@ -540,10 +538,10 @@ namespace Zerra.Serialization
             }
 
             private static readonly Type byteConverterObjectMemberT = typeof(ByteConverterObjectMember<>);
-            public static ByteConverterObjectMember New(ByteConverterOptions options, MemberDetail member)
+            public static ByteConverterObjectMember New(MemberDetail member)
             {
                 var generic = byteConverterObjectMemberT.GetGenericTypeDetail(typeof(TParent), typeof(TValue), member.Type);
-                var obj = generic.ConstructorDetails[0].CreatorBoxed(new object?[] { options, member });
+                var obj = generic.ConstructorDetails[0].CreatorBoxed(new object?[] { member });
                 return (ByteConverterObjectMember)obj;
             }
         }
@@ -554,12 +552,12 @@ namespace Zerra.Serialization
             public override bool IsNull(TValue parent) => Getter(parent) == null;
 
             private void SetterForConverterSetValues(Dictionary<string, object?> parent, TValue2? value) => parent.Add(Member.Name, value);
-            public ByteConverterObjectMember(ByteConverterOptions options, MemberDetail member)
-                : base(options, member)
+            public ByteConverterObjectMember(MemberDetail member)
+                : base(member)
             {
                 this.Getter = ((MemberDetail<TValue, TValue2>)member).Getter;
                 var type = TypeAnalyzer<Dictionary<string, object?>>.GetTypeDetail();
-                ConverterSetValues = ByteConverterFactory<Dictionary<string, object?>>.Get(options, Member.TypeDetail, Member.Name, null, SetterForConverterSetValues);
+                ConverterSetValues = ByteConverterFactory<Dictionary<string, object?>>.Get(Member.TypeDetail, Member.Name, null, SetterForConverterSetValues);
             }
         }
     }

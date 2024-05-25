@@ -16,7 +16,7 @@ namespace Zerra.Serialization
 
         protected override void Setup()
         {
-            this.converter = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, Setter);
+            this.converter = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, Setter);
         }
 
         protected override bool TryRead(ref ByteReader reader, ref ReadState state, out TValue?[]? value)

@@ -9,26 +9,28 @@ using System.Linq;
 
 namespace Zerra.Serialization
 {
-    internal sealed class ByteConverterTypeInfo<TParent> : ByteConverter<TParent>
+    internal sealed class ByteConverterTypeRequired<TParent> : ByteConverter<TParent>
     {
-        private ByteConverterOptions options;
         private TypeDetail? typeDetail;
         private string? memberKey;
         private Delegate? getterBoxed;
         private Delegate? setterBoxed;
 
-        public override void Setup(ByteConverterOptions options, TypeDetail? typeDetail, string? memberKey, Delegate? getterBoxed, Delegate? setterBoxed)
+        private bool useEmptyImplementation;
+
+        public override void Setup(TypeDetail? typeDetail, string? memberKey, Delegate? getterBoxed, Delegate? setterBoxed)
         {
-            this.options = options;
             this.typeDetail = typeDetail;
             this.memberKey = memberKey;
             this.getterBoxed = getterBoxed;
             this.setterBoxed = setterBoxed;
+
+            this.useEmptyImplementation = typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.IsIEnumerableGeneric;
         }
 
         public override bool TryRead(ref ByteReader reader, ref ReadState state, TParent? parent)
         {
-            if (options.HasFlag(ByteConverterOptions.IncludePropertyTypes))
+            if (state.IncludePropertyTypes)
             {
                 int sizeNeeded;
                 if (!state.Current.StringLength.HasValue)
@@ -61,22 +63,24 @@ namespace Zerra.Serialization
                         throw new NotSupportedException($"{newTypeDetail.Type.GetNiceName()} does not convert to {typeDetail.Type.GetNiceName()}");
                 }
 
-                var newConverter = ByteConverterFactory<TParent>.GetAfterTypeInfo(options, newTypeDetail, memberKey, getterBoxed, setterBoxed);
+                var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getterBoxed, setterBoxed);
                 state.Current.StringLength = null;
                 state.Current.Converter = newConverter;
+                state.Current.HasTypeRead = true;
                 return newConverter.TryRead(ref reader, ref state, parent);
             }
 
-            if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.IsIEnumerableGeneric)
+            if (useEmptyImplementation)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 var newTypeDetail = emptyImplementationType.GetTypeDetail();
-                var newConverter = ByteConverterFactory<TParent>.GetAfterTypeInfo(options, newTypeDetail, memberKey, getterBoxed, setterBoxed);
+                var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getterBoxed, setterBoxed);
                 state.Current.Converter = newConverter;
+                state.Current.HasTypeRead = true;
                 return newConverter.TryRead(ref reader, ref state, parent);
             }
 
-            throw new InvalidOperationException($"{nameof(ByteConverterTypeInfo<TParent>)} should not have been used.");
+            throw new InvalidOperationException($"{nameof(ByteConverterTypeRequired<TParent>)} should not have been used.");
         }
 
         public override bool TryWrite(ref ByteWriter writer, ref WriteState state, TParent? parent)
