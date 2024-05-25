@@ -170,7 +170,10 @@ namespace Zerra.Reflection
                     il.Emit(OpCodes.Castclass, fieldInfo.ReflectedType);
             }
 
-            il.Emit(OpCodes.Ldfld, fieldInfo);
+            if (!fieldInfo.IsStatic)
+                il.Emit(OpCodes.Ldfld, fieldInfo);
+            else
+                il.Emit(OpCodes.Ldsfld, fieldInfo);
 
             if (fieldInfo.FieldType.IsValueType)
                 il.Emit(OpCodes.Box, fieldInfo.FieldType);
@@ -193,7 +196,10 @@ namespace Zerra.Reflection
             if (!fieldInfo.IsStatic)
                 il.Emit(OpCodes.Ldarg_0);
 
-            il.Emit(OpCodes.Ldsfld, fieldInfo);
+            if (!fieldInfo.IsStatic)
+                il.Emit(OpCodes.Ldfld, fieldInfo);
+            else
+                il.Emit(OpCodes.Ldsfld, fieldInfo);
 
             il.Emit(OpCodes.Ret);
 
