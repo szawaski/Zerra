@@ -40,8 +40,8 @@ namespace Zerra.Serialization
         //        }
 
         private Stack<ReadFrame> stack;
-        public ReadFrame CurrentFrame;
-        public object? LastFrameResultObject;
+        public ReadFrame Current;
+        public object? Result;
         public bool Ended;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -53,18 +53,20 @@ namespace Zerra.Serialization
             frame.Parent = parent;
 
             stack ??= new Stack<ReadFrame>();
-            stack.Push(CurrentFrame);
-            CurrentFrame = frame;
+            stack.Push(Current);
+            Current = frame;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EndFrame(object? result)
         {
-            LastFrameResultObject = result;
             //ReturnFrame(CurrentFrame);
-            CurrentFrame = stack.Pop();
+            Current = stack.Pop();
             if (stack.Count == 0)
+            {
                 Ended = true;
+                Result = result;
+            }
         }
 
         public int BytesNeeded;

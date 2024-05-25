@@ -130,7 +130,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.ByteNullable:
                     {
-                        if (!reader.TryReadByteNullable(state.CurrentFrame.NullFlags, out var number, out sizeNeeded))
+                        if (!reader.TryReadByteNullable(state.Current.NullFlags, out var number, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             value = default;
@@ -149,7 +149,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.SByteNullable:
                     {
-                        if (!reader.TryReadSByteNullable(state.CurrentFrame.NullFlags, out var number, out sizeNeeded))
+                        if (!reader.TryReadSByteNullable(state.Current.NullFlags, out var number, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             value = default;
@@ -168,7 +168,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Int16Nullable:
                     {
-                        if (!reader.TryReadInt16Nullable(state.CurrentFrame.NullFlags, out var number, out sizeNeeded))
+                        if (!reader.TryReadInt16Nullable(state.Current.NullFlags, out var number, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             value = default;
@@ -187,7 +187,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.UInt16Nullable:
                     {
-                        if (!reader.TryReadUInt16Nullable(state.CurrentFrame.NullFlags, out var number, out sizeNeeded))
+                        if (!reader.TryReadUInt16Nullable(state.Current.NullFlags, out var number, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             value = default;
@@ -206,7 +206,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Int32Nullable:
                     {
-                        if (!reader.TryReadInt32Nullable(state.CurrentFrame.NullFlags, out var number, out sizeNeeded))
+                        if (!reader.TryReadInt32Nullable(state.Current.NullFlags, out var number, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             value = default;
@@ -225,7 +225,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.UInt32Nullable:
                     {
-                        if (!reader.TryReadUInt32Nullable(state.CurrentFrame.NullFlags, out var number, out sizeNeeded))
+                        if (!reader.TryReadUInt32Nullable(state.Current.NullFlags, out var number, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             value = default;
@@ -244,7 +244,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.Int64Nullable:
                     {
-                        if (!reader.TryReadInt64Nullable(state.CurrentFrame.NullFlags, out var number, out sizeNeeded))
+                        if (!reader.TryReadInt64Nullable(state.Current.NullFlags, out var number, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             value = default;
@@ -263,7 +263,7 @@ namespace Zerra.Serialization
                     }
                 case CoreType.UInt64Nullable:
                     {
-                        if (!reader.TryReadUInt64Nullable(state.CurrentFrame.NullFlags, out var number, out sizeNeeded))
+                        if (!reader.TryReadUInt64Nullable(state.Current.NullFlags, out var number, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             value = default;
@@ -350,56 +350,56 @@ namespace Zerra.Serialization
                     return true;
 
                 case CoreType.ByteNullable:
-                    if (!writer.TryWrite(obj == null ? null : (byte?)(byte)obj, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (byte?)(byte)obj, state.Current.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return false;
                     }
                     return true;
                 case CoreType.SByteNullable:
-                    if (!writer.TryWrite(obj == null ? null : (sbyte?)(sbyte)obj, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (sbyte?)(sbyte)obj, state.Current.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return false;
                     }
                     return true;
                 case CoreType.Int16Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (short?)(short)obj, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (short?)(short)obj, state.Current.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return false;
                     }
                     return true;
                 case CoreType.UInt16Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (ushort?)(ushort)obj, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (ushort?)(ushort)obj, state.Current.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return false;
                     }
                     return true;
                 case CoreType.Int32Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (int?)(int)obj, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (int?)(int)obj, state.Current.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return false;
                     }
                     return true;
                 case CoreType.UInt32Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (uint?)(uint)obj, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (uint?)(uint)obj, state.Current.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return false;
                     }
                     return true;
                 case CoreType.Int64Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (long?)(long)obj, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (long?)(long)obj, state.Current.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return false;
                     }
                     return true;
                 case CoreType.UInt64Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (ulong?)(ulong)obj, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (ulong?)(ulong)obj, state.Current.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return false;

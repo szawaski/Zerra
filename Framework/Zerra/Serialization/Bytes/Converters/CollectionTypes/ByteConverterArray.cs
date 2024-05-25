@@ -16,10 +16,9 @@ namespace Zerra.Serialization
         private static TValue? Getter(ArrayAccessor<TValue?> parent) => parent.Get();
         private static void Setter(ArrayAccessor<TValue?> parent, TValue?  value) => parent.Set(value);
 
-        public override void Setup()
+        protected override void Setup()
         {
-            var converterRoot = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, Setter);
-            converter = ByteConverterFactory<ArrayAccessor<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, converterRoot);
+            this.converter = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, Setter);
 
             valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
         }
@@ -27,7 +26,7 @@ namespace Zerra.Serialization
         protected override bool Read(ref ByteReader reader, ref ReadState state, out TValue?[]? value)
         {
             int sizeNeeded;
-            if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasNullChecked)
+            if (state.Current.NullFlags && !state.Current.HasNullChecked)
             {
                 if (!reader.TryReadIsNull(out var isNull, out sizeNeeded))
                 {
@@ -42,13 +41,13 @@ namespace Zerra.Serialization
                     return true;
                 }
 
-                state.CurrentFrame.HasNullChecked = true;
+                state.Current.HasNullChecked = true;
             }
 
             ArrayAccessor<TValue?> accessor;
 
             int length;
-            if (!state.CurrentFrame.EnumerableLength.HasValue)
+            if (!state.Current.EnumerableLength.HasValue)
             {
                 if (!reader.TryReadInt32(out length, out sizeNeeded))
                 {
@@ -56,9 +55,9 @@ namespace Zerra.Serialization
                     value = default;
                     return false;
                 }
-                state.CurrentFrame.EnumerableLength = length;
+                state.Current.EnumerableLength = length;
 
-                if (!state.CurrentFrame.DrainBytes)
+                if (!state.Current.DrainBytes)
                 {
                     accessor = new ArrayAccessor<TValue?>(length);
                     value = accessor.Array;
@@ -75,11 +74,11 @@ namespace Zerra.Serialization
             }
             else
             {
-                accessor = (ArrayAccessor<TValue?>)state.CurrentFrame.Object!;
+                accessor = (ArrayAccessor<TValue?>)state.Current.Object!;
                 value = accessor.Array;
             }
 
-            length = state.CurrentFrame.EnumerableLength.Value;
+            length = state.Current.EnumerableLength.Value;
             if (accessor.Count == length)
                 return true;
 
@@ -89,7 +88,7 @@ namespace Zerra.Serialization
                 var read = converter.Read(ref reader, ref state, accessor);
                 if (!read)
                 {
-                    state.CurrentFrame.Object = accessor;
+                    state.Current.Object = accessor;
                     return false;
                 }
 
@@ -101,7 +100,7 @@ namespace Zerra.Serialization
         protected override bool Write(ref ByteWriter writer, ref WriteState state, TValue?[]? value)
         {
             int sizeNeeded;
-            if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasWrittenIsNull)
+            if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
             {
                 if (value == null)
                 {
@@ -117,7 +116,7 @@ namespace Zerra.Serialization
                     state.BytesNeeded = sizeNeeded;
                     return false;
                 }
-                state.CurrentFrame.HasWrittenIsNull = true;
+                state.Current.HasWrittenIsNull = true;
             }
 
             if (value == null)
@@ -125,7 +124,7 @@ namespace Zerra.Serialization
 
             ArrayAccessor<TValue?> accessor;
 
-            if (!state.CurrentFrame.EnumerableLength.HasValue)
+            if (!state.Current.EnumerableLength.HasValue)
             {
                 var length = value.Length;
 
@@ -134,14 +133,14 @@ namespace Zerra.Serialization
                     state.BytesNeeded = sizeNeeded;
                     return false;
                 }
-                state.CurrentFrame.EnumerableLength = length;
+                state.Current.EnumerableLength = length;
 
                 accessor = new ArrayAccessor<TValue?>(value.Length);
-                state.CurrentFrame.Object = accessor;
+                state.Current.Object = accessor;
             }
             else
             {
-                accessor = (ArrayAccessor<TValue?>)state.CurrentFrame.Object!;
+                accessor = (ArrayAccessor<TValue?>)state.Current.Object!;
             }
 
             if (accessor.Array?.Length > 0)

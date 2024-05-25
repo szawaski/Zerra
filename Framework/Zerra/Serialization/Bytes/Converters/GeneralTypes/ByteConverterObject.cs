@@ -42,7 +42,7 @@ namespace Zerra.Serialization
         private bool collectValues;
         private ConstructorDetail<TValue>? parameterConstructor = null;
 
-        public override void Setup()
+        protected override void Setup()
         {
             var memberSets = new List<Tuple<MemberDetail, SerializerIndexAttribute?, NonSerializedAttribute?>>();
             foreach (var member in typeDetail.SerializableMemberDetails)
@@ -142,7 +142,7 @@ namespace Zerra.Serialization
         {
             Dictionary<string, object?>? collectedValues;
 
-            if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasNullChecked)
+            if (state.Current.NullFlags && !state.Current.HasNullChecked)
             {
                 if (!reader.TryReadIsNull(out var isNull, out var sizeNeeded))
                 {
@@ -157,12 +157,12 @@ namespace Zerra.Serialization
                     return true;
                 }
 
-                state.CurrentFrame.HasNullChecked = true;
+                state.Current.HasNullChecked = true;
             }
 
-            if (!state.CurrentFrame.HasObjectStarted)
+            if (!state.Current.HasObjectStarted)
             {
-                if (!state.CurrentFrame.DrainBytes)
+                if (!state.Current.DrainBytes)
                 {
                     if (collectValues)
                     {
@@ -186,18 +186,18 @@ namespace Zerra.Serialization
                     collectedValues = null;
                 }
 
-                state.CurrentFrame.HasObjectStarted = true;
+                state.Current.HasObjectStarted = true;
             }
             else
             {
                 if (collectValues)
                 {
                     value = default;
-                    collectedValues = (Dictionary<string, object?>)state.CurrentFrame.Object!;
+                    collectedValues = (Dictionary<string, object?>)state.Current.Object!;
                 }
                 else
                 {
-                    value = (TValue?)state.CurrentFrame.Object;
+                    value = (TValue?)state.Current.Object;
                     collectedValues = null;
                 }
             }
@@ -208,35 +208,35 @@ namespace Zerra.Serialization
                 if (usePropertyNames)
                 {
                     int sizeNeeded;
-                    if (!state.CurrentFrame.StringLength.HasValue)
+                    if (!state.Current.StringLength.HasValue)
                     {
                         if (!reader.TryReadStringLength(false, out var stringLength, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             if (collectValues)
-                                state.CurrentFrame.Object = collectedValues;
+                                state.Current.Object = collectedValues;
                             else
-                                state.CurrentFrame.Object = value;
+                                state.Current.Object = value;
                             return false;
                         }
-                        state.CurrentFrame.StringLength = stringLength;
+                        state.Current.StringLength = stringLength;
                     }
 
-                    if (state.CurrentFrame.StringLength!.Value == 0)
+                    if (state.Current.StringLength!.Value == 0)
                     {
                         break;
                     }
 
-                    if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out var name, out sizeNeeded))
+                    if (!reader.TryReadString(state.Current.StringLength.Value, out var name, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         if (collectValues)
-                            state.CurrentFrame.Object = collectedValues;
+                            state.Current.Object = collectedValues;
                         else
-                            state.CurrentFrame.Object = value;
+                            state.Current.Object = value;
                         return false;
                     }
-                    state.CurrentFrame.StringLength = null;
+                    state.Current.StringLength = null;
 
                     property = null;
                     _ = propertiesByName?.TryGetValue(name!, out property);
@@ -247,16 +247,16 @@ namespace Zerra.Serialization
                             throw new Exception($"Cannot deserialize with property {name} undefined and no types.");
 
                         //consume bytes but object does not have property
-                        var converter = ByteConverterFactory<TValue>.GetNeedTypeInfo(options);
+                        var converter = ByteConverterFactory<TValue>.GetForDrainWithNoTypeInfo(options);
                         state.PushFrame(converter, false, value);
-                        state.CurrentFrame.DrainBytes = true;
+                        state.Current.DrainBytes = true;
                         var read = converter.Read(ref reader, ref state, value);
                         if (!read)
                         {
                             if (collectValues)
-                                state.CurrentFrame.Object = collectedValues;
+                                state.Current.Object = collectedValues;
                             else
-                                state.CurrentFrame.Object = value;
+                                state.Current.Object = value;
                             return false;
                         }
                     }
@@ -269,9 +269,9 @@ namespace Zerra.Serialization
                             if (!read)
                             {
                                 if (collectValues)
-                                    state.CurrentFrame.Object = collectedValues;
+                                    state.Current.Object = collectedValues;
                                 else
-                                    state.CurrentFrame.Object = value;
+                                    state.Current.Object = value;
                                 return false;
                             }
                         }
@@ -282,9 +282,9 @@ namespace Zerra.Serialization
                             if (!read)
                             {
                                 if (collectValues)
-                                    state.CurrentFrame.Object = collectedValues;
+                                    state.Current.Object = collectedValues;
                                 else
-                                    state.CurrentFrame.Object = value;
+                                    state.Current.Object = value;
                                 return false;
                             }
                         }
@@ -299,9 +299,9 @@ namespace Zerra.Serialization
                         {
                             state.BytesNeeded = sizeNeeded;
                             if (collectValues)
-                                state.CurrentFrame.Object = collectedValues;
+                                state.Current.Object = collectedValues;
                             else
-                                state.CurrentFrame.Object = value;
+                                state.Current.Object = value;
                             return false;
                         }
                         propertyIndex = propertyIndexValue;
@@ -312,9 +312,9 @@ namespace Zerra.Serialization
                         {
                             state.BytesNeeded = sizeNeeded; 
                             if (collectValues)
-                                state.CurrentFrame.Object = collectedValues;
+                                state.Current.Object = collectedValues;
                             else
-                                state.CurrentFrame.Object = value;
+                                state.Current.Object = value;
                             return false;
                         }
                         propertyIndex = propertyIndexValue;
@@ -335,16 +335,16 @@ namespace Zerra.Serialization
                             throw new Exception($"Cannot deserialize with property {propertyIndex} undefined and no types.");
 
                         //consume bytes but object does not have property
-                        var converter = ByteConverterFactory<TValue>.GetNeedTypeInfo(options);
+                        var converter = ByteConverterFactory<TValue>.GetForDrainWithNoTypeInfo(options);
                         state.PushFrame(converter, false, default);
-                        state.CurrentFrame.DrainBytes = true;
+                        state.Current.DrainBytes = true;
                         var read = converter.Read(ref reader, ref state, default);
                         if (!read)
                         {
                             if (collectValues)
-                                state.CurrentFrame.Object = collectedValues;
+                                state.Current.Object = collectedValues;
                             else
-                                state.CurrentFrame.Object = value;
+                                state.Current.Object = value;
                             return false;
                         }
                     }
@@ -357,9 +357,9 @@ namespace Zerra.Serialization
                             if (!read)
                             {
                                 if (collectValues)
-                                    state.CurrentFrame.Object = collectedValues;
+                                    state.Current.Object = collectedValues;
                                 else
-                                    state.CurrentFrame.Object = value;
+                                    state.Current.Object = value;
                                 return false;
                             }
                         }
@@ -370,9 +370,9 @@ namespace Zerra.Serialization
                             if (!read)
                             {
                                 if (collectValues)
-                                    state.CurrentFrame.Object = collectedValues;
+                                    state.Current.Object = collectedValues;
                                 else
-                                    state.CurrentFrame.Object = value;
+                                    state.Current.Object = value;
                                 return false;
                             }
                         }
@@ -406,7 +406,7 @@ namespace Zerra.Serialization
         protected override bool Write(ref ByteWriter writer, ref WriteState state, TValue? value)
         {
             int sizeNeeded;
-            if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasWrittenIsNull)
+            if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
             {
                 if (value == null)
                 {
@@ -422,24 +422,24 @@ namespace Zerra.Serialization
                     state.BytesNeeded = sizeNeeded;
                     return false;
                 }
-                state.CurrentFrame.HasWrittenIsNull = true;
+                state.Current.HasWrittenIsNull = true;
             }
 
             IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember>> enumerator;
-            if (state.CurrentFrame.Enumerator == null)
+            if (state.Current.Enumerator == null)
             {
                 enumerator = propertiesByIndex.GetEnumerator();
-                state.CurrentFrame.Enumerator = enumerator;
+                state.Current.Enumerator = enumerator;
             }
             else
             {
-                enumerator = (IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember>>)state.CurrentFrame.Enumerator;
+                enumerator = (IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember>>)state.Current.Enumerator;
             }
 
-            while (state.CurrentFrame.EnumeratorInProgress || enumerator.MoveNext())
+            while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
                 var indexProperty = enumerator.Current;
-                state.CurrentFrame.EnumeratorInProgress = true;
+                state.Current.EnumeratorInProgress = true;
 
                 if (usePropertyNames)
                 {
@@ -469,7 +469,7 @@ namespace Zerra.Serialization
                     }
                 }
 
-                state.CurrentFrame.EnumeratorInProgress = false;
+                state.Current.EnumeratorInProgress = false;
 
                 state.PushFrame(indexProperty.Value.Converter, false, value);
                 var write = indexProperty.Value.Converter.Write(ref writer, ref state, value);
@@ -530,8 +530,7 @@ namespace Zerra.Serialization
                         {
                             if (converter == null)
                             {
-                                var rootConverter = ByteConverterFactory<TValue>.Get(options, Member.TypeDetail, Member.Name, Member.GetterTyped, Member.SetterTyped);
-                                converter = ByteConverterFactory<TValue>.GetMayNeedTypeInfo(options, Member.TypeDetail, rootConverter);
+                                converter = ByteConverterFactory<TValue>.Get(options, Member.TypeDetail, Member.Name, Member.GetterTyped, Member.SetterTyped);
                             }
                         }
                     }
@@ -578,8 +577,7 @@ namespace Zerra.Serialization
                             if (converterSetValues == null)
                             {
                                 var type = TypeAnalyzer<Dictionary<string, object?>>.GetTypeDetail();
-                                var rootConverter = ByteConverterFactory<Dictionary<string, object?>>.Get(options, Member.TypeDetail, Member.Name, null, Setter);
-                                converterSetValues = ByteConverterFactory<Dictionary<string, object?>>.GetMayNeedTypeInfo(options, Member.TypeDetail, rootConverter);
+                                converterSetValues = ByteConverterFactory<Dictionary<string, object?>>.Get(options, Member.TypeDetail, Member.Name, null, Setter);
                             }
                         }
                     }

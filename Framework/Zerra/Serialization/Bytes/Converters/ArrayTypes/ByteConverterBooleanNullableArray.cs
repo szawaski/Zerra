@@ -12,7 +12,7 @@ namespace Zerra.Serialization
         protected override bool Read(ref ByteReader reader, ref ReadState state, out bool?[]? value)
         {
             int sizeNeeded;
-            if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasNullChecked)
+            if (state.Current.NullFlags && !state.Current.HasNullChecked)
             {
                 if (!reader.TryReadIsNull(out var isNull, out sizeNeeded))
                 {
@@ -27,11 +27,11 @@ namespace Zerra.Serialization
                     return true;
                 }
 
-                state.CurrentFrame.HasNullChecked = true;
+                state.Current.HasNullChecked = true;
             }
 
             int length;
-            if (!state.CurrentFrame.EnumerableLength.HasValue)
+            if (!state.Current.EnumerableLength.HasValue)
             {
                 if (!reader.TryReadInt32(out length, out sizeNeeded))
                 {
@@ -39,11 +39,11 @@ namespace Zerra.Serialization
                     value = default;
                     return false;
                 }
-                state.CurrentFrame.EnumerableLength = length;
+                state.Current.EnumerableLength = length;
             }
             else
             {
-                length = state.CurrentFrame.EnumerableLength.Value;
+                length = state.Current.EnumerableLength.Value;
             }
 
             if (!reader.TryReadBooleanNullableArray(length, out value, out sizeNeeded))
@@ -58,7 +58,7 @@ namespace Zerra.Serialization
         protected override bool Write(ref ByteWriter writer, ref WriteState state, bool?[]? value)
         {
             int sizeNeeded;
-            if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasWrittenIsNull)
+            if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
             {
                 if (value == null)
                 {
@@ -74,14 +74,14 @@ namespace Zerra.Serialization
                     state.BytesNeeded = sizeNeeded;
                     return false;
                 }
-                state.CurrentFrame.HasWrittenIsNull = true;
+                state.Current.HasWrittenIsNull = true;
             }
 
             if (value == null)
                 throw new InvalidOperationException("Bad State");
 
             int length;
-            if (!state.CurrentFrame.EnumerableLength.HasValue)
+            if (!state.Current.EnumerableLength.HasValue)
             {
                 length = value.Length;
 
@@ -90,11 +90,11 @@ namespace Zerra.Serialization
                     state.BytesNeeded = sizeNeeded;
                     return false;
                 }
-                state.CurrentFrame.EnumerableLength = length;
+                state.Current.EnumerableLength = length;
             }
             else
             {
-                length = state.CurrentFrame.EnumerableLength.Value;
+                length = state.Current.EnumerableLength.Value;
             }
 
             if (!writer.TryWrite(value, length, out sizeNeeded))

@@ -18,21 +18,18 @@ namespace Zerra.Serialization
         private static TValue? Getter(IEnumerator<TValue?> parent) => parent.Current;
         private static void Setter(ArrayAccessor<TValue?> parent, TValue? value) => parent.Set(value);
 
-        public override void Setup()
+        protected override void Setup()
         {
-            var readConverterRoot = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, null, Setter);
-            readConverter = ByteConverterFactory<ArrayAccessor<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, readConverterRoot);
+            this.readConverter = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, null, Setter);
+            this.writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, null);
 
-            var writeConverterRoot = ByteConverterFactory<IEnumerator<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, null);
-            writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.GetMayNeedTypeInfo(options, typeDetail.IEnumerableGenericInnerTypeDetail, writeConverterRoot);
-
-            valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
+            this.valueIsNullable = !typeDetail.Type.IsValueType || typeDetail.InnerTypeDetails[0].IsNullable;
         }
 
         protected override bool Read(ref ByteReader reader, ref ReadState state, out TArray? value)
         {
             int sizeNeeded;
-            if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasNullChecked)
+            if (state.Current.NullFlags && !state.Current.HasNullChecked)
             {
                 if (!reader.TryReadIsNull(out var isNull, out sizeNeeded))
                 {
@@ -47,13 +44,13 @@ namespace Zerra.Serialization
                     return true;
                 }
 
-                state.CurrentFrame.HasNullChecked = true;
+                state.Current.HasNullChecked = true;
             }
 
             ArrayAccessor<TValue?> accessor;
 
             int length;
-            if (!state.CurrentFrame.EnumerableLength.HasValue)
+            if (!state.Current.EnumerableLength.HasValue)
             {
                 if (!reader.TryReadInt32(out length, out sizeNeeded))
                 {
@@ -61,9 +58,9 @@ namespace Zerra.Serialization
                     value = default;
                     return false;
                 }
-                state.CurrentFrame.EnumerableLength = length;
+                state.Current.EnumerableLength = length;
 
-                if (!state.CurrentFrame.DrainBytes)
+                if (!state.Current.DrainBytes)
                 {
                     accessor = new ArrayAccessor<TValue?>(length);
                     value = (TArray?)(object?)accessor.Array;
@@ -80,11 +77,11 @@ namespace Zerra.Serialization
             }
             else
             {
-                accessor = (ArrayAccessor<TValue?>)state.CurrentFrame.Object!;
+                accessor = (ArrayAccessor<TValue?>)state.Current.Object!;
                 value = (TArray?)(object?)accessor.Array;
             }
 
-            length = state.CurrentFrame.EnumerableLength.Value;
+            length = state.Current.EnumerableLength.Value;
             if (accessor.Count == length)
                 return true;
 
@@ -94,7 +91,7 @@ namespace Zerra.Serialization
                 var read = readConverter.Read(ref reader, ref state, accessor);
                 if (!read)
                 {
-                    state.CurrentFrame.Object = accessor;
+                    state.Current.Object = accessor;
                     return false;
                 }
 
@@ -106,7 +103,7 @@ namespace Zerra.Serialization
         protected override bool Write(ref ByteWriter writer, ref WriteState state, TArray? value)
         {
             int sizeNeeded;
-            if (state.CurrentFrame.NullFlags && !state.CurrentFrame.HasWrittenIsNull)
+            if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
             {
                 if (value == null)
                 {
@@ -122,7 +119,7 @@ namespace Zerra.Serialization
                     state.BytesNeeded = sizeNeeded;
                     return false;
                 }
-                state.CurrentFrame.HasWrittenIsNull = true;
+                state.Current.HasWrittenIsNull = true;
             }
 
             if (value == null)
@@ -130,7 +127,7 @@ namespace Zerra.Serialization
 
             IEnumerator<TValue?> enumerator;
 
-            if (!state.CurrentFrame.EnumerableLength.HasValue)
+            if (!state.Current.EnumerableLength.HasValue)
             {
                 var collection = (IReadOnlyCollection<TValue?>)value;
 
@@ -145,25 +142,25 @@ namespace Zerra.Serialization
                 {
                     return true;
                 }
-                state.CurrentFrame.Object = length;
+                state.Current.Object = length;
 
                 enumerator = collection.GetEnumerator();
             }
             else
             {
-                enumerator = (IEnumerator<TValue?>)state.CurrentFrame.Object!;
+                enumerator = (IEnumerator<TValue?>)state.Current.Object!;
             }
 
-            while (state.CurrentFrame.EnumeratorInProgress || enumerator.MoveNext())
+            while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                state.CurrentFrame.EnumeratorInProgress = true;
+                state.Current.EnumeratorInProgress = true;
 
                 state.PushFrame(writeConverter, valueIsNullable, value);
                 var write = writeConverter.Write(ref writer, ref state, enumerator);
                 if (!write)
                     return false;
 
-                state.CurrentFrame.EnumeratorInProgress = false;
+                state.Current.EnumeratorInProgress = false;
             }
 
             return true;

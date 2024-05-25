@@ -10,7 +10,7 @@ namespace Zerra.Serialization
     {
         protected override bool Read(ref ByteReader reader, ref ReadState state, out decimal? value)
         {
-            if (!reader.TryReadDecimalNullable(state.CurrentFrame.NullFlags, out value, out var sizeNeeded))
+            if (!reader.TryReadDecimalNullable(state.Current.NullFlags, out value, out var sizeNeeded))
             {
                 state.BytesNeeded = sizeNeeded;
                 return false;
@@ -20,7 +20,7 @@ namespace Zerra.Serialization
 
         protected override bool Write(ref ByteWriter writer, ref WriteState state, decimal? value)
         {
-            if (!writer.TryWrite(value, state.CurrentFrame.NullFlags, out var sizeNeeded))
+            if (!writer.TryWrite(value, state.Current.NullFlags, out var sizeNeeded))
             {
                 state.BytesNeeded = sizeNeeded;
                 return false;

@@ -71,6 +71,7 @@ namespace Zerra.TestDev
             var data = ByteSerializerOld.Serialize(items, options);
             return TempTestSpeed<CoreTypesModel>(data, options, 20000, 15);
         }
+
         private static async Task TempTestSpeed<T>(byte[] data, ByteSerializerOptions options, int iterations, int loops)
         {
             var stream = new MemoryStream(data);

@@ -11,7 +11,7 @@ namespace Zerra.Serialization
     {
         protected override bool Read(ref ByteReader reader, ref ReadState state, out Guid? value)
         {
-            if (!reader.TryReadGuidNullable(state.CurrentFrame.NullFlags, out value, out var sizeNeeded))
+            if (!reader.TryReadGuidNullable(state.Current.NullFlags, out value, out var sizeNeeded))
             {
                 state.BytesNeeded = sizeNeeded;
                 return false;
@@ -21,7 +21,7 @@ namespace Zerra.Serialization
 
         protected override bool Write(ref ByteWriter writer, ref WriteState state, Guid? value)
         {
-            if (!writer.TryWrite(value, state.CurrentFrame.NullFlags, out var sizeNeeded))
+            if (!writer.TryWrite(value, state.Current.NullFlags, out var sizeNeeded))
             {
                 state.BytesNeeded = sizeNeeded;
                 return false;

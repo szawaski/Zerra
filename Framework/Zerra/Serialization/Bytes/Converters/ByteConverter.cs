@@ -21,21 +21,23 @@ namespace Zerra.Serialization
 
         protected ByteConverterOptions options { get; private set; }
         protected TypeDetail? typeDetail { get; private set; }
+        protected string? memberKey { get; private set; }
         protected Delegate? getterBoxed { get; private set; }
         protected Delegate? setterBoxed { get; private set; }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Setup(ByteConverterOptions options, TypeDetail? typeDetail, Delegate? getterBoxed, Delegate? setterBoxed)
+        public void Setup(ByteConverterOptions options, TypeDetail? typeDetail, string? memberKey, Delegate? getterBoxed, Delegate? setterBoxed)
         {
             this.options = options;
             this.typeDetail = typeDetail;
+            this.memberKey = memberKey;
             this.getterBoxed = getterBoxed;
             this.setterBoxed = setterBoxed;
-            SetupRoot();
+            SetupT2();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected virtual void SetupRoot() { }
+        protected virtual void SetupT2() { }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract void Read(ref ByteReader reader, ref ReadState state);

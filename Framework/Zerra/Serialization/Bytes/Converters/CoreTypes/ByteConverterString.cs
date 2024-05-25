@@ -12,9 +12,9 @@ namespace Zerra.Serialization
         protected override bool Read(ref ByteReader reader, ref ReadState state, out string? value)
         {
             int sizeNeeded;
-            if (!state.CurrentFrame.StringLength.HasValue)
+            if (!state.Current.StringLength.HasValue)
             {
-                if (!reader.TryReadStringLength(state.CurrentFrame.NullFlags, out var stringLength, out sizeNeeded))
+                if (!reader.TryReadStringLength(state.Current.NullFlags, out var stringLength, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
                     value = null;
@@ -30,10 +30,10 @@ namespace Zerra.Serialization
                     value = String.Empty;
                     return true;
                 }
-                state.CurrentFrame.StringLength = stringLength;
+                state.Current.StringLength = stringLength;
             }
 
-            if (!reader.TryReadString(state.CurrentFrame.StringLength.Value, out value, out sizeNeeded))
+            if (!reader.TryReadString(state.Current.StringLength.Value, out value, out sizeNeeded))
             {
                 state.BytesNeeded = sizeNeeded;
                 return false;
@@ -44,7 +44,7 @@ namespace Zerra.Serialization
 
         protected override bool Write(ref ByteWriter writer, ref WriteState state, string? value)
         {
-            if (!writer.TryWrite((string?)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out var sizeNeeded))
+            if (!writer.TryWrite((string?)state.Current.Object, state.Current.NullFlags, out var sizeNeeded))
             {
                 state.BytesNeeded = sizeNeeded;
                 return false;

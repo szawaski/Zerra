@@ -16,14 +16,16 @@ namespace Zerra.Serialization
         private Action<TParent, TValue?>? setter;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected override sealed void SetupRoot()
+        protected override sealed void SetupT2()
         {
             if (base.typeDetail == null)
-                throw new InvalidOperationException();
+                throw new ArgumentNullException(nameof(typeDetail));
 
             this.typeDetail = (TypeDetail<TValue>)base.typeDetail;
+
             this.getter = (Func<TParent, TValue?>?)base.getterBoxed;
             this.setter = (Action<TParent, TValue?>?)base.setterBoxed;
+
             Setup();
         }
 
@@ -34,7 +36,7 @@ namespace Zerra.Serialization
                 return false;
 
             if (setter != null && parent != null)
-                setter(parent, value);
+                    setter(parent, value);
 
             state.EndFrame(value);
             return true;
@@ -54,7 +56,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public virtual void Setup() { }
+        protected virtual void Setup() { }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected abstract bool Read(ref ByteReader reader, ref ReadState state, out TValue? value);

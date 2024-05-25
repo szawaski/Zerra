@@ -32,7 +32,7 @@ namespace Zerra.Serialization
             if (!state.Ended || state.BytesNeeded > 0)
                 throw new EndOfStreamException();
 
-            return (T?)state.LastFrameResultObject;
+            return (T?)state.Result;
         }
         public static object? Deserialize(Type type, ReadOnlySpan<byte> bytes, ByteSerializerOptions? options = null)
         {
@@ -53,7 +53,7 @@ namespace Zerra.Serialization
             if (!state.Ended || state.BytesNeeded > 0)
                 throw new EndOfStreamException();
 
-            return state.LastFrameResultObject;
+            return state.Result;
         }
 
         public static T? Deserialize<T>(Stream stream, ByteSerializerOptions? options = null)
@@ -145,7 +145,7 @@ namespace Zerra.Serialization
                     }
                 }
 
-                return (T?)state.LastFrameResultObject;
+                return (T?)state.Result;
             }
             finally
             {
@@ -244,7 +244,7 @@ namespace Zerra.Serialization
                     }
                 }
 
-                return state.LastFrameResultObject;
+                return state.Result;
             }
             finally
             {
@@ -342,7 +342,7 @@ namespace Zerra.Serialization
                     }
                 }
 
-                return (T?)state.LastFrameResultObject;
+                return (T?)state.Result;
             }
             finally
             {
@@ -441,7 +441,7 @@ namespace Zerra.Serialization
                     }
                 }
 
-                return state.LastFrameResultObject;
+                return state.Result;
             }
             finally
             {
@@ -456,7 +456,7 @@ namespace Zerra.Serialization
             var reader = new ByteReader(buffer, encoding);
             for (; ; )
             {
-                state.CurrentFrame.Converter.Read(ref reader, ref state);
+                state.Current.Converter.Read(ref reader, ref state);
 
                 if (state.Ended)
                 {

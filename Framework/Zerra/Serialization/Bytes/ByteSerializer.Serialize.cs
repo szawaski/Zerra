@@ -501,7 +501,7 @@ namespace Zerra.Serialization
             var writer = new ByteWriter(buffer, encoding);
             for (; ; )
             {
-                state.CurrentFrame.Converter.Write(ref writer, ref state);
+                state.Current.Converter.Write(ref writer, ref state);
 
                 if (state.Ended)
                 {
