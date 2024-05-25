@@ -68,16 +68,17 @@ namespace Zerra.TestDev
             {
                 IndexSize = ByteSerializerIndexSize.UInt16
             };
-            var item = Factory.GetCoreTypesModel();
+            var item = Factory.GetAllTypesModel();
             var data = ByteSerializerOld.Serialize(item, options);
 
             var method = typeof(ByteSerializerTest).GetMethod("TempTestSpeed2", BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());
-            return (Task)method.Invoke(null, new object[] { item, data, options, 10000, 15 });
+            return (Task)method.Invoke(null, new object[] { item, data, options, 500, 15 });
         }
 
         private static async Task TempTestSpeed2<T>(T item, byte[] data, ByteSerializerOptions options, int iterations, int loops)
         {
-            var stream = new MemoryStream(data);
+            using var readStream = new MemoryStream(data);
+            using var writeStream = new MemoryStream();
 
             Console.WriteLine($"Warmup");
 
@@ -87,17 +88,17 @@ namespace Zerra.TestDev
                 if (i % 10 == 0)
                     Console.Write(".");
 
-                stream.Position = 0;
-                _ = await ByteSerializerOld.DeserializeAsync<T>(stream, options);
-                stream.Position = 0;
-                _ = await ByteSerializer.DeserializeAsync<T>(stream, options);
+                readStream.Position = 0;
+                _ = await ByteSerializerOld.DeserializeAsync<T>(readStream, options);
+                readStream.Position = 0;
+                _ = await ByteSerializer.DeserializeAsync<T>(readStream, options);
                 _ = ByteSerializerOld.Deserialize<T>(data, options);
                 _ = ByteSerializer.Deserialize<T>(data, options);
 
-                stream.Position = 0;
-                await ByteSerializerOld.SerializeAsync(stream, item, options);
-                stream.Position = 0;
-                await ByteSerializer.SerializeAsync(stream, item, options);
+                writeStream.Position = 0;
+                await ByteSerializerOld.SerializeAsync(writeStream, item, options);
+                writeStream.Position = 0;
+                await ByteSerializer.SerializeAsync(writeStream, item, options);
                 _ = ByteSerializerOld.Serialize(item, options);
                 _ = ByteSerializer.Serialize(item, options);
 
@@ -131,8 +132,8 @@ namespace Zerra.TestDev
                 timer = Stopwatch.StartNew();
                 for (var i = 0; i < iterations; i++)
                 {
-                    stream.Position = 0;
-                    _ = await ByteSerializerOld.DeserializeAsync<T>(stream, options);
+                    readStream.Position = 0;
+                    _ = await ByteSerializerOld.DeserializeAsync<T>(readStream, options);
                 }
                 timer.Stop();
                 totalsOld["1 DeserializeAsync"] += timer.ElapsedMilliseconds;
@@ -141,8 +142,8 @@ namespace Zerra.TestDev
                 timer = Stopwatch.StartNew();
                 for (var i = 0; i < iterations; i++)
                 {
-                    stream.Position = 0;
-                    _ = await ByteSerializer.DeserializeAsync<T>(stream, options);
+                    readStream.Position = 0;
+                    _ = await ByteSerializer.DeserializeAsync<T>(readStream, options);
                 }
                 timer.Stop();
                 totals["1 DeserializeAsync"] += timer.ElapsedMilliseconds;
@@ -169,8 +170,8 @@ namespace Zerra.TestDev
                 timer = Stopwatch.StartNew();
                 for (var i = 0; i < iterations; i++)
                 {
-                    stream.Position = 0;
-                    await ByteSerializerOld.SerializeAsync(stream, item, options);
+                    writeStream.Position = 0;
+                    await ByteSerializerOld.SerializeAsync(writeStream, item, options);
                 }
                 timer.Stop();
                 totalsOld["3 SerializeAsync"] += timer.ElapsedMilliseconds;
@@ -179,8 +180,8 @@ namespace Zerra.TestDev
                 timer = Stopwatch.StartNew();
                 for (var i = 0; i < iterations; i++)
                 {
-                    stream.Position = 0;
-                    await ByteSerializer.SerializeAsync(stream, item, options);
+                    writeStream.Position = 0;
+                    await ByteSerializer.SerializeAsync(writeStream, item, options);
                 }
                 timer.Stop();
                 totals["3 SerializeAsync"] += timer.ElapsedMilliseconds;
