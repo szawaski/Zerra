@@ -30,7 +30,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed bool Read(ref ByteReader reader, ref ReadState state, TParent? parent)
+        public override sealed bool TryRead(ref ByteReader reader, ref ReadState state, TParent? parent)
         {
             if (!Read(ref reader, ref state, out var value))
                 return false;
@@ -42,7 +42,7 @@ namespace Zerra.Serialization
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed bool Write(ref ByteWriter writer, ref WriteState state, TParent? parent)
+        public override sealed bool TryWrite(ref ByteWriter writer, ref WriteState state, TParent? parent)
         {
             if (parent != null)
             {

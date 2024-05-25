@@ -11,7 +11,7 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterTypeInfo<TParent> : ByteConverter<TParent>
     {
-        public override bool Read(ref ByteReader reader, ref ReadState state, TParent? parent)
+        public override bool TryRead(ref ByteReader reader, ref ReadState state, TParent? parent)
         {
             if (options.HasFlag(ByteConverterOptions.IncludePropertyTypes))
             {
@@ -49,7 +49,7 @@ namespace Zerra.Serialization
                 var newConverter = ByteConverterFactory<TParent>.GetAfterTypeInfo(options, newTypeDetail, memberKey, getterBoxed, setterBoxed);
                 state.Current.StringLength = null;
                 state.Current.Converter = newConverter;
-                return newConverter.Read(ref reader, ref state, parent);
+                return newConverter.TryRead(ref reader, ref state, parent);
             }
 
             if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.IsIEnumerableGeneric)
@@ -58,13 +58,13 @@ namespace Zerra.Serialization
                 var newTypeDetail = emptyImplementationType.GetTypeDetail();
                 var newConverter = ByteConverterFactory<TParent>.GetAfterTypeInfo(options, newTypeDetail, memberKey, getterBoxed, setterBoxed);
                 state.Current.Converter = newConverter;
-                return newConverter.Read(ref reader, ref state, parent);
+                return newConverter.TryRead(ref reader, ref state, parent);
             }
 
             throw new InvalidOperationException($"{nameof(ByteConverterTypeInfo<TParent>)} should not have been used.");
         }
 
-        public override bool Write(ref ByteWriter writer, ref WriteState state, TParent? parent)
+        public override bool TryWrite(ref ByteWriter writer, ref WriteState state, TParent? parent)
         {
             throw new NotImplementedException();
         }

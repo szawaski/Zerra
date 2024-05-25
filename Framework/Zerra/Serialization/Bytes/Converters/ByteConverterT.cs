@@ -15,17 +15,17 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed void Read(ref ByteReader reader, ref ReadState state)
         {
-            _ = Read(ref reader, ref state, (TParent?)state.Current.Parent);
+            _ = TryRead(ref reader, ref state, (TParent?)state.Current.Parent);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed void Write(ref ByteWriter writer, ref WriteState state)
         {
-            _ = Write(ref writer, ref state, (TParent?)state.Current.Parent);
+            _ = TryWrite(ref writer, ref state, (TParent?)state.Current.Parent);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public abstract bool Read(ref ByteReader reader, ref ReadState state, TParent? parent);
+        public abstract bool TryRead(ref ByteReader reader, ref ReadState state, TParent? parent);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public abstract bool Write(ref ByteWriter writer, ref WriteState state, TParent? parent);
+        public abstract bool TryWrite(ref ByteWriter writer, ref WriteState state, TParent? parent);
     }
 }

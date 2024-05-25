@@ -41,7 +41,8 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadGetterBoxed();
+                if (!getterBoxedLoaded)
+                    LoadGetterBoxed();
                 return this.getterBoxed ?? throw new NotSupportedException($"{nameof(MemberDetail)} {Name} does not have a {nameof(GetterBoxed)}");
             }
         }
@@ -49,44 +50,42 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadGetterBoxed();
+                if (!getterBoxedLoaded)
+                    LoadGetterBoxed();
                 return this.getterBoxed != null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LoadGetterBoxed()
         {
-            if (!getterBoxedLoaded)
+            lock (locker)
             {
-                lock (locker)
+                if (!getterBoxedLoaded)
                 {
-                    if (!getterBoxedLoaded)
+                    if (MemberInfo.MemberType == MemberTypes.Property)
                     {
-                        if (MemberInfo.MemberType == MemberTypes.Property)
+                        var property = (PropertyInfo)MemberInfo;
+                        if (!property.PropertyType.IsPointer)
                         {
-                            var property = (PropertyInfo)MemberInfo;
-                            if (!property.PropertyType.IsPointer)
+                            if (BackingFieldDetail == null)
                             {
-                                if (BackingFieldDetail == null)
-                                {
-                                    this.getterBoxed = AccessorGenerator.GenerateGetter(property);
-                                }
-                                else
-                                {
-                                    this.getterBoxed = BackingFieldDetail.GetterBoxed;
-                                }
+                                this.getterBoxed = AccessorGenerator.GenerateGetter(property);
+                            }
+                            else
+                            {
+                                this.getterBoxed = BackingFieldDetail.GetterBoxed;
                             }
                         }
-                        else if (MemberInfo.MemberType == MemberTypes.Field)
-                        {
-                            var field = (FieldInfo)MemberInfo;
-                            if (!field.FieldType.IsPointer)
-                            {
-                                this.getterBoxed = AccessorGenerator.GenerateGetter(field);
-                            }
-                        }
-                        getterBoxedLoaded = true;
                     }
+                    else if (MemberInfo.MemberType == MemberTypes.Field)
+                    {
+                        var field = (FieldInfo)MemberInfo;
+                        if (!field.FieldType.IsPointer)
+                        {
+                            this.getterBoxed = AccessorGenerator.GenerateGetter(field);
+                        }
+                    }
+                    getterBoxedLoaded = true;
                 }
             }
         }
@@ -97,7 +96,8 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadSetterBoxed();
+                if (!setterBoxedLoaded)
+                    LoadSetterBoxed();
                 return this.setterBoxed ?? throw new NotSupportedException($"{nameof(MemberDetail)} {Name} does not have a {nameof(SetterBoxed)}");
             }
         }
@@ -105,44 +105,42 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadSetterBoxed();
+                if (!setterBoxedLoaded)
+                    LoadSetterBoxed();
                 return this.setterBoxed != null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LoadSetterBoxed()
         {
-            if (!setterBoxedLoaded)
+            lock (locker)
             {
-                lock (locker)
+                if (!setterBoxedLoaded)
                 {
-                    if (!setterBoxedLoaded)
+                    if (MemberInfo.MemberType == MemberTypes.Property)
                     {
-                        if (MemberInfo.MemberType == MemberTypes.Property)
+                        var property = (PropertyInfo)MemberInfo;
+                        if (!property.PropertyType.IsPointer)
                         {
-                            var property = (PropertyInfo)MemberInfo;
-                            if (!property.PropertyType.IsPointer)
+                            if (BackingFieldDetail == null)
                             {
-                                if (BackingFieldDetail == null)
-                                {
-                                    this.setterBoxed = AccessorGenerator.GenerateSetter(property);
-                                }
-                                else
-                                {
-                                    this.setterBoxed = BackingFieldDetail.SetterBoxed;
-                                }
+                                this.setterBoxed = AccessorGenerator.GenerateSetter(property);
+                            }
+                            else
+                            {
+                                this.setterBoxed = BackingFieldDetail.SetterBoxed;
                             }
                         }
-                        else if (MemberInfo.MemberType == MemberTypes.Field)
-                        {
-                            var field = (FieldInfo)MemberInfo;
-                            if (!field.FieldType.IsPointer)
-                            {
-                                this.setterBoxed = AccessorGenerator.GenerateSetter(field);
-                            }
-                        }
-                        setterBoxedLoaded = true;
                     }
+                    else if (MemberInfo.MemberType == MemberTypes.Field)
+                    {
+                        var field = (FieldInfo)MemberInfo;
+                        if (!field.FieldType.IsPointer)
+                        {
+                            this.setterBoxed = AccessorGenerator.GenerateSetter(field);
+                        }
+                    }
+                    setterBoxedLoaded = true;
                 }
             }
         }

@@ -18,7 +18,8 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadGetter();
+                if (!getterLoaded)
+                    LoadGetter();
                 return this.getter ?? throw new NotSupportedException($"{nameof(MemberDetail)} {Name} does not have a {nameof(Getter)}");
             }
         }
@@ -26,44 +27,42 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadGetter();
+                if (!getterLoaded)
+                    LoadGetter();
                 return this.getter != null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LoadGetter()
         {
-            if (!getterLoaded)
+            lock (locker)
             {
-                lock (locker)
+                if (!getterLoaded)
                 {
-                    if (!getterLoaded)
+                    if (MemberInfo.MemberType == MemberTypes.Property)
                     {
-                        if (MemberInfo.MemberType == MemberTypes.Property)
+                        var property = (PropertyInfo)MemberInfo;
+                        if (!property.PropertyType.IsPointer)
                         {
-                            var property = (PropertyInfo)MemberInfo;
-                            if (!property.PropertyType.IsPointer)
+                            if (BackingFieldDetail == null)
                             {
-                                if (BackingFieldDetail == null)
-                                {
-                                    this.getter = AccessorGenerator.GenerateGetter<T, V?>(property);
-                                }
-                                else
-                                {
-                                    this.getter = BackingFieldDetail.Getter;
-                                }
+                                this.getter = AccessorGenerator.GenerateGetter<T, V?>(property);
+                            }
+                            else
+                            {
+                                this.getter = BackingFieldDetail.Getter;
                             }
                         }
-                        else if (MemberInfo.MemberType == MemberTypes.Field)
-                        {
-                            var field = (FieldInfo)MemberInfo;
-                            if (!field.FieldType.IsPointer)
-                            {
-                                this.getter = AccessorGenerator.GenerateGetter<T, V?>(field);
-                            }
-                        }
-                        getterLoaded = true;
                     }
+                    else if (MemberInfo.MemberType == MemberTypes.Field)
+                    {
+                        var field = (FieldInfo)MemberInfo;
+                        if (!field.FieldType.IsPointer)
+                        {
+                            this.getter = AccessorGenerator.GenerateGetter<T, V?>(field);
+                        }
+                    }
+                    getterLoaded = true;
                 }
             }
         }
@@ -74,7 +73,8 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadSetter();
+                if (!setterLoaded)
+                    LoadSetter();
                 return this.setter ?? throw new NotSupportedException($"{nameof(MemberDetail)} {Name} does not have a {nameof(Setter)}");
             }
         }
@@ -82,44 +82,42 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadSetter();
+                if (!setterLoaded)
+                    LoadSetter();
                 return this.setter != null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LoadSetter()
         {
-            if (!setterLoaded)
+            lock (locker)
             {
-                lock (locker)
+                if (!setterLoaded)
                 {
-                    if (!setterLoaded)
+                    if (MemberInfo.MemberType == MemberTypes.Property)
                     {
-                        if (MemberInfo.MemberType == MemberTypes.Property)
+                        var property = (PropertyInfo)MemberInfo;
+                        if (!property.PropertyType.IsPointer)
                         {
-                            var property = (PropertyInfo)MemberInfo;
-                            if (!property.PropertyType.IsPointer)
+                            if (BackingFieldDetail == null)
                             {
-                                if (BackingFieldDetail == null)
-                                {
-                                    this.setter = AccessorGenerator.GenerateSetter<T, V?>(property);
-                                }
-                                else
-                                {
-                                    this.setter = BackingFieldDetail.Setter;
-                                }
+                                this.setter = AccessorGenerator.GenerateSetter<T, V?>(property);
+                            }
+                            else
+                            {
+                                this.setter = BackingFieldDetail.Setter;
                             }
                         }
-                        else if (MemberInfo.MemberType == MemberTypes.Field)
-                        {
-                            var field = (FieldInfo)MemberInfo;
-                            if (!field.FieldType.IsPointer)
-                            {
-                                this.setter = AccessorGenerator.GenerateSetter<T, V?>(field);
-                            }
-                        }
-                        setterLoaded = true;
                     }
+                    else if (MemberInfo.MemberType == MemberTypes.Field)
+                    {
+                        var field = (FieldInfo)MemberInfo;
+                        if (!field.FieldType.IsPointer)
+                        {
+                            this.setter = AccessorGenerator.GenerateSetter<T, V?>(field);
+                        }
+                    }
+                    setterLoaded = true;
                 }
             }
         }

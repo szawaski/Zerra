@@ -53,7 +53,8 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadCreatorBoxed();
+                if (!creatorBoxedLoaded)
+                    LoadCreatorBoxed();
                 return this.creatorBoxed ?? throw new NotSupportedException($"{nameof(ConstructorDetail)} {Name} does not have a {nameof(CreatorBoxed)}"); ;
             }
         }
@@ -61,25 +62,23 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadCreatorBoxed();
+                if (!creatorBoxedLoaded)
+                    LoadCreatorBoxed();
                 return this.creatorBoxed != null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LoadCreatorBoxed()
         {
-            if (!creatorBoxedLoaded)
+            lock (locker)
             {
-                lock (locker)
+                if (!creatorBoxedLoaded)
                 {
-                    if (!creatorBoxedLoaded)
+                    if (ConstructorInfo.DeclaringType != null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
                     {
-                        if (ConstructorInfo.DeclaringType != null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
-                        {
-                            this.creatorBoxed = AccessorGenerator.GenerateCreator(ConstructorInfo);
-                        }
-                        creatorBoxedLoaded = true;
+                        this.creatorBoxed = AccessorGenerator.GenerateCreator(ConstructorInfo);
                     }
+                    creatorBoxedLoaded = true;
                 }
             }
         }

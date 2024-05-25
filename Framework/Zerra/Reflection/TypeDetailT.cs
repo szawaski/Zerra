@@ -85,7 +85,8 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadCreator();
+                if (!creatorLoaded)
+                    LoadCreator();
                 return creator ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(Creator)}");
             }
         }
@@ -93,37 +94,35 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadCreator();
+                if (!creatorLoaded)
+                    LoadCreator();
                 return creator != null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LoadCreator()
         {
-            if (!creatorLoaded)
+            lock (locker)
             {
-                lock (locker)
+                if (!creatorLoaded)
                 {
-                    if (!creatorLoaded)
+                    if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
                     {
-                        if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
+                        var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParametersInfo.Count == 0);
+                        if (emptyConstructor != null && emptyConstructor.Creator != null)
                         {
-                            var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParametersInfo.Count == 0);
-                            if (emptyConstructor != null && emptyConstructor.Creator != null)
-                            {
-                                creator = () => { return (T)emptyConstructor.Creator(null); };
-                            }
-                            else if (Type.IsValueType && Type.Name != "Void")
-                            {
-                                creator = () => { return default!; };
-                            }
-                            else
-                            {
-                                creator = () => { return (T)(object)String.Empty; };
-                            }
+                            creator = () => { return (T)emptyConstructor.Creator(null); };
                         }
-                        creatorLoaded = true;
+                        else if (Type.IsValueType && Type.Name != "Void")
+                        {
+                            creator = () => { return default!; };
+                        }
+                        else
+                        {
+                            creator = () => { return (T)(object)String.Empty; };
+                        }
                     }
+                    creatorLoaded = true;
                 }
             }
         }

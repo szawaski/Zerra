@@ -3,26 +3,23 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Collections.Generic;
 using Zerra.IO;
 
 namespace Zerra.Serialization
 {
-    internal sealed class ByteConverterArrayT<TParent, TArray, TValue> : ByteConverter<TParent, TArray>
+    internal sealed class ByteConverterArray<TParent, TValue> : ByteConverter<TParent, TValue?[]>
     {
-        private ByteConverter<ArrayAccessor<TValue?>> readConverter = null!;
-        private ByteConverter<IEnumerator<TValue?>> writeConverter = null!;
+        private ByteConverter<ArrayAccessor<TValue?>> converter = null!;
 
-        private static TValue? Getter(IEnumerator<TValue?> parent) => parent.Current;
-        private static void Setter(ArrayAccessor<TValue?> parent, TValue? value) => parent.Set(value);
+        private static TValue? Getter(ArrayAccessor<TValue?> parent) => parent.Get();
+        private static void Setter(ArrayAccessor<TValue?> parent, TValue?  value) => parent.Set(value);
 
         protected override void Setup()
         {
-            this.readConverter = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, null, Setter);
-            this.writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, null);
+            this.converter = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, Setter);
         }
 
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out TArray? value)
+        protected override bool Read(ref ByteReader reader, ref ReadState state, out TValue?[]? value)
         {
             int sizeNeeded;
             if (state.Current.NullFlags && !state.Current.HasNullChecked)
@@ -59,7 +56,7 @@ namespace Zerra.Serialization
                 if (!state.Current.DrainBytes)
                 {
                     accessor = new ArrayAccessor<TValue?>(length);
-                    value = (TArray?)(object?)accessor.Array;
+                    value = accessor.Array;
                     if (length == 0)
                         return true;
                 }
@@ -74,7 +71,7 @@ namespace Zerra.Serialization
             else
             {
                 accessor = (ArrayAccessor<TValue?>)state.Current.Object!;
-                value = (TArray?)(object?)accessor.Array;
+                value = accessor.Array;
             }
 
             length = state.Current.EnumerableLength.Value;
@@ -83,8 +80,8 @@ namespace Zerra.Serialization
 
             for (; ; )
             {
-                state.PushFrame(readConverter, true, accessor);
-                var read = readConverter.Read(ref reader, ref state, accessor);
+                state.PushFrame(converter, true, accessor);
+                var read = converter.TryRead(ref reader, ref state, accessor);
                 if (!read)
                 {
                     state.Current.Object = accessor;
@@ -96,7 +93,7 @@ namespace Zerra.Serialization
             }
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, TArray? value)
+        protected override bool Write(ref ByteWriter writer, ref WriteState state, TValue?[]? value)
         {
             int sizeNeeded;
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
@@ -121,44 +118,38 @@ namespace Zerra.Serialization
             if (value == null)
                 throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
 
-            IEnumerator<TValue?> enumerator;
+            ArrayAccessor<TValue?> accessor;
 
             if (!state.Current.EnumerableLength.HasValue)
             {
-                var collection = (IReadOnlyCollection<TValue?>)value;
-
-                var length = collection.Count;
+                var length = value.Length;
 
                 if (!writer.TryWrite(length, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
                     return false;
                 }
-                if (length == 0)
-                {
-                    return true;
-                }
+                state.Current.EnumerableLength = length;
 
-                enumerator = collection.GetEnumerator();
+                accessor = new ArrayAccessor<TValue?>(value);
             }
             else
             {
-                enumerator = (IEnumerator<TValue?>)state.Current.Object!;
+                accessor = (ArrayAccessor<TValue?>)state.Current.Object!;
             }
 
-            while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
+            if (accessor.Array?.Length > 0)
             {
-                state.Current.EnumeratorInProgress = true;
-
-                state.PushFrame(writeConverter, true, value);
-                var write = writeConverter.Write(ref writer, ref state, enumerator);
-                if (!write)
+                while (accessor.Count < accessor.Array.Length)
                 {
-                    state.Current.Object = enumerator;
-                    return false;
+                    state.PushFrame(converter, true, accessor);
+                    var write = converter.TryWrite(ref writer, ref state, accessor);
+                    if (!write)
+                    {
+                        state.Current.Object = accessor;
+                        return false;
+                    }
                 }
-
-                state.Current.EnumeratorInProgress = false;
             }
 
             return true;
@@ -177,6 +168,11 @@ namespace Zerra.Serialization
                 this.array = null;
                 this.index = 0;
             }
+            public ArrayAccessor(T[]? array)
+            {
+                this.array = array;
+                this.index = 0;
+            }
             public ArrayAccessor(int length)
             {
                 this.array = new T[length];
@@ -191,6 +187,13 @@ namespace Zerra.Serialization
                     return;
                 }
                 array[index++] = value;
+            }
+
+            public T Get()
+            {
+                if (array == null)
+                    throw new InvalidOperationException();
+                return array[index++];
             }
         }
     }

@@ -94,7 +94,7 @@ namespace Zerra.Serialization
             for (; ; )
             {
                 state.PushFrame(readConverter, true, dictionary);
-                var read = readConverter.Read(ref reader, ref state, dictionary);
+                var read = readConverter.TryRead(ref reader, ref state, dictionary);
                 if (!read)
                 {
                     state.Current.Object = dictionary;
@@ -161,7 +161,7 @@ namespace Zerra.Serialization
                 state.Current.EnumeratorInProgress = true;
 
                 state.PushFrame(writeConverter, true, value);
-                var write = writeConverter.Write(ref writer, ref state, enumerator);
+                var write = writeConverter.TryWrite(ref writer, ref state, enumerator);
                 if (!write)
                 {
                     state.Current.Object = enumerator;

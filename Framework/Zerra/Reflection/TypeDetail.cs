@@ -23,7 +23,7 @@ namespace Zerra.Reflection
         private static readonly string enumberableGenericTypeName = typeof(IEnumerable<>).Name;
 
         private static readonly string collectionTypeName = nameof(ICollection);
-        private static readonly string collectionGenericTypeName = typeof(ICollection<>).Name;        
+        private static readonly string collectionGenericTypeName = typeof(ICollection<>).Name;
         private static readonly string listTypeName = nameof(IList);
         private static readonly string setGenericTypeName = typeof(ISet<>).Name;
         private static readonly string listGenericTypeName = typeof(IList<>).Name;
@@ -215,7 +215,8 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadIsInterface();
+                if (!isInterfaceLoaded)
+                    LoadIsInterface();
                 return isIEnumerable;
             }
         }
@@ -223,7 +224,8 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadIsInterface();
+                if (!isInterfaceLoaded)
+                    LoadIsInterface();
                 return isICollection;
             }
         }
@@ -231,7 +233,8 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadIsInterface();
+                if (!isInterfaceLoaded)
+                    LoadIsInterface();
                 return isICollectionGeneric;
             }
         }
@@ -239,7 +242,8 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadIsInterface();
+                if (!isInterfaceLoaded)
+                    LoadIsInterface();
                 return isIList;
             }
         }
@@ -247,7 +251,8 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadIsInterface();
+                if (!isInterfaceLoaded)
+                    LoadIsInterface();
                 return isISet;
             }
         }
@@ -255,20 +260,17 @@ namespace Zerra.Reflection
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LoadIsInterface()
         {
-            if (!isInterfaceLoaded)
+            lock (locker)
             {
-                lock (locker)
+                if (!isInterfaceLoaded)
                 {
-                    if (!isInterfaceLoaded)
-                    {
-                        var isCoreType = TypeLookup.CoreTypes.Contains(Type);
-                        isIEnumerable = !isCoreType && (Type.IsArray || Type.Name == enumberableTypeName || Interfaces.Select(x => x.Name).Contains(enumberableTypeName));
-                        isICollection = !isCoreType && (Type.Name == collectionTypeName || Interfaces.Select(x => x.Name).Contains(collectionTypeName));
-                        isICollectionGeneric = !isCoreType && (Type.Name == collectionGenericTypeName || Interfaces.Select(x => x.Name).Contains(collectionGenericTypeName));
-                        isIList = !isCoreType && (Type.Name == listTypeName || Type.Name == listGenericTypeName || Interfaces.Select(x => x.Name).Contains(listTypeName) || Interfaces.Select(x => x.Name).Contains(listGenericTypeName));
-                        isISet = !isCoreType && (Type.Name == setGenericTypeName || Interfaces.Select(x => x.Name).Contains(setGenericTypeName));
-                        isInterfaceLoaded = true;
-                    }
+                    var isCoreType = TypeLookup.CoreTypes.Contains(Type);
+                    isIEnumerable = !isCoreType && (Type.IsArray || Type.Name == enumberableTypeName || Interfaces.Select(x => x.Name).Contains(enumberableTypeName));
+                    isICollection = !isCoreType && (Type.Name == collectionTypeName || Interfaces.Select(x => x.Name).Contains(collectionTypeName));
+                    isICollectionGeneric = !isCoreType && (Type.Name == collectionGenericTypeName || Interfaces.Select(x => x.Name).Contains(collectionGenericTypeName));
+                    isIList = !isCoreType && (Type.Name == listTypeName || Type.Name == listGenericTypeName || Interfaces.Select(x => x.Name).Contains(listTypeName) || Interfaces.Select(x => x.Name).Contains(listGenericTypeName));
+                    isISet = !isCoreType && (Type.Name == setGenericTypeName || Interfaces.Select(x => x.Name).Contains(setGenericTypeName));
+                    isInterfaceLoaded = true;
                 }
             }
         }
@@ -670,7 +672,8 @@ namespace Zerra.Reflection
             {
                 if (!IsIEnumerable)
                     return false;
-                LoadIEnumerableGeneric();
+                if (iEnumerableGenericInnerType == null)
+                    LoadIEnumerableGeneric();
                 return isIEnumerableGeneric;
             }
         }
@@ -680,32 +683,30 @@ namespace Zerra.Reflection
             {
                 if (!IsIEnumerable)
                     throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric");
-                LoadIEnumerableGeneric();
+                if (iEnumerableGenericInnerType == null)
+                    LoadIEnumerableGeneric();
                 return iEnumerableGenericInnerType ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric"); ;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LoadIEnumerableGeneric()
         {
-            if (iEnumerableGenericInnerType == null)
+            lock (locker)
             {
-                lock (locker)
+                if (iEnumerableGenericInnerType == null)
                 {
-                    if (iEnumerableGenericInnerType == null)
+                    if (Type.Name == enumberableGenericTypeName)
                     {
-                        if (Type.Name == enumberableGenericTypeName)
+                        isIEnumerableGeneric = true;
+                        iEnumerableGenericInnerType = Type.GetGenericArguments()[0];
+                    }
+                    else
+                    {
+                        var enumerableGeneric = Interfaces.Where(x => x.Name == enumberableGenericTypeName).ToArray();
+                        if (enumerableGeneric.Length == 1)
                         {
                             isIEnumerableGeneric = true;
-                            iEnumerableGenericInnerType = Type.GetGenericArguments()[0];
-                        }
-                        else
-                        {
-                            var enumerableGeneric = Interfaces.Where(x => x.Name == enumberableGenericTypeName).ToArray();
-                            if (enumerableGeneric.Length == 1)
-                            {
-                                isIEnumerableGeneric = true;
-                                iEnumerableGenericInnerType = enumerableGeneric[0].GetGenericArguments()[0];
-                            }
+                            iEnumerableGenericInnerType = enumerableGeneric[0].GetGenericArguments()[0];
                         }
                     }
                 }
@@ -749,19 +750,17 @@ namespace Zerra.Reflection
                 if (!this.IsTask || !this.Type.IsGenericType)
                     return false;
 
-                LoadTaskResultGetter();
+                if (taskResultGetter == null)
+                    LoadTaskResultGetter();
                 return taskResultGetter != null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LoadTaskResultGetter()
         {
-            if (taskResultGetter == null)
+            lock (locker)
             {
-                lock (locker)
-                {
-                    taskResultGetter ??= GetMember("Result").GetterBoxed;
-                }
+                taskResultGetter ??= GetMember("Result").GetterBoxed;
             }
         }
 
@@ -771,7 +770,8 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadCreatorBoxed();
+                if (!creatorBoxedLoaded)
+                    LoadCreatorBoxed();
                 return creatorBoxed ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(CreatorBoxed)}");
             }
         }
@@ -779,39 +779,37 @@ namespace Zerra.Reflection
         {
             get
             {
-                LoadCreatorBoxed();
+                if (!creatorBoxedLoaded)
+                    LoadCreatorBoxed();
                 return creatorBoxed != null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LoadCreatorBoxed()
         {
-            if (!creatorBoxedLoaded)
+            lock (locker)
             {
-                lock (locker)
+                if (!creatorBoxedLoaded)
                 {
-                    if (!creatorBoxedLoaded)
+                    if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
                     {
-                        if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
+                        var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParametersInfo.Count == 0);
+                        if (emptyConstructor != null && emptyConstructor.CreatorBoxed != null)
                         {
-                            var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParametersInfo.Count == 0);
-                            if (emptyConstructor != null && emptyConstructor.CreatorBoxed != null)
-                            {
-                                creatorBoxed = () => { return emptyConstructor.CreatorBoxed(null); };
-                            }
-                            else if (Type.IsValueType && Type.Name != "Void")
-                            {
-                                var constantExpression = Expression.Convert(Expression.Default(Type), typeof(object));
-                                var lambda = Expression.Lambda<Func<object>>(constantExpression).Compile();
-                                creatorBoxed = lambda;
-                            }
-                            else if (Type == typeof(string))
-                            {
-                                creatorBoxed = () => { return String.Empty; };
-                            }
+                            creatorBoxed = () => { return emptyConstructor.CreatorBoxed(null); };
                         }
-                        creatorBoxedLoaded = true;
+                        else if (Type.IsValueType && Type.Name != "Void")
+                        {
+                            var constantExpression = Expression.Convert(Expression.Default(Type), typeof(object));
+                            var lambda = Expression.Lambda<Func<object>>(constantExpression).Compile();
+                            creatorBoxed = lambda;
+                        }
+                        else if (Type == typeof(string))
+                        {
+                            creatorBoxed = () => { return String.Empty; };
+                        }
                     }
+                    creatorBoxedLoaded = true;
                 }
             }
         }

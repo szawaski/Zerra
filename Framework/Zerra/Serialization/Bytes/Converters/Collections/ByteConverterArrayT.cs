@@ -3,27 +3,26 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using Zerra.IO;
 
 namespace Zerra.Serialization
 {
-    internal sealed class ByteConverterHashSetT<TParent, TSet, TValue> : ByteConverter<TParent, TSet>
+    internal sealed class ByteConverterArrayT<TParent, TArray, TValue> : ByteConverter<TParent, TArray>
     {
-        private ByteConverter<ISet<TValue?>> readConverter = null!;
+        private ByteConverter<ArrayAccessor<TValue?>> readConverter = null!;
         private ByteConverter<IEnumerator<TValue?>> writeConverter = null!;
 
         private static TValue? Getter(IEnumerator<TValue?> parent) => parent.Current;
-        private static void Setter(ISet<TValue?> parent, TValue? value) => parent.Add(value);
+        private static void Setter(ArrayAccessor<TValue?> parent, TValue? value) => parent.Set(value);
 
         protected override void Setup()
         {
-            this.readConverter = ByteConverterFactory<ISet<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, null, Setter);
+            this.readConverter = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, null, Setter);
             this.writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.Get(options, typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, null);
         }
 
-        protected override bool Read(ref ByteReader reader, ref ReadState state, out TSet? value)
+        protected override bool Read(ref ByteReader reader, ref ReadState state, out TArray? value)
         {
             int sizeNeeded;
             if (state.Current.NullFlags && !state.Current.HasNullChecked)
@@ -44,7 +43,7 @@ namespace Zerra.Serialization
                 state.Current.HasNullChecked = true;
             }
 
-            ISet<TValue?> set;
+            ArrayAccessor<TValue?> accessor;
 
             int length;
             if (!state.Current.EnumerableLength.HasValue)
@@ -55,17 +54,12 @@ namespace Zerra.Serialization
                     value = default;
                     return false;
                 }
-
                 state.Current.EnumerableLength = length;
 
                 if (!state.Current.DrainBytes)
                 {
-#if NETSTANDARD2_0
-                    set = new HashSet<TValue?>();
-#else
-                    set = new HashSet<TValue?>(length);
-#endif
-                    value = (TSet?)set;
+                    accessor = new ArrayAccessor<TValue?>(length);
+                    value = (TArray?)(object?)accessor.Array;
                     if (length == 0)
                         return true;
                 }
@@ -74,38 +68,35 @@ namespace Zerra.Serialization
                     value = default;
                     if (length == 0)
                         return true;
-                    set = new SetCounter();
+                    accessor = new ArrayAccessor<TValue?>();
                 }
             }
             else
             {
-                set = (HashSet<TValue?>?)state.Current.Object!;
-                if (!state.Current.DrainBytes)
-                    value = (TSet?)state.Current.Object;
-                else
-                    value = default;
+                accessor = (ArrayAccessor<TValue?>)state.Current.Object!;
+                value = (TArray?)(object?)accessor.Array;
             }
 
             length = state.Current.EnumerableLength.Value;
-            if (set.Count == length)
+            if (accessor.Count == length)
                 return true;
 
             for (; ; )
             {
-                state.PushFrame(readConverter, true, value);
-                var read = readConverter.Read(ref reader, ref state, set);
+                state.PushFrame(readConverter, true, accessor);
+                var read = readConverter.TryRead(ref reader, ref state, accessor);
                 if (!read)
                 {
-                    state.Current.Object = set;
+                    state.Current.Object = accessor;
                     return false;
                 }
 
-                if (set.Count == length)
+                if (accessor.Count == length)
                     return true;
             }
         }
 
-        protected override bool Write(ref ByteWriter writer, ref WriteState state, TSet? value)
+        protected override bool Write(ref ByteWriter writer, ref WriteState state, TArray? value)
         {
             int sizeNeeded;
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
@@ -160,7 +151,7 @@ namespace Zerra.Serialization
                 state.Current.EnumeratorInProgress = true;
 
                 state.PushFrame(writeConverter, true, value);
-                var write = writeConverter.Write(ref writer, ref state, enumerator);
+                var write = writeConverter.TryWrite(ref writer, ref state, enumerator);
                 if (!write)
                 {
                     state.Current.Object = enumerator;
@@ -173,34 +164,34 @@ namespace Zerra.Serialization
             return true;
         }
 
-        private sealed class SetCounter : ISet<TValue?>
+        private sealed class ArrayAccessor<T>
         {
-            private int count;
-            public int Count => count;
+            private int index;
+            public int Count => index;
 
-            public void Add(TValue? item)
+            private readonly T[]? array;
+            public T[]? Array => array;
+
+            public ArrayAccessor()
             {
-                count++;
+                this.array = null;
+                this.index = 0;
+            }
+            public ArrayAccessor(int length)
+            {
+                this.array = new T[length];
+                this.index = 0;
             }
 
-            public bool IsReadOnly => throw new NotImplementedException();
-            public void Clear() => throw new NotImplementedException();
-            public bool Contains(TValue? item) => throw new NotImplementedException();
-            public void CopyTo(TValue?[] array, int arrayIndex) => throw new NotImplementedException();
-            public void ExceptWith(IEnumerable<TValue?> other) => throw new NotImplementedException();
-            public IEnumerator<TValue> GetEnumerator() => throw new NotImplementedException();
-            public void IntersectWith(IEnumerable<TValue?> other) => throw new NotImplementedException();
-            public bool IsProperSubsetOf(IEnumerable<TValue?> other) => throw new NotImplementedException();
-            public bool IsProperSupersetOf(IEnumerable<TValue?> other) => throw new NotImplementedException();
-            public bool IsSubsetOf(IEnumerable<TValue?> other) => throw new NotImplementedException();
-            public bool IsSupersetOf(IEnumerable<TValue?> other) => throw new NotImplementedException();
-            public bool Overlaps(IEnumerable<TValue?> other) => throw new NotImplementedException();
-            public bool Remove(TValue? item) => throw new NotImplementedException();
-            public bool SetEquals(IEnumerable<TValue?> other) => throw new NotImplementedException();
-            public void SymmetricExceptWith(IEnumerable<TValue?> other) => throw new NotImplementedException();
-            public void UnionWith(IEnumerable<TValue?> other) => throw new NotImplementedException();
-            bool ISet<TValue?>.Add(TValue? item) => throw new NotImplementedException();
-            IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
+            public void Set(T value)
+            {
+                if (array == null)
+                {
+                    index++;
+                    return;
+                }
+                array[index++] = value;
+            }
         }
     }
 }

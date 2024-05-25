@@ -250,7 +250,7 @@ namespace Zerra.Serialization
                         var converter = ByteConverterFactory<TValue>.GetForDrainWithNoTypeInfo(options);
                         state.PushFrame(converter, false, value);
                         state.Current.DrainBytes = true;
-                        var read = converter.Read(ref reader, ref state, value);
+                        var read = converter.TryRead(ref reader, ref state, value);
                         if (!read)
                         {
                             if (collectValues)
@@ -265,7 +265,7 @@ namespace Zerra.Serialization
                         if (collectValues)
                         {
                             state.PushFrame(property.ConverterSetValues, false, collectedValues);
-                            var read = property.ConverterSetValues.Read(ref reader, ref state, collectedValues);
+                            var read = property.ConverterSetValues.TryRead(ref reader, ref state, collectedValues);
                             if (!read)
                             {
                                 if (collectValues)
@@ -278,7 +278,7 @@ namespace Zerra.Serialization
                         else
                         {
                             state.PushFrame(property.Converter, false, value);
-                            var read = property.Converter.Read(ref reader, ref state, value);
+                            var read = property.Converter.TryRead(ref reader, ref state, value);
                             if (!read)
                             {
                                 if (collectValues)
@@ -338,7 +338,7 @@ namespace Zerra.Serialization
                         var converter = ByteConverterFactory<TValue>.GetForDrainWithNoTypeInfo(options);
                         state.PushFrame(converter, false, default);
                         state.Current.DrainBytes = true;
-                        var read = converter.Read(ref reader, ref state, default);
+                        var read = converter.TryRead(ref reader, ref state, default);
                         if (!read)
                         {
                             if (collectValues)
@@ -353,7 +353,7 @@ namespace Zerra.Serialization
                         if (collectValues)
                         {
                             state.PushFrame(property.ConverterSetValues, false, collectedValues);
-                            var read = property.ConverterSetValues.Read(ref reader, ref state, collectedValues);
+                            var read = property.ConverterSetValues.TryRead(ref reader, ref state, collectedValues);
                             if (!read)
                             {
                                 if (collectValues)
@@ -366,7 +366,7 @@ namespace Zerra.Serialization
                         else
                         {
                             state.PushFrame(property.Converter, false, value);
-                            var read = property.Converter.Read(ref reader, ref state, value);
+                            var read = property.Converter.TryRead(ref reader, ref state, value);
                             if (!read)
                             {
                                 if (collectValues)
@@ -482,7 +482,7 @@ namespace Zerra.Serialization
                 state.Current.EnumeratorInProgress = false;
 
                 state.PushFrame(indexProperty.Value.Converter, false, value);
-                var write = indexProperty.Value.Converter.Write(ref writer, ref state, value);
+                var write = indexProperty.Value.Converter.TryWrite(ref writer, ref state, value);
                 if (!write)
                     return false;
             }
@@ -521,36 +521,20 @@ namespace Zerra.Serialization
         private abstract class ByteConverterObjectMember
         {
             protected ByteConverterOptions options;
-            public MemberDetail Member { get; private set; }
+            public readonly MemberDetail Member;
 
+            public readonly ByteConverter<TValue> Converter;
+            public ByteConverter<Dictionary<string, object?>> ConverterSetValues;
+            public abstract bool IsNull(TValue parent);
+
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
             public ByteConverterObjectMember(ByteConverterOptions options, MemberDetail member)
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
             {
                 this.options = options;
                 this.Member = member;
+                Converter = ByteConverterFactory<TValue>.Get(options, Member.TypeDetail, Member.Name, Member.GetterTyped, Member.SetterTyped);
             }
-
-            private ByteConverter<TValue>? converter = null;
-            public ByteConverter<TValue> Converter
-            {
-                get
-                {
-                    if (converter == null)
-                    {
-                        lock (this)
-                        {
-                            if (converter == null)
-                            {
-                                converter = ByteConverterFactory<TValue>.Get(options, Member.TypeDetail, Member.Name, Member.GetterTyped, Member.SetterTyped);
-                            }
-                        }
-                    }
-                    return converter;
-                }
-            }
-
-            public abstract ByteConverter<Dictionary<string, object?>> ConverterSetValues { get; }
-
-            public abstract bool IsNull(TValue parent);
 
             //helps with debug
             public override string ToString()
@@ -569,37 +553,17 @@ namespace Zerra.Serialization
 
         private sealed class ByteConverterObjectMember<TValue2> : ByteConverterObjectMember
         {
-            public Func<TValue, TValue2?> Getter { get; private set; }
+            private readonly Func<TValue, TValue2?> Getter;
+            public override bool IsNull(TValue parent) => Getter(parent) == null;
 
+            private void SetterForConverterSetValues(Dictionary<string, object?> parent, TValue2? value) => parent.Add(Member.Name, value);
             public ByteConverterObjectMember(ByteConverterOptions options, MemberDetail member)
                 : base(options, member)
             {
                 this.Getter = ((MemberDetail<TValue, TValue2>)member).Getter;
+                var type = TypeAnalyzer<Dictionary<string, object?>>.GetTypeDetail();
+                ConverterSetValues = ByteConverterFactory<Dictionary<string, object?>>.Get(options, Member.TypeDetail, Member.Name, null, SetterForConverterSetValues);
             }
-
-            private void Setter(Dictionary<string, object?> parent, TValue2? value) => parent.Add(Member.Name, value);
-
-            private ByteConverter<Dictionary<string, object?>>? converterSetValues = null;
-            public override ByteConverter<Dictionary<string, object?>> ConverterSetValues
-            {
-                get
-                {
-                    if (converterSetValues == null)
-                    {
-                        lock (this)
-                        {
-                            if (converterSetValues == null)
-                            {
-                                var type = TypeAnalyzer<Dictionary<string, object?>>.GetTypeDetail();
-                                converterSetValues = ByteConverterFactory<Dictionary<string, object?>>.Get(options, Member.TypeDetail, Member.Name, null, Setter);
-                            }
-                        }
-                    }
-                    return converterSetValues;
-                }
-            }
-
-            public override bool IsNull(TValue parent) => Getter(parent) == null;
         }
     }
 }
