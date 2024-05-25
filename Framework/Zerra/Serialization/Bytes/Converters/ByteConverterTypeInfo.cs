@@ -11,6 +11,17 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterTypeInfo<TParent> : ByteConverter<TParent>
     {
+        private TypeDetail? typeDetail;
+        private Delegate? getterBoxed;
+        private Delegate? setterBoxed;
+
+        protected override void Setup(TypeDetail? typeDetail, Delegate? getterBoxed, Delegate? setterBoxed)
+        {
+            this.typeDetail = typeDetail;
+            this.getterBoxed = getterBoxed;
+            this.setterBoxed = setterBoxed;
+        }
+
         public override bool TryRead(ref ByteReader reader, ref ReadState state, TParent? parent)
         {
             if (options.HasFlag(ByteConverterOptions.IncludePropertyTypes))

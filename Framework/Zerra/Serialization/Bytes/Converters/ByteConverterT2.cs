@@ -11,20 +11,19 @@ namespace Zerra.Serialization
 {
     internal abstract class ByteConverter<TParent, TValue> : ByteConverter<TParent>, IByteConverterDiscoverable<TValue>
     {
-        protected new TypeDetail<TValue> typeDetail { get; private set; } = null!;
+        protected TypeDetail<TValue> typeDetail { get; private set; } = null!;
         private Func<TParent, TValue?>? getter;
         private Action<TParent, TValue?>? setter;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected override sealed void SetupT2()
+        protected override sealed void Setup(TypeDetail? typeDetail, Delegate? getterBoxed, Delegate? setterBoxed)
         {
-            if (base.typeDetail == null)
+            if (typeDetail == null)
                 throw new ArgumentNullException(nameof(typeDetail));
 
-            this.typeDetail = (TypeDetail<TValue>)base.typeDetail;
-
-            this.getter = (Func<TParent, TValue?>?)base.getterBoxed;
-            this.setter = (Action<TParent, TValue?>?)base.setterBoxed;
+            this.typeDetail = (TypeDetail<TValue>)typeDetail;
+            this.getter = (Func<TParent, TValue?>?)getterBoxed;
+            this.setter = (Action<TParent, TValue?>?)setterBoxed;
 
             Setup();
         }

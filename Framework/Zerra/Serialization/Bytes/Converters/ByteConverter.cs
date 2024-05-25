@@ -23,24 +23,18 @@ namespace Zerra.Serialization
         protected const int maxStackDepth = 32;
 
         protected ByteConverterOptions options { get; private set; }
-        protected TypeDetail? typeDetail { get; private set; }
         protected string? memberKey { get; private set; }
-        protected Delegate? getterBoxed { get; private set; }
-        protected Delegate? setterBoxed { get; private set; }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Setup(ByteConverterOptions options, TypeDetail? typeDetail, string? memberKey, Delegate? getterBoxed, Delegate? setterBoxed)
         {
             this.options = options;
-            this.typeDetail = typeDetail;
             this.memberKey = memberKey;
-            this.getterBoxed = getterBoxed;
-            this.setterBoxed = setterBoxed;
-            SetupT2();
+            Setup(typeDetail, getterBoxed, setterBoxed);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected virtual void SetupT2() { }
+        protected abstract void Setup(TypeDetail? typeDetail, Delegate? getterBoxed, Delegate? setterBoxed);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract bool TryRead(ref ByteReader reader, ref ReadState state, object? parent);
