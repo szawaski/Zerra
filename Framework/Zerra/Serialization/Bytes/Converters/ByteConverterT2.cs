@@ -32,6 +32,9 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed bool TryRead(ref ByteReader reader, ref ReadState state, TParent? parent)
         {
+            if (state.Stack.Count > maxStackDepth)
+                return false;
+
             if (!TryRead(ref reader, ref state, out var value))
                 return false;
 
@@ -44,6 +47,9 @@ namespace Zerra.Serialization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed bool TryWrite(ref ByteWriter writer, ref WriteState state, TParent? parent)
         {
+            if (state.Stack.Count > maxStackDepth)
+                return false;
+
             if (parent != null)
             {
                 if (getter != null)

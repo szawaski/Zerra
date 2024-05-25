@@ -19,6 +19,9 @@ namespace Zerra.Serialization
         protected const byte endObjectFlagByte = 0;
         protected static readonly byte[] endObjectFlagUInt16 = new byte[2] { 0, 0 };
 
+        //The max converter stack before we unwind
+        protected const int maxStackDepth = 32;
+
         protected ByteConverterOptions options { get; private set; }
         protected TypeDetail? typeDetail { get; private set; }
         protected string? memberKey { get; private set; }
