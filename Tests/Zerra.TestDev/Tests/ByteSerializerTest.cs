@@ -72,7 +72,7 @@ namespace Zerra.TestDev
             var data = ByteSerializerOld.Serialize(item, options);
 
             var method = typeof(ByteSerializerTest).GetMethod("TempTestSpeed2", BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());
-            return (Task)method.Invoke(null, new object[] { item, data, options, 20000, 10 });
+            return (Task)method.Invoke(null, new object[] { item, data, options, 100000, 20 });
         }
 
         private static async Task TempTestSpeed2<T>(T item, byte[] data, ByteSerializerOptions options, int iterations, int loops)
@@ -85,9 +85,6 @@ namespace Zerra.TestDev
             var timer = Stopwatch.StartNew();
             for (var i = 0; i < 100; i++)
             {
-                if (i % 5 == 0)
-                    Console.Write(".");
-
                 readStream.Position = 0;
                 _ = await ByteSerializerOld.DeserializeAsync<T>(readStream, options);
                 readStream.Position = 0;

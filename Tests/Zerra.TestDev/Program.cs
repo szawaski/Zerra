@@ -14,6 +14,7 @@ namespace Zerra.TestDev
     {
         static void Main(string[] args)
         {
+            System.Threading.Thread.CurrentThread.Priority = System.Threading.ThreadPriority.Highest;
             var timer = Stopwatch.StartNew();
 
             ByteSerializerTest.TempTestSpeed();
