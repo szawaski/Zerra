@@ -310,7 +310,7 @@ namespace Zerra.Serialization
                     {
                         if (!reader.TryReadByte(out var propertyIndexValue, out var sizeNeeded))
                         {
-                            state.BytesNeeded = sizeNeeded;
+                            state.BytesNeeded = sizeNeeded; 
                             if (collectValues)
                                 state.Current.Object = collectedValues;
                             else
@@ -425,6 +425,9 @@ namespace Zerra.Serialization
                 state.Current.HasWrittenIsNull = true;
             }
 
+            if (value == null)
+                throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
+
             IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember>> enumerator;
             if (state.Current.Enumerator == null)
             {
@@ -440,7 +443,8 @@ namespace Zerra.Serialization
             {
                 var indexProperty = enumerator.Current;
 
-                if (indexProperty.Value.IsNull(value!))
+                //TODO this hurts speed
+                if (indexProperty.Value.IsNull(value))
                 {
                     continue;
                 }
