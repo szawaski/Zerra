@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 
 namespace Zerra.Serialization
 {
-    internal struct ReadState
+    public struct ReadState
     {
         //        private static readonly Stack<ReadFrame> framePool = new();
         //        [MethodImpl(MethodImplOptions.AggressiveInlining)]

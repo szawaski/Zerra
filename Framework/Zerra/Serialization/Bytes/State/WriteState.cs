@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 
 namespace Zerra.Serialization
 {
-    internal struct WriteState
+    public struct WriteState
     {
 //        private static readonly Queue<WriteFrame> framePool = new();
 //        [MethodImpl(MethodImplOptions.AggressiveInlining)]

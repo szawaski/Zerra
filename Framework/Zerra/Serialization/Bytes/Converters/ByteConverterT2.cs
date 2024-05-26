@@ -10,7 +10,8 @@ using System.Linq;
 
 namespace Zerra.Serialization
 {
-    internal abstract class ByteConverter<TParent, TValue> : ByteConverter<TParent>, IByteConverterDiscoverable<TValue>
+    public abstract class ByteConverter<TParent, TValue> : ByteConverter<TParent>,
+        IByteConverterHandles<TValue>
     {
         protected TypeDetail<TValue> typeDetail { get; private set; } = null!;
         private string? memberKey;

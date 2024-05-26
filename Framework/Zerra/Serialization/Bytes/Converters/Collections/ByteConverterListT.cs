@@ -6,11 +6,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Zerra.IO;
-using Zerra.Reflection;
 
 namespace Zerra.Serialization
 {
-    internal sealed class ByteConverterListT<TParent, TList, TValue> : ByteConverter<TParent, TList>
+    internal sealed class ByteConverterListT<TParent, TList, TValue> : ByteConverter<TParent, TList>,
+         IByteConverterHandles<List<TValue>>,
+         IByteConverterHandles<IList<TValue>>
     {
         private ByteConverter<IList<TValue?>> readConverter = null!;
         private ByteConverter<IEnumerator<TValue?>> writeConverter = null!;

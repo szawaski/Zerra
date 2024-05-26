@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 
 namespace Zerra.Serialization
 {
-    internal abstract class ByteConverter
+    public abstract class ByteConverter
     {       
         //In byte array, object properties start with index values from SerializerIndexAttribute or property order
         protected const ushort indexOffset = 1; //offset index values to reseve for Flag: 0

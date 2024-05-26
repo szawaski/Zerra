@@ -4,7 +4,7 @@
 
 namespace Zerra.Serialization
 {
-    internal sealed class WriteFrame
+    public sealed class WriteFrame
     {
         public ByteConverter Converter;
         public bool NullFlags;

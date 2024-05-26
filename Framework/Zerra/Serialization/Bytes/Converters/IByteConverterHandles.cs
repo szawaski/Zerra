@@ -4,7 +4,7 @@
 
 namespace Zerra.Serialization
 {
-    internal interface IByteConverterDiscoverable<TValue>
+    internal interface IByteConverterHandles<TValue>
     {
 
     }

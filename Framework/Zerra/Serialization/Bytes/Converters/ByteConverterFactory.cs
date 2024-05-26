@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Zerra.Collections;
 using Zerra.Reflection;
@@ -32,7 +33,7 @@ namespace Zerra.Serialization
         }
 
         public static ByteConverter<TParent> GetTypeRequired()
-        { 
+        {
             if (cacheByteConverterTypeInfo == null)
             {
                 lock (cache)
@@ -48,16 +49,76 @@ namespace Zerra.Serialization
             return cacheByteConverterTypeInfo;
         }
 
-        private static readonly Type byteConverterDiscoverableType = typeof(IByteConverterDiscoverable<>);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Type? Discover(Type interfaceType)
+        {
+            var discoveredTypes = Discovery.GetClassesByInterface(interfaceType);
+            Type? discoveredType;
+            if (discoveredTypes.Count == 1)
+            {
+                discoveredType = discoveredTypes[0];
+            }
+            else if (discoveredTypes.Count > 1)
+            {
+                var customDiscoveredTypes = discoveredTypes.Where(x => x.Namespace == null || !x.Namespace.StartsWith("Zerra.")).ToList();
+                if (customDiscoveredTypes.Count == 1)
+                {
+                    discoveredType = customDiscoveredTypes[0];
+                }
+                else if (customDiscoveredTypes.Count > 1)
+                {
+                    throw new InvalidOperationException($"Multiple custom implementations of {nameof(ByteConverter)} found for {interfaceType.GetNiceName()}");
+                }
+                else
+                {
+                    discoveredType = null;
+                }
+            }
+            else
+            {
+                discoveredType = null;
+            }
+            return discoveredType;
+        }
+
+        private static readonly Type byteConverterHandlesType = typeof(IByteConverterHandles<>);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ByteConverter<TParent> Create(TypeDetail typeDetail)
         {
             //exact match
-            var discoveredType = Discovery.GetImplementationType(byteConverterDiscoverableType.GetGenericType(typeDetail.Type), false);
-            if (discoveredType != null)
             {
-                var converter = discoveredType.GetGenericTypeDetail(parentType).CreatorBoxed();
-                return (ByteConverter<TParent>)converter;
+                var interfaceType = byteConverterHandlesType.GetGenericType(typeDetail.Type);
+                var discoveredType = Discover(interfaceType);
+
+                if (discoveredType != null)
+                {
+                    var discoveredTypeDetail = discoveredType.GetTypeDetail();
+                    if (discoveredTypeDetail.InnerTypes.Count == 1)
+                    {
+                        var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType);
+                        var converter = discoveredTypeDetailGeneric.CreatorBoxed();
+                        return (ByteConverter<TParent>)converter;
+                    }
+                }
+            }
+
+            //generic match
+            if (typeDetail.Type.IsGenericType)
+            {
+                var genericType = typeDetail.Type.GetGenericTypeDefinition();
+                var interfaceType = byteConverterHandlesType.GetGenericType(genericType);
+                var name = interfaceType.GetNiceName();
+                var discoveredType = Discover(interfaceType);
+                if (discoveredType != null)
+                {
+                    var discoveredTypeDetail = discoveredType.GetTypeDetail();
+                    if (discoveredTypeDetail.InnerTypes.Count == 3)
+                    {
+                        var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]);
+                        var converter = discoveredTypeDetailGeneric.CreatorBoxed();
+                        return (ByteConverter<TParent>)converter;
+                    }
+                }
             }
 
             //enum
