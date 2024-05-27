@@ -123,9 +123,11 @@ namespace Zerra.Serialization
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
 
+            var frame = state.Current; //can change after enter another converter
+
             Dictionary<string, object?>? collectedValues;
 
-            if (state.Current.NullFlags && !state.Current.HasNullChecked)
+            if (frame.NullFlags && !frame.HasNullChecked)
             {
                 if (!reader.TryReadIsNull(out var isNull, out var sizeNeeded))
                 {
@@ -140,12 +142,12 @@ namespace Zerra.Serialization
                     return true;
                 }
 
-                state.Current.HasNullChecked = true;
+                frame.HasNullChecked = true;
             }
 
-            if (!state.Current.HasCreated)
+            if (!frame.HasCreated)
             {
-                if (!state.Current.DrainBytes)
+                if (!frame.DrainBytes)
                 {
                     if (collectValues)
                     {
@@ -169,18 +171,18 @@ namespace Zerra.Serialization
                     collectedValues = null;
                 }
 
-                state.Current.HasCreated = true;
+                frame.HasCreated = true;
             }
             else
             {
                 if (collectValues)
                 {
                     value = default;
-                    collectedValues = (Dictionary<string, object?>)state.Current.Object!;
+                    collectedValues = (Dictionary<string, object?>)frame.Object!;
                 }
                 else
                 {
-                    value = (TValue?)state.Current.Object;
+                    value = (TValue?)frame.Object;
                     collectedValues = null;
                 }
             }
@@ -191,35 +193,35 @@ namespace Zerra.Serialization
                 if (state.UsePropertyNames)
                 {
                     int sizeNeeded;
-                    if (!state.Current.StringLength.HasValue)
+                    if (!frame.StringLength.HasValue)
                     {
                         if (!reader.TryReadStringLength(false, out var stringLength, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             if (collectValues)
-                                state.Current.Object = collectedValues;
+                                frame.Object = collectedValues;
                             else
-                                state.Current.Object = value;
+                                frame.Object = value;
                             return false;
                         }
-                        state.Current.StringLength = stringLength;
+                        frame.StringLength = stringLength;
                     }
 
-                    if (state.Current.StringLength!.Value == 0)
+                    if (frame.StringLength!.Value == 0)
                     {
                         break;
                     }
 
-                    if (!reader.TryReadString(state.Current.StringLength.Value, out var name, out sizeNeeded))
+                    if (!reader.TryReadString(frame.StringLength.Value, out var name, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         if (collectValues)
-                            state.Current.Object = collectedValues;
+                            frame.Object = collectedValues;
                         else
-                            state.Current.Object = value;
+                            frame.Object = value;
                         return false;
                     }
-                    state.Current.StringLength = null;
+                    frame.StringLength = null;
 
                     property = null;
                     _ = membersByName?.TryGetValue(name!, out property);
@@ -232,14 +234,14 @@ namespace Zerra.Serialization
                         //consume bytes but object does not have property
                         var converter = ByteConverterFactory<TValue>.GetTypeRequired();
                         state.PushFrame(converter, false, value);
-                        state.Current.DrainBytes = true;
+                        frame.DrainBytes = true;
                         var read = converter.TryReadFromParent(ref reader, ref state, value);
                         if (!read)
                         {
                             if (collectValues)
-                                state.Current.Object = collectedValues;
+                                frame.Object = collectedValues;
                             else
-                                state.Current.Object = value;
+                                frame.Object = value;
                             return false;
                         }
                     }
@@ -252,9 +254,9 @@ namespace Zerra.Serialization
                             if (!read)
                             {
                                 if (collectValues)
-                                    state.Current.Object = collectedValues;
+                                    frame.Object = collectedValues;
                                 else
-                                    state.Current.Object = value;
+                                    frame.Object = value;
                                 return false;
                             }
                         }
@@ -265,9 +267,9 @@ namespace Zerra.Serialization
                             if (!read)
                             {
                                 if (collectValues)
-                                    state.Current.Object = collectedValues;
+                                    frame.Object = collectedValues;
                                 else
-                                    state.Current.Object = value;
+                                    frame.Object = value;
                                 return false;
                             }
                         }
@@ -282,9 +284,9 @@ namespace Zerra.Serialization
                         {
                             state.BytesNeeded = sizeNeeded;
                             if (collectValues)
-                                state.Current.Object = collectedValues;
+                                frame.Object = collectedValues;
                             else
-                                state.Current.Object = value;
+                                frame.Object = value;
                             return false;
                         }
                         propertyIndex = propertyIndexValue;
@@ -295,9 +297,9 @@ namespace Zerra.Serialization
                         {
                             state.BytesNeeded = sizeNeeded;
                             if (collectValues)
-                                state.Current.Object = collectedValues;
+                                frame.Object = collectedValues;
                             else
-                                state.Current.Object = value;
+                                frame.Object = value;
                             return false;
                         }
                         propertyIndex = propertyIndexValue;
@@ -323,14 +325,14 @@ namespace Zerra.Serialization
                         //consume bytes but object does not have property
                         var converter = ByteConverterFactory<TValue>.GetTypeRequired();
                         state.PushFrame(converter, false, default);
-                        state.Current.DrainBytes = true;
+                        frame.DrainBytes = true;
                         var read = converter.TryReadFromParent(ref reader, ref state, default);
                         if (!read)
                         {
                             if (collectValues)
-                                state.Current.Object = collectedValues;
+                                frame.Object = collectedValues;
                             else
-                                state.Current.Object = value;
+                                frame.Object = value;
                             return false;
                         }
                     }
@@ -343,9 +345,9 @@ namespace Zerra.Serialization
                             if (!read)
                             {
                                 if (collectValues)
-                                    state.Current.Object = collectedValues;
+                                    frame.Object = collectedValues;
                                 else
-                                    state.Current.Object = value;
+                                    frame.Object = value;
                                 return false;
                             }
                         }
@@ -356,9 +358,9 @@ namespace Zerra.Serialization
                             if (!read)
                             {
                                 if (collectValues)
-                                    state.Current.Object = collectedValues;
+                                    frame.Object = collectedValues;
                                 else
-                                    state.Current.Object = value;
+                                    frame.Object = value;
                                 return false;
                             }
                         }
@@ -394,8 +396,10 @@ namespace Zerra.Serialization
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
 
+            var frame = state.Current; //can change after enter another converter
+
             int sizeNeeded;
-            if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
+            if (frame.NullFlags && !frame.HasWrittenIsNull)
             {
                 if (value == null)
                 {
@@ -411,14 +415,14 @@ namespace Zerra.Serialization
                     state.BytesNeeded = sizeNeeded;
                     return false;
                 }
-                state.Current.HasWrittenIsNull = true;
+                frame.HasWrittenIsNull = true;
             }
 
             if (value == null)
                 throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
 
             IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember>> enumerator;
-            if (state.Current.Enumerator == null)
+            if (frame.Enumerator == null)
             {
                 if (state.IgnoreIndexAttribute)
                     enumerator = membersByIndexIngoreAttributes.GetEnumerator();
@@ -427,10 +431,10 @@ namespace Zerra.Serialization
             }
             else
             {
-                enumerator = (IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember>>)state.Current.Enumerator;
+                enumerator = (IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember>>)frame.Enumerator;
             }
 
-            while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
+            while (frame.EnumeratorInProgress || enumerator.MoveNext())
             {
                 var indexProperty = enumerator.Current;
 
@@ -440,14 +444,14 @@ namespace Zerra.Serialization
                     continue;
                 }
 
-                state.Current.EnumeratorInProgress = true;
+                frame.EnumeratorInProgress = true;
 
                 if (state.UsePropertyNames)
                 {
                     if (!writer.TryWrite(indexProperty.Value.Member.Name, false, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
-                        state.Current.Enumerator = enumerator;
+                        frame.Enumerator = enumerator;
                         return false;
                     }
                 }
@@ -458,7 +462,7 @@ namespace Zerra.Serialization
                         if (!writer.TryWrite(indexProperty.Key, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
-                            state.Current.Enumerator = enumerator;
+                            frame.Enumerator = enumerator;
                             return false;
                         }
                     }
@@ -467,18 +471,21 @@ namespace Zerra.Serialization
                         if (!writer.TryWrite((byte)indexProperty.Key, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
-                            state.Current.Enumerator = enumerator;
+                            frame.Enumerator = enumerator;
                             return false;
                         }
                     }
                 }
 
-                state.Current.EnumeratorInProgress = false;
+                frame.EnumeratorInProgress = false;
 
                 state.PushFrame(indexProperty.Value.Converter, false, value);
                 var write = indexProperty.Value.Converter.TryWriteFromParent(ref writer, ref state, value);
                 if (!write)
+                {
+                    frame.Enumerator = enumerator;
                     return false;
+                }
             }
 
             if (state.UsePropertyNames)
@@ -486,7 +493,7 @@ namespace Zerra.Serialization
                 if (!writer.TryWrite(0, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
-                    state.Current.Enumerator = enumerator;
+                    frame.Enumerator = enumerator;
                     return false;
                 }
             }
@@ -497,7 +504,7 @@ namespace Zerra.Serialization
                     if (!writer.TryWrite(endObjectFlagUInt16, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
-                        state.Current.Enumerator = enumerator;
+                        frame.Enumerator = enumerator;
                         return false;
                     }
                 }
@@ -506,7 +513,7 @@ namespace Zerra.Serialization
                     if (!writer.TryWrite(endObjectFlagByte, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
-                        state.Current.Enumerator = enumerator;
+                        frame.Enumerator = enumerator;
                         return false;
                     }
                 }

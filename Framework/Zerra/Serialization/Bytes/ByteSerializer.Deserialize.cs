@@ -492,9 +492,8 @@ namespace Zerra.Serialization
             var reader = new ByteReader(buffer, encoding);
             for (; ; )
             {
-                var read = state.Current.Converter.TryReadFromParentObject(ref reader, ref state, state.Current.Parent);
-                //read = false && state.BytesNeeded == 0 indicates we needed to unwind the stack
-                if (read || state.BytesNeeded > 0)
+                _ = state.Current.Converter.TryReadFromParentObject(ref reader, ref state, state.Current.Parent);
+                if (state.Ended || state.BytesNeeded > 0)
                     return reader.Position;
             }
         }

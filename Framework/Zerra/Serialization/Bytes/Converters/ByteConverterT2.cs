@@ -104,10 +104,15 @@ namespace Zerra.Serialization
 
                         if (setter != null && parent != null)
                             setter(parent, (TValue?)valueObject);
+                        state.EndFrame(valueObject);
+                        return true;
+                    }
+                    else
+                    {
+                        state.Current.StringLength = null;
                     }
                 }
-
-                if (useEmptyImplementation)
+                else if (useEmptyImplementation)
                 {
                     var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                     var newTypeDetail = emptyImplementationType.GetTypeDetail();
@@ -121,6 +126,8 @@ namespace Zerra.Serialization
 
                     if (setter != null && parent != null)
                         setter(parent, (TValue?)valueObject);
+                    state.EndFrame(valueObject);
+                    return true;
                 }
 
                 state.Current.HasTypeRead = true;
@@ -131,7 +138,6 @@ namespace Zerra.Serialization
 
             if (setter != null && parent != null)
                 setter(parent, value);
-
             state.EndFrame(value);
             return true;
         }
@@ -176,6 +182,8 @@ namespace Zerra.Serialization
                         state.Current.HasTypeWritten = true;
                         if (!newConverter.TryWriteValueObject(ref writer, ref state, value))
                             return false;
+                        state.EndFrame();
+                        return true;
                     }
                 }
                 else if (useEmptyImplementation)
@@ -190,6 +198,8 @@ namespace Zerra.Serialization
                         state.Current.HasTypeWritten = true;
                         if (!newConverter.TryWriteValueObject(ref writer, ref state, value))
                             return false;
+                        state.EndFrame();
+                        return true;
                     }
                 }
 
@@ -198,7 +208,6 @@ namespace Zerra.Serialization
 
             if (!TryWriteValue(ref writer, ref state, value))
                 return false;
-
             state.EndFrame();
             return true;
         }

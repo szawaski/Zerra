@@ -373,7 +373,7 @@ namespace Zerra.Serialization
                 BufferArrayPool<byte>.Return(buffer);
             }
         }
-        
+
         public static async Task SerializeAsync<T>(Stream stream, T? obj, ByteSerializerOptions? options = null)
         {
             if (stream == null)
@@ -565,7 +565,7 @@ namespace Zerra.Serialization
                 Array.Clear(buffer, 0, buffer.Length);
                 BufferArrayPool<byte>.Return(buffer);
             }
-        }        
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Write(Span<byte> buffer, ref WriteState state, Encoding encoding)
@@ -573,9 +573,8 @@ namespace Zerra.Serialization
             var writer = new ByteWriter(buffer, encoding);
             for (; ; )
             {
-                var write = state.Current.Converter.TryWriteFromParentObject(ref writer, ref state, state.Current.Parent);
-                //write = false && state.BytesNeeded == 0 indicates we needed to unwind the stack
-                if (write || state.BytesNeeded > 0)
+                _ = state.Current.Converter.TryWriteFromParentObject(ref writer, ref state, state.Current.Parent);
+                if (state.Ended || state.BytesNeeded > 0)
                     return writer.Length;
             }
         }
