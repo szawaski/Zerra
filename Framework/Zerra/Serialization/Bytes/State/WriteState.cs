@@ -2,44 +2,25 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace Zerra.Serialization
 {
     public struct WriteState
     {
-//        private static readonly Queue<WriteFrame> framePool = new();
-//        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-//        private static WriteFrame RentFrame()
-//        {
-//#if NETSTANDARD2_0
-//            if (framePool.Count > 0)
-//                return framePool.Dequeue();
-//            else
-//                return new();
-//#else
-//            if (framePool.TryDequeue(out var frame))
-//                return frame;
-//            return new();
-//#endif
-//        }
-//        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-//        private static void ReturnFrame(WriteFrame frame)
-//        {
-//            frame.Converter = default;
-//            frame.NullFlags = default;
-//            frame.Parent = default;
-//            frame.Object = default;
-//            frame.HasWrittenIsNull = default;
-//            frame.EnumerableLength = default;
-//            frame.ObjectInProgress = default;
-//            frame.Enumerator = default;
-//            frame.EnumeratorInProgress = default;
-//            framePool.Enqueue(frame);
-//        }
+        private WriteFrame[] stack;
+        private int stackCount;
+        private int stashCount;
+        public int StackSize => stackCount;
 
-        public Stack<WriteFrame> Stack;
+        private void EnsureStackSize()
+        {
+            if (stack == null)
+                stack = new WriteFrame[4];
+            else if (stackCount == stack.Length)
+                Array.Resize(ref stack, stack.Length * 2);
+        }
 
         public bool IncludePropertyTypes;
         public bool UsePropertyNames;
@@ -47,28 +28,43 @@ namespace Zerra.Serialization
         public bool IndexSizeUInt16;
 
         public WriteFrame Current;
-        public object? Object;
         public bool Ended;
         public int BytesNeeded;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PushFrame(ByteConverter converter, bool nullFlags, object? parent)
+        public void PushFrame(bool nullFlags)
         {
-            var frame = new WriteFrame();
-            frame.Converter = converter;
-            frame.NullFlags = nullFlags;
-            frame.Parent = parent;
+            if (stashCount > 0)
+            {
+                Current = stack[stackCount++];
+                stashCount--;
+            }
+            else
+            {
+                EnsureStackSize();
+                if (stackCount > 0)
+                    stack[stackCount++ - 1] = Current;
+                else
+                    stackCount++;
+                Current = new WriteFrame()
+                {
+                    NullFlags = nullFlags
+                };
+            }
+        }
 
-            Stack.Push(Current);
-            Current = frame;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void StashFrame()
+        {
+            Current = stack[stackCount-- - 1];
+            stashCount++;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EndFrame()
         {
-            //ReturnFrame(CurrentFrame);
-            Current = Stack.Pop();
-            if (Stack.Count == 0)
+            Current = stack[stackCount-- - 1];
+            if (stackCount == 0)
                 Ended = true;
         }
     }

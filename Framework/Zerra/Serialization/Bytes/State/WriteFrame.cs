@@ -2,17 +2,17 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System;
+
 namespace Zerra.Serialization
 {
-    public sealed class WriteFrame
+    public struct WriteFrame
     {
-        public ByteConverter Converter;
         public bool NullFlags;
 
-        public object? Parent;
+        public Type WriteType;
         public object? Object;
 
-        public bool HasTypeWritten;
         public bool HasWrittenIsNull;
         public int? EnumerableLength;
 

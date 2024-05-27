@@ -35,19 +35,16 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
-                    Stack = new(),
                     IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
-
-                    Object = obj
                 };
-                state.PushFrame(converter, true, null);
+                state.PushFrame(true);
 
                 for (; ; )
                 {
-                    var usedBytes = Write(buffer.AsSpan().Slice(position), ref state, options.Encoding);
+                    var usedBytes = Write(converter, buffer.AsSpan().Slice(position), ref state, options.Encoding, obj);
 
                     position += usedBytes;
 
@@ -93,19 +90,16 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
-                    Stack = new(),
                     IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
-
-                    Object = obj
                 };
-                state.PushFrame(converter, true, null);
+                state.PushFrame(true);
 
                 for (; ; )
                 {
-                    var usedBytes = Write(buffer.AsSpan().Slice(position), ref state, options.Encoding);
+                    var usedBytes = Write(converter, buffer.AsSpan().Slice(position), ref state, options.Encoding, obj);
 
                     position += usedBytes;
 
@@ -153,19 +147,16 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
-                    Stack = new(),
                     IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
-
-                    Object = obj
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(converter, true, null);
+                state.PushFrame(true);
 
                 for (; ; )
                 {
-                    var usedBytes = Write(buffer.AsSpan().Slice(position), ref state, options.Encoding);
+                    var usedBytes = Write(converter, buffer.AsSpan().Slice(position), ref state, options.Encoding, obj);
 
                     position += usedBytes;
 
@@ -213,19 +204,16 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
-                    Stack = new(),
                     IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
-
-                    Object = obj
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(converter, true, null);
+                state.PushFrame(true);
 
                 for (; ; )
                 {
-                    var usedBytes = Write(buffer, ref state, options.Encoding);
+                    var usedBytes = Write(converter, buffer, ref state, options.Encoding, obj);
 
 #if NETSTANDARD2_0
                     stream.Write(buffer, 0, usedBytes);
@@ -273,19 +261,16 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
-                    Stack = new(),
                     IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
-
-                    Object = obj
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(converter, true, null);
+                state.PushFrame(true);
 
                 for (; ; )
                 {
-                    var usedBytes = Write(buffer, ref state, options.Encoding);
+                    var usedBytes = Write(converter, buffer, ref state, options.Encoding, obj);
 
 #if NETSTANDARD2_0
                     stream.Write(buffer, 0, usedBytes);
@@ -335,19 +320,16 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
-                    Stack = new(),
                     IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
-
-                    Object = obj
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(converter, true, null);
+                state.PushFrame(true);
 
                 for (; ; )
                 {
-                    var usedBytes = Write(buffer, ref state, options.Encoding);
+                    var usedBytes = Write(converter, buffer, ref state, options.Encoding, obj);
 
 #if NETSTANDARD2_0
                     stream.Write(buffer, 0, usedBytes);
@@ -396,19 +378,16 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
-                    Stack = new(),
                     IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
-
-                    Object = obj
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(converter, true, null);
+                state.PushFrame(true);
 
                 for (; ; )
                 {
-                    var usedBytes = Write(buffer, ref state, options.Encoding);
+                    var usedBytes = Write(converter, buffer, ref state, options.Encoding, obj);
 
 #if NETSTANDARD2_0
                     await stream.WriteAsync(buffer, 0, usedBytes);
@@ -461,19 +440,16 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
-                    Stack = new(),
                     IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
-
-                    Object = obj
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(converter, true, null);
+                state.PushFrame(true);
 
                 for (; ; )
                 {
-                    var usedBytes = Write(buffer, ref state, options.Encoding);
+                    var usedBytes = Write(converter, buffer, ref state, options.Encoding, obj);
 
 #if NETSTANDARD2_0
                     await stream.WriteAsync(buffer, 0, usedBytes);
@@ -528,19 +504,16 @@ namespace Zerra.Serialization
             {
                 var state = new WriteState()
                 {
-                    Stack = new(),
                     IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
-
-                    Object = obj
+                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(converter, true, null);
+                state.PushFrame(true);
 
                 for (; ; )
                 {
-                    var usedBytes = Write(buffer, ref state, options.Encoding);
+                    var usedBytes = Write(converter, buffer, ref state, options.Encoding, obj);
 
 #if NETSTANDARD2_0
                     await stream.WriteAsync(buffer, 0, usedBytes);
@@ -568,15 +541,20 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Write(Span<byte> buffer, ref WriteState state, Encoding encoding)
+        private static int Write(ByteConverter converter, Span<byte> buffer, ref WriteState state, Encoding encoding, object value)
         {
             var writer = new ByteWriter(buffer, encoding);
+#if DEBUG
             for (; ; )
             {
-                _ = state.Current.Converter.TryWriteFromParentObject(ref writer, ref state, state.Current.Parent);
+                converter.TryWrite(ref writer, ref state, value);
                 if (state.Ended || state.BytesNeeded > 0)
                     return writer.Length;
             }
+#else
+            converter.TryWrite(ref writer, ref state, value);
+            return writer.Length;
+#endif
         }
     }
 }

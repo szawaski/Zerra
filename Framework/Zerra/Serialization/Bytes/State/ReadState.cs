@@ -2,44 +2,25 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace Zerra.Serialization
 {
     public struct ReadState
     {
-        //        private static readonly Stack<ReadFrame> framePool = new();
-        //        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        //        private static ReadFrame RentFrame()
-        //        {
-        //#if NETSTANDARD2_0
-        //            if (framePool.Count > 0)
-        //                return framePool.Pop();
-        //            else
-        //                return new();
-        //#else
-        //            if (framePool.TryPop(out var frame))
-        //                return frame;
-        //            return new();
-        //#endif
-        //        }
-        //        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        //        private static void ReturnFrame(ReadFrame frame)
-        //        {
-        //            //frame.Converter = default;
-        //            //frame.NullFlags = default;
-        //            frame.HasNullChecked = default;
-        //            frame.HasObjectStarted = default;
-        //            frame.ResultObject = default;
-        //            //frame.Parent = default;
-        //            frame.StringLength = default;
-        //            frame.EnumerableLength = default;
-        //            frame.DrainBytes = default;
-        //            framePool.Push(frame);
-        //        }
+        private ReadFrame[] stack;
+        private int stackCount;
+        private int stashCount;
+        public int StackSize => stackCount;
 
-        public Stack<ReadFrame> Stack;
+        private void EnsureStackSize()
+        {
+            if (stack == null)
+                stack = new ReadFrame[4];
+            else if (stackCount == stack.Length)
+                Array.Resize(ref stack, stack.Length * 2);
+        }
 
         public bool IncludePropertyTypes;
         public bool UsePropertyNames;
@@ -47,32 +28,44 @@ namespace Zerra.Serialization
         public bool IndexSizeUInt16;
 
         public ReadFrame Current;
-        public object? Result;
         public bool Ended;
         public int BytesNeeded;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PushFrame(ByteConverter converter, bool nullFlags, object? parent)
+        public void PushFrame(bool nullFlags)
         {
-            var frame = new ReadFrame();
-            frame.Converter = converter;
-            frame.NullFlags = nullFlags;
-            frame.Parent = parent;
-
-            Stack.Push(Current);
-            Current = frame;
+            if (stashCount > 0)
+            {
+                Current = stack[stackCount++];
+                stashCount--;
+            }
+            else
+            {
+                EnsureStackSize();
+                if (stackCount > 0)
+                    stack[stackCount++ - 1] = Current;
+                else
+                    stackCount++;
+                Current = new ReadFrame()
+                {
+                    NullFlags = nullFlags
+                };
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void EndFrame(object? result)
+        public void StashFrame()
         {
-            //ReturnFrame(CurrentFrame);
-            Current = Stack.Pop();
-            if (Stack.Count == 0)
-            {
+            Current = stack[stackCount-- - 1];
+            stashCount++;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EndFrame()
+        {
+            Current = stack[stackCount-- - 1];
+            if (stackCount == 0)
                 Ended = true;
-                Result = result;
-            }
         }
     }
 }

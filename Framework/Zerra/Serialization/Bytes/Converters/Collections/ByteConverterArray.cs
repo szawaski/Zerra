@@ -80,7 +80,7 @@ namespace Zerra.Serialization
 
             for (; ; )
             {
-                state.PushFrame(converter, true, accessor);
+                state.PushFrame(true);
                 var read = converter.TryReadFromParent(ref reader, ref state, accessor);
                 if (!read)
                 {
@@ -142,7 +142,7 @@ namespace Zerra.Serialization
             {
                 while (accessor.Count < accessor.Array.Length)
                 {
-                    state.PushFrame(converter, true, accessor);
+                    state.PushFrame(true);
                     var write = converter.TryWriteFromParent(ref writer, ref state, accessor);
                     if (!write)
                     {

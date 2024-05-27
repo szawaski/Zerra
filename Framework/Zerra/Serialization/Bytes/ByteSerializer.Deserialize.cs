@@ -25,20 +25,20 @@ namespace Zerra.Serialization
 
             var state = new ReadState()
             {
-                Stack = new(),
                 IncludePropertyTypes = options.IncludePropertyTypes,
                 UsePropertyNames = options.UsePropertyNames,
                 IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                 IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
             };
-            state.PushFrame(converter, true, null);
+            state.PushFrame(true);
+            object? result;
 
-            Read(bytes, ref state, options.Encoding);
+            Read(converter, bytes, ref state, options.Encoding, out result);
 
             if (!state.Ended || state.BytesNeeded > 0)
                 throw new EndOfStreamException();
 
-            return (T?)state.Result;
+            return (T?)result;
         }
         public static object? Deserialize(Type type, ReadOnlySpan<byte> bytes, ByteSerializerOptions? options = null)
         {
@@ -52,20 +52,20 @@ namespace Zerra.Serialization
 
             var state = new ReadState()
             {
-                Stack = new(),
                 IncludePropertyTypes = options.IncludePropertyTypes,
                 UsePropertyNames = options.UsePropertyNames,
                 IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                 IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
             };
-            state.PushFrame(converter, true, null);
+            state.PushFrame(true);
+            object? result;
 
-            Read(bytes, ref state, options.Encoding);
+            Read(converter, bytes, ref state, options.Encoding, out result);
 
             if (!state.Ended || state.BytesNeeded > 0)
                 throw new EndOfStreamException();
 
-            return state.Result;
+            return result;
         }
 
         public static T? Deserialize<T>(Stream stream, ByteSerializerOptions? options = null)
@@ -113,17 +113,17 @@ namespace Zerra.Serialization
 
                 var state = new ReadState()
                 {
-                    Stack = new(),
                     IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(converter, true, null);
+                state.PushFrame(true);
+                object? result;
 
                 for (; ; )
                 {
-                    var bytesUsed = Read(buffer.AsSpan().Slice(0, read), ref state, options.Encoding);
+                    var bytesUsed = Read(converter, buffer.AsSpan().Slice(0, read), ref state, options.Encoding, out result);
 
                     if (state.Ended)
                         break;
@@ -163,7 +163,7 @@ namespace Zerra.Serialization
                     }
                 }
 
-                return (T?)state.Result;
+                return (T?)result;
             }
             finally
             {
@@ -218,17 +218,17 @@ namespace Zerra.Serialization
 
                 var state = new ReadState()
                 {
-                    Stack = new(),
                     IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(converter, true, null);
+                state.PushFrame(true);
+                object? result;
 
                 for (; ; )
                 {
-                    var bytesUsed = Read(buffer.AsSpan().Slice(0, read), ref state, options.Encoding);
+                    var bytesUsed = Read(converter, buffer.AsSpan().Slice(0, read), ref state, options.Encoding, out result);
 
                     if (state.Ended)
                         break;
@@ -268,7 +268,7 @@ namespace Zerra.Serialization
                     }
                 }
 
-                return state.Result;
+                return result;
             }
             finally
             {
@@ -322,17 +322,17 @@ namespace Zerra.Serialization
 
                 var state = new ReadState()
                 {
-                    Stack = new(),
                     IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(converter, true, null);
+                state.PushFrame(true);
+                object? result;
 
                 for (; ; )
                 {
-                    var usedBytes = Read(buffer.AsSpan().Slice(0, length), ref state, options.Encoding);
+                    var usedBytes = Read(converter, buffer.AsSpan().Slice(0, length), ref state, options.Encoding, out result);
 
                     if (state.Ended)
                         break;
@@ -372,7 +372,7 @@ namespace Zerra.Serialization
                     }
                 }
 
-                return (T?)state.Result;
+                return (T?)result;
             }
             finally
             {
@@ -427,17 +427,17 @@ namespace Zerra.Serialization
 
                 var state = new ReadState()
                 {
-                    Stack = new(),
                     IncludePropertyTypes = options.IncludePropertyTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(converter, true, null);
+                state.PushFrame(true);
+                object? result;
 
                 for (; ; )
                 {
-                    var bytesUsed = Read(buffer.AsSpan().Slice(0, read), ref state, options.Encoding);
+                    var bytesUsed = Read(converter, buffer.AsSpan().Slice(0, read), ref state, options.Encoding, out result);
 
                     if (state.Ended)
                         break;
@@ -477,7 +477,7 @@ namespace Zerra.Serialization
                     }
                 }
 
-                return state.Result;
+                return result;
             }
             finally
             {
@@ -487,15 +487,20 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Read(ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding)
+        private static int Read(ByteConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding, out object? result)
         {
             var reader = new ByteReader(buffer, encoding);
+#if DEBUG
             for (; ; )
             {
-                _ = state.Current.Converter.TryReadFromParentObject(ref reader, ref state, state.Current.Parent);
+                converter.TryRead(ref reader, ref state, out result);
                 if (state.Ended || state.BytesNeeded > 0)
                     return reader.Position;
             }
+#else
+            converter.TryRead(ref reader, ref state, out result);
+            return reader.Position;
+#endif
         }
     }
 }
