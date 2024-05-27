@@ -573,7 +573,7 @@ namespace Zerra.Serialization
             var writer = new ByteWriter(buffer, encoding);
             for (; ; )
             {
-                var write = state.Current.Converter.TryWrite(ref writer, ref state, state.Current.Parent);
+                var write = state.Current.Converter.TryWriteFromParentObject(ref writer, ref state, state.Current.Parent);
                 //write = false && state.BytesNeeded == 0 indicates we needed to unwind the stack
                 if (write || state.BytesNeeded > 0)
                     return writer.Length;

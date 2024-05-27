@@ -387,7 +387,7 @@ namespace Zerra.Test
             {
                 await ByteSerializer.SerializeAsync(ms, model1, options);
                 ms.Position = 0;
-                var model2 = await ByteSerializerOld.DeserializeAsync<TestBoxingModel>(ms, options);
+                var model2 = await ByteSerializer.DeserializeAsync<TestBoxingModel>(ms, options);
                 Factory.AssertAreEqual(model1, model2);
             }
         }

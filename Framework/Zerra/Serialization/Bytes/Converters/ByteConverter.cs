@@ -22,11 +22,11 @@ namespace Zerra.Serialization
         protected const int maxStackDepth = 32;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public abstract void Setup(TypeDetail? typeDetail, string? memberKey, Delegate? getterBoxed, Delegate? setterBoxed);
+        public abstract void Setup(TypeDetail? typeDetail, string? memberKey, Delegate? getterDelegate, Delegate? setterDelegate);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public abstract bool TryRead(ref ByteReader reader, ref ReadState state, object? parent);
+        public abstract bool TryReadFromParentObject(ref ByteReader reader, ref ReadState state, object? parent);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public abstract bool TryWrite(ref ByteWriter writer, ref WriteState state, object? parent);
+        public abstract bool TryWriteFromParentObject(ref ByteWriter writer, ref WriteState state, object? parent);
     }
 }

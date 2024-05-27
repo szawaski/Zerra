@@ -22,7 +22,7 @@ namespace Zerra.Serialization
             this.writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, null);
         }
 
-        protected override bool TryRead(ref ByteReader reader, ref ReadState state, out TArray? value)
+        protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out TArray? value)
         {
             int sizeNeeded;
             if (state.Current.NullFlags && !state.Current.HasNullChecked)
@@ -84,7 +84,7 @@ namespace Zerra.Serialization
             for (; ; )
             {
                 state.PushFrame(readConverter, true, accessor);
-                var read = readConverter.TryRead(ref reader, ref state, accessor);
+                var read = readConverter.TryReadFromParent(ref reader, ref state, accessor);
                 if (!read)
                 {
                     state.Current.Object = accessor;
@@ -96,7 +96,7 @@ namespace Zerra.Serialization
             }
         }
 
-        protected override bool TryWrite(ref ByteWriter writer, ref WriteState state, TArray? value)
+        protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TArray? value)
         {
             int sizeNeeded;
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
@@ -151,7 +151,7 @@ namespace Zerra.Serialization
                 state.Current.EnumeratorInProgress = true;
 
                 state.PushFrame(writeConverter, true, value);
-                var write = writeConverter.TryWrite(ref writer, ref state, enumerator);
+                var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator);
                 if (!write)
                 {
                     state.Current.Object = enumerator;

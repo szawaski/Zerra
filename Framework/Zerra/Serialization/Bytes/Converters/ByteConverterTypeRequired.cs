@@ -5,6 +5,7 @@
 using Zerra.Reflection;
 using System;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Zerra.Serialization
 {
@@ -12,8 +13,8 @@ namespace Zerra.Serialization
     {
         private TypeDetail? typeDetail;
         private string? memberKey;
-        private Delegate? getterBoxed;
-        private Delegate? setterBoxed;
+        private Delegate? getterDelegate;
+        private Delegate? setterDelegate;
 
         private bool useEmptyImplementation;
 
@@ -21,13 +22,18 @@ namespace Zerra.Serialization
         {
             this.typeDetail = typeDetail;
             this.memberKey = memberKey;
-            this.getterBoxed = getterBoxed;
-            this.setterBoxed = setterBoxed;
+            this.getterDelegate = getterBoxed;
+            this.setterDelegate = setterBoxed;
 
             this.useEmptyImplementation = typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.IsIEnumerableGeneric;
         }
 
-        public override bool TryRead(ref ByteReader reader, ref ReadState state, TParent? parent)
+        public override bool TryReadValueObject(ref ByteReader reader, ref ReadState state, out object? value)
+            => throw new InvalidOperationException();
+        public override bool TryWriteValueObject(ref ByteWriter writer, ref WriteState state, object? value)
+            => throw new InvalidOperationException();
+
+        public override bool TryReadFromParent(ref ByteReader reader, ref ReadState state, TParent? parent)
         {
             if (state.IncludePropertyTypes)
             {
@@ -62,11 +68,11 @@ namespace Zerra.Serialization
                         throw new NotSupportedException($"{newTypeDetail.Type.GetNiceName()} does not convert to {typeDetail.Type.GetNiceName()}");
                 }
 
-                var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getterBoxed, setterBoxed);
+                var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getterDelegate, setterDelegate);
                 state.Current.StringLength = null;
                 state.Current.Converter = newConverter;
                 state.Current.HasTypeRead = true;
-                return newConverter.TryRead(ref reader, ref state, parent);
+                return newConverter.TryReadFromParent(ref reader, ref state, parent);
             }
 
             if (useEmptyImplementation)
@@ -74,18 +80,18 @@ namespace Zerra.Serialization
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail!.Type);
                 var newTypeDetail = emptyImplementationType.GetTypeDetail();
 
-                var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getterBoxed, setterBoxed);
+                var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getterDelegate, setterDelegate);
                 state.Current.Converter = newConverter;
                 state.Current.HasTypeRead = true;
-                return newConverter.TryRead(ref reader, ref state, parent);
+                return newConverter.TryReadFromParent(ref reader, ref state, parent);
             }
 
             throw new InvalidOperationException($"{nameof(ByteConverterTypeRequired<TParent>)} should not have been used.");
         }
 
-        public override bool TryWrite(ref ByteWriter writer, ref WriteState state, TParent? parent)
+        public override bool TryWriteFromParent(ref ByteWriter writer, ref WriteState state, TParent? parent)
         {
-            throw new NotSupportedException();
+            throw new InvalidOperationException();
         }
     }
 }

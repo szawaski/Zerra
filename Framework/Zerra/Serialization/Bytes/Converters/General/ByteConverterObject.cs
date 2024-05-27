@@ -118,7 +118,7 @@ namespace Zerra.Serialization
             }
         }
 
-        protected override bool TryRead(ref ByteReader reader, ref ReadState state, out TValue? value)
+        protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue? value)
         {
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
@@ -233,7 +233,7 @@ namespace Zerra.Serialization
                         var converter = ByteConverterFactory<TValue>.GetTypeRequired();
                         state.PushFrame(converter, false, value);
                         state.Current.DrainBytes = true;
-                        var read = converter.TryRead(ref reader, ref state, value);
+                        var read = converter.TryReadFromParent(ref reader, ref state, value);
                         if (!read)
                         {
                             if (collectValues)
@@ -248,7 +248,7 @@ namespace Zerra.Serialization
                         if (collectValues)
                         {
                             state.PushFrame(property.ConverterSetValues, false, collectedValues);
-                            var read = property.ConverterSetValues.TryRead(ref reader, ref state, collectedValues);
+                            var read = property.ConverterSetValues.TryReadFromParent(ref reader, ref state, collectedValues);
                             if (!read)
                             {
                                 if (collectValues)
@@ -261,7 +261,7 @@ namespace Zerra.Serialization
                         else
                         {
                             state.PushFrame(property.Converter, false, value);
-                            var read = property.Converter.TryRead(ref reader, ref state, value);
+                            var read = property.Converter.TryReadFromParent(ref reader, ref state, value);
                             if (!read)
                             {
                                 if (collectValues)
@@ -324,7 +324,7 @@ namespace Zerra.Serialization
                         var converter = ByteConverterFactory<TValue>.GetTypeRequired();
                         state.PushFrame(converter, false, default);
                         state.Current.DrainBytes = true;
-                        var read = converter.TryRead(ref reader, ref state, default);
+                        var read = converter.TryReadFromParent(ref reader, ref state, default);
                         if (!read)
                         {
                             if (collectValues)
@@ -339,7 +339,7 @@ namespace Zerra.Serialization
                         if (collectValues)
                         {
                             state.PushFrame(property.ConverterSetValues, false, collectedValues);
-                            var read = property.ConverterSetValues.TryRead(ref reader, ref state, collectedValues);
+                            var read = property.ConverterSetValues.TryReadFromParent(ref reader, ref state, collectedValues);
                             if (!read)
                             {
                                 if (collectValues)
@@ -352,7 +352,7 @@ namespace Zerra.Serialization
                         else
                         {
                             state.PushFrame(property.Converter, false, value);
-                            var read = property.Converter.TryRead(ref reader, ref state, value);
+                            var read = property.Converter.TryReadFromParent(ref reader, ref state, value);
                             if (!read)
                             {
                                 if (collectValues)
@@ -389,7 +389,7 @@ namespace Zerra.Serialization
             return true;
         }
 
-        protected override bool TryWrite(ref ByteWriter writer, ref WriteState state, TValue? value)
+        protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue? value)
         {
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
@@ -476,7 +476,7 @@ namespace Zerra.Serialization
                 state.Current.EnumeratorInProgress = false;
 
                 state.PushFrame(indexProperty.Value.Converter, false, value);
-                var write = indexProperty.Value.Converter.TryWrite(ref writer, ref state, value);
+                var write = indexProperty.Value.Converter.TryWriteFromParent(ref writer, ref state, value);
                 if (!write)
                     return false;
             }

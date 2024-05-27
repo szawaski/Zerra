@@ -9,7 +9,7 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterTimeSpanOffset<TParent> : ByteConverter<TParent, TimeSpan>
     {
-        protected override bool TryRead(ref ByteReader reader, ref ReadState state, out TimeSpan value)
+        protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out TimeSpan value)
         {
             if (!reader.TryReadTimeSpan(out value, out var sizeNeeded))
             {
@@ -19,7 +19,7 @@ namespace Zerra.Serialization
             return true;
         }
 
-        protected override bool TryWrite(ref ByteWriter writer, ref WriteState state, TimeSpan value)
+        protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TimeSpan value)
         {
             if (!writer.TryWrite(value, out var sizeNeeded))
             {

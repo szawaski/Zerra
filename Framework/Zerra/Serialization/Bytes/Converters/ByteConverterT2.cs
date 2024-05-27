@@ -16,23 +16,27 @@ namespace Zerra.Serialization
         private string? memberKey;
         private Func<TParent, TValue?>? getter;
         private Action<TParent, TValue?>? setter;
-        private Func<TParent, object?>? getterObject;
-        private Action<TParent, object?>? setterObject;
 
         private bool useEmptyImplementation;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override void Setup(TypeDetail? typeDetail, string? memberKey, Delegate? getterBoxed, Delegate? setterBoxed)
+        public override void Setup(TypeDetail? typeDetail, string? memberKey, Delegate? getterDelegate, Delegate? setterDelegate)
         {
             if (typeDetail == null)
                 throw new ArgumentNullException(nameof(typeDetail));
 
             this.typeDetail = (TypeDetail<TValue>)typeDetail;
             this.memberKey = memberKey;
-            this.getter = (Func<TParent, TValue?>?)getterBoxed;
-            this.setter = (Action<TParent, TValue?>?)setterBoxed;
-            if (this.getter != null)
-                this.getterObject = (parent) => (object?)getter(parent);
+            if (getterDelegate != null)
+            {
+                this.getter = getterDelegate as Func<TParent, TValue?>;
+                this.getter ??= (parent) => (TValue?)getterDelegate.DynamicInvoke(parent);
+            }
+            if (setterDelegate != null)
+            {
+                this.setter = setterDelegate as Action<TParent, TValue?>;
+                this.setter ??= (parent, value) => setterDelegate.DynamicInvoke(parent, value);
+            }
 
             this.useEmptyImplementation = typeDetail.Type.IsInterface && !typeDetail.IsIEnumerableGeneric;
 
@@ -40,7 +44,18 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed bool TryRead(ref ByteReader reader, ref ReadState state, TParent? parent)
+        public override bool TryReadValueObject(ref ByteReader reader, ref ReadState state, out object? value)
+        {
+            var read = TryReadValue(ref reader, ref state, out var v);
+            value = v;
+            return read;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override bool TryWriteValueObject(ref ByteWriter writer, ref WriteState state, object? value)
+            => TryWriteValue(ref writer, ref state, (TValue?)value);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override sealed bool TryReadFromParent(ref ByteReader reader, ref ReadState state, TParent? parent)
         {
             if (state.Stack.Count > maxStackDepth)
                 return false;
@@ -73,15 +88,23 @@ namespace Zerra.Serialization
 
                     var newTypeDetail = typeFromBytes.GetTypeDetail();
 
-                    //overrides potentially boxed type with actual type if exists in assembly
-                    if (newTypeDetail.Type != typeDetail.Type && !newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
-                        throw new NotSupportedException($"{newTypeDetail.Type.GetNiceName()} does not convert to {typeDetail.Type.GetNiceName()}");
+                    if (newTypeDetail.Type != typeDetail.Type)
+                    {
+                        //overrides potentially boxed type with actual type if exists in assembly
+                        if (!newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
+                            throw new NotSupportedException($"{newTypeDetail.Type.GetNiceName()} does not convert to {typeDetail.Type.GetNiceName()}");
 
-                    var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
-                    state.Current.StringLength = null;
-                    state.Current.Converter = newConverter;
-                    state.Current.HasTypeRead = true;
-                    return newConverter.TryRead(ref reader, ref state, parent);
+                        var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
+                        state.Current.StringLength = null;
+                        state.Current.Converter = newConverter;
+                        state.Current.HasTypeRead = true;
+
+                        if (!newConverter.TryReadValueObject(ref reader, ref state, out var valueObject))
+                            return false;
+
+                        if (setter != null && parent != null)
+                            setter(parent, (TValue?)valueObject);
+                    }
                 }
 
                 if (useEmptyImplementation)
@@ -92,13 +115,18 @@ namespace Zerra.Serialization
                     var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
                     state.Current.Converter = newConverter;
                     state.Current.HasTypeRead = true;
-                    return newConverter.TryRead(ref reader, ref state, parent);
+
+                    if (!newConverter.TryReadValueObject(ref reader, ref state, out var valueObject))
+                        return false;
+
+                    if (setter != null && parent != null)
+                        setter(parent, (TValue?)valueObject);
                 }
 
                 state.Current.HasTypeRead = true;
             }
 
-            if (!TryRead(ref reader, ref state, out var value))
+            if (!TryReadValue(ref reader, ref state, out var value))
                 return false;
 
             if (setter != null && parent != null)
@@ -108,7 +136,7 @@ namespace Zerra.Serialization
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed bool TryWrite(ref ByteWriter writer, ref WriteState state, TParent? parent)
+        public override sealed bool TryWriteFromParent(ref ByteWriter writer, ref WriteState state, TParent? parent)
         {
             if (state.Stack.Count > maxStackDepth)
                 return false;
@@ -146,7 +174,8 @@ namespace Zerra.Serialization
                         var newConverter = ByteConverterFactory<TParent>.Get(typeFromValue, memberKey, getter, setter);
                         state.Current.Converter = newConverter;
                         state.Current.HasTypeWritten = true;
-                        return newConverter.TryWrite(ref writer, ref state, value);
+                        if (!newConverter.TryWriteValueObject(ref writer, ref state, value))
+                            return false;
                     }
                 }
                 else if (useEmptyImplementation)
@@ -159,14 +188,15 @@ namespace Zerra.Serialization
                         var newConverter = ByteConverterFactory<TParent>.Get(typeFromValue, memberKey, getter, setter);
                         state.Current.Converter = newConverter;
                         state.Current.HasTypeWritten = true;
-                        return newConverter.TryWrite(ref writer, ref state, parent);
+                        if (!newConverter.TryWriteValueObject(ref writer, ref state, value))
+                            return false;
                     }
                 }
 
                 state.Current.HasTypeWritten = true;
             }
 
-            if (!TryWrite(ref writer, ref state, value))
+            if (!TryWriteValue(ref writer, ref state, value))
                 return false;
 
             state.EndFrame();
@@ -177,8 +207,8 @@ namespace Zerra.Serialization
         protected virtual void Setup() { }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected abstract bool TryRead(ref ByteReader reader, ref ReadState state, out TValue? value);
+        protected abstract bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue? value);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected abstract bool TryWrite(ref ByteWriter writer, ref WriteState state, TValue? value);
+        protected abstract bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue? value);
     }
 }

@@ -10,7 +10,7 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterEnum<TParent, TValue> : ByteConverter<TParent, TValue>
     {
-        protected override bool TryRead(ref ByteReader reader, ref ReadState state, out TValue? value)
+        protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue? value)
         {
             int sizeNeeded;
 
@@ -284,7 +284,7 @@ namespace Zerra.Serialization
             };
         }
 
-        protected override bool TryWrite(ref ByteWriter writer, ref WriteState state, TValue? value)
+        protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue? value)
         {
             object? obj = value;
 

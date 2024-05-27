@@ -9,7 +9,7 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterGuid<TParent> : ByteConverter<TParent, Guid>
     {
-        protected override bool TryRead(ref ByteReader reader, ref ReadState state, out Guid value)
+        protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out Guid value)
         {
             if (!reader.TryReadGuid(out value, out var sizeNeeded))
             {
@@ -19,7 +19,7 @@ namespace Zerra.Serialization
             return true;
         }
 
-        protected override bool TryWrite(ref ByteWriter writer, ref WriteState state, Guid value)
+        protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, Guid value)
         {
             if (!writer.TryWrite(value, out var sizeNeeded))
             {
