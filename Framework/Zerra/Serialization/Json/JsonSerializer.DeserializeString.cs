@@ -285,7 +285,7 @@ namespace Zerra.Serialization
                     case '"':
                         if (canExpectComma)
                             throw reader.CreateException("Unexpected character");
-                        var dictionaryKey = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail?.InnerTypeDetails[0].InnerTypeDetails[0], null, ref options);
+                        var dictionaryKey = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail?.InnerTypeDetails[0], null, ref options);
 
                         FromStringPropertySeperator(ref reader);
 
@@ -295,8 +295,8 @@ namespace Zerra.Serialization
                         if (obj != null)
                         {
                             //Dictionary Special Case
-                            var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail!.InnerTypeDetails[0].InnerTypeDetails[1], null, ref options);
-                            if (typeDetail.InnerTypeDetails[0].InnerTypeDetails[0].CoreType.HasValue)
+                            var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail!.InnerTypeDetails[1], null, ref options);
+                            if (typeDetail.InnerTypeDetails[0].CoreType.HasValue)
                             {
                                 addMethodArgs![0] = dictionaryKey;
                                 addMethodArgs[1] = value;
@@ -335,14 +335,14 @@ namespace Zerra.Serialization
                 arrayElementType = typeDetail.IEnumerableGenericInnerTypeDetail;
                 if (typeDetail.Type.IsArray)
                 {
-                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
+                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, arrayElementType.Type));
                     collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
                 }
                 else if (typeDetail.IsIList && typeDetail.Type.IsInterface)
                 {
-                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
+                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, arrayElementType.Type));
                     collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
@@ -355,7 +355,7 @@ namespace Zerra.Serialization
                 }
                 else if (typeDetail.IsISet && typeDetail.Type.IsInterface)
                 {
-                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, typeDetail.InnerTypeDetails[0].Type));
+                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, arrayElementType.Type));
                     collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
@@ -368,7 +368,7 @@ namespace Zerra.Serialization
                 }
                 else
                 {
-                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
+                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, arrayElementType.Type));
                     collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];

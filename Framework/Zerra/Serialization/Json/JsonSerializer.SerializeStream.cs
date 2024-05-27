@@ -783,10 +783,10 @@ namespace Zerra.Serialization
                         }
                     }
 
-                    var innerTypeDetail = typeDetail.InnerTypeDetails[0];
+                    var innerTypeDetail = typeDetail.DictionaryInnerTypeDetail;
                     if (state.CurrentFrame.State == 0)
                     {
-                        var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.InnerTypes[0]);
+                        var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.DictionaryInnerType);
 
                         state.CurrentFrame.Enumerator = ((ICollection)method.Caller(null, new object?[] { state.CurrentFrame.Object })!).GetEnumerator();
                         state.CurrentFrame.State = 1;

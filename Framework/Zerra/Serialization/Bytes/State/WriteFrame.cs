@@ -12,6 +12,7 @@ namespace Zerra.Serialization
         public object? Parent;
         public object? Object;
 
+        public bool HasTypeWritten;
         public bool HasWrittenIsNull;
         public int? EnumerableLength;
 

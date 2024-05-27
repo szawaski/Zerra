@@ -5,13 +5,14 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Zerra.IO;
 
-namespace Zerra.IO
+namespace Zerra.Serialization
 {
     public ref partial struct ByteWriter
     {
         private const int defaultBufferSize = 1024;
-        private static readonly Encoding defaultEncoding = Encoding.Unicode;
+        private static readonly Encoding defaultEncoding = Encoding.UTF8;
 
         private const byte nullByte = 0;
         private const byte notNullByte = 1;
@@ -41,15 +42,6 @@ namespace Zerra.IO
             this.buffer = buffer;
             this.encoding = encoding ?? defaultEncoding;
             this.position = 0;
-            this.length = buffer.Length;
-        }
-
-        public ByteWriter(byte[] buffer, bool fromPool, int position = 0, Encoding? encoding = null)
-        {
-            this.bufferOwner = fromPool ? buffer : null;
-            this.buffer = buffer;
-            this.encoding = encoding ?? defaultEncoding;
-            this.position = position;
             this.length = buffer.Length;
         }
 

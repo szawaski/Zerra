@@ -114,7 +114,7 @@ namespace Zerra.Serialization
                     var discoveredTypeDetail = discoveredType.GetTypeDetail();
                     if (discoveredTypeDetail.InnerTypes.Count == 3)
                     {
-                        var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]);
+                        var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType);
                         var converter = discoveredTypeDetailGeneric.CreatorBoxed();
                         return (ByteConverter<TParent>)converter;
                     }
@@ -152,14 +152,14 @@ namespace Zerra.Serialization
             //generic dictionary
             if (typeDetail.SpecialType == SpecialType.Dictionary)
             {
-                var converter = typeof(ByteConverterDictionaryT<,,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypeDetails[0].InnerTypes[0], typeDetail.InnerTypeDetails[0].InnerTypes[1]).CreatorBoxed();
+                var converter = typeof(ByteConverterDictionaryT<,,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0], typeDetail.InnerTypes[1]).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 
             //enumerable
             if (typeDetail.IsIEnumerableGeneric)
             {
-                var converter = typeof(ByteConverterArrayT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
+                var converter = typeof(ByteConverterArrayT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.IEnumerableGenericInnerType).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 

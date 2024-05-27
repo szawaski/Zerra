@@ -8,28 +8,47 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Security.AccessControl;
+using System.Text;
 using Zerra.Collections;
 
 namespace Zerra.Reflection
 {
     public static class Discovery
     {
-        private static readonly ConcurrentDictionary<Type, List<Type>> classByInterface;
         private static readonly ConcurrentDictionary<Type, List<Type>> typeByInterface;
-        private static readonly ConcurrentDictionary<Type, List<Type>> interfaceByType;
+        private static readonly ConcurrentDictionary<string, List<Type>> typeByInterfaceName;
+        private static readonly ConcurrentDictionary<Type, List<Type>> classByInterface;
+        private static readonly ConcurrentDictionary<string, List<Type>> classByInterfaceName;
+        private static readonly ConcurrentDictionary<Type, List<Type>> classByBase;
+        private static readonly ConcurrentDictionary<string, List<Type>> classByBaseName;
         private static readonly ConcurrentDictionary<Type, List<Type>> typeByAttribute;
+
+        private static readonly ConcurrentDictionary<Type, List<Type>> interfaceByType;
+
         private static readonly ConcurrentDictionary<string, ConcurrentReadWriteList<Type>> typeByName;
-        private static readonly List<string> discoveredAssemblies;
+
+        private static readonly ConcurrentFactoryDictionary<Type, string> niceNames = new();
+        private static readonly ConcurrentFactoryDictionary<Type, string> niceFullNames = new();
+
+        private static readonly HashSet<string> discoveredAssemblies;
 
         static Discovery()
         {
             Config.SetDiscoveryStarted();
 
-            classByInterface = new();
-            typeByInterface = new();
             interfaceByType = new();
+            typeByInterfaceName = new();
+            classByInterface = new();
+            classByInterfaceName = new();
+            classByBase = new();
+            classByBaseName = new();
+
             typeByAttribute = new();
+            typeByInterface = new();
+
             typeByName = new();
+
             discoveredAssemblies = new();
 
             LoadAssemblies();
@@ -130,6 +149,7 @@ namespace Zerra.Reflection
         }
         private static void DiscoverType(Type typeInAssembly)
         {
+            var debug = typeInAssembly.Name;
             var typeList1 = typeByName.GetOrAdd(typeInAssembly.Name, (key) => { return new(); });
             typeList1.Add(typeInAssembly);
             if (typeInAssembly.FullName != null && typeInAssembly.Name != typeInAssembly.FullName)
@@ -141,24 +161,51 @@ namespace Zerra.Reflection
             var interfaceTypes = typeInAssembly.GetInterfaces();
             if (interfaceTypes.Length > 0)
             {
-                var interfaceList = interfaceByType.GetOrAdd(typeInAssembly, (key) => { return new(); });
+                var interfaceByTypeList = interfaceByType.GetOrAdd(typeInAssembly, (key) => { return new(); });
 
                 foreach (var interfaceType in interfaceTypes)
                 {
-                    if (interfaceType.FullName == null)
-                        continue;
+                    interfaceByTypeList.Add(interfaceType);
 
-                    interfaceList.Add(interfaceType);
+                    var typeByInterfaceList = typeByInterface.GetOrAdd(interfaceType, (key) => { return new(); });
+                    typeByInterfaceList.Add(typeInAssembly);
 
-                    var typeList = typeByInterface.GetOrAdd(interfaceType, (key) => { return new(); });
-                    typeList.Add(typeInAssembly);
+                    string? interfaceTypeName = null;
+                    if (interfaceType.ContainsGenericParameters)
+                    {
+                        interfaceTypeName = GetNiceFullName(interfaceType);
+                        var typeByInterfaceNameList = typeByInterfaceName.GetOrAdd(interfaceTypeName, (key) => { return new(); });
+                        typeByInterfaceNameList.Add(typeInAssembly);
+                    }
 
                     if (!typeInAssembly.IsAbstract && typeInAssembly.IsClass)
                     {
-                        var classList = classByInterface.GetOrAdd(interfaceType, (key) => { return new(); });
-                        classList.Add(typeInAssembly);
+                        var classByInterfaceList = classByInterface.GetOrAdd(interfaceType, (key) => { return new(); });
+                        classByInterfaceList.Add(typeInAssembly);
+
+                        if (interfaceType.ContainsGenericParameters)
+                        {
+                            var classByInterfaceNameList = classByInterfaceName.GetOrAdd(interfaceTypeName!, (key) => { return new(); });
+                            classByInterfaceNameList.Add(typeInAssembly);
+                        }
                     }
                 }
+            }
+
+            Type? baseType = typeInAssembly.BaseType;
+            while (baseType != null)
+            {
+                var classByBaseList = classByBase.GetOrAdd(baseType, (key) => { return new(); });
+                classByBaseList.Add(typeInAssembly);
+
+                if (baseType.ContainsGenericParameters)
+                {
+                    var baseTypeName = GetNiceFullName(baseType);
+                    var classByBaseNameList = classByBaseName.GetOrAdd(baseTypeName, (key) => { return new(); });
+                    classByBaseNameList.Add(typeInAssembly);
+                }
+
+                baseType = baseType.BaseType;
             }
 
             var attributeTypes = typeInAssembly.GetCustomAttributes().Select(x => x.GetType()).Distinct().ToArray();
@@ -190,35 +237,76 @@ namespace Zerra.Reflection
             }
         }
 
-        public static bool HasImplementationType(Type interfaceType)
+        public static bool HasTypeByInterface(Type interfaceType)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+                throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
 
-            return typeByInterface.ContainsKey(interfaceType);
+            if (interfaceType.ContainsGenericParameters)
+            {
+                var name = GetNiceFullName(interfaceType);
+                return typeByInterfaceName.ContainsKey(name);
+            }
+            else
+            {
+                return typeByInterface.ContainsKey(interfaceType);
+            }
         }
-        public static bool HasImplementationClass(Type interfaceType)
+        public static bool HasClassByBase(Type baseType)
         {
-            if (interfaceType == null)
-                throw new ArgumentNullException(nameof(interfaceType));
-            if (!interfaceType.IsInterface)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+            if (baseType == null)
+                throw new ArgumentNullException(nameof(baseType));
 
-            return classByInterface.ContainsKey(interfaceType);
+            if (baseType.ContainsGenericParameters)
+            {
+                var name = GetNiceFullName(baseType);
+                return classByBaseName.ContainsKey(name);
+            }
+            else
+            {
+                return classByBase.ContainsKey(baseType);
+            }
         }
-        public static bool HasImplementationClass(Type interfaceType, Type secondaryInterface)
+        public static bool HasClassByInterface(Type interfaceType)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+                throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
+
+            if (interfaceType.ContainsGenericParameters)
+            {
+                var name = GetNiceFullName(interfaceType);
+                return classByInterfaceName.ContainsKey(name);
+            }
+            else
+            {
+                return classByInterface.ContainsKey(interfaceType);
+            }
+        }
+        public static bool HasClassByInterface(Type interfaceType, Type secondaryInterface)
+        {
+            if (interfaceType == null)
+                throw new ArgumentNullException(nameof(interfaceType));
+            if (!interfaceType.IsInterface)
+                throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
             if (secondaryInterface == null)
                 throw new ArgumentNullException(nameof(secondaryInterface));
 
-            if (!classByInterface.TryGetValue(interfaceType, out var classList))
-                return false;
+            List<Type>? classList;
+            if (interfaceType.ContainsGenericParameters)
+            {
+                var name = GetNiceFullName(interfaceType);
+                if (!classByInterfaceName.TryGetValue(name, out classList))
+                    return false;
+            }
+            else
+            {
+                if (!classByInterface.TryGetValue(interfaceType, out classList))
+                    return false;
+            }
 
             foreach (var classType in classList)
             {
@@ -231,19 +319,29 @@ namespace Zerra.Reflection
 
             return false;
         }
-        public static unsafe bool HasImplementationClass(Type interfaceType, IReadOnlyList<Type?> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface)
+        public static unsafe bool HasClassByInterface(Type interfaceType, IReadOnlyList<Type?> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+                throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
             if (secondaryInterfaces == null)
                 throw new ArgumentNullException(nameof(secondaryInterfaces));
             if (secondaryInterfaceStartIndex < 0 || secondaryInterfaceStartIndex > secondaryInterfaces.Count - 1)
                 throw new ArgumentOutOfRangeException(nameof(secondaryInterfaceStartIndex));
 
-            if (!classByInterface.TryGetValue(interfaceType, out var classList))
-                return false;
+            List<Type>? classList;
+            if (interfaceType.ContainsGenericParameters)
+            {
+                var name = GetNiceFullName(interfaceType);
+                if (!classByInterfaceName.TryGetValue(name, out classList))
+                    return false;
+            }
+            else
+            {
+                if (!classByInterface.TryGetValue(interfaceType, out classList))
+                    return false;
+            }
 
             var levels = stackalloc short[classList.Count];
 
@@ -330,71 +428,154 @@ namespace Zerra.Reflection
             return index != -1;
         }
 
-        public static Type? GetImplementationType(Type interfaceType, bool throwException = true)
+        public static Type? GetTypeByInterface(Type interfaceType, bool throwException = true)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+                throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
 
-            if (!typeByInterface.TryGetValue(interfaceType, out var typeList))
+            List<Type>? typeList;
+            if (interfaceType.ContainsGenericParameters)
             {
-                if (throwException)
-                    throw new Exception($"No implementations found for {interfaceType.GetNiceName()}");
-                else
-                    return null;
+                var name = GetNiceFullName(interfaceType);
+                if (!typeByInterfaceName.TryGetValue(name, out typeList))
+                {
+                    if (throwException)
+                        throw new Exception($"No implementations found for {GetNiceName(interfaceType)}");
+                    else
+                        return null;
+                }
+            }
+            else
+            {
+                if (!typeByInterface.TryGetValue(interfaceType, out typeList))
+                {
+                    if (throwException)
+                        throw new Exception($"No implementations found for {GetNiceName(interfaceType)}");
+                    else
+                        return null;
+                }
             }
 
             if (typeList.Count > 1)
             {
                 if (throwException)
-                    throw new Exception($"Multiple classes found for {interfaceType.GetNiceName()}");
+                    throw new Exception($"Multiple classes found for {GetNiceName(interfaceType)}");
                 else
                     return null;
             }
 
             return typeList[0];
         }
-        public static Type? GetImplementationClass(Type interfaceType, bool throwException = true)
+        public static Type? GetClassByBase(Type baseType, bool throwException = true)
         {
-            if (interfaceType == null)
-                throw new ArgumentNullException(nameof(interfaceType));
-            if (!interfaceType.IsInterface)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+            if (baseType == null)
+                throw new ArgumentNullException(nameof(baseType));
 
-            if (!classByInterface.TryGetValue(interfaceType, out var classList))
+            List<Type>? classList;
+            if (baseType.ContainsGenericParameters)
             {
-                if (throwException)
-                    throw new Exception($"No implementations found for {interfaceType.GetNiceName()}");
-                else
-                    return null;
+                var name = GetNiceFullName(baseType);
+                if (!classByBaseName.TryGetValue(name, out classList))
+                {
+                    if (throwException)
+                        throw new Exception($"No implementations found for {GetNiceName(baseType)}");
+                    else
+                        return null;
+                }
+            }
+            else
+            {
+                if (!classByBase.TryGetValue(baseType, out classList))
+                {
+                    if (throwException)
+                        throw new Exception($"No implementations found for {GetNiceName(baseType)}");
+                    else
+                        return null;
+                }
             }
 
             if (classList.Count > 1)
             {
                 if (throwException)
-                    throw new Exception($"Multiple classes found for {interfaceType.GetNiceName()}");
+                    throw new Exception($"Multiple classes found for {GetNiceName(baseType)}");
                 else
                     return null;
             }
 
             return classList[0];
         }
-        public static Type? GetImplementationClass(Type interfaceType, Type secondaryInterface, bool throwException = true)
+        public static Type? GetClassByInterface(Type interfaceType, bool throwException = true)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+                throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
+
+            List<Type>? classList;
+            if (interfaceType.ContainsGenericParameters)
+            {
+                var name = GetNiceFullName(interfaceType);
+                if (!classByInterfaceName.TryGetValue(name, out classList))
+                {
+                    if (throwException)
+                        throw new Exception($"No implementations found for {GetNiceName(interfaceType)}");
+                    else
+                        return null;
+                }
+            }
+            else
+            {
+                if (!classByInterface.TryGetValue(interfaceType, out classList))
+                {
+                    if (throwException)
+                        throw new Exception($"No implementations found for {GetNiceName(interfaceType)}");
+                    else
+                        return null;
+                }
+            }
+
+            if (classList.Count > 1)
+            {
+                if (throwException)
+                    throw new Exception($"Multiple classes found for {GetNiceName(interfaceType)}");
+                else
+                    return null;
+            }
+
+            return classList[0];
+        }
+        public static Type? GetClassByInterface(Type interfaceType, Type secondaryInterface, bool throwException = true)
+        {
+            if (interfaceType == null)
+                throw new ArgumentNullException(nameof(interfaceType));
+            if (!interfaceType.IsInterface)
+                throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
             if (secondaryInterface == null)
                 throw new ArgumentNullException(nameof(secondaryInterface));
 
-            if (!classByInterface.TryGetValue(interfaceType, out var classList))
+            List<Type>? classList;
+            if (interfaceType.ContainsGenericParameters)
             {
-                if (throwException)
-                    throw new Exception($"No implementations found for {interfaceType.GetNiceName()}");
-                else
-                    return null;
+                var name = GetNiceFullName(interfaceType);
+                if (!classByInterfaceName.TryGetValue(name, out classList))
+                {
+                    if (throwException)
+                        throw new Exception($"No implementations found for {GetNiceName(interfaceType)}");
+                    else
+                        return null;
+                }
+            }
+            else
+            {
+                if (!classByInterface.TryGetValue(interfaceType, out classList))
+                {
+                    if (throwException)
+                        throw new Exception($"No implementations found for {GetNiceName(interfaceType)}");
+                    else
+                        return null;
+                }
             }
 
             Type? found = null;
@@ -413,7 +594,7 @@ namespace Zerra.Reflection
                     else
                     {
                         if (throwException)
-                            throw new Exception($"Multiple classes found for {interfaceType.GetNiceName()} with secondary interface type {secondaryInterface.GetNiceName()}");
+                            throw new Exception($"Multiple classes found for {GetNiceName(interfaceType)} with secondary interface type {GetNiceName(secondaryInterface)}");
                         else
                             return null;
                     }
@@ -423,30 +604,45 @@ namespace Zerra.Reflection
             if (found == null)
             {
                 if (throwException)
-                    throw new Exception($"No classes found for {interfaceType.GetNiceName()} with secondary interface type {secondaryInterface.GetNiceName()}");
+                    throw new Exception($"No classes found for {GetNiceName(interfaceType)} with secondary interface type {GetNiceName(secondaryInterface)}");
                 else
                     return null;
             }
 
             return found;
         }
-        public static unsafe Type? GetImplementationClass(Type interfaceType, IReadOnlyList<Type?> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface, bool throwException = true)
+        public static unsafe Type? GetClassByInterface(Type interfaceType, IReadOnlyList<Type?> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface, bool throwException = true)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+                throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
             if (secondaryInterfaces == null)
                 throw new ArgumentNullException(nameof(secondaryInterfaces));
             if (secondaryInterfaceStartIndex < 0 || secondaryInterfaceStartIndex > secondaryInterfaces.Count - 1)
                 throw new ArgumentOutOfRangeException(nameof(secondaryInterfaceStartIndex));
 
-            if (!classByInterface.TryGetValue(interfaceType, out var classList))
+            List<Type>? classList;
+            if (interfaceType.ContainsGenericParameters)
             {
-                if (throwException)
-                    throw new Exception($"No implementations found for {interfaceType.GetNiceName()}");
-                else
-                    return null;
+                var name = GetNiceFullName(interfaceType);
+                if (!classByInterfaceName.TryGetValue(name, out classList))
+                {
+                    if (throwException)
+                        throw new Exception($"No implementations found for {GetNiceName(interfaceType)}");
+                    else
+                        return null;
+                }
+            }
+            else
+            {
+                if (!classByInterface.TryGetValue(interfaceType, out classList))
+                {
+                    if (throwException)
+                        throw new Exception($"No implementations found for {GetNiceName(interfaceType)}");
+                    else
+                        return null;
+                }
             }
 
             var levels = stackalloc short[classList.Count];
@@ -533,14 +729,14 @@ namespace Zerra.Reflection
             if (index == -2)
             {
                 if (throwException)
-                    throw new Exception($"Multiple classes found for {interfaceType.GetNiceName()} with secondary interfaces type {secondaryInterfaces[firstLevelFound]?.GetNiceName()}");
+                    throw new Exception($"Multiple classes found for {GetNiceName(interfaceType)} with secondary interfaces type {secondaryInterfaces[firstLevelFound]?.GetNiceName()}");
                 else
                     return null;
             }
             if (index == -1)
             {
                 if (throwException)
-                    throw new Exception($"No classes found for {interfaceType.GetNiceName()} with secondary interfaces types {String.Join(", ", secondaryInterfaces.Select(x => x == null ? "null" : x.GetNiceName()))}");
+                    throw new Exception($"No classes found for {GetNiceName(interfaceType)} with secondary interfaces types {String.Join(", ", secondaryInterfaces.Select(x => x == null ? "null" : GetNiceName(x)))}");
                 else
                     return null;
             }
@@ -548,41 +744,91 @@ namespace Zerra.Reflection
             return classList[index];
         }
 
-        public static IReadOnlyCollection<Type> GetImplementationTypes(Type interfaceType)
+        public static IReadOnlyList<Type> GetTypesByInterface(Type interfaceType)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+                throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
 
-            if (!typeByInterface.TryGetValue(interfaceType, out var typeList))
-                return Type.EmptyTypes;
+            List<Type>? typeList;
+            if (interfaceType.ContainsGenericParameters)
+            {
+                var name = GetNiceFullName(interfaceType);
+                if (!typeByInterfaceName.TryGetValue(name, out typeList))
+                    return Type.EmptyTypes;
+            }
+            else
+            {
+                if (!typeByInterface.TryGetValue(interfaceType, out typeList))
+                    return Type.EmptyTypes;
+            }
 
             return typeList;
         }
-        public static IReadOnlyCollection<Type> GetImplementationClasses(Type interfaceType)
+        public static IReadOnlyList<Type> GetClassesByBase(Type baseType)
+        {
+            if (baseType == null)
+                throw new ArgumentNullException(nameof(baseType));
+
+            List<Type>? typeList;
+            if (baseType.ContainsGenericParameters)
+            {
+                var name = GetNiceFullName(baseType);
+                if (!classByBaseName.TryGetValue(name, out typeList))
+                    return Type.EmptyTypes;
+            }
+            else
+            {
+                if (!classByBase.TryGetValue(baseType, out typeList))
+                    return Type.EmptyTypes;
+            }
+
+            return typeList;
+        }
+        public static IReadOnlyList<Type> GetClassesByInterface(Type interfaceType)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+                throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
 
-            if (!classByInterface.TryGetValue(interfaceType, out var classList))
-                return Type.EmptyTypes;
+            List<Type>? classList;
+            if (interfaceType.ContainsGenericParameters)
+            {
+                var name = GetNiceFullName(interfaceType);
+                if (!classByInterfaceName.TryGetValue(name, out classList))
+                    return Type.EmptyTypes;
+            }
+            else
+            {
+                if (!classByInterface.TryGetValue(interfaceType, out classList))
+                    return Type.EmptyTypes;
+            }
 
             return classList;
         }
-        public static IReadOnlyCollection<Type> GetImplementationClasses(Type interfaceType, Type secondaryInterface)
+        public static IReadOnlyList<Type> GetClassesByInterface(Type interfaceType, Type secondaryInterface)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+                throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
             if (secondaryInterface == null)
                 throw new ArgumentNullException(nameof(secondaryInterface));
 
-            if (!classByInterface.TryGetValue(interfaceType, out var classList))
-                return Type.EmptyTypes;
+            List<Type>? classList;
+            if (interfaceType.ContainsGenericParameters)
+            {
+                var name = GetNiceFullName(interfaceType);
+                if (!classByInterfaceName.TryGetValue(name, out classList))
+                    return Type.EmptyTypes;
+            }
+            else
+            {
+                if (!classByInterface.TryGetValue(interfaceType, out classList))
+                    return Type.EmptyTypes;
+            }
 
             var list = new List<Type>();
             for (var j = 0; j < classList.Count; j++)
@@ -599,19 +845,29 @@ namespace Zerra.Reflection
 
             return list;
         }
-        public static unsafe IReadOnlyCollection<Type> GetImplementationClasses(Type interfaceType, IReadOnlyList<Type> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface)
+        public static unsafe IReadOnlyCollection<Type> GetClassesByInterface(Type interfaceType, IReadOnlyList<Type> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+                throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
             if (secondaryInterfaces == null)
                 throw new ArgumentNullException(nameof(secondaryInterfaces));
             if (secondaryInterfaceStartIndex < 0 || secondaryInterfaceStartIndex > secondaryInterfaces.Count - 1)
                 throw new ArgumentOutOfRangeException(nameof(secondaryInterfaceStartIndex));
 
-            if (!classByInterface.TryGetValue(interfaceType, out var classList))
-                return Array.Empty<Type>();
+            List<Type>? classList;
+            if (interfaceType.ContainsGenericParameters)
+            {
+                var name = GetNiceFullName(interfaceType);
+                if (!classByInterfaceName.TryGetValue(name, out classList))
+                    return Type.EmptyTypes;
+            }
+            else
+            {
+                if (!classByInterface.TryGetValue(interfaceType, out classList))
+                    return Type.EmptyTypes;
+            }
 
             var levels = stackalloc short[classList.Count];
 
@@ -692,19 +948,19 @@ namespace Zerra.Reflection
             return list;
         }
 
-        public static void DefineImplementationClass<T>(Type implementationType) => DefineImplementationClass(typeof(T), implementationType);
-        public static void DefineImplementationClass(Type interfaceType, Type implementationType)
+        public static void DefineClassByInterface<T>(Type implementationType) => DefineClassByInterface(typeof(T), implementationType);
+        public static void DefineClassByInterface(Type interfaceType, Type implementationType)
         {
             if (interfaceType == null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+                throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
             if (implementationType == null)
                 throw new ArgumentNullException(nameof(implementationType));
             if (!implementationType.IsClass || implementationType.IsAbstract)
-                throw new ArgumentException($"Type {implementationType.GetNiceName()} is not a non-abstract class");
+                throw new ArgumentException($"Type {GetNiceName(implementationType)} is not a non-abstract class");
             if (!TypeAnalyzer.GetTypeDetail(implementationType).Interfaces.Contains(interfaceType))
-                throw new ArgumentException($"Type {implementationType.GetNiceName()} does not implement {interfaceType.GetNiceName()}");
+                throw new ArgumentException($"Type {GetNiceName(implementationType)} does not implement {GetNiceName(interfaceType)}");
 
             _ = classByInterface.AddOrUpdate(interfaceType, (key) => { return new() { implementationType }; }, (key, old) => { return new() { implementationType }; });
         }
@@ -747,13 +1003,15 @@ namespace Zerra.Reflection
             }
         }
 
-        private static Type ParseType(string name)
+        private static unsafe Type ParseType(string name)
         {
             var index = 0;
             var chars = name.AsSpan();
             string? currentName = null;
 
-            var current = new List<char>();
+            var current = stackalloc char[128];
+            var i = 0;
+
             var genericArguments = new List<Type>();
             var arrayDimensions = new List<int>();
 
@@ -776,7 +1034,7 @@ namespace Zerra.Reflection
                         {
                             if (openGenericType)
                             {
-                                current.Add(c);
+                                current[i++] = c;
                             }
                             else if (openArray || (openGeneric && !openGenericType))
                             {
@@ -785,7 +1043,7 @@ namespace Zerra.Reflection
                             else
                             {
                                 expectingGenericOpen = true;
-                                current.Add(c);
+                                current[i++] = c;
                             }
                             break;
                         }
@@ -798,7 +1056,7 @@ namespace Zerra.Reflection
 
                             if (openGenericType)
                             {
-                                current.Add(c);
+                                current[i++] = c;
                                 openGenericTypeSubBrackets++;
                             }
                             else if (expectingGenericOpen)
@@ -806,10 +1064,10 @@ namespace Zerra.Reflection
                                 expectingGenericOpen = false;
                                 openGeneric = true;
 
-                                if (current.Count == 0)
+                                if (i == 0)
                                     throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
-                                currentName = new string(current.ToArray());
-                                current.Clear();
+                                currentName = new string(current, 0, i);
+                                i = 0;
                             }
                             else if (openGeneric)
                             {
@@ -821,10 +1079,10 @@ namespace Zerra.Reflection
 
                                 if (currentName == null)
                                 {
-                                    if (current.Count == 0)
+                                    if (i == 0)
                                         throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
-                                    currentName = new string(current.ToArray());
-                                    current.Clear();
+                                    currentName = new string(current, 0, i);
+                                    i = 0;
                                 }
                             }
 
@@ -835,7 +1093,7 @@ namespace Zerra.Reflection
 
                             if (!openGeneric || openGenericType || (openArray && !openArrayOneDimension))
                             {
-                                current.Add(c);
+                                current[i++] = c;
                             }
                             else if (openGeneric && !openGenericType && expectingGenericComma)
                             {
@@ -851,14 +1109,14 @@ namespace Zerra.Reflection
                         {
                             if (openGenericType)
                             {
-                                current.Add(c);
+                                current[i++] = c;
                             }
                             else if (openArray)
                             {
-                                if (current.Count > 0)
+                                if (i > 0)
                                     throw new Exception($"{nameof(ParseType)} Unexpected {c}");
                                 openArrayOneDimension = true;
-                                current.Add(c);
+                                current[i++] = c;
                             }
                             else
                             {
@@ -870,14 +1128,14 @@ namespace Zerra.Reflection
                         {
                             if (openGenericTypeSubBrackets > 0)
                             {
-                                current.Add(c);
+                                current[i++] = c;
                                 openGenericTypeSubBrackets--;
                             }
                             else if (openGenericType)
                             {
                                 openGenericType = false;
-                                var genericArgumentName = new string(current.ToArray());
-                                current.Clear();
+                                var genericArgumentName = new string(current, 0, 1);
+                                i = 0;
                                 var genericArgumentType = GetTypeFromName(genericArgumentName);
                                 genericArguments.Add(genericArgumentType);
                                 expectingGenericComma = true;
@@ -889,19 +1147,19 @@ namespace Zerra.Reflection
                             else if (openArray)
                             {
                                 openArray = false;
-                                if (current.Count > 0)
+                                if (i > 0)
                                 {
                                     if (openArrayOneDimension)
                                         arrayDimensions.Add(1);
                                     else
-                                        arrayDimensions.Add(current.Count + 1);
+                                        arrayDimensions.Add(i + 1);
                                 }
                                 else
                                 {
                                     arrayDimensions.Add(0);
                                 }
                                 openArrayOneDimension = false;
-                                current.Clear();
+                                i = 0;
                             }
                             else
                             {
@@ -916,7 +1174,7 @@ namespace Zerra.Reflection
                                 throw new Exception($"{nameof(ParseType)} Unexpected {c}");
                             }
 
-                            current.Add(c);
+                            current[i++] = c;
                             break;
                         }
                 }
@@ -927,8 +1185,7 @@ namespace Zerra.Reflection
 
             if (currentName == null)
             {
-                currentName = new string(current.ToArray());
-                current.Clear();
+                currentName = new string(current, 0, i);
             }
 
             var type = GetTypeFromNameWithoutParse(currentName);
@@ -976,6 +1233,123 @@ namespace Zerra.Reflection
             {
                 throw new Exception($"More than one type matches {name} - {String.Join(", ", matches.Select(x => x.AssemblyQualifiedName).ToArray())}");
             }
+        }
+
+        public static string GetNiceName(Type it)
+        {
+            if (it == null)
+                return "null";
+            var niceName = niceNames.GetOrAdd(it, (it) =>
+            {
+                return GenerateNiceName(it, false);
+            });
+            return niceName;
+        }
+        public static string GetNiceFullName(Type it)
+        {
+            if (it == null)
+                return "null";
+            var niceFullName = niceFullNames.GetOrAdd(it, (it) =>
+            {
+                return GenerateNiceName(it, true);
+            });
+            return niceFullName;
+        }
+
+        //framework dependent if property exists
+        private static Func<object, object?>? typeGetIsZSArrayGetter;
+        private static bool loadedTypeGetIsZSArrayGetter = false;
+        private static Func<object, object?>? GetTypeGetIsZSArrayGetter()
+        {
+            if (!loadedTypeGetIsZSArrayGetter)
+            {
+                lock (niceFullNames)
+                {
+                    if (!loadedTypeGetIsZSArrayGetter)
+                    {
+                        if (TypeAnalyzer.GetTypeDetail(typeof(Type)).TryGetMember("IsSZArray", out var member))
+                            typeGetIsZSArrayGetter = member.GetterBoxed;
+                        loadedTypeGetIsZSArrayGetter = true;
+                    }
+                }
+            }
+            return typeGetIsZSArrayGetter;
+        }
+
+        private static string GenerateNiceName(Type type, bool ns)
+        {
+            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
+
+            if (type.IsArray)
+            {
+                var sb = new StringBuilder();
+                if (ns && !String.IsNullOrWhiteSpace(type.Namespace))
+                    _ = sb.Append(type.Namespace).Append('.');
+
+                var rank = type.GetArrayRank();
+                var elementType = typeDetails.InnerTypes[0];
+                var elementTypeName = GetNiceName(elementType);
+                _ = sb.Append(elementTypeName);
+                _ = sb.Append('[');
+                var getter = GetTypeGetIsZSArrayGetter();
+
+                var szArray = getter != null && (bool)getter(type)!;
+                if (!szArray)
+                {
+                    if (rank == 1)
+                    {
+                        _ = sb.Append('*');
+                    }
+                    else if (rank > 1)
+                    {
+                        for (var i = 0; i < rank - 1; i++)
+                            _ = sb.Append(',');
+                    }
+                }
+                _ = sb.Append(']');
+
+                return sb.ToString();
+            }
+
+            if (type.IsGenericType)
+            {
+                var sb = new StringBuilder();
+                if (ns && !String.IsNullOrWhiteSpace(type.Namespace))
+                    _ = sb.Append(type.Namespace).Append('.');
+
+                _ = sb.Append(type.Name.Split('`')[0]);
+
+                var genericTypes = typeDetails.InnerTypes;
+                _ = sb.Append('<');
+                var first = true;
+                foreach (var genericType in genericTypes)
+                {
+                    if (!first)
+                        _ = sb.Append(',');
+                    first = false;
+                    if (genericType.ContainsGenericParameters && genericType.IsGenericType)
+                    {
+                        if (ns)
+                            _ = sb.Append(GetNiceFullName(genericType));
+                        else
+                            _ = sb.Append(GetNiceName(genericType));
+                    }
+                    else
+                    {
+                        _ = sb.Append('T');
+                    }
+                }
+                _ = sb.Append('>');
+
+                return sb.ToString();
+            }
+
+            if (ns && !String.IsNullOrWhiteSpace(type.Namespace))
+            {
+                return $"{type.Namespace}.{type.Name}";
+            }
+
+            return type.Name;
         }
     }
 }

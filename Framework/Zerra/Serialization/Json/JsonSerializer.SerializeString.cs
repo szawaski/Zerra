@@ -1146,11 +1146,11 @@ namespace Zerra.Serialization
                     {
                         if (value != null)
                         {
-                            var innerTypeDetail = typeDetail.InnerTypeDetails[0];
+                            var innerTypeDetail = typeDetail.DictionaryInnerTypeDetail;
 
                             var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").GetterBoxed;
                             var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").GetterBoxed;
-                            var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.InnerTypes[0]);
+                            var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.DictionaryInnerType);
 
                             var innerValue = (ICollection)method.Caller(null, new object[] { value })!;
                             if (!options.Nameless)

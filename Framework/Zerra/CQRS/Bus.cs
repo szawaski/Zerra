@@ -154,7 +154,7 @@ namespace Zerra.CQRS
             {
                 var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iCommandHandlerType, commandType);
 
-                var busCacheType = Discovery.GetImplementationClass(handlerTypeDetail.Type, iBusCacheType, false);
+                var busCacheType = Discovery.GetClassByInterface(handlerTypeDetail.Type, iBusCacheType, false);
                 if (busCacheType == null)
                     return null;
 
@@ -227,7 +227,7 @@ namespace Zerra.CQRS
             {
                 var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iEventHandlerType, eventType);
 
-                var busCacheType = Discovery.GetImplementationClass(handlerTypeDetail.Type, iBusCacheType, false);
+                var busCacheType = Discovery.GetClassByInterface(handlerTypeDetail.Type, iBusCacheType, false);
                 if (busCacheType == null)
                     return null;
 
@@ -503,7 +503,7 @@ namespace Zerra.CQRS
 
             var cacheCallProvider = callCacheProviders.GetOrAdd(interfaceType, (t) =>
             {
-                var busCacheType = Discovery.GetImplementationClass(interfaceType, iBusCacheType, false);
+                var busCacheType = Discovery.GetClassByInterface(interfaceType, iBusCacheType, false);
                 if (busCacheType == null)
                     return null;
 
@@ -814,7 +814,7 @@ namespace Zerra.CQRS
             var interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerType, commandType);
             for (; ; )
             {
-                var implementationTypes = Discovery.GetImplementationTypes(interfaceType).Where(x => x.IsInterface).ToArray();
+                var implementationTypes = Discovery.GetTypesByInterface(interfaceType).Where(x => x.IsInterface).ToArray();
                 if (implementationTypes.Length == 0)
                     return interfaceType.GetNiceName();
                 else if (implementationTypes.Length == 1)
@@ -828,7 +828,7 @@ namespace Zerra.CQRS
             var interfaceType = TypeAnalyzer.GetGenericType(iEventHandlerType, eventType);
             for (; ; )
             {
-                var implementationTypes = Discovery.GetImplementationTypes(interfaceType).Where(x => x.IsInterface).ToArray();
+                var implementationTypes = Discovery.GetTypesByInterface(interfaceType).Where(x => x.IsInterface).ToArray();
                 if (implementationTypes.Length == 0)
                     return interfaceType.GetNiceName();
                 else if (implementationTypes.Length == 1)

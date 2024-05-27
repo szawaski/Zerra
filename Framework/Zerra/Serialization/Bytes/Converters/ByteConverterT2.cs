@@ -4,7 +4,6 @@
 
 using System;
 using Zerra.Reflection;
-using Zerra.IO;
 using System.Runtime.CompilerServices;
 using System.Linq;
 
@@ -17,6 +16,8 @@ namespace Zerra.Serialization
         private string? memberKey;
         private Func<TParent, TValue?>? getter;
         private Action<TParent, TValue?>? setter;
+        private Func<TParent, object?>? getterObject;
+        private Action<TParent, object?>? setterObject;
 
         private bool useEmptyImplementation;
 
@@ -30,6 +31,8 @@ namespace Zerra.Serialization
             this.memberKey = memberKey;
             this.getter = (Func<TParent, TValue?>?)getterBoxed;
             this.setter = (Action<TParent, TValue?>?)setterBoxed;
+            if (this.getter != null)
+                this.getterObject = (parent) => (object?)getter(parent);
 
             this.useEmptyImplementation = typeDetail.Type.IsInterface && !typeDetail.IsIEnumerableGeneric;
 
@@ -71,11 +74,8 @@ namespace Zerra.Serialization
                     var newTypeDetail = typeFromBytes.GetTypeDetail();
 
                     //overrides potentially boxed type with actual type if exists in assembly
-                    if (typeDetail != null)
-                    {
-                        if (newTypeDetail.Type != typeDetail.Type && !newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
-                            throw new NotSupportedException($"{newTypeDetail.Type.GetNiceName()} does not convert to {typeDetail.Type.GetNiceName()}");
-                    }
+                    if (newTypeDetail.Type != typeDetail.Type && !newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
+                        throw new NotSupportedException($"{newTypeDetail.Type.GetNiceName()} does not convert to {typeDetail.Type.GetNiceName()}");
 
                     var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
                     state.Current.StringLength = null;
@@ -88,6 +88,7 @@ namespace Zerra.Serialization
                 {
                     var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                     var newTypeDetail = emptyImplementationType.GetTypeDetail();
+
                     var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
                     state.Current.Converter = newConverter;
                     state.Current.HasTypeRead = true;
@@ -112,21 +113,61 @@ namespace Zerra.Serialization
             if (state.Stack.Count > maxStackDepth)
                 return false;
 
+            TValue? value;
             if (parent != null)
             {
-                if (getter != null)
+                if (getter == null)
                 {
-                    var value = getter(parent);
-                    if (!TryWrite(ref writer, ref state, value))
-                        return false;
+                    state.EndFrame();
+                    return true;
                 }
+                value = getter(parent);
             }
             else
             {
-                var value = (TValue?)state.Object;
-                if (!TryWrite(ref writer, ref state, value))
-                    return false;
+                value = (TValue?)state.Object;
             }
+
+            if ((state.IncludePropertyTypes || useEmptyImplementation) && !state.Current.HasTypeWritten)
+            {
+                if (state.IncludePropertyTypes)
+                {
+                    var typeFromValue = value == null ? typeDetail : value.GetType().GetTypeDetail();
+                    var typeName = typeFromValue.Type.FullName;
+
+                    if (!writer.TryWrite(typeName, false, out var sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        return false;
+                    }
+
+                    if (typeFromValue.Type != typeDetail.Type)
+                    {
+                        var newConverter = ByteConverterFactory<TParent>.Get(typeFromValue, memberKey, getter, setter);
+                        state.Current.Converter = newConverter;
+                        state.Current.HasTypeWritten = true;
+                        return newConverter.TryWrite(ref writer, ref state, value);
+                    }
+                }
+                else if (useEmptyImplementation)
+                {
+                    var typeFromValue = value == null ? typeDetail : value.GetType().GetTypeDetail();
+                    var typeName = typeFromValue.Type.FullName;
+
+                    if (typeFromValue.Type != typeDetail.Type)
+                    {
+                        var newConverter = ByteConverterFactory<TParent>.Get(typeFromValue, memberKey, getter, setter);
+                        state.Current.Converter = newConverter;
+                        state.Current.HasTypeWritten = true;
+                        return newConverter.TryWrite(ref writer, ref state, parent);
+                    }
+                }
+
+                state.Current.HasTypeWritten = true;
+            }
+
+            if (!TryWrite(ref writer, ref state, value))
+                return false;
 
             state.EndFrame();
             return true;

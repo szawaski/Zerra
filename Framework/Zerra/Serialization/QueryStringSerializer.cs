@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Net;
 using System.Runtime.CompilerServices;
 using Zerra.IO;
@@ -189,11 +190,11 @@ namespace Zerra.Serialization
                             break;
                         case CoreType.DateTime:
                         case CoreType.DateTimeNullable:
-                            writer.Write(WebUtility.UrlEncode(((DateTime)value).ToString("yyyy-MM-ddTHH:mm:ss.fffffff+00:00")));
+                            writer.Write(WebUtility.UrlEncode(((DateTime)value).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ")));
                             break;
                         case CoreType.DateTimeOffset:
                         case CoreType.DateTimeOffsetNullable:
-                            writer.Write(WebUtility.UrlEncode(((DateTimeOffset)value).ToString("yyyy-MM-ddTHH:mm:ss.fffffff+00:00")));
+                            writer.Write(WebUtility.UrlEncode(((DateTimeOffset)value).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ")));
                             break;
                         case CoreType.TimeSpan:
                         case CoreType.TimeSpanNullable:
@@ -249,8 +250,8 @@ namespace Zerra.Serialization
                 CoreType.Double => Double.Parse(value),
                 CoreType.Decimal => Decimal.Parse(value),
                 CoreType.Char => Char.Parse(value),
-                CoreType.DateTime => DateTime.Parse(value),
-                CoreType.DateTimeOffset => DateTimeOffset.Parse(value),
+                CoreType.DateTime => DateTime.Parse(value, null, DateTimeStyles.RoundtripKind),
+                CoreType.DateTimeOffset => DateTimeOffset.Parse(value, null, DateTimeStyles.RoundtripKind),
                 CoreType.TimeSpan => TimeSpan.Parse(value),
 #if NET6_0_OR_GREATER
                 CoreType.DateOnly => DateOnly.Parse(value),
@@ -271,8 +272,8 @@ namespace Zerra.Serialization
                 CoreType.DoubleNullable => value == null ? null : Double.Parse(value),
                 CoreType.DecimalNullable => value == null ? null : Decimal.Parse(value),
                 CoreType.CharNullable => value == null ? null : Char.Parse(value),
-                CoreType.DateTimeNullable => value == null ? null : DateTime.Parse(value),
-                CoreType.DateTimeOffsetNullable => value == null ? null : DateTimeOffset.Parse(value),
+                CoreType.DateTimeNullable => value == null ? null : DateTime.Parse(value, null, DateTimeStyles.RoundtripKind),
+                CoreType.DateTimeOffsetNullable => value == null ? null : DateTimeOffset.Parse(value, null, DateTimeStyles.RoundtripKind),
                 CoreType.TimeSpanNullable => value == null ? null : TimeSpan.Parse(value),
 #if NET6_0_OR_GREATER
                 CoreType.DateOnlyNullable => value == null ? null : DateOnly.Parse(value),

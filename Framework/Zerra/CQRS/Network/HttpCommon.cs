@@ -321,7 +321,7 @@ namespace Zerra.CQRS.Network
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int BufferPreflightResponse(Memory<byte> buffer, string? origin)
         {
-            var headerBuffer = new ByteWriter(buffer.Span, encoding);
+            var headerBuffer = new ByteBuilder(buffer.Span);
 
             headerBuffer.Write(okHeaderBytes);
             headerBuffer.Write(newLineBytes);
@@ -347,7 +347,7 @@ namespace Zerra.CQRS.Network
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int BufferPostRequestHeader(Memory<byte> buffer, Uri serviceUrl, string? origion, string? providerType, ContentType? contentType, IDictionary<string, IList<string?>>? authHeaders)
         {
-            var headerBuffer = new ByteWriter(buffer.Span, encoding);
+            var headerBuffer = new ByteBuilder(buffer.Span);
 
             var destinationUrlBytes = encoding.GetBytes(serviceUrl.ToString());
             headerBuffer.Write(postRequestBytes);
@@ -434,7 +434,7 @@ namespace Zerra.CQRS.Network
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int BufferErrorResponseHeader(Memory<byte> buffer, string? origin)
         {
-            var headerBuffer = new ByteWriter(buffer.Span, encoding);
+            var headerBuffer = new ByteBuilder(buffer.Span);
 
             headerBuffer.Write(serverErrorHeaderBytes);
             headerBuffer.Write(newLineBytes);
@@ -464,7 +464,7 @@ namespace Zerra.CQRS.Network
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int BufferOkResponseHeader(Memory<byte> buffer)
         {
-            var headerBuffer = new ByteWriter(buffer.Span, encoding);
+            var headerBuffer = new ByteBuilder(buffer.Span);
 
             headerBuffer.Write(okHeaderBytes);
             headerBuffer.Write(newLineBytes);
@@ -475,7 +475,7 @@ namespace Zerra.CQRS.Network
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int BufferOkResponseHeader(Memory<byte> buffer, string? origion, string? providerType, ContentType? contentType, IDictionary<string, IList<string>>? authHeaders)
         {
-            var headerBuffer = new ByteWriter(buffer.Span, encoding);
+            var headerBuffer = new ByteBuilder(buffer.Span);
 
             headerBuffer.Write(okHeaderBytes);
             headerBuffer.Write(newLineBytes);
@@ -547,7 +547,7 @@ namespace Zerra.CQRS.Network
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int BufferNotFoundResponseHeader(Memory<byte> buffer)
         {
-            var headerBuffer = new ByteWriter(buffer.Span, encoding);
+            var headerBuffer = new ByteBuilder(buffer.Span);
 
             headerBuffer.Write(notFoundHeaderBytes);
             headerBuffer.Write(newLineBytes);

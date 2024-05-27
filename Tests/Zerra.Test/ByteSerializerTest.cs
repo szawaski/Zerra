@@ -29,7 +29,7 @@ namespace Zerra.Test
         public ByteSerializerTest()
         {
 #if DEBUG
-            JsonSerializer.Testing = true;
+            JsonSerializer.Testing = false;
 #endif
         }
 
@@ -118,8 +118,8 @@ namespace Zerra.Test
             };
 
             var model1 = Factory.GetBoxingModel();
-            var bytes = ByteSerializer.Serialize(model1, options);
-            var model2 = ByteSerializer.Deserialize<TestBoxingModel>(bytes, options);
+            var bytes = ByteSerializerOld.Serialize(model1, options);
+            var model2 = ByteSerializerOld.Deserialize<TestBoxingModel>(bytes, options);
             Factory.AssertAreEqual(model1, model2);
         }
 
@@ -205,7 +205,7 @@ namespace Zerra.Test
                 Property2 = 6,
                 Property3 = 7
             };
-            var bytes = ByteSerializer.Serialize(model1);
+            var bytes = ByteSerializerOld.Serialize(model1);
             var model2 = ByteSerializer.Deserialize<ITestInterface>(bytes);
 
             Assert.AreEqual(5, model2.Property1);
@@ -339,6 +339,7 @@ namespace Zerra.Test
         public async Task StreamSerializeArray()
         {
             var model1 = Factory.GetArrayModel();
+
             byte[] bytes;
             using (var ms = new MemoryStream())
             {
@@ -348,6 +349,47 @@ namespace Zerra.Test
 
             var model2 = ByteSerializer.Deserialize<BasicModel[]>(bytes);
             Factory.AssertAreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamArrayInterface()
+        {
+            ITestInterface model1 = new TestInterfaceImplemented()
+            {
+                Property1 = 5,
+                Property2 = 6,
+                Property3 = 7
+            };
+
+            byte[] bytes;
+            using (var ms = new MemoryStream())
+            {
+                await ByteSerializerOld.SerializeAsync(ms, model1);
+                bytes = ms.ToArray();
+            }
+
+            var model2 = ByteSerializerOld.Deserialize<ITestInterface>(bytes);
+
+            Assert.AreEqual(5, model2.Property1);
+            Assert.AreEqual(6, model2.Property2);
+        }
+
+        [TestMethod]
+        public async Task StreamArrayBoxing()
+        {
+            var options = new ByteSerializerOptions()
+            {
+                IncludePropertyTypes = true
+            };
+
+            var model1 = Factory.GetBoxingModel();
+            using (var ms = new MemoryStream())
+            {
+                await ByteSerializer.SerializeAsync(ms, model1, options);
+                ms.Position = 0;
+                var model2 = await ByteSerializerOld.DeserializeAsync<TestBoxingModel>(ms, options);
+                Factory.AssertAreEqual(model1, model2);
+            }
         }
 
         [TestMethod]

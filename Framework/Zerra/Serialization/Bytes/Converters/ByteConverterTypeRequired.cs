@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Zerra.Reflection;
-using Zerra.IO;
 using System;
 using System.Linq;
 
@@ -72,8 +71,9 @@ namespace Zerra.Serialization
 
             if (useEmptyImplementation)
             {
-                var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
+                var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail!.Type);
                 var newTypeDetail = emptyImplementationType.GetTypeDetail();
+
                 var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getterBoxed, setterBoxed);
                 state.Current.Converter = newConverter;
                 state.Current.HasTypeRead = true;
@@ -85,7 +85,7 @@ namespace Zerra.Serialization
 
         public override bool TryWrite(ref ByteWriter writer, ref WriteState state, TParent? parent)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
     }
 }

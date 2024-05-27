@@ -4,1320 +4,835 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace Zerra.IO
+namespace Zerra.Serialization
 {
     public partial struct ByteReader
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadIsNull(out bool value, out int sizeNeeded)
+        public bool ReadIsNull()
         {
-            sizeNeeded = 1;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = buffer[position++] == nullByte;
-
-            return true;
+            return buffer[position++] == nullByte;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadBoolean(out bool value, out int sizeNeeded)
+        public bool ReadBoolean()
         {
-            sizeNeeded = 1;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = buffer[position++] != 0;
-
-            return true;
+            return buffer[position++] != 0;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadBooleanNullable(bool nullFlags, out bool? value, out int sizeNeeded)
+        public bool? ReadBooleanNullable(bool nullFlags)
         {
-            sizeNeeded = 2;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
-            value = buffer[position++] != 0;
-            return true;
+            return buffer[position++] != 0;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadBooleanArray(int length, out bool[]? value, out int sizeNeeded)
+        public bool[] ReadBooleanArray(int length)
         {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new bool[length];
+            var array = new bool[length];
             for (var i = 0; i < length; i++)
             {
                 var item = buffer[position++] != 0;
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadBooleanList(int length, out List<bool>? value, out int sizeNeeded)
+        public List<bool> ReadBooleanList(int length)
         {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<bool>(length);
+            var list = new List<bool>(length);
             for (var i = 0; i < length; i++)
             {
                 var item = buffer[position++] != 0;
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadBooleanHashSet(int length, out HashSet<bool>? value, out int sizeNeeded)
+        public HashSet<bool> ReadBooleanHashSet(int length)
         {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<bool>();
+            var set = new HashSet<bool>();
 #else
-            value = new HashSet<bool>(length);
+            var set = new HashSet<bool>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 var item = buffer[position++] != 0;
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadBooleanNullableArray(int length, out bool?[]? value, out int sizeNeeded)
+        public bool?[] ReadBooleanNullableArray(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new bool?[length];
+            var array = new bool?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = buffer[position++] != 0;
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadBooleanNullableList(int length, out List<bool?>? value, out int sizeNeeded)
+        public List<bool?> ReadBooleanNullableList(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<bool?>(length);
+            var list = new List<bool?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = buffer[position++] != 0;
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadBooleanNullableHashSet(int length, out HashSet<bool?>? value, out int sizeNeeded)
+        public HashSet<bool?> ReadBooleanNullableHashSet(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<bool?>();
+            var set = new HashSet<bool?>();
 #else
-            value = new HashSet<bool?>(length);
+            var set = new HashSet<bool?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = buffer[position++] != 0;
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadByte(out byte value, out int sizeNeeded)
+        public byte ReadByte()
         {
-            sizeNeeded = 1;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = buffer[position++];
-            return true;
+            return buffer[position++];
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadByteNullable(bool nullFlags, out byte? value, out int sizeNeeded)
+        public byte? ReadByteNullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 2 : 1;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
-            value = buffer[position++];
-            return true;
+            return buffer[position++];
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadByteArray(int length, out byte[]? value, out int sizeNeeded)
+        public unsafe byte[] ReadByteArray(int length)
         {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new byte[length];
-            fixed (byte* pArray = value)
+            var array = new byte[length];
+            fixed (byte* pArray = array)
             {
                 for (var i = 0; i < length; i++)
                 {
                     pArray[i] = buffer[position++];
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadByteList(int length, out List<byte>? value, out int sizeNeeded)
+        public List<byte> ReadByteList(int length)
         {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<byte>(length);
+            var list = new List<byte>(length);
             for (var i = 0; i < length; i++)
             {
                 var item = buffer[position++];
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadByteHashSet(int length, out HashSet<byte>? value, out int sizeNeeded)
+        public HashSet<byte> ReadByteHashSet(int length)
         {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<byte>();
+            var set = new HashSet<byte>();
 #else
-            value = new HashSet<byte>(length);
+            var set = new HashSet<byte>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 var item = buffer[position++];
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadByteNullableArray(int length, out byte?[]? value, out int sizeNeeded)
+        public byte?[] ReadByteNullableArray(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new byte?[length];
+            var array = new byte?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = buffer[position++];
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadByteNullableList(int length, out List<byte?>? value, out int sizeNeeded)
+        public List<byte?> ReadByteNullableList(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<byte?>(length);
+            var list = new List<byte?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = buffer[position++];
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadByteNullableHashSet(int length, out HashSet<byte?>? value, out int sizeNeeded)
+        public HashSet<byte?> ReadByteNullableHashSet(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<byte?>();
+            var set = new HashSet<byte?>();
 #else
-            value = new HashSet<byte?>(length);
+            var set = new HashSet<byte?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = buffer[position++];
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadSByte(out sbyte value, out int sizeNeeded)
+        public sbyte ReadSByte()
         {
-            sizeNeeded = 1;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = (sbyte)buffer[position++];
-            return true;
+            return (sbyte)buffer[position++];
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadSByteNullable(bool nullFlags, out sbyte? value, out int sizeNeeded)
+        public sbyte? ReadSByteNullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 2 : 1;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
-            value = (sbyte)buffer[position++];
-            return true;
+            return (sbyte)buffer[position++];
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadSByteArray(int length, out sbyte[]? value, out int sizeNeeded)
+        public sbyte[] ReadSByteArray(int length)
         {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new sbyte[length];
+            var array = new sbyte[length];
             for (var i = 0; i < length; i++)
             {
                 var item = (sbyte)buffer[position++];
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadSByteList(int length, out List<sbyte>? value, out int sizeNeeded)
+        public List<sbyte> ReadSByteList(int length)
         {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<sbyte>(length);
+            var list = new List<sbyte>(length);
             for (var i = 0; i < length; i++)
             {
                 var item = (sbyte)buffer[position++];
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadSByteHashSet(int length, out HashSet<sbyte>? value, out int sizeNeeded)
+        public HashSet<sbyte> ReadSByteHashSet(int length)
         {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<sbyte>();
+            var set = new HashSet<sbyte>();
 #else
-            value = new HashSet<sbyte>(length);
+            var set = new HashSet<sbyte>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 var item = (sbyte)buffer[position++];
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadSByteNullableArray(int length, out sbyte?[]? value, out int sizeNeeded)
+        public sbyte?[] ReadSByteNullableArray(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new sbyte?[length];
+            var array = new sbyte?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = (sbyte)buffer[position++];
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadSByteNullableList(int length, out List<sbyte?>? value, out int sizeNeeded)
+        public List<sbyte?> ReadSByteNullableList(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<sbyte?>(length);
+            var list = new List<sbyte?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = (sbyte)buffer[position++];
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadSByteNullableHashSet(int length, out HashSet<sbyte?>? value, out int sizeNeeded)
+        public HashSet<sbyte?> ReadSByteNullableHashSet(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<sbyte?>();
+            var set = new HashSet<sbyte?>();
 #else
-            value = new HashSet<sbyte?>(length);
+            var set = new HashSet<sbyte?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = (sbyte)buffer[position++];
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt16(out short value, out int sizeNeeded)
+        public short ReadInt16()
         {
-            sizeNeeded = 2;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = (short)(buffer[position++] | buffer[position++] << 8);
-            return true;
+            return (short)(buffer[position++] | buffer[position++] << 8);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt16Nullable(bool nullFlags, out short? value, out int sizeNeeded)
+        public short? ReadInt16Nullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 3 : 2;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
-            value = (short)(buffer[position++] | buffer[position++] << 8);
-            return true;
+            return (short)(buffer[position++] | buffer[position++] << 8);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt16Array(int length, out short[]? value, out int sizeNeeded)
+        public short[] ReadInt16Array(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new short[length];
+            var array = new short[length];
             for (var i = 0; i < length; i++)
             {
                 var item = (short)(buffer[position++] | buffer[position++] << 8);
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt16List(int length, out List<short>? value, out int sizeNeeded)
+        public List<short> ReadInt16List(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<short>(length);
+            var list = new List<short>(length);
             for (var i = 0; i < length; i++)
             {
                 var item = (short)(buffer[position++] | buffer[position++] << 8);
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt16HashSet(int length, out HashSet<short>? value, out int sizeNeeded)
+        public HashSet<short> ReadInt16HashSet(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<short>();
+            var set = new HashSet<short>();
 #else
-            value = new HashSet<short>(length);
+            var set = new HashSet<short>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 var item = (short)(buffer[position++] | buffer[position++] << 8);
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt16NullableArray(int length, out short?[]? value, out int sizeNeeded)
+        public short?[] ReadInt16NullableArray(int length)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new short?[length];
+            var array = new short?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = (short)(buffer[position++] | buffer[position++] << 8);
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt16NullableList(int length, out List<short?>? value, out int sizeNeeded)
+        public List<short?> ReadInt16NullableList(int length)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<short?>(length);
+            var list = new List<short?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = (short)(buffer[position++] | buffer[position++] << 8);
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt16NullableHashSet(int length, out HashSet<short?>? value, out int sizeNeeded)
+        public HashSet<short?> ReadInt16NullableHashSet(int length)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<short?>();
+            var set = new HashSet<short?>();
 #else
-            value = new HashSet<short?>(length);
+            var set = new HashSet<short?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = (short)(buffer[position++] | buffer[position++] << 8);
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt16(out ushort value, out int sizeNeeded)
+        public ushort ReadUInt16()
         {
-            sizeNeeded = 2;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = (ushort)(buffer[position++] | buffer[position++] << 8);
-            return true;
+            return (ushort)(buffer[position++] | buffer[position++] << 8);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt16Nullable(bool nullFlags, out ushort? value, out int sizeNeeded)
+        public ushort? ReadUInt16Nullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 3 : 2;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
-            value = (ushort)(buffer[position++] | buffer[position++] << 8);
-            return true;
+            return (ushort)(buffer[position++] | buffer[position++] << 8);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt16Array(int length, out ushort[]? value, out int sizeNeeded)
+        public ushort[] ReadUInt16Array(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new ushort[length];
+            var array = new ushort[length];
             for (var i = 0; i < length; i++)
             {
                 var item = (ushort)(buffer[position++] | buffer[position++] << 8);
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt16List(int length, out List<ushort>? value, out int sizeNeeded)
+        public List<ushort> ReadUInt16List(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<ushort>(length);
+            var list = new List<ushort>(length);
             for (var i = 0; i < length; i++)
             {
                 var item = (ushort)(buffer[position++] | buffer[position++] << 8);
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt16HashSet(int length, out HashSet<ushort>? value, out int sizeNeeded)
+        public HashSet<ushort> ReadUInt16HashSet(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<ushort>();
+            var set = new HashSet<ushort>();
 #else
-            value = new HashSet<ushort>(length);
+            var set = new HashSet<ushort>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 var item = (ushort)(buffer[position++] | buffer[position++] << 8);
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt16NullableArray(int length, out ushort?[]? value, out int sizeNeeded)
+        public ushort?[] ReadUInt16NullableArray(int length)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new ushort?[length];
+            var array = new ushort?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = (ushort)(buffer[position++] | buffer[position++] << 8);
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt16NullableList(int length, out List<ushort?>? value, out int sizeNeeded)
+        public List<ushort?> ReadUInt16NullableList(int length)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<ushort?>(length);
+            var list = new List<ushort?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = (ushort)(buffer[position++] | buffer[position++] << 8);
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt16NullableHashSet(int length, out HashSet<ushort?>? value, out int sizeNeeded)
+        public HashSet<ushort?> ReadUInt16NullableHashSet(int length)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<ushort?>();
+            var set = new HashSet<ushort?>();
 #else
-            value = new HashSet<ushort?>(length);
+            var set = new HashSet<ushort?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = (ushort)(buffer[position++] | buffer[position++] << 8);
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt32(out int value, out int sizeNeeded)
+        public int ReadInt32()
         {
-            sizeNeeded = 4;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            return true;
+            return (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt32Nullable(bool nullFlags, out int? value, out int sizeNeeded)
+        public int? ReadInt32Nullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 5 : 4;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
-            value = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            return true;
+            return (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt32Array(int length, out int[]? value, out int sizeNeeded)
+        public int[] ReadInt32Array(int length)
         {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new int[length];
+            var array = new int[length];
             for (var i = 0; i < length; i++)
             {
                 var item = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt32List(int length, out List<int>? value, out int sizeNeeded)
+        public List<int> ReadInt32List(int length)
         {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<int>(length);
+            var list = new List<int>(length);
             for (var i = 0; i < length; i++)
             {
                 var item = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt32HashSet(int length, out HashSet<int>? value, out int sizeNeeded)
+        public HashSet<int> ReadInt32HashSet(int length)
         {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<int>();
+            var set = new HashSet<int>();
 #else
-            value = new HashSet<int>(length);
+            var set = new HashSet<int>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 var item = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt32NullableArray(int length, out int?[]? value, out int sizeNeeded)
+        public int?[] ReadInt32NullableArray(int length)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new int?[length];
+            var array = new int?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt32NullableList(int length, out List<int?>? value, out int sizeNeeded)
+        public List<int?> ReadInt32NullableList(int length)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<int?>(length);
+            var list = new List<int?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt32NullableHashSet(int length, out HashSet<int?>? value, out int sizeNeeded)
+        public HashSet<int?> ReadInt32NullableHashSet(int length)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<int?>();
+            var set = new HashSet<int?>();
 #else
-            value = new HashSet<int?>(length);
+            var set = new HashSet<int?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt32(out uint value, out int sizeNeeded)
+        public uint ReadUInt32()
         {
-            sizeNeeded = 4;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            return true;
+            return (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt32Nullable(bool nullFlags, out uint? value, out int sizeNeeded)
+        public uint? ReadUInt32Nullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 5 : 4;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
-            value = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            return true;
+            return (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt32Array(int length, out uint[]? value, out int sizeNeeded)
+        public uint[] ReadUInt32Array(int length)
         {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new uint[length];
+            var array = new uint[length];
             for (var i = 0; i < length; i++)
             {
                 var item = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt32List(int length, out List<uint>? value, out int sizeNeeded)
+        public List<uint> ReadUInt32List(int length)
         {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<uint>(length);
+            var list = new List<uint>(length);
             for (var i = 0; i < length; i++)
             {
                 var item = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt32HashSet(int length, out HashSet<uint>? value, out int sizeNeeded)
+        public HashSet<uint> ReadUInt32HashSet(int length)
         {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<uint>();
+            var set = new HashSet<uint>();
 #else
-            value = new HashSet<uint>(length);
+            var set = new HashSet<uint>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 var item = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt32NullableArray(int length, out uint?[]? value, out int sizeNeeded)
+        public uint?[] ReadUInt32NullableArray(int length)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new uint?[length];
+            var array = new uint?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt32NullableList(int length, out List<uint?>? value, out int sizeNeeded)
+        public List<uint?> ReadUInt32NullableList(int length)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<uint?>(length);
+            var list = new List<uint?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt32NullableHashSet(int length, out HashSet<uint?>? value, out int sizeNeeded)
+        public HashSet<uint?> ReadUInt32NullableHashSet(int length)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<uint?>();
+            var set = new HashSet<uint?>();
 #else
-            value = new HashSet<uint?>(length);
+            var set = new HashSet<uint?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var item = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt64(out long value, out int sizeNeeded)
+        public long ReadInt64()
         {
-            sizeNeeded = 8;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            value = (long)((ulong)hi) << 32 | lo;
-            return true;
+            return (long)((ulong)hi) << 32 | lo;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt64Nullable(bool nullFlags, out long? value, out int sizeNeeded)
+        public long? ReadInt64Nullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 9 : 8;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            value = (long)((ulong)hi) << 32 | lo;
-            return true;
+            return (long)((ulong)hi) << 32 | lo;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt64Array(int length, out long[]? value, out int sizeNeeded)
+        public long[] ReadInt64Array(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new long[length];
+            var array = new long[length];
             for (var i = 0; i < length; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = (long)((ulong)hi) << 32 | lo;
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt64List(int length, out List<long>? value, out int sizeNeeded)
+        public List<long> ReadInt64List(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<long>(length);
+            var list = new List<long>(length);
             for (var i = 0; i < length; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = (long)((ulong)hi) << 32 | lo;
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt64HashSet(int length, out HashSet<long>? value, out int sizeNeeded)
+        public HashSet<long> ReadInt64HashSet(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<long>();
+            var set = new HashSet<long>();
 #else
-            value = new HashSet<long>(length);
+            var set = new HashSet<long>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = (long)((ulong)hi) << 32 | lo;
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt64NullableArray(int length, out long?[]? value, out int sizeNeeded)
+        public long?[] ReadInt64NullableArray(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new long?[length];
+            var array = new long?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -1325,22 +840,15 @@ namespace Zerra.IO
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = (long)((ulong)hi) << 32 | lo;
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt64NullableList(int length, out List<long?>? value, out int sizeNeeded)
+        public List<long?> ReadInt64NullableList(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<long?>(length);
+            var list = new List<long?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -1348,29 +856,22 @@ namespace Zerra.IO
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = (long)((ulong)hi) << 32 | lo;
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadInt64NullableHashSet(int length, out HashSet<long?>? value, out int sizeNeeded)
+        public HashSet<long?> ReadInt64NullableHashSet(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<long?>();
+            var set = new HashSet<long?>();
 #else
-            value = new HashSet<long?>(length);
+            var set = new HashSet<long?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -1379,129 +880,82 @@ namespace Zerra.IO
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = (long)((ulong)hi) << 32 | lo;
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt64(out ulong value, out int sizeNeeded)
+        public ulong ReadUInt64()
         {
-            sizeNeeded = 8;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            value = ((ulong)hi) << 32 | lo;
-            return true;
+            return ((ulong)hi) << 32 | lo;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt64Nullable(bool nullFlags, out ulong? value, out int sizeNeeded)
+        public ulong? ReadUInt64Nullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 9 : 8;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            value = ((ulong)hi) << 32 | lo;
-            return true;
+            return ((ulong)hi) << 32 | lo;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt64Array(int length, out ulong[]? value, out int sizeNeeded)
+        public ulong[] ReadUInt64Array(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new ulong[length];
+            var array = new ulong[length];
             for (var i = 0; i < length; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = ((ulong)hi) << 32 | lo;
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt64List(int length, out List<ulong>? value, out int sizeNeeded)
+        public List<ulong> ReadUInt64List(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<ulong>(length);
+            var list = new List<ulong>(length);
             for (var i = 0; i < length; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = ((ulong)hi) << 32 | lo;
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt64HashSet(int length, out HashSet<ulong>? value, out int sizeNeeded)
+        public HashSet<ulong> ReadUInt64HashSet(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<ulong>();
+            var set = new HashSet<ulong>();
 #else
-            value = new HashSet<ulong>(length);
+            var set = new HashSet<ulong>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = ((ulong)hi) << 32 | lo;
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt64NullableArray(int length, out ulong?[]? value, out int sizeNeeded)
+        public ulong?[] ReadUInt64NullableArray(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new ulong?[length];
+            var array = new ulong?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -1509,22 +963,15 @@ namespace Zerra.IO
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = ((ulong)hi) << 32 | lo;
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt64NullableList(int length, out List<ulong?>? value, out int sizeNeeded)
+        public List<ulong?> ReadUInt64NullableList(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<ulong?>(length);
+            var list = new List<ulong?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -1532,29 +979,22 @@ namespace Zerra.IO
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = ((ulong)hi) << 32 | lo;
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadUInt64NullableHashSet(int length, out HashSet<ulong?>? value, out int sizeNeeded)
+        public HashSet<ulong?> ReadUInt64NullableHashSet(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<ulong?>();
+            var set = new HashSet<ulong?>();
 #else
-            value = new HashSet<ulong?>(length);
+            var set = new HashSet<ulong?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -1563,175 +1003,114 @@ namespace Zerra.IO
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = ((ulong)hi) << 32 | lo;
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadSingle(out float value, out int sizeNeeded)
+        public unsafe float ReadSingle()
         {
-            sizeNeeded = 4;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            value = *((float*)&tmpBuffer);
-            return true;
+            return *((float*)&tmpBuffer);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadSingleNullable(bool nullFlags, out float? value, out int sizeNeeded)
+        public unsafe float? ReadSingleNullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 5 : 4;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
             var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            value = *((float*)&tmpBuffer);
-            return true;
+            return *((float*)&tmpBuffer);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadSingleArray(int length, out float[]? value, out int sizeNeeded)
+        public unsafe float[] ReadSingleArray(int length)
         {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new float[length];
+            var array = new float[length];
             for (var i = 0; i < length; i++)
             {
                 var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = *((float*)&tmpBuffer);
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadSingleList(int length, out List<float>? value, out int sizeNeeded)
+        public unsafe List<float> ReadSingleList(int length)
         {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<float>(length);
+            var list = new List<float>(length);
             for (var i = 0; i < length; i++)
             {
                 var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = *((float*)&tmpBuffer);
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadSingleHashSet(int length, out HashSet<float>? value, out int sizeNeeded)
+        public unsafe HashSet<float> ReadSingleHashSet(int length)
         {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<float>();
+            var set = new HashSet<float>();
 #else
-            value = new HashSet<float>(length);
+            var set = new HashSet<float>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = *((float*)&tmpBuffer);
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadSingleNullableArray(int length, out float?[]? value, out int sizeNeeded)
+        public unsafe float?[] ReadSingleNullableArray(int length)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new float?[length];
+            var array = new float?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = *((float*)&tmpBuffer);
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadSingleNullableList(int length, out List<float?>? value, out int sizeNeeded)
+        public unsafe List<float?> ReadSingleNullableList(int length)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<float?>(length);
+            var list = new List<float?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = *((float*)&tmpBuffer);
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadSingleNullableHashSet(int length, out HashSet<float?>? value, out int sizeNeeded)
+        public unsafe HashSet<float?> ReadSingleNullableHashSet(int length)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<float?>();
+            var set = new HashSet<float?>();
 #else
-            value = new HashSet<float?>(length);
+            var set = new HashSet<float?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -1739,112 +1118,72 @@ namespace Zerra.IO
                 {
                     var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = *((float*)&tmpBuffer);
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadDouble(out double value, out int sizeNeeded)
+        public unsafe double ReadDouble()
         {
-            sizeNeeded = 8;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var tmpBuffer = ((ulong)hi) << 32 | lo;
-            value = *((double*)&tmpBuffer);
-            return true;
+            return *((double*)&tmpBuffer);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadDoubleNullable(bool nullFlags, out double? value, out int sizeNeeded)
+        public unsafe double? ReadDoubleNullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 9 : 8;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var tmpBuffer = ((ulong)hi) << 32 | lo;
-            value = *((double*)&tmpBuffer);
-            return true;
+            return *((double*)&tmpBuffer);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadDoubleArray(int length, out double[]? value, out int sizeNeeded)
+        public unsafe double[] ReadDoubleArray(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new double[length];
+            var array = new double[length];
             for (var i = 0; i < length; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var tmpBuffer = ((ulong)hi) << 32 | lo;
                 var item = *((double*)&tmpBuffer);
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadDoubleList(int length, out List<double>? value, out int sizeNeeded)
+        public unsafe List<double> ReadDoubleList(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<double>(length);
+            var list = new List<double>(length);
             for (var i = 0; i < length; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var tmpBuffer = ((ulong)hi) << 32 | lo;
                 var item = *((double*)&tmpBuffer);
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadDoubleHashSet(int length, out HashSet<double>? value, out int sizeNeeded)
+        public unsafe HashSet<double> ReadDoubleHashSet(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<double>();
+            var set = new HashSet<double>();
 #else
-            value = new HashSet<double>(length);
+            var set = new HashSet<double>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -1852,21 +1191,14 @@ namespace Zerra.IO
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var tmpBuffer = ((ulong)hi) << 32 | lo;
                 var item = *((double*)&tmpBuffer);
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadDoubleNullableArray(int length, out double?[]? value, out int sizeNeeded)
+        public unsafe double?[] ReadDoubleNullableArray(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new double?[length];
+            var array = new double?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -1875,22 +1207,15 @@ namespace Zerra.IO
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var tmpBuffer = ((ulong)hi) << 32 | lo;
                     var item = *((double*)&tmpBuffer);
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadDoubleNullableList(int length, out List<double?>? value, out int sizeNeeded)
+        public unsafe List<double?> ReadDoubleNullableList(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<double?>(length);
+            var list = new List<double?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -1899,29 +1224,22 @@ namespace Zerra.IO
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var tmpBuffer = ((ulong)hi) << 32 | lo;
                     var item = *((double*)&tmpBuffer);
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadDoubleNullableHashSet(int length, out HashSet<double?>? value, out int sizeNeeded)
+        public unsafe HashSet<double?> ReadDoubleNullableHashSet(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<double?>();
+            var set = new HashSet<double?>();
 #else
-            value = new HashSet<double?>(length);
+            var set = new HashSet<double?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -1931,69 +1249,43 @@ namespace Zerra.IO
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var tmpBuffer = ((ulong)hi) << 32 | lo;
                     var item = *((double*)&tmpBuffer);
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDecimal(out decimal value, out int sizeNeeded)
+        public decimal ReadDecimal()
         {
-            sizeNeeded = 16;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-            value = new decimal(new int[] { lo, mid, hi, flags });
-            return true;
+            return new decimal(new int[] { lo, mid, hi, flags });
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDecimalNullable(bool nullFlags, out decimal? value, out int sizeNeeded)
+        public decimal? ReadDecimalNullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 17 : 16;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
             var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-            value = new decimal(new int[] { lo, mid, hi, flags });
-            return true;
+            return new decimal(new int[] { lo, mid, hi, flags });
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDecimalArray(int length, out decimal[]? value, out int sizeNeeded)
+        public decimal[] ReadDecimalArray(int length)
         {
-            sizeNeeded = length * 16;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new decimal[length];
+            var array = new decimal[length];
             for (var i = 0; i < length; i++)
             {
                 var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
@@ -2001,21 +1293,14 @@ namespace Zerra.IO
                 var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var item = new decimal(new int[] { lo, mid, hi, flags });
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDecimalList(int length, out List<decimal>? value, out int sizeNeeded)
+        public List<decimal> ReadDecimalList(int length)
         {
-            sizeNeeded = length * 16;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<decimal>(length);
+            var list = new List<decimal>(length);
             for (var i = 0; i < length; i++)
             {
                 var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
@@ -2023,24 +1308,17 @@ namespace Zerra.IO
                 var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var item = new decimal(new int[] { lo, mid, hi, flags });
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDecimalHashSet(int length, out HashSet<decimal>? value, out int sizeNeeded)
+        public HashSet<decimal> ReadDecimalHashSet(int length)
         {
-            sizeNeeded = length * 16;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<decimal>();
+            var set = new HashSet<decimal>();
 #else
-            value = new HashSet<decimal>(length);
+            var set = new HashSet<decimal>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -2049,21 +1327,14 @@ namespace Zerra.IO
                 var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var item = new decimal(new int[] { lo, mid, hi, flags });
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDecimalNullableArray(int length, out decimal?[]? value, out int sizeNeeded)
+        public decimal?[] ReadDecimalNullableArray(int length)
         {
-            sizeNeeded = length * 17;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new decimal?[length];
+            var array = new decimal?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -2073,22 +1344,15 @@ namespace Zerra.IO
                     var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var item = new decimal(new int[] { lo, mid, hi, flags });
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDecimalNullableList(int length, out List<decimal?>? value, out int sizeNeeded)
+        public List<decimal?> ReadDecimalNullableList(int length)
         {
-            sizeNeeded = length * 17;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<decimal?>(length);
+            var list = new List<decimal?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -2098,29 +1362,22 @@ namespace Zerra.IO
                     var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var item = new decimal(new int[] { lo, mid, hi, flags });
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDecimalNullableHashSet(int length, out HashSet<decimal?>? value, out int sizeNeeded)
+        public HashSet<decimal?> ReadDecimalNullableHashSet(int length)
         {
-            sizeNeeded = length * 17;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<decimal?>();
+            var set = new HashSet<decimal?>();
 #else
-            value = new HashSet<decimal?>(length);
+            var set = new HashSet<decimal?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -2131,112 +1388,72 @@ namespace Zerra.IO
                     var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var item = new decimal(new int[] { lo, mid, hi, flags });
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateTime(out DateTime value, out int sizeNeeded)
+        public DateTime ReadDateTime()
         {
-            sizeNeeded = 8;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
-            value = new DateTime(ticks);
-            return true;
+            return new DateTime(ticks);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateTimeNullable(bool nullFlags, out DateTime? value, out int sizeNeeded)
+        public DateTime? ReadDateTimeNullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 9 : 8;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
-            value = new DateTime(ticks);
-            return true;
+            return new DateTime(ticks);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateTimeArray(int length, out DateTime[]? value, out int sizeNeeded)
+        public DateTime[] ReadDateTimeArray(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new DateTime[length];
+            var array = new DateTime[length];
             for (var i = 0; i < length; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var item = new DateTime(ticks);
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateTimeList(int length, out List<DateTime>? value, out int sizeNeeded)
+        public List<DateTime> ReadDateTimeList(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<DateTime>(length);
+            var list = new List<DateTime>(length);
             for (var i = 0; i < length; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var item = new DateTime(ticks);
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateTimeHashSet(int length, out HashSet<DateTime>? value, out int sizeNeeded)
+        public HashSet<DateTime> ReadDateTimeHashSet(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<DateTime>();
+            var set = new HashSet<DateTime>();
 #else
-            value = new HashSet<DateTime>(length);
+            var set = new HashSet<DateTime>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -2244,21 +1461,14 @@ namespace Zerra.IO
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var item = new DateTime(ticks);
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateTimeNullableArray(int length, out DateTime?[]? value, out int sizeNeeded)
+        public DateTime?[] ReadDateTimeNullableArray(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new DateTime?[length];
+            var array = new DateTime?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -2267,22 +1477,15 @@ namespace Zerra.IO
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var item = new DateTime(ticks);
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateTimeNullableList(int length, out List<DateTime?>? value, out int sizeNeeded)
+        public List<DateTime?> ReadDateTimeNullableList(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<DateTime?>(length);
+            var list = new List<DateTime?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -2291,29 +1494,22 @@ namespace Zerra.IO
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var item = new DateTime(ticks);
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateTimeNullableHashSet(int length, out HashSet<DateTime?>? value, out int sizeNeeded)
+        public HashSet<DateTime?> ReadDateTimeNullableHashSet(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<DateTime?>();
+            var set = new HashSet<DateTime?>();
 #else
-            value = new HashSet<DateTime?>(length);
+            var set = new HashSet<DateTime?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -2323,69 +1519,43 @@ namespace Zerra.IO
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var item = new DateTime(ticks);
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateTimeOffset(out DateTimeOffset value, out int sizeNeeded)
+        public DateTimeOffset ReadDateTimeOffset()
         {
-            sizeNeeded = 10;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
             var offset = (short)(buffer[position++] | buffer[position++] << 8);
-            value = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
-            return true;
+            return new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateTimeOffsetNullable(bool nullFlags, out DateTimeOffset? value, out int sizeNeeded)
+        public DateTimeOffset? ReadDateTimeOffsetNullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 11 : 10;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
             var offset = (short)(buffer[position++] | buffer[position++] << 8);
-            value = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
-            return true;
+            return new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateTimeOffsetArray(int length, out DateTimeOffset[]? value, out int sizeNeeded)
+        public DateTimeOffset[] ReadDateTimeOffsetArray(int length)
         {
-            sizeNeeded = length * 10;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new DateTimeOffset[length];
+            var array = new DateTimeOffset[length];
             for (var i = 0; i < length; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -2393,21 +1563,14 @@ namespace Zerra.IO
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var offset = (short)(buffer[position++] | buffer[position++] << 8);
                 var item = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateTimeOffsetList(int length, out List<DateTimeOffset>? value, out int sizeNeeded)
+        public List<DateTimeOffset> ReadDateTimeOffsetList(int length)
         {
-            sizeNeeded = length * 10;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<DateTimeOffset>(length);
+            var list = new List<DateTimeOffset>(length);
             for (var i = 0; i < length; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -2415,24 +1578,17 @@ namespace Zerra.IO
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var offset = (short)(buffer[position++] | buffer[position++] << 8);
                 var item = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateTimeOffsetHashSet(int length, out HashSet<DateTimeOffset>? value, out int sizeNeeded)
+        public HashSet<DateTimeOffset> ReadDateTimeOffsetHashSet(int length)
         {
-            sizeNeeded = length * 10;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<DateTimeOffset>();
+            var set = new HashSet<DateTimeOffset>();
 #else
-            value = new HashSet<DateTimeOffset>(length);
+            var set = new HashSet<DateTimeOffset>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -2441,21 +1597,14 @@ namespace Zerra.IO
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var offset = (short)(buffer[position++] | buffer[position++] << 8);
                 var item = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateTimeOffsetNullableArray(int length, out DateTimeOffset?[]? value, out int sizeNeeded)
+        public DateTimeOffset?[] ReadDateTimeOffsetNullableArray(int length)
         {
-            sizeNeeded = length * 11;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new DateTimeOffset?[length];
+            var array = new DateTimeOffset?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -2465,22 +1614,15 @@ namespace Zerra.IO
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var offset = (short)(buffer[position++] | buffer[position++] << 8);
                     var item = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateTimeOffsetNullableList(int length, out List<DateTimeOffset?>? value, out int sizeNeeded)
+        public List<DateTimeOffset?> ReadDateTimeOffsetNullableList(int length)
         {
-            sizeNeeded = length * 11;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<DateTimeOffset?>(length);
+            var list = new List<DateTimeOffset?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -2490,29 +1632,22 @@ namespace Zerra.IO
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var offset = (short)(buffer[position++] | buffer[position++] << 8);
                     var item = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateTimeOffsetNullableHashSet(int length, out HashSet<DateTimeOffset?>? value, out int sizeNeeded)
+        public HashSet<DateTimeOffset?> ReadDateTimeOffsetNullableHashSet(int length)
         {
-            sizeNeeded = length * 11;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<DateTimeOffset?>();
+            var set = new HashSet<DateTimeOffset?>();
 #else
-            value = new HashSet<DateTimeOffset?>(length);
+            var set = new HashSet<DateTimeOffset?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -2523,112 +1658,72 @@ namespace Zerra.IO
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var offset = (short)(buffer[position++] | buffer[position++] << 8);
                     var item = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadTimeSpan(out TimeSpan value, out int sizeNeeded)
+        public TimeSpan ReadTimeSpan()
         {
-            sizeNeeded = 8;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
-            value = new TimeSpan(ticks);
-            return true;
+            return new TimeSpan(ticks);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadTimeSpanNullable(bool nullFlags, out TimeSpan? value, out int sizeNeeded)
+        public TimeSpan? ReadTimeSpanNullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 9 : 8;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
-            value = new TimeSpan(ticks);
-            return true;
+            return new TimeSpan(ticks);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadTimeSpanArray(int length, out TimeSpan[]? value, out int sizeNeeded)
+        public TimeSpan[] ReadTimeSpanArray(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new TimeSpan[length];
+            var array = new TimeSpan[length];
             for (var i = 0; i < length; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var item = new TimeSpan(ticks);
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadTimeSpanList(int length, out List<TimeSpan>? value, out int sizeNeeded)
+        public List<TimeSpan> ReadTimeSpanList(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<TimeSpan>(length);
+            var list = new List<TimeSpan>(length);
             for (var i = 0; i < length; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var item = new TimeSpan(ticks);
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadTimeSpanHashSet(int length, out HashSet<TimeSpan>? value, out int sizeNeeded)
+        public HashSet<TimeSpan> ReadTimeSpanHashSet(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<TimeSpan>();
+            var set = new HashSet<TimeSpan>();
 #else
-            value = new HashSet<TimeSpan>(length);
+            var set = new HashSet<TimeSpan>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -2636,21 +1731,14 @@ namespace Zerra.IO
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var item = new TimeSpan(ticks);
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadTimeSpanNullableArray(int length, out TimeSpan?[]? value, out int sizeNeeded)
+        public TimeSpan?[] ReadTimeSpanNullableArray(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new TimeSpan?[length];
+            var array = new TimeSpan?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -2659,22 +1747,15 @@ namespace Zerra.IO
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var item = new TimeSpan(ticks);
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadTimeSpanNullableList(int length, out List<TimeSpan?>? value, out int sizeNeeded)
+        public List<TimeSpan?> ReadTimeSpanNullableList(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<TimeSpan?>(length);
+            var list = new List<TimeSpan?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -2683,29 +1764,22 @@ namespace Zerra.IO
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var item = new TimeSpan(ticks);
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadTimeSpanNullableHashSet(int length, out HashSet<TimeSpan?>? value, out int sizeNeeded)
+        public HashSet<TimeSpan?> ReadTimeSpanNullableHashSet(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<TimeSpan?>();
+            var set = new HashSet<TimeSpan?>();
 #else
-            value = new HashSet<TimeSpan?>(length);
+            var set = new HashSet<TimeSpan?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -2715,176 +1789,115 @@ namespace Zerra.IO
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var item = new TimeSpan(ticks);
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
 #if NET6_0_OR_GREATER
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateOnly(out DateOnly value, out int sizeNeeded)
+        public DateOnly ReadDateOnly()
         {
-            sizeNeeded = 4;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            value = DateOnly.FromDayNumber(dayNumber);
-            return true;
+            return DateOnly.FromDayNumber(dayNumber);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateOnlyNullable(bool nullFlags, out DateOnly? value, out int sizeNeeded)
+        public DateOnly? ReadDateOnlyNullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 5 : 4;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
             var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            value = DateOnly.FromDayNumber(dayNumber);
-            return true;
+            return DateOnly.FromDayNumber(dayNumber);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateOnlyArray(int length, out DateOnly[]? value, out int sizeNeeded)
+        public DateOnly[] ReadDateOnlyArray(int length)
         {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new DateOnly[length];
+            var array = new DateOnly[length];
             for (var i = 0; i < length; i++)
             {
                 var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = DateOnly.FromDayNumber(dayNumber);
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateOnlyList(int length, out List<DateOnly>? value, out int sizeNeeded)
+        public List<DateOnly> ReadDateOnlyList(int length)
         {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<DateOnly>(length);
+            var list = new List<DateOnly>(length);
             for (var i = 0; i < length; i++)
             {
                 var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = DateOnly.FromDayNumber(dayNumber);
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateOnlyHashSet(int length, out HashSet<DateOnly>? value, out int sizeNeeded)
+        public HashSet<DateOnly> ReadDateOnlyHashSet(int length)
         {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<DateOnly>();
+            var set = new HashSet<DateOnly>();
 #else
-            value = new HashSet<DateOnly>(length);
+            var set = new HashSet<DateOnly>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
                 var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var item = DateOnly.FromDayNumber(dayNumber);
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateOnlyNullableArray(int length, out DateOnly?[]? value, out int sizeNeeded)
+        public DateOnly?[] ReadDateOnlyNullableArray(int length)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new DateOnly?[length];
+            var array = new DateOnly?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = DateOnly.FromDayNumber(dayNumber);
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateOnlyNullableList(int length, out List<DateOnly?>? value, out int sizeNeeded)
+        public List<DateOnly?> ReadDateOnlyNullableList(int length)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<DateOnly?>(length);
+            var list = new List<DateOnly?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
                 {
                     var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = DateOnly.FromDayNumber(dayNumber);
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadDateOnlyNullableHashSet(int length, out HashSet<DateOnly?>? value, out int sizeNeeded)
+        public HashSet<DateOnly?> ReadDateOnlyNullableHashSet(int length)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<DateOnly?>();
+            var set = new HashSet<DateOnly?>();
 #else
-            value = new HashSet<DateOnly?>(length);
+            var set = new HashSet<DateOnly?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -2892,112 +1905,72 @@ namespace Zerra.IO
                 {
                     var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = DateOnly.FromDayNumber(dayNumber);
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadTimeOnly(out TimeOnly value, out int sizeNeeded)
+        public TimeOnly ReadTimeOnly()
         {
-            sizeNeeded = 8;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
-            value = new TimeOnly(ticks);
-            return true;
+            return new TimeOnly(ticks);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadTimeOnlyNullable(bool nullFlags, out TimeOnly? value, out int sizeNeeded)
+        public TimeOnly? ReadTimeOnlyNullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 9 : 8;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
-            value = new TimeOnly(ticks);
-            return true;
+            return new TimeOnly(ticks);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadTimeOnlyArray(int length, out TimeOnly[]? value, out int sizeNeeded)
+        public TimeOnly[] ReadTimeOnlyArray(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new TimeOnly[length];
+            var array = new TimeOnly[length];
             for (var i = 0; i < length; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var item = new TimeOnly(ticks);
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadTimeOnlyList(int length, out List<TimeOnly>? value, out int sizeNeeded)
+        public List<TimeOnly> ReadTimeOnlyList(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<TimeOnly>(length);
+            var list = new List<TimeOnly>(length);
             for (var i = 0; i < length; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var item = new TimeOnly(ticks);
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadTimeOnlyHashSet(int length, out HashSet<TimeOnly>? value, out int sizeNeeded)
+        public HashSet<TimeOnly> ReadTimeOnlyHashSet(int length)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<TimeOnly>();
+            var set = new HashSet<TimeOnly>();
 #else
-            value = new HashSet<TimeOnly>(length);
+            var set = new HashSet<TimeOnly>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -3005,21 +1978,14 @@ namespace Zerra.IO
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
                 var item = new TimeOnly(ticks);
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadTimeOnlyNullableArray(int length, out TimeOnly?[]? value, out int sizeNeeded)
+        public TimeOnly?[] ReadTimeOnlyNullableArray(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new TimeOnly?[length];
+            var array = new TimeOnly?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -3028,22 +1994,15 @@ namespace Zerra.IO
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var item = new TimeOnly(ticks);
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadTimeOnlyNullableList(int length, out List<TimeOnly?>? value, out int sizeNeeded)
+        public List<TimeOnly?> ReadTimeOnlyNullableList(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<TimeOnly?>(length);
+            var list = new List<TimeOnly?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -3052,29 +2011,22 @@ namespace Zerra.IO
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var item = new TimeOnly(ticks);
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadTimeOnlyNullableHashSet(int length, out HashSet<TimeOnly?>? value, out int sizeNeeded)
+        public HashSet<TimeOnly?> ReadTimeOnlyNullableHashSet(int length)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<TimeOnly?>();
+            var set = new HashSet<TimeOnly?>();
 #else
-            value = new HashSet<TimeOnly?>(length);
+            var set = new HashSet<TimeOnly?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -3084,74 +2036,49 @@ namespace Zerra.IO
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
                     var item = new TimeOnly(ticks);
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 #endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadGuid(out Guid value, out int sizeNeeded)
+        public unsafe Guid ReadGuid()
         {
-            sizeNeeded = 16;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new Guid(buffer.Slice(position, 16).ToArray());
+            var value = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-            value = new Guid(buffer.Slice(position, 16));
+            var value = new Guid(buffer.Slice(position, 16));
 #endif
             position += 16;
-            return true;
+            return value;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadGuidNullable(bool nullFlags, out Guid? value, out int sizeNeeded)
+        public unsafe Guid? ReadGuidNullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 17 : 16;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
 
-
 #if NETSTANDARD2_0
-            value = new Guid(buffer.Slice(position, 16).ToArray());
+            var value = new Guid(buffer.Slice(position, 16).ToArray());
 #else
-            value = new Guid(buffer.Slice(position, 16));
+            var value = new Guid(buffer.Slice(position, 16));
 #endif
             position += 16;
-            return true;
+            return value;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadGuidArray(int length, out Guid[]? value, out int sizeNeeded)
+        public unsafe Guid[] ReadGuidArray(int length)
         {
-            sizeNeeded = length * 16;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new Guid[length];
+            var array = new Guid[length];
             for (var i = 0; i < length; i++)
             {
 #if NETSTANDARD2_0
@@ -3160,21 +2087,14 @@ namespace Zerra.IO
                 var item = new Guid(buffer.Slice(position, 16));
 #endif
                 position += 16;
-                value[i] = item;
+                array[i] = item;
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadGuidList(int length, out List<Guid>? value, out int sizeNeeded)
+        public unsafe List<Guid> ReadGuidList(int length)
         {
-            sizeNeeded = length * 16;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<Guid>(length);
+            var list = new List<Guid>(length);
             for (var i = 0; i < length; i++)
             {
 #if NETSTANDARD2_0
@@ -3183,24 +2103,17 @@ namespace Zerra.IO
                 var item = new Guid(buffer.Slice(position, 16));
 #endif
                 position += 16;
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadGuidHashSet(int length, out HashSet<Guid>? value, out int sizeNeeded)
+        public unsafe HashSet<Guid> ReadGuidHashSet(int length)
         {
-            sizeNeeded = length * 16;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<Guid>();
+            var set = new HashSet<Guid>();
 #else
-            value = new HashSet<Guid>(length);
+            var set = new HashSet<Guid>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -3210,21 +2123,14 @@ namespace Zerra.IO
                 var item = new Guid(buffer.Slice(position, 16));
 #endif
                 position += 16;
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadGuidNullableArray(int length, out Guid?[]? value, out int sizeNeeded)
+        public unsafe Guid?[] ReadGuidNullableArray(int length)
         {
-            sizeNeeded = length * 17;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new Guid?[length];
+            var array = new Guid?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -3235,22 +2141,15 @@ namespace Zerra.IO
                     var item = new Guid(buffer.Slice(position, 16));
 #endif
                     position += 16;
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadGuidNullableList(int length, out List<Guid?>? value, out int sizeNeeded)
+        public unsafe List<Guid?> ReadGuidNullableList(int length)
         {
-            sizeNeeded = length * 17;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<Guid?>(length);
+            var list = new List<Guid?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -3261,29 +2160,22 @@ namespace Zerra.IO
                     var item = new Guid(buffer.Slice(position, 16));
 #endif
                     position += 16;
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadGuidNullableHashSet(int length, out HashSet<Guid?>? value, out int sizeNeeded)
+        public unsafe HashSet<Guid?> ReadGuidNullableHashSet(int length)
         {
-            sizeNeeded = length * 17;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<Guid?>();
+            var set = new HashSet<Guid?>();
 #else
-            value = new HashSet<Guid?>(length);
+            var set = new HashSet<Guid?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -3295,70 +2187,46 @@ namespace Zerra.IO
                     var item = new Guid(buffer.Slice(position, 16));
 #endif
                     position += 16;
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadChar(out char value, out int sizeNeeded)
+        public unsafe char ReadChar()
         {
-            sizeNeeded = 2;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             fixed (byte* pBuffer = &buffer[position])
             {
-                value = (char)*(short*)pBuffer;
+                var value = (char)*(short*)pBuffer;
                 position += 2;
+                return value;
             }
-            return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadCharNullable(bool nullFlags, out char? value, out int sizeNeeded)
+        public unsafe char? ReadCharNullable(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 3 : 2;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags)
             {
                 if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
+                    return null;
             }
             fixed (byte* pBuffer = &buffer[position])
             {
-                value = (char)*(short*)pBuffer;
+                var value = (char)*(short*)pBuffer;
                 position += 2;
+                return value;
             }
-            return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadCharArray(int length, out char[]? value, out int sizeNeeded)
+        public unsafe char[] ReadCharArray(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new char[length];
-            fixed (char* pArray = value)
+            var array = new char[length];
+            fixed (char* pArray = array)
             {
                 for (var i = 0; i < length; i++)
                 {
@@ -3369,19 +2237,12 @@ namespace Zerra.IO
                     position += 2;
                 }
             }
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadCharList(int length, out List<char>? value, out int sizeNeeded)
+        public unsafe List<char> ReadCharList(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<char>(length);
+            var list = new List<char>(length);
             for (var i = 0; i < length; i++)
             {
                 char item;
@@ -3390,24 +2251,17 @@ namespace Zerra.IO
                     item = (char)*(short*)pBuffer;
                 }
                 position += 2;
-                value.Add(item);
+                list.Add(item);
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadCharHashSet(int length, out HashSet<char>? value, out int sizeNeeded)
+        public unsafe HashSet<char> ReadCharHashSet(int length)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<char>();
+            var set = new HashSet<char>();
 #else
-            value = new HashSet<char>(length);
+            var set = new HashSet<char>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -3417,21 +2271,14 @@ namespace Zerra.IO
                     item = (char)*(short*)pBuffer;
                 }
                 position += 2;
-                value.Add(item);
+                set.Add(item);
             }
-            return true;
+            return set;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadCharNullableArray(int length, out char?[]? value, out int sizeNeeded)
+        public unsafe char?[] ReadCharNullableArray(int length)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new char?[length];
+            var array = new char?[length];
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -3442,23 +2289,16 @@ namespace Zerra.IO
                         item = (char)*(short*)pBuffer;
                     }
                     position += 2;
-                    value[i] = item;
+                    array[i] = item;
                 }
             }
 
-            return true;
+            return array;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadCharNullableList(int length, out List<char?>? value, out int sizeNeeded)
+        public unsafe List<char?> ReadCharNullableList(int length)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<char?>(length);
+            var list = new List<char?>(length);
             for (var i = 0; i < length; i++)
             {
                 if (buffer[position++] != nullByte)
@@ -3469,29 +2309,22 @@ namespace Zerra.IO
                         item = (char)*(short*)pBuffer;
                     }
                     position += 2;
-                    value.Add(item);
+                    list.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    list.Add(null);
                 }
             }
-            return true;
+            return list;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadCharNullableHashSet(int length, out HashSet<char?>? value, out int sizeNeeded)
+        public unsafe HashSet<char?> ReadCharNullableHashSet(int length)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
 #if NETSTANDARD2_0
-            value = new HashSet<char?>();
+            var set = new HashSet<char?>();
 #else
-            value = new HashSet<char?>(length);
+            var set = new HashSet<char?>(length);
 #endif
             for (var i = 0; i < length; i++)
             {
@@ -3503,52 +2336,128 @@ namespace Zerra.IO
                         item = (char)*(short*)pBuffer;
                     }
                     position += 2;
-                    value.Add(item);
+                    set.Add(item);
                 }
                 else
                 {
-                    value.Add(null);
+                    set.Add(null);
                 }
             }
-            return true;
+            return set;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadStringLength(bool nullFlags, out int? value, out int sizeNeeded)
+        public unsafe string? ReadString(bool nullFlags)
         {
-            sizeNeeded = nullFlags ? 5 : 4;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
             if (nullFlags && buffer[position++] == nullByte)
-            {
-                value = null;
-                return true;
-            }
-            value = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            return true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadString(int byteLength, out string? value, out int sizeNeeded)
-        {
-            sizeNeeded = byteLength;
-            if (length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
+                return null;
+            var byteLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (byteLength == 0)
+                return String.Empty;
             var bytesForString = buffer.Slice(position, byteLength);
+            string value;
             fixed (byte* p = bytesForString)
             {
-                value = encoding.GetString(p, sizeNeeded);
+                value = encoding.GetString(p, byteLength);
             }
-            position += sizeNeeded;
-            return true;
+            position += byteLength;
+            return value;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe string[] ReadStringArray(int length)
+        {
+            var array = new string[length];
+            for (var i = 0; i < length; i++)
+            {
+                if (buffer[position++] != nullByte)
+                {
+                    var byteLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    string item;
+                    if (byteLength == 0)
+                    {
+                        item = String.Empty;
+                    }
+                    else
+                    {
+                        var bytesForString = buffer.Slice(position, byteLength);
+                        fixed (byte* p = &bytesForString[0])
+                        {
+                            item = encoding.GetString(p, byteLength);
+                        }
+                    }
+                    position += byteLength;
+                    array[i] = item;
+                }
+            }
+            return array;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe List<string?> ReadStringList(int length)
+        {
+            var list = new List<string?>(length);
+            for (var i = 0; i < length; i++)
+            {
+                if (buffer[position++] != nullByte)
+                {
+                    var byteLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    string item;
+                    if (byteLength == 0)
+                    {
+                        item = String.Empty;
+                    }
+                    else
+                    {
+                        var bytesForString = buffer.Slice(position, byteLength);
+                        fixed (byte* p = bytesForString)
+                        {
+                            item = encoding.GetString(p, byteLength);
+                        }
+                    }
+                    position += byteLength;
+                    list.Add(item);
+                }
+                else
+                {
+                    list.Add(null);
+                }
+            }
+            return list;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe HashSet<string?> ReadStringHashSet(int length)
+        {
+#if NETSTANDARD2_0
+            var set = new HashSet<string?>();
+#else
+            var set = new HashSet<string?>(length);
+#endif
+            for (var i = 0; i < length; i++)
+            {
+                if (buffer[position++] != nullByte)
+                {
+                    var byteLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                    string item;
+                    if (byteLength == 0)
+                    {
+                        item = String.Empty;
+                    }
+                    else
+                    {
+                        var bytesForString = buffer.Slice(position, byteLength);
+                        fixed (byte* p = bytesForString)
+                        {
+                            item = encoding.GetString(p, byteLength);
+                        }
+                    }
+                    position += byteLength;
+                    set.Add(item);
+                }
+                else
+                {
+                    set.Add(null);
+                }
+            }
+            return set;
         }
     }
 }

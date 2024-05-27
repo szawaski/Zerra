@@ -5,7 +5,7 @@
 using System;
 using System.Text;
 
-namespace Zerra.IO
+namespace Zerra.Serialization
 {
     public ref partial struct ByteReader
     {

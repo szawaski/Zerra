@@ -294,7 +294,7 @@ namespace Zerra
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void RunInitializers()
         {
-            var instanceTypes = Discovery.GetImplementationClasses(mapDefinitionsType);
+            var instanceTypes = Discovery.GetClassesByInterface(mapDefinitionsType);
             foreach (var instanceType in instanceTypes)
             {
                 var instance = (IMapDefinition<TSource, TTarget>)Instantiator.Create(instanceType);
@@ -546,19 +546,19 @@ namespace Zerra
                     var enumerator = Expression.Variable(enumeratorGeneric.Type, "enumerator");
                     var assignEnumeratorVariable = Expression.Assign(enumerator, Expression.Call(enumerable, getEnumeratorMethod.MethodInfo));
 
-                    var targetKey = Expression.Variable(targetType.InnerTypeDetails[0].InnerTypes[0], "key");
-                    var targetValue = Expression.Variable(targetType.InnerTypeDetails[0].InnerTypes[1], "value");
+                    var targetKey = Expression.Variable(targetType.InnerTypes[0], "key");
+                    var targetValue = Expression.Variable(targetType.InnerTypes[1], "value");
 
-                    var clearTargetKeyForLog = Expression.Assign(targetKey, Expression.Default(targetType.InnerTypeDetails[0].InnerTypes[0]));
-                    var clearTargetValueForLog = Expression.Assign(targetValue, Expression.Default(targetType.InnerTypeDetails[0].InnerTypes[1]));
+                    var clearTargetKeyForLog = Expression.Assign(targetKey, Expression.Default(targetType.InnerTypes[0]));
+                    var clearTargetValueForLog = Expression.Assign(targetValue, Expression.Default(targetType.InnerTypes[1]));
 
                     var loopBreakTarget = Expression.Label();
                     var moveNextOrBreak = Expression.IfThen(Expression.Not(Expression.Call(enumerator, moveNextMethod.MethodInfo)), Expression.Break(loopBreakTarget));
 
                     var sourceElement = Expression.Convert(Expression.Call(enumerator, currentMethod.MethodInfo), sourceType.IEnumerableGenericInnerType);
 
-                    var sourceKey = Expression.MakeMemberAccess(sourceElement, targetType.InnerTypeDetails[0].GetMember("Key").MemberInfo);
-                    var sourceValue = Expression.MakeMemberAccess(sourceElement, targetType.InnerTypeDetails[0].GetMember("Value").MemberInfo);
+                    var sourceKey = Expression.MakeMemberAccess(sourceElement, targetType.DictionaryInnerTypeDetail.GetMember("Key").MemberInfo);
+                    var sourceValue = Expression.MakeMemberAccess(sourceElement, targetType.DictionaryInnerTypeDetail.GetMember("Value").MemberInfo);
 
                     var newKeyElementBlock = GenerateMapAssignTarget(graph, sourceKey, targetKey, logger, recursionDictionary, ref depth);
                     var newValueElementBlock = GenerateMapAssignTarget(graph, sourceValue, targetValue, logger, recursionDictionary, ref depth);
@@ -936,7 +936,7 @@ namespace Zerra
                     else if (targetType.SpecialType == SpecialType.Dictionary)
                     {
                         //source enumerable, target dictionary
-                        var dictionaryType = TypeAnalyzer.GetGenericType(genericDictionaryType, targetType.InnerTypeDetails[0].InnerTypes[0], targetType.InnerTypeDetails[0].InnerTypes[1]);
+                        var dictionaryType = TypeAnalyzer.GetGenericType(genericDictionaryType, targetType.InnerTypes[0], targetType.InnerTypes[1]);
                         newTarget = Expression.Variable(dictionaryType, "newTarget");
                         assignNewTarget = Expression.Assign(newTarget, Expression.New(dictionaryType));
                     }

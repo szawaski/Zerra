@@ -7,7 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace Zerra.IO
+namespace Zerra.Serialization
 {
     public ref partial struct ByteWriter
     {
@@ -2221,7 +2221,7 @@ namespace Zerra.IO
 #else
                 var byteLength = encoding.GetBytes(value.AsSpan(), buffer.Slice(position + 4 + (nullFlags ? 1 : 0)));
 #endif
-               
+
                 if (nullFlags)
                     buffer[position++] = notNullByte;
                 buffer[position++] = (byte)byteLength;

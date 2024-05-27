@@ -53,14 +53,6 @@ namespace Zerra.Reflection
                             if (Type.IsGenericType)
                             {
                                 innerTypes = Type.GetGenericArguments();
-                                if (TypeLookup.SpecialTypeLookup(Type, out var specialTypeLookup))
-                                {
-                                    if (specialTypeLookup == Reflection.SpecialType.Dictionary)
-                                    {
-                                        var innerType = TypeAnalyzer.GetGenericType(keyValuePairType, (Type[])innerTypes);
-                                        innerTypes = new Type[] { innerType };
-                                    }
-                                }
                             }
                             else if (Type.IsArray)
                             {
@@ -74,6 +66,30 @@ namespace Zerra.Reflection
                     }
                 }
                 return innerTypes;
+            }
+        }
+
+        private bool innerTypeLoaded = false;
+        private Type? innerType = null;
+        public Type InnerType
+        {
+            get
+            {
+                if (!innerTypeLoaded)
+                {
+                    lock (locker)
+                    {
+                        if (!innerTypeLoaded)
+                        {
+                            if (InnerTypes.Count == 1)
+                            {
+                                innerType = InnerTypes[0];
+                            }
+                            innerTypeLoaded = true;
+                        }
+                    }
+                }
+                return innerType ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(InnerType)}");
             }
         }
 
@@ -636,7 +652,6 @@ namespace Zerra.Reflection
         {
             get
             {
-
                 if (innerTypesDetails == null)
                 {
                     lock (locker)
@@ -661,6 +676,30 @@ namespace Zerra.Reflection
                     }
                 }
                 return innerTypesDetails;
+            }
+        }
+
+        private bool innerTypeDetailLoaded = false;
+        private TypeDetail? innerTypesDetail = null;
+        public TypeDetail InnerTypeDetail
+        {
+            get
+            {
+                if (!innerTypeDetailLoaded)
+                {
+                    lock (locker)
+                    {
+                        if (!innerTypeDetailLoaded)
+                        {
+                            if (InnerTypes.Count == 1)
+                            {
+                                innerTypesDetail = InnerType.GetTypeDetail();
+                            }
+                        }
+                        innerTypeDetailLoaded = true;
+                    }
+                }
+                return innerTypesDetail ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(InnerTypeDetail)}");
             }
         }
 
@@ -728,6 +767,57 @@ namespace Zerra.Reflection
                     }
                 }
                 return iEnumerableGenericInnerTypeDetail;
+            }
+        }
+
+        private bool dictionartyInnerTypeLoaded = false;
+        private Type? dictionaryInnerType = null;
+        public Type DictionaryInnerType
+        {
+            get
+            {
+                if (!dictionartyInnerTypeLoaded)
+                {
+                    lock (locker)
+                    {
+                        if (!dictionartyInnerTypeLoaded)
+                        {
+                            if (TypeLookup.SpecialTypeLookup(Type, out var specialTypeLookup))
+                            {
+                                if (specialTypeLookup == Reflection.SpecialType.Dictionary)
+                                {
+                                    dictionaryInnerType = TypeAnalyzer.GetGenericType(keyValuePairType, (Type[])InnerTypes);
+                                }
+                            }
+                            dictionartyInnerTypeLoaded = true;
+                        }
+                    }
+                }
+                return dictionaryInnerType ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(DictionaryInnerType)}");
+            }
+        }
+
+        private bool dictionaryInnerTypeDetailLoaded = false;
+        private TypeDetail? dictionaryInnerTypesDetail = null;
+        public TypeDetail DictionaryInnerTypeDetail
+        {
+            get
+            {
+                if (!dictionaryInnerTypeDetailLoaded)
+                {
+                    lock (locker)
+                    {
+                        if (!dictionaryInnerTypeDetailLoaded)
+                        {
+                            if (TypeLookup.SpecialTypeLookup(Type, out _))
+                            {
+                                dictionaryInnerTypesDetail = DictionaryInnerType.GetTypeDetail();
+                            }
+                        }
+                        innerTypeDetailLoaded = true;
+                    }
+                }
+                return dictionaryInnerTypesDetail ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(DictionaryInnerTypeDetail)}");
             }
         }
 
@@ -837,7 +927,7 @@ namespace Zerra.Reflection
         private static readonly Type typeDetailT = typeof(TypeDetail<>);
         internal static TypeDetail New(Type type)
         {
-            if (!type.IsGenericType || type.IsConstructedGenericType)
+            if (!type.ContainsGenericParameters)
             {
                 var typeDetailGeneric = typeDetailT.MakeGenericType(type);
                 var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { type });

@@ -724,7 +724,7 @@ namespace Zerra.Serialization
                             case '"':
                                 reader.BackOne();
                                 state.CurrentFrame.State = 2;
-                                state.PushFrame(new ReadFrame() { TypeDetail = typeDetail.InnerTypeDetails[0].InnerTypeDetails[0], FrameType = ReadFrameType.Value });
+                                state.PushFrame(new ReadFrame() { TypeDetail = typeDetail.InnerTypeDetails[0], FrameType = ReadFrameType.Value });
                                 return;
                             case '}':
                                 state.EndFrame();
@@ -744,7 +744,7 @@ namespace Zerra.Serialization
 
                         state.CurrentFrame.DictionaryKey = state.LastFrameResultObject;
                         state.CurrentFrame.State = 3;
-                        state.PushFrame(new ReadFrame() { TypeDetail = typeDetail.InnerTypeDetails[0].InnerTypeDetails[1], FrameType = ReadFrameType.Value, });
+                        state.PushFrame(new ReadFrame() { TypeDetail = typeDetail.InnerTypeDetails[1], FrameType = ReadFrameType.Value, });
                         return;
 
                     case 3: //property value
@@ -789,14 +789,14 @@ namespace Zerra.Serialization
                     state.CurrentFrame.ArrayElementType = typeDetail.IEnumerableGenericInnerTypeDetail;
                     if (typeDetail.Type.IsArray)
                     {
-                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
+                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.IsIList && typeDetail.Type.IsInterface)
                     {
-                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
+                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
@@ -809,7 +809,7 @@ namespace Zerra.Serialization
                     }
                     else if (typeDetail.IsISet && typeDetail.Type.IsInterface)
                     {
-                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, typeDetail.InnerTypeDetails[0].Type));
+                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
@@ -822,7 +822,7 @@ namespace Zerra.Serialization
                     }
                     else
                     {
-                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, typeDetail.InnerTypeDetails[0].Type));
+                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];

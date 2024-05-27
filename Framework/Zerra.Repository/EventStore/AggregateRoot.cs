@@ -42,7 +42,7 @@ namespace Zerra.Repository
                         var aggregateType = GetAggregateType();
                         var iEventStoreContextProviderType = typeof(IAggregateRootContextProvider<>);
                         var iEventStoreContextProviderGenericType = TypeAnalyzer.GetGenericType(iEventStoreContextProviderType, aggregateType);
-                        var providerType = Discovery.GetImplementationClass(iEventStoreContextProviderGenericType)!;
+                        var providerType = Discovery.GetClassByInterface(iEventStoreContextProviderGenericType)!;
                         var provider = (IContextProvider)Instantiator.Create(providerType);
                         var context = provider.GetContext();
                         engineCache = context.InitializeEngine<IEventStoreEngine>();
