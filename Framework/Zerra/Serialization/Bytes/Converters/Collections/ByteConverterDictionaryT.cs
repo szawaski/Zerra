@@ -133,7 +133,7 @@ namespace Zerra.Serialization
 
             IEnumerator<KeyValuePair<TKey, TValue?>> enumerator;
 
-            if (!state.Current.EnumerableLength.HasValue)
+            if (state.Current.Object == null)
             {
                 var collection = (IReadOnlyCollection<KeyValuePair<TKey, TValue?>>)value;
 

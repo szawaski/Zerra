@@ -122,8 +122,8 @@ namespace Zerra.Reflection
             }
         }
 
-        public override Delegate? GetterTyped => Getter;
-        public override Delegate? SetterTyped => Setter;
+        public override Delegate GetterTyped => Getter;
+        public override Delegate SetterTyped => Setter;
 
         private TypeDetail<V>? typeDetail = null;
         public new TypeDetail<V> TypeDetail

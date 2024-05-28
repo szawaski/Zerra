@@ -25,8 +25,8 @@ namespace Zerra.Serialization
         public abstract void Setup(TypeDetail? typeDetail, string? memberKey, Delegate? getterDelegate, Delegate? setterDelegate);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public abstract bool TryRead(ref ByteReader reader, ref ReadState state, out object? value);
+        public abstract bool TryReadBoxed(ref ByteReader reader, ref ReadState state, out object? value);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public abstract bool TryWrite(ref ByteWriter writer, ref WriteState state, object? value);
+        public abstract bool TryWriteBoxed(ref ByteWriter writer, ref WriteState state, object? value);
     }
 }

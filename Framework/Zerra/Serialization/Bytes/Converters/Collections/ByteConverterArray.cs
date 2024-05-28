@@ -55,7 +55,7 @@ namespace Zerra.Serialization
 
                 if (!state.Current.DrainBytes)
                 {
-                    accessor = new ArrayAccessor<TValue?>(length);
+                    accessor = new ArrayAccessor<TValue?>(new TValue?[length]);
                     value = accessor.Array;
                     if (length == 0)
                         return true;
@@ -65,7 +65,7 @@ namespace Zerra.Serialization
                     value = default;
                     if (length == 0)
                         return true;
-                    accessor = new ArrayAccessor<TValue?>();
+                    accessor = new ArrayAccessor<TValue?>(length);
                 }
             }
             else
@@ -75,7 +75,7 @@ namespace Zerra.Serialization
             }
 
             length = state.Current.EnumerableLength.Value;
-            if (accessor.Count == length)
+            if (accessor.Index == length)
                 return true;
 
             for (; ; )
@@ -87,8 +87,8 @@ namespace Zerra.Serialization
                     state.Current.Object = accessor;
                     return false;
                 }
-
-                if (accessor.Count == length)
+                accessor.Index++;
+                if (accessor.Index == length)
                     return true;
             }
         }
@@ -120,7 +120,7 @@ namespace Zerra.Serialization
 
             ArrayAccessor<TValue?> accessor;
 
-            if (!state.Current.EnumerableLength.HasValue)
+            if (state.Current.Object == null)
             {
                 var length = value.Length;
 
@@ -129,7 +129,6 @@ namespace Zerra.Serialization
                     state.BytesNeeded = sizeNeeded;
                     return false;
                 }
-                state.Current.EnumerableLength = length;
 
                 accessor = new ArrayAccessor<TValue?>(value);
             }
@@ -140,7 +139,7 @@ namespace Zerra.Serialization
 
             if (accessor.Array?.Length > 0)
             {
-                while (accessor.Count < accessor.Array.Length)
+                while (accessor.Index < accessor.Array.Length)
                 {
                     state.PushFrame(true);
                     var write = converter.TryWriteFromParent(ref writer, ref state, accessor);
@@ -149,6 +148,7 @@ namespace Zerra.Serialization
                         state.Current.Object = accessor;
                         return false;
                     }
+                    accessor.Index++;
                 }
             }
 
@@ -157,43 +157,37 @@ namespace Zerra.Serialization
 
         private sealed class ArrayAccessor<T>
         {
-            private int index;
-            public int Count => index;
+            public int Index;
+            public readonly int Length;
 
-            private readonly T[]? array;
-            public T[]? Array => array;
+            private readonly T?[]? array;
+            public T?[]? Array => array;
 
-            public ArrayAccessor()
-            {
-                this.array = null;
-                this.index = 0;
-            }
-            public ArrayAccessor(T[]? array)
+            public ArrayAccessor(T?[] array)
             {
                 this.array = array;
-                this.index = 0;
+                this.Index = 0;
+                this.Length = array.Length;
             }
             public ArrayAccessor(int length)
             {
-                this.array = new T[length];
-                this.index = 0;
+                this.array = null;
+                this.Index = 0;
+                this.Length = length;
             }
 
-            public void Set(T value)
-            {
-                if (array == null)
-                {
-                    index++;
-                    return;
-                }
-                array[index++] = value;
-            }
-
-            public T Get()
+            public T? Get()
             {
                 if (array == null)
                     throw new InvalidOperationException();
-                return array[index++];
+                return array[Index];
+            }
+
+            public void Set(T? value)
+            {
+                if (array == null)
+                    return;
+                array[Index] = value;
             }
         }
     }

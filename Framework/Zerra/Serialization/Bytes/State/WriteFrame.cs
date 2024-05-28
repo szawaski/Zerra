@@ -18,5 +18,6 @@ namespace Zerra.Serialization
 
         public object? Enumerator;
         public bool EnumeratorInProgress;
+        public bool HasWrittenPropertyIndex;
     }
 }

@@ -21,7 +21,7 @@ namespace Zerra.Serialization
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (ByteConverter<object, T>)ByteConverterFactory<object>.GetRoot(typeDetail);
 
             var state = new ReadState()
             {
@@ -76,7 +76,7 @@ namespace Zerra.Serialization
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (ByteConverter<object, T>)ByteConverterFactory<object>.GetRoot(typeDetail);
 
             var isFinalBlock = false;
 #if DEBUG
@@ -285,7 +285,7 @@ namespace Zerra.Serialization
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (ByteConverter<object, T>)ByteConverterFactory<object>.GetRoot(typeDetail);
 
             var isFinalBlock = false;
 #if DEBUG
@@ -487,7 +487,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Read(ByteConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding, out object? result)
+        private static int Read<T>(ByteConverter<object, T> converter, ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding, out T? result)
         {
             var reader = new ByteReader(buffer, encoding);
 #if DEBUG
@@ -499,6 +499,22 @@ namespace Zerra.Serialization
             }
 #else
             converter.TryRead(ref reader, ref state, out result);
+            return reader.Position;
+#endif
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int Read(ByteConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding, out object? result)
+        {
+            var reader = new ByteReader(buffer, encoding);
+#if DEBUG
+            for (; ; )
+            {
+                converter.TryReadBoxed(ref reader, ref state, out result);
+                if (state.Ended || state.BytesNeeded > 0)
+                    return reader.Position;
+            }
+#else
+            converter.TryReadBoxed(ref reader, ref state, out result);
             return reader.Position;
 #endif
         }

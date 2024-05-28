@@ -145,8 +145,8 @@ namespace Zerra.Reflection
             }
         }
 
-        public abstract Delegate? GetterTyped { get; }
-        public abstract Delegate? SetterTyped { get; }
+        public abstract Delegate GetterTyped { get; }
+        public abstract Delegate SetterTyped { get; }
 
         private TypeDetail? typeDetail = null;
         public TypeDetail TypeDetail

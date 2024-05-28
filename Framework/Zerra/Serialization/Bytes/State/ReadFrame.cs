@@ -18,6 +18,9 @@ namespace Zerra.Serialization
         public int? StringLength;
         public int? EnumerableLength;
 
+        public bool HasReadProperty;
+        public object? Property;
+
         public bool DrainBytes;
     }
 }

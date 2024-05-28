@@ -132,7 +132,7 @@ namespace Zerra.Serialization
 
             IEnumerator<TValue?> enumerator;
 
-            if (!state.Current.EnumerableLength.HasValue)
+            if (state.Current.Object == null)
             {
                 var collection = (IReadOnlyCollection<TValue?>)value;
 

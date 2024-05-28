@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using Zerra.IO;
 
 namespace Zerra.Serialization
 {
@@ -46,7 +45,7 @@ namespace Zerra.Serialization
             ArrayAccessor<TValue?> accessor;
 
             int length;
-            if (!state.Current.EnumerableLength.HasValue)
+            if (state.Current.Object == null)
             {
                 if (!reader.TryReadInt32(out length, out sizeNeeded))
                 {
@@ -54,11 +53,10 @@ namespace Zerra.Serialization
                     value = default;
                     return false;
                 }
-                state.Current.EnumerableLength = length;
 
                 if (!state.Current.DrainBytes)
                 {
-                    accessor = new ArrayAccessor<TValue?>(length);
+                    accessor = new ArrayAccessor<TValue?>(new TValue?[length]);
                     value = (TArray?)(object?)accessor.Array;
                     if (length == 0)
                         return true;
@@ -68,7 +66,7 @@ namespace Zerra.Serialization
                     value = default;
                     if (length == 0)
                         return true;
-                    accessor = new ArrayAccessor<TValue?>();
+                    accessor = new ArrayAccessor<TValue?>(length);
                 }
             }
             else
@@ -77,8 +75,7 @@ namespace Zerra.Serialization
                 value = (TArray?)(object?)accessor.Array;
             }
 
-            length = state.Current.EnumerableLength.Value;
-            if (accessor.Count == length)
+            if (accessor.Index == accessor.Length)
                 return true;
 
             for (; ; )
@@ -90,8 +87,8 @@ namespace Zerra.Serialization
                     state.Current.Object = accessor;
                     return false;
                 }
-
-                if (accessor.Count == length)
+                accessor.Index++;
+                if (accessor.Index == accessor.Length)
                     return true;
             }
         }
@@ -123,7 +120,7 @@ namespace Zerra.Serialization
 
             IEnumerator<TValue?> enumerator;
 
-            if (!state.Current.EnumerableLength.HasValue)
+            if (state.Current.Object == null)
             {
                 var collection = (IReadOnlyCollection<TValue?>)value;
 
@@ -166,31 +163,30 @@ namespace Zerra.Serialization
 
         private sealed class ArrayAccessor<T>
         {
-            private int index;
-            public int Count => index;
+            public int Index;
+            public readonly int Length;
 
-            private readonly T[]? array;
-            public T[]? Array => array;
+            private readonly T?[]? array;
+            public T?[]? Array => array;
 
-            public ArrayAccessor()
-            {
-                this.array = null;
-                this.index = 0;
-            }
             public ArrayAccessor(int length)
             {
-                this.array = new T[length];
-                this.index = 0;
+                this.array = null;
+                this.Index = 0;
+                this.Length = length;
+            }
+            public ArrayAccessor(T?[] array)
+            {
+                this.array = array;
+                this.Index = 0;
+                this.Length = array.Length;
             }
 
-            public void Set(T value)
+            public void Set(T? value)
             {
                 if (array == null)
-                {
-                    index++;
                     return;
-                }
-                array[index++] = value;
+                array[Index] = value;
             }
         }
     }

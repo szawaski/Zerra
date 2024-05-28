@@ -47,7 +47,7 @@ namespace Zerra.Serialization
         protected virtual void Setup() { }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed bool TryRead(ref ByteReader reader, ref ReadState state, out object? returnValue)
+        public override sealed bool TryReadBoxed(ref ByteReader reader, ref ReadState state, out object? returnValue)
         {
             if (state.IncludePropertyTypes)
             {
@@ -96,7 +96,7 @@ namespace Zerra.Serialization
 
                     var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
 
-                    if (!newConverter.TryReadValueObject(ref reader, ref state, out var valueObject))
+                    if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
                     {
                         state.Current.ReadType = typeFromBytes;
                         state.StashFrame();
@@ -117,7 +117,7 @@ namespace Zerra.Serialization
 
                 var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
 
-                if (!newConverter.TryReadValueObject(ref reader, ref state, out var valueObject))
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
                 {
                     state.StashFrame();
                     returnValue = default;
@@ -132,7 +132,7 @@ namespace Zerra.Serialization
             if (!TryReadValue(ref reader, ref state, out var value))
             {
                 state.StashFrame();
-                returnValue = default;
+                returnValue = value;
                 return false;
             }
 
@@ -141,7 +141,7 @@ namespace Zerra.Serialization
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed bool TryWrite(ref ByteWriter writer, ref WriteState state, object? value)
+        public override sealed bool TryWriteBoxed(ref ByteWriter writer, ref WriteState state, object? value)
         {
             if (state.IncludePropertyTypes)
             {
@@ -167,7 +167,7 @@ namespace Zerra.Serialization
                 {
                     var typeFromValueDetail = typeFromValue.GetTypeDetail();
                     var newConverter = ByteConverterFactory<TParent>.Get(typeFromValueDetail, memberKey, getter, setter);
-                    if (!newConverter.TryWriteValueObject(ref writer, ref state, value))
+                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
                     {
                         state.Current.WriteType = typeFromValue;
                         state.StashFrame();
@@ -186,7 +186,7 @@ namespace Zerra.Serialization
                 if (typeFromValue.Type != typeDetail.Type)
                 {
                     var newConverter = ByteConverterFactory<TParent>.Get(typeFromValue, memberKey, getter, setter);
-                    if (!newConverter.TryWriteValueObject(ref writer, ref state, value))
+                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
                     {
                         state.StashFrame();
                         return false;
@@ -197,6 +197,165 @@ namespace Zerra.Serialization
             }
 
             if (!TryWriteValue(ref writer, ref state, (TValue?)value))
+            {
+                state.StashFrame();
+                return false;
+            }
+            state.EndFrame();
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(ref ByteReader reader, ref ReadState state, out TValue? returnValue)
+        {
+            if (state.IncludePropertyTypes)
+            {
+                Type? typeFromBytes;
+                if (state.Current.ReadType == null)
+                {
+                    int sizeNeeded;
+                    if (!state.Current.StringLength.HasValue)
+                    {
+                        if (!reader.TryReadStringLength(false, out var stringLength, out sizeNeeded))
+                        {
+                            state.BytesNeeded = sizeNeeded;
+                            state.StashFrame();
+                            returnValue = default;
+                            return false;
+                        }
+                        state.Current.StringLength = stringLength;
+                    }
+
+                    if (!reader.TryReadString(state.Current.StringLength!.Value, out var typeName, out sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        state.StashFrame();
+                        returnValue = default;
+                        return false;
+                    }
+
+                    if (typeName == null)
+                        throw new NotSupportedException("Cannot deserialize without type information");
+
+                    state.Current.StringLength = null;
+                    typeFromBytes = Discovery.GetTypeFromName(typeName);
+                }
+                else
+                {
+                    typeFromBytes = state.Current.ReadType;
+                }
+
+                if (typeFromBytes != typeDetail.Type)
+                {
+                    var newTypeDetail = typeFromBytes.GetTypeDetail();
+
+                    //overrides potentially boxed type with actual type if exists in assembly
+                    if (!newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
+                        throw new NotSupportedException($"{newTypeDetail.Type.GetNiceName()} does not convert to {typeDetail.Type.GetNiceName()}");
+
+                    var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
+
+                    if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
+                    {
+                        state.Current.ReadType = typeFromBytes;
+                        state.StashFrame();
+                        returnValue = default;
+                        return false;
+                    }
+
+                    state.EndFrame();
+                    returnValue = (TValue?)valueObject;
+                    return true;
+                }
+            }
+
+            if (useEmptyImplementation)
+            {
+                var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
+                var newTypeDetail = emptyImplementationType.GetTypeDetail();
+
+                var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
+
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
+                {
+                    state.StashFrame();
+                    returnValue = default;
+                    return false;
+                }
+
+                state.EndFrame();
+                returnValue = (TValue?)valueObject;
+                return true;
+            }
+
+            if (!TryReadValue(ref reader, ref state, out var value))
+            {
+                state.StashFrame();
+                returnValue = value;
+                return false;
+            }
+
+            state.EndFrame();
+            returnValue = value;
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryWrite(ref ByteWriter writer, ref WriteState state, TValue? value)
+        {
+            if (state.IncludePropertyTypes)
+            {
+                Type typeFromValue;
+                if (state.Current.WriteType == null)
+                {
+                    typeFromValue = value == null ? typeDetail.Type : value.GetType();
+                    var typeName = typeFromValue.FullName;
+
+                    if (!writer.TryWrite(typeName, false, out var sizeNeeded))
+                    {
+                        state.BytesNeeded = sizeNeeded;
+                        state.StashFrame();
+                        return false;
+                    }
+                }
+                else
+                {
+                    typeFromValue = state.Current.WriteType;
+                }
+
+                if (typeFromValue != typeDetail.Type)
+                {
+                    var typeFromValueDetail = typeFromValue.GetTypeDetail();
+                    var newConverter = ByteConverterFactory<TParent>.Get(typeFromValueDetail, memberKey, getter, setter);
+                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
+                    {
+                        state.Current.WriteType = typeFromValue;
+                        state.StashFrame();
+                        return false;
+                    }
+                    state.EndFrame();
+                    return true;
+                }
+            }
+
+            if (useEmptyImplementation)
+            {
+                var typeFromValue = value == null ? typeDetail : value.GetType().GetTypeDetail();
+                var typeName = typeFromValue.Type.FullName;
+
+                if (typeFromValue.Type != typeDetail.Type)
+                {
+                    var newConverter = ByteConverterFactory<TParent>.Get(typeFromValue, memberKey, getter, setter);
+                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
+                    {
+                        state.StashFrame();
+                        return false;
+                    }
+                    state.EndFrame();
+                    return true;
+                }
+            }
+
+            if (!TryWriteValue(ref writer, ref state, value))
             {
                 state.StashFrame();
                 return false;
@@ -256,7 +415,7 @@ namespace Zerra.Serialization
 
                     var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
 
-                    if (!newConverter.TryReadValueObject(ref reader, ref state, out var valueObject))
+                    if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
                     {
                         state.Current.ReadType = typeFromBytes;
                         state.StashFrame();
@@ -277,7 +436,7 @@ namespace Zerra.Serialization
 
                 var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
 
-                if (!newConverter.TryReadValueObject(ref reader, ref state, out var valueObject))
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
                 {
                     state.StashFrame();
                     return false;
@@ -337,7 +496,7 @@ namespace Zerra.Serialization
                 {
                     var typeFromValueDetail = typeFromValue.GetTypeDetail();
                     var newConverter = ByteConverterFactory<TParent>.Get(typeFromValueDetail, memberKey, getter, setter);
-                    if (!newConverter.TryWriteValueObject(ref writer, ref state, value))
+                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
                     {
                         state.Current.WriteType = typeFromValue;
                         state.StashFrame();
@@ -356,7 +515,7 @@ namespace Zerra.Serialization
                 if (typeFromValue.Type != typeDetail.Type)
                 {
                     var newConverter = ByteConverterFactory<TParent>.Get(typeFromValue, memberKey, getter, setter);
-                    if (!newConverter.TryWriteValueObject(ref writer, ref state, value))
+                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
                     {
                         state.StashFrame();
                         return false;
@@ -376,14 +535,14 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override bool TryReadValueObject(ref ByteReader reader, ref ReadState state, out object? value)
+        public override bool TryReadValueBoxed(ref ByteReader reader, ref ReadState state, out object? value)
         {
             var read = TryReadValue(ref reader, ref state, out var v);
             value = v;
             return read;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override bool TryWriteValueObject(ref ByteWriter writer, ref WriteState state, object? value)
+        public override bool TryWriteValueBoxed(ref ByteWriter writer, ref WriteState state, object? value)
             => TryWriteValue(ref writer, ref state, (TValue?)value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -118,8 +118,8 @@ namespace Zerra.Test
             };
 
             var model1 = Factory.GetBoxingModel();
-            var bytes = ByteSerializerOld.Serialize(model1, options);
-            var model2 = ByteSerializerOld.Deserialize<TestBoxingModel>(bytes, options);
+            var bytes = ByteSerializer.Serialize(model1, options);
+            var model2 = ByteSerializer.Deserialize<TestBoxingModel>(bytes, options);
             Factory.AssertAreEqual(model1, model2);
         }
 
@@ -205,7 +205,7 @@ namespace Zerra.Test
                 Property2 = 6,
                 Property3 = 7
             };
-            var bytes = ByteSerializerOld.Serialize(model1);
+            var bytes = ByteSerializer.Serialize(model1);
             var model2 = ByteSerializer.Deserialize<ITestInterface>(bytes);
 
             Assert.AreEqual(5, model2.Property1);
@@ -364,11 +364,11 @@ namespace Zerra.Test
             byte[] bytes;
             using (var ms = new MemoryStream())
             {
-                await ByteSerializerOld.SerializeAsync(ms, model1);
+                await ByteSerializer.SerializeAsync(ms, model1);
                 bytes = ms.ToArray();
             }
 
-            var model2 = ByteSerializerOld.Deserialize<ITestInterface>(bytes);
+            var model2 = ByteSerializer.Deserialize<ITestInterface>(bytes);
 
             Assert.AreEqual(5, model2.Property1);
             Assert.AreEqual(6, model2.Property2);

@@ -192,7 +192,7 @@ namespace Zerra.Serialization
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (ByteConverter<object, T>)ByteConverterFactory<object>.GetRoot(typeDetail);
 
 #if DEBUG
             var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
@@ -366,7 +366,7 @@ namespace Zerra.Serialization
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (ByteConverter<object, T>)ByteConverterFactory<object>.GetRoot(typeDetail);
 
 #if DEBUG
             var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
@@ -541,7 +541,7 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Write(ByteConverter converter, Span<byte> buffer, ref WriteState state, Encoding encoding, object value)
+        private static int Write<T>(ByteConverter<object, T> converter, Span<byte> buffer, ref WriteState state, Encoding encoding, T value)
         {
             var writer = new ByteWriter(buffer, encoding);
 #if DEBUG
@@ -553,6 +553,22 @@ namespace Zerra.Serialization
             }
 #else
             converter.TryWrite(ref writer, ref state, value);
+            return writer.Length;
+#endif
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int Write(ByteConverter<object> converter, Span<byte> buffer, ref WriteState state, Encoding encoding, object value)
+        {
+            var writer = new ByteWriter(buffer, encoding);
+#if DEBUG
+            for (; ; )
+            {
+                converter.TryWriteBoxed(ref writer, ref state, value);
+                if (state.Ended || state.BytesNeeded > 0)
+                    return writer.Length;
+            }
+#else
+            converter.TryWriteBoxed(ref writer, ref state, value);
             return writer.Length;
 #endif
         }

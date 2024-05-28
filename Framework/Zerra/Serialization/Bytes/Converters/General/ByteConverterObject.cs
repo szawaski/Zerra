@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using Zerra.IO;
 using Zerra.Reflection;
 
 namespace Zerra.Serialization
@@ -53,21 +52,17 @@ namespace Zerra.Serialization
             }
 
             //Members by Index with Ignore Attributes
-            var membersWithIndexes = memberSets.Where(x => x.Item2 != null && x.Item3 == null).ToArray();
-            if (membersWithIndexes.Length > 0)
+            foreach (var member in memberSets.Where(x => x.Item2 != null && x.Item3 == null))
             {
-                foreach (var member in membersWithIndexes)
-                {
-                    if (member.Item2?.Index > Byte.MaxValue - indexOffset)
-                        indexSizeUInt16Only = true;
-                    if (member.Item2?.Index > UInt16.MaxValue - indexOffset)
-                        throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members to serialize");
+                if (member.Item2?.Index > Byte.MaxValue - indexOffset)
+                    indexSizeUInt16Only = true;
+                if (member.Item2?.Index > UInt16.MaxValue - indexOffset)
+                    throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members to serialize");
 
-                    var index = (ushort)(member.Item2!.Index + indexOffset);
+                var index = (ushort)(member.Item2!.Index + indexOffset);
 
-                    var detail = ByteConverterObjectMember.New(member.Item1);
-                    membersByIndexIngoreAttributes.Add(index, detail);
-                }
+                var detail = ByteConverterObjectMember.New(member.Item1);
+                membersByIndexIngoreAttributes.Add(index, detail);
             }
 
             //Members by Index and Name
@@ -190,12 +185,31 @@ namespace Zerra.Serialization
             for (; ; )
             {
                 ByteConverterObjectMember? property;
-                if (state.UsePropertyNames)
+                if (!state.Current.HasReadProperty)
                 {
-                    int sizeNeeded;
-                    if (!state.Current.StringLength.HasValue)
+                    if (state.UsePropertyNames)
                     {
-                        if (!reader.TryReadStringLength(false, out var stringLength, out sizeNeeded))
+                        int sizeNeeded;
+                        if (!state.Current.StringLength.HasValue)
+                        {
+                            if (!reader.TryReadStringLength(false, out var stringLength, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                if (collectValues)
+                                    state.Current.Object = collectedValues;
+                                else
+                                    state.Current.Object = value;
+                                return false;
+                            }
+                            state.Current.StringLength = stringLength;
+                        }
+
+                        if (state.Current.StringLength!.Value == 0)
+                        {
+                            break;
+                        }
+
+                        if (!reader.TryReadString(state.Current.StringLength.Value, out var name, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             if (collectValues)
@@ -204,131 +218,89 @@ namespace Zerra.Serialization
                                 state.Current.Object = value;
                             return false;
                         }
-                        state.Current.StringLength = stringLength;
-                    }
+                        state.Current.StringLength = null;
 
-                    if (state.Current.StringLength!.Value == 0)
-                    {
-                        break;
+                        property = null;
+                        _ = membersByName?.TryGetValue(name!, out property);
                     }
-
-                    if (!reader.TryReadString(state.Current.StringLength.Value, out var name, out sizeNeeded))
+                    else
                     {
-                        state.BytesNeeded = sizeNeeded;
+                        ushort propertyIndex;
+                        if (state.IndexSizeUInt16)
+                        {
+                            if (!reader.TryReadUInt16(out var propertyIndexValue, out var sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                if (collectValues)
+                                    state.Current.Object = collectedValues;
+                                else
+                                    state.Current.Object = value;
+                                return false;
+                            }
+                            propertyIndex = propertyIndexValue;
+                        }
+                        else
+                        {
+                            if (!reader.TryReadByte(out var propertyIndexValue, out var sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                if (collectValues)
+                                    state.Current.Object = collectedValues;
+                                else
+                                    state.Current.Object = value;
+                                return false;
+                            }
+                            propertyIndex = propertyIndexValue;
+                        }
+
+                        if (propertyIndex == endObjectFlagUShort)
+                        {
+                            break;
+                        }
+
+                        property = null;
+                        if (state.IgnoreIndexAttribute)
+                            _ = membersByIndexIngoreAttributes?.TryGetValue(propertyIndex, out property);
+                        else
+                            _ = membersByIndex?.TryGetValue(propertyIndex, out property);
+                    }
+                }
+                else
+                {
+                    property = (ByteConverterObjectMember?)state.Current.Property;
+                }
+
+                if (property == null)
+                {
+                    if (!state.UsePropertyNames && !state.IncludePropertyTypes)
+                        throw new Exception($"Cannot deserialize with property undefined and no types.");
+
+                    //consume bytes but object does not have property
+                    var converter = ByteConverterFactory<TValue>.GetTypeRequired();
+                    state.PushFrame(false);
+                    state.Current.DrainBytes = true;
+                    var read = converter.TryReadFromParent(ref reader, ref state, default);
+                    if (!read)
+                    {
+                        state.Current.HasReadProperty = true;
+                        state.Current.Property = property;
                         if (collectValues)
                             state.Current.Object = collectedValues;
                         else
                             state.Current.Object = value;
                         return false;
                     }
-                    state.Current.StringLength = null;
-
-                    property = null;
-                    _ = membersByName?.TryGetValue(name!, out property);
-
-                    if (property == null)
-                    {
-                        if (!state.UsePropertyNames && !state.IncludePropertyTypes)
-                            throw new Exception($"Cannot deserialize with property {name} undefined and no types.");
-
-                        //consume bytes but object does not have property
-                        var converter = ByteConverterFactory<TValue>.GetTypeRequired();
-                        state.PushFrame(false);
-                        state.Current.DrainBytes = true;
-                        var read = converter.TryReadFromParent(ref reader, ref state, value);
-                        if (!read)
-                        {
-                            if (collectValues)
-                                state.Current.Object = collectedValues;
-                            else
-                                state.Current.Object = value;
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        if (collectValues)
-                        {
-                            state.PushFrame(false);
-                            var read = property.ConverterSetValues.TryReadFromParent(ref reader, ref state, collectedValues);
-                            if (!read)
-                            {
-                                if (collectValues)
-                                    state.Current.Object = collectedValues;
-                                else
-                                    state.Current.Object = value;
-                                return false;
-                            }
-                        }
-                        else
-                        {
-                            state.PushFrame(false);
-                            var read = property.Converter.TryReadFromParent(ref reader, ref state, value);
-                            if (!read)
-                            {
-                                if (collectValues)
-                                    state.Current.Object = collectedValues;
-                                else
-                                    state.Current.Object = value;
-                                return false;
-                            }
-                        }
-                    }
                 }
                 else
                 {
-                    ushort propertyIndex;
-                    if (state.IndexSizeUInt16)
+                    if (collectValues)
                     {
-                        if (!reader.TryReadUInt16(out var propertyIndexValue, out var sizeNeeded))
-                        {
-                            state.BytesNeeded = sizeNeeded;
-                            if (collectValues)
-                                state.Current.Object = collectedValues;
-                            else
-                                state.Current.Object = value;
-                            return false;
-                        }
-                        propertyIndex = propertyIndexValue;
-                    }
-                    else
-                    {
-                        if (!reader.TryReadByte(out var propertyIndexValue, out var sizeNeeded))
-                        {
-                            state.BytesNeeded = sizeNeeded;
-                            if (collectValues)
-                                state.Current.Object = collectedValues;
-                            else
-                                state.Current.Object = value;
-                            return false;
-                        }
-                        propertyIndex = propertyIndexValue;
-                    }
-
-
-                    if (propertyIndex == endObjectFlagUShort)
-                    {
-                        break;
-                    }
-
-                    property = null;
-                    if (state.IgnoreIndexAttribute)
-                        _ = membersByIndexIngoreAttributes?.TryGetValue(propertyIndex, out property);
-                    else
-                        _ = membersByIndex?.TryGetValue(propertyIndex, out property);
-
-                    if (property == null)
-                    {
-                        if (!state.UsePropertyNames && !state.IncludePropertyTypes)
-                            throw new Exception($"Cannot deserialize with property {propertyIndex} undefined and no types.");
-
-                        //consume bytes but object does not have property
-                        var converter = ByteConverterFactory<TValue>.GetTypeRequired();
                         state.PushFrame(false);
-                        state.Current.DrainBytes = true;
-                        var read = converter.TryReadFromParent(ref reader, ref state, default);
+                        var read = property.ConverterSetValues.TryReadFromParent(ref reader, ref state, collectedValues);
                         if (!read)
                         {
+                            state.Current.HasReadProperty = true;
+                            state.Current.Property = property;
                             if (collectValues)
                                 state.Current.Object = collectedValues;
                             else
@@ -338,31 +310,17 @@ namespace Zerra.Serialization
                     }
                     else
                     {
-                        if (collectValues)
+                        state.PushFrame(false);
+                        var read = property.Converter.TryReadFromParent(ref reader, ref state, value);
+                        if (!read)
                         {
-                            state.PushFrame(false);
-                            var read = property.ConverterSetValues.TryReadFromParent(ref reader, ref state, collectedValues);
-                            if (!read)
-                            {
-                                if (collectValues)
-                                    state.Current.Object = collectedValues;
-                                else
-                                    state.Current.Object = value;
-                                return false;
-                            }
-                        }
-                        else
-                        {
-                            state.PushFrame(false);
-                            var read = property.Converter.TryReadFromParent(ref reader, ref state, value);
-                            if (!read)
-                            {
-                                if (collectValues)
-                                    state.Current.Object = collectedValues;
-                                else
-                                    state.Current.Object = value;
-                                return false;
-                            }
+                            state.Current.HasReadProperty = true;
+                            state.Current.Property = property;
+                            if (collectValues)
+                                state.Current.Object = collectedValues;
+                            else
+                                state.Current.Object = value;
+                            return false;
                         }
                     }
                 }
@@ -446,20 +404,11 @@ namespace Zerra.Serialization
 
                 state.Current.EnumeratorInProgress = true;
 
-                if (state.UsePropertyNames)
+                if (!state.Current.HasWrittenPropertyIndex)
                 {
-                    if (!writer.TryWrite(indexProperty.Value.Member.Name, false, out sizeNeeded))
+                    if (state.UsePropertyNames)
                     {
-                        state.BytesNeeded = sizeNeeded;
-                        state.Current.Enumerator = enumerator;
-                        return false;
-                    }
-                }
-                else
-                {
-                    if (state.IndexSizeUInt16)
-                    {
-                        if (!writer.TryWrite(indexProperty.Key, out sizeNeeded))
+                        if (!writer.TryWrite(indexProperty.Value.Member.Name, false, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             state.Current.Enumerator = enumerator;
@@ -468,11 +417,23 @@ namespace Zerra.Serialization
                     }
                     else
                     {
-                        if (!writer.TryWrite((byte)indexProperty.Key, out sizeNeeded))
+                        if (state.IndexSizeUInt16)
                         {
-                            state.BytesNeeded = sizeNeeded;
-                            state.Current.Enumerator = enumerator;
-                            return false;
+                            if (!writer.TryWrite(indexProperty.Key, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                state.Current.Enumerator = enumerator;
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            if (!writer.TryWrite((byte)indexProperty.Key, out sizeNeeded))
+                            {
+                                state.BytesNeeded = sizeNeeded;
+                                state.Current.Enumerator = enumerator;
+                                return false;
+                            }
                         }
                     }
                 }
@@ -481,6 +442,7 @@ namespace Zerra.Serialization
                 var write = indexProperty.Value.Converter.TryWriteFromParent(ref writer, ref state, value);
                 if (!write)
                 {
+                    state.Current.HasWrittenPropertyIndex = true;
                     state.Current.Enumerator = enumerator;
                     return false;
                 }
@@ -526,17 +488,30 @@ namespace Zerra.Serialization
         {
             public readonly MemberDetail Member;
 
-            public readonly ByteConverter<TValue> Converter;
-            public ByteConverter<Dictionary<string, object?>> ConverterSetValues;
             public abstract bool IsNull(TValue parent);
 
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
             public ByteConverterObjectMember(MemberDetail member)
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
             {
                 this.Member = member;
-                Converter = ByteConverterFactory<TValue>.Get(Member.TypeDetail, Member.Name, Member.GetterTyped, Member.SetterTyped);
             }
+
+            private ByteConverter<TValue>? converter = null;
+            public ByteConverter<TValue> Converter
+            {
+                get
+                {
+                    if (converter == null)
+                    {
+                        lock (this)
+                        {
+                            converter ??= ByteConverterFactory<TValue>.Get(Member.TypeDetail, Member.Name, Member.HasGetterBoxed ? Member.GetterTyped : null, Member.HasSetterBoxed ? Member.SetterTyped : null);
+                        }
+                    }
+                    return converter;
+                }
+            }
+
+            public abstract ByteConverter<Dictionary<string, object?>> ConverterSetValues { get; }
 
             //helps with debug
             public override string ToString()
@@ -555,16 +530,31 @@ namespace Zerra.Serialization
 
         private sealed class ByteConverterObjectMember<TValue2> : ByteConverterObjectMember
         {
-            private readonly Func<TValue, TValue2?> Getter;
-            public override bool IsNull(TValue parent) => Getter(parent) == null;
+            private readonly Func<TValue, TValue2?> getter;
+            public override sealed bool IsNull(TValue parent) => getter(parent) == null;
 
             private void SetterForConverterSetValues(Dictionary<string, object?> parent, TValue2? value) => parent.Add(Member.Name, value);
             public ByteConverterObjectMember(MemberDetail member)
                 : base(member)
             {
-                this.Getter = ((MemberDetail<TValue, TValue2>)member).Getter;
+                this.getter = ((MemberDetail<TValue, TValue2>)member).Getter;
                 var type = TypeAnalyzer<Dictionary<string, object?>>.GetTypeDetail();
-                ConverterSetValues = ByteConverterFactory<Dictionary<string, object?>>.Get(Member.TypeDetail, Member.Name, null, SetterForConverterSetValues);
+            }
+
+            private ByteConverter<Dictionary<string, object?>>? converterSetValues;
+            public override sealed ByteConverter<Dictionary<string, object?>> ConverterSetValues
+            {
+                get
+                {
+                    if (converterSetValues == null)
+                    {
+                        lock (this)
+                        {
+                            converterSetValues ??= ByteConverterFactory<Dictionary<string, object?>>.Get(Member.TypeDetail, Member.Name, null, SetterForConverterSetValues);
+                        }
+                    }
+                    return converterSetValues;
+                }
             }
         }
     }

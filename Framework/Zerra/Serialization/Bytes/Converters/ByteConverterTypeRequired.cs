@@ -28,13 +28,13 @@ namespace Zerra.Serialization
             this.useEmptyImplementation = typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.IsIEnumerableGeneric;
         }
 
-        public override sealed bool TryReadValueObject(ref ByteReader reader, ref ReadState state, out object? value)
+        public override sealed bool TryReadValueBoxed(ref ByteReader reader, ref ReadState state, out object? value)
             => throw new InvalidOperationException();
-        public override sealed bool TryWriteValueObject(ref ByteWriter writer, ref WriteState state, object? value)
+        public override sealed bool TryWriteValueBoxed(ref ByteWriter writer, ref WriteState state, object? value)
             => throw new InvalidOperationException();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed bool TryRead(ref ByteReader reader, ref ReadState state, out object? returnValue)
+        public override sealed bool TryReadBoxed(ref ByteReader reader, ref ReadState state, out object? returnValue)
         {
             if (state.IncludePropertyTypes)
             {
@@ -73,7 +73,7 @@ namespace Zerra.Serialization
 
                 var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getterDelegate, setterDelegate);
                 state.Current.StringLength = null;
-                return newConverter.TryRead(ref reader, ref state, out returnValue);
+                return newConverter.TryReadBoxed(ref reader, ref state, out returnValue);
             }
 
             if (useEmptyImplementation)
@@ -82,13 +82,13 @@ namespace Zerra.Serialization
                 var newTypeDetail = emptyImplementationType.GetTypeDetail();
 
                 var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getterDelegate, setterDelegate);
-                return newConverter.TryRead(ref reader, ref state, out returnValue);
+                return newConverter.TryReadBoxed(ref reader, ref state, out returnValue);
             }
 
             throw new InvalidOperationException($"{nameof(ByteConverterTypeRequired<TParent>)} should not have been used.");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed bool TryWrite(ref ByteWriter writer, ref WriteState state, object? value)
+        public override sealed bool TryWriteBoxed(ref ByteWriter writer, ref WriteState state, object? value)
         {
             throw new NotImplementedException(); //TODO
         }
