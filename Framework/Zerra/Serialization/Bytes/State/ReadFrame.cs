@@ -3,9 +3,11 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Runtime.InteropServices;
 
 namespace Zerra.Serialization
 {
+    [StructLayout(LayoutKind.Auto)]
     public struct ReadFrame
     {
         public bool NullFlags;

@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -48,16 +49,13 @@ namespace Zerra.Serialization
 
                     position += usedBytes;
 
-                    if (state.Ended)
+                    if (state.BytesNeeded == 0)
                         break;
 
-                    if (state.BytesNeeded > 0)
-                    {
-                        if (state.BytesNeeded > buffer.Length - position)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded + position);
+                    if (state.BytesNeeded > buffer.Length - position)
+                        BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded + position);
 
-                        state.BytesNeeded = 0;
-                    }
+                    state.BytesNeeded = 0;
                 }
             }
             finally
@@ -103,16 +101,13 @@ namespace Zerra.Serialization
 
                     position += usedBytes;
 
-                    if (state.Ended)
+                    if (state.BytesNeeded == 0)
                         break;
 
-                    if (state.BytesNeeded > 0)
-                    {
-                        if (state.BytesNeeded > buffer.Length - position)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded + position);
+                    if (state.BytesNeeded > buffer.Length - position)
+                        BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded + position);
 
-                        state.BytesNeeded = 0;
-                    }
+                    state.BytesNeeded = 0;
                 }
             }
             finally
@@ -160,16 +155,13 @@ namespace Zerra.Serialization
 
                     position += usedBytes;
 
-                    if (state.Ended)
+                    if (state.BytesNeeded == 0)
                         break;
 
-                    if (state.BytesNeeded > 0)
-                    {
-                        if (state.BytesNeeded > buffer.Length - position)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded + position);
+                    if (state.BytesNeeded > buffer.Length - position)
+                        BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded + position);
 
-                        state.BytesNeeded = 0;
-                    }
+                    state.BytesNeeded = 0;
                 }
             }
             finally
@@ -221,16 +213,13 @@ namespace Zerra.Serialization
                     stream.Write(buffer.AsSpan(0, usedBytes));
 #endif
 
-                    if (state.Ended)
+                    if (state.BytesNeeded == 0)
                         break;
 
-                    if (state.BytesNeeded > 0)
-                    {
-                        if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+                    if (state.BytesNeeded > buffer.Length)
+                        BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
 
-                        state.BytesNeeded = 0;
-                    }
+                    state.BytesNeeded = 0;
                 }
             }
             finally
@@ -278,16 +267,13 @@ namespace Zerra.Serialization
                     stream.Write(buffer.AsSpan(0, usedBytes));
 #endif
 
-                    if (state.Ended)
+                    if (state.BytesNeeded == 0)
                         break;
 
-                    if (state.BytesNeeded > 0)
-                    {
-                        if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+                    if (state.BytesNeeded > buffer.Length)
+                        BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
 
-                        state.BytesNeeded = 0;
-                    }
+                    state.BytesNeeded = 0;
                 }
             }
             finally
@@ -337,16 +323,13 @@ namespace Zerra.Serialization
                     stream.Write(buffer.AsSpan(0, usedBytes));
 #endif
 
-                    if (state.Ended)
+                    if (state.BytesNeeded == 0)
                         break;
 
-                    if (state.BytesNeeded > 0)
-                    {
-                        if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+                    if (state.BytesNeeded > buffer.Length)
+                        BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
 
-                        state.BytesNeeded = 0;
-                    }
+                    state.BytesNeeded = 0;
                 }
             }
             finally
@@ -395,16 +378,13 @@ namespace Zerra.Serialization
                     await stream.WriteAsync(buffer.AsMemory(0, usedBytes));
 #endif
 
-                    if (state.Ended)
+                    if (state.BytesNeeded == 0)
                         break;
 
-                    if (state.BytesNeeded > 0)
-                    {
-                        if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+                    if (state.BytesNeeded > buffer.Length)
+                        BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
 
-                        state.BytesNeeded = 0;
-                    }
+                    state.BytesNeeded = 0;
                 }
             }
             finally
@@ -457,16 +437,13 @@ namespace Zerra.Serialization
                     await stream.WriteAsync(buffer.AsMemory(0, usedBytes));
 #endif
 
-                    if (state.Ended)
+                    if (state.BytesNeeded == 0)
                         break;
 
-                    if (state.BytesNeeded > 0)
-                    {
-                        if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+                    if (state.BytesNeeded > buffer.Length)
+                        BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
 
-                        state.BytesNeeded = 0;
-                    }
+                    state.BytesNeeded = 0;
                 }
             }
             finally
@@ -521,16 +498,13 @@ namespace Zerra.Serialization
                     await stream.WriteAsync(buffer.AsMemory(0, usedBytes));
 #endif
 
-                    if (state.Ended)
+                    if (state.BytesNeeded == 0)
                         break;
 
-                    if (state.BytesNeeded > 0)
-                    {
-                        if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+                    if (state.BytesNeeded > buffer.Length)
+                        BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
 
-                        state.BytesNeeded = 0;
-                    }
+                    state.BytesNeeded = 0;
                 }
             }
             finally
@@ -547,8 +521,8 @@ namespace Zerra.Serialization
 #if DEBUG
             for (; ; )
             {
-                converter.TryWrite(ref writer, ref state, value);
-                if (state.Ended || state.BytesNeeded > 0)
+                var write = converter.TryWrite(ref writer, ref state, value);
+                if (write || state.BytesNeeded > 0)
                     return writer.Length;
             }
 #else
@@ -563,8 +537,8 @@ namespace Zerra.Serialization
 #if DEBUG
             for (; ; )
             {
-                converter.TryWriteBoxed(ref writer, ref state, value);
-                if (state.Ended || state.BytesNeeded > 0)
+                var write = converter.TryWriteBoxed(ref writer, ref state, value);
+                if (write || state.BytesNeeded > 0)
                     return writer.Length;
             }
 #else

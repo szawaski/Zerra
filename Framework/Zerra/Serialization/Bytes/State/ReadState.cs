@@ -4,9 +4,11 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Zerra.Serialization
 {
+    [StructLayout(LayoutKind.Auto)]
     public struct ReadState
     {
         private ReadFrame[] stack;
@@ -20,60 +22,60 @@ namespace Zerra.Serialization
         public bool IndexSizeUInt16;
 
         public ReadFrame Current;
-        public bool Ended;
         public int BytesNeeded;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureStackSize()
         {
-            if (stack == null)
+            if (stack is null)
                 stack = new ReadFrame[4];
             else if (stackCount == stack.Length)
                 Array.Resize(ref stack, stack.Length * 2);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PushFrame(bool nullFlags)
         {
-            if (stashCount > 0)
+            if (stashCount == 0)
             {
-                Current = stack[++stackCount - 1];
-                stashCount--;
-            }
-            else
-            {
-                EnsureStackSize();
-                if (stackCount > 0)
-                    stack[stackCount++ - 1] = Current;
-                else
-                    stackCount++;
-                Current = new ReadFrame()
+                if (stackCount++ > 0)
+                {
+                    EnsureStackSize();
+                    stack[stackCount - 2] = Current;
+                }
+                Current = new()
                 {
                     NullFlags = nullFlags
                 };
             }
+            else
+            {
+                if (stackCount++ > 0)
+                {
+                    Current = stack[stackCount - 1];
+                }
+                if (stackCount == stashCount)
+                    stashCount = 0;
+            }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void StashFrame()
         {
-            if (stackCount == 1)
-                return;
-            EnsureStackSize();
-            stack[stackCount - 1] = Current;
-            Current = stack[--stackCount - 1];
-            stashCount++;
+            if (stashCount == 0)
+            {
+                stashCount = stackCount;
+                EnsureStackSize();
+            }
+            if (stackCount > 1)
+            {
+                stack[stackCount - 1] = Current;
+                Current = stack[--stackCount - 1];
+            }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EndFrame()
         {
-            if (stackCount == 1)
-            {
-                Ended = true;
-                return;
-            }
-            Current = stack[--stackCount - 1];
+            if (stackCount > 1)
+                Current = stack[--stackCount - 1];
         }
     }
 }
