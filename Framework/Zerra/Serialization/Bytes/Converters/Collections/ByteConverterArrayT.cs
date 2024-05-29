@@ -45,7 +45,7 @@ namespace Zerra.Serialization
             ArrayAccessor<TValue?> accessor;
 
             int length;
-            if (state.Current.Object == null)
+            if (state.Current.Object is null)
             {
                 if (!reader.TryReadInt32(out length, out sizeNeeded))
                 {
@@ -73,9 +73,10 @@ namespace Zerra.Serialization
             {
                 accessor = (ArrayAccessor<TValue?>)state.Current.Object!;
                 value = (TArray?)(object?)accessor.Array;
+                length = accessor.Length;
             }
 
-            if (accessor.Index == accessor.Length)
+            if (accessor.Index == length)
                 return true;
 
             for (; ; )
@@ -88,7 +89,7 @@ namespace Zerra.Serialization
                     return false;
                 }
                 accessor.Index++;
-                if (accessor.Index == accessor.Length)
+                if (accessor.Index == length)
                     return true;
             }
         }
@@ -120,7 +121,7 @@ namespace Zerra.Serialization
 
             IEnumerator<TValue?> enumerator;
 
-            if (state.Current.Object == null)
+            if (state.Current.Object is null)
             {
                 var collection = (IReadOnlyCollection<TValue?>)value;
 

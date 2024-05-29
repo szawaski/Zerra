@@ -81,9 +81,10 @@ namespace Zerra.Serialization
                     value = (TList?)state.Current.Object;
                 else
                     value = default;
+
+                length = state.Current.EnumerableLength.Value;
             }
 
-            length = state.Current.EnumerableLength.Value;
             if (list.Count == length)
                 return true;
 
@@ -129,7 +130,7 @@ namespace Zerra.Serialization
 
             IEnumerator<TValue?> enumerator;
 
-            if (state.Current.Object == null)
+            if (state.Current.Object is null)
             {
                 var collection = (IReadOnlyCollection<TValue?>)value;
 

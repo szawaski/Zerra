@@ -43,7 +43,7 @@ namespace Zerra.Serialization
             ArrayAccessor<TValue?> accessor;
 
             int length;
-            if (!state.Current.EnumerableLength.HasValue)
+            if (state.Current.Object is null)
             {
                 if (!reader.TryReadInt32(out length, out sizeNeeded))
                 {
@@ -51,7 +51,6 @@ namespace Zerra.Serialization
                     value = default;
                     return false;
                 }
-                state.Current.EnumerableLength = length;
 
                 if (!state.Current.DrainBytes)
                 {
@@ -72,9 +71,9 @@ namespace Zerra.Serialization
             {
                 accessor = (ArrayAccessor<TValue?>)state.Current.Object!;
                 value = accessor.Array;
+                length = accessor.Length;
             }
 
-            length = state.Current.EnumerableLength.Value;
             if (accessor.Index == length)
                 return true;
 
@@ -120,7 +119,7 @@ namespace Zerra.Serialization
 
             ArrayAccessor<TValue?> accessor;
 
-            if (state.Current.Object == null)
+            if (state.Current.Object is null)
             {
                 var length = value.Length;
 
