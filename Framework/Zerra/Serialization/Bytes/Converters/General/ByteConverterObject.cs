@@ -546,7 +546,7 @@ namespace Zerra.Serialization
         private sealed class ByteConverterObjectMember<TValue2> : ByteConverterObjectMember
         {
             private readonly Func<TValue, TValue2?> getter;
-            public override sealed bool IsNull(TValue parent) => getter(parent) == null;
+            public override sealed bool IsNull(TValue parent) => getter(parent) is null;
 
             private void SetterForConverterSetValues(Dictionary<string, object?> parent, TValue2? value) => parent.Add(Member.Name, value);
             public ByteConverterObjectMember(MemberDetail member)
