@@ -17,7 +17,10 @@ namespace Zerra.Serialization
     {
         public static T? Deserialize<T>(ReadOnlySpan<byte> bytes, ByteSerializerOptions? options = null)
         {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            if (bytes == null) 
+                throw new ArgumentNullException(nameof(bytes));
+            if (bytes.Length == 0)
+                return default;
 
             options ??= defaultOptions;
 
@@ -61,7 +64,7 @@ namespace Zerra.Serialization
             state.PushFrame(true);
             object? result;
 
-            Read(converter, bytes, ref state, options.Encoding, out result);
+            ReadBoxed(converter, bytes, ref state, options.Encoding, out result);
 
             if (state.BytesNeeded > 0)
                 throw new EndOfStreamException();
@@ -226,7 +229,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    var bytesUsed = Read(converter, buffer.AsSpan().Slice(0, read), ref state, options.Encoding, out result);
+                    var bytesUsed = ReadBoxed(converter, buffer.AsSpan().Slice(0, read), ref state, options.Encoding, out result);
 
                     if (state.BytesNeeded == 0)
                         break;
@@ -429,7 +432,7 @@ namespace Zerra.Serialization
 
                 for (; ; )
                 {
-                    var bytesUsed = Read(converter, buffer.AsSpan().Slice(0, read), ref state, options.Encoding, out result);
+                    var bytesUsed = ReadBoxed(converter, buffer.AsSpan().Slice(0, read), ref state, options.Encoding, out result);
 
                     if (state.BytesNeeded == 0)
                         break;
@@ -492,7 +495,7 @@ namespace Zerra.Serialization
 #endif
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Read(ByteConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding, out object? result)
+        private static int ReadBoxed(ByteConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding, out object? result)
         {
             var reader = new ByteReader(buffer, encoding);
 #if DEBUG

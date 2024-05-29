@@ -43,16 +43,17 @@ namespace Zerra.Serialization
 
         protected override void Setup()
         {
-            var memberSets = new List<Tuple<MemberDetail, SerializerIndexAttribute?, NonSerializedAttribute?>>();
+            var memberSets = new List<Tuple<MemberDetail, SerializerIndexAttribute?>>();
             foreach (var member in typeDetail.SerializableMemberDetails)
             {
+                if (member.Attributes.Any(x => x is NonSerializedAttribute))
+                    continue;
                 var indexAttribute = member.Attributes.Select(x => x as SerializerIndexAttribute).Where(x => x != null).FirstOrDefault();
-                var nonSerializedAttribute = member.Attributes.Select(x => x as NonSerializedAttribute).Where(x => x != null).FirstOrDefault();
-                memberSets.Add(new Tuple<MemberDetail, SerializerIndexAttribute?, NonSerializedAttribute?>(member, indexAttribute, nonSerializedAttribute));
+                memberSets.Add(new Tuple<MemberDetail, SerializerIndexAttribute?>(member, indexAttribute));
             }
 
-            //Members by Index with Ignore Attributes
-            foreach (var member in memberSets.Where(x => x.Item2 != null && x.Item3 == null))
+            //Members by Index with Attributes
+            foreach (var member in memberSets.Where(x => x.Item2 != null))
             {
                 if (member.Item2?.Index > Byte.MaxValue - indexOffset)
                     indexSizeUInt16Only = true;
@@ -62,12 +63,13 @@ namespace Zerra.Serialization
                 var index = (ushort)(member.Item2!.Index + indexOffset);
 
                 var detail = ByteConverterObjectMember.New(member.Item1);
-                membersByIndexIngoreAttributes.Add(index, detail);
+                membersByIndex.Add(index, detail);
             }
 
             //Members by Index and Name
+            var hasAttributes = membersByIndex.Count > 0;
             var orderIndex = 0;
-            foreach (var member in memberSets.Where(x => x.Item3 == null))
+            foreach (var member in memberSets)
             {
                 if (member.Item2?.Index > Byte.MaxValue - indexOffset)
                     indexSizeUInt16Only = true;
@@ -77,7 +79,9 @@ namespace Zerra.Serialization
                 var index = (ushort)(orderIndex + indexOffset);
 
                 var detail = ByteConverterObjectMember.New(member.Item1);
-                membersByIndex.Add(index, detail);
+                if (!hasAttributes)
+                    membersByIndex.Add(index, detail);
+                membersByIndexIngoreAttributes.Add(index, detail);
                 membersByName.Add(member.Item1.Name, detail);
 
                 orderIndex++;
@@ -117,8 +121,6 @@ namespace Zerra.Serialization
         {
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
-
-            //var frame = state.Current; //can change after enter another converter
 
             Dictionary<string, object?>? collectedValues;
 
@@ -353,8 +355,6 @@ namespace Zerra.Serialization
         {
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
-
-            //var frame = state.Current; //can change after enter another converter
 
             int sizeNeeded;
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
