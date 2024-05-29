@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-#if !DEBUG
+#if DEBUG
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -12,11 +12,31 @@ namespace Zerra.Serialization
 {
     public partial struct ByteReader
     {
+        private static readonly bool Testing = false;
+        private static bool Alternate = false;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool Skip()
+        {
+            if (!ByteReader.Testing)
+                return false;
+            if (ByteReader.Alternate)
+            {
+                ByteReader.Alternate = false;
+                return false;
+            }
+            else
+            {
+                ByteReader.Alternate = true;
+                return true;
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryReadIsNull(out bool value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -31,7 +51,7 @@ namespace Zerra.Serialization
         public bool TryReadBoolean(out bool value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -45,7 +65,7 @@ namespace Zerra.Serialization
         public bool TryReadBooleanNullable(bool nullFlags, out bool? value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -200,7 +220,7 @@ namespace Zerra.Serialization
         public bool TryReadByte(out byte value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -213,7 +233,7 @@ namespace Zerra.Serialization
         public bool TryReadByteNullable(bool nullFlags, out byte? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 2 : 1;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -370,7 +390,7 @@ namespace Zerra.Serialization
         public bool TryReadSByte(out sbyte value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -383,7 +403,7 @@ namespace Zerra.Serialization
         public bool TryReadSByteNullable(bool nullFlags, out sbyte? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 2 : 1;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -538,7 +558,7 @@ namespace Zerra.Serialization
         public bool TryReadInt16(out short value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -551,7 +571,7 @@ namespace Zerra.Serialization
         public bool TryReadInt16Nullable(bool nullFlags, out short? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 3 : 2;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -706,7 +726,7 @@ namespace Zerra.Serialization
         public bool TryReadUInt16(out ushort value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -719,7 +739,7 @@ namespace Zerra.Serialization
         public bool TryReadUInt16Nullable(bool nullFlags, out ushort? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 3 : 2;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -874,7 +894,7 @@ namespace Zerra.Serialization
         public bool TryReadInt32(out int value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -887,7 +907,7 @@ namespace Zerra.Serialization
         public bool TryReadInt32Nullable(bool nullFlags, out int? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 5 : 4;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -1042,7 +1062,7 @@ namespace Zerra.Serialization
         public bool TryReadUInt32(out uint value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -1055,7 +1075,7 @@ namespace Zerra.Serialization
         public bool TryReadUInt32Nullable(bool nullFlags, out uint? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 5 : 4;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -1210,7 +1230,7 @@ namespace Zerra.Serialization
         public bool TryReadInt64(out long value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -1225,7 +1245,7 @@ namespace Zerra.Serialization
         public bool TryReadInt64Nullable(bool nullFlags, out long? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 9 : 8;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -1394,7 +1414,7 @@ namespace Zerra.Serialization
         public bool TryReadUInt64(out ulong value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -1409,7 +1429,7 @@ namespace Zerra.Serialization
         public bool TryReadUInt64Nullable(bool nullFlags, out ulong? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 9 : 8;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -1578,7 +1598,7 @@ namespace Zerra.Serialization
         public unsafe bool TryReadSingle(out float value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -1592,7 +1612,7 @@ namespace Zerra.Serialization
         public unsafe bool TryReadSingleNullable(bool nullFlags, out float? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 5 : 4;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -1754,7 +1774,7 @@ namespace Zerra.Serialization
         public unsafe bool TryReadDouble(out double value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -1770,7 +1790,7 @@ namespace Zerra.Serialization
         public unsafe bool TryReadDoubleNullable(bool nullFlags, out double? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 9 : 8;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -1946,7 +1966,7 @@ namespace Zerra.Serialization
         public bool TryReadDecimal(out decimal value, out int sizeNeeded)
         {
             sizeNeeded = 16;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -1963,7 +1983,7 @@ namespace Zerra.Serialization
         public bool TryReadDecimalNullable(bool nullFlags, out decimal? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 17 : 16;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -2146,7 +2166,7 @@ namespace Zerra.Serialization
         public bool TryReadDateTime(out DateTime value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -2162,7 +2182,7 @@ namespace Zerra.Serialization
         public bool TryReadDateTimeNullable(bool nullFlags, out DateTime? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 9 : 8;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -2338,7 +2358,7 @@ namespace Zerra.Serialization
         public bool TryReadDateTimeOffset(out DateTimeOffset value, out int sizeNeeded)
         {
             sizeNeeded = 10;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -2355,7 +2375,7 @@ namespace Zerra.Serialization
         public bool TryReadDateTimeOffsetNullable(bool nullFlags, out DateTimeOffset? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 11 : 10;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -2538,7 +2558,7 @@ namespace Zerra.Serialization
         public bool TryReadTimeSpan(out TimeSpan value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -2554,7 +2574,7 @@ namespace Zerra.Serialization
         public bool TryReadTimeSpanNullable(bool nullFlags, out TimeSpan? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 9 : 8;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -2731,7 +2751,7 @@ namespace Zerra.Serialization
         public bool TryReadDateOnly(out DateOnly value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -2745,7 +2765,7 @@ namespace Zerra.Serialization
         public bool TryReadDateOnlyNullable(bool nullFlags, out DateOnly? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 5 : 4;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -2907,7 +2927,7 @@ namespace Zerra.Serialization
         public bool TryReadTimeOnly(out TimeOnly value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -2923,7 +2943,7 @@ namespace Zerra.Serialization
         public bool TryReadTimeOnlyNullable(bool nullFlags, out TimeOnly? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 9 : 8;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -3100,7 +3120,7 @@ namespace Zerra.Serialization
         public bool TryReadGuid(out Guid value, out int sizeNeeded)
         {
             sizeNeeded = 16;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -3118,7 +3138,7 @@ namespace Zerra.Serialization
         public bool TryReadGuidNullable(bool nullFlags, out Guid? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 17 : 16;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -3310,7 +3330,7 @@ namespace Zerra.Serialization
         public unsafe bool TryReadChar(out char value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -3327,7 +3347,7 @@ namespace Zerra.Serialization
         public unsafe bool TryReadCharNullable(bool nullFlags, out char? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 3 : 2;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -3518,7 +3538,7 @@ namespace Zerra.Serialization
         public unsafe bool TryReadStringLength(bool nullFlags, out int? value, out int sizeNeeded)
         {
             sizeNeeded = nullFlags ? 5 : 4;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;
@@ -3537,7 +3557,7 @@ namespace Zerra.Serialization
         public unsafe bool TryReadString(int byteLength, out string? value, out int sizeNeeded)
         {
             sizeNeeded = byteLength;
-            if (length - position < sizeNeeded)
+            if (length - position < sizeNeeded || Skip())
             {
                 value = default;
                 return false;

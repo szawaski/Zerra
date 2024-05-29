@@ -241,6 +241,7 @@ namespace Zerra.Test
             using (var ms = new MemoryStream())
             {
                 await ByteSerializer.SerializeAsync(ms, model1, options);
+                Assert.AreEqual(3036, ms.Position);
                 ms.Position = 0;
                 var model2 = await ByteSerializer.DeserializeAsync<AllTypesModel>(ms, options);
                 Factory.AssertAreEqual(model1, model2);

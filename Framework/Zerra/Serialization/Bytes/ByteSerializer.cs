@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Zerra.Serialization
@@ -39,9 +38,6 @@ namespace Zerra.Serialization
     public static partial class ByteSerializer
     {
         private const int defaultBufferSize = 8 * 1024;
-#if DEBUG
-        public static readonly bool Testing = true;
-#endif
 
         private static readonly MethodInfo enumerableToArrayMethod = typeof(Enumerable).GetMethod("ToArray") ?? throw new Exception($"{nameof(Enumerable)}.ToArray method not found");
         private static readonly Type enumerableType = typeof(IEnumerable<>);
