@@ -38,8 +38,6 @@ namespace Zerra.Serialization
                     value = default;
                     return true;
                 }
-
-                state.Current.HasNullChecked = true;
             }
 
             ArrayAccessor<TValue?> accessor;
@@ -50,6 +48,7 @@ namespace Zerra.Serialization
                 if (!reader.TryReadInt32(out length, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
+                    state.Current.HasNullChecked = true;
                     value = default;
                     return false;
                 }
@@ -85,6 +84,7 @@ namespace Zerra.Serialization
                 var read = readConverter.TryReadFromParent(ref reader, ref state, accessor);
                 if (!read)
                 {
+                    state.Current.HasNullChecked = true;
                     state.Current.Object = accessor;
                     return false;
                 }
@@ -113,7 +113,6 @@ namespace Zerra.Serialization
                     state.BytesNeeded = sizeNeeded;
                     return false;
                 }
-                state.Current.HasWrittenIsNull = true;
             }
 
             if (value == null)
@@ -130,6 +129,7 @@ namespace Zerra.Serialization
                 if (!writer.TryWrite(length, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
+                    state.Current.HasWrittenIsNull = true;
                     return false;
                 }
                 if (length == 0)
@@ -152,6 +152,7 @@ namespace Zerra.Serialization
                 var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator);
                 if (!write)
                 {
+                    state.Current.HasWrittenIsNull = true;
                     state.Current.Object = enumerator;
                     return false;
                 }

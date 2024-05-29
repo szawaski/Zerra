@@ -40,7 +40,7 @@ namespace Zerra.Serialization
     {
         private const int defaultBufferSize = 8 * 1024;
 #if DEBUG
-        public static bool Testing { get; set; }
+        public static readonly bool Testing = true;
 #endif
 
         private static readonly MethodInfo enumerableToArrayMethod = typeof(Enumerable).GetMethod("ToArray") ?? throw new Exception($"{nameof(Enumerable)}.ToArray method not found");

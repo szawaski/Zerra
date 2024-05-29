@@ -41,8 +41,6 @@ namespace Zerra.Serialization
                     value = default;
                     return true;
                 }
-
-                state.Current.HasNullChecked = true;
             }
 
             IList<TValue?> list;
@@ -53,11 +51,10 @@ namespace Zerra.Serialization
                 if (!reader.TryReadInt32(out length, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
+                    state.Current.HasNullChecked = true;
                     value = default;
                     return false;
                 }
-
-                state.Current.EnumerableLength = length;
 
                 if (!state.Current.DrainBytes)
                 {
@@ -94,6 +91,8 @@ namespace Zerra.Serialization
                 var read = readConverter.TryReadFromParent(ref reader, ref state, list);
                 if (!read)
                 {
+                    state.Current.HasNullChecked = true;
+                    state.Current.EnumerableLength = length;
                     state.Current.Object = list;
                     return false;
                 }
@@ -122,7 +121,6 @@ namespace Zerra.Serialization
                     state.BytesNeeded = sizeNeeded;
                     return false;
                 }
-                state.Current.HasWrittenIsNull = true;
             }
 
             if (value == null)
@@ -139,6 +137,7 @@ namespace Zerra.Serialization
                 if (!writer.TryWrite(length, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
+                    state.Current.HasWrittenIsNull = true;
                     return false;
                 }
                 if (length == 0)
@@ -155,13 +154,13 @@ namespace Zerra.Serialization
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                state.Current.EnumeratorInProgress = true;
-
                 state.PushFrame(true);
                 var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator);
                 if (!write)
                 {
+                    state.Current.HasWrittenIsNull = true;
                     state.Current.Object = enumerator;
+                    state.Current.EnumeratorInProgress = true;
                     return false;
                 }
 

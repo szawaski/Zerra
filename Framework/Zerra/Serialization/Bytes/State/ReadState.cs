@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -60,13 +61,13 @@ namespace Zerra.Serialization
 
         public void StashFrame()
         {
-            if (stashCount == 0)
-            {
-                stashCount = stackCount;
-                EnsureStackSize();
-            }
             if (stackCount > 1)
             {
+                if (stashCount == 0)
+                {
+                    stashCount = stackCount;
+                    EnsureStackSize();
+                }
                 stack[stackCount - 1] = Current;
                 Current = stack[--stackCount - 1];
             }
@@ -74,6 +75,7 @@ namespace Zerra.Serialization
 
         public void EndFrame()
         {
+            Debug.Assert(stashCount == 0);
             if (stackCount > 1)
                 Current = stack[--stackCount - 1];
         }

@@ -83,11 +83,7 @@ namespace Zerra.Serialization
             var converter = (ByteConverter<object, T>)ByteConverterFactory<object>.GetRoot(typeDetail);
 
             var isFinalBlock = false;
-#if DEBUG
-            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
-#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
-#endif
 
             try
             {
@@ -185,11 +181,7 @@ namespace Zerra.Serialization
             var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
 
             var isFinalBlock = false;
-#if DEBUG
-            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
-#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
-#endif
 
             try
             {
@@ -286,11 +278,7 @@ namespace Zerra.Serialization
             var converter = (ByteConverter<object, T>)ByteConverterFactory<object>.GetRoot(typeDetail);
 
             var isFinalBlock = false;
-#if DEBUG
-            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
-#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
-#endif
 
             try
             {
@@ -388,11 +376,7 @@ namespace Zerra.Serialization
             var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
 
             var isFinalBlock = false;
-#if DEBUG
-            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
-#else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
-#endif
 
             try
             {

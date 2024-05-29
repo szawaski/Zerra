@@ -6,7 +6,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using Zerra.IO;
 using Zerra.Reflection;
 
 namespace Zerra.Serialization
@@ -45,8 +44,6 @@ namespace Zerra.Serialization
                     value = default;
                     return true;
                 }
-
-                state.Current.HasNullChecked = true;
             }
 
             IDictionary<TKey, TValue?> dictionary;
@@ -57,11 +54,10 @@ namespace Zerra.Serialization
                 if (!reader.TryReadInt32(out length, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
+                    state.Current.HasNullChecked = true;
                     value = default;
                     return false;
                 }
-
-                state.Current.EnumerableLength = length;
 
                 if (!state.Current.DrainBytes)
                 {
@@ -97,6 +93,8 @@ namespace Zerra.Serialization
                 var read = readConverter.TryReadFromParent(ref reader, ref state, dictionary);
                 if (!read)
                 {
+                    state.Current.HasNullChecked = true;
+                    state.Current.EnumerableLength = length;
                     state.Current.Object = dictionary;
                     return false;
                 }
@@ -158,16 +156,14 @@ namespace Zerra.Serialization
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                state.Current.EnumeratorInProgress = true;
-
                 state.PushFrame(true);
                 var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator);
                 if (!write)
                 {
                     state.Current.Object = enumerator;
+                    state.Current.EnumeratorInProgress = true;
                     return false;
                 }
-
                 state.Current.EnumeratorInProgress = false;
             }
 
