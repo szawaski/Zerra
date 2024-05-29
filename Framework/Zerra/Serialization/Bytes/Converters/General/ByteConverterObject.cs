@@ -306,7 +306,7 @@ namespace Zerra.Serialization
                     if (collectValues)
                     {
                         state.PushFrame(false);
-                        var read = property.ConverterSetValues.TryReadFromParent(ref reader, ref state, collectedValues);
+                        var read = property.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues);
                         if (!read)
                         {
                             state.Current.HasNullChecked = true;
@@ -526,7 +526,7 @@ namespace Zerra.Serialization
                 }
             }
 
-            public abstract ByteConverter<Dictionary<string, object?>> ConverterSetValues { get; }
+            public abstract ByteConverter<Dictionary<string, object?>> ConverterSetCollectedValues { get; }
 
             //helps with debug
             public override string ToString()
@@ -557,7 +557,7 @@ namespace Zerra.Serialization
             }
 
             private ByteConverter<Dictionary<string, object?>>? converterSetValues;
-            public override sealed ByteConverter<Dictionary<string, object?>> ConverterSetValues
+            public override sealed ByteConverter<Dictionary<string, object?>> ConverterSetCollectedValues
             {
                 get
                 {
