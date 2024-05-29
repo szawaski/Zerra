@@ -123,7 +123,6 @@ namespace Zerra.Serialization
                     state.BytesNeeded = sizeNeeded;
                     return false;
                 }
-                state.Current.HasWrittenIsNull = true;
             }
 
             if (value == null)
@@ -140,6 +139,7 @@ namespace Zerra.Serialization
                 if (!writer.TryWrite(length, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
+                    state.Current.HasWrittenIsNull = true;
                     return false;
                 }
                 if (length == 0)
@@ -160,6 +160,7 @@ namespace Zerra.Serialization
                 var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator);
                 if (!write)
                 {
+                    state.Current.HasWrittenIsNull = true;
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;
                     return false;

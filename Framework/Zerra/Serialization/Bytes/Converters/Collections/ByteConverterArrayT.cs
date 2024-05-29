@@ -146,14 +146,13 @@ namespace Zerra.Serialization
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                state.Current.EnumeratorInProgress = true;
-
                 state.PushFrame(true);
                 var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator);
                 if (!write)
                 {
                     state.Current.HasWrittenIsNull = true;
                     state.Current.Object = enumerator;
+                    state.Current.EnumeratorInProgress = true;
                     return false;
                 }
 

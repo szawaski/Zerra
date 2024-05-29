@@ -11,10 +11,11 @@ namespace Zerra.Serialization
     {
         protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out string? value)
         {
+            int? stringLength;
             int sizeNeeded;
             if (!state.Current.StringLength.HasValue)
             {
-                if (!reader.TryReadStringLength(state.Current.NullFlags, out var stringLength, out sizeNeeded))
+                if (!reader.TryReadStringLength(state.Current.NullFlags, out stringLength, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
                     value = null;
@@ -30,12 +31,16 @@ namespace Zerra.Serialization
                     value = String.Empty;
                     return true;
                 }
-                state.Current.StringLength = stringLength;
+            }
+            else
+            {
+                stringLength = state.Current.StringLength;
             }
 
-            if (!reader.TryReadString(state.Current.StringLength.Value, out value, out sizeNeeded))
+            if (!reader.TryReadString(stringLength.Value, out value, out sizeNeeded))
             {
                 state.BytesNeeded = sizeNeeded;
+                state.Current.StringLength = stringLength;
                 return false;
             }
 

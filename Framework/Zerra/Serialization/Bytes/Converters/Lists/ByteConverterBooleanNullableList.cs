@@ -26,8 +26,6 @@ namespace Zerra.Serialization
                     value = default;
                     return true;
                 }
-
-                state.Current.HasNullChecked = true;
             }
 
             int length;
@@ -36,10 +34,10 @@ namespace Zerra.Serialization
                 if (!reader.TryReadInt32(out length, out sizeNeeded))
                 {
                     state.BytesNeeded = sizeNeeded;
+                    state.Current.HasNullChecked = true;
                     value = default;
                     return false;
                 }
-                state.Current.EnumerableLength = length;
             }
             else
             {
@@ -49,6 +47,8 @@ namespace Zerra.Serialization
             if (!reader.TryReadBooleanNullableList(length, out value, out sizeNeeded))
             {
                 state.BytesNeeded = sizeNeeded;
+                state.Current.HasNullChecked = true;
+                state.Current.EnumerableLength = length;
                 return false;
             }
 

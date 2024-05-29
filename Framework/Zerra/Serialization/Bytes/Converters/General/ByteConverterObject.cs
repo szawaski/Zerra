@@ -336,6 +336,8 @@ namespace Zerra.Serialization
                         }
                     }
                 }
+
+                state.Current.HasReadProperty = false;
             }
 
             if (collectValues)
@@ -453,12 +455,13 @@ namespace Zerra.Serialization
                 var write = indexProperty.Value.Converter.TryWriteFromParent(ref writer, ref state, value);
                 if (!write)
                 {
-                    state.Current.HasWrittenPropertyIndex = true;
                     state.Current.Enumerator = enumerator;
+                    state.Current.HasWrittenPropertyIndex = true;
                     state.Current.EnumeratorInProgress = true;
                     return false;
                 }
 
+                state.Current.HasWrittenPropertyIndex = false;
                 state.Current.EnumeratorInProgress = false;
             }
 
