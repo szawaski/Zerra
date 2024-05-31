@@ -18,7 +18,17 @@ namespace Zerra.Collections
         private readonly object locker = new();
         private readonly HashSet<T> hashSet = new();
 
-        public int Count => hashSet.Count;
+        public int Count
+        {
+            get
+            {
+                lock (locker)
+                {
+                    var count = hashSet.Count;
+                    return count;
+                }
+            }
+        }
 
         public bool IsReadOnly => false;
 

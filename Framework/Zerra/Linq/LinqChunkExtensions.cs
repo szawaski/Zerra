@@ -7,16 +7,18 @@ using System.Collections.Generic;
 
 namespace Zerra.Linq
 {
-    public static class LinqBatchExtensions
+    public static class LinqChunkExtensions
     {
 #if !NET6_0_OR_GREATER
         public static IEnumerable<IEnumerable<T>> Chunk<T>(this IEnumerable<T> source, int size)
         {
-            var buffer = new T[size];
+            T[]? buffer = null;
             var count = 0;
 
             foreach (var item in source)
             {
+                buffer ??= new T[size];
+
                 buffer[count++] = item;
 
                 if (count != size)
@@ -24,10 +26,11 @@ namespace Zerra.Linq
 
                 yield return buffer;
 
+                buffer = null;
                 count = 0;
             }
 
-            if (count > 0)
+            if (buffer != null && count > 0)
             {
                 Array.Resize(ref buffer, count);
                 yield return buffer;
@@ -45,11 +48,13 @@ namespace Zerra.Linq
                 yield break;
             }
 
-            var buffer = new T[size];
+            T[]? buffer = null;
             var count = 0;
 
             foreach (var item in source)
             {
+                buffer ??= new T[size];
+
                 buffer[count++] = item;
 
                 if (count != size)
@@ -57,10 +62,46 @@ namespace Zerra.Linq
 
                 yield return buffer;
 
+                buffer = null;
                 count = 0;
             }
 
-            if (count > 0)
+            if (buffer != null && count > 0)
+            {
+                Array.Resize(ref buffer, count);
+                yield return buffer;
+            }
+        }
+
+        public static IEnumerable<IReadOnlyCollection<T>> Chunk<T>(this IReadOnlyCollection<T> source, int size)
+        {
+            if (source.Count == 0)
+                yield break;
+            if (source.Count <= size)
+            {
+                yield return source;
+                yield break;
+            }
+
+            T[]? buffer = null;
+            var count = 0;
+
+            foreach (var item in source)
+            {
+                buffer ??= new T[size];
+
+                buffer[count++] = item;
+
+                if (count != size)
+                    continue;
+
+                yield return buffer;
+
+                buffer = null;
+                count = 0;
+            }
+
+            if (buffer != null && count > 0)
             {
                 Array.Resize(ref buffer, count);
                 yield return buffer;
@@ -77,14 +118,11 @@ namespace Zerra.Linq
                 yield break;
             }
 
-            var buffer = new T[size];
-
             for (var i = 0; i < source.Length; i += size)
             {
                 var blockSize = Math.Min(source.Length - i, size);
+                var buffer = new T[blockSize];
                 Array.Copy(source, i, buffer, 0, blockSize);
-                if (blockSize < size)
-                    Array.Resize(ref buffer, blockSize);
                 yield return buffer;
             }
         }
