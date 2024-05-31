@@ -11,28 +11,22 @@ namespace Zerra.Serialization
     {
         protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out Type? value)
         {
-            int? stringLength;
             if (!state.Current.StringLength.HasValue)
             {
-                if (!reader.TryReadStringLength(state.Current.NullFlags, out stringLength, out state.BytesNeeded))
+                if (!reader.TryReadStringLength(state.Current.NullFlags, out state.Current.StringLength, out state.BytesNeeded))
                 {
                     value = default;
                     return false;
                 }
-                if (!stringLength.HasValue)
+                if (!state.Current.StringLength.HasValue || state.Current.StringLength.Value == 0)
                 {
                     value = default;
                     return false;
                 }
-            }
-            else
-            {
-                stringLength = state.Current.StringLength;
             }
 
-            if (!reader.TryReadString(stringLength.Value, out var typeName, out state.BytesNeeded))
+            if (!reader.TryReadString(state.Current.StringLength.Value, out var typeName, out state.BytesNeeded))
             {
-                state.Current.StringLength = stringLength;
                 value = default;
                 return false;
             }
@@ -47,12 +41,6 @@ namespace Zerra.Serialization
         }
 
         protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, Type? value)
-        {
-            if (!writer.TryWrite(value?.FullName, state.Current.NullFlags, out state.BytesNeeded))
-            {
-                return false;
-            };
-            return true;
-        }
+            => writer.TryWrite(value?.FullName, state.Current.NullFlags, out state.BytesNeeded);
     }
 }

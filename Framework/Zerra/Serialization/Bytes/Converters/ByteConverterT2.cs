@@ -149,9 +149,8 @@ namespace Zerra.Serialization
                     typeFromValue = value == null ? typeDetail.Type : value.GetType();
                     var typeName = typeFromValue.FullName;
 
-                    if (!writer.TryWrite(typeName, false, out var sizeNeeded))
+                    if (!writer.TryWrite(typeName, false, out state.BytesNeeded))
                     {
-                        state.BytesNeeded = sizeNeeded;
                         state.StashFrame();
                         return false;
                     }
@@ -308,9 +307,8 @@ namespace Zerra.Serialization
                     typeFromValue = value == null ? typeDetail.Type : value.GetType();
                     var typeName = typeFromValue.FullName;
 
-                    if (!writer.TryWrite(typeName, false, out var sizeNeeded))
+                    if (!writer.TryWrite(typeName, false, out state.BytesNeeded))
                     {
-                        state.BytesNeeded = sizeNeeded;
                         state.StashFrame();
                         return false;
                     }
@@ -478,9 +476,8 @@ namespace Zerra.Serialization
                     typeFromValue = value == null ? typeDetail.Type : value.GetType();
                     var typeName = typeFromValue.FullName;
 
-                    if (!writer.TryWrite(typeName, false, out var sizeNeeded))
+                    if (!writer.TryWrite(typeName, false, out state.BytesNeeded))
                     {
-                        state.BytesNeeded = sizeNeeded;
                         state.StashFrame();
                         return false;
                     }
