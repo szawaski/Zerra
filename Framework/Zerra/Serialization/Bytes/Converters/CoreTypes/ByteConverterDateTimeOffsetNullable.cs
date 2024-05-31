@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using Zerra.IO;
 
 namespace Zerra.Serialization
 {
@@ -11,9 +10,8 @@ namespace Zerra.Serialization
     {
         protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out DateTimeOffset? value)
         {
-            if (!reader.TryReadDateTimeOffsetNullable(state.Current.NullFlags, out value, out var sizeNeeded))
+            if (!reader.TryReadDateTimeOffsetNullable(state.Current.NullFlags, out value, out state.BytesNeeded))
             {
-                state.BytesNeeded = sizeNeeded;
                 return false;
             }
             return true;
@@ -21,9 +19,8 @@ namespace Zerra.Serialization
 
         protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, DateTimeOffset? value)
         {
-            if (!writer.TryWrite(value, state.Current.NullFlags, out var sizeNeeded))
+            if (!writer.TryWrite(value, state.Current.NullFlags, out state.BytesNeeded))
             {
-                state.BytesNeeded = sizeNeeded;
                 return false;
             }
             return true;

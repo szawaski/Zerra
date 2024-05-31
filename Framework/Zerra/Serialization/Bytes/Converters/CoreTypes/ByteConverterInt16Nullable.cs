@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.IO;
 
 namespace Zerra.Serialization
 {
@@ -10,9 +9,8 @@ namespace Zerra.Serialization
     {
         protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out short? value)
         {
-            if (!reader.TryReadInt16Nullable(state.Current.NullFlags, out value, out var sizeNeeded))
+            if (!reader.TryReadInt16Nullable(state.Current.NullFlags, out value, out state.BytesNeeded))
             {
-                state.BytesNeeded = sizeNeeded;
                 return false;
             }
             return true;
@@ -20,9 +18,8 @@ namespace Zerra.Serialization
 
         protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, short? value)
         {
-            if (!writer.TryWrite(value, state.Current.NullFlags, out var sizeNeeded))
+            if (!writer.TryWrite(value, state.Current.NullFlags, out state.BytesNeeded))
             {
-                state.BytesNeeded = sizeNeeded;
                 return false;
             }
             return true;

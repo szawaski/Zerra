@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using Zerra.IO;
 using Zerra.Reflection;
 
 namespace Zerra.Serialization
@@ -13,12 +12,10 @@ namespace Zerra.Serialization
         protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out Type? value)
         {
             int? stringLength;
-            int sizeNeeded;
             if (!state.Current.StringLength.HasValue)
             {
-                if (!reader.TryReadStringLength(state.Current.NullFlags, out stringLength, out sizeNeeded))
+                if (!reader.TryReadStringLength(state.Current.NullFlags, out stringLength, out state.BytesNeeded))
                 {
-                    state.BytesNeeded = sizeNeeded;
                     value = default;
                     return false;
                 }
@@ -33,9 +30,8 @@ namespace Zerra.Serialization
                 stringLength = state.Current.StringLength;
             }
 
-            if (!reader.TryReadString(stringLength.Value, out var typeName, out sizeNeeded))
+            if (!reader.TryReadString(stringLength.Value, out var typeName, out state.BytesNeeded))
             {
-                state.BytesNeeded = sizeNeeded;
                 state.Current.StringLength = stringLength;
                 value = default;
                 return false;
@@ -52,9 +48,8 @@ namespace Zerra.Serialization
 
         protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, Type? value)
         {
-            if (!writer.TryWrite(value?.FullName, state.Current.NullFlags, out var sizeNeeded))
+            if (!writer.TryWrite(value?.FullName, state.Current.NullFlags, out state.BytesNeeded))
             {
-                state.BytesNeeded = sizeNeeded;
                 return false;
             };
             return true;

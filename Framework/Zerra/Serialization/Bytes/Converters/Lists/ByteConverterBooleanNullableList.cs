@@ -11,12 +11,10 @@ namespace Zerra.Serialization
     {
         protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out List<bool?>? value)
         {
-            int sizeNeeded;
             if (state.Current.NullFlags && !state.Current.HasNullChecked)
             {
-                if (!reader.TryReadIsNull(out var isNull, out sizeNeeded))
+                if (!reader.TryReadIsNull(out var isNull, out state.BytesNeeded))
                 {
-                    state.BytesNeeded = sizeNeeded;
                     value = default;
                     return false;
                 }
@@ -31,9 +29,8 @@ namespace Zerra.Serialization
             int length;
             if (!state.Current.EnumerableLength.HasValue)
             {
-                if (!reader.TryReadInt32(out length, out sizeNeeded))
+                if (!reader.TryReadInt32(out length, out state.BytesNeeded))
                 {
-                    state.BytesNeeded = sizeNeeded;
                     state.Current.HasNullChecked = true;
                     value = default;
                     return false;
@@ -44,9 +41,8 @@ namespace Zerra.Serialization
                 length = state.Current.EnumerableLength.Value;
             }
 
-            if (!reader.TryReadBooleanNullableList(length, out value, out sizeNeeded))
+            if (!reader.TryReadBooleanNullableList(length, out value, out state.BytesNeeded))
             {
-                state.BytesNeeded = sizeNeeded;
                 state.Current.HasNullChecked = true;
                 state.Current.EnumerableLength = length;
                 return false;
@@ -57,21 +53,18 @@ namespace Zerra.Serialization
 
         protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, List<bool?>? value)
         {
-            int sizeNeeded;
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
             {
                 if (value == null)
                 {
-                    if (!writer.TryWriteNull(out sizeNeeded))
+                    if (!writer.TryWriteNull(out state.BytesNeeded))
                     {
-                        state.BytesNeeded = sizeNeeded;
                         return false;
                     }
                     return true;
                 }
-                if (!writer.TryWriteNotNull(out sizeNeeded))
+                if (!writer.TryWriteNotNull(out state.BytesNeeded))
                 {
-                    state.BytesNeeded = sizeNeeded;
                     return false;
                 }
                 state.Current.HasWrittenIsNull = true;
@@ -85,9 +78,8 @@ namespace Zerra.Serialization
             {
                 length = value.Count;
 
-                if (!writer.TryWrite(length, out sizeNeeded))
+                if (!writer.TryWrite(length, out state.BytesNeeded))
                 {
-                    state.BytesNeeded = sizeNeeded;
                     return false;
                 }
                 state.Current.EnumerableLength = length;
@@ -97,9 +89,8 @@ namespace Zerra.Serialization
                 length = state.Current.EnumerableLength.Value;
             }
 
-            if (!writer.TryWrite(value, length, out sizeNeeded))
+            if (!writer.TryWrite(value, length, out state.BytesNeeded))
             {
-                state.BytesNeeded = sizeNeeded;
                 return false;
             }
 

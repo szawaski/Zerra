@@ -126,9 +126,8 @@ namespace Zerra.Serialization
 
             if (state.Current.NullFlags && !state.Current.HasNullChecked)
             {
-                if (!reader.TryReadIsNull(out var isNull, out var sizeNeeded))
+                if (!reader.TryReadIsNull(out var isNull, out state.BytesNeeded))
                 {
-                    state.BytesNeeded = sizeNeeded;
                     value = default;
                     return false;
                 }
@@ -190,12 +189,10 @@ namespace Zerra.Serialization
                     if (state.UsePropertyNames)
                     {
                         int? stringLength;
-                        int sizeNeeded;
                         if (!state.Current.StringLength.HasValue)
                         {
-                            if (!reader.TryReadStringLength(false, out stringLength, out sizeNeeded))
+                            if (!reader.TryReadStringLength(false, out stringLength, out state.BytesNeeded))
                             {
-                                state.BytesNeeded = sizeNeeded;
                                 state.Current.HasNullChecked = true;
                                 if (collectValues)
                                     state.Current.Object = collectedValues;
@@ -215,9 +212,8 @@ namespace Zerra.Serialization
                             break;
                         }
 
-                        if (!reader.TryReadString(stringLength.Value, out var name, out sizeNeeded))
+                        if (!reader.TryReadString(stringLength.Value, out var name, out state.BytesNeeded))
                         {
-                            state.BytesNeeded = sizeNeeded;
                             state.Current.HasNullChecked = true;
                             state.Current.StringLength = stringLength;
                             if (collectValues)
@@ -235,9 +231,8 @@ namespace Zerra.Serialization
                         ushort propertyIndex;
                         if (state.IndexSizeUInt16)
                         {
-                            if (!reader.TryReadUInt16(out var propertyIndexValue, out var sizeNeeded))
+                            if (!reader.TryReadUInt16(out var propertyIndexValue, out state.BytesNeeded))
                             {
-                                state.BytesNeeded = sizeNeeded;
                                 state.Current.HasNullChecked = true;
                                 if (collectValues)
                                     state.Current.Object = collectedValues;
@@ -249,9 +244,8 @@ namespace Zerra.Serialization
                         }
                         else
                         {
-                            if (!reader.TryReadByte(out var propertyIndexValue, out var sizeNeeded))
+                            if (!reader.TryReadByte(out var propertyIndexValue, out state.BytesNeeded))
                             {
-                                state.BytesNeeded = sizeNeeded;
                                 state.Current.HasNullChecked = true;
                                 if (collectValues)
                                     state.Current.Object = collectedValues;
@@ -368,21 +362,18 @@ namespace Zerra.Serialization
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
 
-            int sizeNeeded;
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
             {
                 if (value == null)
                 {
-                    if (!writer.TryWriteNull(out sizeNeeded))
+                    if (!writer.TryWriteNull(out state.BytesNeeded))
                     {
-                        state.BytesNeeded = sizeNeeded;
                         return false;
                     }
                     return true;
                 }
-                if (!writer.TryWriteNotNull(out sizeNeeded))
+                if (!writer.TryWriteNotNull(out state.BytesNeeded))
                 {
-                    state.BytesNeeded = sizeNeeded;
                     return false;
                 }
                 state.Current.HasWrittenIsNull = true;
@@ -418,9 +409,8 @@ namespace Zerra.Serialization
                 {
                     if (state.UsePropertyNames)
                     {
-                        if (!writer.TryWrite(indexProperty.Value.Member.Name, false, out sizeNeeded))
+                        if (!writer.TryWrite(indexProperty.Value.Member.Name, false, out state.BytesNeeded))
                         {
-                            state.BytesNeeded = sizeNeeded;
                             state.Current.Enumerator = enumerator;
                             state.Current.EnumeratorInProgress = true;
                             return false;
@@ -430,9 +420,8 @@ namespace Zerra.Serialization
                     {
                         if (state.IndexSizeUInt16)
                         {
-                            if (!writer.TryWrite(indexProperty.Key, out sizeNeeded))
+                            if (!writer.TryWrite(indexProperty.Key, out state.BytesNeeded))
                             {
-                                state.BytesNeeded = sizeNeeded;
                                 state.Current.Enumerator = enumerator;
                                 state.Current.EnumeratorInProgress = true;
                                 return false;
@@ -440,9 +429,8 @@ namespace Zerra.Serialization
                         }
                         else
                         {
-                            if (!writer.TryWrite((byte)indexProperty.Key, out sizeNeeded))
+                            if (!writer.TryWrite((byte)indexProperty.Key, out state.BytesNeeded))
                             {
-                                state.BytesNeeded = sizeNeeded;
                                 state.Current.Enumerator = enumerator;
                                 state.Current.EnumeratorInProgress = true;
                                 return false;
@@ -467,9 +455,8 @@ namespace Zerra.Serialization
 
             if (state.UsePropertyNames)
             {
-                if (!writer.TryWrite(0, out sizeNeeded))
+                if (!writer.TryWrite(0, out state.BytesNeeded))
                 {
-                    state.BytesNeeded = sizeNeeded;
                     state.Current.Enumerator = enumerator;
                     return false;
                 }
@@ -478,18 +465,16 @@ namespace Zerra.Serialization
             {
                 if (state.IndexSizeUInt16)
                 {
-                    if (!writer.TryWrite(endObjectFlagUInt16, out sizeNeeded))
+                    if (!writer.TryWrite(endObjectFlagUInt16, out state.BytesNeeded))
                     {
-                        state.BytesNeeded = sizeNeeded;
                         state.Current.Enumerator = enumerator;
                         return false;
                     }
                 }
                 else
                 {
-                    if (!writer.TryWrite(endObjectFlagByte, out sizeNeeded))
+                    if (!writer.TryWrite(endObjectFlagByte, out state.BytesNeeded))
                     {
-                        state.BytesNeeded = sizeNeeded;
                         state.Current.Enumerator = enumerator;
                         return false;
                     }

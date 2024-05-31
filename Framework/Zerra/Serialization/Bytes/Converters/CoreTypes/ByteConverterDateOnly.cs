@@ -5,7 +5,6 @@
 #if NET6_0_OR_GREATER
 
 using System;
-using Zerra.IO;
 
 namespace Zerra.Serialization
 {
@@ -13,9 +12,8 @@ namespace Zerra.Serialization
     {
         protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out DateOnly value)
         {
-            if (!reader.TryReadDateOnly(out value, out var sizeNeeded))
+            if (!reader.TryReadDateOnly(out value, out state.BytesNeeded))
             {
-                state.BytesNeeded = sizeNeeded;
                 return false;
             }
             return true;
@@ -23,9 +21,8 @@ namespace Zerra.Serialization
 
         protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, DateOnly value)
         {
-            if (!writer.TryWrite(value, out var sizeNeeded))
+            if (!writer.TryWrite(value, out state.BytesNeeded))
             {
-                state.BytesNeeded = sizeNeeded;
                 return false;
             }
             return true;

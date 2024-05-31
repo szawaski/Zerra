@@ -486,11 +486,16 @@ namespace Zerra.Serialization
             for (; ; )
             {
                 var write = converter.TryWrite(ref writer, ref state, value);
-                if (write || state.BytesNeeded > 0)
+                if (write)
+                {
+                    state.BytesNeeded = 0;
                     return writer.Length;
+                }
             }
 #else
-            converter.TryWrite(ref writer, ref state, value);
+            var write = converter.TryWrite(ref writer, ref state, value);
+            if (write)
+                state.BytesNeeded = 0;
             return writer.Length;
 #endif
         }
@@ -502,11 +507,16 @@ namespace Zerra.Serialization
             for (; ; )
             {
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
-                if (write || state.BytesNeeded > 0)
+                if (write)
+                {
+                    state.BytesNeeded = 0;
                     return writer.Length;
+                }
             }
 #else
-            converter.TryWriteBoxed(ref writer, ref state, value);
+            var write = converter.TryWriteBoxed(ref writer, ref state, value);
+            if (write)
+                state.BytesNeeded = 0;
             return writer.Length;
 #endif
         }

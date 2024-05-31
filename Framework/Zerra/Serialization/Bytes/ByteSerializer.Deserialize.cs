@@ -470,11 +470,16 @@ namespace Zerra.Serialization
             for (; ; )
             {
                 var read = converter.TryRead(ref reader, ref state, out result);
-                if (read || state.BytesNeeded > 0)
+                if (read)
+                {
+                    state.BytesNeeded = 0;
                     return reader.Position;
+                }
             }
 #else
-            converter.TryRead(ref reader, ref state, out result);
+            var read = converter.TryRead(ref reader, ref state, out result);
+            if (read)
+                state.BytesNeeded = 0;
             return reader.Position;
 #endif
         }
@@ -486,11 +491,16 @@ namespace Zerra.Serialization
             for (; ; )
             {
                 var read = converter.TryReadBoxed(ref reader, ref state, out result);
-                if (read || state.BytesNeeded > 0)
+                if (read)
+                {
+                    state.BytesNeeded = 0;
                     return reader.Position;
+                }
             }
 #else
-            converter.TryReadBoxed(ref reader, ref state, out result);
+            var read = converter.TryReadBoxed(ref reader, ref state, out result);
+            if (read)
+                state.BytesNeeded = 0;
             return reader.Position;
 #endif
         }

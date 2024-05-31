@@ -19,7 +19,6 @@ namespace Zerra.Serialization
 
         private bool useEmptyImplementation;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void Setup(TypeDetail? typeDetail, string? memberKey, Delegate? getterDelegate, Delegate? setterDelegate)
         {
             if (typeDetail == null)
@@ -43,10 +42,9 @@ namespace Zerra.Serialization
             Setup();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected virtual void Setup() { }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed bool TryReadBoxed(ref ByteReader reader, ref ReadState state, out object? returnValue)
         {
             if (state.IncludePropertyTypes)
@@ -140,7 +138,7 @@ namespace Zerra.Serialization
             returnValue = value;
             return true;
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed bool TryWriteBoxed(ref ByteWriter writer, ref WriteState state, object? value)
         {
             if (state.IncludePropertyTypes)
@@ -205,7 +203,7 @@ namespace Zerra.Serialization
             return true;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(ref ByteReader reader, ref ReadState state, out TValue? returnValue)
         {
             if (state.IncludePropertyTypes)
@@ -299,7 +297,7 @@ namespace Zerra.Serialization
             returnValue = value;
             return true;
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(ref ByteWriter writer, ref WriteState state, TValue? value)
         {
             if (state.IncludePropertyTypes)
@@ -364,7 +362,7 @@ namespace Zerra.Serialization
             return true;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed bool TryReadFromParent(ref ByteReader reader, ref ReadState state, TParent? parent)
         {
             if (state.StackSize > maxStackDepth)
@@ -459,7 +457,7 @@ namespace Zerra.Serialization
             state.EndFrame();
             return true;
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed bool TryWriteFromParent(ref ByteWriter writer, ref WriteState state, TParent parent)
         {
             if (state.StackSize > maxStackDepth)

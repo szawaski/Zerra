@@ -21,12 +21,11 @@ namespace Zerra.Serialization
         //The max converter stack before we unwind
         protected const int maxStackDepth = 32;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract void Setup(TypeDetail? typeDetail, string? memberKey, Delegate? getterDelegate, Delegate? setterDelegate);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract bool TryReadBoxed(ref ByteReader reader, ref ReadState state, out object? value);
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract bool TryWriteBoxed(ref ByteWriter writer, ref WriteState state, object? value);
     }
 }
