@@ -8,21 +8,9 @@ namespace Zerra.Serialization
     internal sealed class ByteConverterUInt32<TParent> : ByteConverter<TParent, uint>
     {
         protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out uint value)
-        {
-            if (!reader.TryReadUInt32(out value, out state.BytesNeeded))
-            {
-                return false;
-            }
-            return true;
-        }
+            => reader.TryReadUInt32(out value, out state.BytesNeeded);
 
         protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, uint value)
-        {
-            if (!writer.TryWrite(value, out state.BytesNeeded))
-            {
-                return false;
-            }
-            return true;
-        }
+            => writer.TryWrite(value, out state.BytesNeeded);
     }
 }

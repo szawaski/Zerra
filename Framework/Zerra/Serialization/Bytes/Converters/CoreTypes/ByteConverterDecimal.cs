@@ -8,21 +8,9 @@ namespace Zerra.Serialization
     internal sealed class ByteConverterDecimal<TParent> : ByteConverter<TParent, decimal>
     {
         protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out decimal value)
-        {
-            if (!reader.TryReadDecimal(out value, out state.BytesNeeded))
-            {
-                return false;
-            }
-            return true;
-        }
+            => reader.TryReadDecimal(out value, out state.BytesNeeded);
 
         protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, decimal value)
-        {
-            if (!writer.TryWrite(value, out state.BytesNeeded))
-            {
-                return false;
-            }
-            return true;
-        }
+            => writer.TryWrite(value, out state.BytesNeeded);
     }
 }

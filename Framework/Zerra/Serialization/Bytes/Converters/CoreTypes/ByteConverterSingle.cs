@@ -8,21 +8,9 @@ namespace Zerra.Serialization
     internal sealed class ByteConverterSingle<TParent> : ByteConverter<TParent, float>
     {
         protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out float value)
-        {
-            if (!reader.TryReadSingle(out value, out state.BytesNeeded))
-            {
-                return false;
-            }
-            return true;
-        }
+            => reader.TryReadSingle(out value, out state.BytesNeeded);
 
         protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, float value)
-        {
-            if (!writer.TryWrite(value, out state.BytesNeeded))
-            {
-                return false;
-            }
-            return true;
-        }
+            => writer.TryWrite(value, out state.BytesNeeded);
     }
 }

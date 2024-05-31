@@ -9,21 +9,9 @@ namespace Zerra.Serialization
     internal sealed class ByteConverterDateTimeNullable<TParent> : ByteConverter<TParent, DateTime?>
     {
         protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out DateTime? value)
-        {
-            if (!reader.TryReadDateTimeNullable(state.Current.NullFlags, out value, out state.BytesNeeded))
-            {
-                return false;
-            }
-            return true;
-        }
+            => reader.TryReadDateTimeNullable(state.Current.NullFlags, out value, out state.BytesNeeded);
 
         protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, DateTime? value)
-        {
-            if (!writer.TryWrite(value, state.Current.NullFlags, out state.BytesNeeded))
-            {
-                return false;
-            }
-            return true;
-        }
+            => writer.TryWrite(value, state.Current.NullFlags, out state.BytesNeeded);
     }
 }
