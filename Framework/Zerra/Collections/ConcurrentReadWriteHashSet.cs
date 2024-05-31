@@ -19,7 +19,16 @@ namespace Zerra.Collections
         private readonly ReaderWriterLockSlim locker = new(LockRecursionPolicy.NoRecursion);
         private readonly HashSet<T> hashSet = new();
 
-        public int Count => hashSet.Count;
+        public int Count
+        {
+            get
+            {
+                locker.EnterReadLock();
+                var count = hashSet.Count;
+                locker.ExitReadLock();
+                return count;
+            }
+        }
 
         public bool IsReadOnly => false;
 
