@@ -13,12 +13,12 @@ namespace Zerra.Serialization
         private static TValue? Getter(ArrayAccessor<TValue?> parent) => parent.Get();
         private static void Setter(ArrayAccessor<TValue?> parent, TValue? value) => parent.Set(value);
 
-        protected override void Setup()
+        protected override sealed void Setup()
         {
             this.converter = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, Setter);
         }
 
-        protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue?[]? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue?[]? value)
         {
             if (state.Current.NullFlags && !state.Current.HasNullChecked)
             {
@@ -88,7 +88,7 @@ namespace Zerra.Serialization
             }
         }
 
-        protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue?[]? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue?[]? value)
         {
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
             {

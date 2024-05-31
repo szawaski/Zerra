@@ -10,7 +10,7 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterBooleanHashSet<TParent> : ByteConverter<TParent, HashSet<bool>>
     {
-        protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out HashSet<bool>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out HashSet<bool>? value)
         {
             if (state.Current.NullFlags && !state.Current.HasNullChecked)
             {
@@ -52,7 +52,7 @@ namespace Zerra.Serialization
             return true;
         }
 
-        protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, HashSet<bool>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, HashSet<bool>? value)
         {
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
             {

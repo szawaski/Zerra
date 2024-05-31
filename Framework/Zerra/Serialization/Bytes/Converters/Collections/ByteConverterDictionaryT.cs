@@ -19,7 +19,7 @@ namespace Zerra.Serialization
         private static KeyValuePair<TKey, TValue?> Getter(IEnumerator<KeyValuePair<TKey, TValue?>> parent) => parent.Current;
         private static void Setter(IDictionary<TKey, TValue?> parent, KeyValuePair<TKey, TValue?> value) => parent.Add(value.Key, value.Value);
 
-        protected override void Setup()
+        protected override sealed void Setup()
         {
             var enumerableType = TypeAnalyzer<KeyValuePair<TKey, TValue?>>.GetTypeDetail();
 
@@ -27,7 +27,7 @@ namespace Zerra.Serialization
             this.writeConverter = ByteConverterFactory<IEnumerator<KeyValuePair<TKey, TValue?>>>.Get(enumerableType, null, Getter, null);
         }
 
-        protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out TDictionary? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TDictionary? value)
         {
             if (state.Current.NullFlags && !state.Current.HasNullChecked)
             {
@@ -101,7 +101,7 @@ namespace Zerra.Serialization
             }
         }
 
-        protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TDictionary? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TDictionary? value)
         {
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
             {

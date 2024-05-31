@@ -18,13 +18,13 @@ namespace Zerra.Serialization
         private static TValue? Getter(IEnumerator<TValue?> parent) => parent.Current;
         private static void Setter(IList<TValue?> parent, TValue? value) => parent.Add(value);
 
-        protected override void Setup()
+        protected override sealed void Setup()
         {
             this.readConverter = ByteConverterFactory<IList<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, null, Setter);
             this.writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, null);
         }
 
-        protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out TList? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TList? value)
         {
             if (state.Current.NullFlags && !state.Current.HasNullChecked)
             {
@@ -99,7 +99,7 @@ namespace Zerra.Serialization
             }
         }
 
-        protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TList? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TList? value)
         {
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
             {

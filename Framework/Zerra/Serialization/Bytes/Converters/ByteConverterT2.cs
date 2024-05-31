@@ -530,14 +530,14 @@ namespace Zerra.Serialization
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override bool TryReadValueBoxed(ref ByteReader reader, ref ReadState state, out object? value)
+        public override sealed bool TryReadValueBoxed(ref ByteReader reader, ref ReadState state, out object? value)
         {
             var read = TryReadValue(ref reader, ref state, out var v);
             value = v;
             return read;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override bool TryWriteValueBoxed(ref ByteWriter writer, ref WriteState state, object? value)
+        public override sealed bool TryWriteValueBoxed(ref ByteWriter writer, ref WriteState state, object? value)
             => TryWriteValue(ref writer, ref state, (TValue?)value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

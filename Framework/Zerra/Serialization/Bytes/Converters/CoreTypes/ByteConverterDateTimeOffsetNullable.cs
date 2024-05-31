@@ -8,10 +8,10 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterDateTimeOffsetNullable<TParent> : ByteConverter<TParent, DateTimeOffset?>
     {
-        protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out DateTimeOffset? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out DateTimeOffset? value)
             => reader.TryReadDateTimeOffsetNullable(state.Current.NullFlags, out value, out state.BytesNeeded);
 
-        protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, DateTimeOffset? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, DateTimeOffset? value)
             => writer.TryWrite(value, state.Current.NullFlags, out state.BytesNeeded);
     }
 }

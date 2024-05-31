@@ -16,13 +16,13 @@ namespace Zerra.Serialization
         private static TValue? Getter(IEnumerator<TValue?> parent) => parent.Current;
         private static void Setter(ISet<TValue?> parent, TValue? value) => parent.Add(value);
 
-        protected override void Setup()
+        protected override sealed void Setup()
         {
             this.readConverter = ByteConverterFactory<ISet<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, null, Setter);
             this.writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, null);
         }
 
-        protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out TSet? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TSet? value)
         {
             if (state.Current.NullFlags && !state.Current.HasNullChecked)
             {
@@ -100,7 +100,7 @@ namespace Zerra.Serialization
             }
         }
 
-        protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TSet? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TSet? value)
         {
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
             {

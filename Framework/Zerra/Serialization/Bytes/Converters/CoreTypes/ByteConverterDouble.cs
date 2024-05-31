@@ -7,10 +7,10 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterDouble<TParent> : ByteConverter<TParent, double>
     {
-        protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out double value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out double value)
             => reader.TryReadDouble(out value, out state.BytesNeeded);
 
-        protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, double value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, double value)
             => writer.TryWrite(value, out state.BytesNeeded);
     }
 }

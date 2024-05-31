@@ -41,7 +41,7 @@ namespace Zerra.Serialization
         private bool collectValues;
         private ConstructorDetail<TValue>? parameterConstructor = null;
 
-        protected override void Setup()
+        protected override sealed void Setup()
         {
             var memberSets = new List<Tuple<MemberDetail, SerializerIndexAttribute?>>();
             foreach (var member in typeDetail.SerializableMemberDetails)
@@ -117,7 +117,7 @@ namespace Zerra.Serialization
             }
         }
 
-        protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue? value)
         {
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
@@ -357,7 +357,7 @@ namespace Zerra.Serialization
             return true;
         }
 
-        protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue? value)
         {
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
@@ -514,7 +514,7 @@ namespace Zerra.Serialization
             public abstract ByteConverter<Dictionary<string, object?>> ConverterSetCollectedValues { get; }
 
             //helps with debug
-            public override string ToString()
+            public override sealed string ToString()
             {
                 return Member.Name;
             }

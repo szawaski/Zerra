@@ -7,10 +7,10 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterInt64Nullable<TParent> : ByteConverter<TParent, long?>
     {
-        protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out long? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out long? value)
             => reader.TryReadInt64Nullable(state.Current.NullFlags, out value, out state.BytesNeeded);
 
-        protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, long? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, long? value)
             => writer.TryWrite(value, state.Current.NullFlags, out state.BytesNeeded);
     }
 }

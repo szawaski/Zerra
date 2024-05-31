@@ -8,7 +8,7 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterString<TParent> : ByteConverter<TParent, string?>
     {
-        protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out string? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out string? value)
         {
             if (!state.Current.StringLength.HasValue)
             {
@@ -32,7 +32,7 @@ namespace Zerra.Serialization
             return reader.TryReadString(state.Current.StringLength.Value, out value, out state.BytesNeeded);
         }
 
-        protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, string? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, string? value)
             => writer.TryWrite(value, state.Current.NullFlags, out state.BytesNeeded);
     }
 }
