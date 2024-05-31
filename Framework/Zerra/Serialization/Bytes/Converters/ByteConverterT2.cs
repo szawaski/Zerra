@@ -459,7 +459,7 @@ namespace Zerra.Serialization
             }
             var value = getter(parent);
 
-            if (state.Current.IndexProperty > 0 || (state.UsePropertyNames && state.Current.IndexPropertyName is not null))
+            if ((!state.UsePropertyNames && state.Current.IndexProperty > 0) || (state.UsePropertyNames && state.Current.IndexPropertyName is not null))
             {
                 if (value is null)
                 {
