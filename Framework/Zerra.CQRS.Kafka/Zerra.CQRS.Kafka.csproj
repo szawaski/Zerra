@@ -12,8 +12,8 @@
         <Description>Kafka implementations of producer and consumer for commands and events in the CQRS Zerra Framework.</Description>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <LangVersion>11.0</LangVersion>
-        <Version>4.10.0</Version>
+        <LangVersion>12.0</LangVersion>
+        <Version>4.11.0</Version>
     </PropertyGroup>
 
     <ItemGroup>
