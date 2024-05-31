@@ -52,22 +52,18 @@ namespace Zerra.Serialization
                 Type? typeFromBytes;
                 if (state.Current.ReadType == null)
                 {
-                    int sizeNeeded;
                     if (!state.Current.StringLength.HasValue)
                     {
-                        if (!reader.TryReadStringLength(false, out var stringLength, out sizeNeeded))
+                        if (!reader.TryReadStringLength(false, out state.Current.StringLength, out state.BytesNeeded))
                         {
-                            state.BytesNeeded = sizeNeeded;
                             state.StashFrame();
                             returnValue = default;
                             return false;
                         }
-                        state.Current.StringLength = stringLength;
                     }
 
-                    if (!reader.TryReadString(state.Current.StringLength!.Value, out var typeName, out sizeNeeded))
+                    if (!reader.TryReadString(state.Current.StringLength!.Value, out var typeName, out state.BytesNeeded))
                     {
-                        state.BytesNeeded = sizeNeeded;
                         state.StashFrame();
                         returnValue = default;
                         return false;
@@ -210,12 +206,10 @@ namespace Zerra.Serialization
                 Type? typeFromBytes;
                 if (state.Current.ReadType == null)
                 {
-                    int sizeNeeded;
                     if (!state.Current.StringLength.HasValue)
                     {
-                        if (!reader.TryReadStringLength(false, out var stringLength, out sizeNeeded))
+                        if (!reader.TryReadStringLength(false, out var stringLength, out state.BytesNeeded))
                         {
-                            state.BytesNeeded = sizeNeeded;
                             state.StashFrame();
                             returnValue = default;
                             return false;
@@ -223,9 +217,8 @@ namespace Zerra.Serialization
                         state.Current.StringLength = stringLength;
                     }
 
-                    if (!reader.TryReadString(state.Current.StringLength!.Value, out var typeName, out sizeNeeded))
+                    if (!reader.TryReadString(state.Current.StringLength!.Value, out var typeName, out state.BytesNeeded))
                     {
-                        state.BytesNeeded = sizeNeeded;
                         state.StashFrame();
                         returnValue = default;
                         return false;
@@ -371,21 +364,17 @@ namespace Zerra.Serialization
                 Type? typeFromBytes;
                 if (state.Current.ReadType == null)
                 {
-                    int sizeNeeded;
                     if (!state.Current.StringLength.HasValue)
                     {
-                        if (!reader.TryReadStringLength(false, out var stringLength, out sizeNeeded))
+                        if (!reader.TryReadStringLength(false, out state.Current.StringLength, out state.BytesNeeded))
                         {
-                            state.BytesNeeded = sizeNeeded;
                             state.StashFrame();
                             return false;
                         }
-                        state.Current.StringLength = stringLength;
                     }
 
-                    if (!reader.TryReadString(state.Current.StringLength!.Value, out var typeName, out sizeNeeded))
+                    if (!reader.TryReadString(state.Current.StringLength!.Value, out var typeName, out state.BytesNeeded))
                     {
-                        state.BytesNeeded = sizeNeeded;
                         state.StashFrame();
                         return false;
                     }

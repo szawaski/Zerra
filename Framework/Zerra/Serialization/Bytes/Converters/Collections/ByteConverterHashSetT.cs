@@ -40,11 +40,9 @@ namespace Zerra.Serialization
             }
 
             ISet<TValue?> set;
-
-            int length;
             if (!state.Current.EnumerableLength.HasValue)
             {
-                if (!reader.TryReadInt32(out length, out state.BytesNeeded))
+                if (!reader.TryReadInt32Nullable(false, out state.Current.EnumerableLength, out state.BytesNeeded))
                 {
                     state.Current.HasNullChecked = true;
                     value = default;
@@ -56,16 +54,16 @@ namespace Zerra.Serialization
 #if NETSTANDARD2_0
                     set = new HashSet<TValue?>();
 #else
-                    set = new HashSet<TValue?>(length);
+                    set = new HashSet<TValue?>(state.Current.EnumerableLength!.Value);
 #endif
                     value = (TSet?)set;
-                    if (length == 0)
+                    if (state.Current.EnumerableLength!.Value == 0)
                         return true;
                 }
                 else
                 {
                     value = default;
-                    if (length == 0)
+                    if (state.Current.EnumerableLength!.Value == 0)
                         return true;
                     set = new SetCounter();
                 }
@@ -77,10 +75,9 @@ namespace Zerra.Serialization
                     value = (TSet?)state.Current.Object;
                 else
                     value = default;
-                length = state.Current.EnumerableLength.Value;
             }
 
-            if (set.Count == length)
+            if (set.Count == state.Current.EnumerableLength.Value)
                 return true;
 
             for (; ; )
@@ -90,12 +87,11 @@ namespace Zerra.Serialization
                 if (!read)
                 {
                     state.Current.HasNullChecked = true;
-                    state.Current.EnumerableLength = length;
                     state.Current.Object = set;
                     return false;
                 }
 
-                if (set.Count == length)
+                if (set.Count == state.Current.EnumerableLength.Value)
                     return true;
             }
         }

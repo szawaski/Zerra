@@ -43,10 +43,9 @@ namespace Zerra.Serialization
 
             IList<TValue?> list;
 
-            int length;
             if (!state.Current.EnumerableLength.HasValue)
             {
-                if (!reader.TryReadInt32(out length, out state.BytesNeeded))
+                if (!reader.TryReadInt32Nullable(false, out state.Current.EnumerableLength, out state.BytesNeeded))
                 {
                     state.Current.HasNullChecked = true;
                     value = default;
@@ -55,15 +54,15 @@ namespace Zerra.Serialization
 
                 if (!state.Current.DrainBytes)
                 {
-                    list = new List<TValue?>(length);
+                    list = new List<TValue?>(state.Current.EnumerableLength!.Value);
                     value = (TList?)list;
-                    if (length == 0)
+                    if (state.Current.EnumerableLength.Value == 0)
                         return true;
                 }
                 else
                 {
                     value = default;
-                    if (length == 0)
+                    if (state.Current.EnumerableLength!.Value == 0)
                         return true;
                     list = new ListCounter();
                 }
@@ -75,11 +74,9 @@ namespace Zerra.Serialization
                     value = (TList?)state.Current.Object;
                 else
                     value = default;
-
-                length = state.Current.EnumerableLength.Value;
             }
 
-            if (list.Count == length)
+            if (list.Count == state.Current.EnumerableLength.Value)
                 return true;
 
             for (; ; )
@@ -89,12 +86,11 @@ namespace Zerra.Serialization
                 if (!read)
                 {
                     state.Current.HasNullChecked = true;
-                    state.Current.EnumerableLength = length;
                     state.Current.Object = list;
                     return false;
                 }
 
-                if (list.Count == length)
+                if (list.Count == state.Current.EnumerableLength.Value)
                     return true;
             }
         }

@@ -46,10 +46,9 @@ namespace Zerra.Serialization
 
             IDictionary<TKey, TValue?> dictionary;
 
-            int length;
             if (!state.Current.EnumerableLength.HasValue)
             {
-                if (!reader.TryReadInt32(out length, out state.BytesNeeded))
+                if (!reader.TryReadInt32Nullable(false, out state.Current.EnumerableLength, out state.BytesNeeded))
                 {
                     state.Current.HasNullChecked = true;
                     value = default;
@@ -60,13 +59,13 @@ namespace Zerra.Serialization
                 {
                     dictionary = new Dictionary<TKey, TValue?>();
                     value = (TDictionary?)dictionary;
-                    if (length == 0)
+                    if (state.Current.EnumerableLength!.Value == 0)
                         return true;
                 }
                 else
                 {
                     value = default;
-                    if (length == 0)
+                    if (state.Current.EnumerableLength!.Value == 0)
                         return true;
                     dictionary = new DictionaryCounter();
                 }
@@ -78,10 +77,9 @@ namespace Zerra.Serialization
                     value = (TDictionary?)state.Current.Object;
                 else
                     value = default;
-                length = state.Current.EnumerableLength.Value;
             }
 
-            if (dictionary.Count == length)
+            if (dictionary.Count == state.Current.EnumerableLength.Value)
                 return true;
 
             for (; ; )
@@ -91,12 +89,11 @@ namespace Zerra.Serialization
                 if (!read)
                 {
                     state.Current.HasNullChecked = true;
-                    state.Current.EnumerableLength = length;
                     state.Current.Object = dictionary;
                     return false;
                 }
 
-                if (dictionary.Count == length)
+                if (dictionary.Count == state.Current.EnumerableLength.Value)
                     return true;
             }
         }

@@ -188,10 +188,9 @@ namespace Zerra.Serialization
                 {
                     if (state.UsePropertyNames)
                     {
-                        int? stringLength;
                         if (!state.Current.StringLength.HasValue)
                         {
-                            if (!reader.TryReadStringLength(false, out stringLength, out state.BytesNeeded))
+                            if (!reader.TryReadStringLength(false, out state.Current.StringLength, out state.BytesNeeded))
                             {
                                 state.Current.HasNullChecked = true;
                                 if (collectValues)
@@ -201,21 +200,15 @@ namespace Zerra.Serialization
                                 return false;
                             }
                         }
-                        else
-                        {
-                            stringLength = state.Current.StringLength;
-                            state.Current.StringLength = null;
-                        }
 
-                        if (stringLength!.Value == 0)
+                        if (!state.Current.StringLength.HasValue || state.Current.StringLength.Value == 0)
                         {
                             break;
                         }
 
-                        if (!reader.TryReadString(stringLength.Value, out var name, out state.BytesNeeded))
+                        if (!reader.TryReadString(state.Current.StringLength.Value, out var name, out state.BytesNeeded))
                         {
                             state.Current.HasNullChecked = true;
-                            state.Current.StringLength = stringLength;
                             if (collectValues)
                                 state.Current.Object = collectedValues;
                             else
@@ -231,7 +224,7 @@ namespace Zerra.Serialization
                         ushort propertyIndex;
                         if (state.IndexSizeUInt16)
                         {
-                            if (!reader.TryReadUInt16(out var propertyIndexValue, out state.BytesNeeded))
+                            if (!reader.TryReadUInt16(out propertyIndex, out state.BytesNeeded))
                             {
                                 state.Current.HasNullChecked = true;
                                 if (collectValues)
@@ -240,7 +233,6 @@ namespace Zerra.Serialization
                                     state.Current.Object = value;
                                 return false;
                             }
-                            propertyIndex = propertyIndexValue;
                         }
                         else
                         {

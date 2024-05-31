@@ -27,25 +27,19 @@ namespace Zerra.Serialization
                 }
             }
 
-            int length;
             if (!state.Current.EnumerableLength.HasValue)
             {
-                if (!reader.TryReadInt32(out length, out state.BytesNeeded))
+                if (!reader.TryReadInt32Nullable(false, out state.Current.EnumerableLength, out state.BytesNeeded))
                 {
                     state.Current.HasNullChecked = true;
                     value = default;
                     return false;
                 }
             }
-            else
-            {
-                length = state.Current.EnumerableLength.Value;
-            }
 
-            if (!reader.TryReadBooleanHashSet(length, out value, out state.BytesNeeded))
+            if (!reader.TryReadBooleanHashSet(state.Current.EnumerableLength!.Value, out value, out state.BytesNeeded))
             {
                 state.Current.HasNullChecked = true;
-                state.Current.EnumerableLength = length;
                 return false;
             }
 
