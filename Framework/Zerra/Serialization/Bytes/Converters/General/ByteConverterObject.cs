@@ -216,6 +216,8 @@ namespace Zerra.Serialization
                             return false;
                         }
 
+                        state.Current.StringLength = null;
+
                         property = null;
                         _ = membersByName?.TryGetValue(name!, out property);
                     }
@@ -389,59 +391,22 @@ namespace Zerra.Serialization
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                var indexProperty = enumerator.Current;
-
-                //TODO this hurts speed
-                if (indexProperty.Value.IsNull(value))
-                {
-                    continue;
-                }
-
-                if (!state.Current.HasWrittenPropertyIndex)
-                {
-                    if (state.UsePropertyNames)
-                    {
-                        if (!writer.TryWrite(indexProperty.Value.Member.Name, false, out state.BytesNeeded))
-                        {
-                            state.Current.Enumerator = enumerator;
-                            state.Current.EnumeratorInProgress = true;
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        if (state.IndexSizeUInt16)
-                        {
-                            if (!writer.TryWrite(indexProperty.Key, out state.BytesNeeded))
-                            {
-                                state.Current.Enumerator = enumerator;
-                                state.Current.EnumeratorInProgress = true;
-                                return false;
-                            }
-                        }
-                        else
-                        {
-                            if (!writer.TryWrite((byte)indexProperty.Key, out state.BytesNeeded))
-                            {
-                                state.Current.Enumerator = enumerator;
-                                state.Current.EnumeratorInProgress = true;
-                                return false;
-                            }
-                        }
-                    }
-                }
-
                 state.PushFrame(false);
-                var write = indexProperty.Value.Converter.TryWriteFromParent(ref writer, ref state, value);
+
+                //Base will write the property name or index if the value is not null
+                if (state.UsePropertyNames)
+                    state.Current.IndexPropertyName = enumerator.Current.Value.Member.Name;
+                else
+                    state.Current.IndexProperty = enumerator.Current.Key;
+
+                var write = enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value);
                 if (!write)
                 {
                     state.Current.Enumerator = enumerator;
-                    state.Current.HasWrittenPropertyIndex = true;
                     state.Current.EnumeratorInProgress = true;
                     return false;
                 }
 
-                state.Current.HasWrittenPropertyIndex = false;
                 state.Current.EnumeratorInProgress = false;
             }
 

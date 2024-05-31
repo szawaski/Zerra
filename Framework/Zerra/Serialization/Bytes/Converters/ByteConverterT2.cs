@@ -19,11 +19,8 @@ namespace Zerra.Serialization
 
         private bool useEmptyImplementation;
 
-        public override void Setup(TypeDetail? typeDetail, string? memberKey, Delegate? getterDelegate, Delegate? setterDelegate)
+        public override void Setup(TypeDetail typeDetail, string? memberKey, Delegate? getterDelegate, Delegate? setterDelegate)
         {
-            if (typeDetail == null)
-                throw new ArgumentNullException(nameof(typeDetail));
-
             this.typeDetail = (TypeDetail<TValue>)typeDetail;
             this.memberKey = memberKey;
             if (getterDelegate != null)
@@ -74,6 +71,8 @@ namespace Zerra.Serialization
 
                     state.Current.StringLength = null;
                     typeFromBytes = Discovery.GetTypeFromName(typeName);
+
+                    state.Current.ReadType = typeFromBytes;
                 }
                 else
                 {
@@ -92,7 +91,6 @@ namespace Zerra.Serialization
 
                     if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
                     {
-                        state.Current.ReadType = typeFromBytes;
                         state.StashFrame();
                         returnValue = default;
                         return false;
@@ -150,6 +148,8 @@ namespace Zerra.Serialization
                         state.StashFrame();
                         return false;
                     }
+
+                    state.Current.WriteType = typeFromValue;
                 }
                 else
                 {
@@ -162,7 +162,6 @@ namespace Zerra.Serialization
                     var newConverter = ByteConverterFactory<TParent>.Get(typeFromValueDetail, memberKey, getter, setter);
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
                     {
-                        state.Current.WriteType = typeFromValue;
                         state.StashFrame();
                         return false;
                     }
@@ -229,6 +228,8 @@ namespace Zerra.Serialization
 
                     state.Current.StringLength = null;
                     typeFromBytes = Discovery.GetTypeFromName(typeName);
+
+                    state.Current.ReadType = typeFromBytes;
                 }
                 else
                 {
@@ -247,7 +248,6 @@ namespace Zerra.Serialization
 
                     if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
                     {
-                        state.Current.ReadType = typeFromBytes;
                         state.StashFrame();
                         returnValue = default;
                         return false;
@@ -305,6 +305,8 @@ namespace Zerra.Serialization
                         state.StashFrame();
                         return false;
                     }
+
+                    state.Current.WriteType = typeFromValue;
                 }
                 else
                 {
@@ -317,7 +319,6 @@ namespace Zerra.Serialization
                     var newConverter = ByteConverterFactory<TParent>.Get(typeFromValueDetail, memberKey, getter, setter);
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
                     {
-                        state.Current.WriteType = typeFromValue;
                         state.StashFrame();
                         return false;
                     }
@@ -384,6 +385,8 @@ namespace Zerra.Serialization
 
                     state.Current.StringLength = null;
                     typeFromBytes = Discovery.GetTypeFromName(typeName);
+
+                    state.Current.ReadType = typeFromBytes;
                 }
                 else
                 {
@@ -402,7 +405,6 @@ namespace Zerra.Serialization
 
                     if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
                     {
-                        state.Current.ReadType = typeFromBytes;
                         state.StashFrame();
                         return false;
                     }
@@ -457,6 +459,47 @@ namespace Zerra.Serialization
             }
             var value = getter(parent);
 
+            if (state.Current.IndexProperty > 0 || (state.UsePropertyNames && state.Current.IndexPropertyName is not null))
+            {
+                if (value is null)
+                {
+                    state.EndFrame();
+                    return true;
+                }
+                
+                if (!state.Current.HasWrittenPropertyIndex)
+                {
+                    if (state.UsePropertyNames)
+                    {
+                        if (!writer.TryWrite(state.Current.IndexPropertyName, false, out state.BytesNeeded))
+                        {
+                            state.StashFrame();
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        if (state.IndexSizeUInt16)
+                        {
+                            if (!writer.TryWrite(state.Current.IndexProperty, out state.BytesNeeded))
+                            {
+                                state.StashFrame();
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            if (!writer.TryWrite((byte)state.Current.IndexProperty, out state.BytesNeeded))
+                            {
+                                state.StashFrame();
+                                return false;
+                            }
+                        }
+                    }
+                    state.Current.HasWrittenPropertyIndex = true;
+                }
+            }
+
             if (state.IncludePropertyTypes)
             {
                 Type typeFromValue;
@@ -470,6 +513,8 @@ namespace Zerra.Serialization
                         state.StashFrame();
                         return false;
                     }
+
+                    state.Current.WriteType = typeFromValue;
                 }
                 else
                 {
@@ -482,7 +527,6 @@ namespace Zerra.Serialization
                     var newConverter = ByteConverterFactory<TParent>.Get(typeFromValueDetail, memberKey, getter, setter);
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
                     {
-                        state.Current.WriteType = typeFromValue;
                         state.StashFrame();
                         return false;
                     }

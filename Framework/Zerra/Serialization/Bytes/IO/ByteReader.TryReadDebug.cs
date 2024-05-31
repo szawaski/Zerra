@@ -13,6 +13,7 @@ namespace Zerra.Serialization
     public partial struct ByteReader
     {
         private static readonly bool Testing = true;
+
         private static bool Alternate = false;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

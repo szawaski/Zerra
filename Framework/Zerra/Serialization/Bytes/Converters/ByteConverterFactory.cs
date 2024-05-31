@@ -41,7 +41,7 @@ namespace Zerra.Serialization
                     if (cacheByteConverterTypeInfo == null)
                     {
                         var newConverter = new ByteConverterTypeRequired<TParent>();
-                        newConverter.Setup(null, null, null, null);
+                        newConverter.Setup(typeof(object).GetTypeDetail(), null, null, null);
                         cacheByteConverterTypeInfo = newConverter;
                     }
                 }

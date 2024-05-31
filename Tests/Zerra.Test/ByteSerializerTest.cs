@@ -134,7 +134,7 @@ namespace Zerra.Test
 
             var model1 = Factory.GetAllTypesModel();
             var bytes = ByteSerializer.Serialize(model1, options);
-            var model2 = ByteSerializer.Deserialize<AllTypesReversedModel>(bytes, options);
+            var model2 = ByteSerializerOld.Deserialize<AllTypesReversedModel>(bytes, options);
             Factory.AssertAreEqual(model1, model2);
         }
 
