@@ -96,7 +96,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ToStringJson(object? value, TypeDetail typeDetail, Graph? graph, ref CharWriter writer, ref OptionsStruct options)
         {
-            if (((typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable) || typeDetail.Type.FullName == "System.Object") && value != null)
+            if (((typeDetail.Type.IsInterface && !typeDetail.HasIEnumerable) || typeDetail.Type.FullName == "System.Object") && value != null)
             {
                 var objectType = value.GetType();
                 typeDetail = TypeAnalyzer.GetTypeDetail(objectType);
@@ -149,7 +149,7 @@ namespace Zerra.Serialization.Json
                 return;
             }
 
-            if (typeDetail.IsIEnumerableGeneric)
+            if (typeDetail.HasIEnumerableGeneric)
             {
                 var innerTypeDetails = typeDetail.IEnumerableGenericInnerTypeDetail;
                 if (typeDetail.Type.IsArray && innerTypeDetails.CoreType == CoreType.Byte)
@@ -296,7 +296,7 @@ namespace Zerra.Serialization.Json
                 return;
             }
 
-            if (typeDetail.IsIEnumerableGeneric)
+            if (typeDetail.HasIEnumerableGeneric)
             {
                 var first = true;
                 foreach (var value in values)

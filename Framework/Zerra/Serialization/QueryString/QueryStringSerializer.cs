@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using Zerra.IO;
 using Zerra.Reflection;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.QueryString
 {
     public static class QueryStringSerializer
     {
@@ -121,7 +121,7 @@ namespace Zerra.Serialization
                 foreach (var member in typeDetail.MemberDetails)
                 {
                     var value = member.GetterBoxed(model!);
-                    if (value == null)
+                    if (value is null)
                         continue;
 
                     if (writer.Length > 0)
@@ -237,19 +237,19 @@ namespace Zerra.Serialization
 
             object? parsed = coreType switch
             {
-                CoreType.Boolean => Boolean.Parse(value),
-                CoreType.Byte => Byte.Parse(value),
-                CoreType.SByte => SByte.Parse(value),
-                CoreType.UInt16 => UInt16.Parse(value),
-                CoreType.Int16 => Int16.Parse(value),
-                CoreType.UInt32 => UInt32.Parse(value),
-                CoreType.Int32 => Int32.Parse(value),
-                CoreType.UInt64 => UInt64.Parse(value),
-                CoreType.Int64 => Int64.Parse(value),
-                CoreType.Single => Single.Parse(value),
-                CoreType.Double => Double.Parse(value),
-                CoreType.Decimal => Decimal.Parse(value),
-                CoreType.Char => Char.Parse(value),
+                CoreType.Boolean => bool.Parse(value),
+                CoreType.Byte => byte.Parse(value),
+                CoreType.SByte => sbyte.Parse(value),
+                CoreType.UInt16 => ushort.Parse(value),
+                CoreType.Int16 => short.Parse(value),
+                CoreType.UInt32 => uint.Parse(value),
+                CoreType.Int32 => int.Parse(value),
+                CoreType.UInt64 => ulong.Parse(value),
+                CoreType.Int64 => long.Parse(value),
+                CoreType.Single => float.Parse(value),
+                CoreType.Double => double.Parse(value),
+                CoreType.Decimal => decimal.Parse(value),
+                CoreType.Char => char.Parse(value),
                 CoreType.DateTime => DateTime.Parse(value, null, DateTimeStyles.RoundtripKind),
                 CoreType.DateTimeOffset => DateTimeOffset.Parse(value, null, DateTimeStyles.RoundtripKind),
                 CoreType.TimeSpan => TimeSpan.Parse(value),
@@ -259,19 +259,19 @@ namespace Zerra.Serialization
 #endif
                 CoreType.Guid => Guid.Parse(value),
                 CoreType.String => value,
-                CoreType.BooleanNullable => value == null ? null : Boolean.Parse(value),
-                CoreType.ByteNullable => value == null ? null : Byte.Parse(value),
-                CoreType.SByteNullable => value == null ? null : SByte.Parse(value),
-                CoreType.UInt16Nullable => value == null ? null : UInt16.Parse(value),
-                CoreType.Int16Nullable => value == null ? null : Int16.Parse(value),
-                CoreType.UInt32Nullable => value == null ? null : UInt32.Parse(value),
-                CoreType.Int32Nullable => value == null ? null : Int32.Parse(value),
-                CoreType.UInt64Nullable => value == null ? null : UInt64.Parse(value),
-                CoreType.Int64Nullable => value == null ? null : Int64.Parse(value),
-                CoreType.SingleNullable => value == null ? null : Single.Parse(value),
-                CoreType.DoubleNullable => value == null ? null : Double.Parse(value),
-                CoreType.DecimalNullable => value == null ? null : Decimal.Parse(value),
-                CoreType.CharNullable => value == null ? null : Char.Parse(value),
+                CoreType.BooleanNullable => value == null ? null : bool.Parse(value),
+                CoreType.ByteNullable => value == null ? null : byte.Parse(value),
+                CoreType.SByteNullable => value == null ? null : sbyte.Parse(value),
+                CoreType.UInt16Nullable => value == null ? null : ushort.Parse(value),
+                CoreType.Int16Nullable => value == null ? null : short.Parse(value),
+                CoreType.UInt32Nullable => value == null ? null : uint.Parse(value),
+                CoreType.Int32Nullable => value == null ? null : int.Parse(value),
+                CoreType.UInt64Nullable => value == null ? null : ulong.Parse(value),
+                CoreType.Int64Nullable => value == null ? null : long.Parse(value),
+                CoreType.SingleNullable => value == null ? null : float.Parse(value),
+                CoreType.DoubleNullable => value == null ? null : double.Parse(value),
+                CoreType.DecimalNullable => value == null ? null : decimal.Parse(value),
+                CoreType.CharNullable => value == null ? null : char.Parse(value),
                 CoreType.DateTimeNullable => value == null ? null : DateTime.Parse(value, null, DateTimeStyles.RoundtripKind),
                 CoreType.DateTimeOffsetNullable => value == null ? null : DateTimeOffset.Parse(value, null, DateTimeStyles.RoundtripKind),
                 CoreType.TimeSpanNullable => value == null ? null : TimeSpan.Parse(value),

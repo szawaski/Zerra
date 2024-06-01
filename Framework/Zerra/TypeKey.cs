@@ -7,6 +7,7 @@ using Zerra.IO;
 
 namespace Zerra
 {
+    //This appeard to slow things down as a struct
     public class TypeKey
     {
         private readonly string? str;

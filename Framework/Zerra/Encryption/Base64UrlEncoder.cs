@@ -41,7 +41,7 @@ namespace Zerra.Encryption
 
         public static byte[] FromBase64String(string s)
         {
-            var chars = s.ToCharArray();
+            var chars = s.AsSpan();
             var filteredLength = (chars.Length % 4) switch
             {
                 0 => chars.Length,

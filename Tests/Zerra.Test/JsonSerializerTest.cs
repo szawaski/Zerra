@@ -4,6 +4,7 @@
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -26,7 +27,7 @@ namespace Zerra.Test
         [TestMethod]
         public void StringMatchesNewtonsoft()
         {
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
             var json1 = JsonSerializer.Serialize(baseModel);
             var json2 = Newtonsoft.Json.JsonConvert.SerializeObject(baseModel, 
                 new Newtonsoft.Json.Converters.StringEnumConverter(),
@@ -39,7 +40,7 @@ namespace Zerra.Test
                 new Newtonsoft.Json.Converters.StringEnumConverter(),
                 new NewtonsoftDateOnlyConverter(),
                 new NewtonsoftTimeOnlyConverter());
-            Factory.AssertAreEqual(model1, model2);
+            AssertHelper.AreEqual(model1, model2);
         }
 
         [TestMethod]
@@ -48,7 +49,7 @@ namespace Zerra.Test
             var options = new System.Text.Json.JsonSerializerOptions();
             options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
             var json1 = JsonSerializer.Serialize(baseModel);
             var json2 = System.Text.Json.JsonSerializer.Serialize(baseModel, options);
 
@@ -57,16 +58,16 @@ namespace Zerra.Test
             //swap serializers
             var model1 = JsonSerializer.Deserialize<AllTypesModel>(json2);
             var model2 = System.Text.Json.JsonSerializer.Deserialize<AllTypesModel>(json1, options);
-            Factory.AssertAreEqual(model1, model2);
+            AssertHelper.AreEqual(model1, model2);
         }
 
         [TestMethod]
         public void StringTypes()
         {
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
             var json = JsonSerializer.Serialize(baseModel);
             var model = JsonSerializer.Deserialize<AllTypesModel>(json);
-            Factory.AssertAreEqual(baseModel, model);
+            AssertHelper.AreEqual(baseModel, model);
         }
 
         [TestMethod]
@@ -77,40 +78,40 @@ namespace Zerra.Test
                 EnumAsNumber = true
             };
 
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
             var json = JsonSerializer.Serialize(baseModel, options);
             Assert.IsFalse(json.Contains(EnumModel.EnumItem0.EnumName()));
             Assert.IsFalse(json.Contains(EnumModel.EnumItem1.EnumName()));
             Assert.IsFalse(json.Contains(EnumModel.EnumItem2.EnumName()));
             Assert.IsFalse(json.Contains(EnumModel.EnumItem3.EnumName()));
             var model = JsonSerializer.Deserialize<AllTypesModel>(json, options);
-            Factory.AssertAreEqual(baseModel, model);
+            AssertHelper.AreEqual(baseModel, model);
         }
 
         [TestMethod]
         public void StringConvertNullables()
         {
-            var baseModel = Factory.GetBasicTypesNotNullableModel();
+            var baseModel = BasicTypesNotNullable.Create();
             var json1 = JsonSerializer.Serialize(baseModel);
             var model1 = JsonSerializer.Deserialize<BasicTypesNullable>(json1);
-            Factory.AssertAreEqual(baseModel, model1);
+            BasicTypesNotNullable.AssertAreEqual(baseModel, model1);
 
             var json2 = JsonSerializer.Serialize(model1);
             var model2 = JsonSerializer.Deserialize<BasicTypesNotNullable>(json2);
-            Factory.AssertAreEqual(baseModel, model2);
+            BasicTypesNotNullable.AssertAreEqual(baseModel, model2);
         }
 
         [TestMethod]
         public void StringConvertTypes()
         {
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
             var json1 = JsonSerializer.Serialize(baseModel);
             var model1 = JsonSerializer.Deserialize<AllTypesAsStringsModel>(json1);
-            Factory.AssertAreEqual(baseModel, model1);
+            AllTypesModel.AreEqual(baseModel, model1);
 
             var json2 = JsonSerializer.Serialize(model1);
             var model2 = JsonSerializer.Deserialize<AllTypesModel>(json2);
-            Factory.AssertAreEqual(baseModel, model2);
+            AssertHelper.AreEqual(baseModel, model2);
         }
 
         [TestMethod]
@@ -277,7 +278,7 @@ namespace Zerra.Test
         [TestMethod]
         public void StringPretty()
         {
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
             var json = JsonSerializer.Serialize(baseModel);
             string jsonPretty;
             using (var stringReader = new StringReader(json))
@@ -289,7 +290,7 @@ namespace Zerra.Test
                 jsonPretty = stringWriter.ToString();
             }
             var model = JsonSerializer.Deserialize<AllTypesModel>(jsonPretty);
-            Factory.AssertAreEqual(baseModel, model);
+            AssertHelper.AreEqual(baseModel, model);
         }
 
         [TestMethod]
@@ -300,10 +301,10 @@ namespace Zerra.Test
                 Nameless = true
             };
 
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
             var json = JsonSerializer.Serialize(baseModel, options);
             var model = JsonSerializer.Deserialize<AllTypesModel>(json, options);
-            Factory.AssertAreEqual(baseModel, model);
+            AssertHelper.AreEqual(baseModel, model);
         }
 
         [TestMethod]
@@ -314,10 +315,10 @@ namespace Zerra.Test
                 DoNotWriteNullProperties = true
             };
 
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
             var json = JsonSerializer.Serialize(baseModel, options);
             var model = JsonSerializer.Deserialize<AllTypesModel>(json, options);
-            Factory.AssertAreEqual(baseModel, model);
+            AssertHelper.AreEqual(baseModel, model);
         }
 
         [TestMethod]
@@ -393,7 +394,7 @@ namespace Zerra.Test
         [TestMethod]
         public void StringJsonObject()
         {
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
             var json = JsonSerializer.Serialize(baseModel);
             var jsonObject = JsonSerializer.DeserializeJsonObject(json);
 
@@ -615,154 +616,731 @@ namespace Zerra.Test
             model1.EnumArray = ((string[])jsonObject[nameof(AllTypesModel.EnumArray)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray();
             model1.EnumArrayNullable = ((string[])jsonObject[nameof(AllTypesModel.EnumArrayNullable)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray();
 
-            model1.BooleanList = ((bool[])jsonObject[nameof(AllTypesModel.BooleanList)]).ToList();
-            model1.ByteList = ((byte[])jsonObject[nameof(AllTypesModel.ByteList)]).ToList();
-            model1.SByteList = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteList)]).ToList();
-            model1.Int16List = ((short[])jsonObject[nameof(AllTypesModel.Int16List)]).ToList();
-            model1.UInt16List = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16List)]).ToList();
-            model1.Int32List = ((int[])jsonObject[nameof(AllTypesModel.Int32List)]).ToList();
-            model1.UInt32List = ((uint[])jsonObject[nameof(AllTypesModel.UInt32List)]).ToList();
-            model1.Int64List = ((long[])jsonObject[nameof(AllTypesModel.Int64List)]).ToList();
-            model1.UInt64List = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64List)]).ToList();
-            model1.SingleList = ((float[])jsonObject[nameof(AllTypesModel.SingleList)]).ToList();
-            model1.DoubleList = ((double[])jsonObject[nameof(AllTypesModel.DoubleList)]).ToList();
-            model1.DecimalList = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalList)]).ToList();
-            model1.CharList = ((char[])jsonObject[nameof(AllTypesModel.CharList)]).ToList();
-            model1.DateTimeList = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeList)]).ToList();
-            model1.DateTimeOffsetList = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetList)]).ToList();
-            model1.TimeSpanList = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanList)]).ToList();
+            model1.BooleanListT = ((bool[])jsonObject[nameof(AllTypesModel.BooleanListT)]).ToList();
+            model1.ByteListT = ((byte[])jsonObject[nameof(AllTypesModel.ByteListT)]).ToList();
+            model1.SByteListT = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteListT)]).ToList();
+            model1.Int16ListT = ((short[])jsonObject[nameof(AllTypesModel.Int16ListT)]).ToList();
+            model1.UInt16ListT = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16ListT)]).ToList();
+            model1.Int32ListT = ((int[])jsonObject[nameof(AllTypesModel.Int32ListT)]).ToList();
+            model1.UInt32ListT = ((uint[])jsonObject[nameof(AllTypesModel.UInt32ListT)]).ToList();
+            model1.Int64ListT = ((long[])jsonObject[nameof(AllTypesModel.Int64ListT)]).ToList();
+            model1.UInt64ListT = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64ListT)]).ToList();
+            model1.SingleListT = ((float[])jsonObject[nameof(AllTypesModel.SingleListT)]).ToList();
+            model1.DoubleListT = ((double[])jsonObject[nameof(AllTypesModel.DoubleListT)]).ToList();
+            model1.DecimalListT = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalListT)]).ToList();
+            model1.CharListT = ((char[])jsonObject[nameof(AllTypesModel.CharListT)]).ToList();
+            model1.DateTimeListT = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeListT)]).ToList();
+            model1.DateTimeOffsetListT = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListT)]).ToList();
+            model1.TimeSpanListT = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanListT)]).ToList();
 #if NET6_0_OR_GREATER
-            model1.DateOnlyList = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyList)]).ToList();
-            model1.TimeOnlyList = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyList)]).ToList();
+            model1.DateOnlyListT = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyListT)]).ToList();
+            model1.TimeOnlyListT = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyListT)]).ToList();
 #endif
-            model1.GuidList = ((Guid[])jsonObject[nameof(AllTypesModel.GuidList)]).ToList();
+            model1.GuidListT = ((Guid[])jsonObject[nameof(AllTypesModel.GuidListT)]).ToList();
 
-            model1.BooleanListEmpty = ((bool[])jsonObject[nameof(AllTypesModel.BooleanListEmpty)]).ToList();
-            model1.ByteListEmpty = ((byte[])jsonObject[nameof(AllTypesModel.ByteListEmpty)]).ToList();
-            model1.SByteListEmpty = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteListEmpty)]).ToList();
-            model1.Int16ListEmpty = ((short[])jsonObject[nameof(AllTypesModel.Int16ListEmpty)]).ToList();
-            model1.UInt16ListEmpty = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16ListEmpty)]).ToList();
-            model1.Int32ListEmpty = ((int[])jsonObject[nameof(AllTypesModel.Int32ListEmpty)]).ToList();
-            model1.UInt32ListEmpty = ((uint[])jsonObject[nameof(AllTypesModel.UInt32ListEmpty)]).ToList();
-            model1.Int64ListEmpty = ((long[])jsonObject[nameof(AllTypesModel.Int64ListEmpty)]).ToList();
-            model1.UInt64ListEmpty = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64ListEmpty)]).ToList();
-            model1.SingleListEmpty = ((float[])jsonObject[nameof(AllTypesModel.SingleListEmpty)]).ToList();
-            model1.DoubleListEmpty = ((double[])jsonObject[nameof(AllTypesModel.DoubleListEmpty)]).ToList();
-            model1.DecimalListEmpty = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalListEmpty)]).ToList();
-            model1.CharListEmpty = ((char[])jsonObject[nameof(AllTypesModel.CharListEmpty)]).ToList();
-            model1.DateTimeListEmpty = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeListEmpty)]).ToList();
-            model1.DateTimeOffsetListEmpty = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListEmpty)]).ToList();
-            model1.TimeSpanListEmpty = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanListEmpty)]).ToList();
+            model1.BooleanListTEmpty = ((bool[])jsonObject[nameof(AllTypesModel.BooleanListTEmpty)]).ToList();
+            model1.ByteListTEmpty = ((byte[])jsonObject[nameof(AllTypesModel.ByteListTEmpty)]).ToList();
+            model1.SByteListTEmpty = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteListTEmpty)]).ToList();
+            model1.Int16ListTEmpty = ((short[])jsonObject[nameof(AllTypesModel.Int16ListTEmpty)]).ToList();
+            model1.UInt16ListTEmpty = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16ListTEmpty)]).ToList();
+            model1.Int32ListTEmpty = ((int[])jsonObject[nameof(AllTypesModel.Int32ListTEmpty)]).ToList();
+            model1.UInt32ListTEmpty = ((uint[])jsonObject[nameof(AllTypesModel.UInt32ListTEmpty)]).ToList();
+            model1.Int64ListTEmpty = ((long[])jsonObject[nameof(AllTypesModel.Int64ListTEmpty)]).ToList();
+            model1.UInt64ListTEmpty = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64ListTEmpty)]).ToList();
+            model1.SingleListTEmpty = ((float[])jsonObject[nameof(AllTypesModel.SingleListTEmpty)]).ToList();
+            model1.DoubleListTEmpty = ((double[])jsonObject[nameof(AllTypesModel.DoubleListTEmpty)]).ToList();
+            model1.DecimalListTEmpty = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalListTEmpty)]).ToList();
+            model1.CharListTEmpty = ((char[])jsonObject[nameof(AllTypesModel.CharListTEmpty)]).ToList();
+            model1.DateTimeListTEmpty = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeListTEmpty)]).ToList();
+            model1.DateTimeOffsetListTEmpty = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListTEmpty)]).ToList();
+            model1.TimeSpanListTEmpty = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanListTEmpty)]).ToList();
 #if NET6_0_OR_GREATER
-            model1.DateOnlyListEmpty = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyListEmpty)]).ToList();
-            model1.TimeOnlyListEmpty = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyListEmpty)]).ToList();
+            model1.DateOnlyListTEmpty = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyListTEmpty)]).ToList();
+            model1.TimeOnlyListTEmpty = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyListTEmpty)]).ToList();
 #endif
-            model1.GuidListEmpty = ((Guid[])jsonObject[nameof(AllTypesModel.GuidListEmpty)]).ToList();
+            model1.GuidListTEmpty = ((Guid[])jsonObject[nameof(AllTypesModel.GuidListTEmpty)]).ToList();
 
-            model1.BooleanListNull = ((bool[])jsonObject[nameof(AllTypesModel.BooleanListNull)])?.ToList();
-            model1.ByteListNull = ((byte[])jsonObject[nameof(AllTypesModel.ByteListNull)])?.ToList();
-            model1.SByteListNull = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteListNull)])?.ToList();
-            model1.Int16ListNull = ((short[])jsonObject[nameof(AllTypesModel.Int16ListNull)])?.ToList();
-            model1.UInt16ListNull = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16ListNull)])?.ToList();
-            model1.Int32ListNull = ((int[])jsonObject[nameof(AllTypesModel.Int32ListNull)])?.ToList();
-            model1.UInt32ListNull = ((uint[])jsonObject[nameof(AllTypesModel.UInt32ListNull)])?.ToList();
-            model1.Int64ListNull = ((long[])jsonObject[nameof(AllTypesModel.Int64ListNull)])?.ToList();
-            model1.UInt64ListNull = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64ListNull)])?.ToList();
-            model1.SingleListNull = ((float[])jsonObject[nameof(AllTypesModel.SingleListNull)])?.ToList();
-            model1.DoubleListNull = ((double[])jsonObject[nameof(AllTypesModel.DoubleListNull)])?.ToList();
-            model1.DecimalListNull = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalListNull)])?.ToList();
-            model1.CharListNull = ((char[])jsonObject[nameof(AllTypesModel.CharListNull)])?.ToList();
-            model1.DateTimeListNull = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeListNull)])?.ToList();
-            model1.DateTimeOffsetListNull = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListNull)])?.ToList();
-            model1.TimeSpanListNull = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanListNull)])?.ToList();
+            model1.BooleanListTNull = ((bool[])jsonObject[nameof(AllTypesModel.BooleanListTNull)])?.ToList();
+            model1.ByteListTNull = ((byte[])jsonObject[nameof(AllTypesModel.ByteListTNull)])?.ToList();
+            model1.SByteListTNull = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteListTNull)])?.ToList();
+            model1.Int16ListTNull = ((short[])jsonObject[nameof(AllTypesModel.Int16ListTNull)])?.ToList();
+            model1.UInt16ListTNull = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16ListTNull)])?.ToList();
+            model1.Int32ListTNull = ((int[])jsonObject[nameof(AllTypesModel.Int32ListTNull)])?.ToList();
+            model1.UInt32ListTNull = ((uint[])jsonObject[nameof(AllTypesModel.UInt32ListTNull)])?.ToList();
+            model1.Int64ListTNull = ((long[])jsonObject[nameof(AllTypesModel.Int64ListTNull)])?.ToList();
+            model1.UInt64ListTNull = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64ListTNull)])?.ToList();
+            model1.SingleListTNull = ((float[])jsonObject[nameof(AllTypesModel.SingleListTNull)])?.ToList();
+            model1.DoubleListTNull = ((double[])jsonObject[nameof(AllTypesModel.DoubleListTNull)])?.ToList();
+            model1.DecimalListTNull = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalListTNull)])?.ToList();
+            model1.CharListTNull = ((char[])jsonObject[nameof(AllTypesModel.CharListTNull)])?.ToList();
+            model1.DateTimeListTNull = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeListTNull)])?.ToList();
+            model1.DateTimeOffsetListTNull = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListTNull)])?.ToList();
+            model1.TimeSpanListTNull = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanListTNull)])?.ToList();
 #if NET6_0_OR_GREATER
-            model1.DateOnlyListNull = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyListNull)])?.ToList();
-            model1.TimeOnlyListNull = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyListNull)])?.ToList();
+            model1.DateOnlyListTNull = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyListTNull)])?.ToList();
+            model1.TimeOnlyListTNull = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyListTNull)])?.ToList();
 #endif
-            model1.GuidListNull = ((Guid[])jsonObject[nameof(AllTypesModel.GuidListNull)])?.ToList();
+            model1.GuidListTNull = ((Guid[])jsonObject[nameof(AllTypesModel.GuidListTNull)])?.ToList();
 
-            model1.BooleanListNullable = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanListNullable)]).ToList();
-            model1.ByteListNullable = ((byte?[])jsonObject[nameof(AllTypesModel.ByteListNullable)]).ToList();
-            model1.SByteListNullable = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteListNullable)]).ToList();
-            model1.Int16ListNullable = ((short?[])jsonObject[nameof(AllTypesModel.Int16ListNullable)]).ToList();
-            model1.UInt16ListNullable = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16ListNullable)]).ToList();
-            model1.Int32ListNullable = ((int?[])jsonObject[nameof(AllTypesModel.Int32ListNullable)]).ToList();
-            model1.UInt32ListNullable = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32ListNullable)]).ToList();
-            model1.Int64ListNullable = ((long?[])jsonObject[nameof(AllTypesModel.Int64ListNullable)]).ToList();
-            model1.UInt64ListNullable = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64ListNullable)]).ToList();
-            model1.SingleListNullable = ((float?[])jsonObject[nameof(AllTypesModel.SingleListNullable)]).ToList();
-            model1.DoubleListNullable = ((double?[])jsonObject[nameof(AllTypesModel.DoubleListNullable)]).ToList();
-            model1.DecimalListNullable = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalListNullable)]).ToList();
-            model1.CharListNullable = ((char?[])jsonObject[nameof(AllTypesModel.CharListNullable)]).ToList();
-            model1.DateTimeListNullable = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeListNullable)]).ToList();
-            model1.DateTimeOffsetListNullable = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListNullable)]).ToList();
-            model1.TimeSpanListNullable = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanListNullable)]).ToList();
+            model1.BooleanListTNullable = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanListTNullable)]).ToList();
+            model1.ByteListTNullable = ((byte?[])jsonObject[nameof(AllTypesModel.ByteListTNullable)]).ToList();
+            model1.SByteListTNullable = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteListTNullable)]).ToList();
+            model1.Int16ListTNullable = ((short?[])jsonObject[nameof(AllTypesModel.Int16ListTNullable)]).ToList();
+            model1.UInt16ListTNullable = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16ListTNullable)]).ToList();
+            model1.Int32ListTNullable = ((int?[])jsonObject[nameof(AllTypesModel.Int32ListTNullable)]).ToList();
+            model1.UInt32ListTNullable = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32ListTNullable)]).ToList();
+            model1.Int64ListTNullable = ((long?[])jsonObject[nameof(AllTypesModel.Int64ListTNullable)]).ToList();
+            model1.UInt64ListTNullable = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64ListTNullable)]).ToList();
+            model1.SingleListTNullable = ((float?[])jsonObject[nameof(AllTypesModel.SingleListTNullable)]).ToList();
+            model1.DoubleListTNullable = ((double?[])jsonObject[nameof(AllTypesModel.DoubleListTNullable)]).ToList();
+            model1.DecimalListTNullable = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalListTNullable)]).ToList();
+            model1.CharListTNullable = ((char?[])jsonObject[nameof(AllTypesModel.CharListTNullable)]).ToList();
+            model1.DateTimeListTNullable = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeListTNullable)]).ToList();
+            model1.DateTimeOffsetListTNullable = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListTNullable)]).ToList();
+            model1.TimeSpanListTNullable = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanListTNullable)]).ToList();
 #if NET6_0_OR_GREATER
-            model1.DateOnlyListNullable = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyListNullable)]).ToList();
-            model1.TimeOnlyListNullable = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyListNullable)]).ToList();
+            model1.DateOnlyListTNullable = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyListTNullable)]).ToList();
+            model1.TimeOnlyListTNullable = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyListTNullable)]).ToList();
 #endif
-            model1.GuidListNullable = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidListNullable)]).ToList();
+            model1.GuidListTNullable = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidListTNullable)]).ToList();
 
-            model1.BooleanListNullableEmpty = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanListNullableEmpty)]).ToList();
-            model1.ByteListNullableEmpty = ((byte?[])jsonObject[nameof(AllTypesModel.ByteListNullableEmpty)]).ToList();
-            model1.SByteListNullableEmpty = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteListNullableEmpty)]).ToList();
-            model1.Int16ListNullableEmpty = ((short?[])jsonObject[nameof(AllTypesModel.Int16ListNullableEmpty)]).ToList();
-            model1.UInt16ListNullableEmpty = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16ListNullableEmpty)]).ToList();
-            model1.Int32ListNullableEmpty = ((int?[])jsonObject[nameof(AllTypesModel.Int32ListNullableEmpty)]).ToList();
-            model1.UInt32ListNullableEmpty = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32ListNullableEmpty)]).ToList();
-            model1.Int64ListNullableEmpty = ((long?[])jsonObject[nameof(AllTypesModel.Int64ListNullableEmpty)]).ToList();
-            model1.UInt64ListNullableEmpty = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64ListNullableEmpty)]).ToList();
-            model1.SingleListNullableEmpty = ((float?[])jsonObject[nameof(AllTypesModel.SingleListNullableEmpty)]).ToList();
-            model1.DoubleListNullableEmpty = ((double?[])jsonObject[nameof(AllTypesModel.DoubleListNullableEmpty)]).ToList();
-            model1.DecimalListNullableEmpty = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalListNullableEmpty)]).ToList();
-            model1.CharListNullableEmpty = ((char?[])jsonObject[nameof(AllTypesModel.CharListNullableEmpty)]).ToList();
-            model1.DateTimeListNullableEmpty = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeListNullableEmpty)]).ToList();
-            model1.DateTimeOffsetListNullableEmpty = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListNullableEmpty)]).ToList();
-            model1.TimeSpanListNullableEmpty = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanListNullableEmpty)]).ToList();
+            model1.BooleanListTNullableEmpty = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanListTNullableEmpty)]).ToList();
+            model1.ByteListTNullableEmpty = ((byte?[])jsonObject[nameof(AllTypesModel.ByteListTNullableEmpty)]).ToList();
+            model1.SByteListTNullableEmpty = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteListTNullableEmpty)]).ToList();
+            model1.Int16ListTNullableEmpty = ((short?[])jsonObject[nameof(AllTypesModel.Int16ListTNullableEmpty)]).ToList();
+            model1.UInt16ListTNullableEmpty = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16ListTNullableEmpty)]).ToList();
+            model1.Int32ListTNullableEmpty = ((int?[])jsonObject[nameof(AllTypesModel.Int32ListTNullableEmpty)]).ToList();
+            model1.UInt32ListTNullableEmpty = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32ListTNullableEmpty)]).ToList();
+            model1.Int64ListTNullableEmpty = ((long?[])jsonObject[nameof(AllTypesModel.Int64ListTNullableEmpty)]).ToList();
+            model1.UInt64ListTNullableEmpty = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64ListTNullableEmpty)]).ToList();
+            model1.SingleListTNullableEmpty = ((float?[])jsonObject[nameof(AllTypesModel.SingleListTNullableEmpty)]).ToList();
+            model1.DoubleListTNullableEmpty = ((double?[])jsonObject[nameof(AllTypesModel.DoubleListTNullableEmpty)]).ToList();
+            model1.DecimalListTNullableEmpty = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalListTNullableEmpty)]).ToList();
+            model1.CharListTNullableEmpty = ((char?[])jsonObject[nameof(AllTypesModel.CharListTNullableEmpty)]).ToList();
+            model1.DateTimeListTNullableEmpty = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeListTNullableEmpty)]).ToList();
+            model1.DateTimeOffsetListTNullableEmpty = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListTNullableEmpty)]).ToList();
+            model1.TimeSpanListTNullableEmpty = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanListTNullableEmpty)]).ToList();
 #if NET6_0_OR_GREATER
-            model1.DateOnlyListNullableEmpty = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyListNullableEmpty)]).ToList();
-            model1.TimeOnlyListNullableEmpty = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyListNullableEmpty)]).ToList();
+            model1.DateOnlyListTNullableEmpty = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyListTNullableEmpty)]).ToList();
+            model1.TimeOnlyListTNullableEmpty = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyListTNullableEmpty)]).ToList();
 #endif
-            model1.GuidListNullableEmpty = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidListNullableEmpty)]).ToList();
+            model1.GuidListTNullableEmpty = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidListTNullableEmpty)]).ToList();
 
-            model1.BooleanListNullableNull = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanListNullableNull)])?.ToList();
-            model1.ByteListNullableNull = ((byte?[])jsonObject[nameof(AllTypesModel.ByteListNullableNull)])?.ToList();
-            model1.SByteListNullableNull = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteListNullableNull)])?.ToList();
-            model1.Int16ListNullableNull = ((short?[])jsonObject[nameof(AllTypesModel.Int16ListNullableNull)])?.ToList();
-            model1.UInt16ListNullableNull = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16ListNullableNull)])?.ToList();
-            model1.Int32ListNullableNull = ((int?[])jsonObject[nameof(AllTypesModel.Int32ListNullableNull)])?.ToList();
-            model1.UInt32ListNullableNull = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32ListNullableNull)])?.ToList();
-            model1.Int64ListNullableNull = ((long?[])jsonObject[nameof(AllTypesModel.Int64ListNullableNull)])?.ToList();
-            model1.UInt64ListNullableNull = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64ListNullableNull)])?.ToList();
-            model1.SingleListNullableNull = ((float?[])jsonObject[nameof(AllTypesModel.SingleListNullableNull)])?.ToList();
-            model1.DoubleListNullableNull = ((double?[])jsonObject[nameof(AllTypesModel.DoubleListNullableNull)])?.ToList();
-            model1.DecimalListNullableNull = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalListNullableNull)])?.ToList();
-            model1.CharListNullableNull = ((char?[])jsonObject[nameof(AllTypesModel.CharListNullableNull)])?.ToList();
-            model1.DateTimeListNullableNull = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeListNullableNull)])?.ToList();
-            model1.DateTimeOffsetListNullableNull = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListNullableNull)])?.ToList();
-            model1.TimeSpanListNullableNull = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanListNullableNull)])?.ToList();
+            model1.BooleanListTNullableNull = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanListTNullableNull)])?.ToList();
+            model1.ByteListTNullableNull = ((byte?[])jsonObject[nameof(AllTypesModel.ByteListTNullableNull)])?.ToList();
+            model1.SByteListTNullableNull = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteListTNullableNull)])?.ToList();
+            model1.Int16ListTNullableNull = ((short?[])jsonObject[nameof(AllTypesModel.Int16ListTNullableNull)])?.ToList();
+            model1.UInt16ListTNullableNull = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16ListTNullableNull)])?.ToList();
+            model1.Int32ListTNullableNull = ((int?[])jsonObject[nameof(AllTypesModel.Int32ListTNullableNull)])?.ToList();
+            model1.UInt32ListTNullableNull = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32ListTNullableNull)])?.ToList();
+            model1.Int64ListTNullableNull = ((long?[])jsonObject[nameof(AllTypesModel.Int64ListTNullableNull)])?.ToList();
+            model1.UInt64ListTNullableNull = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64ListTNullableNull)])?.ToList();
+            model1.SingleListTNullableNull = ((float?[])jsonObject[nameof(AllTypesModel.SingleListTNullableNull)])?.ToList();
+            model1.DoubleListTNullableNull = ((double?[])jsonObject[nameof(AllTypesModel.DoubleListTNullableNull)])?.ToList();
+            model1.DecimalListTNullableNull = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalListTNullableNull)])?.ToList();
+            model1.CharListTNullableNull = ((char?[])jsonObject[nameof(AllTypesModel.CharListTNullableNull)])?.ToList();
+            model1.DateTimeListTNullableNull = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeListTNullableNull)])?.ToList();
+            model1.DateTimeOffsetListTNullableNull = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListTNullableNull)])?.ToList();
+            model1.TimeSpanListTNullableNull = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanListTNullableNull)])?.ToList();
 #if NET6_0_OR_GREATER
-            model1.DateOnlyListNullableNull = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyListNullableNull)])?.ToList();
-            model1.TimeOnlyListNullableNull = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyListNullableNull)])?.ToList();
+            model1.DateOnlyListTNullableNull = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyListTNullableNull)])?.ToList();
+            model1.TimeOnlyListTNullableNull = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyListTNullableNull)])?.ToList();
 #endif
-            model1.GuidListNullableNull = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidListNullableNull)])?.ToList();
+            model1.GuidListTNullableNull = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidListTNullableNull)])?.ToList();
 
-            model1.StringList = ((string[])jsonObject[nameof(AllTypesModel.StringList)]).ToList();
-            model1.StringListEmpty = ((string[])jsonObject[nameof(AllTypesModel.StringListEmpty)]).ToList();
-            model1.StringListNull = ((string[])jsonObject[nameof(AllTypesModel.StringListNull)])?.ToList();
+            model1.StringListT = ((string[])jsonObject[nameof(AllTypesModel.StringListT)]).ToList();
+            model1.StringListTEmpty = ((string[])jsonObject[nameof(AllTypesModel.StringListTEmpty)]).ToList();
+            model1.StringListTNull = ((string[])jsonObject[nameof(AllTypesModel.StringListTNull)])?.ToList();
 
-            model1.EnumList = (((string[])jsonObject[nameof(AllTypesModel.EnumList)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList()).ToList();
-            model1.EnumListEmpty = (((string[])jsonObject[nameof(AllTypesModel.EnumListEmpty)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList()).ToList();
-            model1.EnumListNull = (((string[])jsonObject[nameof(AllTypesModel.EnumListNull)])?.Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList())?.ToList();
+            model1.EnumListT = (((string[])jsonObject[nameof(AllTypesModel.EnumListT)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList()).ToList();
+            model1.EnumListTEmpty = (((string[])jsonObject[nameof(AllTypesModel.EnumListTEmpty)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList()).ToList();
+            model1.EnumListTNull = (((string[])jsonObject[nameof(AllTypesModel.EnumListTNull)])?.Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList())?.ToList();
 
-            model1.EnumListNullable = (((string[])jsonObject[nameof(AllTypesModel.EnumListNullable)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray()).ToList();
-            model1.EnumListNullableEmpty = (((string[])jsonObject[nameof(AllTypesModel.EnumListNullableEmpty)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray()).ToList();
-            model1.EnumListNullableNull = (((string[])jsonObject[nameof(AllTypesModel.EnumListNullableNull)])?.Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray())?.ToList();
+            model1.EnumListTNullable = (((string[])jsonObject[nameof(AllTypesModel.EnumListTNullable)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray()).ToList();
+            model1.EnumListTNullableEmpty = (((string[])jsonObject[nameof(AllTypesModel.EnumListTNullableEmpty)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray()).ToList();
+            model1.EnumListTNullableNull = (((string[])jsonObject[nameof(AllTypesModel.EnumListTNullableNull)])?.Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray())?.ToList();
+
+            model1.BooleanIListT = ((bool[])jsonObject[nameof(AllTypesModel.BooleanIListT)]).ToList();
+            model1.ByteIListT = ((byte[])jsonObject[nameof(AllTypesModel.ByteIListT)]).ToList();
+            model1.SByteIListT = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteIListT)]).ToList();
+            model1.Int16IListT = ((short[])jsonObject[nameof(AllTypesModel.Int16IListT)]).ToList();
+            model1.UInt16IListT = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16IListT)]).ToList();
+            model1.Int32IListT = ((int[])jsonObject[nameof(AllTypesModel.Int32IListT)]).ToList();
+            model1.UInt32IListT = ((uint[])jsonObject[nameof(AllTypesModel.UInt32IListT)]).ToList();
+            model1.Int64IListT = ((long[])jsonObject[nameof(AllTypesModel.Int64IListT)]).ToList();
+            model1.UInt64IListT = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64IListT)]).ToList();
+            model1.SingleIListT = ((float[])jsonObject[nameof(AllTypesModel.SingleIListT)]).ToList();
+            model1.DoubleIListT = ((double[])jsonObject[nameof(AllTypesModel.DoubleIListT)]).ToList();
+            model1.DecimalIListT = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalIListT)]).ToList();
+            model1.CharIListT = ((char[])jsonObject[nameof(AllTypesModel.CharIListT)]).ToList();
+            model1.DateTimeIListT = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeIListT)]).ToList();
+            model1.DateTimeOffsetIListT = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIListT)]).ToList();
+            model1.TimeSpanIListT = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanIListT)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIListT = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyIListT)]).ToList();
+            model1.TimeOnlyIListT = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyIListT)]).ToList();
+#endif
+            model1.GuidIListT = ((Guid[])jsonObject[nameof(AllTypesModel.GuidIListT)]).ToList();
+
+            model1.BooleanIListTEmpty = ((bool[])jsonObject[nameof(AllTypesModel.BooleanIListTEmpty)]).ToList();
+            model1.ByteIListTEmpty = ((byte[])jsonObject[nameof(AllTypesModel.ByteIListTEmpty)]).ToList();
+            model1.SByteIListTEmpty = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteIListTEmpty)]).ToList();
+            model1.Int16IListTEmpty = ((short[])jsonObject[nameof(AllTypesModel.Int16IListTEmpty)]).ToList();
+            model1.UInt16IListTEmpty = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16IListTEmpty)]).ToList();
+            model1.Int32IListTEmpty = ((int[])jsonObject[nameof(AllTypesModel.Int32IListTEmpty)]).ToList();
+            model1.UInt32IListTEmpty = ((uint[])jsonObject[nameof(AllTypesModel.UInt32IListTEmpty)]).ToList();
+            model1.Int64IListTEmpty = ((long[])jsonObject[nameof(AllTypesModel.Int64IListTEmpty)]).ToList();
+            model1.UInt64IListTEmpty = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64IListTEmpty)]).ToList();
+            model1.SingleIListTEmpty = ((float[])jsonObject[nameof(AllTypesModel.SingleIListTEmpty)]).ToList();
+            model1.DoubleIListTEmpty = ((double[])jsonObject[nameof(AllTypesModel.DoubleIListTEmpty)]).ToList();
+            model1.DecimalIListTEmpty = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalIListTEmpty)]).ToList();
+            model1.CharIListTEmpty = ((char[])jsonObject[nameof(AllTypesModel.CharIListTEmpty)]).ToList();
+            model1.DateTimeIListTEmpty = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeIListTEmpty)]).ToList();
+            model1.DateTimeOffsetIListTEmpty = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIListTEmpty)]).ToList();
+            model1.TimeSpanIListTEmpty = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanIListTEmpty)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIListTEmpty = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyIListTEmpty)]).ToList();
+            model1.TimeOnlyIListTEmpty = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyIListTEmpty)]).ToList();
+#endif
+            model1.GuidIListTEmpty = ((Guid[])jsonObject[nameof(AllTypesModel.GuidIListTEmpty)]).ToList();
+
+            model1.BooleanIListTNull = ((bool[])jsonObject[nameof(AllTypesModel.BooleanIListTNull)])?.ToList();
+            model1.ByteIListTNull = ((byte[])jsonObject[nameof(AllTypesModel.ByteIListTNull)])?.ToList();
+            model1.SByteIListTNull = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteIListTNull)])?.ToList();
+            model1.Int16IListTNull = ((short[])jsonObject[nameof(AllTypesModel.Int16IListTNull)])?.ToList();
+            model1.UInt16IListTNull = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16IListTNull)])?.ToList();
+            model1.Int32IListTNull = ((int[])jsonObject[nameof(AllTypesModel.Int32IListTNull)])?.ToList();
+            model1.UInt32IListTNull = ((uint[])jsonObject[nameof(AllTypesModel.UInt32IListTNull)])?.ToList();
+            model1.Int64IListTNull = ((long[])jsonObject[nameof(AllTypesModel.Int64IListTNull)])?.ToList();
+            model1.UInt64IListTNull = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64IListTNull)])?.ToList();
+            model1.SingleIListTNull = ((float[])jsonObject[nameof(AllTypesModel.SingleIListTNull)])?.ToList();
+            model1.DoubleIListTNull = ((double[])jsonObject[nameof(AllTypesModel.DoubleIListTNull)])?.ToList();
+            model1.DecimalIListTNull = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalIListTNull)])?.ToList();
+            model1.CharIListTNull = ((char[])jsonObject[nameof(AllTypesModel.CharIListTNull)])?.ToList();
+            model1.DateTimeIListTNull = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeIListTNull)])?.ToList();
+            model1.DateTimeOffsetIListTNull = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIListTNull)])?.ToList();
+            model1.TimeSpanIListTNull = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanIListTNull)])?.ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIListTNull = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyIListTNull)])?.ToList();
+            model1.TimeOnlyIListTNull = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyIListTNull)])?.ToList();
+#endif
+            model1.GuidIListTNull = ((Guid[])jsonObject[nameof(AllTypesModel.GuidIListTNull)])?.ToList();
+
+            model1.BooleanIListTNullable = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanIListTNullable)]).ToList();
+            model1.ByteIListTNullable = ((byte?[])jsonObject[nameof(AllTypesModel.ByteIListTNullable)]).ToList();
+            model1.SByteIListTNullable = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteIListTNullable)]).ToList();
+            model1.Int16IListTNullable = ((short?[])jsonObject[nameof(AllTypesModel.Int16IListTNullable)]).ToList();
+            model1.UInt16IListTNullable = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16IListTNullable)]).ToList();
+            model1.Int32IListTNullable = ((int?[])jsonObject[nameof(AllTypesModel.Int32IListTNullable)]).ToList();
+            model1.UInt32IListTNullable = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32IListTNullable)]).ToList();
+            model1.Int64IListTNullable = ((long?[])jsonObject[nameof(AllTypesModel.Int64IListTNullable)]).ToList();
+            model1.UInt64IListTNullable = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64IListTNullable)]).ToList();
+            model1.SingleIListTNullable = ((float?[])jsonObject[nameof(AllTypesModel.SingleIListTNullable)]).ToList();
+            model1.DoubleIListTNullable = ((double?[])jsonObject[nameof(AllTypesModel.DoubleIListTNullable)]).ToList();
+            model1.DecimalIListTNullable = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalIListTNullable)]).ToList();
+            model1.CharIListTNullable = ((char?[])jsonObject[nameof(AllTypesModel.CharIListTNullable)]).ToList();
+            model1.DateTimeIListTNullable = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeIListTNullable)]).ToList();
+            model1.DateTimeOffsetIListTNullable = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIListTNullable)]).ToList();
+            model1.TimeSpanIListTNullable = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanIListTNullable)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIListTNullable = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyIListTNullable)]).ToList();
+            model1.TimeOnlyIListTNullable = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyIListTNullable)]).ToList();
+#endif
+            model1.GuidIListTNullable = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidIListTNullable)]).ToList();
+
+            model1.BooleanIListTNullableEmpty = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanIListTNullableEmpty)]).ToList();
+            model1.ByteIListTNullableEmpty = ((byte?[])jsonObject[nameof(AllTypesModel.ByteIListTNullableEmpty)]).ToList();
+            model1.SByteIListTNullableEmpty = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteIListTNullableEmpty)]).ToList();
+            model1.Int16IListTNullableEmpty = ((short?[])jsonObject[nameof(AllTypesModel.Int16IListTNullableEmpty)]).ToList();
+            model1.UInt16IListTNullableEmpty = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16IListTNullableEmpty)]).ToList();
+            model1.Int32IListTNullableEmpty = ((int?[])jsonObject[nameof(AllTypesModel.Int32IListTNullableEmpty)]).ToList();
+            model1.UInt32IListTNullableEmpty = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32IListTNullableEmpty)]).ToList();
+            model1.Int64IListTNullableEmpty = ((long?[])jsonObject[nameof(AllTypesModel.Int64IListTNullableEmpty)]).ToList();
+            model1.UInt64IListTNullableEmpty = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64IListTNullableEmpty)]).ToList();
+            model1.SingleIListTNullableEmpty = ((float?[])jsonObject[nameof(AllTypesModel.SingleIListTNullableEmpty)]).ToList();
+            model1.DoubleIListTNullableEmpty = ((double?[])jsonObject[nameof(AllTypesModel.DoubleIListTNullableEmpty)]).ToList();
+            model1.DecimalIListTNullableEmpty = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalIListTNullableEmpty)]).ToList();
+            model1.CharIListTNullableEmpty = ((char?[])jsonObject[nameof(AllTypesModel.CharIListTNullableEmpty)]).ToList();
+            model1.DateTimeIListTNullableEmpty = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeIListTNullableEmpty)]).ToList();
+            model1.DateTimeOffsetIListTNullableEmpty = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIListTNullableEmpty)]).ToList();
+            model1.TimeSpanIListTNullableEmpty = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanIListTNullableEmpty)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIListTNullableEmpty = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyIListTNullableEmpty)]).ToList();
+            model1.TimeOnlyIListTNullableEmpty = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyIListTNullableEmpty)]).ToList();
+#endif
+            model1.GuidIListTNullableEmpty = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidIListTNullableEmpty)]).ToList();
+
+            model1.BooleanIListTNullableNull = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanIListTNullableNull)])?.ToList();
+            model1.ByteIListTNullableNull = ((byte?[])jsonObject[nameof(AllTypesModel.ByteIListTNullableNull)])?.ToList();
+            model1.SByteIListTNullableNull = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteIListTNullableNull)])?.ToList();
+            model1.Int16IListTNullableNull = ((short?[])jsonObject[nameof(AllTypesModel.Int16IListTNullableNull)])?.ToList();
+            model1.UInt16IListTNullableNull = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16IListTNullableNull)])?.ToList();
+            model1.Int32IListTNullableNull = ((int?[])jsonObject[nameof(AllTypesModel.Int32IListTNullableNull)])?.ToList();
+            model1.UInt32IListTNullableNull = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32IListTNullableNull)])?.ToList();
+            model1.Int64IListTNullableNull = ((long?[])jsonObject[nameof(AllTypesModel.Int64IListTNullableNull)])?.ToList();
+            model1.UInt64IListTNullableNull = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64IListTNullableNull)])?.ToList();
+            model1.SingleIListTNullableNull = ((float?[])jsonObject[nameof(AllTypesModel.SingleIListTNullableNull)])?.ToList();
+            model1.DoubleIListTNullableNull = ((double?[])jsonObject[nameof(AllTypesModel.DoubleIListTNullableNull)])?.ToList();
+            model1.DecimalIListTNullableNull = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalIListTNullableNull)])?.ToList();
+            model1.CharIListTNullableNull = ((char?[])jsonObject[nameof(AllTypesModel.CharIListTNullableNull)])?.ToList();
+            model1.DateTimeIListTNullableNull = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeIListTNullableNull)])?.ToList();
+            model1.DateTimeOffsetIListTNullableNull = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIListTNullableNull)])?.ToList();
+            model1.TimeSpanIListTNullableNull = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanIListTNullableNull)])?.ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIListTNullableNull = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyIListTNullableNull)])?.ToList();
+            model1.TimeOnlyIListTNullableNull = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyIListTNullableNull)])?.ToList();
+#endif
+            model1.GuidIListTNullableNull = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidIListTNullableNull)])?.ToList();
+
+            model1.StringIListT = ((string[])jsonObject[nameof(AllTypesModel.StringIListT)]).ToList();
+            model1.StringIListTEmpty = ((string[])jsonObject[nameof(AllTypesModel.StringIListTEmpty)]).ToList();
+            model1.StringIListTNull = ((string[])jsonObject[nameof(AllTypesModel.StringIListTNull)])?.ToList();
+
+            model1.EnumIListT = (((string[])jsonObject[nameof(AllTypesModel.EnumIListT)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList()).ToList();
+            model1.EnumIListTEmpty = (((string[])jsonObject[nameof(AllTypesModel.EnumIListTEmpty)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList()).ToList();
+            model1.EnumIListTNull = (((string[])jsonObject[nameof(AllTypesModel.EnumIListTNull)])?.Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList())?.ToList();
+
+            model1.EnumIListTNullable = (((string[])jsonObject[nameof(AllTypesModel.EnumIListTNullable)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray()).ToList();
+            model1.EnumIListTNullableEmpty = (((string[])jsonObject[nameof(AllTypesModel.EnumIListTNullableEmpty)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray()).ToList();
+            model1.EnumIListTNullableNull = (((string[])jsonObject[nameof(AllTypesModel.EnumIListTNullableNull)])?.Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray())?.ToList();
+
+            model1.BooleanIReadOnlyListT = ((bool[])jsonObject[nameof(AllTypesModel.BooleanIReadOnlyListT)]).ToList();
+            model1.ByteIReadOnlyListT = ((byte[])jsonObject[nameof(AllTypesModel.ByteIReadOnlyListT)]).ToList();
+            model1.SByteIReadOnlyListT = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteIReadOnlyListT)]).ToList();
+            model1.Int16IReadOnlyListT = ((short[])jsonObject[nameof(AllTypesModel.Int16IReadOnlyListT)]).ToList();
+            model1.UInt16IReadOnlyListT = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16IReadOnlyListT)]).ToList();
+            model1.Int32IReadOnlyListT = ((int[])jsonObject[nameof(AllTypesModel.Int32IReadOnlyListT)]).ToList();
+            model1.UInt32IReadOnlyListT = ((uint[])jsonObject[nameof(AllTypesModel.UInt32IReadOnlyListT)]).ToList();
+            model1.Int64IReadOnlyListT = ((long[])jsonObject[nameof(AllTypesModel.Int64IReadOnlyListT)]).ToList();
+            model1.UInt64IReadOnlyListT = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64IReadOnlyListT)]).ToList();
+            model1.SingleIReadOnlyListT = ((float[])jsonObject[nameof(AllTypesModel.SingleIReadOnlyListT)]).ToList();
+            model1.DoubleIReadOnlyListT = ((double[])jsonObject[nameof(AllTypesModel.DoubleIReadOnlyListT)]).ToList();
+            model1.DecimalIReadOnlyListT = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalIReadOnlyListT)]).ToList();
+            model1.CharIReadOnlyListT = ((char[])jsonObject[nameof(AllTypesModel.CharIReadOnlyListT)]).ToList();
+            model1.DateTimeIReadOnlyListT = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeIReadOnlyListT)]).ToList();
+            model1.DateTimeOffsetIReadOnlyListT = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIReadOnlyListT)]).ToList();
+            model1.TimeSpanIReadOnlyListT = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanIReadOnlyListT)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIReadOnlyListT = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyIReadOnlyListT)]).ToList();
+            model1.TimeOnlyIReadOnlyListT = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyIReadOnlyListT)]).ToList();
+#endif
+            model1.GuidIReadOnlyListT = ((Guid[])jsonObject[nameof(AllTypesModel.GuidIReadOnlyListT)]).ToList();
+
+            model1.BooleanIReadOnlyListTEmpty = ((bool[])jsonObject[nameof(AllTypesModel.BooleanIReadOnlyListTEmpty)]).ToList();
+            model1.ByteIReadOnlyListTEmpty = ((byte[])jsonObject[nameof(AllTypesModel.ByteIReadOnlyListTEmpty)]).ToList();
+            model1.SByteIReadOnlyListTEmpty = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteIReadOnlyListTEmpty)]).ToList();
+            model1.Int16IReadOnlyListTEmpty = ((short[])jsonObject[nameof(AllTypesModel.Int16IReadOnlyListTEmpty)]).ToList();
+            model1.UInt16IReadOnlyListTEmpty = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16IReadOnlyListTEmpty)]).ToList();
+            model1.Int32IReadOnlyListTEmpty = ((int[])jsonObject[nameof(AllTypesModel.Int32IReadOnlyListTEmpty)]).ToList();
+            model1.UInt32IReadOnlyListTEmpty = ((uint[])jsonObject[nameof(AllTypesModel.UInt32IReadOnlyListTEmpty)]).ToList();
+            model1.Int64IReadOnlyListTEmpty = ((long[])jsonObject[nameof(AllTypesModel.Int64IReadOnlyListTEmpty)]).ToList();
+            model1.UInt64IReadOnlyListTEmpty = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64IReadOnlyListTEmpty)]).ToList();
+            model1.SingleIReadOnlyListTEmpty = ((float[])jsonObject[nameof(AllTypesModel.SingleIReadOnlyListTEmpty)]).ToList();
+            model1.DoubleIReadOnlyListTEmpty = ((double[])jsonObject[nameof(AllTypesModel.DoubleIReadOnlyListTEmpty)]).ToList();
+            model1.DecimalIReadOnlyListTEmpty = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalIReadOnlyListTEmpty)]).ToList();
+            model1.CharIReadOnlyListTEmpty = ((char[])jsonObject[nameof(AllTypesModel.CharIReadOnlyListTEmpty)]).ToList();
+            model1.DateTimeIReadOnlyListTEmpty = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeIReadOnlyListTEmpty)]).ToList();
+            model1.DateTimeOffsetIReadOnlyListTEmpty = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIReadOnlyListTEmpty)]).ToList();
+            model1.TimeSpanIReadOnlyListTEmpty = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanIReadOnlyListTEmpty)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIReadOnlyListTEmpty = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyIReadOnlyListTEmpty)]).ToList();
+            model1.TimeOnlyIReadOnlyListTEmpty = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyIReadOnlyListTEmpty)]).ToList();
+#endif
+            model1.GuidIReadOnlyListTEmpty = ((Guid[])jsonObject[nameof(AllTypesModel.GuidIReadOnlyListTEmpty)]).ToList();
+
+            model1.BooleanIReadOnlyListTNull = ((bool[])jsonObject[nameof(AllTypesModel.BooleanIReadOnlyListTNull)])?.ToList();
+            model1.ByteIReadOnlyListTNull = ((byte[])jsonObject[nameof(AllTypesModel.ByteIReadOnlyListTNull)])?.ToList();
+            model1.SByteIReadOnlyListTNull = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteIReadOnlyListTNull)])?.ToList();
+            model1.Int16IReadOnlyListTNull = ((short[])jsonObject[nameof(AllTypesModel.Int16IReadOnlyListTNull)])?.ToList();
+            model1.UInt16IReadOnlyListTNull = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16IReadOnlyListTNull)])?.ToList();
+            model1.Int32IReadOnlyListTNull = ((int[])jsonObject[nameof(AllTypesModel.Int32IReadOnlyListTNull)])?.ToList();
+            model1.UInt32IReadOnlyListTNull = ((uint[])jsonObject[nameof(AllTypesModel.UInt32IReadOnlyListTNull)])?.ToList();
+            model1.Int64IReadOnlyListTNull = ((long[])jsonObject[nameof(AllTypesModel.Int64IReadOnlyListTNull)])?.ToList();
+            model1.UInt64IReadOnlyListTNull = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64IReadOnlyListTNull)])?.ToList();
+            model1.SingleIReadOnlyListTNull = ((float[])jsonObject[nameof(AllTypesModel.SingleIReadOnlyListTNull)])?.ToList();
+            model1.DoubleIReadOnlyListTNull = ((double[])jsonObject[nameof(AllTypesModel.DoubleIReadOnlyListTNull)])?.ToList();
+            model1.DecimalIReadOnlyListTNull = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalIReadOnlyListTNull)])?.ToList();
+            model1.CharIReadOnlyListTNull = ((char[])jsonObject[nameof(AllTypesModel.CharIReadOnlyListTNull)])?.ToList();
+            model1.DateTimeIReadOnlyListTNull = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeIReadOnlyListTNull)])?.ToList();
+            model1.DateTimeOffsetIReadOnlyListTNull = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIReadOnlyListTNull)])?.ToList();
+            model1.TimeSpanIReadOnlyListTNull = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanIReadOnlyListTNull)])?.ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIReadOnlyListTNull = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyIReadOnlyListTNull)])?.ToList();
+            model1.TimeOnlyIReadOnlyListTNull = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyIReadOnlyListTNull)])?.ToList();
+#endif
+            model1.GuidIReadOnlyListTNull = ((Guid[])jsonObject[nameof(AllTypesModel.GuidIReadOnlyListTNull)])?.ToList();
+
+            model1.BooleanIReadOnlyListTNullable = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanIReadOnlyListTNullable)]).ToList();
+            model1.ByteIReadOnlyListTNullable = ((byte?[])jsonObject[nameof(AllTypesModel.ByteIReadOnlyListTNullable)]).ToList();
+            model1.SByteIReadOnlyListTNullable = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteIReadOnlyListTNullable)]).ToList();
+            model1.Int16IReadOnlyListTNullable = ((short?[])jsonObject[nameof(AllTypesModel.Int16IReadOnlyListTNullable)]).ToList();
+            model1.UInt16IReadOnlyListTNullable = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16IReadOnlyListTNullable)]).ToList();
+            model1.Int32IReadOnlyListTNullable = ((int?[])jsonObject[nameof(AllTypesModel.Int32IReadOnlyListTNullable)]).ToList();
+            model1.UInt32IReadOnlyListTNullable = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32IReadOnlyListTNullable)]).ToList();
+            model1.Int64IReadOnlyListTNullable = ((long?[])jsonObject[nameof(AllTypesModel.Int64IReadOnlyListTNullable)]).ToList();
+            model1.UInt64IReadOnlyListTNullable = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64IReadOnlyListTNullable)]).ToList();
+            model1.SingleIReadOnlyListTNullable = ((float?[])jsonObject[nameof(AllTypesModel.SingleIReadOnlyListTNullable)]).ToList();
+            model1.DoubleIReadOnlyListTNullable = ((double?[])jsonObject[nameof(AllTypesModel.DoubleIReadOnlyListTNullable)]).ToList();
+            model1.DecimalIReadOnlyListTNullable = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalIReadOnlyListTNullable)]).ToList();
+            model1.CharIReadOnlyListTNullable = ((char?[])jsonObject[nameof(AllTypesModel.CharIReadOnlyListTNullable)]).ToList();
+            model1.DateTimeIReadOnlyListTNullable = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeIReadOnlyListTNullable)]).ToList();
+            model1.DateTimeOffsetIReadOnlyListTNullable = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIReadOnlyListTNullable)]).ToList();
+            model1.TimeSpanIReadOnlyListTNullable = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanIReadOnlyListTNullable)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIReadOnlyListTNullable = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyIReadOnlyListTNullable)]).ToList();
+            model1.TimeOnlyIReadOnlyListTNullable = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyIReadOnlyListTNullable)]).ToList();
+#endif
+            model1.GuidIReadOnlyListTNullable = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidIReadOnlyListTNullable)]).ToList();
+
+            model1.BooleanIReadOnlyListTNullableEmpty = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanIReadOnlyListTNullableEmpty)]).ToList();
+            model1.ByteIReadOnlyListTNullableEmpty = ((byte?[])jsonObject[nameof(AllTypesModel.ByteIReadOnlyListTNullableEmpty)]).ToList();
+            model1.SByteIReadOnlyListTNullableEmpty = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteIReadOnlyListTNullableEmpty)]).ToList();
+            model1.Int16IReadOnlyListTNullableEmpty = ((short?[])jsonObject[nameof(AllTypesModel.Int16IReadOnlyListTNullableEmpty)]).ToList();
+            model1.UInt16IReadOnlyListTNullableEmpty = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16IReadOnlyListTNullableEmpty)]).ToList();
+            model1.Int32IReadOnlyListTNullableEmpty = ((int?[])jsonObject[nameof(AllTypesModel.Int32IReadOnlyListTNullableEmpty)]).ToList();
+            model1.UInt32IReadOnlyListTNullableEmpty = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32IReadOnlyListTNullableEmpty)]).ToList();
+            model1.Int64IReadOnlyListTNullableEmpty = ((long?[])jsonObject[nameof(AllTypesModel.Int64IReadOnlyListTNullableEmpty)]).ToList();
+            model1.UInt64IReadOnlyListTNullableEmpty = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64IReadOnlyListTNullableEmpty)]).ToList();
+            model1.SingleIReadOnlyListTNullableEmpty = ((float?[])jsonObject[nameof(AllTypesModel.SingleIReadOnlyListTNullableEmpty)]).ToList();
+            model1.DoubleIReadOnlyListTNullableEmpty = ((double?[])jsonObject[nameof(AllTypesModel.DoubleIReadOnlyListTNullableEmpty)]).ToList();
+            model1.DecimalIReadOnlyListTNullableEmpty = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalIReadOnlyListTNullableEmpty)]).ToList();
+            model1.CharIReadOnlyListTNullableEmpty = ((char?[])jsonObject[nameof(AllTypesModel.CharIReadOnlyListTNullableEmpty)]).ToList();
+            model1.DateTimeIReadOnlyListTNullableEmpty = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeIReadOnlyListTNullableEmpty)]).ToList();
+            model1.DateTimeOffsetIReadOnlyListTNullableEmpty = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIReadOnlyListTNullableEmpty)]).ToList();
+            model1.TimeSpanIReadOnlyListTNullableEmpty = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanIReadOnlyListTNullableEmpty)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIReadOnlyListTNullableEmpty = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyIReadOnlyListTNullableEmpty)]).ToList();
+            model1.TimeOnlyIReadOnlyListTNullableEmpty = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyIReadOnlyListTNullableEmpty)]).ToList();
+#endif
+            model1.GuidIReadOnlyListTNullableEmpty = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidIReadOnlyListTNullableEmpty)]).ToList();
+
+            model1.BooleanIReadOnlyListTNullableNull = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanIReadOnlyListTNullableNull)])?.ToList();
+            model1.ByteIReadOnlyListTNullableNull = ((byte?[])jsonObject[nameof(AllTypesModel.ByteIReadOnlyListTNullableNull)])?.ToList();
+            model1.SByteIReadOnlyListTNullableNull = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteIReadOnlyListTNullableNull)])?.ToList();
+            model1.Int16IReadOnlyListTNullableNull = ((short?[])jsonObject[nameof(AllTypesModel.Int16IReadOnlyListTNullableNull)])?.ToList();
+            model1.UInt16IReadOnlyListTNullableNull = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16IReadOnlyListTNullableNull)])?.ToList();
+            model1.Int32IReadOnlyListTNullableNull = ((int?[])jsonObject[nameof(AllTypesModel.Int32IReadOnlyListTNullableNull)])?.ToList();
+            model1.UInt32IReadOnlyListTNullableNull = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32IReadOnlyListTNullableNull)])?.ToList();
+            model1.Int64IReadOnlyListTNullableNull = ((long?[])jsonObject[nameof(AllTypesModel.Int64IReadOnlyListTNullableNull)])?.ToList();
+            model1.UInt64IReadOnlyListTNullableNull = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64IReadOnlyListTNullableNull)])?.ToList();
+            model1.SingleIReadOnlyListTNullableNull = ((float?[])jsonObject[nameof(AllTypesModel.SingleIReadOnlyListTNullableNull)])?.ToList();
+            model1.DoubleIReadOnlyListTNullableNull = ((double?[])jsonObject[nameof(AllTypesModel.DoubleIReadOnlyListTNullableNull)])?.ToList();
+            model1.DecimalIReadOnlyListTNullableNull = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalIReadOnlyListTNullableNull)])?.ToList();
+            model1.CharIReadOnlyListTNullableNull = ((char?[])jsonObject[nameof(AllTypesModel.CharIReadOnlyListTNullableNull)])?.ToList();
+            model1.DateTimeIReadOnlyListTNullableNull = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeIReadOnlyListTNullableNull)])?.ToList();
+            model1.DateTimeOffsetIReadOnlyListTNullableNull = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIReadOnlyListTNullableNull)])?.ToList();
+            model1.TimeSpanIReadOnlyListTNullableNull = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanIReadOnlyListTNullableNull)])?.ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIReadOnlyListTNullableNull = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyIReadOnlyListTNullableNull)])?.ToList();
+            model1.TimeOnlyIReadOnlyListTNullableNull = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyIReadOnlyListTNullableNull)])?.ToList();
+#endif
+            model1.GuidIReadOnlyListTNullableNull = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidIReadOnlyListTNullableNull)])?.ToList();
+
+            model1.StringIReadOnlyListT = ((string[])jsonObject[nameof(AllTypesModel.StringIReadOnlyListT)]).ToList();
+            model1.StringIReadOnlyListTEmpty = ((string[])jsonObject[nameof(AllTypesModel.StringIReadOnlyListTEmpty)]).ToList();
+            model1.StringIReadOnlyListTNull = ((string[])jsonObject[nameof(AllTypesModel.StringIReadOnlyListTNull)])?.ToList();
+
+            model1.EnumIReadOnlyListT = (((string[])jsonObject[nameof(AllTypesModel.EnumIReadOnlyListT)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList()).ToList();
+            model1.EnumIReadOnlyListTEmpty = (((string[])jsonObject[nameof(AllTypesModel.EnumIReadOnlyListTEmpty)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList()).ToList();
+            model1.EnumIReadOnlyListTNull = (((string[])jsonObject[nameof(AllTypesModel.EnumIReadOnlyListTNull)])?.Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList())?.ToList();
+
+            model1.EnumIReadOnlyListTNullable = (((string[])jsonObject[nameof(AllTypesModel.EnumIReadOnlyListTNullable)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray()).ToList();
+            model1.EnumIReadOnlyListTNullableEmpty = (((string[])jsonObject[nameof(AllTypesModel.EnumIReadOnlyListTNullableEmpty)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray()).ToList();
+            model1.EnumIReadOnlyListTNullableNull = (((string[])jsonObject[nameof(AllTypesModel.EnumIReadOnlyListTNullableNull)])?.Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray())?.ToList();
+
+            model1.BooleanICollectionT = ((bool[])jsonObject[nameof(AllTypesModel.BooleanICollectionT)]).ToList();
+            model1.ByteICollectionT = ((byte[])jsonObject[nameof(AllTypesModel.ByteICollectionT)]).ToList();
+            model1.SByteICollectionT = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteICollectionT)]).ToList();
+            model1.Int16ICollectionT = ((short[])jsonObject[nameof(AllTypesModel.Int16ICollectionT)]).ToList();
+            model1.UInt16ICollectionT = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16ICollectionT)]).ToList();
+            model1.Int32ICollectionT = ((int[])jsonObject[nameof(AllTypesModel.Int32ICollectionT)]).ToList();
+            model1.UInt32ICollectionT = ((uint[])jsonObject[nameof(AllTypesModel.UInt32ICollectionT)]).ToList();
+            model1.Int64ICollectionT = ((long[])jsonObject[nameof(AllTypesModel.Int64ICollectionT)]).ToList();
+            model1.UInt64ICollectionT = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64ICollectionT)]).ToList();
+            model1.SingleICollectionT = ((float[])jsonObject[nameof(AllTypesModel.SingleICollectionT)]).ToList();
+            model1.DoubleICollectionT = ((double[])jsonObject[nameof(AllTypesModel.DoubleICollectionT)]).ToList();
+            model1.DecimalICollectionT = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalICollectionT)]).ToList();
+            model1.CharICollectionT = ((char[])jsonObject[nameof(AllTypesModel.CharICollectionT)]).ToList();
+            model1.DateTimeICollectionT = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeICollectionT)]).ToList();
+            model1.DateTimeOffsetICollectionT = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetICollectionT)]).ToList();
+            model1.TimeSpanICollectionT = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanICollectionT)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyICollectionT = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyICollectionT)]).ToList();
+            model1.TimeOnlyICollectionT = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyICollectionT)]).ToList();
+#endif
+            model1.GuidICollectionT = ((Guid[])jsonObject[nameof(AllTypesModel.GuidICollectionT)]).ToList();
+
+            model1.BooleanICollectionTEmpty = ((bool[])jsonObject[nameof(AllTypesModel.BooleanICollectionTEmpty)]).ToList();
+            model1.ByteICollectionTEmpty = ((byte[])jsonObject[nameof(AllTypesModel.ByteICollectionTEmpty)]).ToList();
+            model1.SByteICollectionTEmpty = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteICollectionTEmpty)]).ToList();
+            model1.Int16ICollectionTEmpty = ((short[])jsonObject[nameof(AllTypesModel.Int16ICollectionTEmpty)]).ToList();
+            model1.UInt16ICollectionTEmpty = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16ICollectionTEmpty)]).ToList();
+            model1.Int32ICollectionTEmpty = ((int[])jsonObject[nameof(AllTypesModel.Int32ICollectionTEmpty)]).ToList();
+            model1.UInt32ICollectionTEmpty = ((uint[])jsonObject[nameof(AllTypesModel.UInt32ICollectionTEmpty)]).ToList();
+            model1.Int64ICollectionTEmpty = ((long[])jsonObject[nameof(AllTypesModel.Int64ICollectionTEmpty)]).ToList();
+            model1.UInt64ICollectionTEmpty = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64ICollectionTEmpty)]).ToList();
+            model1.SingleICollectionTEmpty = ((float[])jsonObject[nameof(AllTypesModel.SingleICollectionTEmpty)]).ToList();
+            model1.DoubleICollectionTEmpty = ((double[])jsonObject[nameof(AllTypesModel.DoubleICollectionTEmpty)]).ToList();
+            model1.DecimalICollectionTEmpty = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalICollectionTEmpty)]).ToList();
+            model1.CharICollectionTEmpty = ((char[])jsonObject[nameof(AllTypesModel.CharICollectionTEmpty)]).ToList();
+            model1.DateTimeICollectionTEmpty = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeICollectionTEmpty)]).ToList();
+            model1.DateTimeOffsetICollectionTEmpty = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetICollectionTEmpty)]).ToList();
+            model1.TimeSpanICollectionTEmpty = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanICollectionTEmpty)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyICollectionTEmpty = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyICollectionTEmpty)]).ToList();
+            model1.TimeOnlyICollectionTEmpty = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyICollectionTEmpty)]).ToList();
+#endif
+            model1.GuidICollectionTEmpty = ((Guid[])jsonObject[nameof(AllTypesModel.GuidICollectionTEmpty)]).ToList();
+
+            model1.BooleanICollectionTNull = ((bool[])jsonObject[nameof(AllTypesModel.BooleanICollectionTNull)])?.ToList();
+            model1.ByteICollectionTNull = ((byte[])jsonObject[nameof(AllTypesModel.ByteICollectionTNull)])?.ToList();
+            model1.SByteICollectionTNull = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteICollectionTNull)])?.ToList();
+            model1.Int16ICollectionTNull = ((short[])jsonObject[nameof(AllTypesModel.Int16ICollectionTNull)])?.ToList();
+            model1.UInt16ICollectionTNull = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16ICollectionTNull)])?.ToList();
+            model1.Int32ICollectionTNull = ((int[])jsonObject[nameof(AllTypesModel.Int32ICollectionTNull)])?.ToList();
+            model1.UInt32ICollectionTNull = ((uint[])jsonObject[nameof(AllTypesModel.UInt32ICollectionTNull)])?.ToList();
+            model1.Int64ICollectionTNull = ((long[])jsonObject[nameof(AllTypesModel.Int64ICollectionTNull)])?.ToList();
+            model1.UInt64ICollectionTNull = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64ICollectionTNull)])?.ToList();
+            model1.SingleICollectionTNull = ((float[])jsonObject[nameof(AllTypesModel.SingleICollectionTNull)])?.ToList();
+            model1.DoubleICollectionTNull = ((double[])jsonObject[nameof(AllTypesModel.DoubleICollectionTNull)])?.ToList();
+            model1.DecimalICollectionTNull = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalICollectionTNull)])?.ToList();
+            model1.CharICollectionTNull = ((char[])jsonObject[nameof(AllTypesModel.CharICollectionTNull)])?.ToList();
+            model1.DateTimeICollectionTNull = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeICollectionTNull)])?.ToList();
+            model1.DateTimeOffsetICollectionTNull = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetICollectionTNull)])?.ToList();
+            model1.TimeSpanICollectionTNull = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanICollectionTNull)])?.ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyICollectionTNull = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyICollectionTNull)])?.ToList();
+            model1.TimeOnlyICollectionTNull = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyICollectionTNull)])?.ToList();
+#endif
+            model1.GuidICollectionTNull = ((Guid[])jsonObject[nameof(AllTypesModel.GuidICollectionTNull)])?.ToList();
+
+            model1.BooleanICollectionTNullable = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanICollectionTNullable)]).ToList();
+            model1.ByteICollectionTNullable = ((byte?[])jsonObject[nameof(AllTypesModel.ByteICollectionTNullable)]).ToList();
+            model1.SByteICollectionTNullable = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteICollectionTNullable)]).ToList();
+            model1.Int16ICollectionTNullable = ((short?[])jsonObject[nameof(AllTypesModel.Int16ICollectionTNullable)]).ToList();
+            model1.UInt16ICollectionTNullable = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16ICollectionTNullable)]).ToList();
+            model1.Int32ICollectionTNullable = ((int?[])jsonObject[nameof(AllTypesModel.Int32ICollectionTNullable)]).ToList();
+            model1.UInt32ICollectionTNullable = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32ICollectionTNullable)]).ToList();
+            model1.Int64ICollectionTNullable = ((long?[])jsonObject[nameof(AllTypesModel.Int64ICollectionTNullable)]).ToList();
+            model1.UInt64ICollectionTNullable = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64ICollectionTNullable)]).ToList();
+            model1.SingleICollectionTNullable = ((float?[])jsonObject[nameof(AllTypesModel.SingleICollectionTNullable)]).ToList();
+            model1.DoubleICollectionTNullable = ((double?[])jsonObject[nameof(AllTypesModel.DoubleICollectionTNullable)]).ToList();
+            model1.DecimalICollectionTNullable = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalICollectionTNullable)]).ToList();
+            model1.CharICollectionTNullable = ((char?[])jsonObject[nameof(AllTypesModel.CharICollectionTNullable)]).ToList();
+            model1.DateTimeICollectionTNullable = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeICollectionTNullable)]).ToList();
+            model1.DateTimeOffsetICollectionTNullable = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetICollectionTNullable)]).ToList();
+            model1.TimeSpanICollectionTNullable = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanICollectionTNullable)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyICollectionTNullable = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyICollectionTNullable)]).ToList();
+            model1.TimeOnlyICollectionTNullable = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyICollectionTNullable)]).ToList();
+#endif
+            model1.GuidICollectionTNullable = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidICollectionTNullable)]).ToList();
+
+            model1.BooleanICollectionTNullableEmpty = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanICollectionTNullableEmpty)]).ToList();
+            model1.ByteICollectionTNullableEmpty = ((byte?[])jsonObject[nameof(AllTypesModel.ByteICollectionTNullableEmpty)]).ToList();
+            model1.SByteICollectionTNullableEmpty = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteICollectionTNullableEmpty)]).ToList();
+            model1.Int16ICollectionTNullableEmpty = ((short?[])jsonObject[nameof(AllTypesModel.Int16ICollectionTNullableEmpty)]).ToList();
+            model1.UInt16ICollectionTNullableEmpty = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16ICollectionTNullableEmpty)]).ToList();
+            model1.Int32ICollectionTNullableEmpty = ((int?[])jsonObject[nameof(AllTypesModel.Int32ICollectionTNullableEmpty)]).ToList();
+            model1.UInt32ICollectionTNullableEmpty = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32ICollectionTNullableEmpty)]).ToList();
+            model1.Int64ICollectionTNullableEmpty = ((long?[])jsonObject[nameof(AllTypesModel.Int64ICollectionTNullableEmpty)]).ToList();
+            model1.UInt64ICollectionTNullableEmpty = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64ICollectionTNullableEmpty)]).ToList();
+            model1.SingleICollectionTNullableEmpty = ((float?[])jsonObject[nameof(AllTypesModel.SingleICollectionTNullableEmpty)]).ToList();
+            model1.DoubleICollectionTNullableEmpty = ((double?[])jsonObject[nameof(AllTypesModel.DoubleICollectionTNullableEmpty)]).ToList();
+            model1.DecimalICollectionTNullableEmpty = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalICollectionTNullableEmpty)]).ToList();
+            model1.CharICollectionTNullableEmpty = ((char?[])jsonObject[nameof(AllTypesModel.CharICollectionTNullableEmpty)]).ToList();
+            model1.DateTimeICollectionTNullableEmpty = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeICollectionTNullableEmpty)]).ToList();
+            model1.DateTimeOffsetICollectionTNullableEmpty = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetICollectionTNullableEmpty)]).ToList();
+            model1.TimeSpanICollectionTNullableEmpty = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanICollectionTNullableEmpty)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyICollectionTNullableEmpty = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyICollectionTNullableEmpty)]).ToList();
+            model1.TimeOnlyICollectionTNullableEmpty = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyICollectionTNullableEmpty)]).ToList();
+#endif
+            model1.GuidICollectionTNullableEmpty = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidICollectionTNullableEmpty)]).ToList();
+
+            model1.BooleanICollectionTNullableNull = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanICollectionTNullableNull)])?.ToList();
+            model1.ByteICollectionTNullableNull = ((byte?[])jsonObject[nameof(AllTypesModel.ByteICollectionTNullableNull)])?.ToList();
+            model1.SByteICollectionTNullableNull = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteICollectionTNullableNull)])?.ToList();
+            model1.Int16ICollectionTNullableNull = ((short?[])jsonObject[nameof(AllTypesModel.Int16ICollectionTNullableNull)])?.ToList();
+            model1.UInt16ICollectionTNullableNull = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16ICollectionTNullableNull)])?.ToList();
+            model1.Int32ICollectionTNullableNull = ((int?[])jsonObject[nameof(AllTypesModel.Int32ICollectionTNullableNull)])?.ToList();
+            model1.UInt32ICollectionTNullableNull = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32ICollectionTNullableNull)])?.ToList();
+            model1.Int64ICollectionTNullableNull = ((long?[])jsonObject[nameof(AllTypesModel.Int64ICollectionTNullableNull)])?.ToList();
+            model1.UInt64ICollectionTNullableNull = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64ICollectionTNullableNull)])?.ToList();
+            model1.SingleICollectionTNullableNull = ((float?[])jsonObject[nameof(AllTypesModel.SingleICollectionTNullableNull)])?.ToList();
+            model1.DoubleICollectionTNullableNull = ((double?[])jsonObject[nameof(AllTypesModel.DoubleICollectionTNullableNull)])?.ToList();
+            model1.DecimalICollectionTNullableNull = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalICollectionTNullableNull)])?.ToList();
+            model1.CharICollectionTNullableNull = ((char?[])jsonObject[nameof(AllTypesModel.CharICollectionTNullableNull)])?.ToList();
+            model1.DateTimeICollectionTNullableNull = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeICollectionTNullableNull)])?.ToList();
+            model1.DateTimeOffsetICollectionTNullableNull = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetICollectionTNullableNull)])?.ToList();
+            model1.TimeSpanICollectionTNullableNull = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanICollectionTNullableNull)])?.ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyICollectionTNullableNull = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyICollectionTNullableNull)])?.ToList();
+            model1.TimeOnlyICollectionTNullableNull = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyICollectionTNullableNull)])?.ToList();
+#endif
+            model1.GuidICollectionTNullableNull = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidICollectionTNullableNull)])?.ToList();
+
+            model1.StringICollectionT = ((string[])jsonObject[nameof(AllTypesModel.StringICollectionT)]).ToList();
+            model1.StringICollectionTEmpty = ((string[])jsonObject[nameof(AllTypesModel.StringICollectionTEmpty)]).ToList();
+            model1.StringICollectionTNull = ((string[])jsonObject[nameof(AllTypesModel.StringICollectionTNull)])?.ToList();
+
+            model1.EnumICollectionT = (((string[])jsonObject[nameof(AllTypesModel.EnumICollectionT)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList()).ToList();
+            model1.EnumICollectionTEmpty = (((string[])jsonObject[nameof(AllTypesModel.EnumICollectionTEmpty)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList()).ToList();
+            model1.EnumICollectionTNull = (((string[])jsonObject[nameof(AllTypesModel.EnumICollectionTNull)])?.Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList())?.ToList();
+
+            model1.EnumICollectionTNullable = (((string[])jsonObject[nameof(AllTypesModel.EnumICollectionTNullable)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray()).ToList();
+            model1.EnumICollectionTNullableEmpty = (((string[])jsonObject[nameof(AllTypesModel.EnumICollectionTNullableEmpty)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray()).ToList();
+            model1.EnumICollectionTNullableNull = (((string[])jsonObject[nameof(AllTypesModel.EnumICollectionTNullableNull)])?.Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray())?.ToList();
+
+            model1.BooleanIReadOnlyCollectionT = ((bool[])jsonObject[nameof(AllTypesModel.BooleanIReadOnlyCollectionT)]).ToList();
+            model1.ByteIReadOnlyCollectionT = ((byte[])jsonObject[nameof(AllTypesModel.ByteIReadOnlyCollectionT)]).ToList();
+            model1.SByteIReadOnlyCollectionT = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteIReadOnlyCollectionT)]).ToList();
+            model1.Int16IReadOnlyCollectionT = ((short[])jsonObject[nameof(AllTypesModel.Int16IReadOnlyCollectionT)]).ToList();
+            model1.UInt16IReadOnlyCollectionT = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16IReadOnlyCollectionT)]).ToList();
+            model1.Int32IReadOnlyCollectionT = ((int[])jsonObject[nameof(AllTypesModel.Int32IReadOnlyCollectionT)]).ToList();
+            model1.UInt32IReadOnlyCollectionT = ((uint[])jsonObject[nameof(AllTypesModel.UInt32IReadOnlyCollectionT)]).ToList();
+            model1.Int64IReadOnlyCollectionT = ((long[])jsonObject[nameof(AllTypesModel.Int64IReadOnlyCollectionT)]).ToList();
+            model1.UInt64IReadOnlyCollectionT = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64IReadOnlyCollectionT)]).ToList();
+            model1.SingleIReadOnlyCollectionT = ((float[])jsonObject[nameof(AllTypesModel.SingleIReadOnlyCollectionT)]).ToList();
+            model1.DoubleIReadOnlyCollectionT = ((double[])jsonObject[nameof(AllTypesModel.DoubleIReadOnlyCollectionT)]).ToList();
+            model1.DecimalIReadOnlyCollectionT = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalIReadOnlyCollectionT)]).ToList();
+            model1.CharIReadOnlyCollectionT = ((char[])jsonObject[nameof(AllTypesModel.CharIReadOnlyCollectionT)]).ToList();
+            model1.DateTimeIReadOnlyCollectionT = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeIReadOnlyCollectionT)]).ToList();
+            model1.DateTimeOffsetIReadOnlyCollectionT = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIReadOnlyCollectionT)]).ToList();
+            model1.TimeSpanIReadOnlyCollectionT = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanIReadOnlyCollectionT)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIReadOnlyCollectionT = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyIReadOnlyCollectionT)]).ToList();
+            model1.TimeOnlyIReadOnlyCollectionT = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyIReadOnlyCollectionT)]).ToList();
+#endif
+            model1.GuidIReadOnlyCollectionT = ((Guid[])jsonObject[nameof(AllTypesModel.GuidIReadOnlyCollectionT)]).ToList();
+
+            model1.BooleanIReadOnlyCollectionTEmpty = ((bool[])jsonObject[nameof(AllTypesModel.BooleanIReadOnlyCollectionTEmpty)]).ToList();
+            model1.ByteIReadOnlyCollectionTEmpty = ((byte[])jsonObject[nameof(AllTypesModel.ByteIReadOnlyCollectionTEmpty)]).ToList();
+            model1.SByteIReadOnlyCollectionTEmpty = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteIReadOnlyCollectionTEmpty)]).ToList();
+            model1.Int16IReadOnlyCollectionTEmpty = ((short[])jsonObject[nameof(AllTypesModel.Int16IReadOnlyCollectionTEmpty)]).ToList();
+            model1.UInt16IReadOnlyCollectionTEmpty = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16IReadOnlyCollectionTEmpty)]).ToList();
+            model1.Int32IReadOnlyCollectionTEmpty = ((int[])jsonObject[nameof(AllTypesModel.Int32IReadOnlyCollectionTEmpty)]).ToList();
+            model1.UInt32IReadOnlyCollectionTEmpty = ((uint[])jsonObject[nameof(AllTypesModel.UInt32IReadOnlyCollectionTEmpty)]).ToList();
+            model1.Int64IReadOnlyCollectionTEmpty = ((long[])jsonObject[nameof(AllTypesModel.Int64IReadOnlyCollectionTEmpty)]).ToList();
+            model1.UInt64IReadOnlyCollectionTEmpty = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64IReadOnlyCollectionTEmpty)]).ToList();
+            model1.SingleIReadOnlyCollectionTEmpty = ((float[])jsonObject[nameof(AllTypesModel.SingleIReadOnlyCollectionTEmpty)]).ToList();
+            model1.DoubleIReadOnlyCollectionTEmpty = ((double[])jsonObject[nameof(AllTypesModel.DoubleIReadOnlyCollectionTEmpty)]).ToList();
+            model1.DecimalIReadOnlyCollectionTEmpty = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalIReadOnlyCollectionTEmpty)]).ToList();
+            model1.CharIReadOnlyCollectionTEmpty = ((char[])jsonObject[nameof(AllTypesModel.CharIReadOnlyCollectionTEmpty)]).ToList();
+            model1.DateTimeIReadOnlyCollectionTEmpty = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeIReadOnlyCollectionTEmpty)]).ToList();
+            model1.DateTimeOffsetIReadOnlyCollectionTEmpty = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIReadOnlyCollectionTEmpty)]).ToList();
+            model1.TimeSpanIReadOnlyCollectionTEmpty = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanIReadOnlyCollectionTEmpty)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIReadOnlyCollectionTEmpty = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyIReadOnlyCollectionTEmpty)]).ToList();
+            model1.TimeOnlyIReadOnlyCollectionTEmpty = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyIReadOnlyCollectionTEmpty)]).ToList();
+#endif
+            model1.GuidIReadOnlyCollectionTEmpty = ((Guid[])jsonObject[nameof(AllTypesModel.GuidIReadOnlyCollectionTEmpty)]).ToList();
+
+            model1.BooleanIReadOnlyCollectionTNull = ((bool[])jsonObject[nameof(AllTypesModel.BooleanIReadOnlyCollectionTNull)])?.ToList();
+            model1.ByteIReadOnlyCollectionTNull = ((byte[])jsonObject[nameof(AllTypesModel.ByteIReadOnlyCollectionTNull)])?.ToList();
+            model1.SByteIReadOnlyCollectionTNull = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteIReadOnlyCollectionTNull)])?.ToList();
+            model1.Int16IReadOnlyCollectionTNull = ((short[])jsonObject[nameof(AllTypesModel.Int16IReadOnlyCollectionTNull)])?.ToList();
+            model1.UInt16IReadOnlyCollectionTNull = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16IReadOnlyCollectionTNull)])?.ToList();
+            model1.Int32IReadOnlyCollectionTNull = ((int[])jsonObject[nameof(AllTypesModel.Int32IReadOnlyCollectionTNull)])?.ToList();
+            model1.UInt32IReadOnlyCollectionTNull = ((uint[])jsonObject[nameof(AllTypesModel.UInt32IReadOnlyCollectionTNull)])?.ToList();
+            model1.Int64IReadOnlyCollectionTNull = ((long[])jsonObject[nameof(AllTypesModel.Int64IReadOnlyCollectionTNull)])?.ToList();
+            model1.UInt64IReadOnlyCollectionTNull = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64IReadOnlyCollectionTNull)])?.ToList();
+            model1.SingleIReadOnlyCollectionTNull = ((float[])jsonObject[nameof(AllTypesModel.SingleIReadOnlyCollectionTNull)])?.ToList();
+            model1.DoubleIReadOnlyCollectionTNull = ((double[])jsonObject[nameof(AllTypesModel.DoubleIReadOnlyCollectionTNull)])?.ToList();
+            model1.DecimalIReadOnlyCollectionTNull = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalIReadOnlyCollectionTNull)])?.ToList();
+            model1.CharIReadOnlyCollectionTNull = ((char[])jsonObject[nameof(AllTypesModel.CharIReadOnlyCollectionTNull)])?.ToList();
+            model1.DateTimeIReadOnlyCollectionTNull = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeIReadOnlyCollectionTNull)])?.ToList();
+            model1.DateTimeOffsetIReadOnlyCollectionTNull = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIReadOnlyCollectionTNull)])?.ToList();
+            model1.TimeSpanIReadOnlyCollectionTNull = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanIReadOnlyCollectionTNull)])?.ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIReadOnlyCollectionTNull = ((DateOnly[])jsonObject[nameof(AllTypesModel.DateOnlyIReadOnlyCollectionTNull)])?.ToList();
+            model1.TimeOnlyIReadOnlyCollectionTNull = ((TimeOnly[])jsonObject[nameof(AllTypesModel.TimeOnlyIReadOnlyCollectionTNull)])?.ToList();
+#endif
+            model1.GuidIReadOnlyCollectionTNull = ((Guid[])jsonObject[nameof(AllTypesModel.GuidIReadOnlyCollectionTNull)])?.ToList();
+
+            model1.BooleanIReadOnlyCollectionTNullable = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanIReadOnlyCollectionTNullable)]).ToList();
+            model1.ByteIReadOnlyCollectionTNullable = ((byte?[])jsonObject[nameof(AllTypesModel.ByteIReadOnlyCollectionTNullable)]).ToList();
+            model1.SByteIReadOnlyCollectionTNullable = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteIReadOnlyCollectionTNullable)]).ToList();
+            model1.Int16IReadOnlyCollectionTNullable = ((short?[])jsonObject[nameof(AllTypesModel.Int16IReadOnlyCollectionTNullable)]).ToList();
+            model1.UInt16IReadOnlyCollectionTNullable = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16IReadOnlyCollectionTNullable)]).ToList();
+            model1.Int32IReadOnlyCollectionTNullable = ((int?[])jsonObject[nameof(AllTypesModel.Int32IReadOnlyCollectionTNullable)]).ToList();
+            model1.UInt32IReadOnlyCollectionTNullable = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32IReadOnlyCollectionTNullable)]).ToList();
+            model1.Int64IReadOnlyCollectionTNullable = ((long?[])jsonObject[nameof(AllTypesModel.Int64IReadOnlyCollectionTNullable)]).ToList();
+            model1.UInt64IReadOnlyCollectionTNullable = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64IReadOnlyCollectionTNullable)]).ToList();
+            model1.SingleIReadOnlyCollectionTNullable = ((float?[])jsonObject[nameof(AllTypesModel.SingleIReadOnlyCollectionTNullable)]).ToList();
+            model1.DoubleIReadOnlyCollectionTNullable = ((double?[])jsonObject[nameof(AllTypesModel.DoubleIReadOnlyCollectionTNullable)]).ToList();
+            model1.DecimalIReadOnlyCollectionTNullable = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalIReadOnlyCollectionTNullable)]).ToList();
+            model1.CharIReadOnlyCollectionTNullable = ((char?[])jsonObject[nameof(AllTypesModel.CharIReadOnlyCollectionTNullable)]).ToList();
+            model1.DateTimeIReadOnlyCollectionTNullable = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeIReadOnlyCollectionTNullable)]).ToList();
+            model1.DateTimeOffsetIReadOnlyCollectionTNullable = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIReadOnlyCollectionTNullable)]).ToList();
+            model1.TimeSpanIReadOnlyCollectionTNullable = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanIReadOnlyCollectionTNullable)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIReadOnlyCollectionTNullable = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyIReadOnlyCollectionTNullable)]).ToList();
+            model1.TimeOnlyIReadOnlyCollectionTNullable = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyIReadOnlyCollectionTNullable)]).ToList();
+#endif
+            model1.GuidIReadOnlyCollectionTNullable = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidIReadOnlyCollectionTNullable)]).ToList();
+
+            model1.BooleanIReadOnlyCollectionTNullableEmpty = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanIReadOnlyCollectionTNullableEmpty)]).ToList();
+            model1.ByteIReadOnlyCollectionTNullableEmpty = ((byte?[])jsonObject[nameof(AllTypesModel.ByteIReadOnlyCollectionTNullableEmpty)]).ToList();
+            model1.SByteIReadOnlyCollectionTNullableEmpty = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteIReadOnlyCollectionTNullableEmpty)]).ToList();
+            model1.Int16IReadOnlyCollectionTNullableEmpty = ((short?[])jsonObject[nameof(AllTypesModel.Int16IReadOnlyCollectionTNullableEmpty)]).ToList();
+            model1.UInt16IReadOnlyCollectionTNullableEmpty = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16IReadOnlyCollectionTNullableEmpty)]).ToList();
+            model1.Int32IReadOnlyCollectionTNullableEmpty = ((int?[])jsonObject[nameof(AllTypesModel.Int32IReadOnlyCollectionTNullableEmpty)]).ToList();
+            model1.UInt32IReadOnlyCollectionTNullableEmpty = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32IReadOnlyCollectionTNullableEmpty)]).ToList();
+            model1.Int64IReadOnlyCollectionTNullableEmpty = ((long?[])jsonObject[nameof(AllTypesModel.Int64IReadOnlyCollectionTNullableEmpty)]).ToList();
+            model1.UInt64IReadOnlyCollectionTNullableEmpty = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64IReadOnlyCollectionTNullableEmpty)]).ToList();
+            model1.SingleIReadOnlyCollectionTNullableEmpty = ((float?[])jsonObject[nameof(AllTypesModel.SingleIReadOnlyCollectionTNullableEmpty)]).ToList();
+            model1.DoubleIReadOnlyCollectionTNullableEmpty = ((double?[])jsonObject[nameof(AllTypesModel.DoubleIReadOnlyCollectionTNullableEmpty)]).ToList();
+            model1.DecimalIReadOnlyCollectionTNullableEmpty = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalIReadOnlyCollectionTNullableEmpty)]).ToList();
+            model1.CharIReadOnlyCollectionTNullableEmpty = ((char?[])jsonObject[nameof(AllTypesModel.CharIReadOnlyCollectionTNullableEmpty)]).ToList();
+            model1.DateTimeIReadOnlyCollectionTNullableEmpty = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeIReadOnlyCollectionTNullableEmpty)]).ToList();
+            model1.DateTimeOffsetIReadOnlyCollectionTNullableEmpty = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIReadOnlyCollectionTNullableEmpty)]).ToList();
+            model1.TimeSpanIReadOnlyCollectionTNullableEmpty = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanIReadOnlyCollectionTNullableEmpty)]).ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIReadOnlyCollectionTNullableEmpty = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyIReadOnlyCollectionTNullableEmpty)]).ToList();
+            model1.TimeOnlyIReadOnlyCollectionTNullableEmpty = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyIReadOnlyCollectionTNullableEmpty)]).ToList();
+#endif
+            model1.GuidIReadOnlyCollectionTNullableEmpty = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidIReadOnlyCollectionTNullableEmpty)]).ToList();
+
+            model1.BooleanIReadOnlyCollectionTNullableNull = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanIReadOnlyCollectionTNullableNull)])?.ToList();
+            model1.ByteIReadOnlyCollectionTNullableNull = ((byte?[])jsonObject[nameof(AllTypesModel.ByteIReadOnlyCollectionTNullableNull)])?.ToList();
+            model1.SByteIReadOnlyCollectionTNullableNull = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteIReadOnlyCollectionTNullableNull)])?.ToList();
+            model1.Int16IReadOnlyCollectionTNullableNull = ((short?[])jsonObject[nameof(AllTypesModel.Int16IReadOnlyCollectionTNullableNull)])?.ToList();
+            model1.UInt16IReadOnlyCollectionTNullableNull = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16IReadOnlyCollectionTNullableNull)])?.ToList();
+            model1.Int32IReadOnlyCollectionTNullableNull = ((int?[])jsonObject[nameof(AllTypesModel.Int32IReadOnlyCollectionTNullableNull)])?.ToList();
+            model1.UInt32IReadOnlyCollectionTNullableNull = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32IReadOnlyCollectionTNullableNull)])?.ToList();
+            model1.Int64IReadOnlyCollectionTNullableNull = ((long?[])jsonObject[nameof(AllTypesModel.Int64IReadOnlyCollectionTNullableNull)])?.ToList();
+            model1.UInt64IReadOnlyCollectionTNullableNull = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64IReadOnlyCollectionTNullableNull)])?.ToList();
+            model1.SingleIReadOnlyCollectionTNullableNull = ((float?[])jsonObject[nameof(AllTypesModel.SingleIReadOnlyCollectionTNullableNull)])?.ToList();
+            model1.DoubleIReadOnlyCollectionTNullableNull = ((double?[])jsonObject[nameof(AllTypesModel.DoubleIReadOnlyCollectionTNullableNull)])?.ToList();
+            model1.DecimalIReadOnlyCollectionTNullableNull = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalIReadOnlyCollectionTNullableNull)])?.ToList();
+            model1.CharIReadOnlyCollectionTNullableNull = ((char?[])jsonObject[nameof(AllTypesModel.CharIReadOnlyCollectionTNullableNull)])?.ToList();
+            model1.DateTimeIReadOnlyCollectionTNullableNull = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeIReadOnlyCollectionTNullableNull)])?.ToList();
+            model1.DateTimeOffsetIReadOnlyCollectionTNullableNull = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetIReadOnlyCollectionTNullableNull)])?.ToList();
+            model1.TimeSpanIReadOnlyCollectionTNullableNull = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanIReadOnlyCollectionTNullableNull)])?.ToList();
+#if NET6_0_OR_GREATER
+            model1.DateOnlyIReadOnlyCollectionTNullableNull = ((DateOnly?[])jsonObject[nameof(AllTypesModel.DateOnlyIReadOnlyCollectionTNullableNull)])?.ToList();
+            model1.TimeOnlyIReadOnlyCollectionTNullableNull = ((TimeOnly?[])jsonObject[nameof(AllTypesModel.TimeOnlyIReadOnlyCollectionTNullableNull)])?.ToList();
+#endif
+            model1.GuidIReadOnlyCollectionTNullableNull = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidIReadOnlyCollectionTNullableNull)])?.ToList();
+
+            model1.StringIReadOnlyCollectionT = ((string[])jsonObject[nameof(AllTypesModel.StringIReadOnlyCollectionT)]).ToList();
+            model1.StringIReadOnlyCollectionTEmpty = ((string[])jsonObject[nameof(AllTypesModel.StringIReadOnlyCollectionTEmpty)]).ToList();
+            model1.StringIReadOnlyCollectionTNull = ((string[])jsonObject[nameof(AllTypesModel.StringIReadOnlyCollectionTNull)])?.ToList();
+
+            model1.EnumIReadOnlyCollectionT = (((string[])jsonObject[nameof(AllTypesModel.EnumIReadOnlyCollectionT)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList()).ToList();
+            model1.EnumIReadOnlyCollectionTEmpty = (((string[])jsonObject[nameof(AllTypesModel.EnumIReadOnlyCollectionTEmpty)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList()).ToList();
+            model1.EnumIReadOnlyCollectionTNull = (((string[])jsonObject[nameof(AllTypesModel.EnumIReadOnlyCollectionTNull)])?.Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList())?.ToList();
+
+            model1.EnumIReadOnlyCollectionTNullable = (((string[])jsonObject[nameof(AllTypesModel.EnumIReadOnlyCollectionTNullable)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray()).ToList();
+            model1.EnumIReadOnlyCollectionTNullableEmpty = (((string[])jsonObject[nameof(AllTypesModel.EnumIReadOnlyCollectionTNullableEmpty)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray()).ToList();
+            model1.EnumIReadOnlyCollectionTNullableNull = (((string[])jsonObject[nameof(AllTypesModel.EnumIReadOnlyCollectionTNullableNull)])?.Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray())?.ToList();
+
 
             var classThingJsonObject = jsonObject[nameof(AllTypesModel.ClassThing)];
             if (!classThingJsonObject.IsNull)
             {
-                model1.ClassThing = new BasicModel();
+                model1.ClassThing = new SimpleModel();
                 model1.ClassThing.Value1 = (int)classThingJsonObject["Value1"];
                 model1.ClassThing.Value2 = (string)classThingJsonObject["Value2"];
             }
@@ -770,19 +1348,19 @@ namespace Zerra.Test
             var classThingNullJsonObject = jsonObject[nameof(AllTypesModel.ClassThingNull)];
             if (!classThingNullJsonObject.IsNull)
             {
-                model1.ClassThingNull = new BasicModel();
+                model1.ClassThingNull = new SimpleModel();
                 model1.ClassThingNull.Value1 = (int)classThingNullJsonObject["Value1"];
                 model1.ClassThingNull.Value2 = (string)classThingNullJsonObject["Value2"];
             }
 
 
             var classArrayJsonObject = jsonObject[nameof(AllTypesModel.ClassArray)];
-            var classArray = new List<BasicModel>();
+            var classArray = new List<SimpleModel>();
             foreach (var item in classArrayJsonObject)
             {
                 if (!item.IsNull)
                 {
-                    var obj = new BasicModel();
+                    var obj = new SimpleModel();
                     obj.Value1 = (int)item["Value1"];
                     obj.Value2 = (string)item["Value2"];
                     classArray.Add(obj);
@@ -795,12 +1373,12 @@ namespace Zerra.Test
             model1.ClassArray = classArray.ToArray();
 
             var classArrayEmptyJsonObject = jsonObject[nameof(AllTypesModel.ClassArrayEmpty)];
-            var classArrayEmpty = new List<BasicModel>();
+            var classArrayEmpty = new List<SimpleModel>();
             foreach (var item in classArrayEmptyJsonObject)
             {
                 if (!item.IsNull)
                 {
-                    var obj = new BasicModel();
+                    var obj = new SimpleModel();
                     obj.Value1 = (int)item["Value1"];
                     obj.Value2 = (string)item["Value2"];
                     classArrayEmpty.Add(obj);
@@ -813,12 +1391,12 @@ namespace Zerra.Test
             model1.ClassArrayEmpty = classArrayEmpty.ToArray();
 
             var classEnumerableJsonObject = jsonObject[nameof(AllTypesModel.ClassEnumerable)];
-            var classEnumerable = new List<BasicModel>();
+            var classEnumerable = new List<SimpleModel>();
             foreach (var item in classEnumerableJsonObject)
             {
                 if (!item.IsNull)
                 {
-                    var obj = new BasicModel();
+                    var obj = new SimpleModel();
                     obj.Value1 = (int)item["Value1"];
                     obj.Value2 = (string)item["Value2"];
                     classEnumerable.Add(obj);
@@ -831,12 +1409,12 @@ namespace Zerra.Test
             model1.ClassEnumerable = classEnumerable;
 
             var classListJsonObject = jsonObject[nameof(AllTypesModel.ClassList)];
-            var classList = new List<BasicModel>();
+            var classList = new List<SimpleModel>();
             foreach (var item in classListJsonObject)
             {
                 if (!item.IsNull)
                 {
-                    var obj = new BasicModel();
+                    var obj = new SimpleModel();
                     obj.Value1 = (int)item["Value1"];
                     obj.Value2 = (string)item["Value2"];
                     classList.Add(obj);
@@ -848,14 +1426,13 @@ namespace Zerra.Test
             }
             model1.ClassList = classList;
 
-
             var classListEmptyJsonObject = jsonObject[nameof(AllTypesModel.ClassListEmpty)];
-            var classListEmpty = new List<BasicModel>();
+            var classListEmpty = new List<SimpleModel>();
             foreach (var item in classListEmptyJsonObject)
             {
                 if (!item.IsNull)
                 {
-                    var obj = new BasicModel();
+                    var obj = new SimpleModel();
                     obj.Value1 = (int)item["Value1"];
                     obj.Value2 = (string)item["Value2"];
                     classListEmpty.Add(obj);
@@ -866,6 +1443,150 @@ namespace Zerra.Test
                 }
             }
             model1.ClassListEmpty = classListEmpty;
+
+            var classIListJsonObject = jsonObject[nameof(AllTypesModel.ClassIList)];
+            var classIList = new List<SimpleModel>();
+            foreach (var item in classIListJsonObject)
+            {
+                if (!item.IsNull)
+                {
+                    var obj = new SimpleModel();
+                    obj.Value1 = (int)item["Value1"];
+                    obj.Value2 = (string)item["Value2"];
+                    classIList.Add(obj);
+                }
+                else
+                {
+                    classIList.Add(null);
+                }
+            }
+            model1.ClassIList = classIList;
+
+            var classIListEmptyJsonObject = jsonObject[nameof(AllTypesModel.ClassIListEmpty)];
+            var classIListEmpty = new List<SimpleModel>();
+            foreach (var item in classIListEmptyJsonObject)
+            {
+                if (!item.IsNull)
+                {
+                    var obj = new SimpleModel();
+                    obj.Value1 = (int)item["Value1"];
+                    obj.Value2 = (string)item["Value2"];
+                    classIListEmpty.Add(obj);
+                }
+                else
+                {
+                    classIListEmpty.Add(null);
+                }
+            }
+            model1.ClassIListEmpty = classIListEmpty;
+
+            var classIReadOnlyListJsonObject = jsonObject[nameof(AllTypesModel.ClassIReadOnlyList)];
+            var classIReadOnlyList = new List<SimpleModel>();
+            foreach (var item in classIReadOnlyListJsonObject)
+            {
+                if (!item.IsNull)
+                {
+                    var obj = new SimpleModel();
+                    obj.Value1 = (int)item["Value1"];
+                    obj.Value2 = (string)item["Value2"];
+                    classIReadOnlyList.Add(obj);
+                }
+                else
+                {
+                    classIReadOnlyList.Add(null);
+                }
+            }
+            model1.ClassIReadOnlyList = classIReadOnlyList;
+
+            var classIReadOnlyListEmptyJsonObject = jsonObject[nameof(AllTypesModel.ClassIReadOnlyListEmpty)];
+            var classIReadOnlyListEmpty = new List<SimpleModel>();
+            foreach (var item in classIReadOnlyListEmptyJsonObject)
+            {
+                if (!item.IsNull)
+                {
+                    var obj = new SimpleModel();
+                    obj.Value1 = (int)item["Value1"];
+                    obj.Value2 = (string)item["Value2"];
+                    classIReadOnlyListEmpty.Add(obj);
+                }
+                else
+                {
+                    classIReadOnlyListEmpty.Add(null);
+                }
+            }
+            model1.ClassIReadOnlyListEmpty = classIReadOnlyListEmpty;
+
+            var classICollectionJsonObject = jsonObject[nameof(AllTypesModel.ClassICollection)];
+            var classICollection = new List<SimpleModel>();
+            foreach (var item in classICollectionJsonObject)
+            {
+                if (!item.IsNull)
+                {
+                    var obj = new SimpleModel();
+                    obj.Value1 = (int)item["Value1"];
+                    obj.Value2 = (string)item["Value2"];
+                    classICollection.Add(obj);
+                }
+                else
+                {
+                    classICollection.Add(null);
+                }
+            }
+            model1.ClassICollection = classICollection;
+
+            var classICollectionEmptyJsonObject = jsonObject[nameof(AllTypesModel.ClassICollectionEmpty)];
+            var classICollectionEmpty = new List<SimpleModel>();
+            foreach (var item in classICollectionEmptyJsonObject)
+            {
+                if (!item.IsNull)
+                {
+                    var obj = new SimpleModel();
+                    obj.Value1 = (int)item["Value1"];
+                    obj.Value2 = (string)item["Value2"];
+                    classICollectionEmpty.Add(obj);
+                }
+                else
+                {
+                    classICollectionEmpty.Add(null);
+                }
+            }
+            model1.ClassICollectionEmpty = classICollectionEmpty;
+
+            var classIReadOnlyCollectionJsonObject = jsonObject[nameof(AllTypesModel.ClassIReadOnlyCollection)];
+            var classIReadOnlyCollection = new List<SimpleModel>();
+            foreach (var item in classIReadOnlyCollectionJsonObject)
+            {
+                if (!item.IsNull)
+                {
+                    var obj = new SimpleModel();
+                    obj.Value1 = (int)item["Value1"];
+                    obj.Value2 = (string)item["Value2"];
+                    classIReadOnlyCollection.Add(obj);
+                }
+                else
+                {
+                    classIReadOnlyCollection.Add(null);
+                }
+            }
+            model1.ClassIReadOnlyCollection = classIReadOnlyCollection;
+
+            var classIReadOnlyCollectionEmptyJsonObject = jsonObject[nameof(AllTypesModel.ClassIReadOnlyCollectionEmpty)];
+            var classIReadOnlyCollectionEmpty = new List<SimpleModel>();
+            foreach (var item in classIReadOnlyCollectionEmptyJsonObject)
+            {
+                if (!item.IsNull)
+                {
+                    var obj = new SimpleModel();
+                    obj.Value1 = (int)item["Value1"];
+                    obj.Value2 = (string)item["Value2"];
+                    classIReadOnlyCollectionEmpty.Add(obj);
+                }
+                else
+                {
+                    classIReadOnlyCollectionEmpty.Add(null);
+                }
+            }
+            model1.ClassIReadOnlyCollectionEmpty = classIReadOnlyCollectionEmpty;
 
             var dictionaryThingJsonObject1 = jsonObject[nameof(AllTypesModel.DictionaryThing1)];
             model1.DictionaryThing1 = new Dictionary<int, string>(
@@ -879,13 +1600,79 @@ namespace Zerra.Test
             );
 
             var dictionaryThingJsonObject2 = jsonObject[nameof(AllTypesModel.DictionaryThing2)];
-            model1.DictionaryThing2 = new Dictionary<int, BasicModel>(
-                new KeyValuePair<int, BasicModel>[]
+            model1.DictionaryThing2 = new Dictionary<int, SimpleModel>(
+                new KeyValuePair<int, SimpleModel>[]
                 {
-                    new(1, dictionaryThingJsonObject2["1"].Bind<BasicModel>()),
-                    new(2, dictionaryThingJsonObject2["2"].Bind<BasicModel>()),
-                    new(3, dictionaryThingJsonObject2["3"].Bind<BasicModel>()),
-                    new(4, dictionaryThingJsonObject2["4"].Bind<BasicModel>()),
+                    new(1, dictionaryThingJsonObject2["1"].Bind<SimpleModel>()),
+                    new(2, dictionaryThingJsonObject2["2"].Bind<SimpleModel>()),
+                    new(3, dictionaryThingJsonObject2["3"].Bind<SimpleModel>()),
+                    new(4, dictionaryThingJsonObject2["4"].Bind<SimpleModel>()),
+                }
+            );
+
+            var dictionaryThingJsonObject3 = jsonObject[nameof(AllTypesModel.DictionaryThing3)];
+            model1.DictionaryThing3 = new Dictionary<int, string>(
+                new KeyValuePair<int, string>[]
+                {
+                    new(1, (string)dictionaryThingJsonObject3["1"]),
+                    new(2, (string)dictionaryThingJsonObject3["2"]),
+                    new(3, (string)dictionaryThingJsonObject3["3"]),
+                    new(4, (string)dictionaryThingJsonObject3["4"]),
+                }
+            );
+
+            var dictionaryThingJsonObject4 = jsonObject[nameof(AllTypesModel.DictionaryThing4)];
+            model1.DictionaryThing4 = new Dictionary<int, SimpleModel>(
+                new KeyValuePair<int, SimpleModel>[]
+                {
+                    new(1, dictionaryThingJsonObject4["1"].Bind<SimpleModel>()),
+                    new(2, dictionaryThingJsonObject4["2"].Bind<SimpleModel>()),
+                    new(3, dictionaryThingJsonObject4["3"].Bind<SimpleModel>()),
+                    new(4, dictionaryThingJsonObject4["4"].Bind<SimpleModel>()),
+                }
+            );
+
+            var dictionaryThingJsonObject5 = jsonObject[nameof(AllTypesModel.DictionaryThing5)];
+            model1.DictionaryThing5 = new Dictionary<int, string>(
+                new KeyValuePair<int, string>[]
+                {
+                    new(1, (string)dictionaryThingJsonObject5["1"]),
+                    new(2, (string)dictionaryThingJsonObject5["2"]),
+                    new(3, (string)dictionaryThingJsonObject5["3"]),
+                    new(4, (string)dictionaryThingJsonObject5["4"]),
+                }
+            );
+
+            var dictionaryThingJsonObject6 = jsonObject[nameof(AllTypesModel.DictionaryThing6)];
+            model1.DictionaryThing6 = new Dictionary<int, SimpleModel>(
+                new KeyValuePair<int, SimpleModel>[]
+                {
+                    new(1, dictionaryThingJsonObject6["1"].Bind<SimpleModel>()),
+                    new(2, dictionaryThingJsonObject6["2"].Bind<SimpleModel>()),
+                    new(3, dictionaryThingJsonObject6["3"].Bind<SimpleModel>()),
+                    new(4, dictionaryThingJsonObject6["4"].Bind<SimpleModel>()),
+                }
+            );
+
+            var dictionaryThingJsonObject7 = jsonObject[nameof(AllTypesModel.DictionaryThing7)];
+            model1.DictionaryThing7 = new ConcurrentDictionary<int, string>(
+                new KeyValuePair<int, string>[]
+                {
+                    new(1, (string)dictionaryThingJsonObject7["1"]),
+                    new(2, (string)dictionaryThingJsonObject7["2"]),
+                    new(3, (string)dictionaryThingJsonObject7["3"]),
+                    new(4, (string)dictionaryThingJsonObject7["4"]),
+                }
+            );
+
+            var dictionaryThingJsonObject8 = jsonObject[nameof(AllTypesModel.DictionaryThing8)];
+            model1.DictionaryThing8 = new ConcurrentDictionary<int, SimpleModel>(
+                new KeyValuePair<int, SimpleModel>[]
+                {
+                    new(1, dictionaryThingJsonObject8["1"].Bind<SimpleModel>()),
+                    new(2, dictionaryThingJsonObject8["2"].Bind<SimpleModel>()),
+                    new(3, dictionaryThingJsonObject8["3"].Bind<SimpleModel>()),
+                    new(4, dictionaryThingJsonObject8["4"].Bind<SimpleModel>()),
                 }
             );
 
@@ -907,10 +1694,10 @@ namespace Zerra.Test
             }
             model1.StringArrayOfArrayThing = stringList.ToArray();
 
-            Factory.AssertAreEqual(baseModel, model1);
+            AssertHelper.AreEqual(baseModel, model1);
 
             var model2 = jsonObject.Bind<AllTypesModel>();
-            Factory.AssertAreEqual(baseModel, model2);
+            AssertHelper.AreEqual(baseModel, model2);
         }
 
         [TestMethod]
@@ -941,7 +1728,7 @@ namespace Zerra.Test
         [TestMethod]
         public void StringEmptyModel()
         {
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
             var json = JsonSerializer.Serialize(baseModel);
             var model = JsonSerializer.Deserialize<EmptyModel>(json);
             Assert.IsNotNull(model);
@@ -963,15 +1750,15 @@ namespace Zerra.Test
         [TestMethod]
         public void StringReducedModel()
         {
-            var model1 = Factory.GetCoreTypesAlternatingModel();
+            var model1 = CoreTypesAlternatingModel.Create();
             var json1 = JsonSerializer.Serialize(model1);
             var result1 = JsonSerializer.Deserialize<CoreTypesModel>(json1);
-            Factory.AssertAreEqual(model1, result1);
+            AssertHelper.AreEqual(model1, result1);
 
-            var model2 = Factory.GetCoreTypesModel();
+            var model2 = CoreTypesModel.Create();
             var json2 = JsonSerializer.Serialize(model2);
             var result2 = JsonSerializer.Deserialize<CoreTypesAlternatingModel>(json2);
-            Factory.AssertAreEqual(result2, model2);
+            AssertHelper.AreEqual(result2, model2);
         }
 
         [TestMethod]
@@ -979,19 +1766,19 @@ namespace Zerra.Test
         {
             var models = new List<AllTypesModel>();
             for (var i = 0; i < 1000; i++)
-                models.Add(Factory.GetAllTypesModel());
+                models.Add(AllTypesModel.Create());
 
             var json = JsonSerializer.Serialize(models);
             var result = JsonSerializer.Deserialize<AllTypesModel[]>(json);
 
             for (var i = 0; i < models.Count; i++)
-                Factory.AssertAreEqual(models[i], result[i]);
+                AssertHelper.AreEqual(models[i], result[i]);
         }
 
         [TestMethod]
         public void StringBoxing()
         {
-            var baseModel = Factory.GetBoxingModel();
+            var baseModel = TestBoxingModel.Create();
             var json = JsonSerializer.Serialize(baseModel);
             var model = JsonSerializer.Deserialize<TestBoxingModel>(json);
         }
@@ -999,10 +1786,10 @@ namespace Zerra.Test
         [TestMethod]
         public void StringHashSet()
         {
-            var model1 = Factory.GetHashSetModel();
+            var model1 = HashSetModel.Create();
             var json = JsonSerializer.Serialize(model1);
             var model2 = JsonSerializer.Deserialize<HashSetModel>(json);
-            Factory.AssertAreEqual(model1, model2);
+            AssertHelper.AreEqual(model1, model2);
         }
 
         [TestMethod]
@@ -1024,7 +1811,7 @@ namespace Zerra.Test
             {
                 _1_Property = 5,
                 property2 = 7,
-                _3_Property = new BasicModel()
+                _3_Property = new SimpleModel()
                 {
                     Value1 = 10,
                     Value2 = "11"
@@ -1050,7 +1837,7 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamMatchesNewtonsoft()
         {
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
 
             using var stream1 = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream1, baseModel);
@@ -1070,7 +1857,7 @@ namespace Zerra.Test
                 new Newtonsoft.Json.Converters.StringEnumConverter(),
                 new NewtonsoftDateOnlyConverter(),
                 new NewtonsoftTimeOnlyConverter());
-            Factory.AssertAreEqual(model1, model2);
+            AssertHelper.AreEqual(model1, model2);
         }
 
         [TestMethod]
@@ -1079,7 +1866,7 @@ namespace Zerra.Test
             var options = new System.Text.Json.JsonSerializerOptions();
             options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
 
             using var stream1 = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream1, baseModel);
@@ -1102,13 +1889,13 @@ namespace Zerra.Test
             using var stream4 = new MemoryStream(Encoding.UTF8.GetBytes(json1));
             var model2 = await System.Text.Json.JsonSerializer.DeserializeAsync<AllTypesModel>(stream4, options);
 
-            Factory.AssertAreEqual(model1, model2);
+            AssertHelper.AreEqual(model1, model2);
         }
 
         [TestMethod]
         public async Task StreamTypes()
         {
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
 
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, baseModel);
@@ -1118,7 +1905,7 @@ namespace Zerra.Test
 
             stream.Position = 0;
             var model = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream);
-            Factory.AssertAreEqual(baseModel, model);
+            AssertHelper.AreEqual(baseModel, model);
         }
 
         [TestMethod]
@@ -1129,7 +1916,7 @@ namespace Zerra.Test
                 EnumAsNumber = true
             };
 
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
 
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, baseModel, options);
@@ -1144,47 +1931,47 @@ namespace Zerra.Test
 
             stream.Position = 0;
             var model = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream, options);
-            Factory.AssertAreEqual(baseModel, model);
+            AssertHelper.AreEqual(baseModel, model);
         }
 
         [TestMethod]
         public async Task StreamConvertNullables()
         {
-            var baseModel = Factory.GetBasicTypesNotNullableModel();
+            var baseModel = BasicTypesNotNullable.Create();
 
             using var stream1 = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream1, baseModel);
 
             stream1.Position = 0;
             var model1 = await JsonSerializer.DeserializeAsync<BasicTypesNullable>(stream1);
-            Factory.AssertAreEqual(baseModel, model1);
+            BasicTypesNotNullable.AssertAreEqual(baseModel, model1);
 
             using var stream2 = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream2, model1);
 
             stream2.Position = 0;
             var model2 = await JsonSerializer.DeserializeAsync<BasicTypesNotNullable>(stream2);
-            Factory.AssertAreEqual(baseModel, model2);
+            BasicTypesNotNullable.AssertAreEqual(baseModel, model2);
         }
 
         [TestMethod]
         public async Task StreamConvertTypes()
         {
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
 
             using var stream1 = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream1, baseModel);
 
             stream1.Position = 0;
             var model1 = await JsonSerializer.DeserializeAsync<AllTypesAsStringsModel>(stream1);
-            Factory.AssertAreEqual(baseModel, model1);
+            AllTypesModel.AreEqual(baseModel, model1);
 
             using var stream2 = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream2, model1);
 
             stream2.Position = 0;
             var model2 = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream2);
-            Factory.AssertAreEqual(baseModel, model2);
+            AssertHelper.AreEqual(baseModel, model2);
         }
 
         [TestMethod]
@@ -1390,7 +2177,7 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamPretty()
         {
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
             using var stream1 = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream1, baseModel);
             using var sr1 = new StreamReader(stream1, Encoding.UTF8);
@@ -1409,7 +2196,7 @@ namespace Zerra.Test
 
             using var stream2 = new MemoryStream(Encoding.UTF8.GetBytes(jsonPretty));
             var model = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream2);
-            Factory.AssertAreEqual(baseModel, model);
+            AssertHelper.AreEqual(baseModel, model);
         }
 
         [TestMethod]
@@ -1420,14 +2207,14 @@ namespace Zerra.Test
                 Nameless = true
             };
 
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
 
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, baseModel, options);
 
             stream.Position = 0;
             var model = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream, options);
-            Factory.AssertAreEqual(baseModel, model);
+            AssertHelper.AreEqual(baseModel, model);
         }
 
         [TestMethod]
@@ -1438,14 +2225,14 @@ namespace Zerra.Test
                 DoNotWriteNullProperties = true
             };
 
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
 
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, baseModel, options);
 
             stream.Position = 0;
             var model = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream, options);
-            Factory.AssertAreEqual(baseModel, model);
+            AssertHelper.AreEqual(baseModel, model);
         }
 
         [TestMethod]
@@ -1539,261 +2326,6 @@ namespace Zerra.Test
             }
         }
 
-        //[TestMethod]
-        //public async Task StreamJsonObject()
-        //{
-        //    var baseModel = Factory.GetAllTypesModel();
-        //    var json = JsonSerializer.Serialize(baseModel);
-        //    var jsonObject = JsonSerializer.DeserializeJsonObject(json);
-
-        //    var json2 = jsonObject.ToString();
-
-        //    Assert.AreEqual(json, json2);
-
-        //    var model1 = new AllTypesModel();
-
-        //    model1.BooleanThing = (bool)jsonObject[nameof(AllTypesModel.BooleanThing)];
-        //    model1.ByteThing = (byte)jsonObject[nameof(AllTypesModel.ByteThing)];
-        //    model1.SByteThing = (sbyte)jsonObject[nameof(AllTypesModel.SByteThing)];
-        //    model1.Int16Thing = (short)jsonObject[nameof(AllTypesModel.Int16Thing)];
-        //    model1.UInt16Thing = (ushort)jsonObject[nameof(AllTypesModel.UInt16Thing)];
-        //    model1.Int32Thing = (int)jsonObject[nameof(AllTypesModel.Int32Thing)];
-        //    model1.UInt32Thing = (uint)jsonObject[nameof(AllTypesModel.UInt32Thing)];
-        //    model1.Int64Thing = (long)jsonObject[nameof(AllTypesModel.Int64Thing)];
-        //    model1.UInt64Thing = (ulong)jsonObject[nameof(AllTypesModel.UInt64Thing)];
-        //    model1.SingleThing = (float)jsonObject[nameof(AllTypesModel.SingleThing)];
-        //    model1.DoubleThing = (double)jsonObject[nameof(AllTypesModel.DoubleThing)];
-        //    model1.DecimalThing = (decimal)jsonObject[nameof(AllTypesModel.DecimalThing)];
-        //    model1.CharThing = (char)jsonObject[nameof(AllTypesModel.CharThing)];
-        //    model1.DateTimeThing = (DateTime)jsonObject[nameof(AllTypesModel.DateTimeThing)];
-        //    model1.DateTimeOffsetThing = (DateTimeOffset)jsonObject[nameof(AllTypesModel.DateTimeOffsetThing)];
-        //    model1.TimeSpanThing = (TimeSpan)jsonObject[nameof(AllTypesModel.TimeSpanThing)];
-        //    model1.GuidThing = (Guid)jsonObject[nameof(AllTypesModel.GuidThing)];
-
-        //    model1.BooleanThingNullable = (bool?)jsonObject[nameof(AllTypesModel.BooleanThingNullable)];
-        //    model1.ByteThingNullable = (byte?)jsonObject[nameof(AllTypesModel.ByteThingNullable)];
-        //    model1.SByteThingNullable = (sbyte?)jsonObject[nameof(AllTypesModel.SByteThingNullable)];
-        //    model1.Int16ThingNullable = (short?)jsonObject[nameof(AllTypesModel.Int16ThingNullable)];
-        //    model1.UInt16ThingNullable = (ushort?)jsonObject[nameof(AllTypesModel.UInt16ThingNullable)];
-        //    model1.Int32ThingNullable = (int?)jsonObject[nameof(AllTypesModel.Int32ThingNullable)];
-        //    model1.UInt32ThingNullable = (uint?)jsonObject[nameof(AllTypesModel.UInt32ThingNullable)];
-        //    model1.Int64ThingNullable = (long?)jsonObject[nameof(AllTypesModel.Int64ThingNullable)];
-        //    model1.UInt64ThingNullable = (ulong?)jsonObject[nameof(AllTypesModel.UInt64ThingNullable)];
-        //    model1.SingleThingNullable = (float?)jsonObject[nameof(AllTypesModel.SingleThingNullable)];
-        //    model1.DoubleThingNullable = (double?)jsonObject[nameof(AllTypesModel.DoubleThingNullable)];
-        //    model1.DecimalThingNullable = (decimal?)jsonObject[nameof(AllTypesModel.DecimalThingNullable)];
-        //    model1.CharThingNullable = (char?)jsonObject[nameof(AllTypesModel.CharThingNullable)];
-        //    model1.DateTimeThingNullable = (DateTime?)jsonObject[nameof(AllTypesModel.DateTimeThingNullable)];
-        //    model1.DateTimeOffsetThingNullable = (DateTimeOffset?)jsonObject[nameof(AllTypesModel.DateTimeOffsetThingNullable)];
-        //    model1.TimeSpanThingNullable = (TimeSpan?)jsonObject[nameof(AllTypesModel.TimeSpanThingNullable)];
-        //    model1.GuidThingNullable = (Guid?)jsonObject[nameof(AllTypesModel.GuidThingNullable)];
-
-        //    model1.BooleanThingNullableNull = (bool?)jsonObject[nameof(AllTypesModel.BooleanThingNullableNull)];
-        //    model1.ByteThingNullableNull = (byte?)jsonObject[nameof(AllTypesModel.ByteThingNullableNull)];
-        //    model1.SByteThingNullableNull = (sbyte?)jsonObject[nameof(AllTypesModel.SByteThingNullableNull)];
-        //    model1.Int16ThingNullableNull = (short?)jsonObject[nameof(AllTypesModel.Int16ThingNullableNull)];
-        //    model1.UInt16ThingNullableNull = (ushort?)jsonObject[nameof(AllTypesModel.UInt16ThingNullableNull)];
-        //    model1.Int32ThingNullableNull = (int?)jsonObject[nameof(AllTypesModel.Int32ThingNullableNull)];
-        //    model1.UInt32ThingNullableNull = (uint?)jsonObject[nameof(AllTypesModel.UInt32ThingNullableNull)];
-        //    model1.Int64ThingNullableNull = (long?)jsonObject[nameof(AllTypesModel.Int64ThingNullableNull)];
-        //    model1.UInt64ThingNullableNull = (ulong?)jsonObject[nameof(AllTypesModel.UInt64ThingNullableNull)];
-        //    model1.SingleThingNullableNull = (float?)jsonObject[nameof(AllTypesModel.SingleThingNullableNull)];
-        //    model1.DoubleThingNullableNull = (double?)jsonObject[nameof(AllTypesModel.DoubleThingNullableNull)];
-        //    model1.DecimalThingNullableNull = (decimal?)jsonObject[nameof(AllTypesModel.DecimalThingNullableNull)];
-        //    model1.CharThingNullableNull = (char?)jsonObject[nameof(AllTypesModel.CharThingNullableNull)];
-        //    model1.DateTimeThingNullableNull = (DateTime?)jsonObject[nameof(AllTypesModel.DateTimeThingNullableNull)];
-        //    model1.DateTimeOffsetThingNullableNull = (DateTimeOffset?)jsonObject[nameof(AllTypesModel.DateTimeOffsetThingNullableNull)];
-        //    model1.TimeSpanThingNullableNull = (TimeSpan?)jsonObject[nameof(AllTypesModel.TimeSpanThingNullableNull)];
-        //    model1.GuidThingNullableNull = (Guid?)jsonObject[nameof(AllTypesModel.GuidThingNullableNull)];
-
-        //    model1.StringThing = (string)jsonObject[nameof(AllTypesModel.StringThing)];
-        //    model1.StringThingNull = (string)jsonObject[nameof(AllTypesModel.StringThingNull)];
-        //    model1.StringThingEmpty = (string)jsonObject[nameof(AllTypesModel.StringThingEmpty)];
-
-        //    model1.EnumThing = (EnumModel)Enum.Parse(typeof(EnumModel), (string)jsonObject[nameof(AllTypesModel.EnumThing)]);
-        //    model1.EnumThingNullable = (EnumModel)Enum.Parse(typeof(EnumModel), (string)jsonObject[nameof(AllTypesModel.EnumThingNullable)]);
-        //    model1.EnumThingNullableNull = ((string)jsonObject[nameof(AllTypesModel.EnumThingNullableNull)]) == null ? (EnumModel?)null : EnumModel.Item1;
-
-        //    model1.BooleanArray = (bool[])jsonObject[nameof(AllTypesModel.BooleanArray)];
-        //    model1.ByteArray = (byte[])jsonObject[nameof(AllTypesModel.ByteArray)];
-        //    model1.SByteArray = (sbyte[])jsonObject[nameof(AllTypesModel.SByteArray)];
-        //    model1.Int16Array = (short[])jsonObject[nameof(AllTypesModel.Int16Array)];
-        //    model1.UInt16Array = (ushort[])jsonObject[nameof(AllTypesModel.UInt16Array)];
-        //    model1.Int32Array = (int[])jsonObject[nameof(AllTypesModel.Int32Array)];
-        //    model1.UInt32Array = (uint[])jsonObject[nameof(AllTypesModel.UInt32Array)];
-        //    model1.Int64Array = (long[])jsonObject[nameof(AllTypesModel.Int64Array)];
-        //    model1.UInt64Array = (ulong[])jsonObject[nameof(AllTypesModel.UInt64Array)];
-        //    model1.SingleArray = (float[])jsonObject[nameof(AllTypesModel.SingleArray)];
-        //    model1.DoubleArray = (double[])jsonObject[nameof(AllTypesModel.DoubleArray)];
-        //    model1.DecimalArray = (decimal[])jsonObject[nameof(AllTypesModel.DecimalArray)];
-        //    model1.CharArray = (char[])jsonObject[nameof(AllTypesModel.CharArray)];
-        //    model1.DateTimeArray = (DateTime[])jsonObject[nameof(AllTypesModel.DateTimeArray)];
-        //    model1.DateTimeOffsetArray = (DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetArray)];
-        //    model1.TimeSpanArray = (TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanArray)];
-        //    model1.GuidArray = (Guid[])jsonObject[nameof(AllTypesModel.GuidArray)];
-
-        //    model1.BooleanArrayNullable = (bool?[])jsonObject[nameof(AllTypesModel.BooleanArrayNullable)];
-        //    model1.ByteArrayNullable = (byte?[])jsonObject[nameof(AllTypesModel.ByteArrayNullable)];
-        //    model1.SByteArrayNullable = (sbyte?[])jsonObject[nameof(AllTypesModel.SByteArrayNullable)];
-        //    model1.Int16ArrayNullable = (short?[])jsonObject[nameof(AllTypesModel.Int16ArrayNullable)];
-        //    model1.UInt16ArrayNullable = (ushort?[])jsonObject[nameof(AllTypesModel.UInt16ArrayNullable)];
-        //    model1.Int32ArrayNullable = (int?[])jsonObject[nameof(AllTypesModel.Int32ArrayNullable)];
-        //    model1.UInt32ArrayNullable = (uint?[])jsonObject[nameof(AllTypesModel.UInt32ArrayNullable)];
-        //    model1.Int64ArrayNullable = (long?[])jsonObject[nameof(AllTypesModel.Int64ArrayNullable)];
-        //    model1.UInt64ArrayNullable = (ulong?[])jsonObject[nameof(AllTypesModel.UInt64ArrayNullable)];
-        //    model1.SingleArrayNullable = (float?[])jsonObject[nameof(AllTypesModel.SingleArrayNullable)];
-        //    model1.DoubleArrayNullable = (double?[])jsonObject[nameof(AllTypesModel.DoubleArrayNullable)];
-        //    model1.DecimalArrayNullable = (decimal?[])jsonObject[nameof(AllTypesModel.DecimalArrayNullable)];
-        //    model1.CharArrayNullable = (char?[])jsonObject[nameof(AllTypesModel.CharArrayNullable)];
-        //    model1.DateTimeArrayNullable = (DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeArrayNullable)];
-        //    model1.DateTimeOffsetArrayNullable = (DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetArrayNullable)];
-        //    model1.TimeSpanArrayNullable = (TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanArrayNullable)];
-        //    model1.GuidArrayNullable = (Guid?[])jsonObject[nameof(AllTypesModel.GuidArrayNullable)];
-
-        //    model1.StringArray = (string[])jsonObject[nameof(AllTypesModel.StringArray)];
-        //    model1.StringEmptyArray = (string[])jsonObject[nameof(AllTypesModel.StringEmptyArray)];
-
-        //    model1.EnumArray = ((string[])jsonObject[nameof(AllTypesModel.EnumArray)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray();
-        //    model1.EnumArrayNullable = ((string[])jsonObject[nameof(AllTypesModel.EnumArrayNullable)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray();
-
-        //    model1.BooleanList = ((bool[])jsonObject[nameof(AllTypesModel.BooleanList)]).ToList();
-        //    model1.ByteList = ((byte[])jsonObject[nameof(AllTypesModel.ByteList)]).ToList();
-        //    model1.SByteList = ((sbyte[])jsonObject[nameof(AllTypesModel.SByteList)]).ToList();
-        //    model1.Int16List = ((short[])jsonObject[nameof(AllTypesModel.Int16List)]).ToList();
-        //    model1.UInt16List = ((ushort[])jsonObject[nameof(AllTypesModel.UInt16List)]).ToList();
-        //    model1.Int32List = ((int[])jsonObject[nameof(AllTypesModel.Int32List)]).ToList();
-        //    model1.UInt32List = ((uint[])jsonObject[nameof(AllTypesModel.UInt32List)]).ToList();
-        //    model1.Int64List = ((long[])jsonObject[nameof(AllTypesModel.Int64List)]).ToList();
-        //    model1.UInt64List = ((ulong[])jsonObject[nameof(AllTypesModel.UInt64List)]).ToList();
-        //    model1.SingleList = ((float[])jsonObject[nameof(AllTypesModel.SingleList)]).ToList();
-        //    model1.DoubleList = ((double[])jsonObject[nameof(AllTypesModel.DoubleList)]).ToList();
-        //    model1.DecimalList = ((decimal[])jsonObject[nameof(AllTypesModel.DecimalList)]).ToList();
-        //    model1.CharList = ((char[])jsonObject[nameof(AllTypesModel.CharList)]).ToList();
-        //    model1.DateTimeList = ((DateTime[])jsonObject[nameof(AllTypesModel.DateTimeList)]).ToList();
-        //    model1.DateTimeOffsetList = ((DateTimeOffset[])jsonObject[nameof(AllTypesModel.DateTimeOffsetList)]).ToList();
-        //    model1.TimeSpanList = ((TimeSpan[])jsonObject[nameof(AllTypesModel.TimeSpanList)]).ToList();
-        //    model1.GuidList = ((Guid[])jsonObject[nameof(AllTypesModel.GuidList)]).ToList();
-
-        //    model1.BooleanListNullable = ((bool?[])jsonObject[nameof(AllTypesModel.BooleanListNullable)]).ToList();
-        //    model1.ByteListNullable = ((byte?[])jsonObject[nameof(AllTypesModel.ByteListNullable)]).ToList();
-        //    model1.SByteListNullable = ((sbyte?[])jsonObject[nameof(AllTypesModel.SByteListNullable)]).ToList();
-        //    model1.Int16ListNullable = ((short?[])jsonObject[nameof(AllTypesModel.Int16ListNullable)]).ToList();
-        //    model1.UInt16ListNullable = ((ushort?[])jsonObject[nameof(AllTypesModel.UInt16ListNullable)]).ToList();
-        //    model1.Int32ListNullable = ((int?[])jsonObject[nameof(AllTypesModel.Int32ListNullable)]).ToList();
-        //    model1.UInt32ListNullable = ((uint?[])jsonObject[nameof(AllTypesModel.UInt32ListNullable)]).ToList();
-        //    model1.Int64ListNullable = ((long?[])jsonObject[nameof(AllTypesModel.Int64ListNullable)]).ToList();
-        //    model1.UInt64ListNullable = ((ulong?[])jsonObject[nameof(AllTypesModel.UInt64ListNullable)]).ToList();
-        //    model1.SingleListNullable = ((float?[])jsonObject[nameof(AllTypesModel.SingleListNullable)]).ToList();
-        //    model1.DoubleListNullable = ((double?[])jsonObject[nameof(AllTypesModel.DoubleListNullable)]).ToList();
-        //    model1.DecimalListNullable = ((decimal?[])jsonObject[nameof(AllTypesModel.DecimalListNullable)]).ToList();
-        //    model1.CharListNullable = ((char?[])jsonObject[nameof(AllTypesModel.CharListNullable)]).ToList();
-        //    model1.DateTimeListNullable = ((DateTime?[])jsonObject[nameof(AllTypesModel.DateTimeListNullable)]).ToList();
-        //    model1.DateTimeOffsetListNullable = ((DateTimeOffset?[])jsonObject[nameof(AllTypesModel.DateTimeOffsetListNullable)]).ToList();
-        //    model1.TimeSpanListNullable = ((TimeSpan?[])jsonObject[nameof(AllTypesModel.TimeSpanListNullable)]).ToList();
-        //    model1.GuidListNullable = ((Guid?[])jsonObject[nameof(AllTypesModel.GuidListNullable)]).ToList();
-
-        //    model1.StringList = ((string[])jsonObject[nameof(AllTypesModel.StringList)]).ToList();
-
-        //    model1.EnumList = (((string[])jsonObject[nameof(AllTypesModel.EnumList)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToList()).ToList();
-        //    model1.EnumListNullable = (((string[])jsonObject[nameof(AllTypesModel.EnumListNullable)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray()).ToList();
-
-        //    var classThingJsonObject = jsonObject[nameof(AllTypesModel.ClassThing)];
-        //    if (!classThingJsonObject.IsNull)
-        //    {
-        //        model1.ClassThing = new BasicModel();
-        //        model1.ClassThing.Value = (int)classThingJsonObject["Value"];
-        //    }
-
-        //    var classThingNullJsonObject = jsonObject[nameof(AllTypesModel.ClassThingNull)];
-        //    if (!classThingNullJsonObject.IsNull)
-        //    {
-        //        model1.ClassThingNull = new BasicModel();
-        //        model1.ClassThingNull.Value = (int)classThingNullJsonObject["Value"];
-        //    }
-
-
-        //    var classArrayJsonObject = jsonObject[nameof(AllTypesModel.ClassArray)];
-        //    var classArray = new List<BasicModel>();
-        //    foreach (var item in classArrayJsonObject)
-        //    {
-        //        if (!item.IsNull)
-        //        {
-        //            var obj = new BasicModel();
-        //            obj.Value = (int)item["Value"];
-        //            classArray.Add(obj);
-        //        }
-        //        else
-        //        {
-        //            classArray.Add(null);
-        //        }
-        //    }
-        //    model1.ClassArray = classArray.ToArray();
-
-        //    var classEnumerableJsonObject = jsonObject[nameof(AllTypesModel.ClassEnumerable)];
-        //    var classEnumerable = new List<BasicModel>();
-        //    foreach (var item in classEnumerableJsonObject)
-        //    {
-        //        if (!item.IsNull)
-        //        {
-        //            var obj = new BasicModel();
-        //            obj.Value = (int)item["Value"];
-        //            classEnumerable.Add(obj);
-        //        }
-        //        else
-        //        {
-        //            classEnumerable.Add(null);
-        //        }
-        //    }
-        //    model1.ClassEnumerable = classEnumerable;
-
-        //    var classListJsonObject = jsonObject[nameof(AllTypesModel.ClassList)];
-        //    var classList = new List<BasicModel>();
-        //    foreach (var item in classListJsonObject)
-        //    {
-        //        if (!item.IsNull)
-        //        {
-        //            var obj = new BasicModel();
-        //            obj.Value = (int)item["Value"];
-        //            classList.Add(obj);
-        //        }
-        //        else
-        //        {
-        //            classList.Add(null);
-        //        }
-        //    }
-        //    model1.ClassList = classList;
-
-        //    var dictionaryThingJsonObject = jsonObject[nameof(AllTypesModel.DictionaryThing)];
-        //    model1.DictionaryThing = new Dictionary<int, string>();
-        //    model1.DictionaryThing.Add(1, (string)dictionaryThingJsonObject["1"]);
-        //    model1.DictionaryThing.Add(2, (string)dictionaryThingJsonObject["2"]);
-        //    model1.DictionaryThing.Add(3, (string)dictionaryThingJsonObject["3"]);
-        //    model1.DictionaryThing.Add(4, (string)dictionaryThingJsonObject["4"]);
-
-        //    var stringArrayOfArrayThingJsonObject = jsonObject[nameof(AllTypesModel.StringArrayOfArrayThing)];
-        //    var stringList = new List<string[]>();
-        //    foreach (var item in stringArrayOfArrayThingJsonObject)
-        //    {
-        //        if (item.IsNull)
-        //        {
-        //            stringList.Add(null);
-        //            continue;
-        //        }
-        //        var stringSubList = new List<string>();
-        //        foreach (var sub in item)
-        //        {
-        //            stringSubList.Add((string)sub);
-        //        }
-        //        stringList.Add(stringSubList.ToArray());
-        //    }
-        //    model1.StringArrayOfArrayThing = stringList.ToArray();
-
-        //    Factory.AssertAreEqual(baseModel, model1);
-
-        //    var model2 = jsonObject.Bind<AllTypesModel>();
-        //    Factory.AssertAreEqual(baseModel, model2);
-        //}
-
         [TestMethod]
         public async Task StreamExceptionObject()
         {
@@ -1826,7 +2358,7 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamEmptyModel()
         {
-            var baseModel = Factory.GetAllTypesModel();
+            var baseModel = AllTypesModel.Create();
 
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, baseModel);
@@ -1854,19 +2386,19 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamReducedModel()
         {
-            var model1 = Factory.GetCoreTypesAlternatingModel();
+            var model1 = CoreTypesAlternatingModel.Create();
             using var stream1 = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream1, model1);
             stream1.Position = 0;
             var result1 = await JsonSerializer.DeserializeAsync<CoreTypesModel>(stream1);
-            Factory.AssertAreEqual(model1, result1);
+            AssertHelper.AreEqual(model1, result1);
 
-            var model2 = Factory.GetCoreTypesModel();
+            var model2 = CoreTypesModel.Create();
             using var stream2 = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream2, model2);
             stream2.Position = 0;
             var result2 = await JsonSerializer.DeserializeAsync<CoreTypesAlternatingModel>(stream2);
-            Factory.AssertAreEqual(result2, model2);
+            AssertHelper.AreEqual(result2, model2);
         }
 
         [TestMethod]
@@ -1878,7 +2410,7 @@ namespace Zerra.Test
 
             var models = new List<AllTypesModel>();
             for (var i = 0; i < 1000; i++)
-                models.Add(Factory.GetAllTypesModel());
+                models.Add(AllTypesModel.Create());
 
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, models);
@@ -1886,7 +2418,7 @@ namespace Zerra.Test
             var result = await JsonSerializer.DeserializeAsync<AllTypesModel[]>(stream);
 
             for (var i = 0; i < models.Count; i++)
-                Factory.AssertAreEqual(models[i], result[i]);
+                AssertHelper.AreEqual(models[i], result[i]);
 
 #if DEBUG
             JsonSerializer.Testing = true;
@@ -1912,18 +2444,18 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamHashSet()
         {
-            var model1 = Factory.GetHashSetModel();
+            var model1 = HashSetModel.Create();
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, model1);
             stream.Position = 0;
             var model2 = await JsonSerializer.DeserializeAsync<HashSetModel>(stream);
-            Factory.AssertAreEqual(model1, model2);
+            AssertHelper.AreEqual(model1, model2);
         }
 
         [TestMethod]
         public async Task StreamBoxing()
         {
-            var baseModel = Factory.GetBoxingModel();
+            var baseModel = TestBoxingModel.Create();
 
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, baseModel);
@@ -1943,7 +2475,7 @@ namespace Zerra.Test
             {
                 _1_Property = 5,
                 property2 = 7,
-                _3_Property = new BasicModel()
+                _3_Property = new SimpleModel()
                 {
                     Value1 = 10,
                     Value2 = "11"

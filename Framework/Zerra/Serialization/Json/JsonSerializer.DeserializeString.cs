@@ -157,7 +157,7 @@ namespace Zerra.Serialization.Json
 
         private static object? FromStringJson(char c, ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
         {
-            if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable)
+            if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.HasIEnumerable)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 typeDetail = TypeAnalyzer.GetTypeDetail(emptyImplementationType);
@@ -174,7 +174,7 @@ namespace Zerra.Serialization.Json
                     else
                         return FromStringJsonObject(ref reader, ref decodeBuffer, typeDetail, graph, ref options);
                 case '[':
-                    if (!options.Nameless || (typeDetail != null && typeDetail.IsIEnumerableGeneric))
+                    if (!options.Nameless || (typeDetail != null && typeDetail.HasIEnumerableGeneric))
                         return FromStringJsonArray(ref reader, ref decodeBuffer, typeDetail, graph, ref options);
                     else
                         return FromStringJsonArrayNameless(ref reader, ref decodeBuffer, typeDetail, graph, ref options);
@@ -273,7 +273,8 @@ namespace Zerra.Serialization.Json
                 }
 
                 obj = typeDetail.CreatorBoxed();
-                method = typeDetail.GetMethod("Add");
+                if (!typeDetail.TryGetMethod("Add", out method))
+                    method = typeDetail.GetMethod("System.Collections.IDictionary.Add");
                 addMethodArgs = new object?[2];
             }
 
@@ -330,7 +331,7 @@ namespace Zerra.Serialization.Json
             MethodDetail? addMethod = null;
             object?[]? addMethodArgs = null;
             TypeDetail? arrayElementType = null;
-            if (typeDetail != null && typeDetail.IsIEnumerableGeneric)
+            if (typeDetail != null && typeDetail.HasIEnumerableGeneric)
             {
                 arrayElementType = typeDetail.IEnumerableGenericInnerTypeDetail;
                 if (typeDetail.Type.IsArray)
@@ -340,38 +341,62 @@ namespace Zerra.Serialization.Json
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
                 }
-                else if (typeDetail.IsIList && typeDetail.Type.IsInterface)
+                else if (typeDetail.IsIListGeneric || typeDetail.IsIReadOnlyListGeneric)
                 {
                     var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, arrayElementType.Type));
                     collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
                 }
-                else if (typeDetail.IsIList && !typeDetail.Type.IsInterface)
+                else if (typeDetail.HasIListGeneric)
                 {
                     collection = typeDetail.CreatorBoxed();
                     addMethod = typeDetail.GetMethod("Add");
                     addMethodArgs = new object[1];
                 }
-                else if (typeDetail.IsISet && typeDetail.Type.IsInterface)
+                else if (typeDetail.IsISetGeneric || typeDetail.IsIReadOnlySetGeneric)
                 {
                     var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, arrayElementType.Type));
                     collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
                 }
-                else if (typeDetail.IsISet && !typeDetail.Type.IsInterface)
+                else if (typeDetail.HasISetGeneric)
                 {
                     collection = typeDetail.CreatorBoxed();
                     addMethod = typeDetail.GetMethod("Add");
                     addMethodArgs = new object[1];
                 }
-                else
+                else if (typeDetail.HasIDictionaryGeneric || typeDetail.HasIReadOnlyDictionaryGeneric)
                 {
                     var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, arrayElementType.Type));
                     collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
+                }
+                else if (typeDetail.IsICollectionGeneric || typeDetail.IsIReadOnlyCollectionGeneric)
+                {
+                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, arrayElementType.Type));
+                    collection = genericListType.CreatorBoxed();
+                    addMethod = genericListType.GetMethod("Add");
+                    addMethodArgs = new object[1];
+                }
+                else if (typeDetail.HasICollectionGeneric)
+                {
+                    collection = typeDetail.CreatorBoxed();
+                    addMethod = typeDetail.GetMethod("Add");
+                    addMethodArgs = new object[1];
+                }
+                else if (typeDetail.IsIEnumerableGeneric)
+                {
+                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, arrayElementType.Type));
+                    collection = genericListType.CreatorBoxed();
+                    addMethod = genericListType.GetMethod("Add");
+                    addMethodArgs = new object[1];
+                }
+                else
+                {
+                    throw new NotSupportedException($"{nameof(JsonSerializer)} cannot deserialize type {typeDetail.Type.GetNiceName()}");
                 }
             }
 
@@ -458,7 +483,7 @@ namespace Zerra.Serialization.Json
                                     }
                                     else
                                     {
-                                        dictionary = Instantiator.Create(typeDetail!.Type, new Type[] { innerItemEnumerable }, value);
+                                        dictionary = Instantiator.Create(memberDetail.TypeDetail.Type, new Type[] { innerItemEnumerable }, value);
                                     }
                                     memberDetail.SetterBoxed(obj, dictionary);
                                 }

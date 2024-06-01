@@ -685,7 +685,7 @@ namespace Zerra.Linq
                 return;
             }
 
-            if (typeDetails.IsIEnumerableGeneric && typeDetails.IEnumerableGenericInnerType != null)
+            if (typeDetails.HasIEnumerableGeneric && typeDetails.IEnumerableGenericInnerType != null)
             {
                 _ = context.Builder.Append('[');
                 var first = true;

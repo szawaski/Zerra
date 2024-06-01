@@ -50,7 +50,7 @@ namespace Zerra.Repository.Reflection
             this.Type = memberDetail.Type;
             this.CoreType = memberDetail.TypeDetail.CoreType;
             this.IsNullable = memberDetail.TypeDetail.IsNullable;
-            this.IsEnumerable = memberDetail.TypeDetail.IsIEnumerable;
+            this.IsEnumerable = memberDetail.TypeDetail.HasIEnumerable;
             this.InnerType = memberDetail.TypeDetail.InnerTypes?.Count > 0 ? memberDetail.TypeDetail.InnerTypes[0] : memberDetail.TypeDetail.Type;
             this.InnerCoreType = memberDetail.TypeDetail.InnerTypes?.Count > 0 ? memberDetail.TypeDetail.InnerTypeDetails[0].CoreType : memberDetail.TypeDetail.CoreType;
 

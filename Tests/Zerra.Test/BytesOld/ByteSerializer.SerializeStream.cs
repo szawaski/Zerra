@@ -48,7 +48,7 @@ namespace Zerra.Serialization.Bytes
                 var state = new WriteState()
                 {
                     UsePropertyNames = options.UsePropertyNames,
-                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IncludePropertyTypes = options.UseTypes,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSize = options.IndexSize
                 };
@@ -117,7 +117,7 @@ namespace Zerra.Serialization.Bytes
                 var state = new WriteState()
                 {
                     UsePropertyNames = options.UsePropertyNames,
-                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IncludePropertyTypes = options.UseTypes,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSize = options.IndexSize
                 };
@@ -197,7 +197,7 @@ namespace Zerra.Serialization.Bytes
                 var state = new WriteState()
                 {
                     UsePropertyNames = options.UsePropertyNames,
-                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IncludePropertyTypes = options.UseTypes,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSize = options.IndexSize
                 };
@@ -235,7 +235,7 @@ namespace Zerra.Serialization.Bytes
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Write(Span<byte> buffer, ref WriteState state, Encoding encoding)
         {
-            var writer = new ByteWriter(buffer, encoding);
+            var writer = new ByteWriterOld(buffer, encoding);
             for (; ; )
             {
                 switch (state.CurrentFrame.FrameType)
@@ -293,7 +293,7 @@ namespace Zerra.Serialization.Bytes
                 return frame;
             }
 
-            if (!typeDetail.TypeDetail.IsIEnumerableGeneric)
+            if (!typeDetail.TypeDetail.HasIEnumerableGeneric)
             {
                 frame.FrameType = WriteFrameType.Object;
                 return frame;
@@ -325,7 +325,7 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WritePropertyType(ref ByteWriter writer, ref WriteState state)
+        private static void WritePropertyType(ref ByteWriterOld writer, ref WriteState state)
         {
             if (state.CurrentFrame.HasWrittenPropertyType)
             {
@@ -348,7 +348,7 @@ namespace Zerra.Serialization.Bytes
 
                 typeDetail = GetTypeInformation(typeFromValue, state.IndexSize, state.IgnoreIndexAttribute);
             }
-            else if (typeDetail.Type.IsInterface && !typeDetail.TypeDetail.IsIEnumerableGeneric)
+            else if (typeDetail.Type.IsInterface && !typeDetail.TypeDetail.HasIEnumerableGeneric)
             {
                 var objectType = state.CurrentFrame.Object!.GetType();
                 typeDetail = GetTypeInformation(objectType, state.IndexSize, state.IgnoreIndexAttribute);
@@ -361,7 +361,7 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteCoreType(ref ByteWriter writer, ref WriteState state)
+        private static void WriteCoreType(ref ByteWriterOld writer, ref WriteState state)
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
 
@@ -656,7 +656,7 @@ namespace Zerra.Serialization.Bytes
             state.EndFrame();
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteEnumType(ref ByteWriter writer, ref WriteState state)
+        private static void WriteEnumType(ref ByteWriterOld writer, ref WriteState state)
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
             int sizeNeeded;
@@ -782,7 +782,7 @@ namespace Zerra.Serialization.Bytes
             state.EndFrame();
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteSpecialType(ref ByteWriter writer, ref WriteState state)
+        private static void WriteSpecialType(ref ByteWriterOld writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType!.Value : typeDetail.TypeDetail.SpecialType!.Value;
@@ -848,7 +848,7 @@ namespace Zerra.Serialization.Bytes
             state.EndFrame();
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteObject(ref ByteWriter writer, ref WriteState state)
+        private static void WriteObject(ref ByteWriterOld writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
             var nullFlags = state.CurrentFrame.NullFlags;
@@ -965,7 +965,7 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteCoreTypeEnumerable(ref ByteWriter writer, ref WriteState state)
+        private static void WriteCoreTypeEnumerable(ref ByteWriterOld writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
             typeDetail = typeDetail.InnerTypeDetail;
@@ -977,12 +977,12 @@ namespace Zerra.Serialization.Bytes
             int length;
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
-                if (typeDetail.TypeDetail.IsICollection)
+                if (typeDetail.TypeDetail.HasICollection)
                 {
                     var collection = (ICollection)values;
                     length = collection.Count;
                 }
-                else if (typeDetail.TypeDetail.IsICollectionGeneric)
+                else if (typeDetail.TypeDetail.HasICollectionGeneric)
                 {
                     length = (int)typeDetail.TypeDetail.GetMember("Count").GetterBoxed(values)!;
                 }
@@ -1295,7 +1295,7 @@ namespace Zerra.Serialization.Bytes
             state.EndFrame();
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteEnumTypeEnumerable(ref ByteWriter writer, ref WriteState state)
+        private static void WriteEnumTypeEnumerable(ref ByteWriterOld writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
             typeDetail = typeDetail.InnerTypeDetail;
@@ -1307,12 +1307,12 @@ namespace Zerra.Serialization.Bytes
             int length;
             if (!state.CurrentFrame.EnumerableLength.HasValue)
             {
-                if (typeDetail.TypeDetail.IsICollection)
+                if (typeDetail.TypeDetail.HasICollection)
                 {
                     var collection = (ICollection)values;
                     length = collection.Count;
                 }
-                else if (typeDetail.TypeDetail.IsICollectionGeneric)
+                else if (typeDetail.TypeDetail.HasICollectionGeneric)
                 {
                     length = (int)typeDetail.TypeDetail.GetMember("Count").GetterBoxed(values)!;
                 }
@@ -1459,16 +1459,16 @@ namespace Zerra.Serialization.Bytes
             state.EndFrame();
         }
         //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        //private static void WriteSpecialTypeEnumerable(ref ByteWriter writer, ref WriteState state)
+        //private static void WriteSpecialTypeEnumerable(ref ByteWriterOld writer, ref WriteState state)
         //{
         //    throw new NotImplementedException();
         //}
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteObjectEnumerable(ref ByteWriter writer, ref WriteState state)
+        private static void WriteObjectEnumerable(ref ByteWriterOld writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
 
-            var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList;
+            var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.HasIListGeneric;
 
             var values = (IEnumerable?)state.CurrentFrame.Object!;
 
@@ -1478,12 +1478,12 @@ namespace Zerra.Serialization.Bytes
             {
                 int length;
 
-                if (typeDetail.TypeDetail.IsICollection)
+                if (typeDetail.TypeDetail.HasICollection)
                 {
                     var collection = (ICollection)values;
                     length = collection.Count;
                 }
-                else if (typeDetail.TypeDetail.IsICollectionGeneric)
+                else if (typeDetail.TypeDetail.HasICollectionGeneric)
                 {
                     length = (int)typeDetail.TypeDetail.GetMember("Count").GetterBoxed(values)!;
                 }

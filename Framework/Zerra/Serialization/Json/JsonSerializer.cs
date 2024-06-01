@@ -391,7 +391,7 @@ namespace Zerra.Serialization.Json
         {
             var membersByName = membersByNameByType.GetOrAdd(typeDetail, (typeDetail) =>
             {
-                var membersByName = new Dictionary<string, MemberDetail>(new StringOrdinalIgnoreCaseComparer());
+                var membersByName = new Dictionary<string, MemberDetail>(StringComparer.OrdinalIgnoreCase);
                 foreach (var memberDetail in typeDetail.SerializableMemberDetails)
                 {
                     var found = false;

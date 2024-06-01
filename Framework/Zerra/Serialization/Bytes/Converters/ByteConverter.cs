@@ -12,7 +12,7 @@ namespace Zerra.Serialization.Bytes.Converters
     public abstract class ByteConverter
     {
         //In byte array, object properties start with index values from SerializerIndexAttribute or property order
-        protected const ushort indexOffset = 1; //offset index values to reseve for Flag: 0
+        protected const ushort indexOffset = 1; //offset index values to reserve for Flag: 0
 
         //Flag: 0 indicating the end of an object
         protected const ushort endObjectFlagUShort = 0;
@@ -24,9 +24,7 @@ namespace Zerra.Serialization.Bytes.Converters
 
         public abstract void Setup(TypeDetail typeDetail, string? memberKey, Delegate? getterDelegate, Delegate? setterDelegate);
 
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract bool TryReadBoxed(ref ByteReader reader, ref ReadState state, out object? value);
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract bool TryWriteBoxed(ref ByteWriter writer, ref WriteState state, object? value);
     }
 }

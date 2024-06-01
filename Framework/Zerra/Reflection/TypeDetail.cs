@@ -24,15 +24,20 @@ namespace Zerra.Reflection
 
         private static readonly string collectionTypeName = nameof(ICollection);
         private static readonly string collectionGenericTypeName = typeof(ICollection<>).Name;
+        private static readonly string readOnlyCollectionGenericTypeName = typeof(IReadOnlyCollection<>).Name;
         private static readonly string listTypeName = nameof(IList);
-        private static readonly string setGenericTypeName = typeof(ISet<>).Name;
         private static readonly string listGenericTypeName = typeof(IList<>).Name;
-
-        //private static readonly string readOnlyCollectionGenericTypeName = typeof(IReadOnlyCollection<>).Name;
-        //private static readonly string readOnlyListGenericTypeName = typeof(IReadOnlyList<>).Name;
-        //private static readonly string readOnlySetGenericTypeName = typeof(IReadOnlySet<>).Name;
+        private static readonly string readOnlyListTypeName = typeof(IReadOnlyList<>).Name;
+        private static readonly string setGenericTypeName = typeof(ISet<>).Name;
+#if NET5_0_OR_GREATER
+        private static readonly string readOnlySetGenericTypeName = typeof(IReadOnlySet<>).Name;
+#endif
+        private static readonly string dictionaryTypeName = typeof(IDictionary).Name;
+        private static readonly string dictionaryGenericTypeName = typeof(IDictionary<,>).Name;
+        private static readonly string readOnlyDictionaryGenericTypeName = typeof(IReadOnlyDictionary<,>).Name;
 
         private static readonly Type keyValuePairType = typeof(KeyValuePair<,>);
+        private static readonly Type dictionaryEntryType = typeof(DictionaryEntry);
 
         public Type Type { get; }
         public bool IsNullable { get; }
@@ -222,26 +227,174 @@ namespace Zerra.Reflection
             }
         }
 
+        private bool hasIEnumerable;
+        private bool hasIEnumerableGeneric;
+        private bool hasICollection;
+        private bool hasICollectionGeneric;
+        private bool hasIReadOnlyCollectionGeneric;
+        private bool hasIList;
+        private bool hasIListGeneric;
+        private bool hasIReadOnlyListGeneric;
+        private bool hasISetGeneric;
+        private bool hasIReadOnlySetGeneric;
+        private bool hasIDictionary;
+        private bool hasIDictionaryGeneric;
+        private bool hasIReadOnlyDictionaryGeneric;
+        public bool HasIEnumerable
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return hasIEnumerable;
+            }
+        }
+        public bool HasIEnumerableGeneric
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return hasIEnumerableGeneric;
+            }
+        }
+        public bool HasICollection
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return hasICollection;
+            }
+        }
+        public bool HasICollectionGeneric
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return hasICollectionGeneric;
+            }
+        }
+        public bool HasIReadOnlyCollectionGeneric
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return hasIReadOnlyCollectionGeneric;
+            }
+        }
+        public bool HasIList
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return hasIList;
+            }
+        }
+        public bool HasIListGeneric
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return hasIListGeneric;
+            }
+        }
+        public bool HasIReadOnlyListGeneric
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return hasIReadOnlyListGeneric;
+            }
+        }
+        public bool HasISetGeneric
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return hasISetGeneric;
+            }
+        }
+        public bool HasIReadOnlySetGeneric
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return hasIReadOnlySetGeneric;
+            }
+        }
+        public bool HasIDictionary
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return hasIDictionary;
+            }
+        }
+        public bool HasIDictionaryGeneric
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return hasIDictionaryGeneric;
+            }
+        }
+        public bool HasIReadOnlyDictionaryGeneric
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return hasIReadOnlyDictionaryGeneric;
+            }
+        }
+
         private bool isIEnumerable;
+        private bool isIEnumerableGeneric;
         private bool isICollection;
         private bool isICollectionGeneric;
+        private bool isIReadOnlyCollectionGeneric;
         private bool isIList;
-        private bool isISet;
+        private bool isIListGeneric;
+        private bool isIReadOnlyListGeneric;
+        private bool isISetGeneric;
+        private bool isIReadOnlySetGeneric;
+        private bool isIDictionary;
+        private bool isIDictionaryGeneric;
+        private bool isIReadOnlyDictionaryGeneric;
         public bool IsIEnumerable
         {
             get
             {
-                if (!isInterfaceLoaded)
-                    LoadIsInterface();
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
                 return isIEnumerable;
+            }
+        }
+        public bool IsIEnumerableGeneric
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return isIEnumerableGeneric;
             }
         }
         public bool IsICollection
         {
             get
             {
-                if (!isInterfaceLoaded)
-                    LoadIsInterface();
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
                 return isICollection;
             }
         }
@@ -249,44 +402,146 @@ namespace Zerra.Reflection
         {
             get
             {
-                if (!isInterfaceLoaded)
-                    LoadIsInterface();
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
                 return isICollectionGeneric;
+            }
+        }
+        public bool IsIReadOnlyCollectionGeneric
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return isIReadOnlyCollectionGeneric;
             }
         }
         public bool IsIList
         {
             get
             {
-                if (!isInterfaceLoaded)
-                    LoadIsInterface();
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
                 return isIList;
             }
         }
-        public bool IsISet
+        public bool IsIListGeneric
         {
             get
             {
-                if (!isInterfaceLoaded)
-                    LoadIsInterface();
-                return isISet;
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return isIListGeneric;
             }
         }
-        private bool isInterfaceLoaded = false;
+        public bool IsIReadOnlyListGeneric
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return isIReadOnlyListGeneric;
+            }
+        }
+        public bool IsISetGeneric
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return isISetGeneric;
+            }
+        }
+        public bool IsIReadOnlySetGeneric
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return isIReadOnlySetGeneric;
+            }
+        }
+        public bool IsIDictionary
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return isIDictionary;
+            }
+        }
+        public bool IsIDictionaryGeneric
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return isIDictionaryGeneric;
+            }
+        }
+        public bool IsIReadOnlyDictionaryGeneric
+        {
+            get
+            {
+                if (!hasIsInterfaceLoaded)
+                    LoadHasIsInterface();
+                return isIReadOnlyDictionaryGeneric;
+            }
+        }
+
+        private bool hasIsInterfaceLoaded = false;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadIsInterface()
+        private void LoadHasIsInterface()
         {
             lock (locker)
             {
-                if (!isInterfaceLoaded)
+                if (!hasIsInterfaceLoaded)
                 {
-                    var isCoreType = TypeLookup.CoreTypes.Contains(Type);
-                    isIEnumerable = !isCoreType && (Type.IsArray || Type.Name == enumberableTypeName || Interfaces.Select(x => x.Name).Contains(enumberableTypeName));
-                    isICollection = !isCoreType && (Type.Name == collectionTypeName || Interfaces.Select(x => x.Name).Contains(collectionTypeName));
-                    isICollectionGeneric = !isCoreType && (Type.Name == collectionGenericTypeName || Interfaces.Select(x => x.Name).Contains(collectionGenericTypeName));
-                    isIList = !isCoreType && (Type.Name == listTypeName || Type.Name == listGenericTypeName || Interfaces.Select(x => x.Name).Contains(listTypeName) || Interfaces.Select(x => x.Name).Contains(listGenericTypeName));
-                    isISet = !isCoreType && (Type.Name == setGenericTypeName || Interfaces.Select(x => x.Name).Contains(setGenericTypeName));
-                    isInterfaceLoaded = true;
+                    if (!TypeLookup.CoreTypes.Contains(Type))
+                    {
+#if NETSTANDARD2_0
+                        var interfaces = Interfaces.Select(x => x.Name).ToArray();
+#else
+                        var interfaces = Interfaces.Select(x => x.Name).ToHashSet();
+#endif
+
+                        hasIEnumerable = Type.IsArray || Type.Name == enumberableTypeName || interfaces.Contains(enumberableTypeName);
+                        hasIEnumerableGeneric = Type.IsArray || Type.Name == enumberableGenericTypeName || interfaces.Contains(enumberableGenericTypeName);
+                        hasICollection = Type.Name == collectionTypeName || interfaces.Contains(collectionTypeName);
+                        hasICollectionGeneric = Type.Name == collectionGenericTypeName || interfaces.Contains(collectionGenericTypeName);
+                        hasIReadOnlyCollectionGeneric = Type.Name == readOnlyCollectionGenericTypeName || interfaces.Contains(readOnlyCollectionGenericTypeName);
+                        hasIList = Type.Name == listTypeName || interfaces.Contains(listTypeName);
+                        hasIListGeneric = Type.Name == listGenericTypeName || interfaces.Contains(listGenericTypeName);
+                        hasIReadOnlyListGeneric = Type.Name == readOnlyListTypeName || interfaces.Contains(readOnlyListTypeName);
+                        hasISetGeneric = Type.Name == setGenericTypeName || interfaces.Contains(setGenericTypeName);
+#if NET5_0_OR_GREATER
+                        hasIReadOnlySetGeneric = Type.Name == readOnlySetGenericTypeName || interfaces.Contains(readOnlySetGenericTypeName);
+#else
+                        hasIReadOnlySetGeneric = false;
+#endif
+                        hasIDictionary = Type.Name == dictionaryTypeName || interfaces.Contains(dictionaryTypeName);
+                        hasIDictionaryGeneric = Type.Name == dictionaryGenericTypeName || interfaces.Contains(dictionaryGenericTypeName);
+                        hasIReadOnlyDictionaryGeneric = Type.Name == readOnlyDictionaryGenericTypeName || interfaces.Contains(readOnlyDictionaryGenericTypeName);
+
+                        isIEnumerable = Type.Name == enumberableTypeName;
+                        isIEnumerableGeneric = Type.Name == enumberableGenericTypeName;
+                        isICollection = Type.Name == collectionTypeName;
+                        isICollectionGeneric = Type.Name == collectionGenericTypeName;
+                        isIReadOnlyCollectionGeneric = Type.Name == readOnlyCollectionGenericTypeName;
+                        isIList = Type.Name == listTypeName;
+                        isIListGeneric = Type.Name == listGenericTypeName;
+                        isIReadOnlyListGeneric = Type.Name == readOnlyListTypeName;
+                        isISetGeneric = Type.Name == setGenericTypeName;
+#if NET5_0_OR_GREATER
+                        isIReadOnlySetGeneric = Type.Name == readOnlySetGenericTypeName;
+#else
+                        isIReadOnlySetGeneric = false;
+#endif
+                        isIDictionary = Type.Name == dictionaryTypeName;
+                        isIDictionaryGeneric = Type.Name == dictionaryGenericTypeName;
+                        isIReadOnlyDictionaryGeneric = Type.Name == readOnlyDictionaryGenericTypeName;
+                    }
+                    hasIsInterfaceLoaded = true;
                 }
             }
         }
@@ -313,9 +568,17 @@ namespace Zerra.Reflection
                                     {
                                         var iProperties = i.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                                         var iFields = i.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+#if NETSTANDARD2_0
                                         var existingPropertyNames = properties.Select(y => y.Name).ToArray();
+#else
+                                        var existingPropertyNames = properties.Select(y => y.Name).ToHashSet();
+#endif
                                         properties = properties.Concat(iProperties.Where(x => !existingPropertyNames.Contains(x.Name)));
+#if NETSTANDARD2_0
                                         var existingFieldNames = fields.Select(y => y.Name).ToArray();
+#else
+                                        var existingFieldNames = fields.Select(y => y.Name).ToHashSet();
+#endif
                                         fields = fields.Concat(iFields.Where(x => !existingFieldNames.Contains(x.Name)));
                                     }
                                 }
@@ -371,7 +634,11 @@ namespace Zerra.Reflection
                                     {
                                         var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                                         foreach (var method in iMethods)
-                                            items.Add(MethodDetail.New(Type, method, locker));
+                                        {
+                                            var methodDetail = MethodDetail.New(Type, method, locker);
+                                            if (!items.Any(x => SignatureCompare(x, methodDetail)))
+                                                items.Add(methodDetail);
+                                        }
                                     }
                                 }
                             }
@@ -463,29 +730,19 @@ namespace Zerra.Reflection
         private MethodDetail? GetMethodInternal(string name, Type[]? parameterTypes = null)
         {
             var key = new TypeKey(name, parameterTypes);
+            MethodDetail? found = null;
             var method = methodLookups.GetOrAdd(key, (_) =>
             {
                 foreach (var methodDetail in MethodDetails)
                 {
-                    if (methodDetail.Name == name && (parameterTypes == null || methodDetail.ParametersInfo.Count == parameterTypes.Length))
+                    if (SignatureCompare(name, parameterTypes, methodDetail))
                     {
-                        var match = true;
-                        if (parameterTypes != null)
-                        {
-                            for (var i = 0; i < parameterTypes.Length; i++)
-                            {
-                                if (parameterTypes[i].Name != methodDetail.ParametersInfo[i].ParameterType.Name || parameterTypes[i].Namespace != methodDetail.ParametersInfo[i].ParameterType.Namespace)
-                                {
-                                    match = false;
-                                    break;
-                                }
-                            }
-                        }
-                        if (match)
-                            return methodDetail;
+                        if (found != null)
+                            throw new InvalidOperationException($"More than one method found for {name}");
+                        found = methodDetail;
                     }
                 }
-                return null;
+                return found;
             });
             return method;
         }
@@ -519,29 +776,19 @@ namespace Zerra.Reflection
         private ConstructorDetail? GetConstructorInternal(Type[]? parameterTypes)
         {
             var key = new TypeKey(parameterTypes);
+            ConstructorDetail? found = null;
             var constructor = constructorLookups.GetOrAdd(key, (_) =>
             {
                 foreach (var constructorDetail in ConstructorDetails)
                 {
-                    if (parameterTypes == null || constructorDetail.ParametersInfo.Count == parameterTypes.Length)
+                    if (SignatureCompare(parameterTypes, constructorDetail))
                     {
-                        var match = true;
-                        if (parameterTypes != null)
-                        {
-                            for (var i = 0; i < parameterTypes.Length; i++)
-                            {
-                                if (parameterTypes[i].Name != constructorDetail.ParametersInfo[i].ParameterType.Name || parameterTypes[i].Namespace != constructorDetail.ParametersInfo[i].ParameterType.Namespace)
-                                {
-                                    match = false;
-                                    break;
-                                }
-                            }
-                        }
-                        if (match)
-                            return constructorDetail;
+                        if (found != null)
+                            throw new InvalidOperationException($"More than one constructor found");
+                        found = constructorDetail;
                     }
                 }
-                return null;
+                return found;
             });
             return constructor;
         }
@@ -594,7 +841,7 @@ namespace Zerra.Reflection
             {
                 lock (locker)
                 {
-                    serializableMembersByNameLower ??= this.SerializableMemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First(), new StringOrdinalIgnoreCaseComparer());
+                    serializableMembersByNameLower ??= this.SerializableMemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
                 }
             }
             if (!this.serializableMembersByNameLower.TryGetValue(name, out var member))
@@ -611,7 +858,7 @@ namespace Zerra.Reflection
             {
                 lock (locker)
                 {
-                    serializableMembersByNameLower ??= this.SerializableMemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First(), new StringOrdinalIgnoreCaseComparer());
+                    serializableMembersByNameLower ??= this.SerializableMemberDetails.GroupBy(x => x.Name.ToLower()).Where(x => x.Count() == 1).ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
                 }
             }
             return this.serializableMembersByNameLower.TryGetValue(name, out member);
@@ -703,24 +950,12 @@ namespace Zerra.Reflection
             }
         }
 
-        private bool isIEnumerableGeneric;
         private Type? iEnumerableGenericInnerType = null;
-        public bool IsIEnumerableGeneric
-        {
-            get
-            {
-                if (!IsIEnumerable)
-                    return false;
-                if (iEnumerableGenericInnerType == null)
-                    LoadIEnumerableGeneric();
-                return isIEnumerableGeneric;
-            }
-        }
         public Type IEnumerableGenericInnerType
         {
             get
             {
-                if (!IsIEnumerable)
+                if (!HasIEnumerable)
                     throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric");
                 if (iEnumerableGenericInnerType == null)
                     LoadIEnumerableGeneric();
@@ -736,7 +971,6 @@ namespace Zerra.Reflection
                 {
                     if (Type.Name == enumberableGenericTypeName)
                     {
-                        isIEnumerableGeneric = true;
                         iEnumerableGenericInnerType = Type.GetGenericArguments()[0];
                     }
                     else
@@ -744,7 +978,6 @@ namespace Zerra.Reflection
                         var enumerableGeneric = Interfaces.Where(x => x.Name == enumberableGenericTypeName).ToArray();
                         if (enumerableGeneric.Length == 1)
                         {
-                            isIEnumerableGeneric = true;
                             iEnumerableGenericInnerType = enumerableGeneric[0].GetGenericArguments()[0];
                         }
                     }
@@ -782,12 +1015,13 @@ namespace Zerra.Reflection
                     {
                         if (!dictionartyInnerTypeLoaded)
                         {
-                            if (TypeLookup.SpecialTypeLookup(Type, out var specialTypeLookup))
+                            if (HasIDictionaryGeneric || HasIReadOnlyDictionaryGeneric)
                             {
-                                if (specialTypeLookup == Reflection.SpecialType.Dictionary)
-                                {
-                                    dictionaryInnerType = TypeAnalyzer.GetGenericType(keyValuePairType, (Type[])InnerTypes);
-                                }
+                                dictionaryInnerType = TypeAnalyzer.GetGenericType(keyValuePairType, (Type[])InnerTypes);
+                            }
+                            else if (HasIDictionary)
+                            {
+                                dictionaryInnerType = dictionaryEntryType;
                             }
                             dictionartyInnerTypeLoaded = true;
                         }
@@ -809,10 +1043,7 @@ namespace Zerra.Reflection
                     {
                         if (!dictionaryInnerTypeDetailLoaded)
                         {
-                            if (TypeLookup.SpecialTypeLookup(Type, out _))
-                            {
-                                dictionaryInnerTypesDetail = DictionaryInnerType.GetTypeDetail();
-                            }
+                            dictionaryInnerTypesDetail = DictionaryInnerType.GetTypeDetail();
                         }
                         innerTypeDetailLoaded = true;
                     }
@@ -939,20 +1170,85 @@ namespace Zerra.Reflection
             }
         }
 
+        protected static bool SignatureCompare(string name1, Type[]? parameters1, string name2, Type[]? parameters2)
+        {
+            if (name1 != name2)
+                return false;
+
+            if (parameters1 != null && parameters2 != null)
+            {
+                if (parameters1.Length != parameters2.Length)
+                    return false;
+                for (var i = 0; i < parameters1.Length; i++)
+                {
+                    if (parameters1[i] != parameters2[i])
+                        return false;
+                }
+            }
+
+            return true;
+        }
+        protected static bool SignatureCompare(string name1, Type[]? parameters1, MethodDetail methodDetail2)
+        {
+            if (name1 != methodDetail2.Name)
+                return false;
+
+            if (parameters1 != null)
+            {
+                if (parameters1.Length != methodDetail2.ParametersInfo.Count)
+                    return false;
+                for (var i = 0; i < parameters1.Length; i++)
+                {
+                    if (parameters1[i] != methodDetail2.ParametersInfo[i].ParameterType)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+        protected static bool SignatureCompare(MethodDetail methodDetail1, MethodDetail methodDetail2)
+        {
+            if (methodDetail1.Name != methodDetail2.Name)
+                return false;
+            if (methodDetail1.ParametersInfo.Count == 0 && methodDetail2.ParametersInfo.Count == 0)
+                return true;
+            if (methodDetail1.ParametersInfo.Count == 0 || methodDetail2.ParametersInfo.Count == 0)
+                return false;
+            if (methodDetail1.ParametersInfo.Count != methodDetail2.ParametersInfo.Count)
+                return false;
+            for (var i = 0; i < methodDetail1.ParametersInfo.Count; i++)
+            {
+                if (methodDetail1.ParametersInfo[i].ParameterType != methodDetail2.ParametersInfo[i].ParameterType)
+                    return false;
+            }
+            return true;
+        }
+        protected static bool SignatureCompare(Type[]? parameters1, ConstructorDetail constructorDetail2)
+        {
+            if (parameters1 != null)
+            {
+                if (parameters1.Length != constructorDetail2.ParametersInfo.Count)
+                    return false;
+                for (var i = 0; i < parameters1.Length; i++)
+                {
+                    if (parameters1[i] != constructorDetail2.ParametersInfo[i].ParameterType)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
         protected static bool IsSerializableType(TypeDetail typeDetail)
         {
             if (typeDetail.CoreType.HasValue)
                 return true;
-            if (typeDetail.SpecialType.HasValue)
-                return true;
             if (typeDetail.Type.IsEnum)
                 return true;
+            if (typeDetail.Type.IsArray)
+                return true;
             if (typeDetail.IsNullable)
-                return IsSerializableType(typeDetail.InnerTypeDetails[0]);
-            if (typeDetail.Type.IsArray && typeDetail.InnerTypeDetails.Count == 1)
-                return IsSerializableType(typeDetail.InnerTypeDetails[0]);
-            if (typeDetail.IsIEnumerable && typeDetail.InnerTypeDetails.Count == 1)
-                return IsSerializableType(typeDetail.InnerTypeDetails[0]);
+                return IsSerializableType(typeDetail.InnerTypeDetail);
             if (typeDetail.Type.IsClass)
                 return true;
             if (typeDetail.Type.IsInterface)

@@ -498,7 +498,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = state.CurrentFrame.TypeDetail;
             var graph = state.CurrentFrame.Graph;
 
-            if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable)
+            if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.HasIEnumerable)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 typeDetail = TypeAnalyzer.GetTypeDetail(emptyImplementationType);
@@ -515,7 +515,7 @@ namespace Zerra.Serialization.Json
 
                 case '{':
                     state.CurrentFrame.State = 0;
-                    if (typeDetail != null && typeDetail.SpecialType == SpecialType.Dictionary)
+                    if (typeDetail != null && (typeDetail.HasIDictionaryGeneric || typeDetail.HasIReadOnlyDictionaryGeneric))
                         state.CurrentFrame.FrameType = ReadFrameType.Dictionary;
                     else
                         state.CurrentFrame.FrameType = ReadFrameType.Object;
@@ -523,7 +523,7 @@ namespace Zerra.Serialization.Json
 
                 case '[':
                     state.CurrentFrame.State = 0;
-                    if (!state.Nameless || (typeDetail != null && typeDetail.IsIEnumerableGeneric))
+                    if (!state.Nameless || (typeDetail != null && typeDetail.HasIEnumerableGeneric))
                         state.CurrentFrame.FrameType = ReadFrameType.Array;
                     else
                         state.CurrentFrame.FrameType = ReadFrameType.ArrayNameless;
@@ -703,7 +703,8 @@ namespace Zerra.Serialization.Json
                 }
 
                 state.CurrentFrame.ResultObject = typeDetail.CreatorBoxed();
-                state.CurrentFrame.AddMethod = typeDetail.GetMethod("Add");
+                if (!typeDetail.TryGetMethod("Add", out state.CurrentFrame.AddMethod))
+                    state.CurrentFrame.AddMethod = typeDetail.GetMethod("System.Collections.IDictionary.Add");
                 state.CurrentFrame.AddMethodArgs = new object[2];
                 state.CurrentFrame.State = 1;
             }
@@ -783,7 +784,7 @@ namespace Zerra.Serialization.Json
 
             if (state.CurrentFrame.State == 0)
             {
-                if (typeDetail != null && typeDetail.IsIEnumerableGeneric)
+                if (typeDetail != null && typeDetail.HasIEnumerableGeneric)
                 {
                     state.CurrentFrame.ArrayElementType = typeDetail.IEnumerableGenericInnerTypeDetail;
                     if (typeDetail.Type.IsArray)
@@ -793,38 +794,62 @@ namespace Zerra.Serialization.Json
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
-                    else if (typeDetail.IsIList && typeDetail.Type.IsInterface)
+                    else if (typeDetail.IsIListGeneric || typeDetail.IsIReadOnlyListGeneric)
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
-                    else if (typeDetail.IsIList && !typeDetail.Type.IsInterface)
+                    else if (typeDetail.HasIListGeneric)
                     {
                         state.CurrentFrame.ResultObject = typeDetail.CreatorBoxed();
                         state.CurrentFrame.AddMethod = typeDetail.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
-                    else if (typeDetail.IsISet && typeDetail.Type.IsInterface)
+                    else if (typeDetail.IsISetGeneric || typeDetail.IsIReadOnlySetGeneric)
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
-                    else if (typeDetail.IsISet && !typeDetail.Type.IsInterface)
+                    else if (typeDetail.HasISetGeneric)
                     {
                         state.CurrentFrame.ResultObject = typeDetail.CreatorBoxed();
                         state.CurrentFrame.AddMethod = typeDetail.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
-                    else
+                    else if (typeDetail.HasIDictionaryGeneric || typeDetail.HasIReadOnlyDictionaryGeneric)
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
+                    }
+                    else if (typeDetail.IsICollectionGeneric || typeDetail.IsIReadOnlyCollectionGeneric)
+                    {
+                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, state.CurrentFrame.ArrayElementType.Type));
+                        state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
+                        state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
+                        state.CurrentFrame.AddMethodArgs = new object[1];
+                    }
+                    else if (typeDetail.HasICollectionGeneric)
+                    {
+                        state.CurrentFrame.ResultObject = typeDetail.CreatorBoxed();
+                        state.CurrentFrame.AddMethod = typeDetail.GetMethod("Add");
+                        state.CurrentFrame.AddMethodArgs = new object[1];
+                    }
+                    else if (typeDetail.IsIEnumerableGeneric)
+                    {
+                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, state.CurrentFrame.ArrayElementType.Type));
+                        state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
+                        state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
+                        state.CurrentFrame.AddMethodArgs = new object[1];
+                    }
+                    else
+                    {
+                        throw new NotSupportedException($"{nameof(JsonSerializer)} cannot deserialize type {typeDetail.Type.GetNiceName()}");
                     }
                 }
                 state.CurrentFrame.State = 1;
@@ -969,7 +994,7 @@ namespace Zerra.Serialization.Json
                                     }
                                     else
                                     {
-                                        dictionary = Instantiator.Create(typeDetail!.Type, new Type[] { innerItemEnumerable }, state.LastFrameResultObject);
+                                        dictionary = Instantiator.Create(memberDetail.TypeDetail.Type, new Type[] { innerItemEnumerable }, state.LastFrameResultObject);
                                     }
 
                                     memberDetail.SetterBoxed(state.CurrentFrame.ResultObject, dictionary);

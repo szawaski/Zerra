@@ -32,7 +32,7 @@ namespace Zerra.Serialization.Bytes
             var state = new ReadState()
             {
                 UsePropertyNames = options.UsePropertyNames,
-                IncludePropertyTypes = options.IncludePropertyTypes,
+                IncludePropertyTypes = options.UseTypes,
                 IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                 IndexSize = options.IndexSize
             };
@@ -97,7 +97,7 @@ namespace Zerra.Serialization.Bytes
                 var state = new ReadState()
                 {
                     UsePropertyNames = options.UsePropertyNames,
-                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IncludePropertyTypes = options.UseTypes,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSize = options.IndexSize
                 };
@@ -201,7 +201,7 @@ namespace Zerra.Serialization.Bytes
                 var state = new ReadState()
                 {
                     UsePropertyNames = options.UsePropertyNames,
-                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IncludePropertyTypes = options.UseTypes,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSize = options.IndexSize
                 };
@@ -304,7 +304,7 @@ namespace Zerra.Serialization.Bytes
                 var state = new ReadState()
                 {
                     UsePropertyNames = options.UsePropertyNames,
-                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IncludePropertyTypes = options.UseTypes,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSize = options.IndexSize
                 };
@@ -364,7 +364,7 @@ namespace Zerra.Serialization.Bytes
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Read(ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding)
         {
-            var reader = new ByteReader(buffer, encoding);
+            var reader = new ByteReaderOld(buffer, encoding);
             for (; ; )
             {
                 switch (state.CurrentFrame.FrameType)
@@ -425,7 +425,7 @@ namespace Zerra.Serialization.Bytes
                 return frame;
             }
 
-            if (!typeDetail.TypeDetail.IsIEnumerableGeneric)
+            if (!typeDetail.TypeDetail.HasIEnumerableGeneric)
             {
                 frame.FrameType = ReadFrameType.Object;
                 return frame;
@@ -457,7 +457,7 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadPropertyType(ref ByteReader reader, ref ReadState state)
+        private static void ReadPropertyType(ref ByteReaderOld reader, ref ReadState state)
         {
             if (state.CurrentFrame.HasReadPropertyType)
             {
@@ -512,7 +512,7 @@ namespace Zerra.Serialization.Bytes
                     state.CurrentFrame.TypeDetail = newTypeDetail;
                 }
             }
-            else if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.TypeDetail.IsIEnumerableGeneric)
+            else if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.TypeDetail.HasIEnumerableGeneric)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 typeDetail = GetTypeInformation(emptyImplementationType, state.IndexSize, state.IgnoreIndexAttribute);
@@ -527,7 +527,7 @@ namespace Zerra.Serialization.Bytes
             state.PushFrame(frame);
         }
 
-        private static void ReadCoreType(ref ByteReader reader, ref ReadState state)
+        private static void ReadCoreType(ref ByteReaderOld reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             var nullFlags = state.CurrentFrame.NullFlags;
@@ -956,7 +956,7 @@ namespace Zerra.Serialization.Bytes
             state.EndFrame();
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadEnumType(ref ByteReader reader, ref ReadState state)
+        private static void ReadEnumType(ref ByteReaderOld reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
             var nullFlags = state.CurrentFrame.NullFlags;
@@ -1148,7 +1148,7 @@ namespace Zerra.Serialization.Bytes
             state.EndFrame();
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadSpecialType(ref ByteReader reader, ref ReadState state)
+        private static void ReadSpecialType(ref ByteReaderOld reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
             var nullFlags = state.CurrentFrame.NullFlags;
@@ -1242,7 +1242,7 @@ namespace Zerra.Serialization.Bytes
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadObject(ref ByteReader reader, ref ReadState state)
+        private static void ReadObject(ref ByteReaderOld reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
             var nullFlags = state.CurrentFrame.NullFlags;
@@ -1393,12 +1393,12 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadCoreTypeEnumerable(ref ByteReader reader, ref ReadState state)
+        private static void ReadCoreTypeEnumerable(ref ByteReaderOld reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
 
-            var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList;
-            var asSet = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsISet;
+            var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.HasIListGeneric;
+            var asSet = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.HasISetGeneric;
             typeDetail = typeDetail.InnerTypeDetail;
 
             int sizeNeeded;
@@ -2761,13 +2761,13 @@ namespace Zerra.Serialization.Bytes
             state.EndFrame();
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadEnumTypeEnumerable(ref ByteReader reader, ref ReadState state)
+        private static void ReadEnumTypeEnumerable(ref ByteReaderOld reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
 
             var nullFlags = true;
-            var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList;
-            var asSet = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsISet;
+            var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.HasIListGeneric;
+            var asSet = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.HasISetGeneric;
             typeDetail = typeDetail.InnerTypeDetail;
 
             int length;
@@ -3020,17 +3020,17 @@ namespace Zerra.Serialization.Bytes
             }
         }
         //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        //private static void ReadSpecialTypeEnumerable(ref ByteReader reader, ref ReadState state)
+        //private static void ReadSpecialTypeEnumerable(ref ByteReaderOld reader, ref ReadState state)
         //{
         //    throw new NotImplementedException();
         //}
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadObjectEnumerable(ref ByteReader reader, ref ReadState state)
+        private static void ReadObjectEnumerable(ref ByteReaderOld reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
 
-            var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList;
-            var asSet = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsISet;
+            var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.HasIListGeneric;
+            var asSet = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.HasISetGeneric;
             typeDetail = typeDetail.InnerTypeDetail;
 
             int length;

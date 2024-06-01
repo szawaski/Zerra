@@ -59,7 +59,7 @@ namespace Zerra.Serialization.Bytes
                 var hashSetCreator = hashSetTypeDetail.GetConstructor(typeof(int)).CreatorBoxed;
                 this.HashSetCreator = (length) => { return hashSetCreator(new object[] { length }); };
 
-                if (!this.Type.IsEnum && !this.TypeDetail.CoreType.HasValue && !this.TypeDetail.SpecialType.HasValue && !this.TypeDetail.IsNullable && !this.TypeDetail.IsIEnumerableGeneric)
+                if (!this.Type.IsEnum && !this.TypeDetail.CoreType.HasValue && !this.TypeDetail.SpecialType.HasValue && !this.TypeDetail.IsNullable && !this.TypeDetail.HasIEnumerableGeneric)
                 {
                     var memberSets = new List<Tuple<MemberDetail, SerializerIndexAttribute?, NonSerializedAttribute?>>();
                     foreach (var member in this.TypeDetail.SerializableMemberDetails)

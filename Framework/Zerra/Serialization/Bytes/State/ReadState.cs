@@ -17,7 +17,7 @@ namespace Zerra.Serialization.Bytes.State
         private int stashCount;
         public int StackSize => stackCount;
 
-        public bool IncludePropertyTypes;
+        public bool UseTypes;
         public bool UsePropertyNames;
         public bool IgnoreIndexAttribute;
         public bool IndexSizeUInt16;

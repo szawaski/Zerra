@@ -12,7 +12,7 @@ namespace Zerra.CQRS.RabbitMQ
         private static readonly ByteSerializerOptions byteSerializerOptions = new()
         {
             UsePropertyNames = true,
-            IncludePropertyTypes = true,
+            UseTypes = true,
             IgnoreIndexAttribute = true
         };
 

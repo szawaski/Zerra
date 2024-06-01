@@ -17,7 +17,7 @@ namespace Zerra.Serialization.Bytes
             public OptionsStruct(ByteSerializerOptions options)
             {
                 this.UsePropertyNames = options.UsePropertyNames;
-                this.IncludePropertyTypes = options.IncludePropertyTypes;
+                this.IncludePropertyTypes = options.UseTypes;
                 this.IgnoreIndexAttribute = options.IgnoreIndexAttribute;
                 this.IndexSize = options.IndexSize;
             }

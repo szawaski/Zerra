@@ -31,7 +31,7 @@ namespace Zerra.Serialization.Bytes
 
             var state = new ReadState()
             {
-                IncludePropertyTypes = options.IncludePropertyTypes,
+                UseTypes = options.UseTypes,
                 UsePropertyNames = options.UsePropertyNames,
                 IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                 IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
@@ -58,7 +58,7 @@ namespace Zerra.Serialization.Bytes
 
             var state = new ReadState()
             {
-                IncludePropertyTypes = options.IncludePropertyTypes,
+                UseTypes = options.UseTypes,
                 UsePropertyNames = options.UsePropertyNames,
                 IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                 IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
@@ -115,7 +115,7 @@ namespace Zerra.Serialization.Bytes
 
                 var state = new ReadState()
                 {
-                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    UseTypes = options.UseTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
@@ -142,7 +142,7 @@ namespace Zerra.Serialization.Bytes
                     while (position < buffer.Length)
                     {
 #if NETSTANDARD2_0
-                            read = stream.Read(buffer, position, buffer.Length - position);
+                        read = stream.Read(buffer, position, buffer.Length - position);
 #else
                         read = stream.Read(buffer.AsSpan(position));
 #endif
@@ -213,7 +213,7 @@ namespace Zerra.Serialization.Bytes
 
                 var state = new ReadState()
                 {
-                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    UseTypes = options.UseTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
@@ -240,7 +240,7 @@ namespace Zerra.Serialization.Bytes
                     while (position < buffer.Length)
                     {
 #if NETSTANDARD2_0
-                            read = stream.Read(buffer, position, buffer.Length - position);
+                        read = stream.Read(buffer, position, buffer.Length - position);
 #else
                         read = stream.Read(buffer.AsSpan(position));
 #endif
@@ -310,7 +310,7 @@ namespace Zerra.Serialization.Bytes
 
                 var state = new ReadState()
                 {
-                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    UseTypes = options.UseTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
@@ -337,7 +337,7 @@ namespace Zerra.Serialization.Bytes
                     while (position < buffer.Length)
                     {
 #if NETSTANDARD2_0
-                            read = await stream.ReadAsync(buffer, position, buffer.Length - position);
+                        read = await stream.ReadAsync(buffer, position, buffer.Length - position);
 #else
                         read = await stream.ReadAsync(buffer.AsMemory(position));
 #endif
@@ -408,7 +408,7 @@ namespace Zerra.Serialization.Bytes
 
                 var state = new ReadState()
                 {
-                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    UseTypes = options.UseTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
@@ -435,7 +435,7 @@ namespace Zerra.Serialization.Bytes
                     while (position < buffer.Length)
                     {
 #if NETSTANDARD2_0
-                            read = await stream.ReadAsync(buffer, position, buffer.Length - position);
+                        read = await stream.ReadAsync(buffer, position, buffer.Length - position);
 #else
                         read = await stream.ReadAsync(buffer.AsMemory(position));
 #endif
@@ -468,43 +468,19 @@ namespace Zerra.Serialization.Bytes
         private static int Read<T>(ByteConverter<object, T> converter, ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding, out T? result)
         {
             var reader = new ByteReader(buffer, encoding);
-#if DEBUG
-            for (; ; )
-            {
-                var read = converter.TryRead(ref reader, ref state, out result);
-                if (read)
-                {
-                    state.BytesNeeded = 0;
-                    return reader.Position;
-                }
-            }
-#else
             var read = converter.TryRead(ref reader, ref state, out result);
             if (read)
                 state.BytesNeeded = 0;
             return reader.Position;
-#endif
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int ReadBoxed(ByteConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding, out object? result)
         {
             var reader = new ByteReader(buffer, encoding);
-#if DEBUG
-            for (; ; )
-            {
-                var read = converter.TryReadBoxed(ref reader, ref state, out result);
-                if (read)
-                {
-                    state.BytesNeeded = 0;
-                    return reader.Position;
-                }
-            }
-#else
             var read = converter.TryReadBoxed(ref reader, ref state, out result);
             if (read)
                 state.BytesNeeded = 0;
             return reader.Position;
-#endif
         }
     }
 }

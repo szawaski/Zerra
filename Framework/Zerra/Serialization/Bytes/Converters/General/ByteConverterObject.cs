@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -12,21 +13,15 @@ using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.General
 {
-    internal sealed class ByteConverterObject<TParent, TValue> : ByteConverter<TParent, TValue>
+    internal sealed partial class ByteConverterObject<TParent, TValue> : ByteConverter<TParent, TValue>
     {
-        private static readonly Stack<Dictionary<string, object?>> collectedValuesPool = new();
+        private static readonly ConcurrentStack<Dictionary<string, object?>> collectedValuesPool = new();
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Dictionary<string, object?> RentCollectedValues()
         {
-#if NETSTANDARD2_0
-            if (collectedValuesPool.Count > 0)
-                return collectedValuesPool.Pop();
-            return new();
-#else
             if (collectedValuesPool.TryPop(out var collectedValues))
                 return collectedValues;
-            return new();
-#endif
+            return new(MemberNameComparer.Instance);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReturnCollectedValues(Dictionary<string, object?> collectedValues)
@@ -64,7 +59,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
                 var index = (ushort)(member.Item2!.Index + indexOffset);
 
-                var detail = ByteConverterObjectMember.New(member.Item1);
+                var detail = ByteConverterObjectMember.New(typeDetail, member.Item1);
                 membersByIndex.Add(index, detail);
             }
 
@@ -80,7 +75,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
                 var index = (ushort)(orderIndex + indexOffset);
 
-                var detail = ByteConverterObjectMember.New(member.Item1);
+                var detail = ByteConverterObjectMember.New(typeDetail, member.Item1);
                 if (!hasAttributes)
                     membersByIndex.Add(index, detail);
                 membersByIndexIngoreAttributes.Add(index, detail);
@@ -104,7 +99,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             break;
                         }
                         //must have a matching a member
-                        if (!membersByName.Values.Any(x => x.Member.Type == parameter.ParameterType && string.Equals(x.Member.Name, parameter.Name, StringComparison.OrdinalIgnoreCase)))
+                        if (!membersByName.Values.Any(x => x.Member.Type == parameter.ParameterType && MemberNameComparer.Instance.Equals(x.Member.Name, parameter.Name)))
                         {
                             skip = true;
                             break;
@@ -190,25 +185,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 {
                     if (state.UsePropertyNames)
                     {
-                        if (!state.Current.StringLength.HasValue)
-                        {
-                            if (!reader.TryReadStringLength(false, out state.Current.StringLength, out state.BytesNeeded))
-                            {
-                                state.Current.HasNullChecked = true;
-                                if (collectValues)
-                                    state.Current.Object = collectedValues;
-                                else
-                                    state.Current.Object = value;
-                                return false;
-                            }
-                        }
-
-                        if (!state.Current.StringLength.HasValue || state.Current.StringLength.Value == 0)
-                        {
-                            break;
-                        }
-
-                        if (!reader.TryReadString(state.Current.StringLength.Value, out var name, out state.BytesNeeded))
+                        if (!reader.TryRead(false, out string? name, out state.BytesNeeded))
                         {
                             state.Current.HasNullChecked = true;
                             if (collectValues)
@@ -218,7 +195,10 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             return false;
                         }
 
-                        state.Current.StringLength = null;
+                        if (name == String.Empty)
+                        {
+                            break;
+                        }
 
                         property = null;
                         _ = membersByName?.TryGetValue(name!, out property);
@@ -228,7 +208,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         ushort propertyIndex;
                         if (state.IndexSizeUInt16)
                         {
-                            if (!reader.TryReadUInt16(out propertyIndex, out state.BytesNeeded))
+                            if (!reader.TryRead(out propertyIndex, out state.BytesNeeded))
                             {
                                 state.Current.HasNullChecked = true;
                                 if (collectValues)
@@ -240,7 +220,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         }
                         else
                         {
-                            if (!reader.TryReadByte(out var propertyIndexValue, out state.BytesNeeded))
+                            if (!reader.TryRead(out byte propertyIndexValue, out state.BytesNeeded))
                             {
                                 state.Current.HasNullChecked = true;
                                 if (collectValues)
@@ -271,7 +251,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
                 if (property == null)
                 {
-                    if (!state.UsePropertyNames && !state.IncludePropertyTypes)
+                    if (!state.UsePropertyNames && !state.UseTypes)
                         throw new Exception($"Cannot deserialize with property undefined and no types.");
 
                     //consume bytes but object does not have property
@@ -335,8 +315,16 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 var args = new object?[parameterConstructor!.ParametersInfo.Count];
                 for (var i = 0; i < args.Length; i++)
                 {
+#if NETSTANDARD2_0
                     if (collectedValues!.TryGetValue(parameterConstructor.ParametersInfo[i].Name!, out var parameter))
+                    {
+                        collectedValues.Remove(parameterConstructor.ParametersInfo[i].Name!);
                         args[i] = parameter;
+                    }
+#else
+                    if (collectedValues!.Remove(parameterConstructor.ParametersInfo[i].Name!, out var parameter))
+                        args[i] = parameter;
+#endif
                 }
                 if (typeDetail.Type.IsValueType)
                 {
@@ -345,6 +333,14 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 else
                 {
                     value = parameterConstructor.Creator(args);
+                }
+
+                foreach (var remaining in collectedValues!)
+                {
+                    if (membersByName!.TryGetValue(remaining.Key, out var member))
+                    {
+                        member.Converter.CollectedValuesSetter(value!, remaining.Value);
+                    }
                 }
 
                 ReturnCollectedValues(collectedValues!);
@@ -360,7 +356,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
             {
-                if (value == null)
+                if (value is null)
                 {
                     if (!writer.TryWriteNull(out state.BytesNeeded))
                     {
@@ -375,8 +371,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 state.Current.HasWrittenIsNull = true;
             }
 
-            if (value == null)
-                throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
+            if (value is null) throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
 
             IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember>> enumerator;
             if (state.Current.Enumerator == null)
@@ -441,80 +436,6 @@ namespace Zerra.Serialization.Bytes.Converters.General
             }
 
             return true;
-        }
-
-        private abstract class ByteConverterObjectMember
-        {
-            public readonly MemberDetail Member;
-
-            public abstract bool IsNull(TValue parent);
-
-            public ByteConverterObjectMember(MemberDetail member)
-            {
-                Member = member;
-            }
-
-            private ByteConverter<TValue>? converter = null;
-            public ByteConverter<TValue> Converter
-            {
-                get
-                {
-                    if (converter == null)
-                    {
-                        lock (this)
-                        {
-                            converter ??= ByteConverterFactory<TValue>.Get(Member.TypeDetail, Member.Name, Member.HasGetterBoxed ? Member.GetterTyped : null, Member.HasSetterBoxed ? Member.SetterTyped : null);
-                        }
-                    }
-                    return converter;
-                }
-            }
-
-            public abstract ByteConverter<Dictionary<string, object?>> ConverterSetCollectedValues { get; }
-
-            //helps with debug
-            public override sealed string ToString()
-            {
-                return Member.Name;
-            }
-
-            private static readonly Type byteConverterObjectMemberT = typeof(ByteConverterObjectMember<>);
-            public static ByteConverterObjectMember New(MemberDetail member)
-            {
-                var generic = byteConverterObjectMemberT.GetGenericTypeDetail(typeof(TParent), typeof(TValue), member.Type);
-                var obj = generic.ConstructorDetails[0].CreatorBoxed(new object?[] { member });
-                return (ByteConverterObjectMember)obj;
-            }
-        }
-
-        private sealed class ByteConverterObjectMember<TValue2> : ByteConverterObjectMember
-        {
-            private readonly Func<TValue, TValue2?> getter;
-            public override sealed bool IsNull(TValue parent) => getter(parent) is null;
-
-            private void SetterForConverterSetValues(Dictionary<string, object?> parent, TValue2? value) => parent.Add(Member.Name, value);
-            public ByteConverterObjectMember(MemberDetail member)
-                : base(member)
-            {
-                getter = ((MemberDetail<TValue, TValue2>)member).Getter;
-                var type = TypeAnalyzer<Dictionary<string, object?>>.GetTypeDetail();
-            }
-
-            private ByteConverter<Dictionary<string, object?>>? converterSetValues;
-            public override sealed ByteConverter<Dictionary<string, object?>> ConverterSetCollectedValues
-            {
-                get
-                {
-                    if (converterSetValues == null)
-                    {
-                        lock (this)
-                        {
-                            converterSetValues ??= ByteConverterFactory<Dictionary<string, object?>>.Get(Member.TypeDetail, Member.Name, null, SetterForConverterSetValues);
-                        }
-                    }
-                    return converterSetValues;
-                }
-            }
         }
     }
 }

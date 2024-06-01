@@ -12,7 +12,9 @@ namespace Zerra.Serialization.Bytes.IO
     public ref partial struct ByteWriter
     {
         private const int defaultBufferSize = 1024;
-        private static readonly Encoding defaultEncoding = Encoding.UTF8;
+
+        //Unicode = UTF-16 which is what C# uses
+        private static readonly Encoding defaultEncoding = Encoding.Unicode;
 
         private const byte nullByte = 0;
         private const byte notNullByte = 1;
@@ -29,11 +31,7 @@ namespace Zerra.Serialization.Bytes.IO
 
         public ByteWriter()
         {
-            this.bufferOwner = BufferArrayPool<byte>.Rent(defaultBufferSize);
-            this.buffer = bufferOwner;
-            this.encoding = defaultEncoding;
-            this.position = 0;
-            this.length = buffer.Length;
+            throw new NotSupportedException($"{nameof(ByteWriter)} cannot use default constructor");
         }
 
         public ByteWriter(Span<byte> buffer, Encoding? encoding = null)
@@ -55,24 +53,18 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void EnsureBufferSize(int additionalSize)
+        private bool EnsureSize(int sizeNeeded)
         {
-            if (position + additionalSize <= buffer.Length)
-                return;
+            if (length - position < sizeNeeded)
+            {
+                if (bufferOwner == null)
+                    return false;
 
-            if (bufferOwner == null)
-                throw new InvalidOperationException($"{nameof(ByteWriter)} has reached it's buffer limit");
-
-            var minSize = position + additionalSize;
-
-            BufferArrayPool<byte>.Grow(ref bufferOwner, minSize);
-            buffer = bufferOwner;
-            length = buffer.Length;
-        }
-
-        public void Clear()
-        {
-            position = 0;
+                BufferArrayPool<byte>.Grow(ref bufferOwner, Math.Max(buffer.Length * 2, buffer.Length + sizeNeeded));
+                buffer = bufferOwner;
+                length = buffer.Length;
+            }
+            return true;
         }
 
         public readonly Span<byte> ToSpan()
@@ -88,7 +80,7 @@ namespace Zerra.Serialization.Bytes.IO
         {
             if (bufferOwner != null)
             {
-                buffer.Clear();
+                Array.Clear(bufferOwner, 0, position);
                 BufferArrayPool<byte>.Return(bufferOwner);
                 bufferOwner = null;
                 buffer = null;

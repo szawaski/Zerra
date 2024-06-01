@@ -148,7 +148,6 @@ namespace Zerra.Reflection
         }
         private static void DiscoverType(Type typeInAssembly)
         {
-            var debug = typeInAssembly.Name;
             var typeList1 = typeByName.GetOrAdd(typeInAssembly.Name, (key) => { return new(); });
             typeList1.Add(typeInAssembly);
             if (typeInAssembly.FullName != null && typeInAssembly.Name != typeInAssembly.FullName)
@@ -980,7 +979,9 @@ namespace Zerra.Reflection
 
             if (!typeByName.TryGetValue(name, out var matches))
             {
-                var type = ParseType(name);
+                var type = Type.GetType(name);
+                if (type == null)
+                    type = ParseType(name);
                 matches = typeByName.GetOrAdd(name, (key) => { return new ConcurrentReadWriteList<Type>(); });
                 lock (matches)
                 {
@@ -1008,199 +1009,218 @@ namespace Zerra.Reflection
             var chars = name.AsSpan();
             string? currentName = null;
 
-            var current = stackalloc char[128];
-            var i = 0;
-
-            var genericArguments = new List<Type>();
-            var arrayDimensions = new List<int>();
-
-            var expectingGenericOpen = false;
-            var expectingGenericComma = true;
-            var openGeneric = false;
-            var openGenericType = false;
-            var openArray = false;
-            var openArrayOneDimension = false;
-            var openGenericTypeSubBrackets = 0;
-
-            var done = false;
-            while (index < chars.Length)
+            char[]? rented = null;
+            scoped Span<char> current;
+            if (name.Length <= 128)
             {
-                var c = chars[index++];
+                current = stackalloc char[name.Length];
+            }
+            else
+            {
+                rented = ArrayPool<char>.Shared.Rent(name.Length);
+                current = rented;
+            }
 
-                switch (c)
+            try
+            {
+                var i = 0;
+
+                var genericArguments = new List<Type>();
+                var arrayDimensions = new List<int>();
+
+                var expectingGenericOpen = false;
+                var expectingGenericComma = true;
+                var openGeneric = false;
+                var openGenericType = false;
+                var openArray = false;
+                var openArrayOneDimension = false;
+                var openGenericTypeSubBrackets = 0;
+
+                var done = false;
+                while (index < chars.Length)
                 {
-                    case '`':
-                        {
-                            if (openGenericType)
-                            {
-                                current[i++] = c;
-                            }
-                            else if (openArray || (openGeneric && !openGenericType))
-                            {
-                                throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
-                            }
-                            else
-                            {
-                                expectingGenericOpen = true;
-                                current[i++] = c;
-                            }
-                            break;
-                        }
-                    case '[':
-                        {
-                            if (openArray)
-                            {
-                                throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
-                            }
+                    var c = chars[index++];
 
-                            if (openGenericType)
+                    switch (c)
+                    {
+                        case '`':
                             {
-                                current[i++] = c;
-                                openGenericTypeSubBrackets++;
-                            }
-                            else if (expectingGenericOpen)
-                            {
-                                expectingGenericOpen = false;
-                                openGeneric = true;
-
-                                if (i == 0)
-                                    throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
-                                currentName = new string(current, 0, i);
-                                i = 0;
-                            }
-                            else if (openGeneric)
-                            {
-                                openGenericType = true;
-                            }
-                            else
-                            {
-                                openArray = true;
-
-                                if (currentName == null)
+                                if (openGenericType)
                                 {
-                                    if (i == 0)
-                                        throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
-                                    currentName = new string(current, 0, i);
-                                    i = 0;
+                                    current[i++] = c;
                                 }
-                            }
-
-                            break;
-                        }
-                    case ',':
-                        {
-
-                            if (!openGeneric || openGenericType || (openArray && !openArrayOneDimension))
-                            {
-                                current[i++] = c;
-                            }
-                            else if (openGeneric && !openGenericType && expectingGenericComma)
-                            {
-                                expectingGenericComma = false;
-                            }
-                            else
-                            {
-                                throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
-                            }
-                            break;
-                        }
-                    case '*':
-                        {
-                            if (openGenericType)
-                            {
-                                current[i++] = c;
-                            }
-                            else if (openArray)
-                            {
-                                if (i > 0)
-                                    throw new Exception($"{nameof(ParseType)} Unexpected {c}");
-                                openArrayOneDimension = true;
-                                current[i++] = c;
-                            }
-                            else
-                            {
-                                throw new Exception($"{nameof(ParseType)} Unexpected {c}");
-                            }
-                            break;
-                        }
-                    case ']':
-                        {
-                            if (openGenericTypeSubBrackets > 0)
-                            {
-                                current[i++] = c;
-                                openGenericTypeSubBrackets--;
-                            }
-                            else if (openGenericType)
-                            {
-                                openGenericType = false;
-                                var genericArgumentName = new string(current, 0, 1);
-                                i = 0;
-                                var genericArgumentType = GetTypeFromName(genericArgumentName);
-                                genericArguments.Add(genericArgumentType);
-                                expectingGenericComma = true;
-                            }
-                            else if (openGeneric)
-                            {
-                                openGeneric = false;
-                            }
-                            else if (openArray)
-                            {
-                                openArray = false;
-                                if (i > 0)
+                                else if (openArray || (openGeneric && !openGenericType))
                                 {
-                                    if (openArrayOneDimension)
-                                        arrayDimensions.Add(1);
-                                    else
-                                        arrayDimensions.Add(i + 1);
+                                    throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
                                 }
                                 else
                                 {
-                                    arrayDimensions.Add(0);
+                                    expectingGenericOpen = true;
+                                    current[i++] = c;
                                 }
-                                openArrayOneDimension = false;
-                                i = 0;
+                                break;
                             }
-                            else
+                        case '[':
                             {
-                                throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
-                            }
-                            break;
-                        }
-                    default:
-                        {
-                            if (openArray || (openGeneric && !openGenericType))
-                            {
-                                throw new Exception($"{nameof(ParseType)} Unexpected {c}");
-                            }
+                                if (openArray)
+                                {
+                                    throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
+                                }
 
-                            current[i++] = c;
-                            break;
-                        }
+                                if (openGenericType)
+                                {
+                                    current[i++] = c;
+                                    openGenericTypeSubBrackets++;
+                                }
+                                else if (expectingGenericOpen)
+                                {
+                                    expectingGenericOpen = false;
+                                    openGeneric = true;
+
+                                    if (i == 0)
+                                        throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
+                                    currentName = current.Slice(0, i).ToString();
+                                    i = 0;
+                                }
+                                else if (openGeneric)
+                                {
+                                    openGenericType = true;
+                                }
+                                else
+                                {
+                                    openArray = true;
+
+                                    if (currentName == null)
+                                    {
+                                        if (i == 0)
+                                            throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
+                                        currentName = current.Slice(0, i).ToString();
+                                        i = 0;
+                                    }
+                                }
+
+                                break;
+                            }
+                        case ',':
+                            {
+
+                                if (!openGeneric || openGenericType || (openArray && !openArrayOneDimension))
+                                {
+                                    current[i++] = c;
+                                }
+                                else if (openGeneric && !openGenericType && expectingGenericComma)
+                                {
+                                    expectingGenericComma = false;
+                                }
+                                else
+                                {
+                                    throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
+                                }
+                                break;
+                            }
+                        case '*':
+                            {
+                                if (openGenericType)
+                                {
+                                    current[i++] = c;
+                                }
+                                else if (openArray)
+                                {
+                                    if (i > 0)
+                                        throw new Exception($"{nameof(ParseType)} Unexpected {c}");
+                                    openArrayOneDimension = true;
+                                    current[i++] = c;
+                                }
+                                else
+                                {
+                                    throw new Exception($"{nameof(ParseType)} Unexpected {c}");
+                                }
+                                break;
+                            }
+                        case ']':
+                            {
+                                if (openGenericTypeSubBrackets > 0)
+                                {
+                                    current[i++] = c;
+                                    openGenericTypeSubBrackets--;
+                                }
+                                else if (openGenericType)
+                                {
+                                    openGenericType = false;
+                                    var genericArgumentName = current.Slice(0, i).ToString();
+                                    i = 0;
+                                    var genericArgumentType = GetTypeFromName(genericArgumentName);
+                                    genericArguments.Add(genericArgumentType);
+                                    expectingGenericComma = true;
+                                }
+                                else if (openGeneric)
+                                {
+                                    openGeneric = false;
+                                }
+                                else if (openArray)
+                                {
+                                    openArray = false;
+                                    if (i > 0)
+                                    {
+                                        if (openArrayOneDimension)
+                                            arrayDimensions.Add(1);
+                                        else
+                                            arrayDimensions.Add(i + 1);
+                                    }
+                                    else
+                                    {
+                                        arrayDimensions.Add(0);
+                                    }
+                                    openArrayOneDimension = false;
+                                    i = 0;
+                                }
+                                else
+                                {
+                                    throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
+                                }
+                                break;
+                            }
+                        default:
+                            {
+                                if (openArray || (openGeneric && !openGenericType))
+                                {
+                                    throw new Exception($"{nameof(ParseType)} Unexpected {c}");
+                                }
+
+                                current[i++] = c;
+                                break;
+                            }
+                    }
+
+                    if (done)
+                        break;
                 }
 
-                if (done)
-                    break;
-            }
+                currentName ??= current.Slice(0, i).ToString();
 
-            if (currentName == null)
-            {
-                currentName = new string(current, 0, i);
-            }
+                var type = GetTypeFromNameWithoutParse(currentName);
+                if (genericArguments.Count > 0)
+                {
+                    type = type.MakeGenericType(genericArguments.ToArray());
+                }
+                foreach (var arrayDimention in arrayDimensions)
+                {
+                    if (arrayDimention > 0)
+                        type = type.MakeArrayType(arrayDimention);
+                    else
+                        type = type.MakeArrayType();
+                }
 
-            var type = GetTypeFromNameWithoutParse(currentName);
-            if (genericArguments.Count > 0)
-            {
-                type = type.MakeGenericType(genericArguments.ToArray());
+                return type;
             }
-            foreach (var arrayDimention in arrayDimensions)
+            finally
             {
-                if (arrayDimention > 0)
-                    type = type.MakeArrayType(arrayDimention);
-                else
-                    type = type.MakeArrayType();
+                if (rented != null)
+                {
+                    Array.Clear(rented, 0, rented.Length);
+                    ArrayPool<char>.Shared.Return(rented);
+                }
             }
-
-            return type;
         }
 
         private static Type GetTypeFromNameWithoutParse(string name)
@@ -1238,21 +1258,21 @@ namespace Zerra.Reflection
         {
             if (it == null)
                 return "null";
-            var niceName = niceNames.GetOrAdd(it, (it) =>
+            var name = niceNames.GetOrAdd(it, (it) =>
             {
                 return GenerateNiceName(it, false);
             });
-            return niceName;
+            return name;
         }
         public static string GetNiceFullName(Type it)
         {
             if (it == null)
                 return "null";
-            var niceFullName = niceFullNames.GetOrAdd(it, (it) =>
+            var name = niceFullNames.GetOrAdd(it, (it) =>
             {
                 return GenerateNiceName(it, true);
             });
-            return niceFullName;
+            return name;
         }
 
         //framework dependent if property exists
@@ -1282,13 +1302,22 @@ namespace Zerra.Reflection
             if (type.IsArray)
             {
                 var sb = new StringBuilder();
-                if (ns && !String.IsNullOrWhiteSpace(type.Namespace))
-                    _ = sb.Append(type.Namespace).Append('.');
-
                 var rank = type.GetArrayRank();
                 var elementType = typeDetails.InnerTypes[0];
-                var elementTypeName = GetNiceName(elementType);
-                _ = sb.Append(elementTypeName);
+                if (elementType.IsGenericParameter)
+                {
+                    _ = sb.Append('T');
+                }
+                else
+                {
+                    if (ns && !String.IsNullOrWhiteSpace(type.Namespace))
+                        _ = sb.Append(type.Namespace).Append('.');
+
+                    if (ns)
+                        _ = sb.Append(GetNiceFullName(elementType));
+                    else
+                        _ = sb.Append(GetNiceName(elementType));
+                }
                 _ = sb.Append('[');
                 var getter = GetTypeGetIsZSArrayGetter();
 
@@ -1326,7 +1355,7 @@ namespace Zerra.Reflection
                     if (!first)
                         _ = sb.Append(',');
                     first = false;
-                    if (genericType.ContainsGenericParameters && genericType.IsGenericType)
+                    if (genericType.IsGenericType || genericType.IsArray)
                     {
                         if (ns)
                             _ = sb.Append(GetNiceFullName(genericType));
@@ -1335,7 +1364,17 @@ namespace Zerra.Reflection
                     }
                     else
                     {
-                        _ = sb.Append('T');
+                        if (genericType.IsGenericParameter)
+                        {
+                            _ = sb.Append('T');
+                        }
+                        else
+                        {
+                            if (ns)
+                                _ = sb.Append(genericType.FullName);
+                            else
+                                _ = sb.Append(genericType.Name);
+                        }
                     }
                 }
                 _ = sb.Append('>');

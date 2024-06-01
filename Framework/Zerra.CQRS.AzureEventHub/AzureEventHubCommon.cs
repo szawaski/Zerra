@@ -18,7 +18,7 @@ namespace Zerra.CQRS.AzureEventHub
         private static readonly ByteSerializerOptions byteSerializerOptions = new()
         {
             UsePropertyNames = true,
-            IncludePropertyTypes = true,
+            UseTypes = true,
             IgnoreIndexAttribute = true
         };
 

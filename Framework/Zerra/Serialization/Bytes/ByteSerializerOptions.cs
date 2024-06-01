@@ -13,19 +13,19 @@ namespace Zerra.Serialization.Bytes
         /// </summary>
         public bool UsePropertyNames { get; set; } = false;
         /// <summary>
-        /// Include type information for non-coretypes in the serialization. This allows the data to be deserialized without knowing the type beforehand and needed for properties that are boxed or an interface. Default false.
+        /// Use type information in the serialization. This allows the data to be deserialized without knowing the type beforehand and required for properties that are boxed or an interface. Default false.
         /// </summary>
-        public bool IncludePropertyTypes { get; set; } = false;
+        public bool UseTypes { get; set; } = false;
         /// <summary>
         /// Ignore the index attribute marked on properties. Default false.
         /// </summary>
         public bool IgnoreIndexAttribute { get; set; } = false;
         /// <summary>
-        /// Size of the property indexes. Use Byte unless the number of properties in an object exceeds 255. Default Byte.
+        /// Size of the property indexes when member names are not used. Use Byte unless the number of properties in an object exceeds 254. Default Byte.
         /// </summary>
         public ByteSerializerIndexSize IndexSize { get; set; } = ByteSerializerIndexSize.Byte;
         /// <summary>
-        /// The text encoder used for char and string.  Default System.Text.Encoding.UTF8.
+        /// The text encoder used for string.  Default System.Text.Encoding.UTF8.
         /// </summary>
         public Encoding Encoding { get; set; } = Encoding.UTF8;
     }

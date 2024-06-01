@@ -242,7 +242,7 @@ namespace Zerra.Repository.MsSql
                 else
                 {
                     var typeDetails = TypeAnalyzer.GetTypeDetail(call.Method.DeclaringType);
-                    if (typeDetails.IsIEnumerableGeneric && TypeLookup.CoreTypesWithNullables.Contains(typeDetails.IEnumerableGenericInnerType))
+                    if (typeDetails.HasIEnumerableGeneric && TypeLookup.CoreTypesWithNullables.Contains(typeDetails.IEnumerableGenericInnerType))
                     {
                         switch (call.Method.Name)
                         {
@@ -506,7 +506,7 @@ namespace Zerra.Repository.MsSql
                 }
             }
 
-            if (typeDetails.IsIEnumerableGeneric)
+            if (typeDetails.HasIEnumerableGeneric)
             {
                 sb.Write('(');
 

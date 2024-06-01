@@ -15,7 +15,7 @@ namespace Zerra.Reflection
         public MemberDetail? BackingFieldDetail { get; }
 
         public MemberInfo MemberInfo { get; }
-        public string Name { get; }
+        public string Name => MemberInfo.Name;
         public Type Type { get; }
         public bool IsBacked { get; }
 
@@ -175,7 +175,6 @@ namespace Zerra.Reflection
             this.locker = locker;
             this.BackingFieldDetail = backingFieldDetail;
             this.MemberInfo = member;
-            this.Name = member.Name;
 
             if (member.MemberType == MemberTypes.Property)
             {

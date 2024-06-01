@@ -14,6 +14,6 @@ namespace Zerra.Test
         public int property2 { get; set; }
 
         [JsonPropertyName("3property")]
-        public BasicModel _3_Property { get; set; }
+        public SimpleModel _3_Property { get; set; }
     }
 }

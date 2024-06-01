@@ -31,13 +31,13 @@ namespace Zerra.Serialization.Bytes
 
             var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
 
-            var reader = new ByteReader(bytes, options.Encoding);
+            var reader = new ByteReaderOld(bytes, options.Encoding);
             var obj = FromBytes(ref reader, typeDetail, true, false, ref optionsStruct);
             return obj;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object? FromBytes(ref ByteReader reader, SerializerTypeDetail? typeDetail, bool nullFlags, bool drainBytes, ref OptionsStruct options)
+        private static object? FromBytes(ref ByteReaderOld reader, SerializerTypeDetail? typeDetail, bool nullFlags, bool drainBytes, ref OptionsStruct options)
         {
             if (options.IncludePropertyTypes)
             {
@@ -66,7 +66,7 @@ namespace Zerra.Serialization.Bytes
                     }
                 }
             }
-            else if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.TypeDetail.IsIEnumerableGeneric)
+            else if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.TypeDetail.HasIEnumerableGeneric)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 typeDetail = GetTypeInformation(emptyImplementationType, options.IndexSize, options.IgnoreIndexAttribute);
@@ -103,10 +103,10 @@ namespace Zerra.Serialization.Bytes
                 return FromBytesSpecialType(ref reader, typeDetail, nullFlags, ref options);
             }
 
-            if (typeDetail.TypeDetail.IsIEnumerableGeneric)
+            if (typeDetail.TypeDetail.HasIEnumerableGeneric)
             {
-                var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsIList;
-                var asSet = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.IsISet;
+                var asList = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.HasIListGeneric;
+                var asSet = !typeDetail.TypeDetail.Type.IsArray && typeDetail.TypeDetail.HasISetGeneric;
                 var enumerable = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, asList, asSet, ref options);
                 return enumerable;
             }
@@ -186,7 +186,7 @@ namespace Zerra.Serialization.Bytes
             throw new Exception("Expected end of object marker");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromBytesEnumerable(ref ByteReader reader, SerializerTypeDetail typeDetail, bool asList, bool asSet, ref OptionsStruct options)
+        private static object FromBytesEnumerable(ref ByteReaderOld reader, SerializerTypeDetail typeDetail, bool asList, bool asSet, ref OptionsStruct options)
         {
             var length = reader.ReadInt32();
 
@@ -373,7 +373,7 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object? FromBytesCoreType(ref ByteReader reader, CoreType coreType, bool nullFlags)
+        private static object? FromBytesCoreType(ref ByteReaderOld reader, CoreType coreType, bool nullFlags)
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless coreTypeCouldBeNull = true
             return coreType switch
@@ -425,7 +425,7 @@ namespace Zerra.Serialization.Bytes
             };
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromBytesCoreTypeEnumerable(ref ByteReader reader, int length, CoreType coreType, bool asList, bool asSet)
+        private static object FromBytesCoreTypeEnumerable(ref ByteReaderOld reader, int length, CoreType coreType, bool asList, bool asSet)
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless coreTypeCouldBeNull = true
             switch (coreType)
@@ -715,7 +715,7 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object? FromBytesSpecialType(ref ByteReader reader, SerializerTypeDetail typeDetail, bool nullFlags, ref OptionsStruct options)
+        private static object? FromBytesSpecialType(ref ByteReaderOld reader, SerializerTypeDetail typeDetail, bool nullFlags, ref OptionsStruct options)
         {
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType!.Value : typeDetail.TypeDetail.SpecialType!.Value;
 
@@ -752,7 +752,7 @@ namespace Zerra.Serialization.Bytes
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object FromBytesSpecialTypeEnumerable(ref ByteReader reader, int length, SerializerTypeDetail typeDetail, bool asList, ref OptionsStruct options)
+        private static object FromBytesSpecialTypeEnumerable(ref ByteReaderOld reader, int length, SerializerTypeDetail typeDetail, bool asList, ref OptionsStruct options)
         {
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType!.Value : typeDetail.TypeDetail.SpecialType!.Value;
             switch (specialType)
@@ -811,7 +811,7 @@ namespace Zerra.Serialization.Bytes
                         }
                         else
                         {
-                            if (typeDetail.TypeDetail.IsIList)
+                            if (typeDetail.TypeDetail.HasIListGeneric)
                             {
                                 var list = (IList)typeDetail.ListCreator(length);
                                 for (var i = 0; i < length; i++)

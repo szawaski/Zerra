@@ -11,8 +11,8 @@ namespace Zerra.Serialization.Bytes.Converters
     internal sealed class ByteConverterTypeRequired<TParent> : ByteConverter<TParent, object>
     {
         protected override bool TryReadValue(ref ByteReader reader, ref ReadState state, out object? value)
-         => throw new NotSupportedException("Cannot deserialize without type information");
+            => throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.GetNiceName()} without type information");
         protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, object? value)
-     => throw new NotSupportedException("Cannot deserialize without type information");
+            => throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.GetNiceName()} without type information");
     }
 }

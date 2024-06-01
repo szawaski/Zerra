@@ -496,7 +496,7 @@ namespace Zerra
                 {
                     var subModelType = property.Type;
                     var subModelTypeDetails = TypeAnalyzer.GetTypeDetail(subModelType);
-                    if (subModelTypeDetails.IsIEnumerableGeneric)
+                    if (subModelTypeDetails.HasIEnumerableGeneric)
                     {
                         subModelType = subModelTypeDetails.IEnumerableGenericInnerType;
                     }

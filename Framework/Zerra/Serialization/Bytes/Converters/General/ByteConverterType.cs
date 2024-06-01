@@ -13,21 +13,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out Type? value)
         {
-            if (!state.Current.StringLength.HasValue)
-            {
-                if (!reader.TryReadStringLength(state.Current.NullFlags, out state.Current.StringLength, out state.BytesNeeded))
-                {
-                    value = default;
-                    return false;
-                }
-                if (!state.Current.StringLength.HasValue || state.Current.StringLength.Value == 0)
-                {
-                    value = default;
-                    return false;
-                }
-            }
-
-            if (!reader.TryReadString(state.Current.StringLength.Value, out var typeName, out state.BytesNeeded))
+            if (!reader.TryRead(state.Current.NullFlags, out string? typeName, out state.BytesNeeded))
             {
                 value = default;
                 return false;

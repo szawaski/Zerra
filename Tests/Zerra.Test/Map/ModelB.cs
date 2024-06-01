@@ -53,7 +53,7 @@ namespace Zerra.Test.Map
         public ModelA[] ModelToModelArray { get; set; }
 
         public Dictionary<string, string> Dictionary1 { get; set; }
-        public Dictionary<string, BasicModel> Dictionary2 { get; set; }
+        public Dictionary<string, SimpleModel> Dictionary2 { get; set; }
         public IDictionary<string, string> DictionaryToIDiciontary { get; set; }
     }
 }

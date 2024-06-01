@@ -926,9 +926,9 @@ namespace Zerra.Serialization.Json
                 return null;
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
-            if (typeDetail.IsIEnumerableGeneric)
+            if (typeDetail.HasIEnumerableGeneric)
             {
-                if (typeDetail.SpecialType == SpecialType.Dictionary)
+                if (typeDetail.HasIDictionaryGeneric || typeDetail.HasIReadOnlyDictionaryGeneric)
                 {
                     if (jsonType != JsonObjectType.Object)
                         throw new InvalidCastException();
@@ -963,7 +963,7 @@ namespace Zerra.Serialization.Json
                     if (jsonType != JsonObjectType.Array)
                         throw new InvalidCastException();
                     var innerType = typeDetail.InnerTypeDetails[0].Type;
-                    if (!typeDetail.Type.IsArray && typeDetail.IsIList)
+                    if (!typeDetail.Type.IsArray && typeDetail.HasIListGeneric)
                     {
                         var listType = TypeAnalyzer.GetGenericTypeDetail(plainListType, innerType);
                         var list = (IList)listType.CreatorBoxed();

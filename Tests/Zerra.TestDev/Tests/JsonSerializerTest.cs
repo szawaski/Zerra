@@ -32,7 +32,7 @@ namespace Zerra.TestDev
             systemTextJsonOptions = new System.Text.Json.JsonSerializerOptions();
             systemTextJsonOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
             newtonsoftConverter = new Newtonsoft.Json.Converters.StringEnumConverter();
-            obj = Factory.GetAllTypesModel();
+            obj = AllTypesModel.Create();
             json = JsonSerializer.Serialize(obj);
             jsonnameless = JsonSerializer.Serialize(obj, optionsNameless);
         }

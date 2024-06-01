@@ -13,10 +13,10 @@ namespace Zerra.Test
         [TestMethod]
         public void Types()
         {
-            var model1 = Factory.GetCoreTypesModel();
+            var model1 = CoreTypesModel.Create();
             var str = QueryStringSerializer.Serialize(model1);
             var model2 = QueryStringSerializer.Deserialize<CoreTypesModel>(str);
-            Factory.AssertAreEqual(model1, model2);
+            AssertHelper.AreEqual(model1, model2);
         }
     }
 }

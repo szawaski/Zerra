@@ -17,7 +17,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
             {
                 case CoreType.Byte:
                     {
-                        if (!reader.TryReadByte(out var number, out state.BytesNeeded))
+                        if (!reader.TryRead(out byte number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -30,7 +30,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.SByte:
                     {
-                        if (!reader.TryReadSByte(out var number, out state.BytesNeeded))
+                        if (!reader.TryRead(out sbyte number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -43,7 +43,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.Int16:
                     {
-                        if (!reader.TryReadInt16(out var number, out state.BytesNeeded))
+                        if (!reader.TryRead(out short number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -56,7 +56,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.UInt16:
                     {
-                        if (!reader.TryReadUInt16(out var number, out state.BytesNeeded))
+                        if (!reader.TryRead(out ushort number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -69,7 +69,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.Int32:
                     {
-                        if (!reader.TryReadInt32(out var number, out state.BytesNeeded))
+                        if (!reader.TryRead(out int number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -82,7 +82,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.UInt32:
                     {
-                        if (!reader.TryReadUInt32(out var number, out state.BytesNeeded))
+                        if (!reader.TryRead(out uint number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -95,7 +95,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.Int64:
                     {
-                        if (!reader.TryReadInt64(out var number, out state.BytesNeeded))
+                        if (!reader.TryRead(out long number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -108,7 +108,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.UInt64:
                     {
-                        if (!reader.TryReadUInt64(out var number, out state.BytesNeeded))
+                        if (!reader.TryRead(out ulong number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -121,7 +121,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.ByteNullable:
                     {
-                        if (!reader.TryReadByteNullable(state.Current.NullFlags, out var number, out state.BytesNeeded))
+                        if (!reader.TryRead(state.Current.NullFlags, out byte? number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -139,7 +139,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.SByteNullable:
                     {
-                        if (!reader.TryReadSByteNullable(state.Current.NullFlags, out var number, out state.BytesNeeded))
+                        if (!reader.TryRead(state.Current.NullFlags, out sbyte? number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -157,7 +157,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.Int16Nullable:
                     {
-                        if (!reader.TryReadInt16Nullable(state.Current.NullFlags, out var number, out state.BytesNeeded))
+                        if (!reader.TryRead(state.Current.NullFlags, out short? number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -175,7 +175,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.UInt16Nullable:
                     {
-                        if (!reader.TryReadUInt16Nullable(state.Current.NullFlags, out var number, out state.BytesNeeded))
+                        if (!reader.TryRead(state.Current.NullFlags, out ushort? number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -193,7 +193,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.Int32Nullable:
                     {
-                        if (!reader.TryReadInt32Nullable(state.Current.NullFlags, out var number, out state.BytesNeeded))
+                        if (!reader.TryRead(state.Current.NullFlags, out int? number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -211,7 +211,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.UInt32Nullable:
                     {
-                        if (!reader.TryReadUInt32Nullable(state.Current.NullFlags, out var number, out state.BytesNeeded))
+                        if (!reader.TryRead(state.Current.NullFlags, out uint? number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -229,7 +229,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.Int64Nullable:
                     {
-                        if (!reader.TryReadInt64Nullable(state.Current.NullFlags, out var number, out state.BytesNeeded))
+                        if (!reader.TryRead(state.Current.NullFlags, out long? number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -247,7 +247,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.UInt64Nullable:
                     {
-                        if (!reader.TryReadUInt64Nullable(state.Current.NullFlags, out var number, out state.BytesNeeded))
+                        if (!reader.TryRead(state.Current.NullFlags, out ulong? number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;

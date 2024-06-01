@@ -37,7 +37,11 @@ namespace Zerra.Reflection
                                     {
                                         var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                                         foreach (var method in iMethods)
-                                            items.Add(new MethodDetail<T>(method, locker));
+                                        {
+                                            var methodDetail = new MethodDetail<T>(method, locker);
+                                            if (!items.Any(x => SignatureCompare(x, methodDetail)))
+                                                items.Add(methodDetail);
+                                        }
                                     }
                                 }
                             }
@@ -117,7 +121,7 @@ namespace Zerra.Reflection
                         {
                             creator = () => { return default!; };
                         }
-                        else
+                        else if (Type.Name == "String")
                         {
                             creator = () => { return (T)(object)String.Empty; };
                         }

@@ -27,42 +27,20 @@ namespace Zerra.Serialization.Bytes
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
             var converter = (ByteConverter<object, T>)ByteConverterFactory<object>.GetRoot(typeDetail);
 
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
-            var position = 0;
-
-            try
+            var state = new WriteState()
             {
-                var state = new WriteState()
-                {
-                    IncludePropertyTypes = options.IncludePropertyTypes,
-                    UsePropertyNames = options.UsePropertyNames,
-                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
-                };
-                state.PushFrame(true);
+                IncludeTypes = options.UseTypes,
+                UsePropertyNames = options.UsePropertyNames,
+                IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
+            };
+            state.PushFrame(true);
 
-                for (; ; )
-                {
-                    var usedBytes = Write(converter, buffer.AsSpan().Slice(position), ref state, options.Encoding, obj);
+            var result = Write(converter, defaultBufferSize, ref state, options.Encoding, obj);
 
-                    position += usedBytes;
+            if (state.BytesNeeded > 0)
+                throw new EndOfStreamException();
 
-                    if (state.BytesNeeded == 0)
-                        break;
-
-                    if (state.BytesNeeded > buffer.Length - position)
-                        BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded + position);
-
-                    state.BytesNeeded = 0;
-                }
-            }
-            finally
-            {
-                BufferArrayPool<byte>.Return(buffer);
-            }
-
-            var result = new byte[position];
-            Buffer.BlockCopy(buffer, 0, result, 0, position);
             return result;
         }
         public static byte[] Serialize(object? obj, ByteSerializerOptions? options = null)
@@ -75,43 +53,22 @@ namespace Zerra.Serialization.Bytes
             var typeDetail = obj.GetType().GetTypeDetail();
             var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
 
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
-            var position = 0;
-
-            try
+            var state = new WriteState()
             {
-                var state = new WriteState()
-                {
-                    IncludePropertyTypes = options.IncludePropertyTypes,
-                    UsePropertyNames = options.UsePropertyNames,
-                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
-                };
-                state.PushFrame(true);
+                IncludeTypes = options.UseTypes,
+                UsePropertyNames = options.UsePropertyNames,
+                IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
+            };
+            state.PushFrame(true);
 
-                for (; ; )
-                {
-                    var usedBytes = WriteBoxed(converter, buffer.AsSpan().Slice(position), ref state, options.Encoding, obj);
+            var result = WriteBoxed(converter, defaultBufferSize, ref state, options.Encoding, obj);
 
-                    position += usedBytes;
+            if (state.BytesNeeded > 0)
+                throw new EndOfStreamException();
 
-                    if (state.BytesNeeded == 0)
-                        break;
-
-                    if (state.BytesNeeded > buffer.Length - position)
-                        BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded + position);
-
-                    state.BytesNeeded = 0;
-                }
-            }
-            finally
-            {
-                BufferArrayPool<byte>.Return(buffer);
-            }
-
-            var result = new byte[position];
-            Buffer.BlockCopy(buffer, 0, result, 0, position);
             return result;
+
         }
         public static byte[] Serialize(object? obj, Type type, ByteSerializerOptions? options = null)
         {
@@ -125,42 +82,20 @@ namespace Zerra.Serialization.Bytes
             var typeDetail = type.GetTypeDetail();
             var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
 
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
-            var position = 0;
-
-            try
+            var state = new WriteState()
             {
-                var state = new WriteState()
-                {
-                    IncludePropertyTypes = options.IncludePropertyTypes,
-                    UsePropertyNames = options.UsePropertyNames,
-                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
-                };
-                state.PushFrame(true);
+                IncludeTypes = options.UseTypes,
+                UsePropertyNames = options.UsePropertyNames,
+                IgnoreIndexAttribute = options.IgnoreIndexAttribute,
+                IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
+            };
+            state.PushFrame(true);
 
-                for (; ; )
-                {
-                    var usedBytes = WriteBoxed(converter, buffer.AsSpan().Slice(position), ref state, options.Encoding, obj);
+            var result = WriteBoxed(converter, defaultBufferSize, ref state, options.Encoding, obj);
 
-                    position += usedBytes;
+            if (state.BytesNeeded > 0)
+                throw new EndOfStreamException();
 
-                    if (state.BytesNeeded == 0)
-                        break;
-
-                    if (state.BytesNeeded > buffer.Length - position)
-                        BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded + position);
-
-                    state.BytesNeeded = 0;
-                }
-            }
-            finally
-            {
-                BufferArrayPool<byte>.Return(buffer);
-            }
-
-            var result = new byte[position];
-            Buffer.BlockCopy(buffer, 0, result, 0, position);
             return result;
         }
 
@@ -182,7 +117,7 @@ namespace Zerra.Serialization.Bytes
             {
                 var state = new WriteState()
                 {
-                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IncludeTypes = options.UseTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
@@ -232,7 +167,7 @@ namespace Zerra.Serialization.Bytes
             {
                 var state = new WriteState()
                 {
-                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IncludeTypes = options.UseTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
@@ -284,7 +219,7 @@ namespace Zerra.Serialization.Bytes
             {
                 var state = new WriteState()
                 {
-                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IncludeTypes = options.UseTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
@@ -335,7 +270,7 @@ namespace Zerra.Serialization.Bytes
             {
                 var state = new WriteState()
                 {
-                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IncludeTypes = options.UseTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
@@ -390,7 +325,7 @@ namespace Zerra.Serialization.Bytes
             {
                 var state = new WriteState()
                 {
-                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IncludeTypes = options.UseTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
@@ -447,7 +382,7 @@ namespace Zerra.Serialization.Bytes
             {
                 var state = new WriteState()
                 {
-                    IncludePropertyTypes = options.IncludePropertyTypes,
+                    IncludeTypes = options.UseTypes,
                     UsePropertyNames = options.UsePropertyNames,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
@@ -481,46 +416,57 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Write<T>(ByteConverter<object, T> converter, Span<byte> buffer, ref WriteState state, Encoding encoding, T value)
+        private static byte[] Write<T>(ByteConverter<object, T> converter, int initialSize, ref WriteState state, Encoding encoding, T value)
         {
-            var writer = new ByteWriter(buffer, encoding);
-#if DEBUG
-            for (; ; )
+            var writer = new ByteWriter(initialSize, encoding);
+            try
             {
                 var write = converter.TryWrite(ref writer, ref state, value);
                 if (write)
-                {
                     state.BytesNeeded = 0;
-                    return writer.Length;
-                }
+                var result = writer.ToArray();
+                return result;
             }
-#else
+            finally
+            {
+                writer.Dispose();
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static byte[] WriteBoxed(ByteConverter<object> converter, int initialSize, ref WriteState state, Encoding encoding, object value)
+        {
+            var writer = new ByteWriter(initialSize, encoding);
+            try
+            {
+                var write = converter.TryWriteBoxed(ref writer, ref state, value);
+                if (write)
+                    state.BytesNeeded = 0;
+                var result = writer.ToArray();
+                return result;
+            }
+            finally
+            {
+                writer.Dispose();
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int Write<T>(ByteConverter<object, T> converter, Span<byte> buffer, ref WriteState state, Encoding encoding, T value)
+        {
+            var writer = new ByteWriter(buffer, encoding);
             var write = converter.TryWrite(ref writer, ref state, value);
             if (write)
                 state.BytesNeeded = 0;
             return writer.Length;
-#endif
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int WriteBoxed(ByteConverter<object> converter, Span<byte> buffer, ref WriteState state, Encoding encoding, object value)
         {
             var writer = new ByteWriter(buffer, encoding);
-#if DEBUG
-            for (; ; )
-            {
-                var write = converter.TryWriteBoxed(ref writer, ref state, value);
-                if (write)
-                {
-                    state.BytesNeeded = 0;
-                    return writer.Length;
-                }
-            }
-#else
             var write = converter.TryWriteBoxed(ref writer, ref state, value);
             if (write)
                 state.BytesNeeded = 0;
             return writer.Length;
-#endif
         }
     }
 }

@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace Zerra.Test
@@ -221,165 +223,1052 @@ namespace Zerra.Test
         public string[] EnumArray { get; set; }
         public string[] EnumArrayNullable { get; set; }
 
-        public List<string> BooleanList { get; set; }
-        public List<string> ByteList { get; set; }
-        public List<string> SByteList { get; set; }
-        public List<string> Int16List { get; set; }
-        public List<string> UInt16List { get; set; }
-        public List<string> Int32List { get; set; }
-        public List<string> UInt32List { get; set; }
-        public List<string> Int64List { get; set; }
-        public List<string> UInt64List { get; set; }
-        public List<string> SingleList { get; set; }
-        public List<string> DoubleList { get; set; }
-        public List<string> DecimalList { get; set; }
-        public List<string> CharList { get; set; }
-        public List<string> DateTimeList { get; set; }
-        public List<string> DateTimeOffsetList { get; set; }
-        public List<string> TimeSpanList { get; set; }
+        public List<string> BooleanListT { get; set; }
+        public List<string> ByteListT { get; set; }
+        public List<string> SByteListT { get; set; }
+        public List<string> Int16ListT { get; set; }
+        public List<string> UInt16ListT { get; set; }
+        public List<string> Int32ListT { get; set; }
+        public List<string> UInt32ListT { get; set; }
+        public List<string> Int64ListT { get; set; }
+        public List<string> UInt64ListT { get; set; }
+        public List<string> SingleListT { get; set; }
+        public List<string> DoubleListT { get; set; }
+        public List<string> DecimalListT { get; set; }
+        public List<string> CharListT { get; set; }
+        public List<string> DateTimeListT { get; set; }
+        public List<string> DateTimeOffsetListT { get; set; }
+        public List<string> TimeSpanListT { get; set; }
 #if NET6_0_OR_GREATER
-        public List<string> DateOnlyList { get; set; }
-        public List<string> TimeOnlyList { get; set; }
+        public List<string> DateOnlyListT { get; set; }
+        public List<string> TimeOnlyListT { get; set; }
 #endif
-        public List<string> GuidList { get; set; }
+        public List<string> GuidListT { get; set; }
 
-        public List<string> BooleanListEmpty { get; set; }
-        public List<string> ByteListEmpty { get; set; }
-        public List<string> SByteListEmpty { get; set; }
-        public List<string> Int16ListEmpty { get; set; }
-        public List<string> UInt16ListEmpty { get; set; }
-        public List<string> Int32ListEmpty { get; set; }
-        public List<string> UInt32ListEmpty { get; set; }
-        public List<string> Int64ListEmpty { get; set; }
-        public List<string> UInt64ListEmpty { get; set; }
-        public List<string> SingleListEmpty { get; set; }
-        public List<string> DoubleListEmpty { get; set; }
-        public List<string> DecimalListEmpty { get; set; }
-        public List<string> CharListEmpty { get; set; }
-        public List<string> DateTimeListEmpty { get; set; }
-        public List<string> DateTimeOffsetListEmpty { get; set; }
-        public List<string> TimeSpanListEmpty { get; set; }
+        public List<string> BooleanListTEmpty { get; set; }
+        public List<string> ByteListTEmpty { get; set; }
+        public List<string> SByteListTEmpty { get; set; }
+        public List<string> Int16ListTEmpty { get; set; }
+        public List<string> UInt16ListTEmpty { get; set; }
+        public List<string> Int32ListTEmpty { get; set; }
+        public List<string> UInt32ListTEmpty { get; set; }
+        public List<string> Int64ListTEmpty { get; set; }
+        public List<string> UInt64ListTEmpty { get; set; }
+        public List<string> SingleListTEmpty { get; set; }
+        public List<string> DoubleListTEmpty { get; set; }
+        public List<string> DecimalListTEmpty { get; set; }
+        public List<string> CharListTEmpty { get; set; }
+        public List<string> DateTimeListTEmpty { get; set; }
+        public List<string> DateTimeOffsetListTEmpty { get; set; }
+        public List<string> TimeSpanListTEmpty { get; set; }
 #if NET6_0_OR_GREATER
-        public List<string> DateOnlyListEmpty { get; set; }
-        public List<string> TimeOnlyListEmpty { get; set; }
+        public List<string> DateOnlyListTEmpty { get; set; }
+        public List<string> TimeOnlyListTEmpty { get; set; }
 #endif
-        public List<string> GuidListEmpty { get; set; }
+        public List<string> GuidListTEmpty { get; set; }
 
-        public List<string> BooleanListNull { get; set; }
-        public List<string> ByteListNull { get; set; }
-        public List<string> SByteListNull { get; set; }
-        public List<string> Int16ListNull { get; set; }
-        public List<string> UInt16ListNull { get; set; }
-        public List<string> Int32ListNull { get; set; }
-        public List<string> UInt32ListNull { get; set; }
-        public List<string> Int64ListNull { get; set; }
-        public List<string> UInt64ListNull { get; set; }
-        public List<string> SingleListNull { get; set; }
-        public List<string> DoubleListNull { get; set; }
-        public List<string> DecimalListNull { get; set; }
-        public List<string> CharListNull { get; set; }
-        public List<string> DateTimeListNull { get; set; }
-        public List<string> DateTimeOffsetListNull { get; set; }
-        public List<string> TimeSpanListNull { get; set; }
+        public List<string> BooleanListTNull { get; set; }
+        public List<string> ByteListTNull { get; set; }
+        public List<string> SByteListTNull { get; set; }
+        public List<string> Int16ListTNull { get; set; }
+        public List<string> UInt16ListTNull { get; set; }
+        public List<string> Int32ListTNull { get; set; }
+        public List<string> UInt32ListTNull { get; set; }
+        public List<string> Int64ListTNull { get; set; }
+        public List<string> UInt64ListTNull { get; set; }
+        public List<string> SingleListTNull { get; set; }
+        public List<string> DoubleListTNull { get; set; }
+        public List<string> DecimalListTNull { get; set; }
+        public List<string> CharListTNull { get; set; }
+        public List<string> DateTimeListTNull { get; set; }
+        public List<string> DateTimeOffsetListTNull { get; set; }
+        public List<string> TimeSpanListTNull { get; set; }
 #if NET6_0_OR_GREATER
-        public List<string> DateOnlyListNull { get; set; }
-        public List<string> TimeOnlyListNull { get; set; }
+        public List<string> DateOnlyListTNull { get; set; }
+        public List<string> TimeOnlyListTNull { get; set; }
 #endif
-        public List<string> GuidListNull { get; set; }
+        public List<string> GuidListTNull { get; set; }
 
-        public List<string> BooleanListNullable { get; set; }
-        public List<string> ByteListNullable { get; set; }
-        public List<string> SByteListNullable { get; set; }
-        public List<string> Int16ListNullable { get; set; }
-        public List<string> UInt16ListNullable { get; set; }
-        public List<string> Int32ListNullable { get; set; }
-        public List<string> UInt32ListNullable { get; set; }
-        public List<string> Int64ListNullable { get; set; }
-        public List<string> UInt64ListNullable { get; set; }
-        public List<string> SingleListNullable { get; set; }
-        public List<string> DoubleListNullable { get; set; }
-        public List<string> DecimalListNullable { get; set; }
-        public List<string> CharListNullable { get; set; }
-        public List<string> DateTimeListNullable { get; set; }
-        public List<string> DateTimeOffsetListNullable { get; set; }
-        public List<string> TimeSpanListNullable { get; set; }
+        public List<string> BooleanListTNullable { get; set; }
+        public List<string> ByteListTNullable { get; set; }
+        public List<string> SByteListTNullable { get; set; }
+        public List<string> Int16ListTNullable { get; set; }
+        public List<string> UInt16ListTNullable { get; set; }
+        public List<string> Int32ListTNullable { get; set; }
+        public List<string> UInt32ListTNullable { get; set; }
+        public List<string> Int64ListTNullable { get; set; }
+        public List<string> UInt64ListTNullable { get; set; }
+        public List<string> SingleListTNullable { get; set; }
+        public List<string> DoubleListTNullable { get; set; }
+        public List<string> DecimalListTNullable { get; set; }
+        public List<string> CharListTNullable { get; set; }
+        public List<string> DateTimeListTNullable { get; set; }
+        public List<string> DateTimeOffsetListTNullable { get; set; }
+        public List<string> TimeSpanListTNullable { get; set; }
 #if NET6_0_OR_GREATER
-        public List<string> DateOnlyListNullable { get; set; }
-        public List<string> TimeOnlyListNullable { get; set; }
+        public List<string> DateOnlyListTNullable { get; set; }
+        public List<string> TimeOnlyListTNullable { get; set; }
 #endif
-        public List<string> GuidListNullable { get; set; }
+        public List<string> GuidListTNullable { get; set; }
 
-        public List<string> BooleanListNullableEmpty { get; set; }
-        public List<string> ByteListNullableEmpty { get; set; }
-        public List<string> SByteListNullableEmpty { get; set; }
-        public List<string> Int16ListNullableEmpty { get; set; }
-        public List<string> UInt16ListNullableEmpty { get; set; }
-        public List<string> Int32ListNullableEmpty { get; set; }
-        public List<string> UInt32ListNullableEmpty { get; set; }
-        public List<string> Int64ListNullableEmpty { get; set; }
-        public List<string> UInt64ListNullableEmpty { get; set; }
-        public List<string> SingleListNullableEmpty { get; set; }
-        public List<string> DoubleListNullableEmpty { get; set; }
-        public List<string> DecimalListNullableEmpty { get; set; }
-        public List<string> CharListNullableEmpty { get; set; }
-        public List<string> DateTimeListNullableEmpty { get; set; }
-        public List<string> DateTimeOffsetListNullableEmpty { get; set; }
-        public List<string> TimeSpanListNullableEmpty { get; set; }
+        public List<string> BooleanListTNullableEmpty { get; set; }
+        public List<string> ByteListTNullableEmpty { get; set; }
+        public List<string> SByteListTNullableEmpty { get; set; }
+        public List<string> Int16ListTNullableEmpty { get; set; }
+        public List<string> UInt16ListTNullableEmpty { get; set; }
+        public List<string> Int32ListTNullableEmpty { get; set; }
+        public List<string> UInt32ListTNullableEmpty { get; set; }
+        public List<string> Int64ListTNullableEmpty { get; set; }
+        public List<string> UInt64ListTNullableEmpty { get; set; }
+        public List<string> SingleListTNullableEmpty { get; set; }
+        public List<string> DoubleListTNullableEmpty { get; set; }
+        public List<string> DecimalListTNullableEmpty { get; set; }
+        public List<string> CharListTNullableEmpty { get; set; }
+        public List<string> DateTimeListTNullableEmpty { get; set; }
+        public List<string> DateTimeOffsetListTNullableEmpty { get; set; }
+        public List<string> TimeSpanListTNullableEmpty { get; set; }
 #if NET6_0_OR_GREATER
-        public List<string> DateOnlyListNullableEmpty { get; set; }
-        public List<string> TimeOnlyListNullableEmpty { get; set; }
+        public List<string> DateOnlyListTNullableEmpty { get; set; }
+        public List<string> TimeOnlyListTNullableEmpty { get; set; }
 #endif
-        public List<string> GuidListNullableEmpty { get; set; }
+        public List<string> GuidListTNullableEmpty { get; set; }
 
-        public List<string> BooleanListNullableNull { get; set; }
-        public List<string> ByteListNullableNull { get; set; }
-        public List<string> SByteListNullableNull { get; set; }
-        public List<string> Int16ListNullableNull { get; set; }
-        public List<string> UInt16ListNullableNull { get; set; }
-        public List<string> Int32ListNullableNull { get; set; }
-        public List<string> UInt32ListNullableNull { get; set; }
-        public List<string> Int64ListNullableNull { get; set; }
-        public List<string> UInt64ListNullableNull { get; set; }
-        public List<string> SingleListNullableNull { get; set; }
-        public List<string> DoubleListNullableNull { get; set; }
-        public List<string> DecimalListNullableNull { get; set; }
-        public List<string> CharListNullableNull { get; set; }
-        public List<string> DateTimeListNullableNull { get; set; }
-        public List<string> DateTimeOffsetListNullableNull { get; set; }
-        public List<string> TimeSpanListNullableNull { get; set; }
+        public List<string> BooleanListTNullableNull { get; set; }
+        public List<string> ByteListTNullableNull { get; set; }
+        public List<string> SByteListTNullableNull { get; set; }
+        public List<string> Int16ListTNullableNull { get; set; }
+        public List<string> UInt16ListTNullableNull { get; set; }
+        public List<string> Int32ListTNullableNull { get; set; }
+        public List<string> UInt32ListTNullableNull { get; set; }
+        public List<string> Int64ListTNullableNull { get; set; }
+        public List<string> UInt64ListTNullableNull { get; set; }
+        public List<string> SingleListTNullableNull { get; set; }
+        public List<string> DoubleListTNullableNull { get; set; }
+        public List<string> DecimalListTNullableNull { get; set; }
+        public List<string> CharListTNullableNull { get; set; }
+        public List<string> DateTimeListTNullableNull { get; set; }
+        public List<string> DateTimeOffsetListTNullableNull { get; set; }
+        public List<string> TimeSpanListTNullableNull { get; set; }
 #if NET6_0_OR_GREATER
-        public List<string> DateOnlyListNullableNull { get; set; }
-        public List<string> TimeOnlyListNullableNull { get; set; }
+        public List<string> DateOnlyListTNullableNull { get; set; }
+        public List<string> TimeOnlyListTNullableNull { get; set; }
 #endif
-        public List<string> GuidListNullableNull { get; set; }
+        public List<string> GuidListTNullableNull { get; set; }
 
-        public List<string> StringList { get; set; }
-        public List<string> StringListEmpty { get; set; }
-        public List<string> StringListNull { get; set; }
+        public List<string> StringListT { get; set; }
+        public List<string> StringListTEmpty { get; set; }
+        public List<string> StringListTNull { get; set; }
 
-        public List<string> EnumList { get; set; }
-        public List<string> EnumListEmpty { get; set; }
-        public List<string> EnumListNull { get; set; }
+        public List<string> EnumListT { get; set; }
+        public List<string> EnumListTEmpty { get; set; }
+        public List<string> EnumListTNull { get; set; }
 
-        public List<string> EnumListNullable { get; set; }
-        public List<string> EnumListNullableEmpty { get; set; }
-        public List<string> EnumListNullableNull { get; set; }
+        public List<string> EnumListTNullable { get; set; }
+        public List<string> EnumListTNullableEmpty { get; set; }
+        public List<string> EnumListTNullableNull { get; set; }
 
-        public BasicModel ClassThing { get; set; }
-        public BasicModel ClassThingNull { get; set; }
+        public IList<string> BooleanIListT { get; set; }
+        public IList<string> ByteIListT { get; set; }
+        public IList<string> SByteIListT { get; set; }
+        public IList<string> Int16IListT { get; set; }
+        public IList<string> UInt16IListT { get; set; }
+        public IList<string> Int32IListT { get; set; }
+        public IList<string> UInt32IListT { get; set; }
+        public IList<string> Int64IListT { get; set; }
+        public IList<string> UInt64IListT { get; set; }
+        public IList<string> SingleIListT { get; set; }
+        public IList<string> DoubleIListT { get; set; }
+        public IList<string> DecimalIListT { get; set; }
+        public IList<string> CharIListT { get; set; }
+        public IList<string> DateTimeIListT { get; set; }
+        public IList<string> DateTimeOffsetIListT { get; set; }
+        public IList<string> TimeSpanIListT { get; set; }
+#if NET6_0_OR_GREATER
+        public IList<string> DateOnlyIListT { get; set; }
+        public IList<string> TimeOnlyIListT { get; set; }
+#endif
+        public IList<string> GuidIListT { get; set; }
 
-        public BasicModel[] ClassArray { get; set; }
-        public BasicModel[] ClassArrayEmpty { get; set; }
-        public BasicModel[] ClassArrayNull { get; set; }
+        public IList<string> BooleanIListTEmpty { get; set; }
+        public IList<string> ByteIListTEmpty { get; set; }
+        public IList<string> SByteIListTEmpty { get; set; }
+        public IList<string> Int16IListTEmpty { get; set; }
+        public IList<string> UInt16IListTEmpty { get; set; }
+        public IList<string> Int32IListTEmpty { get; set; }
+        public IList<string> UInt32IListTEmpty { get; set; }
+        public IList<string> Int64IListTEmpty { get; set; }
+        public IList<string> UInt64IListTEmpty { get; set; }
+        public IList<string> SingleIListTEmpty { get; set; }
+        public IList<string> DoubleIListTEmpty { get; set; }
+        public IList<string> DecimalIListTEmpty { get; set; }
+        public IList<string> CharIListTEmpty { get; set; }
+        public IList<string> DateTimeIListTEmpty { get; set; }
+        public IList<string> DateTimeOffsetIListTEmpty { get; set; }
+        public IList<string> TimeSpanIListTEmpty { get; set; }
+#if NET6_0_OR_GREATER
+        public IList<string> DateOnlyIListTEmpty { get; set; }
+        public IList<string> TimeOnlyIListTEmpty { get; set; }
+#endif
+        public IList<string> GuidIListTEmpty { get; set; }
 
-        public IEnumerable<BasicModel> ClassEnumerable { get; set; }
+        public IList<string> BooleanIListTNull { get; set; }
+        public IList<string> ByteIListTNull { get; set; }
+        public IList<string> SByteIListTNull { get; set; }
+        public IList<string> Int16IListTNull { get; set; }
+        public IList<string> UInt16IListTNull { get; set; }
+        public IList<string> Int32IListTNull { get; set; }
+        public IList<string> UInt32IListTNull { get; set; }
+        public IList<string> Int64IListTNull { get; set; }
+        public IList<string> UInt64IListTNull { get; set; }
+        public IList<string> SingleIListTNull { get; set; }
+        public IList<string> DoubleIListTNull { get; set; }
+        public IList<string> DecimalIListTNull { get; set; }
+        public IList<string> CharIListTNull { get; set; }
+        public IList<string> DateTimeIListTNull { get; set; }
+        public IList<string> DateTimeOffsetIListTNull { get; set; }
+        public IList<string> TimeSpanIListTNull { get; set; }
+#if NET6_0_OR_GREATER
+        public IList<string> DateOnlyIListTNull { get; set; }
+        public IList<string> TimeOnlyIListTNull { get; set; }
+#endif
+        public IList<string> GuidIListTNull { get; set; }
 
-        public List<BasicModel> ClassList { get; set; }
-        public List<BasicModel> ClassListEmpty { get; set; }
-        public List<BasicModel> ClassListNull { get; set; }
+        public IList<string> BooleanIListTNullable { get; set; }
+        public IList<string> ByteIListTNullable { get; set; }
+        public IList<string> SByteIListTNullable { get; set; }
+        public IList<string> Int16IListTNullable { get; set; }
+        public IList<string> UInt16IListTNullable { get; set; }
+        public IList<string> Int32IListTNullable { get; set; }
+        public IList<string> UInt32IListTNullable { get; set; }
+        public IList<string> Int64IListTNullable { get; set; }
+        public IList<string> UInt64IListTNullable { get; set; }
+        public IList<string> SingleIListTNullable { get; set; }
+        public IList<string> DoubleIListTNullable { get; set; }
+        public IList<string> DecimalIListTNullable { get; set; }
+        public IList<string> CharIListTNullable { get; set; }
+        public IList<string> DateTimeIListTNullable { get; set; }
+        public IList<string> DateTimeOffsetIListTNullable { get; set; }
+        public IList<string> TimeSpanIListTNullable { get; set; }
+#if NET6_0_OR_GREATER
+        public IList<string> DateOnlyIListTNullable { get; set; }
+        public IList<string> TimeOnlyIListTNullable { get; set; }
+#endif
+        public IList<string> GuidIListTNullable { get; set; }
 
-        public IReadOnlyDictionary<int, string> DictionaryThing1 { get; set; }
-        public IReadOnlyDictionary<int, BasicModel> DictionaryThing2 { get; set; }
+        public IList<string> BooleanIListTNullableEmpty { get; set; }
+        public IList<string> ByteIListTNullableEmpty { get; set; }
+        public IList<string> SByteIListTNullableEmpty { get; set; }
+        public IList<string> Int16IListTNullableEmpty { get; set; }
+        public IList<string> UInt16IListTNullableEmpty { get; set; }
+        public IList<string> Int32IListTNullableEmpty { get; set; }
+        public IList<string> UInt32IListTNullableEmpty { get; set; }
+        public IList<string> Int64IListTNullableEmpty { get; set; }
+        public IList<string> UInt64IListTNullableEmpty { get; set; }
+        public IList<string> SingleIListTNullableEmpty { get; set; }
+        public IList<string> DoubleIListTNullableEmpty { get; set; }
+        public IList<string> DecimalIListTNullableEmpty { get; set; }
+        public IList<string> CharIListTNullableEmpty { get; set; }
+        public IList<string> DateTimeIListTNullableEmpty { get; set; }
+        public IList<string> DateTimeOffsetIListTNullableEmpty { get; set; }
+        public IList<string> TimeSpanIListTNullableEmpty { get; set; }
+#if NET6_0_OR_GREATER
+        public IList<string> DateOnlyIListTNullableEmpty { get; set; }
+        public IList<string> TimeOnlyIListTNullableEmpty { get; set; }
+#endif
+        public IList<string> GuidIListTNullableEmpty { get; set; }
+
+        public IList<string> BooleanIListTNullableNull { get; set; }
+        public IList<string> ByteIListTNullableNull { get; set; }
+        public IList<string> SByteIListTNullableNull { get; set; }
+        public IList<string> Int16IListTNullableNull { get; set; }
+        public IList<string> UInt16IListTNullableNull { get; set; }
+        public IList<string> Int32IListTNullableNull { get; set; }
+        public IList<string> UInt32IListTNullableNull { get; set; }
+        public IList<string> Int64IListTNullableNull { get; set; }
+        public IList<string> UInt64IListTNullableNull { get; set; }
+        public IList<string> SingleIListTNullableNull { get; set; }
+        public IList<string> DoubleIListTNullableNull { get; set; }
+        public IList<string> DecimalIListTNullableNull { get; set; }
+        public IList<string> CharIListTNullableNull { get; set; }
+        public IList<string> DateTimeIListTNullableNull { get; set; }
+        public IList<string> DateTimeOffsetIListTNullableNull { get; set; }
+        public IList<string> TimeSpanIListTNullableNull { get; set; }
+#if NET6_0_OR_GREATER
+        public IList<string> DateOnlyIListTNullableNull { get; set; }
+        public IList<string> TimeOnlyIListTNullableNull { get; set; }
+#endif
+        public IList<string> GuidIListTNullableNull { get; set; }
+
+        public IList<string> StringIListT { get; set; }
+        public IList<string> StringIListTEmpty { get; set; }
+        public IList<string> StringIListTNull { get; set; }
+
+        public IList<string> EnumIListT { get; set; }
+        public IList<string> EnumIListTEmpty { get; set; }
+        public IList<string> EnumIListTNull { get; set; }
+
+        public IList<string> EnumIListTNullable { get; set; }
+        public IList<string> EnumIListTNullableEmpty { get; set; }
+        public IList<string> EnumIListTNullableNull { get; set; }
+
+        public IReadOnlyList<string> BooleanIReadOnlyListT { get; set; }
+        public IReadOnlyList<string> ByteIReadOnlyListT { get; set; }
+        public IReadOnlyList<string> SByteIReadOnlyListT { get; set; }
+        public IReadOnlyList<string> Int16IReadOnlyListT { get; set; }
+        public IReadOnlyList<string> UInt16IReadOnlyListT { get; set; }
+        public IReadOnlyList<string> Int32IReadOnlyListT { get; set; }
+        public IReadOnlyList<string> UInt32IReadOnlyListT { get; set; }
+        public IReadOnlyList<string> Int64IReadOnlyListT { get; set; }
+        public IReadOnlyList<string> UInt64IReadOnlyListT { get; set; }
+        public IReadOnlyList<string> SingleIReadOnlyListT { get; set; }
+        public IReadOnlyList<string> DoubleIReadOnlyListT { get; set; }
+        public IReadOnlyList<string> DecimalIReadOnlyListT { get; set; }
+        public IReadOnlyList<string> CharIReadOnlyListT { get; set; }
+        public IReadOnlyList<string> DateTimeIReadOnlyListT { get; set; }
+        public IReadOnlyList<string> DateTimeOffsetIReadOnlyListT { get; set; }
+        public IReadOnlyList<string> TimeSpanIReadOnlyListT { get; set; }
+#if NET6_0_OR_GREATER
+        public IReadOnlyList<string> DateOnlyIReadOnlyListT { get; set; }
+        public IReadOnlyList<string> TimeOnlyIReadOnlyListT { get; set; }
+#endif
+        public IReadOnlyList<string> GuidIReadOnlyListT { get; set; }
+
+        public IReadOnlyList<string> BooleanIReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> ByteIReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> SByteIReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> Int16IReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> UInt16IReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> Int32IReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> UInt32IReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> Int64IReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> UInt64IReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> SingleIReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> DoubleIReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> DecimalIReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> CharIReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> DateTimeIReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> DateTimeOffsetIReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> TimeSpanIReadOnlyListTEmpty { get; set; }
+#if NET6_0_OR_GREATER
+        public IReadOnlyList<string> DateOnlyIReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> TimeOnlyIReadOnlyListTEmpty { get; set; }
+#endif
+        public IReadOnlyList<string> GuidIReadOnlyListTEmpty { get; set; }
+
+        public IReadOnlyList<string> BooleanIReadOnlyListTNull { get; set; }
+        public IReadOnlyList<string> ByteIReadOnlyListTNull { get; set; }
+        public IReadOnlyList<string> SByteIReadOnlyListTNull { get; set; }
+        public IReadOnlyList<string> Int16IReadOnlyListTNull { get; set; }
+        public IReadOnlyList<string> UInt16IReadOnlyListTNull { get; set; }
+        public IReadOnlyList<string> Int32IReadOnlyListTNull { get; set; }
+        public IReadOnlyList<string> UInt32IReadOnlyListTNull { get; set; }
+        public IReadOnlyList<string> Int64IReadOnlyListTNull { get; set; }
+        public IReadOnlyList<string> UInt64IReadOnlyListTNull { get; set; }
+        public IReadOnlyList<string> SingleIReadOnlyListTNull { get; set; }
+        public IReadOnlyList<string> DoubleIReadOnlyListTNull { get; set; }
+        public IReadOnlyList<string> DecimalIReadOnlyListTNull { get; set; }
+        public IReadOnlyList<string> CharIReadOnlyListTNull { get; set; }
+        public IReadOnlyList<string> DateTimeIReadOnlyListTNull { get; set; }
+        public IReadOnlyList<string> DateTimeOffsetIReadOnlyListTNull { get; set; }
+        public IReadOnlyList<string> TimeSpanIReadOnlyListTNull { get; set; }
+#if NET6_0_OR_GREATER
+        public IReadOnlyList<string> DateOnlyIReadOnlyListTNull { get; set; }
+        public IReadOnlyList<string> TimeOnlyIReadOnlyListTNull { get; set; }
+#endif
+        public IReadOnlyList<string> GuidIReadOnlyListTNull { get; set; }
+
+        public IReadOnlyList<string> BooleanIReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> ByteIReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> SByteIReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> Int16IReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> UInt16IReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> Int32IReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> UInt32IReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> Int64IReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> UInt64IReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> SingleIReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> DoubleIReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> DecimalIReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> CharIReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> DateTimeIReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> DateTimeOffsetIReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> TimeSpanIReadOnlyListTNullable { get; set; }
+#if NET6_0_OR_GREATER
+        public IReadOnlyList<string> DateOnlyIReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> TimeOnlyIReadOnlyListTNullable { get; set; }
+#endif
+        public IReadOnlyList<string> GuidIReadOnlyListTNullable { get; set; }
+
+        public IReadOnlyList<string> BooleanIReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> ByteIReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> SByteIReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> Int16IReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> UInt16IReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> Int32IReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> UInt32IReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> Int64IReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> UInt64IReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> SingleIReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> DoubleIReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> DecimalIReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> CharIReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> DateTimeIReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> DateTimeOffsetIReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> TimeSpanIReadOnlyListTNullableEmpty { get; set; }
+#if NET6_0_OR_GREATER
+        public IReadOnlyList<string> DateOnlyIReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> TimeOnlyIReadOnlyListTNullableEmpty { get; set; }
+#endif
+        public IReadOnlyList<string> GuidIReadOnlyListTNullableEmpty { get; set; }
+
+        public IReadOnlyList<string> BooleanIReadOnlyListTNullableNull { get; set; }
+        public IReadOnlyList<string> ByteIReadOnlyListTNullableNull { get; set; }
+        public IReadOnlyList<string> SByteIReadOnlyListTNullableNull { get; set; }
+        public IReadOnlyList<string> Int16IReadOnlyListTNullableNull { get; set; }
+        public IReadOnlyList<string> UInt16IReadOnlyListTNullableNull { get; set; }
+        public IReadOnlyList<string> Int32IReadOnlyListTNullableNull { get; set; }
+        public IReadOnlyList<string> UInt32IReadOnlyListTNullableNull { get; set; }
+        public IReadOnlyList<string> Int64IReadOnlyListTNullableNull { get; set; }
+        public IReadOnlyList<string> UInt64IReadOnlyListTNullableNull { get; set; }
+        public IReadOnlyList<string> SingleIReadOnlyListTNullableNull { get; set; }
+        public IReadOnlyList<string> DoubleIReadOnlyListTNullableNull { get; set; }
+        public IReadOnlyList<string> DecimalIReadOnlyListTNullableNull { get; set; }
+        public IReadOnlyList<string> CharIReadOnlyListTNullableNull { get; set; }
+        public IReadOnlyList<string> DateTimeIReadOnlyListTNullableNull { get; set; }
+        public IReadOnlyList<string> DateTimeOffsetIReadOnlyListTNullableNull { get; set; }
+        public IReadOnlyList<string> TimeSpanIReadOnlyListTNullableNull { get; set; }
+#if NET6_0_OR_GREATER
+        public IReadOnlyList<string> DateOnlyIReadOnlyListTNullableNull { get; set; }
+        public IReadOnlyList<string> TimeOnlyIReadOnlyListTNullableNull { get; set; }
+#endif
+        public IReadOnlyList<string> GuidIReadOnlyListTNullableNull { get; set; }
+
+        public IReadOnlyList<string> StringIReadOnlyListT { get; set; }
+        public IReadOnlyList<string> StringIReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> StringIReadOnlyListTNull { get; set; }
+
+        public IReadOnlyList<string> EnumIReadOnlyListT { get; set; }
+        public IReadOnlyList<string> EnumIReadOnlyListTEmpty { get; set; }
+        public IReadOnlyList<string> EnumIReadOnlyListTNull { get; set; }
+
+        public IReadOnlyList<string> EnumIReadOnlyListTNullable { get; set; }
+        public IReadOnlyList<string> EnumIReadOnlyListTNullableEmpty { get; set; }
+        public IReadOnlyList<string> EnumIReadOnlyListTNullableNull { get; set; }
+
+        public IList BooleanIReadOnlyList { get; set; }
+        public IList ByteIReadOnlyList { get; set; }
+        public IList SByteIReadOnlyList { get; set; }
+        public IList Int16IReadOnlyList { get; set; }
+        public IList UInt16IReadOnlyList { get; set; }
+        public IList Int32IReadOnlyList { get; set; }
+        public IList UInt32IReadOnlyList { get; set; }
+        public IList Int64IReadOnlyList { get; set; }
+        public IList UInt64IReadOnlyList { get; set; }
+        public IList SingleIReadOnlyList { get; set; }
+        public IList DoubleIReadOnlyList { get; set; }
+        public IList DecimalIReadOnlyList { get; set; }
+        public IList CharIReadOnlyList { get; set; }
+        public IList DateTimeIReadOnlyList { get; set; }
+        public IList DateTimeOffsetIReadOnlyList { get; set; }
+        public IList TimeSpanIReadOnlyList { get; set; }
+#if NET6_0_OR_GREATER
+        public IList DateOnlyIReadOnlyList { get; set; }
+        public IList TimeOnlyIReadOnlyList { get; set; }
+#endif
+        public IList GuidIReadOnlyList { get; set; }
+
+        public IList BooleanIReadOnlyListEmpty { get; set; }
+        public IList ByteIReadOnlyListEmpty { get; set; }
+        public IList SByteIReadOnlyListEmpty { get; set; }
+        public IList Int16IReadOnlyListEmpty { get; set; }
+        public IList UInt16IReadOnlyListEmpty { get; set; }
+        public IList Int32IReadOnlyListEmpty { get; set; }
+        public IList UInt32IReadOnlyListEmpty { get; set; }
+        public IList Int64IReadOnlyListEmpty { get; set; }
+        public IList UInt64IReadOnlyListEmpty { get; set; }
+        public IList SingleIReadOnlyListEmpty { get; set; }
+        public IList DoubleIReadOnlyListEmpty { get; set; }
+        public IList DecimalIReadOnlyListEmpty { get; set; }
+        public IList CharIReadOnlyListEmpty { get; set; }
+        public IList DateTimeIReadOnlyListEmpty { get; set; }
+        public IList DateTimeOffsetIReadOnlyListEmpty { get; set; }
+        public IList TimeSpanIReadOnlyListEmpty { get; set; }
+#if NET6_0_OR_GREATER
+        public IList DateOnlyIReadOnlyListEmpty { get; set; }
+        public IList TimeOnlyIReadOnlyListEmpty { get; set; }
+#endif
+        public IList GuidIReadOnlyListEmpty { get; set; }
+
+        public IList BooleanIReadOnlyListNull { get; set; }
+        public IList ByteIReadOnlyListNull { get; set; }
+        public IList SByteIReadOnlyListNull { get; set; }
+        public IList Int16IReadOnlyListNull { get; set; }
+        public IList UInt16IReadOnlyListNull { get; set; }
+        public IList Int32IReadOnlyListNull { get; set; }
+        public IList UInt32IReadOnlyListNull { get; set; }
+        public IList Int64IReadOnlyListNull { get; set; }
+        public IList UInt64IReadOnlyListNull { get; set; }
+        public IList SingleIReadOnlyListNull { get; set; }
+        public IList DoubleIReadOnlyListNull { get; set; }
+        public IList DecimalIReadOnlyListNull { get; set; }
+        public IList CharIReadOnlyListNull { get; set; }
+        public IList DateTimeIReadOnlyListNull { get; set; }
+        public IList DateTimeOffsetIReadOnlyListNull { get; set; }
+        public IList TimeSpanIReadOnlyListNull { get; set; }
+#if NET6_0_OR_GREATER
+        public IList DateOnlyIReadOnlyListNull { get; set; }
+        public IList TimeOnlyIReadOnlyListNull { get; set; }
+#endif
+        public IList GuidIReadOnlyListNull { get; set; }
+
+        public IList BooleanIReadOnlyListNullable { get; set; }
+        public IList ByteIReadOnlyListNullable { get; set; }
+        public IList SByteIReadOnlyListNullable { get; set; }
+        public IList Int16IReadOnlyListNullable { get; set; }
+        public IList UInt16IReadOnlyListNullable { get; set; }
+        public IList Int32IReadOnlyListNullable { get; set; }
+        public IList UInt32IReadOnlyListNullable { get; set; }
+        public IList Int64IReadOnlyListNullable { get; set; }
+        public IList UInt64IReadOnlyListNullable { get; set; }
+        public IList SingleIReadOnlyListNullable { get; set; }
+        public IList DoubleIReadOnlyListNullable { get; set; }
+        public IList DecimalIReadOnlyListNullable { get; set; }
+        public IList CharIReadOnlyListNullable { get; set; }
+        public IList DateTimeIReadOnlyListNullable { get; set; }
+        public IList DateTimeOffsetIReadOnlyListNullable { get; set; }
+        public IList TimeSpanIReadOnlyListNullable { get; set; }
+#if NET6_0_OR_GREATER
+        public IList DateOnlyIReadOnlyListNullable { get; set; }
+        public IList TimeOnlyIReadOnlyListNullable { get; set; }
+#endif
+        public IList GuidIReadOnlyListNullable { get; set; }
+
+        public IList BooleanIReadOnlyListNullableEmpty { get; set; }
+        public IList ByteIReadOnlyListNullableEmpty { get; set; }
+        public IList SByteIReadOnlyListNullableEmpty { get; set; }
+        public IList Int16IReadOnlyListNullableEmpty { get; set; }
+        public IList UInt16IReadOnlyListNullableEmpty { get; set; }
+        public IList Int32IReadOnlyListNullableEmpty { get; set; }
+        public IList UInt32IReadOnlyListNullableEmpty { get; set; }
+        public IList Int64IReadOnlyListNullableEmpty { get; set; }
+        public IList UInt64IReadOnlyListNullableEmpty { get; set; }
+        public IList SingleIReadOnlyListNullableEmpty { get; set; }
+        public IList DoubleIReadOnlyListNullableEmpty { get; set; }
+        public IList DecimalIReadOnlyListNullableEmpty { get; set; }
+        public IList CharIReadOnlyListNullableEmpty { get; set; }
+        public IList DateTimeIReadOnlyListNullableEmpty { get; set; }
+        public IList DateTimeOffsetIReadOnlyListNullableEmpty { get; set; }
+        public IList TimeSpanIReadOnlyListNullableEmpty { get; set; }
+#if NET6_0_OR_GREATER
+        public IList DateOnlyIReadOnlyListNullableEmpty { get; set; }
+        public IList TimeOnlyIReadOnlyListNullableEmpty { get; set; }
+#endif
+        public IList GuidIReadOnlyListNullableEmpty { get; set; }
+
+        public IList BooleanIReadOnlyListNullableNull { get; set; }
+        public IList ByteIReadOnlyListNullableNull { get; set; }
+        public IList SByteIReadOnlyListNullableNull { get; set; }
+        public IList Int16IReadOnlyListNullableNull { get; set; }
+        public IList UInt16IReadOnlyListNullableNull { get; set; }
+        public IList Int32IReadOnlyListNullableNull { get; set; }
+        public IList UInt32IReadOnlyListNullableNull { get; set; }
+        public IList Int64IReadOnlyListNullableNull { get; set; }
+        public IList UInt64IReadOnlyListNullableNull { get; set; }
+        public IList SingleIReadOnlyListNullableNull { get; set; }
+        public IList DoubleIReadOnlyListNullableNull { get; set; }
+        public IList DecimalIReadOnlyListNullableNull { get; set; }
+        public IList CharIReadOnlyListNullableNull { get; set; }
+        public IList DateTimeIReadOnlyListNullableNull { get; set; }
+        public IList DateTimeOffsetIReadOnlyListNullableNull { get; set; }
+        public IList TimeSpanIReadOnlyListNullableNull { get; set; }
+#if NET6_0_OR_GREATER
+        public IList DateOnlyIReadOnlyListNullableNull { get; set; }
+        public IList TimeOnlyIReadOnlyListNullableNull { get; set; }
+#endif
+        public IList GuidIReadOnlyListNullableNull { get; set; }
+
+        public IList StringIReadOnlyList { get; set; }
+        public IList StringIReadOnlyListEmpty { get; set; }
+        public IList StringIReadOnlyListNull { get; set; }
+
+        public IList EnumIReadOnlyList { get; set; }
+        public IList EnumIReadOnlyListEmpty { get; set; }
+        public IList EnumIReadOnlyListNull { get; set; }
+
+        public IList EnumIReadOnlyListNullable { get; set; }
+        public IList EnumIReadOnlyListNullableEmpty { get; set; }
+        public IList EnumIReadOnlyListNullableNull { get; set; }
+
+        public ICollection<string> BooleanICollectionT { get; set; }
+        public ICollection<string> ByteICollectionT { get; set; }
+        public ICollection<string> SByteICollectionT { get; set; }
+        public ICollection<string> Int16ICollectionT { get; set; }
+        public ICollection<string> UInt16ICollectionT { get; set; }
+        public ICollection<string> Int32ICollectionT { get; set; }
+        public ICollection<string> UInt32ICollectionT { get; set; }
+        public ICollection<string> Int64ICollectionT { get; set; }
+        public ICollection<string> UInt64ICollectionT { get; set; }
+        public ICollection<string> SingleICollectionT { get; set; }
+        public ICollection<string> DoubleICollectionT { get; set; }
+        public ICollection<string> DecimalICollectionT { get; set; }
+        public ICollection<string> CharICollectionT { get; set; }
+        public ICollection<string> DateTimeICollectionT { get; set; }
+        public ICollection<string> DateTimeOffsetICollectionT { get; set; }
+        public ICollection<string> TimeSpanICollectionT { get; set; }
+#if NET6_0_OR_GREATER
+        public ICollection<string> DateOnlyICollectionT { get; set; }
+        public ICollection<string> TimeOnlyICollectionT { get; set; }
+#endif
+        public ICollection<string> GuidICollectionT { get; set; }
+
+        public ICollection<string> BooleanICollectionTEmpty { get; set; }
+        public ICollection<string> ByteICollectionTEmpty { get; set; }
+        public ICollection<string> SByteICollectionTEmpty { get; set; }
+        public ICollection<string> Int16ICollectionTEmpty { get; set; }
+        public ICollection<string> UInt16ICollectionTEmpty { get; set; }
+        public ICollection<string> Int32ICollectionTEmpty { get; set; }
+        public ICollection<string> UInt32ICollectionTEmpty { get; set; }
+        public ICollection<string> Int64ICollectionTEmpty { get; set; }
+        public ICollection<string> UInt64ICollectionTEmpty { get; set; }
+        public ICollection<string> SingleICollectionTEmpty { get; set; }
+        public ICollection<string> DoubleICollectionTEmpty { get; set; }
+        public ICollection<string> DecimalICollectionTEmpty { get; set; }
+        public ICollection<string> CharICollectionTEmpty { get; set; }
+        public ICollection<string> DateTimeICollectionTEmpty { get; set; }
+        public ICollection<string> DateTimeOffsetICollectionTEmpty { get; set; }
+        public ICollection<string> TimeSpanICollectionTEmpty { get; set; }
+#if NET6_0_OR_GREATER
+        public ICollection<string> DateOnlyICollectionTEmpty { get; set; }
+        public ICollection<string> TimeOnlyICollectionTEmpty { get; set; }
+#endif
+        public ICollection<string> GuidICollectionTEmpty { get; set; }
+
+        public ICollection<string> BooleanICollectionTNull { get; set; }
+        public ICollection<string> ByteICollectionTNull { get; set; }
+        public ICollection<string> SByteICollectionTNull { get; set; }
+        public ICollection<string> Int16ICollectionTNull { get; set; }
+        public ICollection<string> UInt16ICollectionTNull { get; set; }
+        public ICollection<string> Int32ICollectionTNull { get; set; }
+        public ICollection<string> UInt32ICollectionTNull { get; set; }
+        public ICollection<string> Int64ICollectionTNull { get; set; }
+        public ICollection<string> UInt64ICollectionTNull { get; set; }
+        public ICollection<string> SingleICollectionTNull { get; set; }
+        public ICollection<string> DoubleICollectionTNull { get; set; }
+        public ICollection<string> DecimalICollectionTNull { get; set; }
+        public ICollection<string> CharICollectionTNull { get; set; }
+        public ICollection<string> DateTimeICollectionTNull { get; set; }
+        public ICollection<string> DateTimeOffsetICollectionTNull { get; set; }
+        public ICollection<string> TimeSpanICollectionTNull { get; set; }
+#if NET6_0_OR_GREATER
+        public ICollection<string> DateOnlyICollectionTNull { get; set; }
+        public ICollection<string> TimeOnlyICollectionTNull { get; set; }
+#endif
+        public ICollection<string> GuidICollectionTNull { get; set; }
+
+        public ICollection<string> BooleanICollectionTNullable { get; set; }
+        public ICollection<string> ByteICollectionTNullable { get; set; }
+        public ICollection<string> SByteICollectionTNullable { get; set; }
+        public ICollection<string> Int16ICollectionTNullable { get; set; }
+        public ICollection<string> UInt16ICollectionTNullable { get; set; }
+        public ICollection<string> Int32ICollectionTNullable { get; set; }
+        public ICollection<string> UInt32ICollectionTNullable { get; set; }
+        public ICollection<string> Int64ICollectionTNullable { get; set; }
+        public ICollection<string> UInt64ICollectionTNullable { get; set; }
+        public ICollection<string> SingleICollectionTNullable { get; set; }
+        public ICollection<string> DoubleICollectionTNullable { get; set; }
+        public ICollection<string> DecimalICollectionTNullable { get; set; }
+        public ICollection<string> CharICollectionTNullable { get; set; }
+        public ICollection<string> DateTimeICollectionTNullable { get; set; }
+        public ICollection<string> DateTimeOffsetICollectionTNullable { get; set; }
+        public ICollection<string> TimeSpanICollectionTNullable { get; set; }
+#if NET6_0_OR_GREATER
+        public ICollection<string> DateOnlyICollectionTNullable { get; set; }
+        public ICollection<string> TimeOnlyICollectionTNullable { get; set; }
+#endif
+        public ICollection<string> GuidICollectionTNullable { get; set; }
+
+        public ICollection<string> BooleanICollectionTNullableEmpty { get; set; }
+        public ICollection<string> ByteICollectionTNullableEmpty { get; set; }
+        public ICollection<string> SByteICollectionTNullableEmpty { get; set; }
+        public ICollection<string> Int16ICollectionTNullableEmpty { get; set; }
+        public ICollection<string> UInt16ICollectionTNullableEmpty { get; set; }
+        public ICollection<string> Int32ICollectionTNullableEmpty { get; set; }
+        public ICollection<string> UInt32ICollectionTNullableEmpty { get; set; }
+        public ICollection<string> Int64ICollectionTNullableEmpty { get; set; }
+        public ICollection<string> UInt64ICollectionTNullableEmpty { get; set; }
+        public ICollection<string> SingleICollectionTNullableEmpty { get; set; }
+        public ICollection<string> DoubleICollectionTNullableEmpty { get; set; }
+        public ICollection<string> DecimalICollectionTNullableEmpty { get; set; }
+        public ICollection<string> CharICollectionTNullableEmpty { get; set; }
+        public ICollection<string> DateTimeICollectionTNullableEmpty { get; set; }
+        public ICollection<string> DateTimeOffsetICollectionTNullableEmpty { get; set; }
+        public ICollection<string> TimeSpanICollectionTNullableEmpty { get; set; }
+#if NET6_0_OR_GREATER
+        public ICollection<string> DateOnlyICollectionTNullableEmpty { get; set; }
+        public ICollection<string> TimeOnlyICollectionTNullableEmpty { get; set; }
+#endif
+        public ICollection<string> GuidICollectionTNullableEmpty { get; set; }
+
+        public ICollection<string> BooleanICollectionTNullableNull { get; set; }
+        public ICollection<string> ByteICollectionTNullableNull { get; set; }
+        public ICollection<string> SByteICollectionTNullableNull { get; set; }
+        public ICollection<string> Int16ICollectionTNullableNull { get; set; }
+        public ICollection<string> UInt16ICollectionTNullableNull { get; set; }
+        public ICollection<string> Int32ICollectionTNullableNull { get; set; }
+        public ICollection<string> UInt32ICollectionTNullableNull { get; set; }
+        public ICollection<string> Int64ICollectionTNullableNull { get; set; }
+        public ICollection<string> UInt64ICollectionTNullableNull { get; set; }
+        public ICollection<string> SingleICollectionTNullableNull { get; set; }
+        public ICollection<string> DoubleICollectionTNullableNull { get; set; }
+        public ICollection<string> DecimalICollectionTNullableNull { get; set; }
+        public ICollection<string> CharICollectionTNullableNull { get; set; }
+        public ICollection<string> DateTimeICollectionTNullableNull { get; set; }
+        public ICollection<string> DateTimeOffsetICollectionTNullableNull { get; set; }
+        public ICollection<string> TimeSpanICollectionTNullableNull { get; set; }
+#if NET6_0_OR_GREATER
+        public ICollection<string> DateOnlyICollectionTNullableNull { get; set; }
+        public ICollection<string> TimeOnlyICollectionTNullableNull { get; set; }
+#endif
+        public ICollection<string> GuidICollectionTNullableNull { get; set; }
+
+        public ICollection<string> StringICollectionT { get; set; }
+        public ICollection<string> StringICollectionTEmpty { get; set; }
+        public ICollection<string> StringICollectionTNull { get; set; }
+
+        public ICollection<string> EnumICollectionT { get; set; }
+        public ICollection<string> EnumICollectionTEmpty { get; set; }
+        public ICollection<string> EnumICollectionTNull { get; set; }
+
+        public ICollection<string> EnumICollectionTNullable { get; set; }
+        public ICollection<string> EnumICollectionTNullableEmpty { get; set; }
+        public ICollection<string> EnumICollectionTNullableNull { get; set; }
+
+        public IReadOnlyCollection<string> BooleanIReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> ByteIReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> SByteIReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> Int16IReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> UInt16IReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> Int32IReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> UInt32IReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> Int64IReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> UInt64IReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> SingleIReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> DoubleIReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> DecimalIReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> CharIReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> DateTimeIReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> DateTimeOffsetIReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> TimeSpanIReadOnlyCollectionT { get; set; }
+#if NET6_0_OR_GREATER
+        public IReadOnlyCollection<string> DateOnlyIReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> TimeOnlyIReadOnlyCollectionT { get; set; }
+#endif
+        public IReadOnlyCollection<string> GuidIReadOnlyCollectionT { get; set; }
+
+        public IReadOnlyCollection<string> BooleanIReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> ByteIReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> SByteIReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> Int16IReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> UInt16IReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> Int32IReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> UInt32IReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> Int64IReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> UInt64IReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> SingleIReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> DoubleIReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> DecimalIReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> CharIReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> DateTimeIReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> DateTimeOffsetIReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> TimeSpanIReadOnlyCollectionTEmpty { get; set; }
+#if NET6_0_OR_GREATER
+        public IReadOnlyCollection<string> DateOnlyIReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> TimeOnlyIReadOnlyCollectionTEmpty { get; set; }
+#endif
+        public IReadOnlyCollection<string> GuidIReadOnlyCollectionTEmpty { get; set; }
+
+        public IReadOnlyCollection<string> BooleanIReadOnlyCollectionTNull { get; set; }
+        public IReadOnlyCollection<string> ByteIReadOnlyCollectionTNull { get; set; }
+        public IReadOnlyCollection<string> SByteIReadOnlyCollectionTNull { get; set; }
+        public IReadOnlyCollection<string> Int16IReadOnlyCollectionTNull { get; set; }
+        public IReadOnlyCollection<string> UInt16IReadOnlyCollectionTNull { get; set; }
+        public IReadOnlyCollection<string> Int32IReadOnlyCollectionTNull { get; set; }
+        public IReadOnlyCollection<string> UInt32IReadOnlyCollectionTNull { get; set; }
+        public IReadOnlyCollection<string> Int64IReadOnlyCollectionTNull { get; set; }
+        public IReadOnlyCollection<string> UInt64IReadOnlyCollectionTNull { get; set; }
+        public IReadOnlyCollection<string> SingleIReadOnlyCollectionTNull { get; set; }
+        public IReadOnlyCollection<string> DoubleIReadOnlyCollectionTNull { get; set; }
+        public IReadOnlyCollection<string> DecimalIReadOnlyCollectionTNull { get; set; }
+        public IReadOnlyCollection<string> CharIReadOnlyCollectionTNull { get; set; }
+        public IReadOnlyCollection<string> DateTimeIReadOnlyCollectionTNull { get; set; }
+        public IReadOnlyCollection<string> DateTimeOffsetIReadOnlyCollectionTNull { get; set; }
+        public IReadOnlyCollection<string> TimeSpanIReadOnlyCollectionTNull { get; set; }
+#if NET6_0_OR_GREATER
+        public IReadOnlyCollection<string> DateOnlyIReadOnlyCollectionTNull { get; set; }
+        public IReadOnlyCollection<string> TimeOnlyIReadOnlyCollectionTNull { get; set; }
+#endif
+        public IReadOnlyCollection<string> GuidIReadOnlyCollectionTNull { get; set; }
+
+        public IReadOnlyCollection<string> BooleanIReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> ByteIReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> SByteIReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> Int16IReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> UInt16IReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> Int32IReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> UInt32IReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> Int64IReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> UInt64IReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> SingleIReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> DoubleIReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> DecimalIReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> CharIReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> DateTimeIReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> DateTimeOffsetIReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> TimeSpanIReadOnlyCollectionTNullable { get; set; }
+#if NET6_0_OR_GREATER
+        public IReadOnlyCollection<string> DateOnlyIReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> TimeOnlyIReadOnlyCollectionTNullable { get; set; }
+#endif
+        public IReadOnlyCollection<string> GuidIReadOnlyCollectionTNullable { get; set; }
+
+        public IReadOnlyCollection<string> BooleanIReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> ByteIReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> SByteIReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> Int16IReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> UInt16IReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> Int32IReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> UInt32IReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> Int64IReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> UInt64IReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> SingleIReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> DoubleIReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> DecimalIReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> CharIReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> DateTimeIReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> DateTimeOffsetIReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> TimeSpanIReadOnlyCollectionTNullableEmpty { get; set; }
+#if NET6_0_OR_GREATER
+        public IReadOnlyCollection<string> DateOnlyIReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> TimeOnlyIReadOnlyCollectionTNullableEmpty { get; set; }
+#endif
+        public IReadOnlyCollection<string> GuidIReadOnlyCollectionTNullableEmpty { get; set; }
+
+        public IReadOnlyCollection<string> BooleanIReadOnlyCollectionTNullableNull { get; set; }
+        public IReadOnlyCollection<string> ByteIReadOnlyCollectionTNullableNull { get; set; }
+        public IReadOnlyCollection<string> SByteIReadOnlyCollectionTNullableNull { get; set; }
+        public IReadOnlyCollection<string> Int16IReadOnlyCollectionTNullableNull { get; set; }
+        public IReadOnlyCollection<string> UInt16IReadOnlyCollectionTNullableNull { get; set; }
+        public IReadOnlyCollection<string> Int32IReadOnlyCollectionTNullableNull { get; set; }
+        public IReadOnlyCollection<string> UInt32IReadOnlyCollectionTNullableNull { get; set; }
+        public IReadOnlyCollection<string> Int64IReadOnlyCollectionTNullableNull { get; set; }
+        public IReadOnlyCollection<string> UInt64IReadOnlyCollectionTNullableNull { get; set; }
+        public IReadOnlyCollection<string> SingleIReadOnlyCollectionTNullableNull { get; set; }
+        public IReadOnlyCollection<string> DoubleIReadOnlyCollectionTNullableNull { get; set; }
+        public IReadOnlyCollection<string> DecimalIReadOnlyCollectionTNullableNull { get; set; }
+        public IReadOnlyCollection<string> CharIReadOnlyCollectionTNullableNull { get; set; }
+        public IReadOnlyCollection<string> DateTimeIReadOnlyCollectionTNullableNull { get; set; }
+        public IReadOnlyCollection<string> DateTimeOffsetIReadOnlyCollectionTNullableNull { get; set; }
+        public IReadOnlyCollection<string> TimeSpanIReadOnlyCollectionTNullableNull { get; set; }
+#if NET6_0_OR_GREATER
+        public IReadOnlyCollection<string> DateOnlyIReadOnlyCollectionTNullableNull { get; set; }
+        public IReadOnlyCollection<string> TimeOnlyIReadOnlyCollectionTNullableNull { get; set; }
+#endif
+        public IReadOnlyCollection<string> GuidIReadOnlyCollectionTNullableNull { get; set; }
+
+        public IReadOnlyCollection<string> StringIReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> StringIReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> StringIReadOnlyCollectionTNull { get; set; }
+
+        public IReadOnlyCollection<string> EnumIReadOnlyCollectionT { get; set; }
+        public IReadOnlyCollection<string> EnumIReadOnlyCollectionTEmpty { get; set; }
+        public IReadOnlyCollection<string> EnumIReadOnlyCollectionTNull { get; set; }
+
+        public IReadOnlyCollection<string> EnumIReadOnlyCollectionTNullable { get; set; }
+        public IReadOnlyCollection<string> EnumIReadOnlyCollectionTNullableEmpty { get; set; }
+        public IReadOnlyCollection<string> EnumIReadOnlyCollectionTNullableNull { get; set; }
+
+        public ICollection BooleanICollection { get; set; }
+        public ICollection ByteICollection { get; set; }
+        public ICollection SByteICollection { get; set; }
+        public ICollection Int16ICollection { get; set; }
+        public ICollection UInt16ICollection { get; set; }
+        public ICollection Int32ICollection { get; set; }
+        public ICollection UInt32ICollection { get; set; }
+        public ICollection Int64ICollection { get; set; }
+        public ICollection UInt64ICollection { get; set; }
+        public ICollection SingleICollection { get; set; }
+        public ICollection DoubleICollection { get; set; }
+        public ICollection DecimalICollection { get; set; }
+        public ICollection CharICollection { get; set; }
+        public ICollection DateTimeICollection { get; set; }
+        public ICollection DateTimeOffsetICollection { get; set; }
+        public ICollection TimeSpanICollection { get; set; }
+#if NET6_0_OR_GREATER
+        public ICollection DateOnlyICollection { get; set; }
+        public ICollection TimeOnlyICollection { get; set; }
+#endif
+        public ICollection GuidICollection { get; set; }
+
+        public ICollection BooleanICollectionEmpty { get; set; }
+        public ICollection ByteICollectionEmpty { get; set; }
+        public ICollection SByteICollectionEmpty { get; set; }
+        public ICollection Int16ICollectionEmpty { get; set; }
+        public ICollection UInt16ICollectionEmpty { get; set; }
+        public ICollection Int32ICollectionEmpty { get; set; }
+        public ICollection UInt32ICollectionEmpty { get; set; }
+        public ICollection Int64ICollectionEmpty { get; set; }
+        public ICollection UInt64ICollectionEmpty { get; set; }
+        public ICollection SingleICollectionEmpty { get; set; }
+        public ICollection DoubleICollectionEmpty { get; set; }
+        public ICollection DecimalICollectionEmpty { get; set; }
+        public ICollection CharICollectionEmpty { get; set; }
+        public ICollection DateTimeICollectionEmpty { get; set; }
+        public ICollection DateTimeOffsetICollectionEmpty { get; set; }
+        public ICollection TimeSpanICollectionEmpty { get; set; }
+#if NET6_0_OR_GREATER
+        public ICollection DateOnlyICollectionEmpty { get; set; }
+        public ICollection TimeOnlyICollectionEmpty { get; set; }
+#endif
+        public ICollection GuidICollectionEmpty { get; set; }
+
+        public ICollection BooleanICollectionNull { get; set; }
+        public ICollection ByteICollectionNull { get; set; }
+        public ICollection SByteICollectionNull { get; set; }
+        public ICollection Int16ICollectionNull { get; set; }
+        public ICollection UInt16ICollectionNull { get; set; }
+        public ICollection Int32ICollectionNull { get; set; }
+        public ICollection UInt32ICollectionNull { get; set; }
+        public ICollection Int64ICollectionNull { get; set; }
+        public ICollection UInt64ICollectionNull { get; set; }
+        public ICollection SingleICollectionNull { get; set; }
+        public ICollection DoubleICollectionNull { get; set; }
+        public ICollection DecimalICollectionNull { get; set; }
+        public ICollection CharICollectionNull { get; set; }
+        public ICollection DateTimeICollectionNull { get; set; }
+        public ICollection DateTimeOffsetICollectionNull { get; set; }
+        public ICollection TimeSpanICollectionNull { get; set; }
+#if NET6_0_OR_GREATER
+        public ICollection DateOnlyICollectionNull { get; set; }
+        public ICollection TimeOnlyICollectionNull { get; set; }
+#endif
+        public ICollection GuidICollectionNull { get; set; }
+
+        public ICollection BooleanICollectionNullable { get; set; }
+        public ICollection ByteICollectionNullable { get; set; }
+        public ICollection SByteICollectionNullable { get; set; }
+        public ICollection Int16ICollectionNullable { get; set; }
+        public ICollection UInt16ICollectionNullable { get; set; }
+        public ICollection Int32ICollectionNullable { get; set; }
+        public ICollection UInt32ICollectionNullable { get; set; }
+        public ICollection Int64ICollectionNullable { get; set; }
+        public ICollection UInt64ICollectionNullable { get; set; }
+        public ICollection SingleICollectionNullable { get; set; }
+        public ICollection DoubleICollectionNullable { get; set; }
+        public ICollection DecimalICollectionNullable { get; set; }
+        public ICollection CharICollectionNullable { get; set; }
+        public ICollection DateTimeICollectionNullable { get; set; }
+        public ICollection DateTimeOffsetICollectionNullable { get; set; }
+        public ICollection TimeSpanICollectionNullable { get; set; }
+#if NET6_0_OR_GREATER
+        public ICollection DateOnlyICollectionNullable { get; set; }
+        public ICollection TimeOnlyICollectionNullable { get; set; }
+#endif
+        public ICollection GuidICollectionNullable { get; set; }
+
+        public ICollection BooleanICollectionNullableEmpty { get; set; }
+        public ICollection ByteICollectionNullableEmpty { get; set; }
+        public ICollection SByteICollectionNullableEmpty { get; set; }
+        public ICollection Int16ICollectionNullableEmpty { get; set; }
+        public ICollection UInt16ICollectionNullableEmpty { get; set; }
+        public ICollection Int32ICollectionNullableEmpty { get; set; }
+        public ICollection UInt32ICollectionNullableEmpty { get; set; }
+        public ICollection Int64ICollectionNullableEmpty { get; set; }
+        public ICollection UInt64ICollectionNullableEmpty { get; set; }
+        public ICollection SingleICollectionNullableEmpty { get; set; }
+        public ICollection DoubleICollectionNullableEmpty { get; set; }
+        public ICollection DecimalICollectionNullableEmpty { get; set; }
+        public ICollection CharICollectionNullableEmpty { get; set; }
+        public ICollection DateTimeICollectionNullableEmpty { get; set; }
+        public ICollection DateTimeOffsetICollectionNullableEmpty { get; set; }
+        public ICollection TimeSpanICollectionNullableEmpty { get; set; }
+#if NET6_0_OR_GREATER
+        public ICollection DateOnlyICollectionNullableEmpty { get; set; }
+        public ICollection TimeOnlyICollectionNullableEmpty { get; set; }
+#endif
+        public ICollection GuidICollectionNullableEmpty { get; set; }
+
+        public ICollection BooleanICollectionNullableNull { get; set; }
+        public ICollection ByteICollectionNullableNull { get; set; }
+        public ICollection SByteICollectionNullableNull { get; set; }
+        public ICollection Int16ICollectionNullableNull { get; set; }
+        public ICollection UInt16ICollectionNullableNull { get; set; }
+        public ICollection Int32ICollectionNullableNull { get; set; }
+        public ICollection UInt32ICollectionNullableNull { get; set; }
+        public ICollection Int64ICollectionNullableNull { get; set; }
+        public ICollection UInt64ICollectionNullableNull { get; set; }
+        public ICollection SingleICollectionNullableNull { get; set; }
+        public ICollection DoubleICollectionNullableNull { get; set; }
+        public ICollection DecimalICollectionNullableNull { get; set; }
+        public ICollection CharICollectionNullableNull { get; set; }
+        public ICollection DateTimeICollectionNullableNull { get; set; }
+        public ICollection DateTimeOffsetICollectionNullableNull { get; set; }
+        public ICollection TimeSpanICollectionNullableNull { get; set; }
+#if NET6_0_OR_GREATER
+        public ICollection DateOnlyICollectionNullableNull { get; set; }
+        public ICollection TimeOnlyICollectionNullableNull { get; set; }
+#endif
+        public ICollection GuidICollectionNullableNull { get; set; }
+
+        public ICollection StringICollection { get; set; }
+        public ICollection StringICollectionEmpty { get; set; }
+        public ICollection StringICollectionNull { get; set; }
+
+        public ICollection EnumICollection { get; set; }
+        public ICollection EnumICollectionEmpty { get; set; }
+        public ICollection EnumICollectionNull { get; set; }
+
+        public ICollection EnumICollectionNullable { get; set; }
+        public ICollection EnumICollectionNullableEmpty { get; set; }
+        public ICollection EnumICollectionNullableNull { get; set; }
+
+        public SimpleModel ClassThing { get; set; }
+        public SimpleModel ClassThingNull { get; set; }
+
+        public SimpleModel[] ClassArray { get; set; }
+        public SimpleModel[] ClassArrayEmpty { get; set; }
+        public SimpleModel[] ClassArrayNull { get; set; }
+
+        public IEnumerable<SimpleModel> ClassEnumerable { get; set; }
+
+        public List<SimpleModel> ClassList { get; set; }
+        public List<SimpleModel> ClassListEmpty { get; set; }
+        public List<SimpleModel> ClassListNull { get; set; }
+
+        public IList<SimpleModel> ClassIList { get; set; }
+        public IList<SimpleModel> ClassIListEmpty { get; set; }
+        public IList<SimpleModel> ClassIListNull { get; set; }
+
+        public IReadOnlyList<SimpleModel> ClassIReadOnlyList { get; set; }
+        public IReadOnlyList<SimpleModel> ClassIReadOnlyListEmpty { get; set; }
+        public IReadOnlyList<SimpleModel> ClassIReadOnlyListNull { get; set; }
+
+        public ICollection<SimpleModel> ClassICollection { get; set; }
+        public ICollection<SimpleModel> ClassICollectionEmpty { get; set; }
+        public ICollection<SimpleModel> ClassICollectionNull { get; set; }
+
+        public IReadOnlyCollection<SimpleModel> ClassIReadOnlyCollection { get; set; }
+        public IReadOnlyCollection<SimpleModel> ClassIReadOnlyCollectionEmpty { get; set; }
+        public IReadOnlyCollection<SimpleModel> ClassIReadOnlyCollectionNull { get; set; }
+
+        public Dictionary<int, string> DictionaryThing1 { get; set; }
+        public Dictionary<int, SimpleModel> DictionaryThing2 { get; set; }
+        public IDictionary<int, string> DictionaryThing3 { get; set; }
+        public IDictionary<int, SimpleModel> DictionaryThing4 { get; set; }
+        public IReadOnlyDictionary<int, string> DictionaryThing5 { get; set; }
+        public IReadOnlyDictionary<int, SimpleModel> DictionaryThing6 { get; set; }
+        public ConcurrentDictionary<int, string> DictionaryThing7 { get; set; }
+        public ConcurrentDictionary<int, SimpleModel> DictionaryThing8 { get; set; }
+
         public string[][] StringArrayOfArrayThing { get; set; }
     }
 }

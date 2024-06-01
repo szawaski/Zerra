@@ -49,13 +49,13 @@ namespace Zerra.Test
             _ = typeDetail.IsGraphLocalProperty;
             var baseTypes = typeDetail.BaseTypes;
             var interfaces = typeDetail.Interfaces;
-            _ = typeDetail.IsIEnumerable;
+            _ = typeDetail.HasIEnumerable;
             var members = typeDetail.MemberDetails;
             var methods = typeDetail.MethodDetails;
             var constructors = typeDetail.ConstructorDetails;
             var attributes = typeDetail.Attributes;
             _ = typeDetail.SerializableMemberDetails;
-            var isIEnumerableGeneric = typeDetail.IsIEnumerableGeneric;
+            var isIEnumerableGeneric = typeDetail.HasIEnumerableGeneric;
             if (isIEnumerableGeneric)
                 _ = typeDetail.IEnumerableGenericInnerTypeDetail;
             _ = typeDetail.HasTaskResultGetter;

@@ -244,7 +244,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static WriteFrame CreateWriteFrame(ref WriteState state, TypeDetail typeDetail, object? obj, Graph? graph = null)
         {
-            if (((typeDetail.Type.IsInterface && !typeDetail.IsIEnumerable) || typeDetail.Type.FullName == "System.Object") && obj != null)
+            if (((typeDetail.Type.IsInterface && !typeDetail.HasIEnumerable) || typeDetail.Type.FullName == "System.Object") && obj != null)
             {
                 var objectType = obj.GetType();
                 typeDetail = TypeAnalyzer.GetTypeDetail(objectType);
@@ -270,7 +270,7 @@ namespace Zerra.Serialization.Json
                 return new WriteFrame() { FrameType = WriteFrameType.SpecialType, TypeDetail = typeDetail, Object = obj, Graph = graph };
             }
 
-            if (typeDetail.IsIEnumerableGeneric)
+            if (typeDetail.HasIEnumerableGeneric)
             {
                 if (typeDetail.Type.IsArray && typeDetail.IEnumerableGenericInnerTypeDetail.CoreType == CoreType.Byte)
                 {
@@ -291,7 +291,7 @@ namespace Zerra.Serialization.Json
                     {
                         return new WriteFrame() { FrameType = WriteFrameType.SpecialTypeEnumerable, TypeDetail = typeDetail, Object = obj, Graph = graph };
                     }
-                    if (elementTypeDetail.IsIEnumerableGeneric)
+                    if (elementTypeDetail.HasIEnumerableGeneric)
                     {
                         return new WriteFrame() { FrameType = WriteFrameType.Enumerable, TypeDetail = typeDetail, Object = obj, Graph = graph };
                     }

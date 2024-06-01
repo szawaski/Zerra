@@ -3,27 +3,26 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Collections.Generic;
+using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.Collections
 {
-    internal sealed class ByteConverterArrayT<TParent, TArray, TValue> : ByteConverter<TParent, TArray>
+    internal sealed class ByteConverterArrayT<TParent, TValue> : ByteConverter<TParent, TValue[]>
     {
-        private ByteConverter<ArrayAccessor<TValue?>> readConverter = null!;
-        private ByteConverter<IEnumerator<TValue?>> writeConverter = null!;
+        private ByteConverter<ArrayAccessor<TValue>> converter = null!;
 
-        private static TValue? Getter(IEnumerator<TValue?> parent) => parent.Current;
-        private static void Setter(ArrayAccessor<TValue?> parent, TValue? value) => parent.Set(value);
+        private static TValue Getter(ArrayAccessor<TValue> parent) => parent.Get();
+        private static void Setter(ArrayAccessor<TValue> parent, TValue value) => parent.Set(value);
 
         protected override sealed void Setup()
         {
-            readConverter = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, null, Setter);
-            writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, null);
+            var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
+            converter = ByteConverterFactory<ArrayAccessor<TValue>>.Get(valueTypeDetail, null, Getter, Setter);
         }
 
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TArray? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue[]? value)
         {
             if (state.Current.NullFlags && !state.Current.HasNullChecked)
             {
@@ -40,12 +39,11 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
                 }
             }
 
-            ArrayAccessor<TValue?> accessor;
+            ArrayAccessor<TValue> accessor;
 
-            int length;
             if (state.Current.Object is null)
             {
-                if (!reader.TryReadInt32(out length, out state.BytesNeeded))
+                if (!reader.TryRead(out int length, out state.BytesNeeded))
                 {
                     state.Current.HasNullChecked = true;
                     value = default;
@@ -54,8 +52,8 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
 
                 if (!state.Current.DrainBytes)
                 {
-                    accessor = new ArrayAccessor<TValue?>(new TValue?[length]);
-                    value = (TArray?)(object?)accessor.Array;
+                    accessor = new ArrayAccessor<TValue>(new TValue[length]);
+                    value = accessor.Array;
                     if (length == 0)
                         return true;
                 }
@@ -64,23 +62,22 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
                     value = default;
                     if (length == 0)
                         return true;
-                    accessor = new ArrayAccessor<TValue?>(length);
+                    accessor = new ArrayAccessor<TValue>(length);
                 }
             }
             else
             {
-                accessor = (ArrayAccessor<TValue?>)state.Current.Object!;
-                value = (TArray?)(object?)accessor.Array;
-                length = accessor.Length;
+                accessor = (ArrayAccessor<TValue>)state.Current.Object!;
+                value = accessor.Array;
             }
 
-            if (accessor.Index == length)
+            if (accessor.Index == accessor.Length)
                 return true;
 
             for (; ; )
             {
                 state.PushFrame(true);
-                var read = readConverter.TryReadFromParent(ref reader, ref state, accessor);
+                var read = converter.TryReadFromParent(ref reader, ref state, accessor);
                 if (!read)
                 {
                     state.Current.HasNullChecked = true;
@@ -88,16 +85,16 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
                     return false;
                 }
                 accessor.Index++;
-                if (accessor.Index == length)
+                if (accessor.Index == accessor.Length)
                     return true;
             }
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TArray? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue[]? value)
         {
             if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
             {
-                if (value == null)
+                if (value is null)
                 {
                     if (!writer.TryWriteNull(out state.BytesNeeded))
                     {
@@ -111,79 +108,44 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
                 }
             }
 
-            if (value == null)
-                throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
+            if (value is null) throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
 
-            IEnumerator<TValue?> enumerator;
+            ArrayAccessor<TValue> accessor;
 
             if (state.Current.Object is null)
             {
-                var collection = (IReadOnlyCollection<TValue?>)value;
-
-                var length = collection.Count;
-
-                if (!writer.TryWrite(length, out state.BytesNeeded))
+                if (!writer.TryWrite(value.Length, out state.BytesNeeded))
                 {
                     state.Current.HasWrittenIsNull = true;
                     return false;
                 }
-                if (length == 0)
+                if (value.Length == 0)
                 {
                     return true;
                 }
 
-                enumerator = collection.GetEnumerator();
+                accessor = new ArrayAccessor<TValue>(value);
             }
             else
             {
-                enumerator = (IEnumerator<TValue?>)state.Current.Object!;
+                accessor = (ArrayAccessor<TValue>)state.Current.Object!;
             }
 
-            while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
+
+            while (accessor.Index < accessor.Array!.Length)
             {
                 state.PushFrame(true);
-                var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator);
+                var write = converter.TryWriteFromParent(ref writer, ref state, accessor);
                 if (!write)
                 {
                     state.Current.HasWrittenIsNull = true;
-                    state.Current.Object = enumerator;
-                    state.Current.EnumeratorInProgress = true;
+                    state.Current.Object = accessor;
                     return false;
                 }
-
-                state.Current.EnumeratorInProgress = false;
+                accessor.Index++;
             }
 
             return true;
-        }
-
-        private sealed class ArrayAccessor<T>
-        {
-            public int Index;
-            public readonly int Length;
-
-            private readonly T?[]? array;
-            public T?[]? Array => array;
-
-            public ArrayAccessor(int length)
-            {
-                array = null;
-                Index = 0;
-                Length = length;
-            }
-            public ArrayAccessor(T?[] array)
-            {
-                this.array = array;
-                Index = 0;
-                Length = array.Length;
-            }
-
-            public void Set(T? value)
-            {
-                if (array == null)
-                    return;
-                array[Index] = value;
-            }
         }
     }
 }

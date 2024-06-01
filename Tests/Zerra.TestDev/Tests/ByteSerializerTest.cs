@@ -68,11 +68,11 @@ namespace Zerra.TestDev
             {
                 IndexSize = ByteSerializerIndexSize.UInt16
             };
-            var item = Factory.GetCoreTypesModel();
+            var item = AllTypesModel.Create();
             var data = ByteSerializerOld.Serialize(item, options);
 
             var method = typeof(ByteSerializerTest).GetMethod("TempTestSpeed2", BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());
-            return (Task)method.Invoke(null, new object[] { item, data, options, 100000, 5 });
+            return (Task)method.Invoke(null, new object[] { item, data, options, 5000, 5 });
         }
 
         private static async Task TempTestSpeed2<T>(T item, byte[] data, ByteSerializerOptions options, int iterations, int loops)
@@ -222,12 +222,12 @@ namespace Zerra.TestDev
             };
             var option2 = new ByteSerializerOptions()
             {
-                IncludePropertyTypes = true
+                UseTypes = true
             };
             var option3 = new ByteSerializerOptions()
             {
                 UsePropertyNames = true,
-                IncludePropertyTypes = true
+                UseTypes = true
             };
 
             var items = GetTestStuff();

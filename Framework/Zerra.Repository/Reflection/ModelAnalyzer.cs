@@ -34,7 +34,7 @@ namespace Zerra.Repository.Reflection
         private static readonly ConcurrentFactoryDictionary<TypeKey, object?> getterFunctionsByAttribute = new();
         private static Func<T, object?>? GetGetterFunctionByNameOrAttribute<T>(string? propertyNames, Type? attributeType)
         {
-            TypeKey? key = default;
+            TypeKey key;
             if (attributeType != null)
                 key = new TypeKey(propertyNames, typeof(T), attributeType);
             else
@@ -98,7 +98,7 @@ namespace Zerra.Repository.Reflection
         private static readonly ConcurrentFactoryDictionary<TypeKey, object> setterFunctionsByAttribute = new();
         private static Action<T, object?> GetSetterFunctionByNameOrAttribute<T>(string? propertyNames, Type? attributeType)
         {
-            TypeKey? key = default;
+            TypeKey key;
             if (attributeType != null)
                 key = new TypeKey(propertyNames, typeof(T), attributeType);
             else

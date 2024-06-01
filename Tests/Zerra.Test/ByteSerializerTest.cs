@@ -13,17 +13,6 @@ using Zerra.Serialization.Bytes;
 
 namespace Zerra.Test
 {
-    public class Thing1
-    {
-        [SerializerIndex(12)]
-        public Thing2[] Thing2s { get; set; }
-    }
-    public class Thing2
-    {
-        [SerializerIndex(0)]
-        public Guid? ID { get; set; }
-    }
-
     [TestClass]
     public class ByteSerializerTest
     {
@@ -35,21 +24,66 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void ByteArrayTypes()
+        public void AllTypes()
         {
             var options = new ByteSerializerOptions()
             {
                 IndexSize = ByteSerializerIndexSize.UInt16
             };
 
-            var model1 = Factory.GetAllTypesModel();
+            var model1 = AllTypesModel.Create();
             var bytes = ByteSerializer.Serialize(model1, options);
             var model2 = ByteSerializer.Deserialize<AllTypesModel>(bytes, options);
-            Factory.AssertAreEqual(model1, model2);
+            AssertHelper.AreEqual(model1, model2);
         }
 
         [TestMethod]
-        public void ByteArrayEmptyObjectsAndNulls()
+        public void BoxedCollections()
+        {
+            var options = new ByteSerializerOptions()
+            {
+                IndexSize = ByteSerializerIndexSize.UInt16,
+                UseTypes = true
+            };
+
+            var model1 = BoxedCollectionsModel.Create();
+            var bytes = ByteSerializer.Serialize(model1, options);
+            var model2 = ByteSerializer.Deserialize<BoxedCollectionsModel>(bytes, options);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void UseTypes()
+        {
+            var options = new ByteSerializerOptions()
+            {
+                IndexSize = ByteSerializerIndexSize.UInt16,
+                UseTypes = true
+            };
+
+            var model1 = AllTypesModel.Create();
+            var bytes = ByteSerializer.Serialize(model1, options);
+            var model2 = ByteSerializer.Deserialize<AllTypesModel>(bytes, options);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void UsePropertyNames()
+        {
+            var options = new ByteSerializerOptions()
+            {
+                IndexSize = ByteSerializerIndexSize.UInt16,
+                UsePropertyNames = true
+            };
+
+            var model1 = AllTypesModel.Create();
+            var bytes = ByteSerializer.Serialize(model1, options);
+            var model2 = ByteSerializer.Deserialize<AllTypesModel>(bytes, options);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void EmptyObjectsAndNulls()
         {
             var model1 = new NoPropertiesModel();
             var bytes1 = ByteSerializer.Serialize(model1);
@@ -102,82 +136,67 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void ByteArrayArrays()
+        public void Arrays()
         {
-            var model1 = Factory.GetArrayModel();
+            var model1 = SimpleModel.CreateArray();
             var bytes = ByteSerializer.Serialize(model1);
-            var model2 = ByteSerializer.Deserialize<BasicModel[]>(bytes);
-            Factory.AssertAreEqual(model1, model2);
+            var model2 = ByteSerializer.Deserialize<SimpleModel[]>(bytes);
+            AssertHelper.AreEqual(model1, model2);
         }
 
         [TestMethod]
-        public void ByteArrayBoxing()
+        public void Boxing()
         {
             var options = new ByteSerializerOptions()
             {
-                IncludePropertyTypes = true
+                UseTypes = true
             };
 
-            var model1 = Factory.GetBoxingModel();
+            var model1 = TestBoxingModel.Create();
             var bytes = ByteSerializer.Serialize(model1, options);
             var model2 = ByteSerializer.Deserialize<TestBoxingModel>(bytes, options);
-            Factory.AssertAreEqual(model1, model2);
+            AssertHelper.AreEqual(model1, model2);
         }
 
         [TestMethod]
-        public void ByteArrayByPropertyName()
+        public void IndexAttribute()
         {
-            var options = new ByteSerializerOptions()
-            {
-                IndexSize = ByteSerializerIndexSize.UInt16,
-                UsePropertyNames = true
-            };
-
-            var model1 = Factory.GetAllTypesModel();
-            var bytes = ByteSerializer.Serialize(model1, options);
-            var model2 = ByteSerializerOld.Deserialize<AllTypesReversedModel>(bytes, options);
-            Factory.AssertAreEqual(model1, model2);
-        }
-
-        [TestMethod]
-        public void ByteArrayBySerializerIndex()
-        {
-            var model1 = Factory.GetSerializerIndexModel();
+            var model1 = TestSerializerIndexModel1.Create();
             var bytes = ByteSerializer.Serialize(model1);
             var model2 = ByteSerializer.Deserialize<TestSerializerIndexModel2>(bytes);
-            Factory.AssertAreEqual(model1, model2);
+            AssertHelper.AreEqual(model1, model2);
         }
 
         [TestMethod]
-        public void ByteArrayByIgnoreSerailizerIndex()
+        public void IgnoreIndexAttribute()
         {
             var options = new ByteSerializerOptions()
             {
                 IgnoreIndexAttribute = true
             };
 
-            var model1 = Factory.GetSerializerIndexModel();
+            var model1 = TestSerializerIndexModel1.Create();
             var bytes = ByteSerializer.Serialize(model1, options);
             var model2 = ByteSerializer.Deserialize<TestSerializerIndexModel2>(bytes, options);
-            Factory.AssertAreNotEqual(model1, model2);
+            AssertHelper.AreNotEqual(model1, model2);
         }
 
         [TestMethod]
-        public void ByteArrayByLargeSerializerIndex()
+        public void LargeIndexAttribute()
         {
             var options = new ByteSerializerOptions()
             {
                 IndexSize = ByteSerializerIndexSize.UInt16
             };
 
-            var model1 = Factory.GetSerializerLongIndexModel();
+            var model1 = TestSerializerLongIndexModel.Create();
             var bytes = ByteSerializer.Serialize(model1, options);
             var model2 = ByteSerializer.Deserialize<TestSerializerLongIndexModel>(bytes, options);
-            Factory.AssertAreEqual(model1, model2);
+            AssertHelper.AreEqual(model1, model2);
         }
 
         [TestMethod]
-        public void ByteArrayCookieObject()
+        public void CookieObject()
         {
             var model1 = new Cookie("tester", "stuff", null, null);
             var bytes = ByteSerializer.Serialize(model1);
@@ -189,16 +208,25 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void ByteArrayExceptionObject()
+        public void ExceptionObject()
         {
+            var options = new ByteSerializerOptions()
+            {
+                UseTypes = true
+            };
+
             var model1 = new Exception("bad things happened");
-            var bytes = ByteSerializer.Serialize(model1);
-            var model2 = ByteSerializer.Deserialize<Exception>(bytes);
+            model1.Data.Add("stuff", "things");
+            
+            var bytes = ByteSerializer.Serialize(model1, options);
+            var model2 = ByteSerializer.Deserialize<Exception>(bytes, options);
             Assert.AreEqual(model1.Message, model2.Message);
+            Assert.AreEqual(1, model2.Data.Count);
+            Assert.AreEqual(model1.Data["stuff"], model2.Data["stuff"]);
         }
 
         [TestMethod]
-        public void ByteArrayInterface()
+        public void Interface()
         {
             ITestInterface model1 = new TestInterfaceImplemented()
             {
@@ -214,7 +242,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void ByteArrayStringArrayOfArrayThing()
+        public void StringArrayOfArrayThing()
         {
             var model1 = new string[][] { new string[] { "a", "b", "c" }, new string[] { "d", "e", "f" } };
             var bytes = ByteSerializer.Serialize(model1);
@@ -222,187 +250,42 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void ByteArrayHashSet()
+        public void HashSet()
         {
-            var model1 = Factory.GetHashSetModel();
+            var model1 = HashSetModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
             var model2 = ByteSerializer.Deserialize<HashSetModel>(bytes);
-            Factory.AssertAreEqual(model1, model2);
+            AssertHelper.AreEqual(model1, model2);
         }
 
         [TestMethod]
-        public async Task StreamTypes()
+        public void Record()
         {
-            var options = new ByteSerializerOptions()
-            {
-                IndexSize = ByteSerializerIndexSize.UInt16
-            };
-
-            var model1 = Factory.GetAllTypesModel();
-            using (var ms = new MemoryStream())
-            {
-                await ByteSerializer.SerializeAsync(ms, model1, options);
-                Assert.AreEqual(3063, ms.Position);
-                ms.Position = 0;
-                var model2 = await ByteSerializer.DeserializeAsync<AllTypesModel>(ms, options);
-                Factory.AssertAreEqual(model1, model2);
-            }
-        }
-
-        [TestMethod]
-        public async Task StreamDeserializeTypes()
-        {
-            var options = new ByteSerializerOptions()
-            {
-                IndexSize = ByteSerializerIndexSize.UInt16
-            };
-
-            var model1 = Factory.GetAllTypesModel();
-            var bytes = ByteSerializer.Serialize(model1, options);
-            using (var ms = new MemoryStream(bytes))
-            {
-                var model2 = await ByteSerializer.DeserializeAsync<AllTypesModel>(ms, options);
-                Factory.AssertAreEqual(model1, model2);
-            }
-        }
-
-        [TestMethod]
-        public async Task StreamSerializeTypes()
-        {
-            var options = new ByteSerializerOptions()
-            {
-                IndexSize = ByteSerializerIndexSize.UInt16
-            };
-
-            var model1 = Factory.GetAllTypesModel();
-            byte[] bytes;
-            using (var ms = new MemoryStream())
-            {
-                await ByteSerializer.SerializeAsync(ms, model1, options);
-                bytes = ms.ToArray();
-            }
-
-            var model2 = ByteSerializer.Deserialize<AllTypesModel>(bytes, options);
-            Factory.AssertAreEqual(model1, model2);
-        }
-
-        [TestMethod]
-        public async Task StreamDeserializeByPropertyName()
-        {
-            var options = new ByteSerializerOptions()
-            {
-                IndexSize = ByteSerializerIndexSize.UInt16,
-                UsePropertyNames = true
-            };
-
-            var model1 = Factory.GetAllTypesModel();
-            var bytes = ByteSerializer.Serialize(model1, options);
-            using (var ms = new MemoryStream(bytes))
-            {
-                var model2 = await ByteSerializer.DeserializeAsync<AllTypesReversedModel>(ms, options);
-                Factory.AssertAreEqual(model1, model2);
-            }
-        }
-
-        [TestMethod]
-        public async Task StreamSerializeByPropertyName()
-        {
-            var options = new ByteSerializerOptions()
-            {
-                IndexSize = ByteSerializerIndexSize.UInt16,
-                UsePropertyNames = true
-            };
-
-            var model1 = Factory.GetAllTypesModel();
-            byte[] bytes;
-            using (var ms = new MemoryStream())
-            {
-                await ByteSerializer.SerializeAsync(ms, model1, options);
-                bytes = ms.ToArray();
-            }
-
-            var model2 = ByteSerializer.Deserialize<AllTypesReversedModel>(bytes, options);
-            Factory.AssertAreEqual(model1, model2);
-        }
-
-        [TestMethod]
-        public async Task StreamDeserializeArray()
-        {
-            var model1 = Factory.GetArrayModel();
+            var model1 = new RecordModel(true) { Property2 = 42, Property3 = "moo" };
             var bytes = ByteSerializer.Serialize(model1);
-            using (var ms = new MemoryStream(bytes))
-            {
-                var model2 = await ByteSerializer.DeserializeAsync<BasicModel[]>(ms);
-                Factory.AssertAreEqual(model1, model2);
-            }
+            var model2 = ByteSerializer.Deserialize<RecordModel>(bytes);
+            Assert.IsNotNull(model2);
+            Assert.AreEqual(model1.Property1, model2.Property1);
+            Assert.AreEqual(model1.Property2, model2.Property2);
+            Assert.AreEqual(model1.Property3, model2.Property3);
         }
 
         [TestMethod]
-        public async Task StreamSerializeArray()
-        {
-            var model1 = Factory.GetArrayModel();
-
-            byte[] bytes;
-            using (var ms = new MemoryStream())
-            {
-                await ByteSerializer.SerializeAsync(ms, model1);
-                bytes = ms.ToArray();
-            }
-
-            var model2 = ByteSerializer.Deserialize<BasicModel[]>(bytes);
-            Factory.AssertAreEqual(model1, model2);
-        }
-
-        [TestMethod]
-        public async Task StreamArrayInterface()
-        {
-            ITestInterface model1 = new TestInterfaceImplemented()
-            {
-                Property1 = 5,
-                Property2 = 6,
-                Property3 = 7
-            };
-
-            byte[] bytes;
-            using (var ms = new MemoryStream())
-            {
-                await ByteSerializer.SerializeAsync(ms, model1);
-                bytes = ms.ToArray();
-            }
-
-            var model2 = ByteSerializer.Deserialize<ITestInterface>(bytes);
-
-            Assert.AreEqual(5, model2.Property1);
-            Assert.AreEqual(6, model2.Property2);
-        }
-
-        [TestMethod]
-        public async Task StreamArrayBoxing()
+        public async Task Stream()
         {
             var options = new ByteSerializerOptions()
             {
-                IncludePropertyTypes = true
+                IndexSize = ByteSerializerIndexSize.UInt16
             };
 
-            var model1 = Factory.GetBoxingModel();
+            var model1 = AllTypesModel.Create();
             using (var ms = new MemoryStream())
             {
                 await ByteSerializer.SerializeAsync(ms, model1, options);
                 ms.Position = 0;
-                var model2 = await ByteSerializer.DeserializeAsync<TestBoxingModel>(ms, options);
-                Factory.AssertAreEqual(model1, model2);
+                var model2 = await ByteSerializer.DeserializeAsync<AllTypesModel>(ms, options);
+                AssertHelper.AreEqual(model1, model2);
             }
-        }
-
-        [TestMethod]
-        public async Task StreamHashSet()
-        {
-            var model1 = Factory.GetHashSetModel();
-            using var stream = new MemoryStream();
-            await ByteSerializer.SerializeAsync(stream, model1);
-            stream.Position = 0;
-            var model2 = await ByteSerializer.DeserializeAsync<HashSetModel>(stream);
-            Factory.AssertAreEqual(model1, model2);
         }
     }
 }

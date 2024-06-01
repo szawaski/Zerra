@@ -26,5 +26,31 @@ namespace Zerra.Test
         public decimal? DecimalThingNullable { get; set; }
         public DateTime? DateTimeThingNullable { get; set; }
         public TimeSpan? TimeSpanThingNullable { get; set; }
+
+        public static CoreTypesAlternatingModel Create()
+        {
+            var model = new CoreTypesAlternatingModel()
+            {
+                BooleanThing = true,
+                SByteThing = -2,
+                UInt16Thing = 4,
+                UInt32Thing = 6,
+                UInt64Thing = 8,
+                DoubleThing = -10.2,
+                CharThing = 'Z',
+                DateTimeOffsetThing = DateTimeOffset.UtcNow.AddDays(1),
+                GuidThing = Guid.NewGuid(),
+
+                ByteThingNullable = 11,
+                Int16ThingNullable = -13,
+                Int32ThingNullable = -15,
+                Int64ThingNullable = -17,
+                SingleThingNullable = -19.1f,
+                DecimalThingNullable = -111.3m,
+                DateTimeThingNullable = DateTime.UtcNow.AddMonths(1),
+                TimeSpanThingNullable = DateTime.UtcNow.AddHours(1).TimeOfDay,
+            };
+            return model;
+        }
     }
 }

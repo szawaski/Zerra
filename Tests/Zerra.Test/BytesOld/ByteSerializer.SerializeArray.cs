@@ -40,9 +40,9 @@ namespace Zerra.Serialization.Bytes
             var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
 
 #if DEBUG
-            var writer = new ByteWriter(Testing ? 1 : defaultBufferSize, options.Encoding);
+            var writer = new ByteWriterOld(Testing ? 1 : defaultBufferSize, options.Encoding);
 #else
-            var writer = new ByteWriter(defaultBufferSize, options.Encoding);
+            var writer = new ByteWriterOld(defaultBufferSize, options.Encoding);
 #endif
 
             try
@@ -58,7 +58,7 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytes(object? value, SerializerTypeDetail typeDetail, bool nullFlags, ref ByteWriter writer, ref OptionsStruct options)
+        private static void ToBytes(object? value, SerializerTypeDetail typeDetail, bool nullFlags, ref ByteWriterOld writer, ref OptionsStruct options)
         {
             if (options.IncludePropertyTypes)
             {
@@ -70,7 +70,7 @@ namespace Zerra.Serialization.Bytes
                     typeDetail = GetTypeInformation(typeFromValue, options.IndexSize, options.IgnoreIndexAttribute);
                 }
             }
-            else if (typeDetail.Type.IsInterface && !typeDetail.TypeDetail.IsIEnumerableGeneric)
+            else if (typeDetail.Type.IsInterface && !typeDetail.TypeDetail.HasIEnumerableGeneric)
             {
                 if (value != null)
                 {
@@ -101,17 +101,17 @@ namespace Zerra.Serialization.Bytes
                 return;
             }
 
-            if (typeDetail.TypeDetail.IsIEnumerableGeneric)
+            if (typeDetail.TypeDetail.HasIEnumerableGeneric)
             {
                 if (value != null)
                 {
-                    if (typeDetail.TypeDetail.IsICollection)
+                    if (typeDetail.TypeDetail.HasICollection)
                     {
                         var collection = (ICollection)value;
                         var count = collection.Count;
                         ToBytesEnumerable(collection, count, typeDetail.InnerTypeDetail, ref writer, ref options);
                     }
-                    else if (typeDetail.TypeDetail.IsICollectionGeneric)
+                    else if (typeDetail.TypeDetail.HasICollectionGeneric)
                     {
                         var count = (int)typeDetail.TypeDetail.GetMember("Count").GetterBoxed(value)!;
                         ToBytesEnumerable((IEnumerable)value, count, typeDetail.InnerTypeDetail, ref writer, ref options);
@@ -188,7 +188,7 @@ namespace Zerra.Serialization.Bytes
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytesEnumerable(IEnumerable? values, int length, SerializerTypeDetail typeDetail, ref ByteWriter writer, ref OptionsStruct options)
+        private static void ToBytesEnumerable(IEnumerable? values, int length, SerializerTypeDetail typeDetail, ref ByteWriterOld writer, ref OptionsStruct options)
         {
             writer.Write(length); //object count
 
@@ -226,7 +226,7 @@ namespace Zerra.Serialization.Bytes
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytesCoreType(object? value, CoreType coreType, bool nullFlags, ref ByteWriter writer)
+        private static void ToBytesCoreType(object? value, CoreType coreType, bool nullFlags, ref ByteWriterOld writer)
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
 
@@ -361,7 +361,7 @@ namespace Zerra.Serialization.Bytes
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytesCoreTypeEnumerable(IEnumerable values, int length, CoreType coreType, ref ByteWriter writer)
+        private static void ToBytesCoreTypeEnumerable(IEnumerable values, int length, CoreType coreType, ref ByteWriterOld writer)
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
             switch (coreType)
@@ -495,7 +495,7 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytesEnumType(object? value, CoreType coreType, bool nullFlags, ref ByteWriter writer)
+        private static void ToBytesEnumType(object? value, CoreType coreType, bool nullFlags, ref ByteWriterOld writer)
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
             switch (coreType)
@@ -554,7 +554,7 @@ namespace Zerra.Serialization.Bytes
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytesEnumTypeEnumerable(IEnumerable values, int length, CoreType coreType, ref ByteWriter writer)
+        private static void ToBytesEnumTypeEnumerable(IEnumerable values, int length, CoreType coreType, ref ByteWriterOld writer)
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
             switch (coreType)
@@ -614,7 +614,7 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytesSpecialType(object? value, SerializerTypeDetail typeDetail, bool nullFlags, ref ByteWriter writer, ref OptionsStruct options)
+        private static void ToBytesSpecialType(object? value, SerializerTypeDetail typeDetail, bool nullFlags, ref ByteWriterOld writer, ref OptionsStruct options)
         {
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType!.Value : typeDetail.TypeDetail.SpecialType!.Value;
             switch (specialType)
@@ -647,7 +647,7 @@ namespace Zerra.Serialization.Bytes
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytesSpecialTypeEnumerable(IEnumerable values, int length, SerializerTypeDetail typeDetail, ref ByteWriter writer, ref OptionsStruct options)
+        private static void ToBytesSpecialTypeEnumerable(IEnumerable values, int length, SerializerTypeDetail typeDetail, ref ByteWriterOld writer, ref OptionsStruct options)
         {
             var specialType = typeDetail.TypeDetail.IsNullable ? typeDetail.InnerTypeDetail.TypeDetail.SpecialType!.Value : typeDetail.TypeDetail.SpecialType!.Value;
             switch (specialType)
