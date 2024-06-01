@@ -17,7 +17,7 @@ using Zerra.Encryption;
 using Zerra.IO;
 using Zerra.Logging;
 using Zerra.Reflection;
-using Zerra.Serialization;
+using Zerra.Serialization.Json;
 
 namespace Zerra.Web
 {

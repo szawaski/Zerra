@@ -2,14 +2,14 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
-using Zerra.Linq;
 
-namespace System.Linq
+namespace Zerra.Linq
 {
     public static class LinqExtensions
     {

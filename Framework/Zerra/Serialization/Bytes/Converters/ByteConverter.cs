@@ -4,12 +4,13 @@
 
 using Zerra.Reflection;
 using System;
-using System.Runtime.CompilerServices;
+using Zerra.Serialization.Bytes.State;
+using Zerra.Serialization.Bytes.IO;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.Converters
 {
     public abstract class ByteConverter
-    {       
+    {
         //In byte array, object properties start with index values from SerializerIndexAttribute or property order
         protected const ushort indexOffset = 1; //offset index values to reseve for Flag: 0
 

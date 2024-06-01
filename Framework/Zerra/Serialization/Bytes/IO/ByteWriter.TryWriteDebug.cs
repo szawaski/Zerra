@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 #if DEBUG
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.IO
 {
     public ref partial struct ByteWriter
     {

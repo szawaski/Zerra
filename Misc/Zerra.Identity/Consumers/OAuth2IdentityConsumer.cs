@@ -5,7 +5,6 @@
 using Zerra.Identity.OAuth2;
 using Zerra.Identity.OAuth2.Documents;
 using System;
-using System.Net;
 using System.Threading.Tasks;
 using System.Net.Http;
 

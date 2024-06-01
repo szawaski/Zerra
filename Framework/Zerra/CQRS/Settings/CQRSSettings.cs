@@ -6,7 +6,7 @@ using System;
 using System.IO;
 using System.Text;
 using Zerra.Logging;
-using Zerra.Serialization;
+using Zerra.Serialization.Json;
 
 namespace Zerra.CQRS.Settings
 {

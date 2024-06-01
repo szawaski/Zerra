@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Zerra.Extensions;
 using Zerra.IO;
 
 namespace Zerra.CQRS.Network

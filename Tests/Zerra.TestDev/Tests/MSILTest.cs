@@ -2,12 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Net;
-using System.Diagnostics;
 using Zerra.Reflection;
 using System.Collections.Generic;
-using FastMember;
 using System.Threading.Tasks;
 using Zerra.CQRS;
 

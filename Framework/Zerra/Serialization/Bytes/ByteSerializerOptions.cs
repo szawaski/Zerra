@@ -4,7 +4,7 @@
 
 using System.Text;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes
 {
     public sealed class ByteSerializerOptions
     {

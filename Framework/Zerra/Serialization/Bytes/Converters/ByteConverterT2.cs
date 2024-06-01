@@ -6,8 +6,10 @@ using System;
 using Zerra.Reflection;
 using System.Runtime.CompilerServices;
 using System.Linq;
+using Zerra.Serialization.Bytes.State;
+using Zerra.Serialization.Bytes.IO;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.Converters
 {
     public abstract class ByteConverter<TParent, TValue> : ByteConverter<TParent>,
         IByteConverterHandles<TValue>
@@ -25,16 +27,16 @@ namespace Zerra.Serialization
             this.memberKey = memberKey;
             if (getterDelegate != null)
             {
-                this.getter = getterDelegate as Func<TParent, TValue?>;
-                this.getter ??= (parent) => (TValue?)getterDelegate.DynamicInvoke(parent);
+                getter = getterDelegate as Func<TParent, TValue?>;
+                getter ??= (parent) => (TValue?)getterDelegate.DynamicInvoke(parent);
             }
             if (setterDelegate != null)
             {
-                this.setter = setterDelegate as Action<TParent, TValue?>;
-                this.setter ??= (parent, value) => setterDelegate.DynamicInvoke(parent, value);
+                setter = setterDelegate as Action<TParent, TValue?>;
+                setter ??= (parent, value) => setterDelegate.DynamicInvoke(parent, value);
             }
 
-            this.useEmptyImplementation = typeDetail.Type.IsInterface && !typeDetail.IsIEnumerableGeneric;
+            useEmptyImplementation = typeDetail.Type.IsInterface && !typeDetail.IsIEnumerableGeneric;
 
             Setup();
         }
@@ -459,14 +461,14 @@ namespace Zerra.Serialization
             }
             var value = getter(parent);
 
-            if ((!state.UsePropertyNames && state.Current.IndexProperty > 0) || (state.UsePropertyNames && state.Current.IndexPropertyName is not null))
+            if (!state.UsePropertyNames && state.Current.IndexProperty > 0 || state.UsePropertyNames && state.Current.IndexPropertyName is not null)
             {
                 if (value is null)
                 {
                     state.EndFrame();
                     return true;
                 }
-                
+
                 if (!state.Current.HasWrittenPropertyIndex)
                 {
                     if (state.UsePropertyNames)

@@ -3,7 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
-using Zerra.Serialization;
+using Zerra.Serialization.Bytes;
 
 namespace Zerra.CQRS.RabbitMQ
 {

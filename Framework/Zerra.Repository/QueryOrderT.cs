@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Linq;
 using System.Linq.Expressions;
 
 namespace Zerra.Repository

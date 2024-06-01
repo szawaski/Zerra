@@ -3,8 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -12,8 +10,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Zerra.IO;
 using Zerra.Reflection;
+using Zerra.Serialization.Bytes.IO;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes
 {
     public static partial class ByteSerializerOld
     {

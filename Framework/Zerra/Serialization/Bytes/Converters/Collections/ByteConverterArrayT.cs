@@ -4,8 +4,10 @@
 
 using System;
 using System.Collections.Generic;
+using Zerra.Serialization.Bytes.IO;
+using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.Converters.Collections
 {
     internal sealed class ByteConverterArrayT<TParent, TArray, TValue> : ByteConverter<TParent, TArray>
     {
@@ -17,8 +19,8 @@ namespace Zerra.Serialization
 
         protected override sealed void Setup()
         {
-            this.readConverter = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, null, Setter);
-            this.writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, null);
+            readConverter = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, null, Setter);
+            writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, null);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TArray? value)
@@ -165,15 +167,15 @@ namespace Zerra.Serialization
 
             public ArrayAccessor(int length)
             {
-                this.array = null;
-                this.Index = 0;
-                this.Length = length;
+                array = null;
+                Index = 0;
+                Length = length;
             }
             public ArrayAccessor(T?[] array)
             {
                 this.array = array;
-                this.Index = 0;
-                this.Length = array.Length;
+                Index = 0;
+                Length = array.Length;
             }
 
             public void Set(T? value)

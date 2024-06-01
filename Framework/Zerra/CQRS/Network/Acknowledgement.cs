@@ -4,7 +4,7 @@
 
 using System;
 using Zerra.Reflection;
-using Zerra.Serialization;
+using Zerra.Serialization.Bytes;
 
 namespace Zerra.CQRS.Network
 {

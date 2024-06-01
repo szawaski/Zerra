@@ -3,7 +3,7 @@
 // Licensed to you under the MIT license
 
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes
 {
     public static partial class ByteSerializerOld
     {

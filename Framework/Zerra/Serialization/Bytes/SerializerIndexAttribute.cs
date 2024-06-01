@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes
 {
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public sealed class SerializerIndexAttribute : Attribute
@@ -12,7 +12,7 @@ namespace Zerra.Serialization
         public ushort Index { get; }
         public SerializerIndexAttribute(ushort index)
         {
-            this.Index = index;
+            Index = index;
         }
     }
 }

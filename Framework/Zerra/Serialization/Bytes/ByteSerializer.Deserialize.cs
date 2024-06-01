@@ -7,11 +7,13 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-using System.Xml;
 using Zerra.IO;
 using Zerra.Reflection;
+using Zerra.Serialization.Bytes.Converters;
+using Zerra.Serialization.Bytes.IO;
+using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes
 {
     public static partial class ByteSerializer
     {

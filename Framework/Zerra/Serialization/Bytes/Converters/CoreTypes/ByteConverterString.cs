@@ -2,9 +2,10 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
+using Zerra.Serialization.Bytes.IO;
+using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.Converters.CoreTypes
 {
     internal sealed class ByteConverterString<TParent> : ByteConverter<TParent, string?>
     {
@@ -24,7 +25,7 @@ namespace Zerra.Serialization
                 }
                 if (state.Current.StringLength == 0)
                 {
-                    value = String.Empty;
+                    value = string.Empty;
                     return true;
                 }
             }

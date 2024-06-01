@@ -7,8 +7,10 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using Zerra.Collections;
 using Zerra.Reflection;
+using Zerra.Serialization.Bytes.Converters.Collections;
+using Zerra.Serialization.Bytes.Converters.General;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.Converters
 {
     internal static class ByteConverterFactory<TParent>
     {
@@ -23,7 +25,7 @@ namespace Zerra.Serialization
         public static ByteConverter<TParent> Get(TypeDetail typeDetail, string? memberKey, Delegate? getter, Delegate? setter)
         {
             var cache2 = cache.GetOrAdd(typeDetail.Type, x => new());
-            var converter = cache2.GetOrAdd(memberKey ?? String.Empty, x =>
+            var converter = cache2.GetOrAdd(memberKey ?? string.Empty, x =>
             {
                 var newConverter = Create(typeDetail);
                 newConverter.Setup(typeDetail, memberKey, getter, setter);

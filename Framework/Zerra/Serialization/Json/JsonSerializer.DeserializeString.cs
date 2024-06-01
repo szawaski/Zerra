@@ -10,7 +10,7 @@ using System.Text;
 using Zerra.IO;
 using Zerra.Reflection;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Json
 {
     public static partial class JsonSerializer
     {

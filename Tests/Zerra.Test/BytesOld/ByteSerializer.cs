@@ -9,7 +9,7 @@ using System.Reflection;
 using System.Text;
 using Zerra.Collections;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes
 {
     /*
     Specs:

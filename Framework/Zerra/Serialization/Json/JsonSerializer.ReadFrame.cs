@@ -4,7 +4,7 @@
 
 using Zerra.Reflection;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Json
 {
     public static partial class JsonSerializer
     {

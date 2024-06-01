@@ -4,7 +4,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Zerra.CQRS.Network;
-using Zerra.Serialization;
+using Zerra.Serialization.Json;
 
 namespace Zerra.CQRS.Relay
 {

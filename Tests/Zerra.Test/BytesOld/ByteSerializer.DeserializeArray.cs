@@ -7,10 +7,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using Zerra.IO;
 using Zerra.Reflection;
+using Zerra.Serialization.Bytes.IO;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes
 {
     public static partial class ByteSerializerOld
     {

@@ -12,7 +12,7 @@ using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
-using Zerra.Serialization;
+using Zerra.Serialization.Bytes;
 using Zerra.Test;
 
 namespace Zerra.TestDev

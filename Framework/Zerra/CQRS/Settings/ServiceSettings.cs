@@ -4,6 +4,7 @@
 
 using System;
 using System.Linq;
+using Zerra.Linq;
 
 namespace Zerra.CQRS.Settings
 {

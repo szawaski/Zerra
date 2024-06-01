@@ -6,27 +6,27 @@ using System;
 using Zerra.Collections;
 using Zerra.Reflection;
 
-namespace Zerra
+namespace Zerra.Map
 {
     public static class MapperWithLog
     {
         public static bool DebugMode { get; set; } = false;
 
-        private static readonly Type mapType = typeof(MapWithLog<,>);
+        private static readonly Type mapType = typeof(MapGeneratorWithLog<,>);
         private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object, IMapLogger, Graph?, object>> copyFuncs = new();
         private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object, object, IMapLogger, Graph?, object>> copyToFuncs = new();
 
-        public static TTarget Map<TSource, TTarget>(this TSource source, IMapLogger logger) { return Map<TSource, TTarget>(source, logger, null); }
+        public static TTarget Map<TSource, TTarget>(this TSource source, IMapLogger logger) { return source.Map<TSource, TTarget>(logger, null); }
         public static TTarget Map<TSource, TTarget>(this TSource source, IMapLogger logger, Graph? graph)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
 
-            var map = Zerra.MapWithLog<TSource, TTarget>.GetMap();
+            var map = MapGeneratorWithLog<TSource, TTarget>.GetMap();
             return map.Copy(source, logger, graph);
         }
 
-        public static void MapTo<TSource, TTarget>(this TSource source, TTarget target, IMapLogger logger) { MapTo(source, target, logger, null); }
+        public static void MapTo<TSource, TTarget>(this TSource source, TTarget target, IMapLogger logger) { source.MapTo(target, logger, null); }
         public static void MapTo<TSource, TTarget>(this TSource source, TTarget target, IMapLogger logger, Graph? graph)
         {
             if (source == null)
@@ -34,11 +34,11 @@ namespace Zerra
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
 
-            var map = Zerra.MapWithLog<TSource, TTarget>.GetMap();
+            var map = MapGeneratorWithLog<TSource, TTarget>.GetMap();
             _ = map.CopyTo(source, target, logger, graph);
         }
 
-        public static TTarget Map<TTarget>(this object source, IMapLogger logger) { return Map<TTarget>(source, logger, null); }
+        public static TTarget Map<TTarget>(this object source, IMapLogger logger) { return source.Map<TTarget>(logger, null); }
         public static TTarget Map<TTarget>(this object source, IMapLogger logger, Graph? graph)
         {
             if (source == null)
@@ -58,7 +58,7 @@ namespace Zerra
             return (TTarget)copyFunc(source, logger, graph);
         }
 
-        public static TTarget Copy<TTarget>(this TTarget source, IMapLogger logger) { return Copy<TTarget>(source, logger, null); }
+        public static TTarget Copy<TTarget>(this TTarget source, IMapLogger logger) { return source.Copy(logger, null); }
         public static TTarget Copy<TTarget>(this TTarget source, IMapLogger logger, Graph? graph)
         {
             if (source == null)
@@ -78,7 +78,7 @@ namespace Zerra
             return (TTarget)copyFunc(source, logger, graph);
         }
 
-        public static void CopyTo<TTarget>(this object source, TTarget target, IMapLogger logger) { CopyTo(source, target, logger, null); }
+        public static void CopyTo<TTarget>(this object source, TTarget target, IMapLogger logger) { source.CopyTo(target, logger, null); }
         public static void CopyTo<TTarget>(this object source, TTarget target, IMapLogger logger, Graph? graph)
         {
             if (source == null)

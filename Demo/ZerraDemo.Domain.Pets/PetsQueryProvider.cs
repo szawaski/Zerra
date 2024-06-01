@@ -6,6 +6,7 @@ using Zerra.Repository;
 using ZerraDemo.Domain.Pets.DataModels;
 using ZerraDemo.Domain.Pets.Models;
 using ZerraDemo.Common;
+using Zerra.Map;
 
 namespace ZerraDemo.Domain.Pets
 {

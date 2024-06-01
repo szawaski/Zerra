@@ -11,7 +11,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Zerra.Encryption;
-using Zerra.Serialization;
+using Zerra.Serialization.Bytes;
 
 namespace Zerra.Test
 {

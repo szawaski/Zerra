@@ -10,7 +10,7 @@ using System.Linq;
 using Zerra.IO;
 using Zerra.Reflection;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Json
 {
     public class JsonObject : IEnumerable
     {
@@ -23,26 +23,26 @@ namespace Zerra.Serialization
 
         public JsonObject(string? value, bool literal)
         {
-            this.jsonType = literal ? JsonObjectType.Literal : JsonObjectType.String;
-            this.valueString = value;
-            this.valueProperties = null;
-            this.valueArray = null;
+            jsonType = literal ? JsonObjectType.Literal : JsonObjectType.String;
+            valueString = value;
+            valueProperties = null;
+            valueArray = null;
         }
 
         public JsonObject(Dictionary<string, JsonObject> value)
         {
-            this.jsonType = JsonObjectType.Object;
-            this.valueString = null;
-            this.valueProperties = value;
-            this.valueArray = null;
+            jsonType = JsonObjectType.Object;
+            valueString = null;
+            valueProperties = value;
+            valueArray = null;
         }
 
         public JsonObject(JsonObject[] value)
         {
-            this.jsonType = JsonObjectType.Array;
-            this.valueString = null;
-            this.valueProperties = null;
-            this.valueArray = value;
+            jsonType = JsonObjectType.Array;
+            valueString = null;
+            valueProperties = null;
+            valueArray = value;
         }
 
         public enum JsonObjectType
@@ -160,7 +160,7 @@ namespace Zerra.Serialization
                 throw new InvalidCastException();
             if (obj.IsNull || obj.valueString == null)
                 throw new InvalidCastException();
-            return Boolean.Parse(obj.valueString);
+            return bool.Parse(obj.valueString);
         }
         public static explicit operator byte(JsonObject obj)
         {
@@ -168,7 +168,7 @@ namespace Zerra.Serialization
                 throw new InvalidCastException();
             if (obj.IsNull || obj.valueString == null)
                 throw new InvalidCastException();
-            return Byte.Parse(obj.valueString);
+            return byte.Parse(obj.valueString);
         }
         public static explicit operator sbyte(JsonObject obj)
         {
@@ -176,7 +176,7 @@ namespace Zerra.Serialization
                 throw new InvalidCastException();
             if (obj.IsNull || obj.valueString == null)
                 throw new InvalidCastException();
-            return SByte.Parse(obj.valueString);
+            return sbyte.Parse(obj.valueString);
         }
         public static explicit operator short(JsonObject obj)
         {
@@ -184,7 +184,7 @@ namespace Zerra.Serialization
                 throw new InvalidCastException();
             if (obj.IsNull || obj.valueString == null)
                 throw new InvalidCastException();
-            return Int16.Parse(obj.valueString);
+            return short.Parse(obj.valueString);
         }
         public static explicit operator ushort(JsonObject obj)
         {
@@ -192,7 +192,7 @@ namespace Zerra.Serialization
                 throw new InvalidCastException();
             if (obj.IsNull || obj.valueString == null)
                 throw new InvalidCastException();
-            return UInt16.Parse(obj.valueString);
+            return ushort.Parse(obj.valueString);
         }
         public static explicit operator int(JsonObject obj)
         {
@@ -200,7 +200,7 @@ namespace Zerra.Serialization
                 throw new InvalidCastException();
             if (obj.IsNull || obj.valueString == null)
                 throw new InvalidCastException();
-            return Int32.Parse(obj.valueString);
+            return int.Parse(obj.valueString);
         }
         public static explicit operator uint(JsonObject obj)
         {
@@ -208,7 +208,7 @@ namespace Zerra.Serialization
                 throw new InvalidCastException();
             if (obj.IsNull || obj.valueString == null)
                 throw new InvalidCastException();
-            return UInt32.Parse(obj.valueString);
+            return uint.Parse(obj.valueString);
         }
         public static explicit operator long(JsonObject obj)
         {
@@ -216,7 +216,7 @@ namespace Zerra.Serialization
                 throw new InvalidCastException();
             if (obj.IsNull || obj.valueString == null)
                 throw new InvalidCastException();
-            return Int64.Parse(obj.valueString);
+            return long.Parse(obj.valueString);
         }
         public static explicit operator ulong(JsonObject obj)
         {
@@ -224,7 +224,7 @@ namespace Zerra.Serialization
                 throw new InvalidCastException();
             if (obj.IsNull || obj.valueString == null)
                 throw new InvalidCastException();
-            return UInt64.Parse(obj.valueString);
+            return ulong.Parse(obj.valueString);
         }
         public static explicit operator float(JsonObject obj)
         {
@@ -232,7 +232,7 @@ namespace Zerra.Serialization
                 throw new InvalidCastException();
             if (obj.IsNull || obj.valueString == null)
                 throw new InvalidCastException();
-            return Single.Parse(obj.valueString);
+            return float.Parse(obj.valueString);
         }
         public static explicit operator double(JsonObject obj)
         {
@@ -240,7 +240,7 @@ namespace Zerra.Serialization
                 throw new InvalidCastException();
             if (obj.IsNull || obj.valueString == null)
                 throw new InvalidCastException();
-            return Double.Parse(obj.valueString);
+            return double.Parse(obj.valueString);
         }
         public static explicit operator decimal(JsonObject obj)
         {
@@ -248,7 +248,7 @@ namespace Zerra.Serialization
                 throw new InvalidCastException();
             if (obj.IsNull || obj.valueString == null)
                 throw new InvalidCastException();
-            return Decimal.Parse(obj.valueString);
+            return decimal.Parse(obj.valueString);
         }
         public static explicit operator char(JsonObject obj)
         {
@@ -304,103 +304,103 @@ namespace Zerra.Serialization
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
-            return Boolean.Parse(obj.valueString);
+            return bool.Parse(obj.valueString);
         }
         public static explicit operator byte?(JsonObject obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
-            return Byte.Parse(obj.valueString);
+            return byte.Parse(obj.valueString);
         }
         public static explicit operator sbyte?(JsonObject obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
-            return SByte.Parse(obj.valueString);
+            return sbyte.Parse(obj.valueString);
         }
         public static explicit operator short?(JsonObject obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
-            return Int16.Parse(obj.valueString);
+            return short.Parse(obj.valueString);
         }
         public static explicit operator ushort?(JsonObject obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
-            return UInt16.Parse(obj.valueString);
+            return ushort.Parse(obj.valueString);
         }
         public static explicit operator int?(JsonObject obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
-            return Int32.Parse(obj.valueString);
+            return int.Parse(obj.valueString);
         }
         public static explicit operator uint?(JsonObject obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
-            return UInt32.Parse(obj.valueString);
+            return uint.Parse(obj.valueString);
         }
         public static explicit operator long?(JsonObject obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
-            return Int64.Parse(obj.valueString);
+            return long.Parse(obj.valueString);
         }
         public static explicit operator ulong?(JsonObject obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
-            return UInt64.Parse(obj.valueString);
+            return ulong.Parse(obj.valueString);
         }
         public static explicit operator float?(JsonObject obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
-            return Single.Parse(obj.valueString);
+            return float.Parse(obj.valueString);
         }
         public static explicit operator double?(JsonObject obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
-            return Double.Parse(obj.valueString);
+            return double.Parse(obj.valueString);
         }
         public static explicit operator decimal?(JsonObject obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
-            return Decimal.Parse(obj.valueString);
+            return decimal.Parse(obj.valueString);
         }
         public static explicit operator char?(JsonObject obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
             return obj.valueString[0];
         }
@@ -408,7 +408,7 @@ namespace Zerra.Serialization
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
             return DateTime.Parse(obj.valueString, null, DateTimeStyles.RoundtripKind);
         }
@@ -416,7 +416,7 @@ namespace Zerra.Serialization
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
             return DateTimeOffset.Parse(obj.valueString);
         }
@@ -424,7 +424,7 @@ namespace Zerra.Serialization
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
             return TimeSpan.Parse(obj.valueString);
         }
@@ -433,7 +433,7 @@ namespace Zerra.Serialization
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
             return DateOnly.Parse(obj.valueString);
         }
@@ -441,7 +441,7 @@ namespace Zerra.Serialization
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
             return TimeOnly.Parse(obj.valueString);
         }
@@ -450,7 +450,7 @@ namespace Zerra.Serialization
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
-            if (obj.valueString == null || obj.valueString == String.Empty)
+            if (obj.valueString == null || obj.valueString == string.Empty)
                 return null;
             return Guid.Parse(obj.valueString);
         }

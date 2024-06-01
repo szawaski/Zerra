@@ -4,7 +4,7 @@
 
 using System;
 using System.Text;
-using Zerra.Serialization;
+using Zerra.Serialization.Bytes;
 
 namespace Zerra.Repository
 {

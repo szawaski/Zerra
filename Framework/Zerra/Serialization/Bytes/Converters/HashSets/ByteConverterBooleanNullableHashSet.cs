@@ -4,9 +4,10 @@
 
 using System;
 using System.Collections.Generic;
-using Zerra.IO;
+using Zerra.Serialization.Bytes.IO;
+using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.Converters.HashSets
 {
     internal sealed class ByteConverterBooleanNullableHashSet<TParent> : ByteConverter<TParent, HashSet<bool?>>
     {

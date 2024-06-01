@@ -5,10 +5,9 @@
 #if DEBUG
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.IO
 {
     public partial struct ByteReader
     {

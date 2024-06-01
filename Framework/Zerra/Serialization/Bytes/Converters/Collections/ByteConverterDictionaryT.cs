@@ -7,8 +7,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Zerra.Reflection;
+using Zerra.Serialization.Bytes.IO;
+using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.Converters.Collections
 {
     internal sealed class ByteConverterDictionaryT<TParent, TDictionary, TKey, TValue> : ByteConverter<TParent, TDictionary>
         where TKey : notnull
@@ -23,8 +25,8 @@ namespace Zerra.Serialization
         {
             var enumerableType = TypeAnalyzer<KeyValuePair<TKey, TValue?>>.GetTypeDetail();
 
-            this.readConverter = ByteConverterFactory<IDictionary<TKey, TValue?>>.Get(enumerableType, null, null, Setter);
-            this.writeConverter = ByteConverterFactory<IEnumerator<KeyValuePair<TKey, TValue?>>>.Get(enumerableType, null, Getter, null);
+            readConverter = ByteConverterFactory<IDictionary<TKey, TValue?>>.Get(enumerableType, null, null, Setter);
+            writeConverter = ByteConverterFactory<IEnumerator<KeyValuePair<TKey, TValue?>>>.Get(enumerableType, null, Getter, null);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TDictionary? value)

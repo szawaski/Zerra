@@ -6,7 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Zerra.Reflection;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Json
 {
     public static partial class JsonSerializer
     {

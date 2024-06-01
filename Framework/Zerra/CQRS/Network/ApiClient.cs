@@ -11,11 +11,10 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Reflection;
-using Zerra.Serialization;
+using Zerra.Serialization.Json;
 
 namespace Zerra.CQRS.Network
 {

@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.State
 {
     [StructLayout(LayoutKind.Auto)]
     public struct ReadState

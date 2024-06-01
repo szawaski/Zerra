@@ -12,7 +12,7 @@ using Zerra.Logging;
 using Zerra.Encryption;
 using Zerra.IO;
 using System.IO;
-using Zerra.Serialization;
+using Zerra.Serialization.Json;
 using System.Threading.Tasks;
 
 namespace Zerra.CQRS.Network

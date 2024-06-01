@@ -5,8 +5,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Zerra.Serialization.Bytes.IO;
+using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.Converters.Collections
 {
     internal sealed class ByteConverterListT<TParent, TList, TValue> : ByteConverter<TParent, TList>,
          IByteConverterHandles<List<TValue>>,
@@ -20,8 +22,8 @@ namespace Zerra.Serialization
 
         protected override sealed void Setup()
         {
-            this.readConverter = ByteConverterFactory<IList<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, null, Setter);
-            this.writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, null);
+            readConverter = ByteConverterFactory<IList<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, null, Setter);
+            writeConverter = ByteConverterFactory<IEnumerator<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, null);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TList? value)

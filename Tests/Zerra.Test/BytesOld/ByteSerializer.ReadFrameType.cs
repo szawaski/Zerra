@@ -2,11 +2,11 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes
 {
     public static partial class ByteSerializerOld
     {
-        private enum WriteFrameType : byte
+        private enum ReadFrameType : byte
         {
             PropertyType,
 
@@ -14,6 +14,7 @@ namespace Zerra.Serialization
             EnumType,
             SpecialType,
             Object,
+            ObjectProperty,
 
             CoreTypeEnumerable,
             EnumTypeEnumerable,

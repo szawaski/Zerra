@@ -12,7 +12,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Logging;
-using Zerra.Serialization;
+using Zerra.Serialization.Bytes;
 
 namespace Zerra.CQRS.Relay
 {

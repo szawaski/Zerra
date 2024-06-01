@@ -3,11 +3,13 @@
 // Licensed to you under the MIT license
 
 
+using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Zerra.IO;
 
-namespace System.IO
+namespace Zerra.Extensions
 {
     public static class StreamExtensions
     {

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.IO;
-using Zerra.Serialization;
+using Zerra.Serialization.Json;
 using System.Security.Claims;
 using System.Threading;
 using System.Linq;

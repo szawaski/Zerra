@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Zerra
+namespace Zerra.Map
 {
     public sealed class MapException : Exception
     {

@@ -5,8 +5,10 @@
 #if NET6_0_OR_GREATER
 
 using System;
+using Zerra.Serialization.Bytes.IO;
+using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.Converters.CoreTypes
 {
     internal sealed class ByteConverterTimeOnlyNullable<TParent> : ByteConverter<TParent, TimeOnly?>
     {

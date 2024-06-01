@@ -3,8 +3,10 @@
 // Licensed to you under the MIT license
 
 using System.Runtime.CompilerServices;
+using Zerra.Serialization.Bytes.IO;
+using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.Converters
 {
     public abstract class ByteConverter<TParent> : ByteConverter
     {

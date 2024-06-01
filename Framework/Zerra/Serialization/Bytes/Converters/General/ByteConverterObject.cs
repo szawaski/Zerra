@@ -7,8 +7,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using Zerra.Reflection;
+using Zerra.Serialization.Bytes.IO;
+using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.Converters.General
 {
     internal sealed class ByteConverterObject<TParent, TValue> : ByteConverter<TParent, TValue>
     {
@@ -55,9 +57,9 @@ namespace Zerra.Serialization
             //Members by Index with Attributes
             foreach (var member in memberSets.Where(x => x.Item2 != null))
             {
-                if (member.Item2?.Index > Byte.MaxValue - indexOffset)
+                if (member.Item2?.Index > byte.MaxValue - indexOffset)
                     indexSizeUInt16Only = true;
-                if (member.Item2?.Index > UInt16.MaxValue - indexOffset)
+                if (member.Item2?.Index > ushort.MaxValue - indexOffset)
                     throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members to serialize");
 
                 var index = (ushort)(member.Item2!.Index + indexOffset);
@@ -71,9 +73,9 @@ namespace Zerra.Serialization
             var orderIndex = 0;
             foreach (var member in memberSets)
             {
-                if (member.Item2?.Index > Byte.MaxValue - indexOffset)
+                if (member.Item2?.Index > byte.MaxValue - indexOffset)
                     indexSizeUInt16Only = true;
-                if (member.Item2?.Index > UInt16.MaxValue - indexOffset)
+                if (member.Item2?.Index > ushort.MaxValue - indexOffset)
                     throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members to serialize");
 
                 var index = (ushort)(orderIndex + indexOffset);
@@ -102,7 +104,7 @@ namespace Zerra.Serialization
                             break;
                         }
                         //must have a matching a member
-                        if (!membersByName.Values.Any(x => x.Member.Type == parameter.ParameterType && String.Equals(x.Member.Name, parameter.Name, StringComparison.OrdinalIgnoreCase)))
+                        if (!membersByName.Values.Any(x => x.Member.Type == parameter.ParameterType && string.Equals(x.Member.Name, parameter.Name, StringComparison.OrdinalIgnoreCase)))
                         {
                             skip = true;
                             break;
@@ -110,10 +112,10 @@ namespace Zerra.Serialization
                     }
                     if (skip)
                         continue;
-                    this.parameterConstructor = constructor;
+                    parameterConstructor = constructor;
                     break;
                 }
-                this.collectValues = parameterConstructor != null;
+                collectValues = parameterConstructor != null;
             }
         }
 
@@ -449,7 +451,7 @@ namespace Zerra.Serialization
 
             public ByteConverterObjectMember(MemberDetail member)
             {
-                this.Member = member;
+                Member = member;
             }
 
             private ByteConverter<TValue>? converter = null;
@@ -494,7 +496,7 @@ namespace Zerra.Serialization
             public ByteConverterObjectMember(MemberDetail member)
                 : base(member)
             {
-                this.getter = ((MemberDetail<TValue, TValue2>)member).Getter;
+                getter = ((MemberDetail<TValue, TValue2>)member).Getter;
                 var type = TypeAnalyzer<Dictionary<string, object?>>.GetTypeDetail();
             }
 

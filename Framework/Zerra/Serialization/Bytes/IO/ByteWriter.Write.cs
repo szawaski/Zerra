@@ -7,7 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.IO
 {
     public ref partial struct ByteWriter
     {

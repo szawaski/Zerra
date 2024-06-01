@@ -10,8 +10,6 @@ using ZerraDemo.Domain.Pets.DataModels;
 using ZerraDemo.Domain.Weather;
 using ZerraDemo.Domain.Weather.Constants;
 using ZerraDemo.Common;
-using System.Collections.Generic;
-using System.Linq;
 using ZerraDemo.Domain.Pets.Exceptions;
 
 namespace ZerraDemo.Domain.Pets

@@ -274,7 +274,7 @@ namespace Zerra
                 else
                 {
                     var newNamespacesToLoad = new string[newNamespaces.Length];
-                    newNamespaces.CopyTo(newNamespaces);
+                    newNamespaces.CopyTo(newNamespaces, 0);
                     DiscoveryAssemblyNameStartsWiths = newNamespaces;
                 }
             }
@@ -301,7 +301,7 @@ namespace Zerra
                 else
                 {
                     var newNamespacesToLoad = new string[newNamespaces.Length];
-                    newNamespaces.CopyTo(newNamespaces);
+                    newNamespaces.CopyTo(newNamespaces, 0);
                     DiscoveryAssemblyNameStartsWiths = newNamespaces;
                 }
             }

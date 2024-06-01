@@ -17,7 +17,6 @@ using Zerra.IO;
 using System.Collections;
 using MySql.Data.MySqlClient;
 using System.Data.Common;
-using System.Reflection;
 
 namespace Zerra.Repository.MySql
 {

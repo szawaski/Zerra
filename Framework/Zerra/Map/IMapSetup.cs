@@ -5,7 +5,7 @@
 using System;
 using System.Linq.Expressions;
 
-namespace Zerra
+namespace Zerra.Map
 {
     public interface IMapSetup<TSource, TTarget>
     {

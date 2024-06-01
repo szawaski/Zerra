@@ -6,13 +6,13 @@ using System;
 using Zerra.Collections;
 using Zerra.Reflection;
 
-namespace Zerra
+namespace Zerra.Map
 {
     public static class Mapper
     {
         public static bool DebugMode { get; set; } = Config.IsDebugBuild;
 
-        private static readonly Type mapType = typeof(Map<,>);
+        private static readonly Type mapType = typeof(MapGenerator<,>);
         private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object, Graph?, object>> copyFuncs = new();
         private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object, object, Graph?, object>> copyToFuncs = new();
 
@@ -22,7 +22,7 @@ namespace Zerra
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
 
-            var map = Zerra.Map<TSource, TTarget>.GetMap();
+            var map = Zerra.Map.MapGenerator<TSource, TTarget>.GetMap();
             return map.Copy(source, graph);
         }
 
@@ -34,7 +34,7 @@ namespace Zerra
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
 
-            var map = Zerra.Map<TSource, TTarget>.GetMap();
+            var map = Zerra.Map.MapGenerator<TSource, TTarget>.GetMap();
             _ = map.CopyTo(source, target, graph);
         }
 

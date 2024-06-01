@@ -3,9 +3,7 @@
 // Licensed to you under the MIT license
 
 using Azure.Messaging.ServiceBus;
-using Microsoft.Azure.Amqp;
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +13,6 @@ using System.Threading.Tasks;
 using Zerra.CQRS.Network;
 using Zerra.Encryption;
 using Zerra.Logging;
-using Zerra.Reflection;
 
 namespace Zerra.CQRS.AzureServiceBus
 {

@@ -3,10 +3,11 @@
 // Licensed to you under the MIT license
 
 using System;
-using Zerra.IO;
 using Zerra.Reflection;
+using Zerra.Serialization.Bytes.IO;
+using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.Converters.General
 {
     internal sealed class ByteConverterEnum<TParent, TValue> : ByteConverter<TParent, TValue>
     {
@@ -323,49 +324,49 @@ namespace Zerra.Serialization
                     return true;
 
                 case CoreType.ByteNullable:
-                    if (!writer.TryWrite(obj == null ? null : (byte?)(byte)obj, state.Current.NullFlags, out state.BytesNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (byte)obj, state.Current.NullFlags, out state.BytesNeeded))
                     {
                         return false;
                     }
                     return true;
                 case CoreType.SByteNullable:
-                    if (!writer.TryWrite(obj == null ? null : (sbyte?)(sbyte)obj, state.Current.NullFlags, out state.BytesNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (sbyte)obj, state.Current.NullFlags, out state.BytesNeeded))
                     {
                         return false;
                     }
                     return true;
                 case CoreType.Int16Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (short?)(short)obj, state.Current.NullFlags, out state.BytesNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (short)obj, state.Current.NullFlags, out state.BytesNeeded))
                     {
                         return false;
                     }
                     return true;
                 case CoreType.UInt16Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (ushort?)(ushort)obj, state.Current.NullFlags, out state.BytesNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (ushort)obj, state.Current.NullFlags, out state.BytesNeeded))
                     {
                         return false;
                     }
                     return true;
                 case CoreType.Int32Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (int?)(int)obj, state.Current.NullFlags, out state.BytesNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (int)obj, state.Current.NullFlags, out state.BytesNeeded))
                     {
                         return false;
                     }
                     return true;
                 case CoreType.UInt32Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (uint?)(uint)obj, state.Current.NullFlags, out state.BytesNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (uint)obj, state.Current.NullFlags, out state.BytesNeeded))
                     {
                         return false;
                     }
                     return true;
                 case CoreType.Int64Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (long?)(long)obj, state.Current.NullFlags, out state.BytesNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (long)obj, state.Current.NullFlags, out state.BytesNeeded))
                     {
                         return false;
                     }
                     return true;
                 case CoreType.UInt64Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (ulong?)(ulong)obj, state.Current.NullFlags, out state.BytesNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (ulong)obj, state.Current.NullFlags, out state.BytesNeeded))
                     {
                         return false;
                     }

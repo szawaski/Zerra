@@ -3,7 +3,7 @@
 // Licensed to you under the MIT license
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Zerra.Serialization;
+using Zerra.Serialization.QueryString;
 
 namespace Zerra.Test
 {

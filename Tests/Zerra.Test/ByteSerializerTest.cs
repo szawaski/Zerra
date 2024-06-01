@@ -8,7 +8,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
-using Zerra.Serialization;
+using Zerra.Serialization.Json;
+using Zerra.Serialization.Bytes;
 
 namespace Zerra.Test
 {

@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.Serialization;
+using Zerra.Serialization.Bytes;
 
 namespace Zerra.Encryption
 {

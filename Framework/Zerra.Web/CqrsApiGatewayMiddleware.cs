@@ -5,7 +5,6 @@
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Security;
-using System.Text;
 using System.Threading.Tasks;
 using Zerra.CQRS.Network;
 using Zerra.Logging;

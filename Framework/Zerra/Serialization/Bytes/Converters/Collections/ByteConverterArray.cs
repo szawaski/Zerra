@@ -3,8 +3,10 @@
 // Licensed to you under the MIT license
 
 using System;
+using Zerra.Serialization.Bytes.IO;
+using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.Converters.Collections
 {
     internal sealed class ByteConverterArray<TParent, TValue> : ByteConverter<TParent, TValue?[]>
     {
@@ -15,7 +17,7 @@ namespace Zerra.Serialization
 
         protected override sealed void Setup()
         {
-            this.converter = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, Setter);
+            converter = ByteConverterFactory<ArrayAccessor<TValue?>>.Get(typeDetail.IEnumerableGenericInnerTypeDetail, null, Getter, Setter);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue?[]? value)
@@ -158,14 +160,14 @@ namespace Zerra.Serialization
             public ArrayAccessor(T?[] array)
             {
                 this.array = array;
-                this.Index = 0;
-                this.Length = array.Length;
+                Index = 0;
+                Length = array.Length;
             }
             public ArrayAccessor(int length)
             {
-                this.array = null;
-                this.Index = 0;
-                this.Length = length;
+                array = null;
+                Index = 0;
+                Length = length;
             }
 
             public T? Get()

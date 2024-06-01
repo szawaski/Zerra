@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.ComponentModel.Design;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;

@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Zerra
+namespace Zerra.Map
 {
     internal class MapRecursionKey
     {
@@ -31,8 +31,8 @@ namespace Zerra
             unchecked
             {
                 var hash = (int)2166136261;
-                hash = (hash * 16777619) ^ source.GetHashCode();
-                hash = (hash * 16777619) ^ target.GetHashCode();
+                hash = hash * 16777619 ^ source.GetHashCode();
+                hash = hash * 16777619 ^ target.GetHashCode();
                 return hash;
             }
 #endif

@@ -13,9 +13,9 @@ using Zerra.Collections;
 using Zerra.Linq;
 using Zerra.Reflection;
 
-namespace Zerra
+namespace Zerra.Map
 {
-    public sealed class MapWithLog<TSource, TTarget> : IMapSetup<TSource, TTarget>
+    internal sealed class MapGeneratorWithLog<TSource, TTarget> : IMapSetup<TSource, TTarget>
     {
         private const int maxBuildDepthBeforeCall = 3;
 
@@ -27,7 +27,7 @@ namespace Zerra
         private readonly ConcurrentFactoryDictionary<Graph, Func<TSource, TTarget, IMapLogger?, Dictionary<MapRecursionKey, object>, TTarget>> compiledGraphMaps;
         private Func<TSource, TTarget, IMapLogger?, Dictionary<MapRecursionKey, object>, TTarget>? compiledMap;
 
-        private static readonly Type genericMapType = typeof(MapWithLog<,>);
+        private static readonly Type genericMapType = typeof(MapGeneratorWithLog<,>);
         private static readonly Type genericListType = typeof(List<>);
         private static readonly Type genericHashSetType = typeof(HashSet<>);
         private static readonly Type genericDictionaryType = typeof(Dictionary<,>);
@@ -49,21 +49,21 @@ namespace Zerra
         private static readonly MethodInfo mapLoggerChangeMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethod(nameof(IMapLogger.LogPropertyChange)).MethodInfo;
         private static readonly MethodInfo mapLoggerNoChangeMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethod(nameof(IMapLogger.LogPropertyNoChange)).MethodInfo;
         private static readonly MethodInfo mapLoggerNewObjectMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethod(nameof(IMapLogger.LogNewObject)).MethodInfo;
-        private static readonly MethodInfo objectToStringMethod = TypeAnalyzer.GetTypeDetail(typeof(object)).GetMethod(nameof(Object.ToString)).MethodInfo;
+        private static readonly MethodInfo objectToStringMethod = TypeAnalyzer.GetTypeDetail(typeof(object)).GetMethod(nameof(ToString)).MethodInfo;
         private static readonly MethodInfo dictionaryAddMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethod("Add").MethodInfo;
         private static readonly MethodInfo dictionaryRemoveMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethod("Remove").MethodInfo;
         private static readonly MethodInfo dictionaryTryGetMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethod("TryGetValue").MethodInfo;
         private static readonly ConstructorInfo newRecursionKey = TypeAnalyzer.GetTypeDetail(typeof(MapRecursionKey)).GetConstructor(typeof(object), typeof(Type)).ConstructorInfo;
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, object> mapsStore = new();
-        public static MapWithLog<TSource, TTarget> GetMap()
+        public static MapGeneratorWithLog<TSource, TTarget> GetMap()
         {
             var key = new TypeKey(tType, uType);
-            var map = (MapWithLog<TSource, TTarget>)mapsStore.GetOrAdd(key, (_) => { return new MapWithLog<TSource, TTarget>(); });
+            var map = (MapGeneratorWithLog<TSource, TTarget>)mapsStore.GetOrAdd(key, (_) => { return new MapGeneratorWithLog<TSource, TTarget>(); });
             return map;
         }
 
-        private MapWithLog()
+        private MapGeneratorWithLog()
         {
             sourceType = TypeAnalyzer.GetTypeDetail(tType);
             targetType = TypeAnalyzer.GetTypeDetail(uType);
@@ -82,7 +82,7 @@ namespace Zerra
 
                 if (sourceType.CoreType.HasValue || targetType.CoreType.HasValue)
                     throw new MapException("Cannot add specific mappings to core types");
-                if (sourceType.Type.IsEnum || (sourceType.IsNullable && sourceType.InnerTypeDetails[0].Type.IsEnum) || sourceType.Type.IsEnum || (sourceType.IsNullable && targetType.InnerTypeDetails[0].Type.IsEnum))
+                if (sourceType.Type.IsEnum || sourceType.IsNullable && sourceType.InnerTypeDetails[0].Type.IsEnum || sourceType.Type.IsEnum || sourceType.IsNullable && targetType.InnerTypeDetails[0].Type.IsEnum)
                     throw new MapException("Cannot add specific mappings to enum types");
                 if (sourceType.IsIEnumerable || targetType.IsIEnumerable)
                     throw new MapException("Cannot add specific mappings to enumerable types");
@@ -99,7 +99,7 @@ namespace Zerra
         {
             ((IMapSetup<TSource, TTarget>)this).Define(propertyU, propertyT);
 
-            var otherWay = (IMapSetup<TTarget, TSource>)MapWithLog<TTarget, TSource>.GetMap();
+            var otherWay = (IMapSetup<TTarget, TSource>)MapGeneratorWithLog<TTarget, TSource>.GetMap();
             otherWay.Define(propertyT, propertyU);
         }
         void IMapSetup<TSource, TTarget>.Undefine(Expression<Func<TTarget, object?>> property)
@@ -111,7 +111,7 @@ namespace Zerra
 
                 if (sourceType.CoreType.HasValue || targetType.CoreType.HasValue)
                     throw new MapException("Cannot add specific mappings to core types");
-                if (sourceType.Type.IsEnum || (sourceType.IsNullable && sourceType.InnerTypeDetails[0].Type.IsEnum) || sourceType.Type.IsEnum || (sourceType.IsNullable && targetType.InnerTypeDetails[0].Type.IsEnum))
+                if (sourceType.Type.IsEnum || sourceType.IsNullable && sourceType.InnerTypeDetails[0].Type.IsEnum || sourceType.Type.IsEnum || sourceType.IsNullable && targetType.InnerTypeDetails[0].Type.IsEnum)
                     throw new MapException("Cannot add specific mappings to enum types");
                 if (sourceType.IsIEnumerable || targetType.IsIEnumerable)
                     throw new MapException("Cannot add specific mappings to enumerable types");
@@ -127,7 +127,7 @@ namespace Zerra
         {
             ((IMapSetup<TSource, TTarget>)this).Undefine(propertyU);
 
-            var otherWay = (IMapSetup<TTarget, TSource>)MapWithLog<TTarget, TSource>.GetMap();
+            var otherWay = (IMapSetup<TTarget, TSource>)MapGeneratorWithLog<TTarget, TSource>.GetMap();
             otherWay.Undefine(propertyT);
         }
         void IMapSetup<TSource, TTarget>.UndefineAll()
@@ -257,7 +257,7 @@ namespace Zerra
             if (sourceType.CoreType.HasValue || targetType.CoreType.HasValue)
                 return;
 
-            if (sourceType.Type.IsEnum || (sourceType.IsNullable && sourceType.InnerTypeDetails[0].Type.IsEnum) || sourceType.Type.IsEnum || (sourceType.IsNullable && targetType.InnerTypeDetails[0].Type.IsEnum))
+            if (sourceType.Type.IsEnum || sourceType.IsNullable && sourceType.InnerTypeDetails[0].Type.IsEnum || sourceType.Type.IsEnum || sourceType.IsNullable && targetType.InnerTypeDetails[0].Type.IsEnum)
                 return;
 
             if (sourceType.IsIEnumerable || targetType.IsIEnumerable)
@@ -359,7 +359,7 @@ namespace Zerra
                     return Expression.Block(new[] { sourceValue }, readSourceValue, ifExpression);
                 }
             }
-            else if (sourceType.Type.IsEnum || (sourceType.IsNullable && sourceType.InnerTypeDetails[0].Type.IsEnum) || sourceType.Type.IsEnum || (sourceType.IsNullable && targetType.InnerTypeDetails[0].Type.IsEnum))
+            else if (sourceType.Type.IsEnum || sourceType.IsNullable && sourceType.InnerTypeDetails[0].Type.IsEnum || sourceType.Type.IsEnum || sourceType.IsNullable && targetType.InnerTypeDetails[0].Type.IsEnum)
             {
                 var sourceValue = Expression.Variable(targetType.Type, "sourceValue");
                 Expression readSourceValue;

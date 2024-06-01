@@ -4,8 +4,10 @@
 
 using System;
 using System.Collections.Generic;
+using Zerra.Serialization.Bytes.IO;
+using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.Converters.Lists
 {
     internal sealed class ByteConverterBooleanNullableList<TParent> : ByteConverter<TParent, List<bool?>>
     {

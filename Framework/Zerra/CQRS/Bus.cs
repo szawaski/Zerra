@@ -20,7 +20,7 @@ using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Providers;
 using Zerra.Reflection;
-using Zerra.Serialization;
+using Zerra.Serialization.Json;
 
 #pragma warning disable IDE1006 // Naming Styles
 

@@ -8,7 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-using Zerra.Serialization;
+using Zerra.Serialization.Json;
 using Zerra.Test;
 
 namespace Zerra.TestDev

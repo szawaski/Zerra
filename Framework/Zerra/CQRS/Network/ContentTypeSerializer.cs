@@ -6,7 +6,8 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Zerra.Reflection;
-using Zerra.Serialization;
+using Zerra.Serialization.Bytes;
+using Zerra.Serialization.Json;
 
 namespace Zerra.CQRS.Network
 {

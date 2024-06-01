@@ -4,8 +4,10 @@
 
 using System;
 using Zerra.Reflection;
+using Zerra.Serialization.Bytes.IO;
+using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization
+namespace Zerra.Serialization.Bytes.Converters.General
 {
     internal sealed class ByteConverterType<TParent> : ByteConverter<TParent, Type?>
     {

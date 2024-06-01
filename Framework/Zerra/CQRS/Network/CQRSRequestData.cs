@@ -3,7 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Linq;
-using Zerra.Serialization;
+using Zerra.Serialization.Json;
 
 namespace Zerra.CQRS.Network
 {
