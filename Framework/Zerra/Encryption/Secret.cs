@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System;
 using Zerra.Serialization.Bytes;
 
 namespace Zerra.Encryption
@@ -9,6 +10,7 @@ namespace Zerra.Encryption
     public sealed class Secret<T>
     {
         private static readonly SymmetricKey key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AES);
+        [NonSerialized]
         private readonly byte[] secretEncrypted;
         public Secret(T secret)
         {
