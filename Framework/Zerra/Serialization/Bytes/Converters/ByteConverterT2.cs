@@ -19,7 +19,7 @@ namespace Zerra.Serialization.Bytes.Converters
         private Func<TParent, TValue?>? getter;
         private Action<TParent, TValue?>? setter;
 
-        private bool useEmptyImplementation;
+        private bool isInterfacedObject;
 
         public override void Setup(TypeDetail typeDetail, string? memberKey, Delegate? getterDelegate, Delegate? setterDelegate)
         {
@@ -36,7 +36,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 setter ??= (parent, value) => setterDelegate.DynamicInvoke(parent, value);
             }
 
-            useEmptyImplementation = typeDetail.Type.IsInterface && !typeDetail.HasIEnumerableGeneric && !typeDetail.HasIEnumerable;
+            isInterfacedObject = typeDetail.Type.IsInterface && !typeDetail.HasIEnumerableGeneric && !typeDetail.HasIEnumerable;
 
             Setup();
         }
@@ -92,7 +92,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 }
             }
 
-            if (useEmptyImplementation)
+            if (isInterfacedObject)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 var newTypeDetail = emptyImplementationType.GetTypeDetail();
@@ -159,10 +159,9 @@ namespace Zerra.Serialization.Bytes.Converters
                 }
             }
 
-            if (useEmptyImplementation)
+            if (isInterfacedObject)
             {
                 var typeFromValue = value is null ? typeDetail : value.GetType().GetTypeDetail();
-                var typeName = typeFromValue.Type.AssemblyQualifiedName;
 
                 if (typeFromValue.Type != typeDetail.Type)
                 {
@@ -235,7 +234,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 }
             }
 
-            if (useEmptyImplementation)
+            if (isInterfacedObject)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 var newTypeDetail = emptyImplementationType.GetTypeDetail();
@@ -302,10 +301,9 @@ namespace Zerra.Serialization.Bytes.Converters
                 }
             }
 
-            if (useEmptyImplementation)
+            if (isInterfacedObject)
             {
                 var typeFromValue = value is null ? typeDetail : value.GetType().GetTypeDetail();
-                var typeName = typeFromValue.Type.AssemblyQualifiedName;
 
                 if (typeFromValue.Type != typeDetail.Type)
                 {
@@ -380,7 +378,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 }
             }
 
-            if (useEmptyImplementation)
+            if (isInterfacedObject)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 var newTypeDetail = emptyImplementationType.GetTypeDetail();
@@ -498,10 +496,9 @@ namespace Zerra.Serialization.Bytes.Converters
                 }
             }
 
-            if (useEmptyImplementation)
+            if (isInterfacedObject)
             {
                 var typeFromValue = value is null ? typeDetail : value.GetType().GetTypeDetail();
-                var typeName = typeFromValue.Type.AssemblyQualifiedName;
 
                 if (typeFromValue.Type != typeDetail.Type)
                 {
