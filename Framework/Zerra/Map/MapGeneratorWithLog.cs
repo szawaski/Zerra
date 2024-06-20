@@ -21,8 +21,8 @@ namespace Zerra.Map
 
         private readonly object locker = new();
 
-        private readonly TypeDetail sourceType;
-        private readonly TypeDetail targetType;
+        private readonly TypeDetail<TSource> sourceType;
+        private readonly TypeDetail<TTarget> targetType;
         private readonly Dictionary<string, Tuple<Expression<Func<TSource, object?>>, Expression<Func<TTarget, object?>>>> memberMaps;
         private readonly ConcurrentFactoryDictionary<Graph, Func<TSource, TTarget, IMapLogger?, Dictionary<MapRecursionKey, object>, TTarget>> compiledGraphMaps;
         private Func<TSource, TTarget, IMapLogger?, Dictionary<MapRecursionKey, object>, TTarget>? compiledMap;
@@ -66,8 +66,8 @@ namespace Zerra.Map
 
         private MapGeneratorWithLog()
         {
-            sourceType = TypeAnalyzer.GetTypeDetail(tType);
-            targetType = TypeAnalyzer.GetTypeDetail(uType);
+            sourceType = TypeAnalyzer<TSource>.GetTypeDetail();
+            targetType = TypeAnalyzer<TTarget>.GetTypeDetail();
             memberMaps = new();
             compiledGraphMaps = new();
             GenerateDefaultMemberMaps();
@@ -169,7 +169,7 @@ namespace Zerra.Map
                 }
                 else if (targetType.HasIListGeneric)
                 {
-                    target = (TTarget)targetType.CreatorBoxed();
+                    target = targetType.Creator();
                 }
                 else if (targetType.IsISetGeneric)
                 {
@@ -178,7 +178,7 @@ namespace Zerra.Map
                 }
                 else if (targetType.HasISetGeneric)
                 {
-                    target = (TTarget)targetType.CreatorBoxed();
+                    target = targetType.Creator();
                 }
                 else if (sourceType.HasICollection)
                 {
@@ -198,10 +198,7 @@ namespace Zerra.Map
             }
             else
             {
-                var creator = targetType.CreatorBoxed;
-                if (creator == null)
-                    throw new NotSupportedException($"{targetType.Type.GetNiceName()} does not have a default constructor");
-                target = (TTarget)creator();
+                target = targetType.Creator();
             }
 
             if (graph == null)
