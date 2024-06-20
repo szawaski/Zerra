@@ -289,7 +289,7 @@ namespace Zerra.Web
 
                     _ = settings.ReceiveCounter.BeginReceive();
 
-                    var command = (ICommand?)JsonSerializer.Deserialize(messageType, data.MessageData);
+                    var command = (ICommand?)JsonSerializerOld.Deserialize(messageType, data.MessageData);
                     if (command == null)
                         throw new Exception("Invalid Request");
 

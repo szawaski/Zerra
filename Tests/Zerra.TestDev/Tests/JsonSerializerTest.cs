@@ -33,8 +33,8 @@ namespace Zerra.TestDev
             systemTextJsonOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
             newtonsoftConverter = new Newtonsoft.Json.Converters.StringEnumConverter();
             obj = AllTypesModel.Create();
-            json = JsonSerializer.Serialize(obj);
-            jsonnameless = JsonSerializer.Serialize(obj, optionsNameless);
+            json = JsonSerializerOld.Serialize(obj);
+            jsonnameless = JsonSerializerOld.Serialize(obj, optionsNameless);
         }
 
         public static async Task TestSpeed()
@@ -61,8 +61,8 @@ namespace Zerra.TestDev
                 _ = System.Text.Json.JsonSerializer.Serialize(obj, systemTextJsonOptions);
                 _ = System.Text.Json.JsonSerializer.Deserialize<AllTypesModel>(json, systemTextJsonOptions);
 
-                _ = JsonSerializer.Serialize(obj);
-                _ = JsonSerializer.Deserialize<AllTypesModel>(json);
+                _ = JsonSerializerOld.Serialize(obj);
+                _ = JsonSerializerOld.Deserialize<AllTypesModel>(json);
             }
             timer.Start();
             Console.WriteLine("{0} Warmup", timer.ElapsedMilliseconds);
@@ -85,11 +85,11 @@ namespace Zerra.TestDev
                 Console.WriteLine("{0}b System.Text.Json", Encoding.UTF8.GetBytes(result).Length);
             }
             {
-                var result = JsonSerializer.Serialize(obj);
+                var result = JsonSerializerOld.Serialize(obj);
                 Console.WriteLine("{0}b Zerra.Serialization", Encoding.UTF8.GetBytes(result).Length);
             }
             {
-                var result = JsonSerializer.Serialize(obj, optionsNameless);
+                var result = JsonSerializerOld.Serialize(obj, optionsNameless);
                 Console.WriteLine("{0}b Zerra.Serialization-Nameless", Encoding.UTF8.GetBytes(result).Length);
             }
 
@@ -129,7 +129,7 @@ namespace Zerra.TestDev
             timer = Stopwatch.StartNew();
             for (var i = 0; i < testlength; i++)
             {
-                var result = JsonSerializer.Serialize(obj);
+                var result = JsonSerializerOld.Serialize(obj);
             }
             timer.Stop();
             Console.WriteLine("{0} Zerra.Serialization", timer.ElapsedMilliseconds);
@@ -138,7 +138,7 @@ namespace Zerra.TestDev
             timer = Stopwatch.StartNew();
             for (var i = 0; i < testlength; i++)
             {
-                var result = JsonSerializer.Serialize(obj, optionsNameless);
+                var result = JsonSerializerOld.Serialize(obj, optionsNameless);
             }
             timer.Stop();
             Console.WriteLine("{0} Zerra.Serialization-Nameless", timer.ElapsedMilliseconds);
@@ -174,7 +174,7 @@ namespace Zerra.TestDev
                 for (var i = 0; i < testlength; i++)
                 {
                     stream.Position = 0;
-                    await JsonSerializer.SerializeAsync(stream, obj);
+                    await JsonSerializerOld.SerializeAsync(stream, obj);
                 }
                 timer.Stop();
                 Console.WriteLine("{0} Zerra.Serialization", timer.ElapsedMilliseconds);
@@ -184,7 +184,7 @@ namespace Zerra.TestDev
                 for (var i = 0; i < testlength; i++)
                 {
                     stream.Position = 0;
-                    await JsonSerializer.SerializeAsync(stream, obj, optionsNameless);
+                    await JsonSerializerOld.SerializeAsync(stream, obj, optionsNameless);
                 }
                 timer.Stop();
                 Console.WriteLine("{0} Zerra.Serialization-Nameless", timer.ElapsedMilliseconds);
@@ -226,7 +226,7 @@ namespace Zerra.TestDev
             timer = Stopwatch.StartNew();
             for (var i = 0; i < testlength; i++)
             {
-                var result = JsonSerializer.Deserialize<AllTypesModel>(json);
+                var result = JsonSerializerOld.Deserialize<AllTypesModel>(json);
             }
             timer.Stop();
             Console.WriteLine("{0} Zerra.Serialization", timer.ElapsedMilliseconds);
@@ -234,7 +234,7 @@ namespace Zerra.TestDev
             timer = Stopwatch.StartNew();
             for (var i = 0; i < testlength; i++)
             {
-                var result = JsonSerializer.Deserialize<AllTypesModel>(jsonnameless, optionsNameless);
+                var result = JsonSerializerOld.Deserialize<AllTypesModel>(jsonnameless, optionsNameless);
             }
             timer.Stop();
             Console.WriteLine("{0} Zerra.Serialization-Nameless", timer.ElapsedMilliseconds);
@@ -271,7 +271,7 @@ namespace Zerra.TestDev
                 for (var i = 0; i < testlength; i++)
                 {
                     stream.Position = 0;
-                    var result = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream);
+                    var result = await JsonSerializerOld.DeserializeAsync<AllTypesModel>(stream);
                 }
                 timer.Stop();
                 Console.WriteLine("{0} Zerra.Serialization", timer.ElapsedMilliseconds);
@@ -280,7 +280,7 @@ namespace Zerra.TestDev
                 for (var i = 0; i < testlength; i++)
                 {
                     streamNameless.Position = 0;
-                    var result = await JsonSerializer.DeserializeAsync<AllTypesModel>(streamNameless, optionsNameless);
+                    var result = await JsonSerializerOld.DeserializeAsync<AllTypesModel>(streamNameless, optionsNameless);
                 }
                 timer.Stop();
                 Console.WriteLine("{0} Zerra.Serialization-Nameless", timer.ElapsedMilliseconds);
@@ -292,13 +292,13 @@ namespace Zerra.TestDev
         [Benchmark]
         public void SerializeZerra()
         {
-            _ = JsonSerializer.Serialize(obj);
+            _ = JsonSerializerOld.Serialize(obj);
         }
 
         [Benchmark]
         public void SerializeZerraNameless()
         {
-            _ = JsonSerializer.Serialize(obj, optionsNameless);
+            _ = JsonSerializerOld.Serialize(obj, optionsNameless);
         }
 
         [Benchmark]

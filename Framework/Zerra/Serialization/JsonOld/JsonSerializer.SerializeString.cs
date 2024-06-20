@@ -13,7 +13,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Serialization.Json
 {
-    public static partial class JsonSerializer
+    public static partial class JsonSerializerOld
     {
         public static string Serialize<T>(T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {

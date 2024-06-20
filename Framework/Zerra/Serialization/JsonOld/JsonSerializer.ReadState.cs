@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace Zerra.Serialization.Json
 {
-    public static partial class JsonSerializer
+    public static partial class JsonSerializerOld
     {
         private struct ReadState
         {

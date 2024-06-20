@@ -64,7 +64,7 @@ namespace Zerra.CQRS
                 var i = 0;
                 foreach (var argument in arguments)
                 {
-                    var parameter = JsonSerializer.Deserialize(methodDetail.ParametersInfo[i].ParameterType, argument);
+                    var parameter = JsonSerializerOld.Deserialize(methodDetail.ParametersInfo[i].ParameterType, argument);
                     args[i] = parameter;
                     i++;
                 }

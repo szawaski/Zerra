@@ -149,7 +149,6 @@ namespace Zerra.IO
                 return false;
             }
 
-            var valueSpan = value.AsSpan();
             var pCount = value.Length;
             fixed (char* pSource = value, pBuffer = &buffer[position])
             {

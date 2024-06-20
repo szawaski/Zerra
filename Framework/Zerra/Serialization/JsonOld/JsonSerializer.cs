@@ -15,7 +15,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Serialization.Json
 {
-    public static partial class JsonSerializer
+    public static partial class JsonSerializerOld
     {
         private const int defaultBufferSize = 8 * 1024;
         private const int defaultDecodeBufferSize = 1024;

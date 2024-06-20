@@ -12,7 +12,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Serialization.Json
 {
-    public static partial class JsonSerializer
+    public static partial class JsonSerializerOld
     {
         public static T? Deserialize<T>(string json, JsonSerializerOptions? options = null, Graph? graph = null) { return Deserialize<T>(json.AsSpan(), options, graph); }
         public static object? Deserialize(Type type, string json, JsonSerializerOptions? options = null, Graph? graph = null) { return Deserialize(type, json.AsSpan(), options, graph); }
@@ -336,14 +336,14 @@ namespace Zerra.Serialization.Json
                 arrayElementType = typeDetail.IEnumerableGenericInnerTypeDetail;
                 if (typeDetail.Type.IsArray)
                 {
-                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, arrayElementType.Type));
+                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericListType, arrayElementType.Type));
                     collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
                 }
                 else if (typeDetail.IsIListGeneric || typeDetail.IsIReadOnlyListGeneric)
                 {
-                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, arrayElementType.Type));
+                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericListType, arrayElementType.Type));
                     collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
@@ -356,7 +356,7 @@ namespace Zerra.Serialization.Json
                 }
                 else if (typeDetail.IsISetGeneric || typeDetail.IsIReadOnlySetGeneric)
                 {
-                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, arrayElementType.Type));
+                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericHashSetType, arrayElementType.Type));
                     collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
@@ -369,14 +369,14 @@ namespace Zerra.Serialization.Json
                 }
                 else if (typeDetail.HasIDictionaryGeneric || typeDetail.HasIReadOnlyDictionaryGeneric)
                 {
-                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, arrayElementType.Type));
+                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericListType, arrayElementType.Type));
                     collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
                 }
                 else if (typeDetail.IsICollectionGeneric || typeDetail.IsIReadOnlyCollectionGeneric)
                 {
-                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, arrayElementType.Type));
+                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericListType, arrayElementType.Type));
                     collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
@@ -389,14 +389,14 @@ namespace Zerra.Serialization.Json
                 }
                 else if (typeDetail.IsIEnumerableGeneric)
                 {
-                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, arrayElementType.Type));
+                    var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericListType, arrayElementType.Type));
                     collection = genericListType.CreatorBoxed();
                     addMethod = genericListType.GetMethod("Add");
                     addMethodArgs = new object[1];
                 }
                 else
                 {
-                    throw new NotSupportedException($"{nameof(JsonSerializer)} cannot deserialize type {typeDetail.Type.GetNiceName()}");
+                    throw new NotSupportedException($"{nameof(JsonSerializerOld)} cannot deserialize type {typeDetail.Type.GetNiceName()}");
                 }
             }
 

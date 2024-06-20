@@ -399,7 +399,7 @@ namespace Zerra.CQRS.Network
             {
                 var messageTypeName = commandType.GetNiceName();
 
-                var messageData = JsonSerializer.Serialize(command, commandType);
+                var messageData = JsonSerializerOld.Serialize(command, commandType);
 
                 string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)

@@ -19,7 +19,7 @@ namespace Zerra.Test
         public ByteSerializerTest()
         {
 #if DEBUG
-            JsonSerializer.Testing = false;
+            JsonSerializerOld.Testing = false;
 #endif
         }
 

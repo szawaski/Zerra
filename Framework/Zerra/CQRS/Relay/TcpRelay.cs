@@ -131,7 +131,7 @@ namespace Zerra.CQRS.Relay
                                 if (header.RelayKey != relayKey)
                                     throw new SecurityException("Invalid Relay Key");
 
-                                var serviceInfo = await JsonSerializer.DeserializeAsync<ServiceInfo>(incommingBodyStream);
+                                var serviceInfo = await JsonSerializerOld.DeserializeAsync<ServiceInfo>(incommingBodyStream);
                                 await incommingBodyStream.DisposeAsync();
                                 incommingBodyStream = null;
 

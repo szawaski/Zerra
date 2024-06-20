@@ -22,7 +22,7 @@ namespace Zerra.CQRS.Network
 
         public void AddProviderArguments(object[] arguments)
         {
-            this.ProviderArguments = arguments.Select(x => JsonSerializer.Serialize(x)).ToArray();
+            this.ProviderArguments = arguments.Select(x => JsonSerializerOld.Serialize(x)).ToArray();
         }
     }
 }

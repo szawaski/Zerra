@@ -4,7 +4,7 @@
 
 namespace Zerra.Serialization.Json
 {
-    public static partial class JsonSerializer
+    public static partial class JsonSerializerOld
     {
         private readonly struct OptionsStruct
         {

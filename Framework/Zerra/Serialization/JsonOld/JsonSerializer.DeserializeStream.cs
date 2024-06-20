@@ -12,7 +12,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Serialization.Json
 {
-    public static partial class JsonSerializer
+    public static partial class JsonSerializerOld
     {
         public static T? DeserializeStackBased<T>(Memory<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
         {
@@ -789,14 +789,14 @@ namespace Zerra.Serialization.Json
                     state.CurrentFrame.ArrayElementType = typeDetail.IEnumerableGenericInnerTypeDetail;
                     if (typeDetail.Type.IsArray)
                     {
-                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, state.CurrentFrame.ArrayElementType.Type));
+                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericListType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.IsIListGeneric || typeDetail.IsIReadOnlyListGeneric)
                     {
-                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, state.CurrentFrame.ArrayElementType.Type));
+                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericListType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
@@ -809,7 +809,7 @@ namespace Zerra.Serialization.Json
                     }
                     else if (typeDetail.IsISetGeneric || typeDetail.IsIReadOnlySetGeneric)
                     {
-                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericHashSetType, state.CurrentFrame.ArrayElementType.Type));
+                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericHashSetType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
@@ -822,14 +822,14 @@ namespace Zerra.Serialization.Json
                     }
                     else if (typeDetail.HasIDictionaryGeneric || typeDetail.HasIReadOnlyDictionaryGeneric)
                     {
-                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, state.CurrentFrame.ArrayElementType.Type));
+                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericListType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.IsICollectionGeneric || typeDetail.IsIReadOnlyCollectionGeneric)
                     {
-                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, state.CurrentFrame.ArrayElementType.Type));
+                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericListType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
@@ -842,14 +842,14 @@ namespace Zerra.Serialization.Json
                     }
                     else if (typeDetail.IsIEnumerableGeneric)
                     {
-                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializer.genericListType, state.CurrentFrame.ArrayElementType.Type));
+                        var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericListType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
                         state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else
                     {
-                        throw new NotSupportedException($"{nameof(JsonSerializer)} cannot deserialize type {typeDetail.Type.GetNiceName()}");
+                        throw new NotSupportedException($"{nameof(JsonSerializerOld)} cannot deserialize type {typeDetail.Type.GetNiceName()}");
                     }
                 }
                 state.CurrentFrame.State = 1;
