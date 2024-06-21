@@ -14,7 +14,7 @@ namespace Zerra.Serialization.Json
 {
     public static partial class JsonSerializerOld
     {
-        public static void Serialize(Stream stream, object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static void Serialize(Stream stream, object? obj, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -28,7 +28,7 @@ namespace Zerra.Serialization.Json
 
             Serialize(stream, obj, type, options, graph);
         }
-        public static void Serialize<T>(Stream stream, T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static void Serialize<T>(Stream stream, T? obj, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -37,7 +37,7 @@ namespace Zerra.Serialization.Json
 
             Serialize(stream, obj, type, options, graph);
         }
-        public static void Serialize(Stream stream, object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static void Serialize(Stream stream, object? obj, Type type, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -98,7 +98,7 @@ namespace Zerra.Serialization.Json
             }
         }
 
-        public static Task SerializeAsync(Stream stream, object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static Task SerializeAsync(Stream stream, object? obj, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -112,7 +112,7 @@ namespace Zerra.Serialization.Json
 
             return SerializeAsync(stream, obj, type, options, graph);
         }
-        public static Task SerializeAsync<T>(Stream stream, T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static Task SerializeAsync<T>(Stream stream, T? obj, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -121,7 +121,7 @@ namespace Zerra.Serialization.Json
 
             return SerializeAsync(stream, obj, type, options, graph);
         }
-        public static async Task SerializeAsync(Stream stream, object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static async Task SerializeAsync(Stream stream, object? obj, Type type, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));

@@ -22,7 +22,7 @@ namespace Zerra.TestDev
         private static readonly string json;
         private static readonly string jsonnameless;
 
-        private static readonly JsonSerializerOptions optionsNameless = new()
+        private static readonly JsonSerializerOptionsOld optionsNameless = new()
         {
             Nameless = true
         };

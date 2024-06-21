@@ -12,7 +12,7 @@ namespace Zerra.Serialization.Json
             public readonly bool DoNotWriteNullProperties;
             public readonly bool EnumAsNumber;
 
-            public OptionsStruct(JsonSerializerOptions options)
+            public OptionsStruct(JsonSerializerOptionsOld options)
             {
                 this.Nameless = options.Nameless;
                 this.DoNotWriteNullProperties = options.DoNotWriteNullProperties;

@@ -31,7 +31,7 @@ namespace Zerra.Serialization.Json
         private static readonly Type enumerableType = typeof(IEnumerable<>);
         private static readonly Type dictionaryType = typeof(Dictionary<,>);
 
-        private static readonly JsonSerializerOptions defaultOptions = new();
+        private static readonly JsonSerializerOptionsOld defaultOptions = new();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object? ConvertStringToType(string? s, TypeDetail? typeDetail)

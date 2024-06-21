@@ -14,10 +14,10 @@ namespace Zerra.Serialization.Json
 {
     public static partial class JsonSerializerOld
     {
-        public static T? Deserialize<T>(string json, JsonSerializerOptions? options = null, Graph? graph = null) { return Deserialize<T>(json.AsSpan(), options, graph); }
-        public static object? Deserialize(Type type, string json, JsonSerializerOptions? options = null, Graph? graph = null) { return Deserialize(type, json.AsSpan(), options, graph); }
+        public static T? Deserialize<T>(string json, JsonSerializerOptionsOld? options = null, Graph? graph = null) { return Deserialize<T>(json.AsSpan(), options, graph); }
+        public static object? Deserialize(Type type, string json, JsonSerializerOptionsOld? options = null, Graph? graph = null) { return Deserialize(type, json.AsSpan(), options, graph); }
 
-        public static T? Deserialize<T>(ReadOnlySpan<char> json, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static T? Deserialize<T>(ReadOnlySpan<char> json, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             options ??= defaultOptions;
             var optionsStruct = new OptionsStruct(options);
@@ -48,7 +48,7 @@ namespace Zerra.Serialization.Json
                 decodeBuffer.Dispose();
             }
         }
-        public static object? Deserialize(Type type, ReadOnlySpan<char> json, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static object? Deserialize(Type type, ReadOnlySpan<char> json, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             options ??= defaultOptions;
             var optionsStruct = new OptionsStruct(options);
@@ -80,17 +80,17 @@ namespace Zerra.Serialization.Json
             }
         }
 
-        public static T? Deserialize<T>(byte[] bytes, JsonSerializerOptions? options = null, Graph? graph = null) { return Deserialize<T>(bytes.AsSpan(), options, graph); }
-        public static object? Deserialize(Type type, byte[] bytes, JsonSerializerOptions? options = null, Graph? graph = null) { return Deserialize(type, bytes.AsSpan(), options, graph); }
+        public static T? Deserialize<T>(byte[] bytes, JsonSerializerOptionsOld? options = null, Graph? graph = null) { return Deserialize<T>(bytes.AsSpan(), options, graph); }
+        public static object? Deserialize(Type type, byte[] bytes, JsonSerializerOptionsOld? options = null, Graph? graph = null) { return Deserialize(type, bytes.AsSpan(), options, graph); }
 
-        public static T? Deserialize<T>(ReadOnlySpan<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static T? Deserialize<T>(ReadOnlySpan<byte> bytes, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             var obj = Deserialize(typeof(T), bytes, options, graph);
             if (obj == null)
                 return default;
             return (T)obj;
         }
-        public static object? Deserialize(Type type, ReadOnlySpan<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static object? Deserialize(Type type, ReadOnlySpan<byte> bytes, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             options ??= defaultOptions;
             var optionsStruct = new OptionsStruct(options);

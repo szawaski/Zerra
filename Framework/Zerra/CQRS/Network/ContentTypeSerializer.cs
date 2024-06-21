@@ -19,7 +19,7 @@ namespace Zerra.CQRS.Network
             IgnoreIndexAttribute = true
         };
 
-        private static readonly JsonSerializerOptions jsonSerializerNamelessOptions = new()
+        private static readonly JsonSerializerOptionsOld jsonSerializerNamelessOptions = new()
         {
             Nameless = true
         };

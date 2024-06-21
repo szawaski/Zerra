@@ -14,11 +14,11 @@ namespace Zerra.Serialization.Json
 {
     public static partial class JsonSerializerOld
     {
-        public static T? DeserializeStackBased<T>(Memory<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static T? DeserializeStackBased<T>(Memory<byte> bytes, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             return (T?)DeserializeStackBased(typeof(T), bytes, options, graph);
         }
-        public static object? DeserializeStackBased(Type type, Memory<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static object? DeserializeStackBased(Type type, Memory<byte> bytes, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
 
@@ -51,11 +51,11 @@ namespace Zerra.Serialization.Json
             }
         }
 
-        public static T? DeserializeStackBased<T>(Memory<char> json, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static T? DeserializeStackBased<T>(Memory<char> json, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             return (T?)DeserializeStackBased(typeof(T), json, options, graph);
         }
-        public static object? DeserializeStackBased(Type type, Memory<char> json, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static object? DeserializeStackBased(Type type, Memory<char> json, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
 
@@ -88,11 +88,11 @@ namespace Zerra.Serialization.Json
             }
         }
 
-        public static T? Deserialize<T>(Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static T? Deserialize<T>(Stream stream, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             return (T?)Deserialize(typeof(T), stream, options, graph);
         }
-        public static object? Deserialize(Type type, Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static object? Deserialize(Type type, Stream stream, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
@@ -199,7 +199,7 @@ namespace Zerra.Serialization.Json
             }
         }
 
-        public static async Task<T?> DeserializeAsync<T>(Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static async Task<T?> DeserializeAsync<T>(Stream stream, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -305,7 +305,7 @@ namespace Zerra.Serialization.Json
                 BufferArrayPool<char>.Return(decodeBuffer);
             }
         }
-        public static async Task<object?> DeserializeAsync(Type type, Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static async Task<object?> DeserializeAsync(Type type, Stream stream, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));

@@ -234,7 +234,7 @@ namespace Zerra.Serialization.Json.Converters
                         goto case 1;
 
                     case 1: //array value
-                        state.PushFrame();
+                        state.PushFrame(null);
                         if (!Drain(ref reader, ref state))
                             return false;
 

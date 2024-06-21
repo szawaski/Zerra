@@ -73,7 +73,7 @@ namespace Zerra.Test
         [TestMethod]
         public void StringEnumAsNumbers()
         {
-            var options = new JsonSerializerOptions()
+            var options = new JsonSerializerOptionsOld()
             {
                 EnumAsNumber = true
             };
@@ -296,7 +296,7 @@ namespace Zerra.Test
         [TestMethod]
         public void StringNameless()
         {
-            var options = new JsonSerializerOptions()
+            var options = new JsonSerializerOptionsOld()
             {
                 Nameless = true
             };
@@ -310,7 +310,7 @@ namespace Zerra.Test
         [TestMethod]
         public void StringDoNotWriteNullProperties()
         {
-            var options = new JsonSerializerOptions()
+            var options = new JsonSerializerOptionsOld()
             {
                 DoNotWriteNullProperties = true
             };
@@ -1911,7 +1911,7 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamEnumAsNumber()
         {
-            var options = new JsonSerializerOptions()
+            var options = new JsonSerializerOptionsOld()
             {
                 EnumAsNumber = true
             };
@@ -2202,7 +2202,7 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamNameless()
         {
-            var options = new JsonSerializerOptions()
+            var options = new JsonSerializerOptionsOld()
             {
                 Nameless = true
             };
@@ -2220,7 +2220,7 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamDoNotWriteNullProperties()
         {
-            var options = new JsonSerializerOptions()
+            var options = new JsonSerializerOptionsOld()
             {
                 DoNotWriteNullProperties = true
             };

@@ -15,21 +15,21 @@ namespace Zerra.Serialization.Json
 {
     public static partial class JsonSerializerOld
     {
-        public static string Serialize<T>(T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static string Serialize<T>(T? obj, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (obj == null)
                 return "null";
 
             return ToStringJson(typeof(T), obj, options, graph);
         }
-        public static string Serialize(object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static string Serialize(object? obj, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (obj == null)
                 return "null";
 
             return ToStringJson(obj.GetType(), obj, options, graph);
         }
-        public static string Serialize(object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static string Serialize(object? obj, Type type, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (obj == null)
                 return "null";
@@ -37,7 +37,7 @@ namespace Zerra.Serialization.Json
             return ToStringJson(type, obj, options, graph);
         }
 
-        public static byte[] SerializeBytes<T>(T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static byte[] SerializeBytes<T>(T? obj, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (obj == null)
                 return Encoding.UTF8.GetBytes("null");
@@ -45,7 +45,7 @@ namespace Zerra.Serialization.Json
             var json = ToStringJson(typeof(T), obj, options, graph);
             return Encoding.UTF8.GetBytes(json);
         }
-        public static byte[] SerializeBytes(object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static byte[] SerializeBytes(object? obj, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (obj == null)
                 return Encoding.UTF8.GetBytes("null");
@@ -53,7 +53,7 @@ namespace Zerra.Serialization.Json
             var json = ToStringJson(obj.GetType(), obj, options, graph);
             return Encoding.UTF8.GetBytes(json);
         }
-        public static byte[] SerializeBytes(object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static byte[] SerializeBytes(object? obj, Type type, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             if (obj == null)
                 return Encoding.UTF8.GetBytes("null");
@@ -63,7 +63,7 @@ namespace Zerra.Serialization.Json
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static string ToStringJson(Type type, object? obj, JsonSerializerOptions? options, Graph? graph)
+        private static string ToStringJson(Type type, object? obj, JsonSerializerOptionsOld? options, Graph? graph)
         {
             options ??= defaultOptions;
             var optionsStruct = new OptionsStruct(options);
@@ -81,7 +81,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToStringJson(Stream stream, Type type, object obj, JsonSerializerOptions options, Graph? graph)
+        private static void ToStringJson(Stream stream, Type type, object obj, JsonSerializerOptionsOld options, Graph? graph)
         {
             options ??= defaultOptions;
             var optionsStruct = new OptionsStruct(options);
