@@ -249,7 +249,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     property = (ByteConverterObjectMember?)state.Current.Property;
                 }
 
-                if (property == null)
+                if (property is null)
                 {
                     if (!state.UsePropertyNames && !state.UseTypes)
                         throw new Exception($"Cannot deserialize with property undefined and no types.");
