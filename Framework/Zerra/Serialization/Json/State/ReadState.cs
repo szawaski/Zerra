@@ -22,9 +22,13 @@ namespace Zerra.Serialization.Json.State
 
         public bool IsFinalBlock;
 
-        public char[]? Buffer;
-        public int BufferPosition;
+        public char[]? StringBuffer;
+        public int StringPosition;
 
+        public bool ReadStringEscape;
+        public bool ReadStringEscapeUnicode;
+
+        public ReadNumberStage NumberStage;
         public long NumberInt64;
         public ulong NumberUInt64;
         public double NumberDouble;
@@ -34,7 +38,7 @@ namespace Zerra.Serialization.Json.State
         public double NumberWorkingDouble;
         public decimal NumberWorkingDecimal;
         public bool NumberWorkingIsNegative;
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureStackSize()
         {
@@ -44,7 +48,7 @@ namespace Zerra.Serialization.Json.State
                 Array.Resize(ref stack, stack.Length * 2);
         }
 
-        public void PushFrame(bool nullFlags)
+        public void PushFrame(Graph? graph)
         {
             if (stashCount == 0)
             {
@@ -55,7 +59,32 @@ namespace Zerra.Serialization.Json.State
                 }
                 Current = new()
                 {
-                    NullFlags = nullFlags
+                    Graph = graph
+                };
+            }
+            else
+            {
+                if (stackCount++ > 0)
+                {
+                    Current = stack[stackCount - 1];
+                }
+                if (stackCount == stashCount)
+                    stashCount = 0;
+            }
+        }
+        public void PushFrame(JsonValueType valueType, char firstChar)
+        {
+            if (stashCount == 0)
+            {
+                if (stackCount++ > 0)
+                {
+                    EnsureStackSize();
+                    stack[stackCount - 2] = Current;
+                }
+                Current = new()
+                {
+                    ValueType = valueType,
+                    FirstChar = firstChar
                 };
             }
             else

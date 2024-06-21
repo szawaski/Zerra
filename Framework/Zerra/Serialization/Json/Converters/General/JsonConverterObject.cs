@@ -75,12 +75,188 @@ namespace Zerra.Serialization.Json.Converters.General
 
         protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out TValue? value)
         {
+            Dictionary<string, object?>? collectedValues;
 
+            if (state.Current.HasCreated)
+            {
+                if (collectValues)
+                {
+                    value = default;
+                    collectedValues = RentCollectedValues();
+                }
+                else if (typeDetail.HasCreator)
+                {
+                    value = typeDetail.Creator();
+                    collectedValues = null;
+                }
+                else
+                {
+                    value = default;
+                    collectedValues = null;
+                }
+
+                state.Current.HasCreated = true;
+            }
+            else
+            {
+                if (collectValues)
+                {
+                    value = default;
+                    collectedValues = (Dictionary<string, object?>)state.Current.Object!;
+                }
+                else
+                {
+                    value = (TValue?)state.Current.Object;
+                    collectedValues = null;
+                }
+            }
+
+            char c;
+            for (; ; )
+            {
+                JsonConverterObjectMember? property;
+                if (!state.Current.HasReadProperty)
+                {
+                    if (!reader.TryReadSkipWhiteSpace(out c))
+                    {
+                        state.CharsNeeded = 1;
+                        return false;
+                    }
+
+                    if (c == '}')
+                        break;
+
+                    if (c != '"')
+                        throw reader.CreateException("Unexpected character");
+
+                    if (!ReadString(ref reader, ref state, out var name))
+                        return false;
+
+                    if (String.IsNullOrWhiteSpace(name))
+                        throw reader.CreateException("Unexpected character");
+
+                    if (membersByName == null || membersByName.TryGetValue(name!, out property))
+                        property = null;
+                }
+                else
+                {
+                    property = (JsonConverterObjectMember?)state.Current.Property;
+                }
+
+                if (!state.Current.HasReadPropertySeperator)
+                {
+                    if (!reader.TryReadSkipWhiteSpace(out c))
+                    {
+                        state.Current.HasReadProperty = true;
+                        state.CharsNeeded = 1;
+                        return false;
+                    }
+                    if (c != ':')
+                        throw reader.CreateException("Unexpected character");
+                }
+
+                if (!state.Current.HasReadPropertyValue)
+                {
+                    if (property is null)
+                    {
+                        state.PushFrame(null);
+                        if (!Drain(ref reader, ref state))
+                        {
+                            state.Current.HasReadProperty = true;
+                            state.Current.HasReadPropertySeperator = true;
+                            state.Current.Property = property;
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        if (collectValues)
+                        {
+                            state.PushFrame(null);
+                            if (!property.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues))
+                            {
+                                state.Current.HasReadProperty = true;
+                                state.Current.HasReadPropertySeperator = true;
+                                state.Current.Property = property;
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            state.PushFrame(null);
+                            if (!property.Converter.TryReadFromParent(ref reader, ref state, value))
+                            {
+                                state.Current.HasReadProperty = true;
+                                state.Current.HasReadPropertySeperator = true;
+                                state.Current.Property = property;
+                                return false;
+                            }
+                        }
+                    }
+                }
+
+                if (!reader.TryReadSkipWhiteSpace(out c))
+                {
+                    state.CharsNeeded = 1;
+                    state.Current.HasReadProperty = true;
+                    state.Current.HasReadPropertySeperator = true;
+                    state.Current.HasReadPropertyValue = true;
+                    return false;
+                }
+
+                if (c == '}')
+                    break;
+
+                if (c != ',')
+                    throw reader.CreateException("Unexpected character");
+
+                state.Current.HasReadProperty = false;
+                state.Current.HasReadPropertySeperator = false;
+                state.Current.HasReadPropertyValue = false;
+            }
+
+            if (collectValues)
+            {
+                var args = new object?[parameterConstructor!.ParametersInfo.Count];
+                for (var i = 0; i < args.Length; i++)
+                {
+#if NETSTANDARD2_0
+                    if (collectedValues!.TryGetValue(parameterConstructor.ParametersInfo[i].Name!, out var parameter))
+                    {
+                        collectedValues.Remove(parameterConstructor.ParametersInfo[i].Name!);
+                        args[i] = parameter;
+                    }
+#else
+                    if (collectedValues!.Remove(parameterConstructor.ParametersInfo[i].Name!, out var parameter))
+                        args[i] = parameter;
+#endif
+                }
+                if (typeDetail.Type.IsValueType)
+                {
+                    value = (TValue?)parameterConstructor.CreatorBoxed(args);
+                }
+                else
+                {
+                    value = parameterConstructor.Creator(args);
+                }
+
+                foreach (var remaining in collectedValues!)
+                {
+                    if (membersByName!.TryGetValue(remaining.Key, out var member))
+                    {
+                        member.Converter.CollectedValuesSetter(value!, remaining.Value);
+                    }
+                }
+
+                ReturnCollectedValues(collectedValues!);
+            }
+
+            return true;
         }
 
         protected override sealed bool TryWriteValue(ref CharWriter writer, ref WriteState state, TValue? value)
         {
-
+            throw new NotImplementedException();
         }
     }
 }
