@@ -135,8 +135,8 @@ namespace Zerra.Serialization.Json.Converters.General
                     if (String.IsNullOrWhiteSpace(name))
                         throw reader.CreateException("Unexpected character");
 
-                    if (membersByName == null || membersByName.TryGetValue(name!, out property))
-                        property = null;
+                    property = null;
+                    _ = membersByName?.TryGetValue(name!, out property);
                 }
                 else
                 {
