@@ -8,9 +8,9 @@ using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
-    internal sealed class JsonConverterInt16Nullable<TParent> : JsonConverter<TParent, short?>
+    internal sealed class JsonConverterInt32Nullable<TParent> : JsonConverter<TParent, int?>
     {
-        protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out short? value)
+        protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out int? value)
         {
             switch (state.Current.ValueType)
             {
@@ -27,23 +27,23 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                         value = default;
                         return false;
                     }
-                    value = (short)number;
+                    value = (int)number;
                     return true;
                 case JsonValueType.Null_Completed:
                     value = default;
                     return true;
                 case JsonValueType.False_Completed:
-                    value = (short)0;
+                    value = 0;
                     return true;
                 case JsonValueType.True_Completed:
-                    value = (short)1;
+                    value = 1;
                     return true;
                 default:
                     throw new NotImplementedException();
             }
         }
 
-        protected override sealed bool TryWriteValue(ref CharWriter writer, ref WriteState state, short? value)
+        protected override sealed bool TryWriteValue(ref CharWriter writer, ref WriteState state, int? value)
             => value is null ? writer.TryWrite("null", out state.CharsNeeded) : writer.TryWrite(value.Value, out state.CharsNeeded);
     }
 }

@@ -22,7 +22,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     return DrainArray(ref reader, ref state);
                 case JsonValueType.String:
                 case JsonValueType.Number:
-                    if (!ReadNumberAsUInt64(ref reader, ref state, out var number))
+                    if (!ReadNumberAsInt64(ref reader, ref state, out var number))
                     {
                         value = default;
                         return false;
