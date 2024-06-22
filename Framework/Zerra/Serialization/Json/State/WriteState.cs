@@ -20,6 +20,10 @@ namespace Zerra.Serialization.Json.State
         public WriteFrame Current;
         public int CharsNeeded;
 
+        public bool Nameless { get; set; }
+        public bool DoNotWriteNullProperties { get; set; }
+        public bool EnumAsNumber { get; set; }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureStackSize()
         {
@@ -29,7 +33,7 @@ namespace Zerra.Serialization.Json.State
                 Array.Resize(ref stack, stack.Length * 2);
         }
 
-        public void PushFrame(bool nullFlags)
+        public void PushFrame()
         {
             if (stashCount == 0)
             {
@@ -38,10 +42,7 @@ namespace Zerra.Serialization.Json.State
                     EnsureStackSize();
                     stack[stackCount - 2] = Current;
                 }
-                Current = new()
-                {
-                    NullFlags = nullFlags
-                };
+                Current = new();
             }
             else
             {

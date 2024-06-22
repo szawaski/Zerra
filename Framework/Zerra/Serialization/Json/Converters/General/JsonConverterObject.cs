@@ -75,9 +75,20 @@ namespace Zerra.Serialization.Json.Converters.General
 
         protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out TValue? value)
         {
+            if (state.Current.ValueType != JsonValueType.Object)
+            {
+                if (!Drain(ref reader, ref state))
+                {
+                    value = default;
+                    return false;
+                }
+                value = default;
+                return true;
+            }
+
             Dictionary<string, object?>? collectedValues;
 
-            if (state.Current.HasCreated)
+            if (!state.Current.HasCreated)
             {
                 if (collectValues)
                 {
@@ -159,7 +170,7 @@ namespace Zerra.Serialization.Json.Converters.General
                 {
                     if (property is null)
                     {
-                        state.PushFrame(null);
+                        state.PushFrame();
                         if (!Drain(ref reader, ref state))
                         {
                             state.Current.HasReadProperty = true;
@@ -172,7 +183,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         if (collectValues)
                         {
-                            state.PushFrame(null);
+                            state.PushFrame();
                             if (!property.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues))
                             {
                                 state.Current.HasReadProperty = true;
@@ -183,7 +194,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         }
                         else
                         {
-                            state.PushFrame(null);
+                            state.PushFrame();
                             if (!property.Converter.TryReadFromParent(ref reader, ref state, value))
                             {
                                 state.Current.HasReadProperty = true;

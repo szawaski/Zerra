@@ -31,7 +31,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         lock (this)
                         {
-                            converter ??= ByteConverterFactory<TValue>.Get(Member.TypeDetail, memberKey, Member.HasGetterBoxed ? Member.GetterTyped : null, Member.HasSetterBoxed ? Member.SetterTyped : null);
+                            converter ??= JsonConverterFactory<TValue>.Get(Member.TypeDetail, memberKey, Member.HasGetterBoxed ? Member.GetterTyped : null, Member.HasSetterBoxed ? Member.SetterTyped : null);
                         }
                     }
                     return converter;
@@ -51,7 +51,7 @@ namespace Zerra.Serialization.Json.Converters.General
             {
                 var generic = byteConverterObjectMemberT.GetGenericTypeDetail(typeof(TParent), typeof(TValue), member.Type);
                 var obj = generic.ConstructorDetails[0].CreatorBoxed(new object?[] { parentTypeDetail, member });
-                return (ByteConverterObjectMember)obj;
+                return (JsonConverterObjectMember)obj;
             }
         }
     }

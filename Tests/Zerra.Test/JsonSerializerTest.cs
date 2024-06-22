@@ -1904,7 +1904,7 @@ namespace Zerra.Test
             var json = sr.ReadToEnd();
 
             stream.Position = 0;
-            var model = await JsonSerializerOld.DeserializeAsync<AllTypesModel>(stream);
+            var model = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream);
             AssertHelper.AreEqual(baseModel, model);
         }
 

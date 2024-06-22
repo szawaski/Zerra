@@ -25,7 +25,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         lock (this)
                         {
-                            converterSetValues ??= ByteConverterFactory<Dictionary<string, object?>>.Get(Member.TypeDetail, memberKey, null, SetterForConverterSetValues);
+                            converterSetValues ??= JsonConverterFactory<Dictionary<string, object?>>.Get(Member.TypeDetail, memberKey, null, SetterForConverterSetValues);
                         }
                     }
                     return converterSetValues;

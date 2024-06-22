@@ -14,22 +14,15 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
         {
             switch (state.Current.ValueType)
             {
-                case JsonValueType.Object_Started:
+                case JsonValueType.Object:
                     value = default;
                     return DrainObject(ref reader, ref state);
-                case JsonValueType.Array_Started:
+                case JsonValueType.Array:
                     value = default;
                     return DrainArray(ref reader, ref state);
-                case JsonValueType.String_Started:
-                    if (!ReadString(ref reader, ref state, out var str))
-                    {
-                        value = default;
-                        return false;
-                    }
-                    _ = Byte.TryParse(str, out value);
-                    return true;
-                case JsonValueType.Number_Started:
-                    if (!ReadNumberAsInt64(ref reader, ref state, out var number))
+                case JsonValueType.String:
+                case JsonValueType.Number:
+                    if (!ReadNumberAsUInt64(ref reader, ref state, out var number))
                     {
                         value = default;
                         return false;

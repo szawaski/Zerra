@@ -9,10 +9,10 @@ namespace Zerra.Serialization.Json.State
         NotDetermined = 0,
         ReadingInProgress = 1,
 
-        Object_Started = 2,
-        Array_Started = 3,
-        String_Started = 4,
-        Number_Started = 5,
+        Object = 2,
+        Array = 3,
+        String = 4,
+        Number = 5,
 
         Null_Completed = 6,
         False_Completed = 7,
