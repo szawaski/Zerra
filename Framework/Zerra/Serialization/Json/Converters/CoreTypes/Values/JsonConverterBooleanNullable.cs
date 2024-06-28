@@ -15,9 +15,13 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
             switch (state.Current.ValueType)
             {
                 case JsonValueType.Object:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
                     value = default;
                     return DrainObject(ref reader, ref state);
                 case JsonValueType.Array:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
                     value = default;
                     return DrainArray(ref reader, ref state);
                 case JsonValueType.String:
@@ -27,9 +31,15 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                         return false;
                     }
                     if (Boolean.TryParse(str, out var parsed))
+                    {
                         value = parsed;
+                    }
                     else
+                    {
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
                         value = default;
+                    }
                     return true;
                 case JsonValueType.Number:
                     if (!ReadNumberAsDouble(ref reader, ref state, out var number))
@@ -40,7 +50,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     value = number > 0;
                     return true;
                 case JsonValueType.Null_Completed:
-                    value = default;
+                    value = null;
                     return true;
                 case JsonValueType.False_Completed:
                     value = false;

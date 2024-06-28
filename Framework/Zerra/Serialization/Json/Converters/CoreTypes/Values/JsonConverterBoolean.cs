@@ -15,9 +15,13 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
             switch (state.Current.ValueType)
             {
                 case JsonValueType.Object:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
                     value = default;
                     return DrainObject(ref reader, ref state);
                 case JsonValueType.Array:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
                     value = default;
                     return DrainArray(ref reader, ref state);
                 case JsonValueType.String:
@@ -26,7 +30,8 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                         value = default;
                         return false;
                     }
-                    _ = Boolean.TryParse(str, out value);
+                    if (!Boolean.TryParse(str, out value) && state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
                     return true;
                 case JsonValueType.Number:
                     if (!ReadNumberAsDouble(ref reader, ref state, out var number))
@@ -37,6 +42,8 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     value = number > 0;
                     return true;
                 case JsonValueType.Null_Completed:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
                     value = default;
                     return true;
                 case JsonValueType.False_Completed:

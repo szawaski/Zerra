@@ -31,7 +31,8 @@ namespace Zerra.Serialization.Json
             {
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                EnumAsNumber = options.EnumAsNumber
+                EnumAsNumber = options.EnumAsNumber,
+                ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
             };
             state.PushFrame();
             T? result;
@@ -57,7 +58,8 @@ namespace Zerra.Serialization.Json
             {
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                EnumAsNumber = options.EnumAsNumber
+                EnumAsNumber = options.EnumAsNumber,
+                ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
             };
             state.PushFrame();
             object? result;
@@ -113,7 +115,8 @@ namespace Zerra.Serialization.Json
                 {
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                    EnumAsNumber = options.EnumAsNumber
+                    EnumAsNumber = options.EnumAsNumber,
+                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
                 };
                 state.PushFrame();
                 T? result;
@@ -210,7 +213,8 @@ namespace Zerra.Serialization.Json
                 {
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                    EnumAsNumber = options.EnumAsNumber
+                    EnumAsNumber = options.EnumAsNumber,
+                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
                 };
                 state.PushFrame();
                 object? result;
@@ -306,7 +310,8 @@ namespace Zerra.Serialization.Json
                 {
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                    EnumAsNumber = options.EnumAsNumber
+                    EnumAsNumber = options.EnumAsNumber,
+                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
                 };
                 state.PushFrame();
                 T? result;
@@ -403,7 +408,8 @@ namespace Zerra.Serialization.Json
                 {
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                    EnumAsNumber = options.EnumAsNumber
+                    EnumAsNumber = options.EnumAsNumber,
+                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
                 };
                 state.PushFrame();
                 object? result;

@@ -15,9 +15,13 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
             switch (state.Current.ValueType)
             {
                 case JsonValueType.Object:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
                     value = default;
                     return DrainObject(ref reader, ref state);
                 case JsonValueType.Array:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
                     value = default;
                     return DrainArray(ref reader, ref state);
                 case JsonValueType.String:
@@ -27,16 +31,18 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                         value = default;
                         return false;
                     }
-                    value = (number;
+                    value = number;
                     return true;
                 case JsonValueType.Null_Completed:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
                     value = default;
                     return true;
                 case JsonValueType.False_Completed:
                     value = 0L;
                     return true;
                 case JsonValueType.True_Completed:
-                    value = 1:;
+                    value = 1;
                     return true;
                 default:
                     throw new NotImplementedException();

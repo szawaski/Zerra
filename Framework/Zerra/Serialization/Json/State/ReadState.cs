@@ -25,6 +25,7 @@ namespace Zerra.Serialization.Json.State
         public bool Nameless { get; set; }
         public bool DoNotWriteNullProperties { get; set; }
         public bool EnumAsNumber { get; set; }
+        public bool ErrorOnTypeMismatch { get; set; }
 
         public char[]? StringBuffer;
         public int StringPosition;
@@ -39,6 +40,7 @@ namespace Zerra.Serialization.Json.State
         public decimal NumberDecimal;
         public bool NumberIsNegative;
 
+        public bool NumberParseFailed;
         public double NumberWorkingDouble;
         public decimal NumberWorkingDecimal;
         public bool NumberWorkingIsNegative;

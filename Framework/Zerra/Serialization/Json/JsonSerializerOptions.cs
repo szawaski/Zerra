@@ -18,5 +18,9 @@ namespace Zerra.Serialization.Json
         /// Enums will serialize as their numeric value instead of the name string.
         /// </summary>
         public bool EnumAsNumber { get; set; }
+        /// <summary>
+        /// When the JSON cannot be converted to the type given an error will be thrown.  Normally it will use the default value.
+        /// </summary>
+        public bool ErrorOnTypeMismatch { get; set; }
     }
 }
