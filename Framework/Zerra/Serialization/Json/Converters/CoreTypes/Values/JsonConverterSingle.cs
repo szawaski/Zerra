@@ -8,9 +8,9 @@ using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
-    internal sealed class JsonConverterInt64<TParent> : JsonConverter<TParent, long>
+    internal sealed class JsonConverterSingle<TParent> : JsonConverter<TParent, float>
     {
-        protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out long value)
+        protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out float value)
         {
             switch (state.Current.ValueType)
             {
@@ -26,12 +26,12 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     return DrainArray(ref reader, ref state);
                 case JsonValueType.String:
                 case JsonValueType.Number:
-                    if (!ReadNumberAsInt64(ref reader, ref state, out var number))
+                    if (!ReadNumberAsDouble(ref reader, ref state, out var number))
                     {
                         value = default;
                         return false;
                     }
-                    value = number;
+                    value = (float)number;
                     return true;
                 case JsonValueType.Null_Completed:
                     if (state.ErrorOnTypeMismatch)
@@ -39,17 +39,17 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     value = default;
                     return true;
                 case JsonValueType.False_Completed:
-                    value = 0L;
+                    value = 0f;
                     return true;
                 case JsonValueType.True_Completed:
-                    value = 1L;
+                    value = 1f;
                     return true;
                 default:
                     throw new NotImplementedException();
             }
         }
 
-        protected override sealed bool TryWriteValue(ref CharWriter writer, ref WriteState state, long value)
+        protected override sealed bool TryWriteValue(ref CharWriter writer, ref WriteState state, float value)
             => writer.TryWrite(value, out state.CharsNeeded);
     }
 }

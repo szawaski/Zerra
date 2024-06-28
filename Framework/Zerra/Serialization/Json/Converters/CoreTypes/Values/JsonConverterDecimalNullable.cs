@@ -8,9 +8,9 @@ using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
-    internal sealed class JsonConverterInt64<TParent> : JsonConverter<TParent, long>
+    internal sealed class JsonConverterDecimalNullable<TParent> : JsonConverter<TParent, decimal?>
     {
-        protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out long value)
+        protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out decimal? value)
         {
             switch (state.Current.ValueType)
             {
@@ -26,30 +26,28 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     return DrainArray(ref reader, ref state);
                 case JsonValueType.String:
                 case JsonValueType.Number:
-                    if (!ReadNumberAsInt64(ref reader, ref state, out var number))
+                    if (!ReadNumberAsDecimal(ref reader, ref state, out var number))
                     {
                         value = default;
                         return false;
                     }
-                    value = number;
+                    value = (decimal)number;
                     return true;
                 case JsonValueType.Null_Completed:
-                    if (state.ErrorOnTypeMismatch)
-                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                    value = default;
+                    value = null;
                     return true;
                 case JsonValueType.False_Completed:
-                    value = 0L;
+                    value = 0m;
                     return true;
                 case JsonValueType.True_Completed:
-                    value = 1L;
+                    value = 1m;
                     return true;
                 default:
                     throw new NotImplementedException();
             }
         }
 
-        protected override sealed bool TryWriteValue(ref CharWriter writer, ref WriteState state, long value)
-            => writer.TryWrite(value, out state.CharsNeeded);
+        protected override sealed bool TryWriteValue(ref CharWriter writer, ref WriteState state, decimal? value)
+            => value is null ? writer.TryWrite("null", out state.CharsNeeded) : writer.TryWrite(value.Value, out state.CharsNeeded);
     }
 }
