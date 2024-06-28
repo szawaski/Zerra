@@ -1,0 +1,58 @@
+﻿// Copyright © KaKush LLC
+// Written By Steven Zawaski
+// Licensed to you under the MIT license
+
+using System;
+using Zerra.IO;
+using Zerra.Serialization.Json.State;
+
+namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
+{
+    internal sealed class JsonConverterString<TParent> : JsonConverter<TParent, string?>
+    {
+        protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out string? value)
+        {
+            switch (state.Current.ValueType)
+            {
+                case JsonValueType.Object:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                    value = default;
+                    return DrainObject(ref reader, ref state);
+                case JsonValueType.Array:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                    value = default;
+                    return DrainArray(ref reader, ref state);
+                case JsonValueType.String:
+                    if (!ReadString(ref reader, ref state, out value))
+                    {
+                        value = default;
+                        return false;
+                    }
+                    return true;
+                case JsonValueType.Number:
+                    if (!ReadNumberAsString(ref reader, ref state, out value))
+                    {
+                        value = default;
+                        return false;
+                    }
+                    return true;
+                case JsonValueType.Null_Completed:
+                    value = null;
+                    return true;
+                case JsonValueType.False_Completed:
+                    value = "false";
+                    return true;
+                case JsonValueType.True_Completed:
+                    value = "true";
+                    return true;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        protected override sealed bool TryWriteValue(ref CharWriter writer, ref WriteState state, string? value)
+            => WriteString(ref writer, ref state, value);
+    }
+}

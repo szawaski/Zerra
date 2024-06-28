@@ -439,24 +439,24 @@ namespace Zerra.Serialization.Json
                     return;
                 case CoreType.DateTime:
                 case CoreType.DateTimeNullable:
-                    if (state.CurrentFrame.State == 0)
+                    if (state.WorkingStringStage == 0)
                     {
                         if (!writer.TryWrite('\"', out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                     }
 
-                    if (state.CurrentFrame.State == 1)
+                    if (state.WorkingStringStage == 1)
                     {
                         if (!writer.TryWrite((DateTime)state.CurrentFrame.Object!, DateTimeFormat.ISO8601, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 2;
+                        state.WorkingStringStage = 2;
                     }
 
                     if (!writer.TryWrite('\"', out sizeNeeded))
@@ -468,24 +468,24 @@ namespace Zerra.Serialization.Json
                     return;
                 case CoreType.DateTimeOffset:
                 case CoreType.DateTimeOffsetNullable:
-                    if (state.CurrentFrame.State == 0)
+                    if (state.WorkingStringStage == 0)
                     {
                         if (!writer.TryWrite('\"', out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                     }
 
-                    if (state.CurrentFrame.State == 1)
+                    if (state.WorkingStringStage == 1)
                     {
                         if (!writer.TryWrite((DateTimeOffset)state.CurrentFrame.Object!, DateTimeFormat.ISO8601, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 2;
+                        state.WorkingStringStage = 2;
                     }
 
                     if (!writer.TryWrite('\"', out sizeNeeded))
@@ -497,24 +497,24 @@ namespace Zerra.Serialization.Json
                     return;
                 case CoreType.TimeSpan:
                 case CoreType.TimeSpanNullable:
-                    if (state.CurrentFrame.State == 0)
+                    if (state.WorkingStringStage == 0)
                     {
                         if (!writer.TryWrite('\"', out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                     }
 
-                    if (state.CurrentFrame.State == 1)
+                    if (state.WorkingStringStage == 1)
                     {
                         if (!writer.TryWrite((TimeSpan)state.CurrentFrame.Object!, TimeFormat.ISO8601, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 2;
+                        state.WorkingStringStage = 2;
                     }
 
                     if (!writer.TryWrite('\"', out sizeNeeded))
@@ -527,24 +527,24 @@ namespace Zerra.Serialization.Json
 #if NET6_0_OR_GREATER
                 case CoreType.DateOnly:
                 case CoreType.DateOnlyNullable:
-                    if (state.CurrentFrame.State == 0)
+                    if (state.WorkingStringStage == 0)
                     {
                         if (!writer.TryWrite('\"', out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                     }
 
-                    if (state.CurrentFrame.State == 1)
+                    if (state.WorkingStringStage == 1)
                     {
                         if (!writer.TryWrite((DateOnly)state.CurrentFrame.Object!, DateTimeFormat.ISO8601, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 2;
+                        state.WorkingStringStage = 2;
                     }
 
                     if (!writer.TryWrite('\"', out sizeNeeded))
@@ -556,24 +556,24 @@ namespace Zerra.Serialization.Json
                     return;
                 case CoreType.TimeOnly:
                 case CoreType.TimeOnlyNullable:
-                    if (state.CurrentFrame.State == 0)
+                    if (state.WorkingStringStage == 0)
                     {
                         if (!writer.TryWrite('\"', out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                     }
 
-                    if (state.CurrentFrame.State == 1)
+                    if (state.WorkingStringStage == 1)
                     {
                         if (!writer.TryWrite((TimeOnly)state.CurrentFrame.Object!, TimeFormat.ISO8601, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 2;
+                        state.WorkingStringStage = 2;
                     }
 
                     if (!writer.TryWrite('\"', out sizeNeeded))
@@ -586,24 +586,24 @@ namespace Zerra.Serialization.Json
 #endif
                 case CoreType.Guid:
                 case CoreType.GuidNullable:
-                    if (state.CurrentFrame.State == 0)
+                    if (state.WorkingStringStage == 0)
                     {
                         if (!writer.TryWrite('\"', out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                     }
 
-                    if (state.CurrentFrame.State == 1)
+                    if (state.WorkingStringStage == 1)
                     {
                         if (!writer.TryWrite((Guid)state.CurrentFrame.Object!, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 2;
+                        state.WorkingStringStage = 2;
                     }
 
                     if (!writer.TryWrite('\"', out sizeNeeded))
@@ -708,7 +708,7 @@ namespace Zerra.Serialization.Json
             {
                 string? str = null;
 
-                if (state.CurrentFrame.State == 0)
+                if (state.WorkingStringStage == 0)
                 {
                     if (typeDetail.IsNullable)
                         str = EnumName.GetName(typeDetail.InnerTypes[0], state.CurrentFrame.Object!);
@@ -716,18 +716,18 @@ namespace Zerra.Serialization.Json
                         str = EnumName.GetName(typeDetail.Type, state.CurrentFrame.Object!);
 
                     state.CurrentFrame.Object = str;
-                    state.CurrentFrame.State = 1;
+                    state.WorkingStringStage = 1;
                 }
-                if (state.CurrentFrame.State == 1)
+                if (state.WorkingStringStage == 1)
                 {
                     if (!writer.TryWrite('\"', out var sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
                     }
-                    state.CurrentFrame.State = 2;
+                    state.WorkingStringStage = 2;
                 }
-                if (state.CurrentFrame.State == 2)
+                if (state.WorkingStringStage == 2)
                 {
                     str ??= (string?)state.CurrentFrame.Object;
                     if (!writer.TryWrite(str, out var sizeNeeded))
@@ -735,9 +735,9 @@ namespace Zerra.Serialization.Json
                         state.CharsNeeded = sizeNeeded;
                         return;
                     }
-                    state.CurrentFrame.State = 3;
+                    state.WorkingStringStage = 3;
                 }
-                //if (state.CurrentFrame.State == 3)
+                //if (state.WorkingStringState == 3)
                 {
                     if (!writer.TryWrite('\"', out var sizeNeeded))
                     {
@@ -784,15 +784,15 @@ namespace Zerra.Serialization.Json
                     }
 
                     var innerTypeDetail = typeDetail.DictionaryInnerTypeDetail;
-                    if (state.CurrentFrame.State == 0)
+                    if (state.WorkingStringStage == 0)
                     {
                         var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.DictionaryInnerType);
 
                         state.CurrentFrame.Enumerator = ((ICollection)method.Caller(null, new object?[] { state.CurrentFrame.Object })!).GetEnumerator();
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                     }
 
-                    if (state.CurrentFrame.State == 1)
+                    if (state.WorkingStringStage == 1)
                     {
                         if (!state.Nameless)
                         {
@@ -811,29 +811,29 @@ namespace Zerra.Serialization.Json
                             }
                         }
 
-                        state.CurrentFrame.State = 2;
+                        state.WorkingStringStage = 2;
                     }
 
                     for (; ; )
                     {
-                        switch (state.CurrentFrame.State)
+                        switch (state.WorkingStringStage)
                         {
                             case 2: //Next KeyValuePair
                                 if (!state.CurrentFrame.Enumerator!.MoveNext())
                                 {
-                                    state.CurrentFrame.State = 20;
+                                    state.WorkingStringStage = 20;
                                     break;
                                 }
                                 if (state.CurrentFrame.EnumeratorPassedFirstProperty)
                                 {
-                                    state.CurrentFrame.State = 3;
+                                    state.WorkingStringStage = 3;
                                 }
                                 else
                                 {
                                     if (state.Nameless)
-                                        state.CurrentFrame.State = 7;
+                                        state.WorkingStringStage = 7;
                                     else
-                                        state.CurrentFrame.State = 4;
+                                        state.WorkingStringStage = 4;
                                     state.CurrentFrame.EnumeratorPassedFirstProperty = true;
                                 }
                                 break;
@@ -844,9 +844,9 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                                 if (state.Nameless)
-                                    state.CurrentFrame.State = 7;
+                                    state.WorkingStringStage = 7;
                                 else
-                                    state.CurrentFrame.State = 4;
+                                    state.WorkingStringStage = 4;
                                 break;
 
                             case 4: //Key
@@ -854,7 +854,7 @@ namespace Zerra.Serialization.Json
                                 var key = keyGetter(state.CurrentFrame.Enumerator!.Current)!.ToString()!;
                                 if (!WriteJsonString(ref writer, ref state, key))
                                     return;
-                                state.CurrentFrame.State = 5;
+                                state.WorkingStringStage = 5;
                                 break;
 
                             case 5: //KeyValue Seperator
@@ -863,12 +863,12 @@ namespace Zerra.Serialization.Json
                                     state.CharsNeeded = sizeNeeded;
                                     return;
                                 }
-                                state.CurrentFrame.State = 6;
+                                state.WorkingStringStage = 6;
                                 break;
                             case 6: //Value
                                 var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").GetterBoxed;
                                 var value = valueGetter(state.CurrentFrame.Enumerator!.Current);
-                                state.CurrentFrame.State = 2;
+                                state.WorkingStringStage = 2;
                                 state.PushFrame(CreateWriteFrame(ref state, innerTypeDetail.InnerTypeDetails[1], value));
                                 return;
 
@@ -878,14 +878,14 @@ namespace Zerra.Serialization.Json
                                     state.CharsNeeded = sizeNeeded;
                                     return;
                                 }
-                                state.CurrentFrame.State = 8;
+                                state.WorkingStringStage = 8;
                                 break;
                             case 8: //Nameless Key
                                 keyGetter = innerTypeDetail.GetMemberFieldBacked("key").GetterBoxed;
                                 key = keyGetter(state.CurrentFrame.Enumerator!.Current)!.ToString()!;
                                 if (!WriteJsonString(ref writer, ref state, key))
                                     return;
-                                state.CurrentFrame.State = 9;
+                                state.WorkingStringStage = 9;
                                 return;
                             case 9:  //Nameless KeyValue Seperator
                                 if (!writer.TryWrite(',', out sizeNeeded))
@@ -893,12 +893,12 @@ namespace Zerra.Serialization.Json
                                     state.CharsNeeded = sizeNeeded;
                                     return;
                                 }
-                                state.CurrentFrame.State = 10;
+                                state.WorkingStringStage = 10;
                                 break;
                             case 10: //Nameless Value
                                 valueGetter = innerTypeDetail.GetMemberFieldBacked("value").GetterBoxed;
                                 value = valueGetter(state.CurrentFrame.Enumerator!.Current);
-                                state.CurrentFrame.State = 11;
+                                state.WorkingStringStage = 11;
                                 state.PushFrame(CreateWriteFrame(ref state, innerTypeDetail.InnerTypeDetails[1], value));
                                 return;
                             case 11:  //End Nameless
@@ -907,7 +907,7 @@ namespace Zerra.Serialization.Json
                                     state.CharsNeeded = sizeNeeded;
                                     return;
                                 }
-                                state.CurrentFrame.State = 2;
+                                state.WorkingStringStage = 2;
                                 break;
 
                             case 20: //End Dictionary
@@ -939,25 +939,25 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteJsonByteArray(ref CharWriter writer, ref WriteState state)
         {
-            if (state.CurrentFrame.State == 0)
+            if (state.WorkingStringStage == 0)
             {
                 if (!writer.TryWrite('\"', out var sizeNeeded))
                 {
                     state.CharsNeeded = sizeNeeded;
                     return;
                 }
-                state.CurrentFrame.State = 1;
+                state.WorkingStringStage = 1;
             }
 
             string? str = null;
-            if (state.CurrentFrame.State == 1)
+            if (state.WorkingStringStage == 1)
             {
                 str = Convert.ToBase64String((byte[])state.CurrentFrame.Object!);
                 state.CurrentFrame.Object = str;
-                state.CurrentFrame.State = 2;
+                state.WorkingStringStage = 2;
             }
 
-            if (state.CurrentFrame.State == 2)
+            if (state.WorkingStringStage == 2)
             {
                 str ??= (string)state.CurrentFrame.Object!;
                 if (!writer.TryWrite(str, out var sizeNeeded))
@@ -965,10 +965,10 @@ namespace Zerra.Serialization.Json
                     state.CharsNeeded = sizeNeeded;
                     return;
                 }
-                state.CurrentFrame.State = 3;
+                state.WorkingStringStage = 3;
             }
 
-            if (state.CurrentFrame.State == 3)
+            if (state.WorkingStringStage == 3)
             {
                 if (!writer.TryWrite('\"', out var sizeNeeded))
                 {
@@ -984,7 +984,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = state.CurrentFrame.TypeDetail!;
             var graph = state.CurrentFrame.Graph;
 
-            if (state.CurrentFrame.State == 0)
+            if (state.WorkingStringStage == 0)
             {
                 if (!state.Nameless)
                 {
@@ -1004,17 +1004,17 @@ namespace Zerra.Serialization.Json
                 }
 
                 state.CurrentFrame.MemberEnumerator = typeDetail.SerializableMemberDetails.GetEnumerator();
-                state.CurrentFrame.State = 1;
+                state.WorkingStringStage = 1;
             }
 
             for (; ; )
             {
-                switch (state.CurrentFrame.State)
+                switch (state.WorkingStringStage)
                 {
                     case 1: //Next Property
                         if (!state.CurrentFrame.MemberEnumerator!.MoveNext())
                         {
-                            state.CurrentFrame.State = 7;
+                            state.WorkingStringStage = 7;
                             break;
                         }
                         if (!state.CurrentFrame.MemberEnumerator.Current.HasGetterBoxed)
@@ -1026,7 +1026,7 @@ namespace Zerra.Serialization.Json
 
                         if (state.CurrentFrame.EnumeratorPassedFirstProperty)
                         {
-                            state.CurrentFrame.State = 2;
+                            state.WorkingStringStage = 2;
                             break;
                         }
                         else
@@ -1035,9 +1035,9 @@ namespace Zerra.Serialization.Json
                         }
 
                         if (state.Nameless)
-                            state.CurrentFrame.State = 6;
+                            state.WorkingStringStage = 6;
                         else
-                            state.CurrentFrame.State = 3;
+                            state.WorkingStringStage = 3;
                         break;
                     case 2: //Seperate Properties
                         if (!writer.TryWrite(',', out var sizeNeeded))
@@ -1046,9 +1046,9 @@ namespace Zerra.Serialization.Json
                             return;
                         }
                         if (state.Nameless)
-                            state.CurrentFrame.State = 6;
+                            state.WorkingStringStage = 6;
                         else
-                            state.CurrentFrame.State = 3;
+                            state.WorkingStringStage = 3;
                         break;
 
                     case 3: //Begin Member Name
@@ -1057,7 +1057,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 4;
+                        state.WorkingStringStage = 4;
                         break;
                     case 4: //Member Name
                         var member = state.CurrentFrame.MemberEnumerator!.Current;
@@ -1066,7 +1066,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 5;
+                        state.WorkingStringStage = 5;
                         break;
                     case 5: //End Member Name
                         if (!writer.TryWrite("\":", out sizeNeeded))
@@ -1074,14 +1074,14 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 6;
+                        state.WorkingStringStage = 6;
                         break;
 
                     case 6: //Member Value
                         member = state.CurrentFrame.MemberEnumerator!.Current;
                         var childGraph = graph?.GetChildGraph(member.Name);
 
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         state.PushFrame(CreateWriteFrame(ref state, member.TypeDetail, state.CurrentFrame.ObjectPropertyValue, childGraph));
                         return;
 
@@ -1113,7 +1113,7 @@ namespace Zerra.Serialization.Json
             int sizeNeeded;
             var typeDetail = state.CurrentFrame.TypeDetail!.InnerTypeDetails[0];
 
-            if (state.CurrentFrame.State == 0)
+            if (state.WorkingStringStage == 0)
             {
                 if (!writer.TryWrite('[', out sizeNeeded))
                 {
@@ -1121,11 +1121,11 @@ namespace Zerra.Serialization.Json
                     return;
                 }
                 state.CurrentFrame.Enumerator = ((IEnumerable)state.CurrentFrame.Object!).GetEnumerator();
-                state.CurrentFrame.State = 1;
+                state.WorkingStringStage = 1;
             }
 
         laststate:
-            if (state.CurrentFrame.State == 100)
+            if (state.WorkingStringStage == 100)
             {
                 if (!writer.TryWrite(']', out sizeNeeded))
                 {
@@ -1138,32 +1138,32 @@ namespace Zerra.Serialization.Json
 
             for (; ; )
             {
-                if (state.CurrentFrame.State == 1)
+                if (state.WorkingStringStage == 1)
                 {
                     if (!state.CurrentFrame.Enumerator!.MoveNext())
                     {
-                        state.CurrentFrame.State = 100;
+                        state.WorkingStringStage = 100;
                         goto laststate;
                     }
 
                     if (state.CurrentFrame.EnumeratorPassedFirstProperty)
                     {
-                        state.CurrentFrame.State = 2;
+                        state.WorkingStringStage = 2;
                     }
                     else
                     {
-                        state.CurrentFrame.State = 3;
+                        state.WorkingStringStage = 3;
                         state.CurrentFrame.EnumeratorPassedFirstProperty = true;
                     }
                 }
-                if (state.CurrentFrame.State == 2)
+                if (state.WorkingStringStage == 2)
                 {
                     if (!writer.TryWrite(',', out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
                     }
-                    state.CurrentFrame.State = 3;
+                    state.WorkingStringStage = 3;
                 }
 
                 switch (typeDetail.CoreType)
@@ -1171,7 +1171,7 @@ namespace Zerra.Serialization.Json
                     case CoreType.String:
                         if (!WriteJsonString(ref writer, ref state, (string)state.CurrentFrame.Enumerator!.Current))
                             return;
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.Boolean:
                         if (!writer.TryWrite((bool)state.CurrentFrame.Enumerator!.Current == false ? "false" : "true", out sizeNeeded))
@@ -1179,7 +1179,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.Byte:
                         if (!writer.TryWrite((byte)state.CurrentFrame.Enumerator!.Current, out sizeNeeded))
@@ -1187,7 +1187,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.SByte:
                         if (!writer.TryWrite((sbyte)state.CurrentFrame.Enumerator!.Current, out sizeNeeded))
@@ -1195,7 +1195,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.Int16:
                         if (!writer.TryWrite((short)state.CurrentFrame.Enumerator!.Current, out sizeNeeded))
@@ -1203,7 +1203,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.UInt16:
                         if (!writer.TryWrite((ushort)state.CurrentFrame.Enumerator!.Current, out sizeNeeded))
@@ -1211,7 +1211,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.Int32:
                         if (!writer.TryWrite((int)state.CurrentFrame.Enumerator!.Current, out sizeNeeded))
@@ -1219,7 +1219,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.UInt32:
                         if (!writer.TryWrite((uint)state.CurrentFrame.Enumerator!.Current, out sizeNeeded))
@@ -1227,7 +1227,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.Int64:
                         if (!writer.TryWrite((long)state.CurrentFrame.Enumerator!.Current, out sizeNeeded))
@@ -1235,7 +1235,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.UInt64:
                         if (!writer.TryWrite((ulong)state.CurrentFrame.Enumerator!.Current, out sizeNeeded))
@@ -1243,7 +1243,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.Single:
                         if (!writer.TryWrite((float)state.CurrentFrame.Enumerator!.Current, out sizeNeeded))
@@ -1251,7 +1251,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.Double:
                         if (!writer.TryWrite((double)state.CurrentFrame.Enumerator!.Current, out sizeNeeded))
@@ -1259,7 +1259,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.Decimal:
                         if (!writer.TryWrite((decimal)state.CurrentFrame.Enumerator!.Current, out sizeNeeded))
@@ -1267,32 +1267,32 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.Char:
                         if (!WriteJsonChar(ref writer, ref state, (char)state.CurrentFrame.Enumerator!.Current, 3))
                             return;
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.DateTime:
-                        if (state.CurrentFrame.State == 3)
+                        if (state.WorkingStringStage == 3)
                         {
                             if (!writer.TryWrite('\"', out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 4;
+                            state.WorkingStringStage = 4;
                         }
 
-                        if (state.CurrentFrame.State == 4)
+                        if (state.WorkingStringStage == 4)
                         {
                             if (!writer.TryWrite((DateTime)state.CurrentFrame.Enumerator!.Current, DateTimeFormat.ISO8601, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 5;
+                            state.WorkingStringStage = 5;
                         }
 
                         if (!writer.TryWrite('\"', out sizeNeeded))
@@ -1300,27 +1300,27 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.DateTimeOffset:
-                        if (state.CurrentFrame.State == 3)
+                        if (state.WorkingStringStage == 3)
                         {
                             if (!writer.TryWrite('\"', out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 4;
+                            state.WorkingStringStage = 4;
                         }
 
-                        if (state.CurrentFrame.State == 4)
+                        if (state.WorkingStringStage == 4)
                         {
                             if (!writer.TryWrite((DateTimeOffset)state.CurrentFrame.Enumerator!.Current, DateTimeFormat.ISO8601, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 5;
+                            state.WorkingStringStage = 5;
                         }
 
                         if (!writer.TryWrite('\"', out sizeNeeded))
@@ -1328,27 +1328,27 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.TimeSpan:
-                        if (state.CurrentFrame.State == 3)
+                        if (state.WorkingStringStage == 3)
                         {
                             if (!writer.TryWrite('\"', out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 4;
+                            state.WorkingStringStage = 4;
                         }
 
-                        if (state.CurrentFrame.State == 4)
+                        if (state.WorkingStringStage == 4)
                         {
                             if (!writer.TryWrite((TimeSpan)state.CurrentFrame.Enumerator!.Current, TimeFormat.ISO8601, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 5;
+                            state.WorkingStringStage = 5;
                         }
 
                         if (!writer.TryWrite('\"', out sizeNeeded))
@@ -1356,28 +1356,28 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
 #if NET6_0_OR_GREATER
                     case CoreType.DateOnly:
-                        if (state.CurrentFrame.State == 3)
+                        if (state.WorkingStringStage == 3)
                         {
                             if (!writer.TryWrite('\"', out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 4;
+                            state.WorkingStringStage = 4;
                         }
 
-                        if (state.CurrentFrame.State == 4)
+                        if (state.WorkingStringStage == 4)
                         {
                             if (!writer.TryWrite((DateOnly)state.CurrentFrame.Enumerator!.Current, DateTimeFormat.ISO8601, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 5;
+                            state.WorkingStringStage = 5;
                         }
 
                         if (!writer.TryWrite('\"', out sizeNeeded))
@@ -1385,27 +1385,27 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
                     case CoreType.TimeOnly:
-                        if (state.CurrentFrame.State == 3)
+                        if (state.WorkingStringStage == 3)
                         {
                             if (!writer.TryWrite('\"', out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 4;
+                            state.WorkingStringStage = 4;
                         }
 
-                        if (state.CurrentFrame.State == 4)
+                        if (state.WorkingStringStage == 4)
                         {
                             if (!writer.TryWrite((TimeOnly)state.CurrentFrame.Enumerator!.Current, TimeFormat.ISO8601, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 5;
+                            state.WorkingStringStage = 5;
                         }
 
                         if (!writer.TryWrite('\"', out sizeNeeded))
@@ -1413,28 +1413,28 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
 #endif
                     case CoreType.Guid:
-                        if (state.CurrentFrame.State == 3)
+                        if (state.WorkingStringStage == 3)
                         {
                             if (!writer.TryWrite('\"', out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 4;
+                            state.WorkingStringStage = 4;
                         }
 
-                        if (state.CurrentFrame.State == 4)
+                        if (state.WorkingStringStage == 4)
                         {
                             if (!writer.TryWrite((Guid)state.CurrentFrame.Enumerator!.Current, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 5;
+                            state.WorkingStringStage = 5;
                         }
 
                         if (!writer.TryWrite('\"', out sizeNeeded))
@@ -1442,7 +1442,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                         break;
 
                     case CoreType.BooleanNullable:
@@ -1464,7 +1464,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
                     case CoreType.ByteNullable:
@@ -1486,7 +1486,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
                     case CoreType.SByteNullable:
@@ -1508,7 +1508,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
                     case CoreType.Int16Nullable:
@@ -1530,7 +1530,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
                     case CoreType.UInt16Nullable:
@@ -1552,7 +1552,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
                     case CoreType.Int32Nullable:
@@ -1574,7 +1574,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
                     case CoreType.UInt32Nullable:
@@ -1596,7 +1596,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
                     case CoreType.Int64Nullable:
@@ -1618,7 +1618,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
                     case CoreType.UInt64Nullable:
@@ -1640,7 +1640,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
                     case CoreType.SingleNullable:
@@ -1662,7 +1662,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
                     case CoreType.DoubleNullable:
@@ -1684,7 +1684,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
                     case CoreType.DecimalNullable:
@@ -1706,7 +1706,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
                     case CoreType.CharNullable:
@@ -1725,7 +1725,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
                     case CoreType.DateTimeNullable:
@@ -1733,24 +1733,24 @@ namespace Zerra.Serialization.Json
                             var value = (DateTime?)state.CurrentFrame.Enumerator!.Current;
                             if (value.HasValue)
                             {
-                                if (state.CurrentFrame.State == 3)
+                                if (state.WorkingStringStage == 3)
                                 {
                                     if (!writer.TryWrite('\"', out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
                                     }
-                                    state.CurrentFrame.State = 4;
+                                    state.WorkingStringStage = 4;
                                 }
 
-                                if (state.CurrentFrame.State == 4)
+                                if (state.WorkingStringStage == 4)
                                 {
                                     if (!writer.TryWrite(value.Value, DateTimeFormat.ISO8601, out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
                                     }
-                                    state.CurrentFrame.State = 5;
+                                    state.WorkingStringStage = 5;
                                 }
 
                                 if (!writer.TryWrite('\"', out sizeNeeded))
@@ -1767,7 +1767,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
                     case CoreType.DateTimeOffsetNullable:
@@ -1775,24 +1775,24 @@ namespace Zerra.Serialization.Json
                             var value = (DateTimeOffset?)state.CurrentFrame.Enumerator!.Current;
                             if (value.HasValue)
                             {
-                                if (state.CurrentFrame.State == 3)
+                                if (state.WorkingStringStage == 3)
                                 {
                                     if (!writer.TryWrite('\"', out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
                                     }
-                                    state.CurrentFrame.State = 4;
+                                    state.WorkingStringStage = 4;
                                 }
 
-                                if (state.CurrentFrame.State == 4)
+                                if (state.WorkingStringStage == 4)
                                 {
                                     if (!writer.TryWrite(value.Value, DateTimeFormat.ISO8601, out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
                                     }
-                                    state.CurrentFrame.State = 5;
+                                    state.WorkingStringStage = 5;
                                 }
 
                                 if (!writer.TryWrite('\"', out sizeNeeded))
@@ -1809,7 +1809,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
                     case CoreType.TimeSpanNullable:
@@ -1817,24 +1817,24 @@ namespace Zerra.Serialization.Json
                             var value = (TimeSpan?)state.CurrentFrame.Enumerator!.Current;
                             if (value.HasValue)
                             {
-                                if (state.CurrentFrame.State == 3)
+                                if (state.WorkingStringStage == 3)
                                 {
                                     if (!writer.TryWrite('\"', out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
                                     }
-                                    state.CurrentFrame.State = 4;
+                                    state.WorkingStringStage = 4;
                                 }
 
-                                if (state.CurrentFrame.State == 4)
+                                if (state.WorkingStringStage == 4)
                                 {
                                     if (!writer.TryWrite(value.Value, TimeFormat.ISO8601, out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
                                     }
-                                    state.CurrentFrame.State = 5;
+                                    state.WorkingStringStage = 5;
                                 }
 
                                 if (!writer.TryWrite('\"', out sizeNeeded))
@@ -1851,7 +1851,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
 #if NET6_0_OR_GREATER
@@ -1860,24 +1860,24 @@ namespace Zerra.Serialization.Json
                             var value = (DateOnly?)state.CurrentFrame.Enumerator!.Current;
                             if (value.HasValue)
                             {
-                                if (state.CurrentFrame.State == 3)
+                                if (state.WorkingStringStage == 3)
                                 {
                                     if (!writer.TryWrite('\"', out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
                                     }
-                                    state.CurrentFrame.State = 4;
+                                    state.WorkingStringStage = 4;
                                 }
 
-                                if (state.CurrentFrame.State == 4)
+                                if (state.WorkingStringStage == 4)
                                 {
                                     if (!writer.TryWrite(value.Value, DateTimeFormat.ISO8601, out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
                                     }
-                                    state.CurrentFrame.State = 5;
+                                    state.WorkingStringStage = 5;
                                 }
 
                                 if (!writer.TryWrite('\"', out sizeNeeded))
@@ -1894,7 +1894,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
                     case CoreType.TimeOnlyNullable:
@@ -1902,24 +1902,24 @@ namespace Zerra.Serialization.Json
                             var value = (TimeOnly?)state.CurrentFrame.Enumerator!.Current;
                             if (value.HasValue)
                             {
-                                if (state.CurrentFrame.State == 3)
+                                if (state.WorkingStringStage == 3)
                                 {
                                     if (!writer.TryWrite('\"', out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
                                     }
-                                    state.CurrentFrame.State = 4;
+                                    state.WorkingStringStage = 4;
                                 }
 
-                                if (state.CurrentFrame.State == 4)
+                                if (state.WorkingStringStage == 4)
                                 {
                                     if (!writer.TryWrite(value.Value, TimeFormat.ISO8601, out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
                                     }
-                                    state.CurrentFrame.State = 5;
+                                    state.WorkingStringStage = 5;
                                 }
 
                                 if (!writer.TryWrite('\"', out sizeNeeded))
@@ -1936,7 +1936,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
 #endif
@@ -1945,24 +1945,24 @@ namespace Zerra.Serialization.Json
                             var value = (Guid?)state.CurrentFrame.Enumerator!.Current;
                             if (value.HasValue)
                             {
-                                if (state.CurrentFrame.State == 3)
+                                if (state.WorkingStringStage == 3)
                                 {
                                     if (!writer.TryWrite('\"', out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
                                     }
-                                    state.CurrentFrame.State = 4;
+                                    state.WorkingStringStage = 4;
                                 }
 
-                                if (state.CurrentFrame.State == 4)
+                                if (state.WorkingStringStage == 4)
                                 {
                                     if (!writer.TryWrite(value.Value, out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
                                     }
-                                    state.CurrentFrame.State = 5;
+                                    state.WorkingStringStage = 5;
                                 }
 
                                 if (!writer.TryWrite('\"', out sizeNeeded))
@@ -1979,7 +1979,7 @@ namespace Zerra.Serialization.Json
                                     return;
                                 }
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         }
 
@@ -1994,7 +1994,7 @@ namespace Zerra.Serialization.Json
             int sizeNeeded;
             var typeDetail = state.CurrentFrame.TypeDetail!.InnerTypeDetails[0];
 
-            if (state.CurrentFrame.State == 0)
+            if (state.WorkingStringStage == 0)
             {
                 if (!writer.TryWrite('[', out sizeNeeded))
                 {
@@ -2002,11 +2002,11 @@ namespace Zerra.Serialization.Json
                     return;
                 }
                 state.CurrentFrame.Enumerator = ((IEnumerable)state.CurrentFrame.Object!).GetEnumerator();
-                state.CurrentFrame.State = 1;
+                state.WorkingStringStage = 1;
             }
 
         laststate:
-            if (state.CurrentFrame.State == 100)
+            if (state.WorkingStringStage == 100)
             {
                 if (!writer.TryWrite(']', out sizeNeeded))
                 {
@@ -2020,31 +2020,31 @@ namespace Zerra.Serialization.Json
             string? str = null;
             for (; ; )
             {
-                if (state.CurrentFrame.State == 1)
+                if (state.WorkingStringStage == 1)
                 {
                     if (!state.CurrentFrame.Enumerator!.MoveNext())
                     {
-                        state.CurrentFrame.State = 100;
+                        state.WorkingStringStage = 100;
                         goto laststate;
                     }
                     if (state.CurrentFrame.EnumeratorPassedFirstProperty)
                     {
-                        state.CurrentFrame.State = 2;
+                        state.WorkingStringStage = 2;
                     }
                     else
                     {
-                        state.CurrentFrame.State = 3;
+                        state.WorkingStringStage = 3;
                         state.CurrentFrame.EnumeratorPassedFirstProperty = true;
                     }
                 }
-                if (state.CurrentFrame.State == 2)
+                if (state.WorkingStringStage == 2)
                 {
                     if (!writer.TryWrite(',', out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
                     }
-                    state.CurrentFrame.State = 3;
+                    state.WorkingStringStage = 3;
                 }
                 if (state.EnumAsNumber)
                 {
@@ -2056,7 +2056,7 @@ namespace Zerra.Serialization.Json
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         case CoreType.SByte:
                             if (!writer.TryWrite((sbyte)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
@@ -2064,7 +2064,7 @@ namespace Zerra.Serialization.Json
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         case CoreType.Int16:
                             if (!writer.TryWrite((short)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
@@ -2072,7 +2072,7 @@ namespace Zerra.Serialization.Json
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         case CoreType.UInt16:
                             if (!writer.TryWrite((ushort)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
@@ -2080,7 +2080,7 @@ namespace Zerra.Serialization.Json
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         case CoreType.Int32:
                             if (!writer.TryWrite((int)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
@@ -2088,7 +2088,7 @@ namespace Zerra.Serialization.Json
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         case CoreType.UInt32:
                             if (!writer.TryWrite((uint)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
@@ -2096,7 +2096,7 @@ namespace Zerra.Serialization.Json
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         case CoreType.Int64:
                             if (!writer.TryWrite((long)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
@@ -2104,7 +2104,7 @@ namespace Zerra.Serialization.Json
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         case CoreType.UInt64:
                             if (!writer.TryWrite((ulong)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
@@ -2112,7 +2112,7 @@ namespace Zerra.Serialization.Json
                                 state.CharsNeeded = sizeNeeded;
                                 return;
                             }
-                            state.CurrentFrame.State = 1;
+                            state.WorkingStringStage = 1;
                             break;
                         case CoreType.ByteNullable:
                             {
@@ -2133,7 +2133,7 @@ namespace Zerra.Serialization.Json
                                         return;
                                     }
                                 }
-                                state.CurrentFrame.State = 1;
+                                state.WorkingStringStage = 1;
                                 break;
                             }
                         case CoreType.SByteNullable:
@@ -2155,7 +2155,7 @@ namespace Zerra.Serialization.Json
                                         return;
                                     }
                                 }
-                                state.CurrentFrame.State = 1;
+                                state.WorkingStringStage = 1;
                                 break;
                             }
                         case CoreType.Int16Nullable:
@@ -2177,7 +2177,7 @@ namespace Zerra.Serialization.Json
                                         return;
                                     }
                                 }
-                                state.CurrentFrame.State = 1;
+                                state.WorkingStringStage = 1;
                                 break;
                             }
                         case CoreType.UInt16Nullable:
@@ -2199,7 +2199,7 @@ namespace Zerra.Serialization.Json
                                         return;
                                     }
                                 }
-                                state.CurrentFrame.State = 1;
+                                state.WorkingStringStage = 1;
                                 break;
                             }
                         case CoreType.Int32Nullable:
@@ -2221,7 +2221,7 @@ namespace Zerra.Serialization.Json
                                         return;
                                     }
                                 }
-                                state.CurrentFrame.State = 1;
+                                state.WorkingStringStage = 1;
                                 break;
                             }
                         case CoreType.UInt32Nullable:
@@ -2243,7 +2243,7 @@ namespace Zerra.Serialization.Json
                                         return;
                                     }
                                 }
-                                state.CurrentFrame.State = 1;
+                                state.WorkingStringStage = 1;
                                 break;
                             }
                         case CoreType.Int64Nullable:
@@ -2265,7 +2265,7 @@ namespace Zerra.Serialization.Json
                                         return;
                                     }
                                 }
-                                state.CurrentFrame.State = 1;
+                                state.WorkingStringStage = 1;
                                 break;
                             }
                         case CoreType.UInt64Nullable:
@@ -2287,7 +2287,7 @@ namespace Zerra.Serialization.Json
                                         return;
                                     }
                                 }
-                                state.CurrentFrame.State = 1;
+                                state.WorkingStringStage = 1;
                                 break;
                             }
                         default:
@@ -2296,38 +2296,38 @@ namespace Zerra.Serialization.Json
                 }
                 else
                 {
-                    if (state.CurrentFrame.State == 3)
+                    if (state.WorkingStringStage == 3)
                     {
                         if (typeDetail.IsNullable)
                         {
                             if (state.CurrentFrame.Enumerator!.Current == null)
                             {
-                                state.CurrentFrame.State = 7;
+                                state.WorkingStringStage = 7;
                             }
                             else
                             {
                                 str = EnumName.GetName(typeDetail.InnerTypes[0], state.CurrentFrame.Enumerator.Current);
                                 state.CurrentFrame.Object = str;
-                                state.CurrentFrame.State = 4;
+                                state.WorkingStringStage = 4;
                             }
                         }
                         else
                         {
                             str = EnumName.GetName(typeDetail.Type, state.CurrentFrame.Enumerator!.Current!);
                             state.CurrentFrame.Object = str;
-                            state.CurrentFrame.State = 4;
+                            state.WorkingStringStage = 4;
                         }
                     }
-                    if (state.CurrentFrame.State == 4)
+                    if (state.WorkingStringStage == 4)
                     {
                         if (!writer.TryWrite('\"', out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 5;
+                        state.WorkingStringStage = 5;
                     }
-                    if (state.CurrentFrame.State == 5)
+                    if (state.WorkingStringStage == 5)
                     {
                         str ??= (string?)state.CurrentFrame.Object;
                         if (!writer.TryWrite(str, out sizeNeeded))
@@ -2336,25 +2336,25 @@ namespace Zerra.Serialization.Json
                             return;
                         }
                         str = null;
-                        state.CurrentFrame.State = 6;
+                        state.WorkingStringStage = 6;
                     }
-                    if (state.CurrentFrame.State == 6)
+                    if (state.WorkingStringStage == 6)
                     {
                         if (!writer.TryWrite('\"', out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                     }
-                    if (state.CurrentFrame.State == 7)
+                    if (state.WorkingStringStage == 7)
                     {
                         if (!writer.TryWrite("null", out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                     }
                 }
             }
@@ -2365,7 +2365,7 @@ namespace Zerra.Serialization.Json
             int sizeNeeded;
             var typeDetail = state.CurrentFrame.TypeDetail!.InnerTypeDetails[0];
 
-            if (state.CurrentFrame.State == 0)
+            if (state.WorkingStringStage == 0)
             {
                 if (!writer.TryWrite('[', out sizeNeeded))
                 {
@@ -2373,11 +2373,11 @@ namespace Zerra.Serialization.Json
                     return;
                 }
                 state.CurrentFrame.Enumerator = ((IEnumerable)state.CurrentFrame.Object!).GetEnumerator();
-                state.CurrentFrame.State = 1;
+                state.WorkingStringStage = 1;
             }
 
         laststate:
-            if (state.CurrentFrame.State == 100)
+            if (state.WorkingStringStage == 100)
             {
                 if (!writer.TryWrite(']', out sizeNeeded))
                 {
@@ -2390,35 +2390,35 @@ namespace Zerra.Serialization.Json
 
             for (; ; )
             {
-                if (state.CurrentFrame.State == 1)
+                if (state.WorkingStringStage == 1)
                 {
                     if (!state.CurrentFrame.Enumerator!.MoveNext())
                     {
-                        state.CurrentFrame.State = 100;
+                        state.WorkingStringStage = 100;
                         goto laststate;
                     }
                     if (state.CurrentFrame.EnumeratorPassedFirstProperty)
                     {
-                        state.CurrentFrame.State = 2;
+                        state.WorkingStringStage = 2;
                     }
                     else
                     {
-                        state.CurrentFrame.State = 3;
+                        state.WorkingStringStage = 3;
                         state.CurrentFrame.EnumeratorPassedFirstProperty = true;
                     }
                 }
-                if (state.CurrentFrame.State == 2)
+                if (state.WorkingStringStage == 2)
                 {
                     if (!writer.TryWrite(',', out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
                     }
-                    state.CurrentFrame.State = 3;
+                    state.WorkingStringStage = 3;
                 }
-                if (state.CurrentFrame.State == 3)
+                if (state.WorkingStringStage == 3)
                 {
-                    state.CurrentFrame.State = 1;
+                    state.WorkingStringStage = 1;
                     state.PushFrame(CreateWriteFrame(ref state, typeDetail, state.CurrentFrame.Enumerator!.Current));
                     return;
                 }
@@ -2430,7 +2430,7 @@ namespace Zerra.Serialization.Json
             int sizeNeeded;
             var typeDetail = state.CurrentFrame.TypeDetail!.InnerTypeDetails[0];
 
-            if (state.CurrentFrame.State == 0)
+            if (state.WorkingStringStage == 0)
             {
                 if (!writer.TryWrite('[', out sizeNeeded))
                 {
@@ -2438,11 +2438,11 @@ namespace Zerra.Serialization.Json
                     return;
                 }
                 state.CurrentFrame.Enumerator = ((IEnumerable)state.CurrentFrame.Object!).GetEnumerator();
-                state.CurrentFrame.State = 1;
+                state.WorkingStringStage = 1;
             }
 
         laststate:
-            if (state.CurrentFrame.State == 100)
+            if (state.WorkingStringStage == 100)
             {
                 if (!writer.TryWrite(']', out sizeNeeded))
                 {
@@ -2455,11 +2455,11 @@ namespace Zerra.Serialization.Json
 
             for (; ; )
             {
-                if (state.CurrentFrame.State == 1)
+                if (state.WorkingStringStage == 1)
                 {
                     if (!state.CurrentFrame.Enumerator!.MoveNext())
                     {
-                        state.CurrentFrame.State = 100;
+                        state.WorkingStringStage = 100;
                         goto laststate;
                     }
 
@@ -2467,11 +2467,11 @@ namespace Zerra.Serialization.Json
                     {
                         if (state.CurrentFrame.EnumeratorPassedFirstProperty)
                         {
-                            state.CurrentFrame.State = 2;
+                            state.WorkingStringStage = 2;
                         }
                         else
                         {
-                            state.CurrentFrame.State = 3;
+                            state.WorkingStringStage = 3;
                             state.CurrentFrame.EnumeratorPassedFirstProperty = true;
                         }
                     }
@@ -2479,47 +2479,47 @@ namespace Zerra.Serialization.Json
                     {
                         if (state.CurrentFrame.EnumeratorPassedFirstProperty)
                         {
-                            state.CurrentFrame.State = 4;
+                            state.WorkingStringStage = 4;
                         }
                         else
                         {
-                            state.CurrentFrame.State = 5;
+                            state.WorkingStringStage = 5;
                             state.CurrentFrame.EnumeratorPassedFirstProperty = true;
                         }
                     }
                     state.CurrentFrame.MemberEnumerator = typeDetail.SerializableMemberDetails.GetEnumerator();
                 }
 
-                if (state.CurrentFrame.State == 2)
+                if (state.WorkingStringStage == 2)
                 {
                     if (!writer.TryWrite(",null", out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
                     }
-                    state.CurrentFrame.State = 1;
+                    state.WorkingStringStage = 1;
                 }
-                if (state.CurrentFrame.State == 3)
+                if (state.WorkingStringStage == 3)
                 {
                     if (!writer.TryWrite("null", out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
                     }
-                    state.CurrentFrame.State = 1;
+                    state.WorkingStringStage = 1;
                 }
 
-                if (state.CurrentFrame.State == 4)
+                if (state.WorkingStringStage == 4)
                 {
                     if (!writer.TryWrite(",", out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
                     }
-                    state.CurrentFrame.State = 5;
+                    state.WorkingStringStage = 5;
                 }
 
-                if (state.CurrentFrame.State == 5)
+                if (state.WorkingStringStage == 5)
                 {
                     if (!state.Nameless)
                     {
@@ -2528,7 +2528,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 6;
+                        state.WorkingStringStage = 6;
                     }
                     else
                     {
@@ -2537,16 +2537,16 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 6;
+                        state.WorkingStringStage = 6;
                     }
                     state.CurrentFrame.EnumeratorPassedFirstProperty2 = false;
                 }
-                if (state.CurrentFrame.State == 6)
+                if (state.WorkingStringStage == 6)
                 {
                 nextprop:
                     if (!state.CurrentFrame.MemberEnumerator!.MoveNext())
                     {
-                        state.CurrentFrame.State = 99;
+                        state.WorkingStringStage = 99;
                     }
                     else
                     {
@@ -2576,80 +2576,80 @@ namespace Zerra.Serialization.Json
                         if (state.CurrentFrame.EnumeratorPassedFirstProperty2)
                         {
                             if (state.Nameless)
-                                state.CurrentFrame.State = 20;
+                                state.WorkingStringStage = 20;
                             else
-                                state.CurrentFrame.State = 7;
+                                state.WorkingStringStage = 7;
                         }
                         else
                         {
                             if (state.Nameless)
-                                state.CurrentFrame.State = 21;
+                                state.WorkingStringStage = 21;
                             else
-                                state.CurrentFrame.State = 8;
+                                state.WorkingStringStage = 8;
                             state.CurrentFrame.EnumeratorPassedFirstProperty2 = true;
                         }
                     }
                 }
 
-                if (state.CurrentFrame.State == 7)
+                if (state.WorkingStringStage == 7)
                 {
                     if (!writer.TryWrite(',', out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
                     }
-                    state.CurrentFrame.State = 8;
+                    state.WorkingStringStage = 8;
                 }
-                if (state.CurrentFrame.State == 8)
+                if (state.WorkingStringStage == 8)
                 {
                     if (!writer.TryWrite('\"', out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
                     }
-                    state.CurrentFrame.State = 9;
+                    state.WorkingStringStage = 9;
                 }
-                if (state.CurrentFrame.State == 9)
+                if (state.WorkingStringStage == 9)
                 {
                     if (!writer.TryWrite(GetMemberName(state.CurrentFrame.MemberEnumerator!.Current), out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
                     }
-                    state.CurrentFrame.State = 10;
+                    state.WorkingStringStage = 10;
                 }
-                if (state.CurrentFrame.State == 10)
+                if (state.WorkingStringStage == 10)
                 {
                     if (!writer.TryWrite("\":", out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
                     }
-                    state.CurrentFrame.State = 21;
+                    state.WorkingStringStage = 21;
                 }
 
 
-                if (state.CurrentFrame.State == 20)
+                if (state.WorkingStringStage == 20)
                 {
                     if (!writer.TryWrite(',', out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return;
                     }
-                    state.CurrentFrame.State = 21;
+                    state.WorkingStringStage = 21;
                 }
-                if (state.CurrentFrame.State == 21)
+                if (state.WorkingStringStage == 21)
                 {
                     var graph = state.CurrentFrame.Graph;
                     var member = state.CurrentFrame.MemberEnumerator!.Current;
 
                     var childGraph = graph?.GetChildGraph(member.Name);
-                    state.CurrentFrame.State = 6;
+                    state.WorkingStringStage = 6;
                     state.PushFrame(CreateWriteFrame(ref state, member.TypeDetail, state.CurrentFrame.ObjectPropertyValue, childGraph));
                     return;
                 }
 
-                if (state.CurrentFrame.State == 99)
+                if (state.WorkingStringStage == 99)
                 {
                     if (!state.Nameless)
                     {
@@ -2658,7 +2658,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                     }
                     else
                     {
@@ -2667,7 +2667,7 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return;
                         }
-                        state.CurrentFrame.State = 1;
+                        state.WorkingStringStage = 1;
                     }
                 }
             }
@@ -2688,17 +2688,17 @@ namespace Zerra.Serialization.Json
                 return true;
             }
 
-            if (state.WorkingStringState == 0)
+            if (state.WorkingStringStage == 0)
             {
                 if (!writer.TryWrite('\"', out sizeNeeded))
                 {
                     state.CharsNeeded = sizeNeeded;
                     return false;
                 }
-                state.WorkingStringState = 1;
+                state.WorkingStringStage = 1;
             }
 
-            if (state.WorkingStringState == 1)
+            if (state.WorkingStringStage == 1)
             {
                 if (value.Length == 0)
                 {
@@ -2707,11 +2707,11 @@ namespace Zerra.Serialization.Json
                         state.CharsNeeded = sizeNeeded;
                         return false;
                     }
-                    state.WorkingStringState = 0;
+                    state.WorkingStringStage = 0;
                     return true;
                 }
                 state.WorkingString = value.AsMemory();
-                state.WorkingStringState = 2;
+                state.WorkingStringStage = 2;
             }
 
             var chars = state.WorkingString.Span;
@@ -2746,7 +2746,7 @@ namespace Zerra.Serialization.Json
                         if (c >= ' ')
                             continue;
 
-                        if (state.WorkingStringState == 2)
+                        if (state.WorkingStringStage == 2)
                         {
                             var slice = chars.Slice(state.WorkingStringStart, state.WorkingStringIndex - state.WorkingStringStart);
                             if (!writer.TryWrite(slice, out sizeNeeded))
@@ -2754,7 +2754,7 @@ namespace Zerra.Serialization.Json
                                 state.CharsNeeded = sizeNeeded;
                                 return false;
                             }
-                            state.WorkingStringState = 3;
+                            state.WorkingStringStage = 3;
                         }
 
                         var code = lowUnicodeIntToEncodedHex[c];
@@ -2763,12 +2763,12 @@ namespace Zerra.Serialization.Json
                             state.CharsNeeded = sizeNeeded;
                             return false;
                         }
-                        state.WorkingStringState = 2;
+                        state.WorkingStringStage = 2;
                         state.WorkingStringStart = state.WorkingStringIndex + 1;
                         continue;
                 }
 
-                if (state.WorkingStringState == 2)
+                if (state.WorkingStringStage == 2)
                 {
                     var slice = chars.Slice(state.WorkingStringStart, state.WorkingStringIndex - state.WorkingStringStart);
                     if (!writer.TryWrite(slice, out sizeNeeded))
@@ -2776,27 +2776,27 @@ namespace Zerra.Serialization.Json
                         state.CharsNeeded = sizeNeeded;
                         return false;
                     }
-                    state.WorkingStringState = 3;
+                    state.WorkingStringStage = 3;
                 }
-                if (state.WorkingStringState == 3)
+                if (state.WorkingStringStage == 3)
                 {
                     if (!writer.TryWrite('\\', out sizeNeeded))
                     {
                         state.CharsNeeded = sizeNeeded;
                         return false;
                     }
-                    state.WorkingStringState = 4;
+                    state.WorkingStringStage = 4;
                 }
                 if (!writer.TryWrite(escapedChar, out sizeNeeded))
                 {
                     state.CharsNeeded = sizeNeeded;
                     return false;
                 }
-                state.WorkingStringState = 2;
+                state.WorkingStringStage = 2;
                 state.WorkingStringStart = state.WorkingStringIndex + 1;
             }
 
-            if (state.WorkingStringState == 2)
+            if (state.WorkingStringStage == 2)
             {
                 if (chars.Length < state.WorkingStringStart)
                 {
@@ -2812,7 +2812,7 @@ namespace Zerra.Serialization.Json
                         return false;
                     }
                 }
-                state.WorkingStringState = 3;
+                state.WorkingStringStage = 3;
             }
 
             if (!writer.TryWrite('\"', out sizeNeeded))
@@ -2821,7 +2821,7 @@ namespace Zerra.Serialization.Json
                 return false;
             }
 
-            state.WorkingStringState = 0;
+            state.WorkingStringStage = 0;
             state.WorkingStringIndex = 0;
             state.WorkingStringStart = 0;
             state.WorkingString = null;
@@ -2832,7 +2832,7 @@ namespace Zerra.Serialization.Json
         {
             int sizeNeeded;
 
-            if (state.CurrentFrame.State == initialFrameState + 0)
+            if (state.WorkingStringStage == 0)
             {
                 switch (c)
                 {
@@ -2895,21 +2895,21 @@ namespace Zerra.Serialization.Json
                 }
 
                 if (c < ' ')
-                    state.CurrentFrame.State = (byte)(initialFrameState + 1);
+                    state.WorkingStringStage = 1;
                 else
-                    state.CurrentFrame.State = (byte)(initialFrameState + 3);
+                    state.WorkingStringStage = 3;
             }
 
-            if (state.CurrentFrame.State == initialFrameState + 1)
+            if (state.WorkingStringStage == 1)
             {
                 if (!writer.TryWrite('\"', out sizeNeeded))
                 {
                     state.CharsNeeded = sizeNeeded;
                     return false;
                 }
-                state.CurrentFrame.State = (byte)(initialFrameState + 2);
+                state.WorkingStringStage = 2;
             }
-            if (state.CurrentFrame.State == initialFrameState + 2)
+            if (state.WorkingStringStage == 2)
             {
                 var code = lowUnicodeIntToEncodedHex[c];
                 if (!writer.TryWrite(code, out sizeNeeded))
@@ -2917,28 +2917,28 @@ namespace Zerra.Serialization.Json
                     state.CharsNeeded = sizeNeeded;
                     return false;
                 }
-                state.CurrentFrame.State = (byte)(initialFrameState + 10);
+                state.WorkingStringStage = 10;
             }
 
-            if (state.CurrentFrame.State == initialFrameState + 3)
+            if (state.WorkingStringStage == 3)
             {
                 if (!writer.TryWrite('\"', out sizeNeeded))
                 {
                     state.CharsNeeded = sizeNeeded;
                     return false;
                 }
-                state.CurrentFrame.State = (byte)(initialFrameState + 4);
+                state.WorkingStringStage = 4;
             }
-            if (state.CurrentFrame.State == initialFrameState + 4)
+            if (state.WorkingStringStage == 4)
             {
                 if (!writer.TryWrite(c, out sizeNeeded))
                 {
                     state.CharsNeeded = sizeNeeded;
                     return false;
                 }
-                state.CurrentFrame.State = (byte)(initialFrameState + 10);
+                state.WorkingStringStage = 10;
             }
-            //if (state.CurrentFrame.State == initialFrameState + 5)
+            //if (state.WorkingStringState == 5)
             {
                 if (!writer.TryWrite('\"', out sizeNeeded))
                 {

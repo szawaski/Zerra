@@ -661,5 +661,298 @@ namespace Zerra.Serialization.Json.Converters
                 state.ReadStringEscapeUnicode = false;
             }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool WriteString(ref CharWriter writer, ref WriteState state, string? value)
+        {
+            int sizeNeeded;
+
+            if (value == null)
+            {
+                if (!writer.TryWrite("null", out sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return false;
+                }
+                return true;
+            }
+
+            if (state.WorkingStringState == 0)
+            {
+                if (!writer.TryWrite('\"', out sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return false;
+                }
+                state.WorkingStringState = 1;
+            }
+
+            if (state.WorkingStringState == 1)
+            {
+                if (value.Length == 0)
+                {
+                    if (!writer.TryWrite('\"', out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return false;
+                    }
+                    state.WorkingStringState = 0;
+                    return true;
+                }
+                state.WorkingString = value.AsMemory();
+                state.WorkingStringState = 2;
+            }
+
+            var chars = state.WorkingString.Span;
+            for (; state.WorkingStringIndex < chars.Length; state.WorkingStringIndex++)
+            {
+                var c = chars[state.WorkingStringIndex];
+                char escapedChar;
+                switch (c)
+                {
+                    case '"':
+                        escapedChar = '"';
+                        break;
+                    case '\\':
+                        escapedChar = '\\';
+                        break;
+                    case '\b':
+                        escapedChar = 'b';
+                        break;
+                    case '\f':
+                        escapedChar = 'f';
+                        break;
+                    case '\n':
+                        escapedChar = 'n';
+                        break;
+                    case '\r':
+                        escapedChar = 'r';
+                        break;
+                    case '\t':
+                        escapedChar = 't';
+                        break;
+                    default:
+                        if (c >= ' ')
+                            continue;
+
+                        if (state.WorkingStringState == 2)
+                        {
+                            var slice = chars.Slice(state.WorkingStringStart, state.WorkingStringIndex - state.WorkingStringStart);
+                            if (!writer.TryWrite(slice, out sizeNeeded))
+                            {
+                                state.CharsNeeded = sizeNeeded;
+                                return false;
+                            }
+                            state.WorkingStringState = 3;
+                        }
+
+                        var code = lowUnicodeIntToEncodedHex[c];
+                        if (!writer.TryWrite(code, out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        state.WorkingStringState = 2;
+                        state.WorkingStringStart = state.WorkingStringIndex + 1;
+                        continue;
+                }
+
+                if (state.WorkingStringState == 2)
+                {
+                    var slice = chars.Slice(state.WorkingStringStart, state.WorkingStringIndex - state.WorkingStringStart);
+                    if (!writer.TryWrite(slice, out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return false;
+                    }
+                    state.WorkingStringState = 3;
+                }
+                if (state.WorkingStringState == 3)
+                {
+                    if (!writer.TryWrite('\\', out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return false;
+                    }
+                    state.WorkingStringState = 4;
+                }
+                if (!writer.TryWrite(escapedChar, out sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return false;
+                }
+                state.WorkingStringState = 2;
+                state.WorkingStringStart = state.WorkingStringIndex + 1;
+            }
+
+            if (state.WorkingStringState == 2)
+            {
+                if (chars.Length < state.WorkingStringStart)
+                {
+                    state.CharsNeeded = state.WorkingStringStart;
+                    return false;
+                }
+                else if (chars.Length > state.WorkingStringStart)
+                {
+                    var slice = chars.Slice(state.WorkingStringStart, chars.Length - state.WorkingStringStart);
+                    if (!writer.TryWrite(slice, out sizeNeeded))
+                    {
+                        state.CharsNeeded = sizeNeeded;
+                        return false;
+                    }
+                }
+                state.WorkingStringState = 3;
+            }
+
+            if (!writer.TryWrite('\"', out sizeNeeded))
+            {
+                state.CharsNeeded = sizeNeeded;
+                return false;
+            }
+
+            state.WorkingStringState = 0;
+            state.WorkingStringIndex = 0;
+            state.WorkingStringStart = 0;
+            state.WorkingString = null;
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool WriteChar(ref CharWriter writer, ref WriteState state, char? value)
+        {
+            int sizeNeeded;
+
+            if (value == null)
+            {
+                if (!writer.TryWrite("null", out sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return false;
+                }
+                return true;
+            }
+
+            if (state.WorkingStringState == 0)
+            {
+                switch (value.Value)
+                {
+                    case '\\':
+                        if (!writer.TryWrite("\"\\\\\"", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        state.WorkingStringState = 0;
+                        return true;
+                    case '"':
+                        if (!writer.TryWrite("\"\\\"\"", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        state.WorkingStringState = 0;
+                        return true;
+                    case '/':
+                        if (!writer.TryWrite("\"\\/\"", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        state.WorkingStringState = 0;
+                        return true;
+                    case '\b':
+                        if (!writer.TryWrite("\"\\b\"", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        state.WorkingStringState = 0;
+                        return true;
+                    case '\t':
+                        if (!writer.TryWrite("\"\\t\"", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        state.WorkingStringState = 0;
+                        return true;
+                    case '\n':
+                        if (!writer.TryWrite("\"\\n\"", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        state.WorkingStringState = 0;
+                        return true;
+                    case '\f':
+                        if (!writer.TryWrite("\"\\f\"", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        state.WorkingStringState = 0;
+                        return true;
+                    case '\r':
+                        if (!writer.TryWrite("\"\\r\"", out sizeNeeded))
+                        {
+                            state.CharsNeeded = sizeNeeded;
+                            return false;
+                        }
+                        state.WorkingStringState = 0;
+                        return true;
+                }
+
+                if (value < ' ')
+                    state.WorkingStringState = 1;
+                else
+                    state.WorkingStringState = 3;
+            }
+
+            if (state.WorkingStringState == 1)
+            {
+                if (!writer.TryWrite('\"', out sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return false;
+                }
+                state.WorkingStringState = 2;
+            }
+            if (state.WorkingStringState == 2)
+            {
+                var code = lowUnicodeIntToEncodedHex[value.Value];
+                if (!writer.TryWrite(code, out sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return false;
+                }
+                state.WorkingStringState = 3;
+            }
+
+            if (state.WorkingStringState == 3)
+            {
+                if (!writer.TryWrite('\"', out sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return false;
+                }
+                state.WorkingStringState = 4;
+            }
+            if (state.WorkingStringState == 4)
+            {
+                if (!writer.TryWrite(value.Value, out sizeNeeded))
+                {
+                    state.CharsNeeded = sizeNeeded;
+                    return false;
+                }
+                state.WorkingStringState = 10;
+            }
+
+            if (!writer.TryWrite('\"', out sizeNeeded))
+            {
+                state.CharsNeeded = sizeNeeded;
+                return false;
+            }
+
+            state.WorkingStringState = 0;
+            return true;
+        }
     }
 }

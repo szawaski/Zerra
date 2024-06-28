@@ -38,7 +38,7 @@ namespace Zerra.Serialization.Json
 
             public int CharsNeeded;
 
-            public byte WorkingStringState;
+            public byte WorkingStringStage;
             public ReadOnlyMemory<char> WorkingString;
             public int WorkingStringIndex;
             public int WorkingStringStart;

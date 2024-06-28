@@ -24,6 +24,11 @@ namespace Zerra.Serialization.Json.State
         public bool DoNotWriteNullProperties { get; set; }
         public bool EnumAsNumber { get; set; }
 
+        public byte WorkingStringState;
+        public ReadOnlyMemory<char> WorkingString;
+        public int WorkingStringIndex;
+        public int WorkingStringStart;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureStackSize()
         {
