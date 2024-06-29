@@ -8,6 +8,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using Zerra.Collections;
 using Zerra.Reflection;
+using Zerra.Serialization.Json.Converters.Collections;
 using Zerra.Serialization.Json.Converters.General;
 
 namespace Zerra.Serialization.Json.Converters
@@ -115,19 +116,19 @@ namespace Zerra.Serialization.Json.Converters
                 }
             }
 
-            ////Array
-            //if (typeDetail.Type.IsArray)
-            //{
-            //    var converter = typeof(JsonConverterArrayT<,>).GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]).CreatorBoxed();
-            //    return (JsonConverter<TParent>)converter;
-            //}
+            //Array
+            if (typeDetail.Type.IsArray)
+            {
+                var converter = typeof(JsonConverterArrayT<,>).GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]).CreatorBoxed();
+                return (JsonConverter<TParent>)converter;
+            }
 
-            ////Enum
-            //if (typeDetail.Type.IsEnum || typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
-            //{
-            //    var converter = typeof(JsonConverterEnum<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
-            //    return (JsonConverter<TParent>)converter;
-            //}
+            //Enum
+            if (typeDetail.Type.IsEnum || typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
+            {
+                var converter = typeof(JsonConverterEnum<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
+                return (JsonConverter<TParent>)converter;
+            }
 
             ////IList<T> of type - specific types that inherit this
             //if (typeDetail.HasIListGeneric)

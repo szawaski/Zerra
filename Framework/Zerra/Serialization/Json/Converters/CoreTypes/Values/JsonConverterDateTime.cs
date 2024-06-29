@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Globalization;
 using Zerra.IO;
 using Zerra.Serialization.Json.State;
 
@@ -30,7 +31,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                         value = default;
                         return false;
                     }
-                    if (!DateTime.TryParse(str, out value) && state.ErrorOnTypeMismatch)
+                    if (!DateTime.TryParse(str, null, DateTimeStyles.RoundtripKind, out value) && state.ErrorOnTypeMismatch)
                         throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
                     return true;
                 case JsonValueType.Number:
@@ -49,7 +50,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     value = default;
                     return true;
                 case JsonValueType.True_Completed:
-                         if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnTypeMismatch)
                         throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
                     value = default;
                     return true;

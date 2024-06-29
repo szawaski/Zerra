@@ -137,7 +137,10 @@ namespace Zerra.Serialization.Json.Converters.General
                         if (!reader.TryReadSkipWhiteSpace(out c))
                         {
                             state.CharsNeeded = 1;
-                            value = default;
+                            if (collectValues)
+                                state.Current.Object = collectedValues;
+                            else
+                                state.Current.Object = value;
                             return false;
                         }
                     }
@@ -155,6 +158,10 @@ namespace Zerra.Serialization.Json.Converters.General
                     if (!ReadString(ref reader, ref state, out var name))
                     {
                         state.Current.WorkingFirstChar = c;
+                        if (collectValues)
+                            state.Current.Object = collectedValues;
+                        else
+                            state.Current.Object = value;
                         return false;
                     }
                     state.Current.WorkingFirstChar = null;
@@ -174,8 +181,12 @@ namespace Zerra.Serialization.Json.Converters.General
                 {
                     if (!reader.TryReadSkipWhiteSpace(out c))
                     {
-                        state.Current.HasReadProperty = true;
                         state.CharsNeeded = 1;
+                        state.Current.HasReadProperty = true;
+                        if (collectValues)
+                            state.Current.Object = collectedValues;
+                        else
+                            state.Current.Object = value;
                         return false;
                     }
                     if (c != ':')
@@ -192,8 +203,14 @@ namespace Zerra.Serialization.Json.Converters.General
                             state.Current.HasReadProperty = true;
                             state.Current.HasReadSeperator = true;
                             state.Current.Property = property;
+                            if (collectValues)
+                                state.Current.Object = collectedValues;
+                            else
+                                state.Current.Object = value;
+                            state.StashFrame();
                             return false;
                         }
+                        state.EndFrame();
                     }
                     else
                     {
@@ -205,6 +222,10 @@ namespace Zerra.Serialization.Json.Converters.General
                                 state.Current.HasReadProperty = true;
                                 state.Current.HasReadSeperator = true;
                                 state.Current.Property = property;
+                                if (collectValues)
+                                    state.Current.Object = collectedValues;
+                                else
+                                    state.Current.Object = value;
                                 return false;
                             }
                         }
@@ -216,6 +237,10 @@ namespace Zerra.Serialization.Json.Converters.General
                                 state.Current.HasReadProperty = true;
                                 state.Current.HasReadSeperator = true;
                                 state.Current.Property = property;
+                                if (collectValues)
+                                    state.Current.Object = collectedValues;
+                                else
+                                    state.Current.Object = value;
                                 return false;
                             }
                         }
@@ -228,6 +253,10 @@ namespace Zerra.Serialization.Json.Converters.General
                     state.Current.HasReadProperty = true;
                     state.Current.HasReadSeperator = true;
                     state.Current.HasReadValue = true;
+                    if (collectValues)
+                        state.Current.Object = collectedValues;
+                    else
+                        state.Current.Object = value;
                     return false;
                 }
 

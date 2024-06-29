@@ -125,7 +125,6 @@ namespace Zerra.Serialization.Json.Converters.Collections
                 }
             }
 
-
             for (; ; )
             {
                 if (!state.Current.HasReadValue)

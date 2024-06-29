@@ -16,7 +16,7 @@ namespace Zerra.Serialization.Json.Converters
     public abstract partial class JsonConverter
     {
         //The max converter stack before we unwind
-        protected const int maxStackDepth = 32;
+        protected const int maxStackDepth = 31;
 
         public abstract void Setup(TypeDetail typeDetail, string? memberKey, Delegate? getterDelegate, Delegate? setterDelegate);
 
@@ -182,8 +182,10 @@ namespace Zerra.Serialization.Json.Converters
                     {
                         state.Current.HasReadProperty = true;
                         state.Current.HasReadSeperator = true;
+                        state.StashFrame();
                         return false;
                     }
+                    state.EndFrame();
                 }
 
                 if (!reader.TryReadSkipWhiteSpace(out c))
@@ -211,55 +213,56 @@ namespace Zerra.Serialization.Json.Converters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool DrainArray(ref CharReader reader, ref ReadState state)
         {
+            char c;
             for (; ; )
             {
-                switch (state.Current.State)
+                if (!state.Current.HasReadValue)
                 {
-                    case 0: //array value or end
-                        if (!reader.TryReadSkipWhiteSpace(out var c))
-                        {
-                            state.CharsNeeded = 1;
-                            return false;
-                        }
-
-                        if (c == ']')
-                        {
-                            state.EndFrame();
-                            return true;
-                        }
-
-                        reader.BackOne();
-
-                        state.Current.State = 1;
-                        goto case 1;
-
-                    case 1: //array value
-                        state.PushFrame();
-                        if (!Drain(ref reader, ref state))
-                            return false;
-
-                        state.Current.State = 2;
-                        goto case 2;
-
-                    case 2: //next array value or end
+                    if (!state.Current.WorkingFirstChar.HasValue)
+                    {
                         if (!reader.TryReadSkipWhiteSpace(out c))
                         {
                             state.CharsNeeded = 1;
+                            state.Current.HasReadFirstArrayElement = true;
                             return false;
                         }
-                        switch (c)
-                        {
-                            case ',':
-                                state.Current.State = 1;
-                                break;
-                            case ']':
-                                state.EndFrame();
-                                return true;
-                            default:
-                                throw reader.CreateException("Unexpected character");
-                        }
-                        break;
+                    }
+                    else
+                    {
+                        c = state.Current.WorkingFirstChar.Value;
+                    }
+
+                    if (c == ']')
+                    {
+                        return true;
+                    }
+
+                    reader.BackOne();
+
+                    state.PushFrame();
+                    if (!Drain(ref reader, ref state))
+                    {
+                        state.StashFrame();
+                        return false;
+                    }
+                    state.EndFrame();
+                    state.Current.WorkingFirstChar = null;
                 }
+
+                if (!reader.TryReadSkipWhiteSpace(out c))
+                {
+                    state.CharsNeeded = 1;
+                    state.Current.HasReadValue = true;
+                    return false;
+                }
+
+                if (c == ']')
+                    return true;
+
+                if (c != ',')
+                    throw reader.CreateException("Unexpected character");
+
+                state.Current.HasReadValue = false;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

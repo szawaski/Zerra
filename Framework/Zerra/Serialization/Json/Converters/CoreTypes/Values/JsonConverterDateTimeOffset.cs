@@ -9,9 +9,9 @@ using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
-    internal sealed class JsonConverterDateTimeNullable<TParent> : JsonConverter<TParent, DateTime?>
+    internal sealed class JsonConverterDateTimeOffset<TParent> : JsonConverter<TParent, DateTimeOffset>
     {
-        protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out DateTime? value)
+        protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out DateTimeOffset value)
         {
             switch (state.Current.ValueType)
             {
@@ -31,16 +31,8 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                         value = default;
                         return false;
                     }
-                    if (DateTime.TryParse(str, null, DateTimeStyles.RoundtripKind, out var parsed))
-                    {
-                        value = parsed;
-                    }
-                    else
-                    {
-                        if (state.ErrorOnTypeMismatch)
-                            throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                        value = default;
-                    }
+                    if (!DateTimeOffset.TryParse(str, null, DateTimeStyles.RoundtripKind, out value) && state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
                     return true;
                 case JsonValueType.Number:
                     if (state.ErrorOnTypeMismatch)
@@ -48,7 +40,9 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     value = default;
                     return DrainNumber(ref reader, ref state);
                 case JsonValueType.Null_Completed:
-                    value = null;
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                    value = default;
                     return true;
                 case JsonValueType.False_Completed:
                     if (state.ErrorOnTypeMismatch)
@@ -65,7 +59,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
             }
         }
 
-        protected override sealed bool TryWriteValue(ref CharWriter writer, ref WriteState state, DateTime? value)
-            => value is null ? writer.TryWrite("null", out state.CharsNeeded) : writer.TryWrite(value.Value, DateTimeFormat.ISO8601, out state.CharsNeeded);
+        protected override sealed bool TryWriteValue(ref CharWriter writer, ref WriteState state, DateTimeOffset value)
+            => writer.TryWrite(value, DateTimeFormat.ISO8601, out state.CharsNeeded);
     }
 }
