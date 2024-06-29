@@ -4,14 +4,14 @@
 
 using System;
 using Zerra.Reflection;
-using Zerra.IO;
+using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.General
 {
     internal sealed class JsonConverterEnum<TParent, TValue> : JsonConverter<TParent, TValue>
     {
-        protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out TValue? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out TValue? value)
         {
             if (!typeDetail.EnumUnderlyingType.HasValue)
                 throw new InvalidOperationException($"{nameof(JsonConverterEnum<TParent, TValue>)} can only handle enum types.");
@@ -82,7 +82,7 @@ namespace Zerra.Serialization.Json.Converters.General
             }
         }
 
-        protected override sealed bool TryWriteValue(ref CharWriter writer, ref WriteState state, TValue? value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TValue? value)
         {
             if (value == null)
             {

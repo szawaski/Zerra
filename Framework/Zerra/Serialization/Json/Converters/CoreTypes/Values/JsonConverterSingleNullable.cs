@@ -3,14 +3,14 @@
 // Licensed to you under the MIT license
 
 using System;
-using Zerra.IO;
+using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
     internal sealed class JsonConverterSingleNullable<TParent> : JsonConverter<TParent, float?>
     {
-        protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out float? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out float? value)
         {
             switch (state.Current.ValueType)
             {
@@ -47,7 +47,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
             }
         }
 
-        protected override sealed bool TryWriteValue(ref CharWriter writer, ref WriteState state, float? value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, float? value)
             => value is null ? writer.TryWrite("null", out state.CharsNeeded) : writer.TryWrite(value.Value, out state.CharsNeeded);
     }
 }

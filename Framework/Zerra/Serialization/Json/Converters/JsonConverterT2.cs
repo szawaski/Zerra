@@ -5,8 +5,9 @@
 using System;
 using Zerra.Reflection;
 using System.Runtime.CompilerServices;
-using Zerra.Serialization.Json.State;
 using Zerra.IO;
+using Zerra.Serialization.Json.State;
+using Zerra.Serialization.Json.IO;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Zerra.Serialization.Json.Converters
@@ -43,7 +44,7 @@ namespace Zerra.Serialization.Json.Converters
 
         protected virtual void Setup() { }
 
-        public override sealed bool TryReadBoxed(ref CharReader reader, ref ReadState state, out object? returnValue)
+        public override sealed bool TryReadBoxed(ref JsonReader reader, ref ReadState state, out object? returnValue)
         {
             if (isInterfacedObject)
             {
@@ -82,7 +83,7 @@ namespace Zerra.Serialization.Json.Converters
             returnValue = value;
             return true;
         }
-        public override sealed bool TryWriteBoxed(ref CharWriter writer, ref WriteState state, object? value)
+        public override sealed bool TryWriteBoxed(ref JsonWriter writer, ref WriteState state, object? value)
         {
             if (isInterfacedObject)
             {
@@ -110,7 +111,7 @@ namespace Zerra.Serialization.Json.Converters
             return true;
         }
 
-        public bool TryRead(ref CharReader reader, ref ReadState state, out TValue? returnValue)
+        public bool TryRead(ref JsonReader reader, ref ReadState state, out TValue? returnValue)
         {
             if (isInterfacedObject)
             {
@@ -149,7 +150,7 @@ namespace Zerra.Serialization.Json.Converters
             returnValue = value;
             return true;
         }
-        public bool TryWrite(ref CharWriter writer, ref WriteState state, TValue? value)
+        public bool TryWrite(ref JsonWriter writer, ref WriteState state, TValue? value)
         {
             if (isInterfacedObject)
             {
@@ -177,7 +178,7 @@ namespace Zerra.Serialization.Json.Converters
             return true;
         }
 
-        public override sealed bool TryReadFromParent(ref CharReader reader, ref ReadState state, TParent? parent)
+        public override sealed bool TryReadFromParent(ref JsonReader reader, ref ReadState state, TParent? parent)
         {
             if (state.StackSize > maxStackDepth)
                 throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
@@ -218,7 +219,7 @@ namespace Zerra.Serialization.Json.Converters
             state.EndFrame();
             return true;
         }
-        public override sealed bool TryWriteFromParent(ref CharWriter writer, ref WriteState state, TParent parent)
+        public override sealed bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, TParent parent)
         {
             if (state.StackSize > maxStackDepth)
                 throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
@@ -257,7 +258,7 @@ namespace Zerra.Serialization.Json.Converters
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed bool TryReadValueBoxed(ref CharReader reader, ref ReadState state, out object? value)
+        public override sealed bool TryReadValueBoxed(ref JsonReader reader, ref ReadState state, out object? value)
         {
             if (!ReadValueType(ref reader, ref state))
             {
@@ -270,13 +271,13 @@ namespace Zerra.Serialization.Json.Converters
             return read;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed bool TryWriteValueBoxed(ref CharWriter writer, ref WriteState state, object? value)
+        public override sealed bool TryWriteValueBoxed(ref JsonWriter writer, ref WriteState state, object? value)
             => TryWriteValue(ref writer, ref state, (TValue?)value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected abstract bool TryReadValue(ref CharReader reader, ref ReadState state, out TValue? value);
+        protected abstract bool TryReadValue(ref JsonReader reader, ref ReadState state, out TValue? value);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected abstract bool TryWriteValue(ref CharWriter writer, ref WriteState state, TValue? value);
+        protected abstract bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TValue? value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void CollectedValuesSetter(TParent? parent, object? value)
@@ -286,7 +287,7 @@ namespace Zerra.Serialization.Json.Converters
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected bool ReadNumberAsString(ref CharReader reader, ref ReadState state,
+        protected bool ReadNumberAsString(ref JsonReader reader, ref ReadState state,
 #if !NETSTANDARD2_0
            [MaybeNullWhen(false)]
 #endif
@@ -659,7 +660,7 @@ namespace Zerra.Serialization.Json.Converters
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected bool ReadNumberAsInt64(ref CharReader reader, ref ReadState state, out long value)
+        protected bool ReadNumberAsInt64(ref JsonReader reader, ref ReadState state, out long value)
         {
             double workingNumber;
             char c;
@@ -1035,7 +1036,7 @@ namespace Zerra.Serialization.Json.Converters
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected bool ReadNumberAsUInt64(ref CharReader reader, ref ReadState state, out ulong value)
+        protected bool ReadNumberAsUInt64(ref JsonReader reader, ref ReadState state, out ulong value)
         {
             double workingNumber;
             char c;
@@ -1388,7 +1389,7 @@ namespace Zerra.Serialization.Json.Converters
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected bool ReadNumberAsDouble(ref CharReader reader, ref ReadState state, out double value)
+        protected bool ReadNumberAsDouble(ref JsonReader reader, ref ReadState state, out double value)
         {
             double workingNumber;
             char c;
@@ -1768,7 +1769,7 @@ namespace Zerra.Serialization.Json.Converters
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected bool ReadNumberAsDecimal(ref CharReader reader, ref ReadState state, out decimal value)
+        protected bool ReadNumberAsDecimal(ref JsonReader reader, ref ReadState state, out decimal value)
         {
             decimal workingNumber;
             char c;

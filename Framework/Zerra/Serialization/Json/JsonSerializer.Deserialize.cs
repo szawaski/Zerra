@@ -6,9 +6,10 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Zerra.IO;
 using Zerra.Serialization.Json.Converters;
 using Zerra.Serialization.Json.State;
-using Zerra.IO;
+using Zerra.Serialization.Json.IO;
 using Zerra.Reflection;
 
 namespace Zerra.Serialization.Json
@@ -472,7 +473,7 @@ namespace Zerra.Serialization.Json
                 Span<char> chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
                 var length = encoding.GetChars(buffer, chars);
 
-                var reader = new CharReader(chars);
+                var reader = new JsonReader(chars);
                 var read = converter.TryRead(ref reader, ref state, out result);
                 if (read)
                     state.CharsNeeded = 0;
@@ -484,7 +485,7 @@ namespace Zerra.Serialization.Json
 #else
                 var chars = new char[buffer.Length];
                 var length = encoding.GetChars(buffer.ToArray(), 0, buffer.Length, chars, 0);
-                var reader = new CharReader(chars);
+                var reader = new JsonReader(chars);
                 var read = converter.TryRead(ref reader, ref state, out result);
                 if (read)
                     state.CharsNeeded = 0;
@@ -511,7 +512,7 @@ namespace Zerra.Serialization.Json
                 Span<char> chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
                 var length = encoding.GetChars(buffer, chars);
 
-                var reader = new CharReader(chars);
+                var reader = new JsonReader(chars);
                 var read = converter.TryReadBoxed(ref reader, ref state, out result);
                 if (read)
                     state.CharsNeeded = 0;
@@ -523,7 +524,7 @@ namespace Zerra.Serialization.Json
 #else
                 var chars = new char[buffer.Length];
                 var length = encoding.GetChars(buffer.ToArray(), 0, buffer.Length, chars, 0);
-                var reader = new CharReader(chars);
+                var reader = new JsonReader(chars);
                 var read = converter.TryReadBoxed(ref reader, ref state, out result);
                 if (read)
                     state.CharsNeeded = 0;
@@ -544,7 +545,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Read<T>(JsonConverter<object, T> converter, ReadOnlySpan<char> buffer, ref ReadState state, out T? result)
         {
-            var reader = new CharReader(buffer);
+            var reader = new JsonReader(buffer);
             var read = converter.TryRead(ref reader, ref state, out result);
             if (read)
                 state.CharsNeeded = 0;
@@ -553,7 +554,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int ReadBoxed(JsonConverter converter, ReadOnlySpan<char> buffer, ref ReadState state, out object? result)
         {
-            var reader = new CharReader(buffer);
+            var reader = new JsonReader(buffer);
             var read = converter.TryReadBoxed(ref reader, ref state, out result);
             if (read)
                 state.CharsNeeded = 0;

@@ -4,7 +4,7 @@
 
 using System;
 using Zerra.Reflection;
-using Zerra.IO;
+using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 using System.Collections.Generic;
 
@@ -25,7 +25,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
             writeConverter = JsonConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, null, Getter, null);
         }
 
-        protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out TValue[]? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out TValue[]? value)
         {
             if (state.Current.ValueType == JsonValueType.Null_Completed)
             {
@@ -185,7 +185,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref CharWriter writer, ref WriteState state, TValue[]? value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TValue[]? value)
         {
             throw new NotImplementedException();
         }

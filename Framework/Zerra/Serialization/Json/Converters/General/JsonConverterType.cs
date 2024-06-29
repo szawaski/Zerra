@@ -4,14 +4,14 @@
 
 using System;
 using Zerra.Reflection;
-using Zerra.IO;
+using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.General
 {
     internal sealed class JsonConverterType<TParent> : JsonConverter<TParent, Type?>
     {
-        protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out Type? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out Type? value)
         {
             switch (state.Current.ValueType)
             {
@@ -58,7 +58,7 @@ namespace Zerra.Serialization.Json.Converters.General
             }
         }
 
-        protected override sealed bool TryWriteValue(ref CharWriter writer, ref WriteState state, Type? value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, Type? value)
             => value == null ? writer.TryWrite("null", out state.CharsNeeded) : writer.TryWrite(value.FullName, out state.CharsNeeded);
     }
 }

@@ -3,14 +3,14 @@
 // Licensed to you under the MIT license
 
 using System;
-using Zerra.IO;
+using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
     internal sealed class JsonConverterUInt64<TParent> : JsonConverter<TParent, ulong>
     {
-        protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out ulong value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out ulong value)
         {
             switch (state.Current.ValueType)
             {
@@ -49,7 +49,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
             }
         }
 
-        protected override sealed bool TryWriteValue(ref CharWriter writer, ref WriteState state, ulong value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, ulong value)
             => writer.TryWrite(value, out state.CharsNeeded);
     }
 }

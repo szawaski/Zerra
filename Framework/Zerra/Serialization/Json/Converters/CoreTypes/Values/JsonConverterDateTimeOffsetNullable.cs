@@ -4,14 +4,14 @@
 
 using System;
 using System.Globalization;
-using Zerra.IO;
+using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
     internal sealed class JsonConverterDateTimeOffsetNullable<TParent> : JsonConverter<TParent, DateTimeOffset?>
     {
-        protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out DateTimeOffset? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out DateTimeOffset? value)
         {
             switch (state.Current.ValueType)
             {
@@ -65,7 +65,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
             }
         }
 
-        protected override sealed bool TryWriteValue(ref CharWriter writer, ref WriteState state, DateTimeOffset? value)
-            => value is null ? writer.TryWrite("null", out state.CharsNeeded) : writer.TryWrite(value.Value, DateTimeFormat.ISO8601, out state.CharsNeeded);
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, DateTimeOffset? value)
+            => value is null ? writer.TryWrite("null", out state.CharsNeeded) : writer.TryWrite(value.Value, out state.CharsNeeded);
     }
 }

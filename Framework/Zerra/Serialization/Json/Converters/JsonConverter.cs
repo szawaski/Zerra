@@ -5,6 +5,7 @@
 using Zerra.Reflection;
 using System;
 using Zerra.IO;
+using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 using System.Runtime.CompilerServices;
 using System.Collections.Generic;
@@ -20,11 +21,11 @@ namespace Zerra.Serialization.Json.Converters
 
         public abstract void Setup(TypeDetail typeDetail, string? memberKey, Delegate? getterDelegate, Delegate? setterDelegate);
 
-        public abstract bool TryReadBoxed(ref CharReader reader, ref ReadState state, out object? value);
-        public abstract bool TryWriteBoxed(ref CharWriter writer, ref WriteState state, object? value);
+        public abstract bool TryReadBoxed(ref JsonReader reader, ref ReadState state, out object? value);
+        public abstract bool TryWriteBoxed(ref JsonWriter writer, ref WriteState state, object? value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool ReadValueType(ref CharReader reader, ref ReadState state)
+        protected static bool ReadValueType(ref JsonReader reader, ref ReadState state)
         {
             if (state.Current.ValueType == JsonValueType.NotDetermined)
             {
@@ -109,7 +110,7 @@ namespace Zerra.Serialization.Json.Converters
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool Drain(ref CharReader reader, ref ReadState state)
+        protected static bool Drain(ref JsonReader reader, ref ReadState state)
         {
             if (state.Current.ValueType <= JsonValueType.ReadingInProgress)
             {
@@ -137,7 +138,7 @@ namespace Zerra.Serialization.Json.Converters
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool DrainObject(ref CharReader reader, ref ReadState state)
+        protected static bool DrainObject(ref JsonReader reader, ref ReadState state)
         {
             char c;
             for (; ; )
@@ -211,7 +212,7 @@ namespace Zerra.Serialization.Json.Converters
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool DrainArray(ref CharReader reader, ref ReadState state)
+        protected static bool DrainArray(ref JsonReader reader, ref ReadState state)
         {
             char c;
             for (; ; )
@@ -266,7 +267,7 @@ namespace Zerra.Serialization.Json.Converters
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool DrainString(ref CharReader reader, ref ReadState state)
+        protected static bool DrainString(ref JsonReader reader, ref ReadState state)
         {
             char c;
             for (; ; )
@@ -316,7 +317,7 @@ namespace Zerra.Serialization.Json.Converters
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool DrainNumber(ref CharReader reader, ref ReadState state)
+        protected static bool DrainNumber(ref JsonReader reader, ref ReadState state)
         {
             char c;
             if (state.NumberStage != ReadNumberStage.Value)
@@ -515,7 +516,7 @@ namespace Zerra.Serialization.Json.Converters
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool ReadString(ref CharReader reader, ref ReadState state,
+        protected static bool ReadString(ref JsonReader reader, ref ReadState state,
 #if !NETSTANDARD2_0
             [MaybeNullWhen(false)]
 #endif
@@ -665,7 +666,7 @@ namespace Zerra.Serialization.Json.Converters
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool WriteString(ref CharWriter writer, ref WriteState state, string? value)
+        protected static bool WriteString(ref JsonWriter writer, ref WriteState state, string? value)
         {
             if (value == null)
             {
@@ -787,7 +788,7 @@ namespace Zerra.Serialization.Json.Converters
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool WriteChar(ref CharWriter writer, ref WriteState state, char? value)
+        protected static bool WriteChar(ref JsonWriter writer, ref WriteState state, char? value)
         {
             if (value == null)
             {

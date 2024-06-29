@@ -7,6 +7,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Zerra.IO;
+using Zerra.Serialization.Json.IO;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.Converters;
 using Zerra.Serialization.Json.State;
@@ -407,7 +408,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static string Write<T>(JsonConverter<object, T> converter, int initialSize, ref WriteState state, T value)
         {
-            var writer = new CharWriter(initialSize);
+            var writer = new JsonWriter(initialSize);
             try
             {
                 var write = converter.TryWrite(ref writer, ref state, value);
@@ -424,7 +425,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static string WriteBoxed(JsonConverter<object> converter, int initialSize, ref WriteState state, object value)
         {
-            var writer = new CharWriter(initialSize);
+            var writer = new JsonWriter(initialSize);
             try
             {
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
@@ -449,7 +450,7 @@ namespace Zerra.Serialization.Json
                 Span<char> chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
                 var length = encoding.GetChars(buffer, chars);
 
-                var writer = new CharWriter(chars);
+                var writer = new JsonWriter(chars);
                 var write = converter.TryWrite(ref writer, ref state, value);
                 if (write)
                     state.CharsNeeded = 0;
@@ -462,7 +463,7 @@ namespace Zerra.Serialization.Json
                 var chars = new char[buffer.Length];
                 var length = encoding.GetChars(buffer.ToArray(), 0, buffer.Length, chars, 0);
 
-                var writer = new CharWriter(chars);
+                var writer = new JsonWriter(chars);
                 var write = converter.TryWrite(ref writer, ref state, value);
                 if (write)
                     state.CharsNeeded = 0;
@@ -489,7 +490,7 @@ namespace Zerra.Serialization.Json
                 Span<char> chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
                 var length = encoding.GetChars(buffer, chars);
 
-                var writer = new CharWriter(chars);
+                var writer = new JsonWriter(chars);
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
                 if (write)
                     state.CharsNeeded = 0;
@@ -502,7 +503,7 @@ namespace Zerra.Serialization.Json
                 var chars = new char[buffer.Length];
                 var length = encoding.GetChars(buffer.ToArray(), 0, buffer.Length, chars, 0);
 
-                var writer = new CharWriter(chars);
+                var writer = new JsonWriter(chars);
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
                 if (write)
                     state.CharsNeeded = 0;
