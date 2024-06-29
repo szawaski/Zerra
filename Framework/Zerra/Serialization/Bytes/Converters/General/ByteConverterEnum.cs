@@ -15,7 +15,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
         {
             switch (typeDetail.EnumUnderlyingType!.Value)
             {
-                case CoreType.Byte:
+                case CoreEnumType.Byte:
                     {
                         if (!reader.TryRead(out byte number, out state.BytesNeeded))
                         {
@@ -28,7 +28,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = (TValue)Enum.ToObject(typeDetail.InnerTypes[0], number);
                         return true;
                     }
-                case CoreType.SByte:
+                case CoreEnumType.SByte:
                     {
                         if (!reader.TryRead(out sbyte number, out state.BytesNeeded))
                         {
@@ -41,7 +41,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = (TValue)Enum.ToObject(typeDetail.InnerTypes[0], number);
                         return true;
                     }
-                case CoreType.Int16:
+                case CoreEnumType.Int16:
                     {
                         if (!reader.TryRead(out short number, out state.BytesNeeded))
                         {
@@ -54,7 +54,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = (TValue)Enum.ToObject(typeDetail.InnerTypes[0], number);
                         return true;
                     }
-                case CoreType.UInt16:
+                case CoreEnumType.UInt16:
                     {
                         if (!reader.TryRead(out ushort number, out state.BytesNeeded))
                         {
@@ -67,7 +67,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = (TValue)Enum.ToObject(typeDetail.InnerTypes[0], number);
                         return true;
                     }
-                case CoreType.Int32:
+                case CoreEnumType.Int32:
                     {
                         if (!reader.TryRead(out int number, out state.BytesNeeded))
                         {
@@ -80,7 +80,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = (TValue)Enum.ToObject(typeDetail.InnerTypes[0], number);
                         return true;
                     }
-                case CoreType.UInt32:
+                case CoreEnumType.UInt32:
                     {
                         if (!reader.TryRead(out uint number, out state.BytesNeeded))
                         {
@@ -93,7 +93,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = (TValue)Enum.ToObject(typeDetail.InnerTypes[0], number);
                         return true;
                     }
-                case CoreType.Int64:
+                case CoreEnumType.Int64:
                     {
                         if (!reader.TryRead(out long number, out state.BytesNeeded))
                         {
@@ -106,7 +106,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = (TValue)Enum.ToObject(typeDetail.InnerTypes[0], number);
                         return true;
                     }
-                case CoreType.UInt64:
+                case CoreEnumType.UInt64:
                     {
                         if (!reader.TryRead(out ulong number, out state.BytesNeeded))
                         {
@@ -119,7 +119,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = (TValue)Enum.ToObject(typeDetail.InnerTypes[0], number);
                         return true;
                     }
-                case CoreType.ByteNullable:
+                case CoreEnumType.ByteNullable:
                     {
                         if (!reader.TryRead(state.Current.NullFlags, out byte? number, out state.BytesNeeded))
                         {
@@ -137,7 +137,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = (TValue)Enum.ToObject(typeDetail.InnerTypes[0], number);
                         return true;
                     }
-                case CoreType.SByteNullable:
+                case CoreEnumType.SByteNullable:
                     {
                         if (!reader.TryRead(state.Current.NullFlags, out sbyte? number, out state.BytesNeeded))
                         {
@@ -155,7 +155,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = (TValue)Enum.ToObject(typeDetail.InnerTypes[0], number);
                         return true;
                     }
-                case CoreType.Int16Nullable:
+                case CoreEnumType.Int16Nullable:
                     {
                         if (!reader.TryRead(state.Current.NullFlags, out short? number, out state.BytesNeeded))
                         {
@@ -173,7 +173,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = (TValue)Enum.ToObject(typeDetail.InnerTypes[0], number);
                         return true;
                     }
-                case CoreType.UInt16Nullable:
+                case CoreEnumType.UInt16Nullable:
                     {
                         if (!reader.TryRead(state.Current.NullFlags, out ushort? number, out state.BytesNeeded))
                         {
@@ -191,7 +191,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = (TValue)Enum.ToObject(typeDetail.InnerTypes[0], number);
                         return true;
                     }
-                case CoreType.Int32Nullable:
+                case CoreEnumType.Int32Nullable:
                     {
                         if (!reader.TryRead(state.Current.NullFlags, out int? number, out state.BytesNeeded))
                         {
@@ -209,7 +209,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = (TValue)Enum.ToObject(typeDetail.InnerTypes[0], number);
                         return true;
                     }
-                case CoreType.UInt32Nullable:
+                case CoreEnumType.UInt32Nullable:
                     {
                         if (!reader.TryRead(state.Current.NullFlags, out uint? number, out state.BytesNeeded))
                         {
@@ -227,7 +227,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = (TValue)Enum.ToObject(typeDetail.InnerTypes[0], number);
                         return true;
                     }
-                case CoreType.Int64Nullable:
+                case CoreEnumType.Int64Nullable:
                     {
                         if (!reader.TryRead(state.Current.NullFlags, out long? number, out state.BytesNeeded))
                         {
@@ -245,7 +245,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = (TValue)Enum.ToObject(typeDetail.InnerTypes[0], number);
                         return true;
                     }
-                case CoreType.UInt64Nullable:
+                case CoreEnumType.UInt64Nullable:
                     {
                         if (!reader.TryRead(state.Current.NullFlags, out ulong? number, out state.BytesNeeded))
                         {
@@ -274,102 +274,70 @@ namespace Zerra.Serialization.Bytes.Converters.General
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
             switch (typeDetail.EnumUnderlyingType)
             {
-                case CoreType.Byte:
+                case CoreEnumType.Byte:
                     if (!writer.TryWrite((byte)obj!, out state.BytesNeeded))
-                    {
                         return false;
-                    }
                     return true;
-                case CoreType.SByte:
+                case CoreEnumType.SByte:
                     if (!writer.TryWrite((sbyte)obj!, out state.BytesNeeded))
-                    {
                         return false;
-                    }
                     return true;
-                case CoreType.Int16:
+                case CoreEnumType.Int16:
                     if (!writer.TryWrite((short)obj!, out state.BytesNeeded))
-                    {
                         return false;
-                    }
                     return true;
-                case CoreType.UInt16:
+                case CoreEnumType.UInt16:
                     if (!writer.TryWrite((ushort)obj!, out state.BytesNeeded))
-                    {
                         return false;
-                    }
                     return true;
-                case CoreType.Int32:
+                case CoreEnumType.Int32:
                     if (!writer.TryWrite((int)obj!, out state.BytesNeeded))
-                    {
                         return false;
-                    }
                     return true;
-                case CoreType.UInt32:
+                case CoreEnumType.UInt32:
                     if (!writer.TryWrite((uint)obj!, out state.BytesNeeded))
-                    {
                         return false;
-                    }
                     return true;
-                case CoreType.Int64:
+                case CoreEnumType.Int64:
                     if (!writer.TryWrite((long)obj!, out state.BytesNeeded))
-                    {
                         return false;
-                    }
                     return true;
-                case CoreType.UInt64:
+                case CoreEnumType.UInt64:
                     if (!writer.TryWrite((ulong)obj!, out state.BytesNeeded))
-                    {
                         return false;
-                    }
                     return true;
 
-                case CoreType.ByteNullable:
+                case CoreEnumType.ByteNullable:
                     if (!writer.TryWrite(obj == null ? null : (byte)obj, state.Current.NullFlags, out state.BytesNeeded))
-                    {
                         return false;
-                    }
                     return true;
-                case CoreType.SByteNullable:
+                case CoreEnumType.SByteNullable:
                     if (!writer.TryWrite(obj == null ? null : (sbyte)obj, state.Current.NullFlags, out state.BytesNeeded))
-                    {
                         return false;
-                    }
                     return true;
-                case CoreType.Int16Nullable:
+                case CoreEnumType.Int16Nullable:
                     if (!writer.TryWrite(obj == null ? null : (short)obj, state.Current.NullFlags, out state.BytesNeeded))
-                    {
                         return false;
-                    }
                     return true;
-                case CoreType.UInt16Nullable:
+                case CoreEnumType.UInt16Nullable:
                     if (!writer.TryWrite(obj == null ? null : (ushort)obj, state.Current.NullFlags, out state.BytesNeeded))
-                    {
                         return false;
-                    }
                     return true;
-                case CoreType.Int32Nullable:
+                case CoreEnumType.Int32Nullable:
                     if (!writer.TryWrite(obj == null ? null : (int)obj, state.Current.NullFlags, out state.BytesNeeded))
-                    {
                         return false;
-                    }
                     return true;
-                case CoreType.UInt32Nullable:
+                case CoreEnumType.UInt32Nullable:
                     if (!writer.TryWrite(obj == null ? null : (uint)obj, state.Current.NullFlags, out state.BytesNeeded))
-                    {
                         return false;
-                    }
                     return true;
-                case CoreType.Int64Nullable:
+                case CoreEnumType.Int64Nullable:
                     if (!writer.TryWrite(obj == null ? null : (long)obj, state.Current.NullFlags, out state.BytesNeeded))
-                    {
                         return false;
-                    }
                     return true;
-                case CoreType.UInt64Nullable:
+                case CoreEnumType.UInt64Nullable:
                     if (!writer.TryWrite(obj == null ? null : (ulong)obj, state.Current.NullFlags, out state.BytesNeeded))
-                    {
                         return false;
-                    }
                     return true;
                 default:
                     throw new NotImplementedException();

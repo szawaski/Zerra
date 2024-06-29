@@ -1055,109 +1055,197 @@ namespace Zerra.Serialization.Json
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
 
-            var coreType = typeDetail == null ? null : typeDetail.CoreType ?? typeDetail.EnumUnderlyingType;
-            switch (coreType)
+            if (typeDetail == null)
             {
-                case CoreType.String:
-                    ReadLiteralNumberAsString(ref reader, ref state, ref decodeBuffer);
-                    break;
-                case CoreType.Byte:
-                case CoreType.ByteNullable:
-                    ReadLiteralNumberAsUInt64(ref reader, ref state);
-                    break;
-                case CoreType.SByte:
-                case CoreType.SByteNullable:
-                    ReadLiteralNumberAsInt64(ref reader, ref state);
-                    break;
-                case CoreType.Int16:
-                case CoreType.Int16Nullable:
-                    ReadLiteralNumberAsInt64(ref reader, ref state);
-                    break;
-                case CoreType.UInt16:
-                case CoreType.UInt16Nullable:
-                    ReadLiteralNumberAsUInt64(ref reader, ref state);
-                    break;
-                case CoreType.Int32:
-                case CoreType.Int32Nullable:
-                    ReadLiteralNumberAsInt64(ref reader, ref state);
-                    break;
-                case CoreType.UInt32:
-                case CoreType.UInt32Nullable:
-                    ReadLiteralNumberAsUInt64(ref reader, ref state);
-                    break;
-                case CoreType.Int64:
-                case CoreType.Int64Nullable:
-                    ReadLiteralNumberAsInt64(ref reader, ref state);
-                    break;
-                case CoreType.UInt64:
-                case CoreType.UInt64Nullable:
-                    ReadLiteralNumberAsUInt64(ref reader, ref state);
-                    break;
-                case CoreType.Single:
-                case CoreType.SingleNullable:
-                    ReadLiteralNumberAsDouble(ref reader, ref state);
-                    break;
-                case CoreType.Double:
-                case CoreType.DoubleNullable:
-                    ReadLiteralNumberAsDouble(ref reader, ref state);
-                    break;
-                case CoreType.Decimal:
-                case CoreType.DecimalNullable:
-                    ReadLiteralNumberAsDecimal(ref reader, ref state);
-                    break;
-                default:
-                    ReadLiteralNumberAsEmpty(ref reader, ref state);
-                    break;
+                ReadLiteralNumberAsEmpty(ref reader, ref state);
+                return;
             }
 
-            unchecked
+            if (typeDetail.CoreType.HasValue)
             {
-                switch (coreType)
+                switch (typeDetail.CoreType.Value)
                 {
+                    case CoreType.String:
+                        ReadLiteralNumberAsString(ref reader, ref state, ref decodeBuffer);
+                        break;
                     case CoreType.Byte:
                     case CoreType.ByteNullable:
-                        state.LastFrameResultObject = (byte)state.LiteralNumberUInt64;
+                        ReadLiteralNumberAsUInt64(ref reader, ref state);
                         break;
                     case CoreType.SByte:
                     case CoreType.SByteNullable:
-                        state.LastFrameResultObject = (sbyte)state.LiteralNumberInt64;
+                        ReadLiteralNumberAsInt64(ref reader, ref state);
                         break;
                     case CoreType.Int16:
                     case CoreType.Int16Nullable:
-                        state.LastFrameResultObject = (short)state.LiteralNumberInt64;
+                        ReadLiteralNumberAsInt64(ref reader, ref state);
                         break;
                     case CoreType.UInt16:
                     case CoreType.UInt16Nullable:
-                        state.LastFrameResultObject = (ushort)state.LiteralNumberUInt64;
+                        ReadLiteralNumberAsUInt64(ref reader, ref state);
                         break;
                     case CoreType.Int32:
                     case CoreType.Int32Nullable:
-                        state.LastFrameResultObject = (int)state.LiteralNumberInt64;
+                        ReadLiteralNumberAsInt64(ref reader, ref state);
                         break;
                     case CoreType.UInt32:
                     case CoreType.UInt32Nullable:
-                        state.LastFrameResultObject = (uint)state.LiteralNumberUInt64;
+                        ReadLiteralNumberAsUInt64(ref reader, ref state);
                         break;
                     case CoreType.Int64:
                     case CoreType.Int64Nullable:
-                        state.LastFrameResultObject = state.LiteralNumberInt64;
+                        ReadLiteralNumberAsInt64(ref reader, ref state);
                         break;
                     case CoreType.UInt64:
                     case CoreType.UInt64Nullable:
-                        state.LastFrameResultObject = state.LiteralNumberUInt64;
+                        ReadLiteralNumberAsUInt64(ref reader, ref state);
                         break;
                     case CoreType.Single:
                     case CoreType.SingleNullable:
-                        state.LastFrameResultObject = (float)state.LiteralNumberDouble;
+                        ReadLiteralNumberAsDouble(ref reader, ref state);
                         break;
                     case CoreType.Double:
                     case CoreType.DoubleNullable:
-                        state.LastFrameResultObject = state.LiteralNumberDouble;
+                        ReadLiteralNumberAsDouble(ref reader, ref state);
                         break;
                     case CoreType.Decimal:
                     case CoreType.DecimalNullable:
-                        state.LastFrameResultObject = state.LiteralNumberDecimal;
+                        ReadLiteralNumberAsDecimal(ref reader, ref state);
                         break;
+                    default:
+                        ReadLiteralNumberAsEmpty(ref reader, ref state);
+                        break;
+                }
+
+                unchecked
+                {
+                    switch (typeDetail.CoreType.Value)
+                    {
+                        case CoreType.Byte:
+                        case CoreType.ByteNullable:
+                            state.LastFrameResultObject = (byte)state.LiteralNumberUInt64;
+                            break;
+                        case CoreType.SByte:
+                        case CoreType.SByteNullable:
+                            state.LastFrameResultObject = (sbyte)state.LiteralNumberInt64;
+                            break;
+                        case CoreType.Int16:
+                        case CoreType.Int16Nullable:
+                            state.LastFrameResultObject = (short)state.LiteralNumberInt64;
+                            break;
+                        case CoreType.UInt16:
+                        case CoreType.UInt16Nullable:
+                            state.LastFrameResultObject = (ushort)state.LiteralNumberUInt64;
+                            break;
+                        case CoreType.Int32:
+                        case CoreType.Int32Nullable:
+                            state.LastFrameResultObject = (int)state.LiteralNumberInt64;
+                            break;
+                        case CoreType.UInt32:
+                        case CoreType.UInt32Nullable:
+                            state.LastFrameResultObject = (uint)state.LiteralNumberUInt64;
+                            break;
+                        case CoreType.Int64:
+                        case CoreType.Int64Nullable:
+                            state.LastFrameResultObject = state.LiteralNumberInt64;
+                            break;
+                        case CoreType.UInt64:
+                        case CoreType.UInt64Nullable:
+                            state.LastFrameResultObject = state.LiteralNumberUInt64;
+                            break;
+                        case CoreType.Single:
+                        case CoreType.SingleNullable:
+                            state.LastFrameResultObject = (float)state.LiteralNumberDouble;
+                            break;
+                        case CoreType.Double:
+                        case CoreType.DoubleNullable:
+                            state.LastFrameResultObject = state.LiteralNumberDouble;
+                            break;
+                        case CoreType.Decimal:
+                        case CoreType.DecimalNullable:
+                            state.LastFrameResultObject = state.LiteralNumberDecimal;
+                            break;
+                    }
+                }
+            }
+            else if (typeDetail.EnumUnderlyingType.HasValue)
+            {
+                switch (typeDetail.EnumUnderlyingType.Value)
+                {
+                    case CoreEnumType.Byte:
+                    case CoreEnumType.ByteNullable:
+                        ReadLiteralNumberAsUInt64(ref reader, ref state);
+                        break;
+                    case CoreEnumType.SByte:
+                    case CoreEnumType.SByteNullable:
+                        ReadLiteralNumberAsInt64(ref reader, ref state);
+                        break;
+                    case CoreEnumType.Int16:
+                    case CoreEnumType.Int16Nullable:
+                        ReadLiteralNumberAsInt64(ref reader, ref state);
+                        break;
+                    case CoreEnumType.UInt16:
+                    case CoreEnumType.UInt16Nullable:
+                        ReadLiteralNumberAsUInt64(ref reader, ref state);
+                        break;
+                    case CoreEnumType.Int32:
+                    case CoreEnumType.Int32Nullable:
+                        ReadLiteralNumberAsInt64(ref reader, ref state);
+                        break;
+                    case CoreEnumType.UInt32:
+                    case CoreEnumType.UInt32Nullable:
+                        ReadLiteralNumberAsUInt64(ref reader, ref state);
+                        break;
+                    case CoreEnumType.Int64:
+                    case CoreEnumType.Int64Nullable:
+                        ReadLiteralNumberAsInt64(ref reader, ref state);
+                        break;
+                    case CoreEnumType.UInt64:
+                    case CoreEnumType.UInt64Nullable:
+                        ReadLiteralNumberAsUInt64(ref reader, ref state);
+                        break;
+                    default:
+                        ReadLiteralNumberAsEmpty(ref reader, ref state);
+                        break;
+                }
+
+                unchecked
+                {
+                    switch (typeDetail.EnumUnderlyingType.Value)
+                    {
+                        case CoreEnumType.Byte:
+                        case CoreEnumType.ByteNullable:
+                            state.LastFrameResultObject = (byte)state.LiteralNumberUInt64;
+                            break;
+                        case CoreEnumType.SByte:
+                        case CoreEnumType.SByteNullable:
+                            state.LastFrameResultObject = (sbyte)state.LiteralNumberInt64;
+                            break;
+                        case CoreEnumType.Int16:
+                        case CoreEnumType.Int16Nullable:
+                            state.LastFrameResultObject = (short)state.LiteralNumberInt64;
+                            break;
+                        case CoreEnumType.UInt16:
+                        case CoreEnumType.UInt16Nullable:
+                            state.LastFrameResultObject = (ushort)state.LiteralNumberUInt64;
+                            break;
+                        case CoreEnumType.Int32:
+                        case CoreEnumType.Int32Nullable:
+                            state.LastFrameResultObject = (int)state.LiteralNumberInt64;
+                            break;
+                        case CoreEnumType.UInt32:
+                        case CoreEnumType.UInt32Nullable:
+                            state.LastFrameResultObject = (uint)state.LiteralNumberUInt64;
+                            break;
+                        case CoreEnumType.Int64:
+                        case CoreEnumType.Int64Nullable:
+                            state.LastFrameResultObject = state.LiteralNumberInt64;
+                            break;
+                        case CoreEnumType.UInt64:
+                        case CoreEnumType.UInt64Nullable:
+                            state.LastFrameResultObject = state.LiteralNumberUInt64;
+                            break;
+                    }
                 }
             }
         }

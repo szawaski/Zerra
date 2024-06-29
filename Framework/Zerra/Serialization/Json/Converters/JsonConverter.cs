@@ -163,7 +163,7 @@ namespace Zerra.Serialization.Json.Converters
                         throw reader.CreateException("Unexpected character");
                 }
 
-                if (!state.Current.HasReadPropertySeperator)
+                if (!state.Current.HasReadSeperator)
                 {
                     if (!reader.TryReadSkipWhiteSpace(out c))
                     {
@@ -175,13 +175,13 @@ namespace Zerra.Serialization.Json.Converters
                         throw reader.CreateException("Unexpected character");
                 }
 
-                if (!state.Current.HasReadPropertyValue)
+                if (!state.Current.HasReadValue)
                 {
                     state.PushFrame();
                     if (!Drain(ref reader, ref state))
                     {
                         state.Current.HasReadProperty = true;
-                        state.Current.HasReadPropertySeperator = true;
+                        state.Current.HasReadSeperator = true;
                         return false;
                     }
                 }
@@ -190,8 +190,8 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     state.CharsNeeded = 1;
                     state.Current.HasReadProperty = true;
-                    state.Current.HasReadPropertySeperator = true;
-                    state.Current.HasReadPropertyValue = true;
+                    state.Current.HasReadSeperator = true;
+                    state.Current.HasReadValue = true;
                     return false;
                 }
 
@@ -202,8 +202,8 @@ namespace Zerra.Serialization.Json.Converters
                     throw reader.CreateException("Unexpected character");
 
                 state.Current.HasReadProperty = false;
-                state.Current.HasReadPropertySeperator = false;
-                state.Current.HasReadPropertyValue = false;
+                state.Current.HasReadSeperator = false;
+                state.Current.HasReadValue = false;
             }
 
             return true;
@@ -664,25 +664,17 @@ namespace Zerra.Serialization.Json.Converters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool WriteString(ref CharWriter writer, ref WriteState state, string? value)
         {
-            int sizeNeeded;
-
             if (value == null)
             {
-                if (!writer.TryWrite("null", out sizeNeeded))
-                {
-                    state.CharsNeeded = sizeNeeded;
+                if (!writer.TryWrite("null", out state.CharsNeeded))
                     return false;
-                }
                 return true;
             }
 
             if (state.WorkingStringState == 0)
             {
-                if (!writer.TryWrite('\"', out sizeNeeded))
-                {
-                    state.CharsNeeded = sizeNeeded;
+                if (!writer.TryWrite('\"', out state.CharsNeeded))
                     return false;
-                }
                 state.WorkingStringState = 1;
             }
 
@@ -690,11 +682,8 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (value.Length == 0)
                 {
-                    if (!writer.TryWrite('\"', out sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
+                    if (!writer.TryWrite('\"', out state.CharsNeeded))
                         return false;
-                    }
                     state.WorkingStringState = 0;
                     return true;
                 }
@@ -737,20 +726,14 @@ namespace Zerra.Serialization.Json.Converters
                         if (state.WorkingStringState == 2)
                         {
                             var slice = chars.Slice(state.WorkingStringStart, state.WorkingStringIndex - state.WorkingStringStart);
-                            if (!writer.TryWrite(slice, out sizeNeeded))
-                            {
-                                state.CharsNeeded = sizeNeeded;
+                            if (!writer.TryWrite(slice, out state.CharsNeeded))
                                 return false;
-                            }
                             state.WorkingStringState = 3;
                         }
 
                         var code = lowUnicodeIntToEncodedHex[c];
-                        if (!writer.TryWrite(code, out sizeNeeded))
-                        {
-                            state.CharsNeeded = sizeNeeded;
+                        if (!writer.TryWrite(code, out state.CharsNeeded))
                             return false;
-                        }
                         state.WorkingStringState = 2;
                         state.WorkingStringStart = state.WorkingStringIndex + 1;
                         continue;
@@ -759,27 +742,18 @@ namespace Zerra.Serialization.Json.Converters
                 if (state.WorkingStringState == 2)
                 {
                     var slice = chars.Slice(state.WorkingStringStart, state.WorkingStringIndex - state.WorkingStringStart);
-                    if (!writer.TryWrite(slice, out sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
+                    if (!writer.TryWrite(slice, out state.CharsNeeded))
                         return false;
-                    }
                     state.WorkingStringState = 3;
                 }
                 if (state.WorkingStringState == 3)
                 {
-                    if (!writer.TryWrite('\\', out sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
+                    if (!writer.TryWrite('\\', out state.CharsNeeded))
                         return false;
-                    }
                     state.WorkingStringState = 4;
                 }
-                if (!writer.TryWrite(escapedChar, out sizeNeeded))
-                {
-                    state.CharsNeeded = sizeNeeded;
+                if (!writer.TryWrite(escapedChar, out state.CharsNeeded))
                     return false;
-                }
                 state.WorkingStringState = 2;
                 state.WorkingStringStart = state.WorkingStringIndex + 1;
             }
@@ -794,20 +768,14 @@ namespace Zerra.Serialization.Json.Converters
                 else if (chars.Length > state.WorkingStringStart)
                 {
                     var slice = chars.Slice(state.WorkingStringStart, chars.Length - state.WorkingStringStart);
-                    if (!writer.TryWrite(slice, out sizeNeeded))
-                    {
-                        state.CharsNeeded = sizeNeeded;
+                    if (!writer.TryWrite(slice, out state.CharsNeeded))
                         return false;
-                    }
                 }
                 state.WorkingStringState = 3;
             }
 
-            if (!writer.TryWrite('\"', out sizeNeeded))
-            {
-                state.CharsNeeded = sizeNeeded;
+            if (!writer.TryWrite('\"', out state.CharsNeeded))
                 return false;
-            }
 
             state.WorkingStringState = 0;
             state.WorkingStringIndex = 0;
@@ -818,15 +786,10 @@ namespace Zerra.Serialization.Json.Converters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool WriteChar(ref CharWriter writer, ref WriteState state, char? value)
         {
-            int sizeNeeded;
-
             if (value == null)
             {
-                if (!writer.TryWrite("null", out sizeNeeded))
-                {
-                    state.CharsNeeded = sizeNeeded;
+                if (!writer.TryWrite("null", out state.CharsNeeded))
                     return false;
-                }
                 return true;
             }
 
@@ -835,67 +798,43 @@ namespace Zerra.Serialization.Json.Converters
                 switch (value.Value)
                 {
                     case '\\':
-                        if (!writer.TryWrite("\"\\\\\"", out sizeNeeded))
-                        {
-                            state.CharsNeeded = sizeNeeded;
+                        if (!writer.TryWrite("\"\\\\\"", out state.CharsNeeded))
                             return false;
-                        }
                         state.WorkingStringState = 0;
                         return true;
                     case '"':
-                        if (!writer.TryWrite("\"\\\"\"", out sizeNeeded))
-                        {
-                            state.CharsNeeded = sizeNeeded;
+                        if (!writer.TryWrite("\"\\\"\"", out state.CharsNeeded))
                             return false;
-                        }
                         state.WorkingStringState = 0;
                         return true;
                     case '/':
-                        if (!writer.TryWrite("\"\\/\"", out sizeNeeded))
-                        {
-                            state.CharsNeeded = sizeNeeded;
+                        if (!writer.TryWrite("\"\\/\"", out state.CharsNeeded))
                             return false;
-                        }
                         state.WorkingStringState = 0;
                         return true;
                     case '\b':
-                        if (!writer.TryWrite("\"\\b\"", out sizeNeeded))
-                        {
-                            state.CharsNeeded = sizeNeeded;
+                        if (!writer.TryWrite("\"\\b\"", out state.CharsNeeded))
                             return false;
-                        }
                         state.WorkingStringState = 0;
                         return true;
                     case '\t':
-                        if (!writer.TryWrite("\"\\t\"", out sizeNeeded))
-                        {
-                            state.CharsNeeded = sizeNeeded;
+                        if (!writer.TryWrite("\"\\t\"", out state.CharsNeeded))
                             return false;
-                        }
                         state.WorkingStringState = 0;
                         return true;
                     case '\n':
-                        if (!writer.TryWrite("\"\\n\"", out sizeNeeded))
-                        {
-                            state.CharsNeeded = sizeNeeded;
+                        if (!writer.TryWrite("\"\\n\"", out state.CharsNeeded))
                             return false;
-                        }
                         state.WorkingStringState = 0;
                         return true;
                     case '\f':
-                        if (!writer.TryWrite("\"\\f\"", out sizeNeeded))
-                        {
-                            state.CharsNeeded = sizeNeeded;
+                        if (!writer.TryWrite("\"\\f\"", out state.CharsNeeded))
                             return false;
-                        }
                         state.WorkingStringState = 0;
                         return true;
                     case '\r':
-                        if (!writer.TryWrite("\"\\r\"", out sizeNeeded))
-                        {
-                            state.CharsNeeded = sizeNeeded;
+                        if (!writer.TryWrite("\"\\r\"", out state.CharsNeeded))
                             return false;
-                        }
                         state.WorkingStringState = 0;
                         return true;
                 }
@@ -908,48 +847,33 @@ namespace Zerra.Serialization.Json.Converters
 
             if (state.WorkingStringState == 1)
             {
-                if (!writer.TryWrite('\"', out sizeNeeded))
-                {
-                    state.CharsNeeded = sizeNeeded;
+                if (!writer.TryWrite('\"', out state.CharsNeeded))
                     return false;
-                }
                 state.WorkingStringState = 2;
             }
             if (state.WorkingStringState == 2)
             {
                 var code = lowUnicodeIntToEncodedHex[value.Value];
-                if (!writer.TryWrite(code, out sizeNeeded))
-                {
-                    state.CharsNeeded = sizeNeeded;
+                if (!writer.TryWrite(code, out state.CharsNeeded))
                     return false;
-                }
                 state.WorkingStringState = 3;
             }
 
             if (state.WorkingStringState == 3)
             {
-                if (!writer.TryWrite('\"', out sizeNeeded))
-                {
-                    state.CharsNeeded = sizeNeeded;
+                if (!writer.TryWrite('\"', out state.CharsNeeded))
                     return false;
-                }
                 state.WorkingStringState = 4;
             }
             if (state.WorkingStringState == 4)
             {
-                if (!writer.TryWrite(value.Value, out sizeNeeded))
-                {
-                    state.CharsNeeded = sizeNeeded;
+                if (!writer.TryWrite(value.Value, out state.CharsNeeded))
                     return false;
-                }
                 state.WorkingStringState = 10;
             }
 
-            if (!writer.TryWrite('\"', out sizeNeeded))
-            {
-                state.CharsNeeded = sizeNeeded;
+            if (!writer.TryWrite('\"', out state.CharsNeeded))
                 return false;
-            }
 
             state.WorkingStringState = 0;
             return true;

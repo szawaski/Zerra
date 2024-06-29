@@ -966,7 +966,7 @@ namespace Zerra.Serialization.Bytes
 
             switch (typeDetail.TypeDetail.EnumUnderlyingType!.Value)
             {
-                case CoreType.Byte:
+                case CoreEnumType.Byte:
                     {
                         if (!reader.TryReadByte(out var value, out sizeNeeded))
                         {
@@ -976,7 +976,7 @@ namespace Zerra.Serialization.Bytes
                         numValue = value;
                         break;
                     }
-                case CoreType.SByte:
+                case CoreEnumType.SByte:
                     {
                         if (!reader.TryReadSByte(out var value, out sizeNeeded))
                         {
@@ -986,7 +986,7 @@ namespace Zerra.Serialization.Bytes
                         numValue = value;
                         break;
                     }
-                case CoreType.Int16:
+                case CoreEnumType.Int16:
                     {
                         if (!reader.TryReadInt16(out var value, out sizeNeeded))
                         {
@@ -996,7 +996,7 @@ namespace Zerra.Serialization.Bytes
                         numValue = value;
                         break;
                     }
-                case CoreType.UInt16:
+                case CoreEnumType.UInt16:
                     {
                         if (!reader.TryReadUInt16(out var value, out sizeNeeded))
                         {
@@ -1006,7 +1006,7 @@ namespace Zerra.Serialization.Bytes
                         numValue = value;
                         break;
                     }
-                case CoreType.Int32:
+                case CoreEnumType.Int32:
                     {
                         if (!reader.TryReadInt32(out var value, out sizeNeeded))
                         {
@@ -1016,7 +1016,7 @@ namespace Zerra.Serialization.Bytes
                         numValue = value;
                         break;
                     }
-                case CoreType.UInt32:
+                case CoreEnumType.UInt32:
                     {
                         if (!reader.TryReadUInt32(out var value, out sizeNeeded))
                         {
@@ -1026,7 +1026,7 @@ namespace Zerra.Serialization.Bytes
                         numValue = value;
                         break;
                     }
-                case CoreType.Int64:
+                case CoreEnumType.Int64:
                     {
                         if (!reader.TryReadInt64(out var value, out sizeNeeded))
                         {
@@ -1036,7 +1036,7 @@ namespace Zerra.Serialization.Bytes
                         numValue = value;
                         break;
                     }
-                case CoreType.UInt64:
+                case CoreEnumType.UInt64:
                     {
                         if (!reader.TryReadUInt64(out var value, out sizeNeeded))
                         {
@@ -1046,7 +1046,7 @@ namespace Zerra.Serialization.Bytes
                         numValue = value;
                         break;
                     }
-                case CoreType.ByteNullable:
+                case CoreEnumType.ByteNullable:
                     {
                         if (!reader.TryReadByteNullable(nullFlags, out var value, out sizeNeeded))
                         {
@@ -1056,7 +1056,7 @@ namespace Zerra.Serialization.Bytes
                         numValue = value;
                         break;
                     }
-                case CoreType.SByteNullable:
+                case CoreEnumType.SByteNullable:
                     {
                         if (!reader.TryReadSByteNullable(nullFlags, out var value, out sizeNeeded))
                         {
@@ -1066,7 +1066,7 @@ namespace Zerra.Serialization.Bytes
                         numValue = value;
                         break;
                     }
-                case CoreType.Int16Nullable:
+                case CoreEnumType.Int16Nullable:
                     {
                         if (!reader.TryReadInt16Nullable(nullFlags, out var value, out sizeNeeded))
                         {
@@ -1076,7 +1076,7 @@ namespace Zerra.Serialization.Bytes
                         numValue = value;
                         break;
                     }
-                case CoreType.UInt16Nullable:
+                case CoreEnumType.UInt16Nullable:
                     {
                         if (!reader.TryReadUInt16Nullable(nullFlags, out var value, out sizeNeeded))
                         {
@@ -1086,7 +1086,7 @@ namespace Zerra.Serialization.Bytes
                         numValue = value;
                         break;
                     }
-                case CoreType.Int32Nullable:
+                case CoreEnumType.Int32Nullable:
                     {
                         if (!reader.TryReadInt32Nullable(nullFlags, out var value, out sizeNeeded))
                         {
@@ -1096,7 +1096,7 @@ namespace Zerra.Serialization.Bytes
                         numValue = value;
                         break;
                     }
-                case CoreType.UInt32Nullable:
+                case CoreEnumType.UInt32Nullable:
                     {
                         if (!reader.TryReadUInt32Nullable(nullFlags, out var value, out sizeNeeded))
                         {
@@ -1106,7 +1106,7 @@ namespace Zerra.Serialization.Bytes
                         numValue = value;
                         break;
                     }
-                case CoreType.Int64Nullable:
+                case CoreEnumType.Int64Nullable:
                     {
                         if (!reader.TryReadInt64Nullable(nullFlags, out var value, out sizeNeeded))
                         {
@@ -1116,7 +1116,7 @@ namespace Zerra.Serialization.Bytes
                         numValue = value;
                         break;
                     }
-                case CoreType.UInt64Nullable:
+                case CoreEnumType.UInt64Nullable:
                     {
                         if (!reader.TryReadUInt64Nullable(nullFlags, out var value, out sizeNeeded))
                         {
@@ -2817,7 +2817,7 @@ namespace Zerra.Serialization.Bytes
                 object? numValue;
                 switch (typeDetail.TypeDetail.EnumUnderlyingType!.Value)
                 {
-                    case CoreType.Byte:
+                    case CoreEnumType.Byte:
                         {
                             if (!reader.TryReadByte(out var value, out sizeNeeded))
                             {
@@ -2827,7 +2827,7 @@ namespace Zerra.Serialization.Bytes
                             numValue = value;
                             break;
                         }
-                    case CoreType.SByte:
+                    case CoreEnumType.SByte:
                         {
                             if (!reader.TryReadSByte(out var value, out sizeNeeded))
                             {
@@ -2837,7 +2837,7 @@ namespace Zerra.Serialization.Bytes
                             numValue = value;
                             break;
                         }
-                    case CoreType.Int16:
+                    case CoreEnumType.Int16:
                         {
                             if (!reader.TryReadInt16(out var value, out sizeNeeded))
                             {
@@ -2847,7 +2847,7 @@ namespace Zerra.Serialization.Bytes
                             numValue = value;
                             break;
                         }
-                    case CoreType.UInt16:
+                    case CoreEnumType.UInt16:
                         {
                             if (!reader.TryReadUInt16(out var value, out sizeNeeded))
                             {
@@ -2857,7 +2857,7 @@ namespace Zerra.Serialization.Bytes
                             numValue = value;
                             break;
                         }
-                    case CoreType.Int32:
+                    case CoreEnumType.Int32:
                         {
                             if (!reader.TryReadInt32(out var value, out sizeNeeded))
                             {
@@ -2867,7 +2867,7 @@ namespace Zerra.Serialization.Bytes
                             numValue = value;
                             break;
                         }
-                    case CoreType.UInt32:
+                    case CoreEnumType.UInt32:
                         {
                             if (!reader.TryReadUInt32(out var value, out sizeNeeded))
                             {
@@ -2877,7 +2877,7 @@ namespace Zerra.Serialization.Bytes
                             numValue = value;
                             break;
                         }
-                    case CoreType.Int64:
+                    case CoreEnumType.Int64:
                         {
                             if (!reader.TryReadInt64(out var value, out sizeNeeded))
                             {
@@ -2887,7 +2887,7 @@ namespace Zerra.Serialization.Bytes
                             numValue = value;
                             break;
                         }
-                    case CoreType.UInt64:
+                    case CoreEnumType.UInt64:
                         {
                             if (!reader.TryReadUInt64(out var value, out sizeNeeded))
                             {
@@ -2897,7 +2897,7 @@ namespace Zerra.Serialization.Bytes
                             numValue = value;
                             break;
                         }
-                    case CoreType.ByteNullable:
+                    case CoreEnumType.ByteNullable:
                         {
                             if (!reader.TryReadByteNullable(nullFlags, out var value, out sizeNeeded))
                             {
@@ -2907,7 +2907,7 @@ namespace Zerra.Serialization.Bytes
                             numValue = value;
                             break;
                         }
-                    case CoreType.SByteNullable:
+                    case CoreEnumType.SByteNullable:
                         {
                             if (!reader.TryReadSByteNullable(nullFlags, out var value, out sizeNeeded))
                             {
@@ -2917,7 +2917,7 @@ namespace Zerra.Serialization.Bytes
                             numValue = value;
                             break;
                         }
-                    case CoreType.Int16Nullable:
+                    case CoreEnumType.Int16Nullable:
                         {
                             if (!reader.TryReadInt16Nullable(nullFlags, out var value, out sizeNeeded))
                             {
@@ -2927,7 +2927,7 @@ namespace Zerra.Serialization.Bytes
                             numValue = value;
                             break;
                         }
-                    case CoreType.UInt16Nullable:
+                    case CoreEnumType.UInt16Nullable:
                         {
                             if (!reader.TryReadUInt16Nullable(nullFlags, out var value, out sizeNeeded))
                             {
@@ -2937,7 +2937,7 @@ namespace Zerra.Serialization.Bytes
                             numValue = value;
                             break;
                         }
-                    case CoreType.Int32Nullable:
+                    case CoreEnumType.Int32Nullable:
                         {
                             if (!reader.TryReadInt32Nullable(nullFlags, out var value, out sizeNeeded))
                             {
@@ -2947,7 +2947,7 @@ namespace Zerra.Serialization.Bytes
                             numValue = value;
                             break;
                         }
-                    case CoreType.UInt32Nullable:
+                    case CoreEnumType.UInt32Nullable:
                         {
                             if (!reader.TryReadUInt32Nullable(nullFlags, out var value, out sizeNeeded))
                             {
@@ -2957,7 +2957,7 @@ namespace Zerra.Serialization.Bytes
                             numValue = value;
                             break;
                         }
-                    case CoreType.Int64Nullable:
+                    case CoreEnumType.Int64Nullable:
                         {
                             if (!reader.TryReadInt64Nullable(nullFlags, out var value, out sizeNeeded))
                             {
@@ -2967,7 +2967,7 @@ namespace Zerra.Serialization.Bytes
                             numValue = value;
                             break;
                         }
-                    case CoreType.UInt64Nullable:
+                    case CoreEnumType.UInt64Nullable:
                         {
                             if (!reader.TryReadUInt64Nullable(nullFlags, out var value, out sizeNeeded))
                             {

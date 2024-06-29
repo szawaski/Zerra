@@ -285,6 +285,7 @@ public sealed class EnumName : Attribute
 
                 var field = fields.First(x => x.Name == name);
                 items.Add(name, enumValue);
+                items.Add(((ulong)enumValue).ToString(), enumValue);
                 var attribute = field.GetCustomAttribute<EnumName>(false);
                 if (attribute != null)
                 {

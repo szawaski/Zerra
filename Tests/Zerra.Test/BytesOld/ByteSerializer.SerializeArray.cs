@@ -495,58 +495,58 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytesEnumType(object? value, CoreType coreType, bool nullFlags, ref ByteWriterOld writer)
+        private static void ToBytesEnumType(object? value, CoreEnumType coreType, bool nullFlags, ref ByteWriterOld writer)
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
             switch (coreType)
             {
-                case CoreType.Byte:
+                case CoreEnumType.Byte:
                     writer.Write((byte)value!);
                     return;
-                case CoreType.SByte:
+                case CoreEnumType.SByte:
                     writer.Write((sbyte)value!);
                     return;
-                case CoreType.Int16:
+                case CoreEnumType.Int16:
                     writer.Write((short)value!);
                     return;
-                case CoreType.UInt16:
+                case CoreEnumType.UInt16:
                     writer.Write((ushort)value!);
                     return;
-                case CoreType.Int32:
+                case CoreEnumType.Int32:
                     writer.Write((int)value!);
                     return;
-                case CoreType.UInt32:
+                case CoreEnumType.UInt32:
                     writer.Write((uint)value!);
                     return;
-                case CoreType.Int64:
+                case CoreEnumType.Int64:
                     writer.Write((long)value!);
                     return;
-                case CoreType.UInt64:
+                case CoreEnumType.UInt64:
                     writer.Write((ulong)value!);
                     return;
 
-                case CoreType.ByteNullable:
+                case CoreEnumType.ByteNullable:
                     writer.Write(value == null ? null : (byte?)(byte)value, nullFlags);
                     return;
-                case CoreType.SByteNullable:
+                case CoreEnumType.SByteNullable:
                     writer.Write(value == null ? null : (sbyte?)(sbyte)value, nullFlags);
                     return;
-                case CoreType.Int16Nullable:
+                case CoreEnumType.Int16Nullable:
                     writer.Write(value == null ? null : (short?)(short)value, nullFlags);
                     return;
-                case CoreType.UInt16Nullable:
+                case CoreEnumType.UInt16Nullable:
                     writer.Write(value == null ? null : (ushort?)(ushort)value, nullFlags);
                     return;
-                case CoreType.Int32Nullable:
+                case CoreEnumType.Int32Nullable:
                     writer.Write(value == null ? null : (int?)(int)value, nullFlags);
                     return;
-                case CoreType.UInt32Nullable:
+                case CoreEnumType.UInt32Nullable:
                     writer.Write(value == null ? null : (uint?)(uint)value, nullFlags);
                     return;
-                case CoreType.Int64Nullable:
+                case CoreEnumType.Int64Nullable:
                     writer.Write(value == null ? null : (long?)(long)value, nullFlags);
                     return;
-                case CoreType.UInt64Nullable:
+                case CoreEnumType.UInt64Nullable:
                     writer.Write(value == null ? null : (ulong?)(ulong)value, nullFlags);
                     return;
                 default:
@@ -554,58 +554,58 @@ namespace Zerra.Serialization.Bytes
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToBytesEnumTypeEnumerable(IEnumerable values, int length, CoreType coreType, ref ByteWriterOld writer)
+        private static void ToBytesEnumTypeEnumerable(IEnumerable values, int length, CoreEnumType coreType, ref ByteWriterOld writer)
         {
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
             switch (coreType)
             {
-                case CoreType.Byte:
+                case CoreEnumType.Byte:
                     writer.WriteByteCast(values, length);
                     return;
-                case CoreType.SByte:
+                case CoreEnumType.SByte:
                     writer.WriteSByteCast(values, length);
                     return;
-                case CoreType.Int16:
+                case CoreEnumType.Int16:
                     writer.WriteInt16Cast(values, length);
                     return;
-                case CoreType.UInt16:
+                case CoreEnumType.UInt16:
                     writer.WriteUInt16Cast(values, length);
                     return;
-                case CoreType.Int32:
+                case CoreEnumType.Int32:
                     writer.WriteInt32Cast(values, length);
                     return;
-                case CoreType.UInt32:
+                case CoreEnumType.UInt32:
                     writer.WriteUInt32Cast(values, length);
                     return;
-                case CoreType.Int64:
+                case CoreEnumType.Int64:
                     writer.WriteInt64Cast(values, length);
                     return;
-                case CoreType.UInt64:
+                case CoreEnumType.UInt64:
                     writer.WriteUInt64Cast(values, length);
                     return;
 
-                case CoreType.ByteNullable:
+                case CoreEnumType.ByteNullable:
                     writer.WriteByteNullableCast(values, length);
                     return;
-                case CoreType.SByteNullable:
+                case CoreEnumType.SByteNullable:
                     writer.WriteSByteNullableCast(values, length);
                     return;
-                case CoreType.Int16Nullable:
+                case CoreEnumType.Int16Nullable:
                     writer.WriteInt16NullableCast(values, length);
                     return;
-                case CoreType.UInt16Nullable:
+                case CoreEnumType.UInt16Nullable:
                     writer.WriteUInt16NullableCast(values, length);
                     return;
-                case CoreType.Int32Nullable:
+                case CoreEnumType.Int32Nullable:
                     writer.WriteInt32NullableCast(values, length);
                     return;
-                case CoreType.UInt32Nullable:
+                case CoreEnumType.UInt32Nullable:
                     writer.WriteUInt32NullableCast(values, length);
                     return;
-                case CoreType.Int64Nullable:
+                case CoreEnumType.Int64Nullable:
                     writer.WriteUInt64NullableCast(values, length);
                     return;
-                case CoreType.UInt64Nullable:
+                case CoreEnumType.UInt64Nullable:
                     writer.WriteUInt64NullableCast(values, length);
                     return;
                 default:

@@ -14,12 +14,12 @@ namespace Zerra.Reflection
             { typeof(bool), CoreType.Boolean },
             { typeof(byte), CoreType.Byte },
             { typeof(sbyte), CoreType.SByte },
-            { typeof(ushort), CoreType.UInt16 },
             { typeof(short), CoreType.Int16 },
-            { typeof(uint), CoreType.UInt32 },
+            { typeof(ushort), CoreType.UInt16 },
             { typeof(int), CoreType.Int32 },
-            { typeof(ulong), CoreType.UInt64 },
+            { typeof(uint), CoreType.UInt32 },
             { typeof(long), CoreType.Int64 },
+            { typeof(ulong), CoreType.UInt64 },
             { typeof(float), CoreType.Single },
             { typeof(double), CoreType.Double },
             { typeof(decimal), CoreType.Decimal },
@@ -38,12 +38,12 @@ namespace Zerra.Reflection
             { typeof(bool?), CoreType.BooleanNullable },
             { typeof(byte?), CoreType.ByteNullable },
             { typeof(sbyte?), CoreType.SByteNullable },
-            { typeof(ushort?), CoreType.UInt16Nullable },
             { typeof(short?), CoreType.Int16Nullable },
-            { typeof(uint?), CoreType.UInt32Nullable },
+            { typeof(ushort?), CoreType.UInt16Nullable },
             { typeof(int?), CoreType.Int32Nullable },
-            { typeof(ulong?), CoreType.UInt64Nullable },
+            { typeof(uint?), CoreType.UInt32Nullable },
             { typeof(long?), CoreType.Int64Nullable },
+            { typeof(ulong?), CoreType.UInt64Nullable },
             { typeof(float?), CoreType.SingleNullable },
             { typeof(double?), CoreType.DoubleNullable },
             { typeof(decimal?), CoreType.DecimalNullable },
@@ -60,6 +60,31 @@ namespace Zerra.Reflection
         public static bool CoreTypeLookup(Type type, out CoreType coreType)
         {
             return coreTypeLookup.TryGetValue(type, out coreType);
+        }
+
+        private static readonly IReadOnlyDictionary<Type, CoreEnumType> coreEnumTypeLookup = new Dictionary<Type, CoreEnumType>()
+        {
+            { typeof(byte), CoreEnumType.Byte },
+            { typeof(sbyte), CoreEnumType.SByte },
+            { typeof(short), CoreEnumType.Int16 },
+            { typeof(ushort), CoreEnumType.UInt16 },
+            { typeof(int), CoreEnumType.Int32 },
+            { typeof(uint), CoreEnumType.UInt32 },
+            { typeof(long), CoreEnumType.Int64 },
+            { typeof(ulong), CoreEnumType.UInt64 },
+           
+            { typeof(byte?), CoreEnumType.ByteNullable },
+            { typeof(sbyte?), CoreEnumType.SByteNullable },
+            { typeof(short?), CoreEnumType.Int16Nullable },
+            { typeof(ushort?), CoreEnumType.UInt16Nullable },
+            { typeof(int?), CoreEnumType.Int32Nullable },
+            { typeof(uint?), CoreEnumType.UInt32Nullable },
+            { typeof(long?), CoreEnumType.Int64Nullable },
+            { typeof(ulong?), CoreEnumType.UInt64Nullable },
+        };
+        public static bool CoreEnumTypeLookup(Type type, out CoreEnumType coreType)
+        {
+            return coreEnumTypeLookup.TryGetValue(type, out coreType);
         }
 
         public static readonly IReadOnlyList<Type> CoreTypes = new Type[]

@@ -662,56 +662,56 @@ namespace Zerra.Serialization.Bytes
             int sizeNeeded;
             switch (state.CurrentFrame.TypeDetail!.TypeDetail.EnumUnderlyingType)
             {
-                case CoreType.Byte:
+                case CoreEnumType.Byte:
                     if (!writer.TryWrite((byte)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.SByte:
+                case CoreEnumType.SByte:
                     if (!writer.TryWrite((sbyte)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.Int16:
+                case CoreEnumType.Int16:
                     if (!writer.TryWrite((short)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.UInt16:
+                case CoreEnumType.UInt16:
                     if (!writer.TryWrite((ushort)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.Int32:
+                case CoreEnumType.Int32:
                     if (!writer.TryWrite((int)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.UInt32:
+                case CoreEnumType.UInt32:
                     if (!writer.TryWrite((uint)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.Int64:
+                case CoreEnumType.Int64:
                     if (!writer.TryWrite((long)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.UInt64:
+                case CoreEnumType.UInt64:
                     if (!writer.TryWrite((ulong)state.CurrentFrame.Object!, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
@@ -719,56 +719,56 @@ namespace Zerra.Serialization.Bytes
                     }
                     break;
 
-                case CoreType.ByteNullable:
+                case CoreEnumType.ByteNullable:
                     if (!writer.TryWrite(state.CurrentFrame.Object == null ? null : (byte?)(byte)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.SByteNullable:
+                case CoreEnumType.SByteNullable:
                     if (!writer.TryWrite(state.CurrentFrame.Object == null ? null : (sbyte?)(sbyte)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.Int16Nullable:
+                case CoreEnumType.Int16Nullable:
                     if (!writer.TryWrite(state.CurrentFrame.Object == null ? null : (short?)(short)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.UInt16Nullable:
+                case CoreEnumType.UInt16Nullable:
                     if (!writer.TryWrite(state.CurrentFrame.Object == null ? null : (ushort?)(ushort)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.Int32Nullable:
+                case CoreEnumType.Int32Nullable:
                     if (!writer.TryWrite(state.CurrentFrame.Object == null ? null : (int?)(int)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.UInt32Nullable:
+                case CoreEnumType.UInt32Nullable:
                     if (!writer.TryWrite(state.CurrentFrame.Object == null ? null : (uint?)(uint)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.Int64Nullable:
+                case CoreEnumType.Int64Nullable:
                     if (!writer.TryWrite(state.CurrentFrame.Object == null ? null : (long?)(long)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.UInt64Nullable:
+                case CoreEnumType.UInt64Nullable:
                     if (!writer.TryWrite(state.CurrentFrame.Object == null ? null : (ulong?)(ulong)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
@@ -1339,56 +1339,56 @@ namespace Zerra.Serialization.Bytes
             //Core Types are skipped if null in an object property so null flags not necessary unless nullFlags = true
             switch (typeDetail.TypeDetail.EnumUnderlyingType)
             {
-                case CoreType.Byte:
+                case CoreEnumType.Byte:
                     if (!writer.TryWriteByteCast(values, length, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.SByte:
+                case CoreEnumType.SByte:
                     if (!writer.TryWriteSByteCast(values, length, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.Int16:
+                case CoreEnumType.Int16:
                     if (!writer.TryWriteInt16Cast(values, length, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.UInt16:
+                case CoreEnumType.UInt16:
                     if (!writer.TryWriteUInt16Cast(values, length, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.Int32:
+                case CoreEnumType.Int32:
                     if (!writer.TryWriteInt32Cast(values, length, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.UInt32:
+                case CoreEnumType.UInt32:
                     if (!writer.TryWriteUInt32Cast(values, length, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.Int64:
+                case CoreEnumType.Int64:
                     if (!writer.TryWriteInt64Cast(values, length, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.UInt64:
+                case CoreEnumType.UInt64:
                     if (!writer.TryWriteUInt64Cast(values, length, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
@@ -1396,56 +1396,56 @@ namespace Zerra.Serialization.Bytes
                     }
                     break;
 
-                case CoreType.ByteNullable:
+                case CoreEnumType.ByteNullable:
                     if (!writer.TryWriteByteNullableCast(values, length, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.SByteNullable:
+                case CoreEnumType.SByteNullable:
                     if (!writer.TryWriteSByteNullableCast(values, length, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.Int16Nullable:
+                case CoreEnumType.Int16Nullable:
                     if (!writer.TryWriteInt16NullableCast(values, length, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.UInt16Nullable:
+                case CoreEnumType.UInt16Nullable:
                     if (!writer.TryWriteUInt16NullableCast(values, length, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.Int32Nullable:
+                case CoreEnumType.Int32Nullable:
                     if (!writer.TryWriteInt32NullableCast(values, length, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.UInt32Nullable:
+                case CoreEnumType.UInt32Nullable:
                     if (!writer.TryWriteUInt32NullableCast(values, length, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.Int64Nullable:
+                case CoreEnumType.Int64Nullable:
                     if (!writer.TryWriteUInt64NullableCast(values, length, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
-                case CoreType.UInt64Nullable:
+                case CoreEnumType.UInt64Nullable:
                     if (!writer.TryWriteUInt64NullableCast(values, length, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;

@@ -910,6 +910,41 @@ namespace Zerra.Serialization.Json
             return null;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static object? FromStringLiteralNumberAsType(char c, CoreEnumType coreType, ref CharReader reader, ref CharWriter decodeBuffer)
+        {
+            unchecked
+            {
+                switch (coreType)
+                {
+                    case CoreEnumType.Byte:
+                    case CoreEnumType.ByteNullable:
+                        return (byte)FromStringLiteralNumberAsUInt64(c, ref reader);
+                    case CoreEnumType.SByte:
+                    case CoreEnumType.SByteNullable:
+                        return (sbyte)FromStringLiteralNumberAsInt64(c, ref reader);
+                    case CoreEnumType.Int16:
+                    case CoreEnumType.Int16Nullable:
+                        return (short)FromStringLiteralNumberAsInt64(c, ref reader);
+                    case CoreEnumType.UInt16:
+                    case CoreEnumType.UInt16Nullable:
+                        return (ushort)FromStringLiteralNumberAsUInt64(c, ref reader);
+                    case CoreEnumType.Int32:
+                    case CoreEnumType.Int32Nullable:
+                        return (int)FromStringLiteralNumberAsInt64(c, ref reader);
+                    case CoreEnumType.UInt32:
+                    case CoreEnumType.UInt32Nullable:
+                        return (uint)FromStringLiteralNumberAsUInt64(c, ref reader);
+                    case CoreEnumType.Int64:
+                    case CoreEnumType.Int64Nullable:
+                        return (long)FromStringLiteralNumberAsInt64(c, ref reader);
+                    case CoreEnumType.UInt64:
+                    case CoreEnumType.UInt64Nullable:
+                        return (ulong)FromStringLiteralNumberAsUInt64(c, ref reader);
+                }
+            }
+            return null;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static string FromStringLiteralNumberAsString(char c, ref CharReader reader, ref CharWriter decodeBuffer)
         {
             switch (c)

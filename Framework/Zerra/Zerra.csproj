@@ -107,7 +107,6 @@ Zerra.Reflection.TypeAnalyzer
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Serialization\Json\Converters\Collections\" />
       <Folder Include="Serialization\Json\IO\" />
     </ItemGroup>
 

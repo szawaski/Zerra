@@ -627,8 +627,8 @@ namespace Zerra.Serialization.Json
             {
                 switch (typeDetail.EnumUnderlyingType)
                 {
-                    case CoreType.Byte:
-                    case CoreType.ByteNullable:
+                    case CoreEnumType.Byte:
+                    case CoreEnumType.ByteNullable:
                         if (!writer.TryWrite((byte)state.CurrentFrame.Object!, out var sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
@@ -636,8 +636,8 @@ namespace Zerra.Serialization.Json
                         }
                         state.EndFrame();
                         return;
-                    case CoreType.SByte:
-                    case CoreType.SByteNullable:
+                    case CoreEnumType.SByte:
+                    case CoreEnumType.SByteNullable:
                         if (!writer.TryWrite((sbyte)state.CurrentFrame.Object!, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
@@ -645,8 +645,8 @@ namespace Zerra.Serialization.Json
                         }
                         state.EndFrame();
                         return;
-                    case CoreType.Int16:
-                    case CoreType.Int16Nullable:
+                    case CoreEnumType.Int16:
+                    case CoreEnumType.Int16Nullable:
                         if (!writer.TryWrite((short)state.CurrentFrame.Object!, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
@@ -654,8 +654,8 @@ namespace Zerra.Serialization.Json
                         }
                         state.EndFrame();
                         return;
-                    case CoreType.UInt16:
-                    case CoreType.UInt16Nullable:
+                    case CoreEnumType.UInt16:
+                    case CoreEnumType.UInt16Nullable:
                         if (!writer.TryWrite((ushort)state.CurrentFrame.Object!, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
@@ -663,8 +663,8 @@ namespace Zerra.Serialization.Json
                         }
                         state.EndFrame();
                         return;
-                    case CoreType.Int32:
-                    case CoreType.Int32Nullable:
+                    case CoreEnumType.Int32:
+                    case CoreEnumType.Int32Nullable:
                         if (!writer.TryWrite((int)state.CurrentFrame.Object!, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
@@ -672,8 +672,8 @@ namespace Zerra.Serialization.Json
                         }
                         state.EndFrame();
                         return;
-                    case CoreType.UInt32:
-                    case CoreType.UInt32Nullable:
+                    case CoreEnumType.UInt32:
+                    case CoreEnumType.UInt32Nullable:
                         if (!writer.TryWrite((uint)state.CurrentFrame.Object!, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
@@ -681,8 +681,8 @@ namespace Zerra.Serialization.Json
                         }
                         state.EndFrame();
                         return;
-                    case CoreType.Int64:
-                    case CoreType.Int64Nullable:
+                    case CoreEnumType.Int64:
+                    case CoreEnumType.Int64Nullable:
                         if (!writer.TryWrite((long)state.CurrentFrame.Object!, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
@@ -690,8 +690,8 @@ namespace Zerra.Serialization.Json
                         }
                         state.EndFrame();
                         return;
-                    case CoreType.UInt64:
-                    case CoreType.UInt64Nullable:
+                    case CoreEnumType.UInt64:
+                    case CoreEnumType.UInt64Nullable:
                         if (!writer.TryWrite((ulong)state.CurrentFrame.Object!, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
@@ -2050,7 +2050,7 @@ namespace Zerra.Serialization.Json
                 {
                     switch (typeDetail.EnumUnderlyingType)
                     {
-                        case CoreType.Byte:
+                        case CoreEnumType.Byte:
                             if (!writer.TryWrite((byte)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
@@ -2058,7 +2058,7 @@ namespace Zerra.Serialization.Json
                             }
                             state.WorkingStringStage = 1;
                             break;
-                        case CoreType.SByte:
+                        case CoreEnumType.SByte:
                             if (!writer.TryWrite((sbyte)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
@@ -2066,7 +2066,7 @@ namespace Zerra.Serialization.Json
                             }
                             state.WorkingStringStage = 1;
                             break;
-                        case CoreType.Int16:
+                        case CoreEnumType.Int16:
                             if (!writer.TryWrite((short)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
@@ -2074,7 +2074,7 @@ namespace Zerra.Serialization.Json
                             }
                             state.WorkingStringStage = 1;
                             break;
-                        case CoreType.UInt16:
+                        case CoreEnumType.UInt16:
                             if (!writer.TryWrite((ushort)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
@@ -2082,7 +2082,7 @@ namespace Zerra.Serialization.Json
                             }
                             state.WorkingStringStage = 1;
                             break;
-                        case CoreType.Int32:
+                        case CoreEnumType.Int32:
                             if (!writer.TryWrite((int)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
@@ -2090,7 +2090,7 @@ namespace Zerra.Serialization.Json
                             }
                             state.WorkingStringStage = 1;
                             break;
-                        case CoreType.UInt32:
+                        case CoreEnumType.UInt32:
                             if (!writer.TryWrite((uint)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
@@ -2098,7 +2098,7 @@ namespace Zerra.Serialization.Json
                             }
                             state.WorkingStringStage = 1;
                             break;
-                        case CoreType.Int64:
+                        case CoreEnumType.Int64:
                             if (!writer.TryWrite((long)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
@@ -2106,7 +2106,7 @@ namespace Zerra.Serialization.Json
                             }
                             state.WorkingStringStage = 1;
                             break;
-                        case CoreType.UInt64:
+                        case CoreEnumType.UInt64:
                             if (!writer.TryWrite((ulong)state.CurrentFrame.Enumerator!.Current!, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
@@ -2114,7 +2114,7 @@ namespace Zerra.Serialization.Json
                             }
                             state.WorkingStringStage = 1;
                             break;
-                        case CoreType.ByteNullable:
+                        case CoreEnumType.ByteNullable:
                             {
                                 var value = state.CurrentFrame.Enumerator!.Current!;
                                 if (value != null)
@@ -2136,7 +2136,7 @@ namespace Zerra.Serialization.Json
                                 state.WorkingStringStage = 1;
                                 break;
                             }
-                        case CoreType.SByteNullable:
+                        case CoreEnumType.SByteNullable:
                             {
                                 var value = state.CurrentFrame.Enumerator!.Current!;
                                 if (value != null)
@@ -2158,7 +2158,7 @@ namespace Zerra.Serialization.Json
                                 state.WorkingStringStage = 1;
                                 break;
                             }
-                        case CoreType.Int16Nullable:
+                        case CoreEnumType.Int16Nullable:
                             {
                                 var value = state.CurrentFrame.Enumerator!.Current!;
                                 if (value != null)
@@ -2180,7 +2180,7 @@ namespace Zerra.Serialization.Json
                                 state.WorkingStringStage = 1;
                                 break;
                             }
-                        case CoreType.UInt16Nullable:
+                        case CoreEnumType.UInt16Nullable:
                             {
                                 var value = state.CurrentFrame.Enumerator!.Current!;
                                 if (value != null)
@@ -2202,7 +2202,7 @@ namespace Zerra.Serialization.Json
                                 state.WorkingStringStage = 1;
                                 break;
                             }
-                        case CoreType.Int32Nullable:
+                        case CoreEnumType.Int32Nullable:
                             {
                                 var value = state.CurrentFrame.Enumerator!.Current!;
                                 if (value != null)
@@ -2224,7 +2224,7 @@ namespace Zerra.Serialization.Json
                                 state.WorkingStringStage = 1;
                                 break;
                             }
-                        case CoreType.UInt32Nullable:
+                        case CoreEnumType.UInt32Nullable:
                             {
                                 var value = state.CurrentFrame.Enumerator!.Current!;
                                 if (value != null)
@@ -2246,7 +2246,7 @@ namespace Zerra.Serialization.Json
                                 state.WorkingStringStage = 1;
                                 break;
                             }
-                        case CoreType.Int64Nullable:
+                        case CoreEnumType.Int64Nullable:
                             {
                                 var value = state.CurrentFrame.Enumerator!.Current!;
                                 if (value != null)
@@ -2268,7 +2268,7 @@ namespace Zerra.Serialization.Json
                                 state.WorkingStringStage = 1;
                                 break;
                             }
-                        case CoreType.UInt64Nullable:
+                        case CoreEnumType.UInt64Nullable:
                             {
                                 var value = state.CurrentFrame.Enumerator!.Current!;
                                 if (value != null)

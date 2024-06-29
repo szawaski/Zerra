@@ -495,6 +495,47 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ToStringJsonCoreType(object value, CoreEnumType coreType, ref CharWriter writer)
+        {
+            switch (coreType)
+            {
+                case CoreEnumType.Byte:
+                case CoreEnumType.ByteNullable:
+                    writer.Write((byte)value);
+                    return;
+                case CoreEnumType.SByte:
+                case CoreEnumType.SByteNullable:
+                    writer.Write((sbyte)value);
+                    return;
+                case CoreEnumType.Int16:
+                case CoreEnumType.Int16Nullable:
+                    writer.Write((short)value);
+                    return;
+                case CoreEnumType.UInt16:
+                case CoreEnumType.UInt16Nullable:
+                    writer.Write((ushort)value);
+                    return;
+                case CoreEnumType.Int32:
+                case CoreEnumType.Int32Nullable:
+                    writer.Write((int)value);
+                    return;
+                case CoreEnumType.UInt32:
+                case CoreEnumType.UInt32Nullable:
+                    writer.Write((uint)value);
+                    return;
+                case CoreEnumType.Int64:
+                case CoreEnumType.Int64Nullable:
+                    writer.Write((long)value);
+                    return;
+                case CoreEnumType.UInt64:
+                case CoreEnumType.UInt64Nullable:
+                    writer.Write((ulong)value);
+                    return;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ToStringJsonCoreTypeEnumerable(IEnumerable values, CoreType coreType, ref CharWriter writer)
         {
             switch (coreType)

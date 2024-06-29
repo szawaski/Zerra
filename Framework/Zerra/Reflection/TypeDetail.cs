@@ -121,8 +121,8 @@ namespace Zerra.Reflection
         }
 
         private bool enumUnderlyingTypeLoaded = false;
-        private CoreType? enumUnderlyingType;
-        public CoreType? EnumUnderlyingType
+        private CoreEnumType? enumUnderlyingType;
+        public CoreEnumType? EnumUnderlyingType
         {
             get
             {
@@ -135,25 +135,25 @@ namespace Zerra.Reflection
                             if (Type.IsEnum)
                             {
                                 var enumEnderlyingType = Enum.GetUnderlyingType(this.Type);
-                                if (!TypeLookup.CoreTypeLookup(enumEnderlyingType, out var enumCoreTypeLookup))
+                                if (!TypeLookup.CoreEnumTypeLookup(enumEnderlyingType, out var enumCoreTypeLookup))
                                     throw new NotImplementedException("Should not happen");
                                 enumUnderlyingType = enumCoreTypeLookup;
                             }
                             else if (this.IsNullable && this.InnerTypes[0].IsEnum)
                             {
                                 var enumEnderlyingType = Enum.GetUnderlyingType(this.InnerTypes[0]);
-                                if (!TypeLookup.CoreTypeLookup(enumEnderlyingType, out var enumCoreTypeLookup))
+                                if (!TypeLookup.CoreEnumTypeLookup(enumEnderlyingType, out var enumCoreTypeLookup))
                                     throw new NotImplementedException("Should not happen");
                                 enumCoreTypeLookup = enumCoreTypeLookup switch
                                 {
-                                    Reflection.CoreType.Byte => Reflection.CoreType.ByteNullable,
-                                    Reflection.CoreType.SByte => Reflection.CoreType.SByteNullable,
-                                    Reflection.CoreType.Int16 => Reflection.CoreType.Int16Nullable,
-                                    Reflection.CoreType.UInt16 => Reflection.CoreType.UInt16Nullable,
-                                    Reflection.CoreType.Int32 => Reflection.CoreType.Int32Nullable,
-                                    Reflection.CoreType.UInt32 => Reflection.CoreType.UInt32Nullable,
-                                    Reflection.CoreType.Int64 => Reflection.CoreType.Int64Nullable,
-                                    Reflection.CoreType.UInt64 => Reflection.CoreType.UInt64Nullable,
+                                    CoreEnumType.Byte => CoreEnumType.ByteNullable,
+                                    CoreEnumType.SByte => CoreEnumType.SByteNullable,
+                                    CoreEnumType.Int16 => CoreEnumType.Int16Nullable,
+                                    CoreEnumType.UInt16 => CoreEnumType.UInt16Nullable,
+                                    CoreEnumType.Int32 => CoreEnumType.Int32Nullable,
+                                    CoreEnumType.UInt32 => CoreEnumType.UInt32Nullable,
+                                    CoreEnumType.Int64 => CoreEnumType.Int64Nullable,
+                                    CoreEnumType.UInt64 => CoreEnumType.UInt64Nullable,
                                     _ => throw new NotImplementedException(),
                                 };
                                 enumUnderlyingType = enumCoreTypeLookup;

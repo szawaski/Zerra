@@ -75,15 +75,19 @@ namespace Zerra.Serialization.Json.Converters.General
 
         protected override sealed bool TryReadValue(ref CharReader reader, ref ReadState state, out TValue? value)
         {
-            if (state.Current.ValueType != JsonValueType.Object)
+            if (state.Current.ValueType == JsonValueType.Null_Completed)
             {
-                if (!Drain(ref reader, ref state))
-                {
-                    value = default;
-                    return false;
-                }
                 value = default;
                 return true;
+            }
+
+            if (state.Current.ValueType != JsonValueType.Object)
+            {
+                if (state.ErrorOnTypeMismatch)
+                    throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+
+                value = default;
+                return Drain(ref reader, ref state);
             }
 
             Dictionary<string, object?>? collectedValues;
@@ -128,10 +132,18 @@ namespace Zerra.Serialization.Json.Converters.General
                 JsonConverterObjectMember? property;
                 if (!state.Current.HasReadProperty)
                 {
-                    if (!reader.TryReadSkipWhiteSpace(out c))
+                    if (!state.Current.WorkingFirstChar.HasValue)
                     {
-                        state.CharsNeeded = 1;
-                        return false;
+                        if (!reader.TryReadSkipWhiteSpace(out c))
+                        {
+                            state.CharsNeeded = 1;
+                            value = default;
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        c = state.Current.WorkingFirstChar.Value;
                     }
 
                     if (c == '}')
@@ -141,7 +153,11 @@ namespace Zerra.Serialization.Json.Converters.General
                         throw reader.CreateException("Unexpected character");
 
                     if (!ReadString(ref reader, ref state, out var name))
+                    {
+                        state.Current.WorkingFirstChar = c;
                         return false;
+                    }
+                    state.Current.WorkingFirstChar = null;
 
                     if (String.IsNullOrWhiteSpace(name))
                         throw reader.CreateException("Unexpected character");
@@ -154,7 +170,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     property = (JsonConverterObjectMember?)state.Current.Property;
                 }
 
-                if (!state.Current.HasReadPropertySeperator)
+                if (!state.Current.HasReadSeperator)
                 {
                     if (!reader.TryReadSkipWhiteSpace(out c))
                     {
@@ -166,7 +182,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         throw reader.CreateException("Unexpected character");
                 }
 
-                if (!state.Current.HasReadPropertyValue)
+                if (!state.Current.HasReadValue)
                 {
                     if (property is null)
                     {
@@ -174,7 +190,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         if (!Drain(ref reader, ref state))
                         {
                             state.Current.HasReadProperty = true;
-                            state.Current.HasReadPropertySeperator = true;
+                            state.Current.HasReadSeperator = true;
                             state.Current.Property = property;
                             return false;
                         }
@@ -187,7 +203,7 @@ namespace Zerra.Serialization.Json.Converters.General
                             if (!property.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues))
                             {
                                 state.Current.HasReadProperty = true;
-                                state.Current.HasReadPropertySeperator = true;
+                                state.Current.HasReadSeperator = true;
                                 state.Current.Property = property;
                                 return false;
                             }
@@ -198,7 +214,7 @@ namespace Zerra.Serialization.Json.Converters.General
                             if (!property.Converter.TryReadFromParent(ref reader, ref state, value))
                             {
                                 state.Current.HasReadProperty = true;
-                                state.Current.HasReadPropertySeperator = true;
+                                state.Current.HasReadSeperator = true;
                                 state.Current.Property = property;
                                 return false;
                             }
@@ -210,8 +226,8 @@ namespace Zerra.Serialization.Json.Converters.General
                 {
                     state.CharsNeeded = 1;
                     state.Current.HasReadProperty = true;
-                    state.Current.HasReadPropertySeperator = true;
-                    state.Current.HasReadPropertyValue = true;
+                    state.Current.HasReadSeperator = true;
+                    state.Current.HasReadValue = true;
                     return false;
                 }
 
@@ -222,8 +238,8 @@ namespace Zerra.Serialization.Json.Converters.General
                     throw reader.CreateException("Unexpected character");
 
                 state.Current.HasReadProperty = false;
-                state.Current.HasReadPropertySeperator = false;
-                state.Current.HasReadPropertyValue = false;
+                state.Current.HasReadSeperator = false;
+                state.Current.HasReadValue = false;
             }
 
             if (collectValues)

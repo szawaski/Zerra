@@ -82,7 +82,7 @@ namespace Zerra.Serialization.Bytes
 
             if (typeDetail.TypeDetail.EnumUnderlyingType.HasValue)
             {
-                var numValue = FromBytesCoreType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, nullFlags);
+                var numValue = FromBytesCoreEnumType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, nullFlags);
                 object? value;
                 if (numValue != null)
                 {
@@ -212,7 +212,7 @@ namespace Zerra.Serialization.Bytes
                     var list = (IList)typeDetail.ListCreator(length);
                     for (var i = 0; i < length; i++)
                     {
-                        var numValue = FromBytesCoreType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, true);
+                        var numValue = FromBytesCoreEnumType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, true);
                         object? item;
                         if (numValue != null)
                         {
@@ -236,7 +236,7 @@ namespace Zerra.Serialization.Bytes
                     var adderArgs = new object?[1];
                     for (var i = 0; i < length; i++)
                     {
-                        var numValue = FromBytesCoreType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, true);
+                        var numValue = FromBytesCoreEnumType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, true);
                         object? item;
                         if (numValue != null)
                         {
@@ -259,7 +259,7 @@ namespace Zerra.Serialization.Bytes
                     var array = Array.CreateInstance(typeDetail.Type, length);
                     for (var i = 0; i < length; i++)
                     {
-                        var numValue = FromBytesCoreType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, true);
+                        var numValue = FromBytesCoreEnumType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, true);
                         object? item;
                         if (numValue != null)
                         {
@@ -421,6 +421,31 @@ namespace Zerra.Serialization.Bytes
                 CoreType.TimeOnlyNullable => reader.ReadTimeOnlyNullable(nullFlags),
 #endif
                 CoreType.GuidNullable => reader.ReadGuidNullable(nullFlags),
+                _ => throw new NotImplementedException(),
+            };
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static object? FromBytesCoreEnumType(ref ByteReaderOld reader, CoreEnumType coreType, bool nullFlags)
+        {
+            //Core Types are skipped if null in an object property so null flags not necessary unless coreTypeCouldBeNull = true
+            return coreType switch
+            {
+                CoreEnumType.Byte => reader.ReadByte(),
+                CoreEnumType.SByte => reader.ReadSByte(),
+                CoreEnumType.Int16 => reader.ReadInt16(),
+                CoreEnumType.UInt16 => reader.ReadUInt16(),
+                CoreEnumType.Int32 => reader.ReadInt32(),
+                CoreEnumType.UInt32 => reader.ReadUInt32(),
+                CoreEnumType.Int64 => reader.ReadInt64(),
+                CoreEnumType.UInt64 => reader.ReadUInt64(),
+                CoreEnumType.ByteNullable => reader.ReadByteNullable(nullFlags),
+                CoreEnumType.SByteNullable => reader.ReadSByteNullable(nullFlags),
+                CoreEnumType.Int16Nullable => reader.ReadInt16Nullable(nullFlags),
+                CoreEnumType.UInt16Nullable => reader.ReadUInt16Nullable(nullFlags),
+                CoreEnumType.Int32Nullable => reader.ReadInt32Nullable(nullFlags),
+                CoreEnumType.UInt32Nullable => reader.ReadUInt32Nullable(nullFlags),
+                CoreEnumType.Int64Nullable => reader.ReadInt64Nullable(nullFlags),
+                CoreEnumType.UInt64Nullable => reader.ReadUInt64Nullable(nullFlags),
                 _ => throw new NotImplementedException(),
             };
         }
