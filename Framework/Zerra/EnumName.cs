@@ -277,6 +277,7 @@ public sealed class EnumName : Attribute
         {
             var items = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             var fields = type.GetFields();
+            var typeDetail = type.GetTypeDetail();
             foreach (var enumValue in Enum.GetValues(type))
             {
                 var name = enumValue.ToString();
@@ -284,8 +285,45 @@ public sealed class EnumName : Attribute
                     continue;
 
                 var field = fields.First(x => x.Name == name);
+
                 items.Add(name, enumValue);
-                items.Add(((ulong)enumValue).ToString(), enumValue);
+
+                switch (typeDetail.EnumUnderlyingType!.Value)
+                {
+                    case CoreEnumType.Byte:
+                    case CoreEnumType.ByteNullable:
+                        items.Add(((byte)enumValue).ToString(), enumValue);
+                        break;
+                    case CoreEnumType.SByte:
+                    case CoreEnumType.SByteNullable:
+                        items.Add(((sbyte)enumValue).ToString(), enumValue);
+                        break;
+                    case CoreEnumType.Int16:
+                    case CoreEnumType.Int16Nullable:
+                        items.Add(((short)enumValue).ToString(), enumValue);
+                        break;
+                    case CoreEnumType.UInt16:
+                    case CoreEnumType.UInt16Nullable:
+                        items.Add(((ushort)enumValue).ToString(), enumValue);
+                        break;
+                    case CoreEnumType.Int32:
+                    case CoreEnumType.Int32Nullable:
+                        items.Add(((int)enumValue).ToString(), enumValue);
+                        break;
+                    case CoreEnumType.UInt32:
+                    case CoreEnumType.UInt32Nullable:
+                        items.Add(((uint)enumValue).ToString(), enumValue);
+                        break;
+                    case CoreEnumType.Int64:
+                    case CoreEnumType.Int64Nullable:
+                        items.Add(((long)enumValue).ToString(), enumValue);
+                        break;
+                    case CoreEnumType.UInt64:
+                    case CoreEnumType.UInt64Nullable:
+                        items.Add(((ulong)enumValue).ToString(), enumValue);
+                        break;
+                }
+            
                 var attribute = field.GetCustomAttribute<EnumName>(false);
                 if (attribute != null)
                 {
