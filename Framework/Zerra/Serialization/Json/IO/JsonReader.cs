@@ -9,11 +9,6 @@ namespace Zerra.Serialization.Json.IO
 {
     public ref partial struct JsonReader
     {
-        //last byte 128 to 191
-        //1 bytes: 0 to 127
-        //2 bytes: 192 to ?
-        //3 bytes: 224 to ?
-        //4 bytes: 240 to ?
         private static readonly Encoding encoding = Encoding.UTF8;
 
         const int errorHelperLength = 32;

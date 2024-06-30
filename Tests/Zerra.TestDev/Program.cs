@@ -18,7 +18,6 @@ namespace Zerra.TestDev
             System.Threading.Thread.CurrentThread.Priority = System.Threading.ThreadPriority.Highest;
             var timer = Stopwatch.StartNew();
 
-            TestMemory.CharWriteBufferSpeed();
             UtfTest();
 
             //TestMe();
@@ -80,6 +79,10 @@ namespace Zerra.TestDev
             var chars = new char[(int)char.MaxValue];
             for (var i = 0; i < chars.Length; i++)
                 chars[i] = (char)i;
+
+            var charsFromBytes = new char[(int)byte.MaxValue];
+            for (byte i = 0; i < charsFromBytes.Length; i++)
+                charsFromBytes[i] = (char)i;
 
             var utf16 = new Dictionary<char, byte[]>();
             var utf8 = new Dictionary<char, byte[]>();

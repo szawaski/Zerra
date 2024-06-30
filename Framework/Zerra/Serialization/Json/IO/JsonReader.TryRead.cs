@@ -3,8 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -12,6 +10,14 @@ namespace Zerra.Serialization.Json.IO
 {
     public ref partial struct JsonReader
     {
+        //https://www.rfc-editor.org/rfc/rfc4627
+
+        //last byte 128 to 191
+        //1 bytes: 0 to 127
+        //2 bytes: 192 to ?
+        //3 bytes: 224 to ?
+        //4 bytes: 240 to ?
+
         private static readonly byte quoteByte = (byte)'\"';
         private static readonly byte escapeByte = (byte)'\\';
         private static readonly byte uByte = (byte)'u';

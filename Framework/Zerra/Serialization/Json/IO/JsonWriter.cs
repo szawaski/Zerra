@@ -39,17 +39,7 @@ namespace Zerra.Serialization.Json.IO
             this.length = buffer.Length;
         }
 
-        public JsonWriter(char[] buffer, bool fromPool, int position = 0)
-        {
-            this.bufferOwner = fromPool ? buffer : null;
-            this.buffer = buffer;
-            this.position = position;
-            this.length = buffer.Length;
-        }
-
         public readonly int Length => position;
-
-        public readonly char[]? BufferOwner => bufferOwner;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureBufferSize(int additionalSize)
