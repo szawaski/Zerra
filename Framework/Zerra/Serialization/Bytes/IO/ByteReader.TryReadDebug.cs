@@ -12,7 +12,7 @@ namespace Zerra.Serialization.Bytes.IO
 {
     public partial struct ByteReader
     {
-        private static readonly bool Testing = false;
+        public static readonly bool Testing = true;
 
         private static bool Alternate = false;
 
@@ -3559,7 +3559,7 @@ namespace Zerra.Serialization.Bytes.IO
             }
 
             sizeNeeded = byteLength;
-            if (length - position < sizeNeeded || Skip())
+            if (length - position < sizeNeeded)
             {
                 if (nullFlags)
                     position -= 5;

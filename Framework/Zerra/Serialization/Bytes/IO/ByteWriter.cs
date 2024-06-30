@@ -27,7 +27,8 @@ namespace Zerra.Serialization.Bytes.IO
 
         private readonly Encoding encoding;
 
-        public readonly int Length => position;
+        public readonly int Position => position;
+        public readonly int Length => length;
 
         public ByteWriter()
         {
@@ -57,7 +58,7 @@ namespace Zerra.Serialization.Bytes.IO
         {
             if (length - position < sizeNeeded)
             {
-                if (bufferOwner == null)
+                if (bufferOwner is null)
                     return false;
 
                 BufferArrayPool<byte>.Grow(ref bufferOwner, Math.Max(buffer.Length * 2, buffer.Length + sizeNeeded));

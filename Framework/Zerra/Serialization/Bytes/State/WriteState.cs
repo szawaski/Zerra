@@ -61,15 +61,19 @@ namespace Zerra.Serialization.Bytes.State
 
         public void StashFrame()
         {
+            if (stashCount == 0)
+            {
+                stashCount = stackCount;
+                EnsureStackSize();
+            }
             if (stackCount > 1)
             {
-                if (stashCount == 0)
-                {
-                    stashCount = stackCount;
-                    EnsureStackSize();
-                }
                 stack[stackCount - 1] = Current;
                 Current = stack[--stackCount - 1];
+            }
+            else
+            {
+                stackCount = 0;
             }
         }
 

@@ -34,7 +34,7 @@ namespace Zerra.Serialization.Bytes.State
                 Array.Resize(ref stack, stack.Length * 2);
         }
 
-        public void PushFrame(bool nullFlags)
+        public void PushFrame(bool nullFlags, bool drainBytes)
         {
             if (stashCount == 0)
             {
@@ -45,7 +45,8 @@ namespace Zerra.Serialization.Bytes.State
                 }
                 Current = new()
                 {
-                    NullFlags = nullFlags
+                    NullFlags = nullFlags,
+                    DrainBytes = drainBytes
                 };
             }
             else
@@ -61,15 +62,19 @@ namespace Zerra.Serialization.Bytes.State
 
         public void StashFrame()
         {
+            if (stashCount == 0)
+            {
+                stashCount = stackCount;
+                EnsureStackSize();
+            }
             if (stackCount > 1)
             {
-                if (stashCount == 0)
-                {
-                    stashCount = stackCount;
-                    EnsureStackSize();
-                }
                 stack[stackCount - 1] = Current;
                 Current = stack[--stackCount - 1];
+            }
+            else
+            {
+                stackCount = 0;
             }
         }
 

@@ -13,7 +13,7 @@ namespace Zerra.Serialization.Bytes.IO
 {
     public ref partial struct ByteWriter
     {
-        private static readonly bool Testing = false;
+        public static readonly bool Testing = true;
 
         private static bool Alternate = false;
 

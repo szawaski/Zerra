@@ -256,9 +256,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
                     //consume bytes but object does not have property
                     var converter = ByteConverterFactory<TValue>.GetTypeRequired();
-                    state.PushFrame(false);
-                    state.Current.DrainBytes = true;
-                    var read = converter.TryReadFromParent(ref reader, ref state, default);
+                    var read = converter.TryReadFromParent(ref reader, ref state, default, false, true);
                     if (!read)
                     {
                         state.Current.HasNullChecked = true;
@@ -275,8 +273,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 {
                     if (collectValues)
                     {
-                        state.PushFrame(false);
-                        var read = property.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues);
+                        var read = property.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues, false);
                         if (!read)
                         {
                             state.Current.HasNullChecked = true;
@@ -291,8 +288,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                     else
                     {
-                        state.PushFrame(false);
-                        var read = property.Converter.TryReadFromParent(ref reader, ref state, value);
+                        var read = property.Converter.TryReadFromParent(ref reader, ref state, value, false);
                         if (!read)
                         {
                             state.Current.HasNullChecked = true;
@@ -388,15 +384,13 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                state.PushFrame(false);
-
                 //Base will write the property name or index if the value is not null
+                bool write;
                 if (state.UsePropertyNames)
-                    state.Current.IndexPropertyName = enumerator.Current.Value.Member.Name;
+                    write = enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, false, default, enumerator.Current.Value.Member.Name);
                 else
-                    state.Current.IndexProperty = enumerator.Current.Key;
+                    write = enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, false, enumerator.Current.Key, null);
 
-                var write = enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value);
                 if (!write)
                 {
                     state.Current.Enumerator = enumerator;

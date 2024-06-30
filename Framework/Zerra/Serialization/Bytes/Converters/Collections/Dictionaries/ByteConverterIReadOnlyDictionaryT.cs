@@ -83,8 +83,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 
             for (; ; )
             {
-                state.PushFrame(true);
-                var read = readConverter.TryReadFromParent(ref reader, ref state, dictionary);
+                var read = readConverter.TryReadFromParent(ref reader, ref state, dictionary, true);
                 if (!read)
                 {
                     state.Current.HasNullChecked = true;
@@ -140,8 +139,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                state.PushFrame(true);
-                var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator);
+                var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true);
                 if (!write)
                 {
                     state.Current.HasWrittenIsNull = true;

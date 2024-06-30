@@ -22,7 +22,5 @@ namespace Zerra.Serialization.Bytes.State
         public bool EnumeratorInProgress;
 
         public bool HasWrittenPropertyIndex;
-        public ushort IndexProperty;
-        public string IndexPropertyName;
     }
 }

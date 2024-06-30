@@ -76,8 +76,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
 
             for (; ; )
             {
-                state.PushFrame(true);
-                var read = converter.TryReadFromParent(ref reader, ref state, accessor);
+                var read = converter.TryReadFromParent(ref reader, ref state, accessor, true);
                 if (!read)
                 {
                     state.Current.HasNullChecked = true;
@@ -134,8 +133,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
 
             while (accessor.Index < accessor.Array!.Length)
             {
-                state.PushFrame(true);
-                var write = converter.TryWriteFromParent(ref writer, ref state, accessor);
+                var write = converter.TryWriteFromParent(ref writer, ref state, accessor, true);
                 if (!write)
                 {
                     state.Current.HasWrittenIsNull = true;

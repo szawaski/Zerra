@@ -34,7 +34,6 @@ namespace Zerra.Serialization.Bytes
                 IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                 IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
             };
-            state.PushFrame(true);
 
             var result = Write(converter, defaultBufferSize, ref state, options.Encoding, obj);
 
@@ -60,7 +59,6 @@ namespace Zerra.Serialization.Bytes
                 IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                 IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
             };
-            state.PushFrame(true);
 
             var result = WriteBoxed(converter, defaultBufferSize, ref state, options.Encoding, obj);
 
@@ -89,7 +87,6 @@ namespace Zerra.Serialization.Bytes
                 IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                 IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
             };
-            state.PushFrame(true);
 
             var result = WriteBoxed(converter, defaultBufferSize, ref state, options.Encoding, obj);
 
@@ -122,7 +119,6 @@ namespace Zerra.Serialization.Bytes
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(true);
 
                 for (; ; )
                 {
@@ -172,7 +168,6 @@ namespace Zerra.Serialization.Bytes
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(true);
 
                 for (; ; )
                 {
@@ -224,7 +219,6 @@ namespace Zerra.Serialization.Bytes
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(true);
 
                 for (; ; )
                 {
@@ -275,7 +269,6 @@ namespace Zerra.Serialization.Bytes
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(true);
 
                 for (; ; )
                 {
@@ -330,7 +323,6 @@ namespace Zerra.Serialization.Bytes
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(true);
 
                 for (; ; )
                 {
@@ -387,7 +379,6 @@ namespace Zerra.Serialization.Bytes
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(true);
 
                 for (; ; )
                 {
@@ -421,9 +412,16 @@ namespace Zerra.Serialization.Bytes
             var writer = new ByteWriter(initialSize, encoding);
             try
             {
+#if DEBUG
+            again:
+#endif
                 var write = converter.TryWrite(ref writer, ref state, value);
                 if (write)
                     state.BytesNeeded = 0;
+#if DEBUG
+                if (!write && ByteWriter.Testing && writer.Position + state.BytesNeeded <= writer.Length)
+                    goto again;
+#endif
                 var result = writer.ToArray();
                 return result;
             }
@@ -438,9 +436,16 @@ namespace Zerra.Serialization.Bytes
             var writer = new ByteWriter(initialSize, encoding);
             try
             {
+#if DEBUG
+            again:
+#endif
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
                 if (write)
                     state.BytesNeeded = 0;
+#if DEBUG
+                if (!write && ByteWriter.Testing && writer.Position + state.BytesNeeded <= writer.Length)
+                    goto again;
+#endif
                 var result = writer.ToArray();
                 return result;
             }
@@ -454,19 +459,33 @@ namespace Zerra.Serialization.Bytes
         private static int Write<T>(ByteConverter<object, T> converter, Span<byte> buffer, ref WriteState state, Encoding encoding, T value)
         {
             var writer = new ByteWriter(buffer, encoding);
+#if DEBUG
+        again:
+#endif
             var write = converter.TryWrite(ref writer, ref state, value);
             if (write)
                 state.BytesNeeded = 0;
-            return writer.Length;
+#if DEBUG
+            if (!write && ByteWriter.Testing && writer.Position + state.BytesNeeded <= writer.Length)
+                goto again;
+#endif
+            return writer.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int WriteBoxed(ByteConverter<object> converter, Span<byte> buffer, ref WriteState state, Encoding encoding, object value)
         {
             var writer = new ByteWriter(buffer, encoding);
+#if DEBUG
+        again:
+#endif
             var write = converter.TryWriteBoxed(ref writer, ref state, value);
             if (write)
                 state.BytesNeeded = 0;
-            return writer.Length;
+#if DEBUG
+            if (!write && ByteWriter.Testing && writer.Position + state.BytesNeeded <= writer.Length)
+                goto again;
+#endif
+            return writer.Position;
         }
     }
 }
