@@ -114,14 +114,14 @@ namespace Zerra.Serialization.Bytes.Converters.General
             }
         }
 
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out TValue? value)
         {
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
 
             Dictionary<string, object?>? collectedValues;
 
-            if (state.Current.NullFlags && !state.Current.HasNullChecked)
+            if (nullFlags && !state.Current.HasNullChecked)
             {
                 if (!reader.TryReadIsNull(out var isNull, out state.BytesNeeded))
                 {
@@ -345,12 +345,12 @@ namespace Zerra.Serialization.Bytes.Converters.General
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, TValue? value)
         {
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
 
-            if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
+            if (nullFlags && !state.Current.HasWrittenIsNull)
             {
                 if (value is null)
                 {
@@ -384,12 +384,9 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                //Base will write the property name or index if the value is not null
-                bool write;
-                if (state.UsePropertyNames)
-                    write = enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, false, default, enumerator.Current.Value.Member.Name);
-                else
-                    write = enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, false, enumerator.Current.Key, null);
+                //Base will write the property name or index if the value is not null.
+                //Done this way so we don't have to extract the value twice due to null checking.
+                var write = enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, false, enumerator.Current.Key, enumerator.Current.Value.Member.Name);
 
                 if (!write)
                 {

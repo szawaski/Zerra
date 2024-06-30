@@ -13,9 +13,9 @@ namespace Zerra.Serialization.Bytes.Converters.IReadOnlyCollections
 {
     internal sealed class ByteConverterTimeOnlyIReadOnlyCollection<TParent> : ByteConverter<TParent, IReadOnlyCollection<TimeOnly>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IReadOnlyCollection<TimeOnly>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out IReadOnlyCollection<TimeOnly>? value)
         {
-            if (state.Current.NullFlags && !state.Current.HasNullChecked)
+            if (nullFlags && !state.Current.HasNullChecked)
             {
                 if (!reader.TryReadIsNull(out var isNull, out state.BytesNeeded))
                 {
@@ -51,9 +51,9 @@ namespace Zerra.Serialization.Bytes.Converters.IReadOnlyCollections
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IReadOnlyCollection<TimeOnly>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, IReadOnlyCollection<TimeOnly>? value)
         {
-            if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
+            if (nullFlags && !state.Current.HasWrittenIsNull)
             {
                 if (value is null)
                 {

@@ -13,9 +13,9 @@ namespace Zerra.Serialization.Bytes.Converters.ILists
 {
     internal sealed class ByteConverterTimeOnlyNullableIList<TParent> : ByteConverter<TParent, IList<TimeOnly?>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IList<TimeOnly?>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out IList<TimeOnly?>? value)
         {
-            if (state.Current.NullFlags && !state.Current.HasNullChecked)
+            if (nullFlags && !state.Current.HasNullChecked)
             {
                 if (!reader.TryReadIsNull(out var isNull, out state.BytesNeeded))
                 {
@@ -51,9 +51,9 @@ namespace Zerra.Serialization.Bytes.Converters.ILists
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IList<TimeOnly?>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, IList<TimeOnly?>? value)
         {
-            if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
+            if (nullFlags && !state.Current.HasWrittenIsNull)
             {
                 if (value is null)
                 {

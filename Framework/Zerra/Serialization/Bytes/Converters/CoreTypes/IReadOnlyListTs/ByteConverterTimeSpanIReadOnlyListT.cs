@@ -11,9 +11,9 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlyListTs
 {
     internal sealed class ByteConverterTimeSpanIReadOnlyList<TParent> : ByteConverter<TParent, IReadOnlyList<TimeSpan>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IReadOnlyList<TimeSpan>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out IReadOnlyList<TimeSpan>? value)
         {
-            if (state.Current.NullFlags && !state.Current.HasNullChecked)
+            if (nullFlags && !state.Current.HasNullChecked)
             {
                 if (!reader.TryReadIsNull(out var isNull, out state.BytesNeeded))
                 {
@@ -49,9 +49,9 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlyListTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IReadOnlyList<TimeSpan>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, IReadOnlyList<TimeSpan>? value)
         {
-            if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
+            if (nullFlags && !state.Current.HasWrittenIsNull)
             {
                 if (value is null)
                 {

@@ -13,9 +13,9 @@ namespace Zerra.Serialization.Bytes.Converters.HashSets
 {
     internal sealed class ByteConverterDateOnlyNullableArray<TParent> : ByteConverter<TParent, DateOnly?[]>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out DateOnly?[]? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out DateOnly?[]? value)
         {
-            if (state.Current.NullFlags && !state.Current.HasNullChecked)
+            if (nullFlags && !state.Current.HasNullChecked)
             {
                 if (!reader.TryReadIsNull(out var isNull, out state.BytesNeeded))
                 {
@@ -49,9 +49,9 @@ namespace Zerra.Serialization.Bytes.Converters.HashSets
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, DateOnly?[]? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, DateOnly?[]? value)
         {
-            if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
+            if (nullFlags && !state.Current.HasWrittenIsNull)
             {
                 if (value is null)
                 {

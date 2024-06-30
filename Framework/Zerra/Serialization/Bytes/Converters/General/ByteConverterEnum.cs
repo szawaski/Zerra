@@ -11,7 +11,9 @@ namespace Zerra.Serialization.Bytes.Converters.General
 {
     internal sealed class ByteConverterEnum<TParent, TValue> : ByteConverter<TParent, TValue>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue? value)
+        protected override bool StackRequired => false;
+
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out TValue? value)
         {
             switch (typeDetail.EnumUnderlyingType!.Value)
             {
@@ -121,7 +123,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.ByteNullable:
                     {
-                        if (!reader.TryRead(state.Current.NullFlags, out byte? number, out state.BytesNeeded))
+                        if (!reader.TryRead(nullFlags, out byte? number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -139,7 +141,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.SByteNullable:
                     {
-                        if (!reader.TryRead(state.Current.NullFlags, out sbyte? number, out state.BytesNeeded))
+                        if (!reader.TryRead(nullFlags, out sbyte? number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -157,7 +159,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.Int16Nullable:
                     {
-                        if (!reader.TryRead(state.Current.NullFlags, out short? number, out state.BytesNeeded))
+                        if (!reader.TryRead(nullFlags, out short? number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -175,7 +177,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.UInt16Nullable:
                     {
-                        if (!reader.TryRead(state.Current.NullFlags, out ushort? number, out state.BytesNeeded))
+                        if (!reader.TryRead(nullFlags, out ushort? number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -193,7 +195,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.Int32Nullable:
                     {
-                        if (!reader.TryRead(state.Current.NullFlags, out int? number, out state.BytesNeeded))
+                        if (!reader.TryRead(nullFlags, out int? number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -211,7 +213,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.UInt32Nullable:
                     {
-                        if (!reader.TryRead(state.Current.NullFlags, out uint? number, out state.BytesNeeded))
+                        if (!reader.TryRead(nullFlags, out uint? number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -229,7 +231,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.Int64Nullable:
                     {
-                        if (!reader.TryRead(state.Current.NullFlags, out long? number, out state.BytesNeeded))
+                        if (!reader.TryRead(nullFlags, out long? number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -247,7 +249,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreType.UInt64Nullable:
                     {
-                        if (!reader.TryRead(state.Current.NullFlags, out ulong? number, out state.BytesNeeded))
+                        if (!reader.TryRead(nullFlags, out ulong? number, out state.BytesNeeded))
                         {
                             value = default;
                             return false;
@@ -267,7 +269,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
             };
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, TValue? value)
         {
             object? obj = value;
 
@@ -324,49 +326,49 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     return true;
 
                 case CoreType.ByteNullable:
-                    if (!writer.TryWrite(obj == null ? null : (byte)obj, state.Current.NullFlags, out state.BytesNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (byte)obj, nullFlags, out state.BytesNeeded))
                     {
                         return false;
                     }
                     return true;
                 case CoreType.SByteNullable:
-                    if (!writer.TryWrite(obj == null ? null : (sbyte)obj, state.Current.NullFlags, out state.BytesNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (sbyte)obj, nullFlags, out state.BytesNeeded))
                     {
                         return false;
                     }
                     return true;
                 case CoreType.Int16Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (short)obj, state.Current.NullFlags, out state.BytesNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (short)obj, nullFlags, out state.BytesNeeded))
                     {
                         return false;
                     }
                     return true;
                 case CoreType.UInt16Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (ushort)obj, state.Current.NullFlags, out state.BytesNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (ushort)obj, nullFlags, out state.BytesNeeded))
                     {
                         return false;
                     }
                     return true;
                 case CoreType.Int32Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (int)obj, state.Current.NullFlags, out state.BytesNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (int)obj, nullFlags, out state.BytesNeeded))
                     {
                         return false;
                     }
                     return true;
                 case CoreType.UInt32Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (uint)obj, state.Current.NullFlags, out state.BytesNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (uint)obj, nullFlags, out state.BytesNeeded))
                     {
                         return false;
                     }
                     return true;
                 case CoreType.Int64Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (long)obj, state.Current.NullFlags, out state.BytesNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (long)obj, nullFlags, out state.BytesNeeded))
                     {
                         return false;
                     }
                     return true;
                 case CoreType.UInt64Nullable:
-                    if (!writer.TryWrite(obj == null ? null : (ulong)obj, state.Current.NullFlags, out state.BytesNeeded))
+                    if (!writer.TryWrite(obj == null ? null : (ulong)obj, nullFlags, out state.BytesNeeded))
                     {
                         return false;
                     }

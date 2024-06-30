@@ -34,7 +34,7 @@ namespace Zerra.Serialization.Bytes.State
                 Array.Resize(ref stack, stack.Length * 2);
         }
 
-        public void PushFrame(bool nullFlags, bool drainBytes)
+        public void PushFrame(bool drainBytes)
         {
             if (stashCount == 0)
             {
@@ -45,7 +45,6 @@ namespace Zerra.Serialization.Bytes.State
                 }
                 Current = new()
                 {
-                    NullFlags = nullFlags,
                     DrainBytes = drainBytes
                 };
             }
