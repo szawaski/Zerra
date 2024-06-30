@@ -10,10 +10,12 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Values
 {
     internal sealed class ByteConverterDateTimeOffset<TParent> : ByteConverter<TParent, DateTimeOffset>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out DateTimeOffset value)
+        protected override bool StackRequired => false;
+
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out DateTimeOffset value)
             => reader.TryRead(out value, out state.BytesNeeded);
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, DateTimeOffset value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, DateTimeOffset value)
             => writer.TryWrite(value, out state.BytesNeeded);
     }
 }

@@ -9,10 +9,12 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Values
 {
     internal sealed class ByteConverterInt16Nullable<TParent> : ByteConverter<TParent, short?>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out short? value)
-            => reader.TryRead(state.Current.NullFlags, out value, out state.BytesNeeded);
+        protected override bool StackRequired => false;
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, short? value)
-            => writer.TryWrite(value, state.Current.NullFlags, out state.BytesNeeded);
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out short? value)
+            => reader.TryRead(nullFlags, out value, out state.BytesNeeded);
+
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, short? value)
+            => writer.TryWrite(value, nullFlags, out state.BytesNeeded);
     }
 }

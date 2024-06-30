@@ -13,10 +13,12 @@ namespace Zerra.Serialization
 {
     internal sealed class ByteConverterDateOnly<TParent> : ByteConverter<TParent, DateOnly>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out DateOnly value)
+        protected override bool StackRequired => false;
+
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out DateOnly value)
             => reader.TryRead(out value, out state.BytesNeeded);
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, DateOnly value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, DateOnly value)
             => writer.TryWrite(value, out state.BytesNeeded);
     }
 }
