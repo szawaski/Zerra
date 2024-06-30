@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Zerra.IO;
 using Zerra.Reflection;
 
 namespace Zerra.Serialization.Json
@@ -68,7 +67,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
             var optionsStruct = new OptionsStruct(options);
 
-            var writer = new CharWriter();
+            var writer = new CharWriterOld();
             try
             {
                 var typeDetails = TypeAnalyzer.GetTypeDetail(type);
@@ -87,14 +86,14 @@ namespace Zerra.Serialization.Json
             var optionsStruct = new OptionsStruct(options);
 
             using var sr = new StreamReader(stream, new UTF8Encoding(false));
-            var writer = new CharWriter(sr.ReadToEnd().ToCharArray());
+            var writer = new CharWriterOld(sr.ReadToEnd().ToCharArray());
 
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
             ToStringJson(obj, typeDetails, graph, ref writer, ref optionsStruct);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToStringJson(object? value, TypeDetail typeDetail, Graph? graph, ref CharWriter writer, ref OptionsStruct options)
+        private static void ToStringJson(object? value, TypeDetail typeDetail, Graph? graph, ref CharWriterOld writer, ref OptionsStruct options)
         {
             if (((typeDetail.Type.IsInterface && !typeDetail.HasIEnumerable) || typeDetail.Type.FullName == "System.Object") && value != null)
             {
@@ -223,7 +222,7 @@ namespace Zerra.Serialization.Json
                 writer.Write(']');
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToStringJsonEnumerable(IEnumerable values, TypeDetail typeDetail, Graph? graph, ref CharWriter writer, ref OptionsStruct options)
+        private static void ToStringJsonEnumerable(IEnumerable values, TypeDetail typeDetail, Graph? graph, ref CharWriterOld writer, ref OptionsStruct options)
         {
             if (typeDetail.CoreType.HasValue)
             {
@@ -391,7 +390,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToStringJsonCoreType(object value, CoreType coreType, ref CharWriter writer)
+        private static void ToStringJsonCoreType(object value, CoreType coreType, ref CharWriterOld writer)
         {
             switch (coreType)
             {
@@ -454,32 +453,32 @@ namespace Zerra.Serialization.Json
                 case CoreType.DateTime:
                 case CoreType.DateTimeNullable:
                     writer.Write('\"');
-                    writer.Write((DateTime)value, DateTimeFormat.ISO8601);
+                    writer.Write((DateTime)value, DateTimeFormatOld.ISO8601);
                     writer.Write('\"');
                     return;
                 case CoreType.DateTimeOffset:
                 case CoreType.DateTimeOffsetNullable:
                     writer.Write('\"');
-                    writer.Write((DateTimeOffset)value, DateTimeFormat.ISO8601);
+                    writer.Write((DateTimeOffset)value, DateTimeFormatOld.ISO8601);
                     writer.Write('\"');
                     return;
                 case CoreType.TimeSpan:
                 case CoreType.TimeSpanNullable:
                     writer.Write('\"');
-                    writer.Write((TimeSpan)value, TimeFormat.ISO8601);
+                    writer.Write((TimeSpan)value, TimeFormatOld.ISO8601);
                     writer.Write('\"');
                     return;
 #if NET6_0_OR_GREATER
                 case CoreType.DateOnly:
                 case CoreType.DateOnlyNullable:
                     writer.Write('\"');
-                    writer.Write((DateOnly)value, DateTimeFormat.ISO8601);
+                    writer.Write((DateOnly)value, DateTimeFormatOld.ISO8601);
                     writer.Write('\"');
                     return;
                 case CoreType.TimeOnly:
                 case CoreType.TimeOnlyNullable:
                     writer.Write('\"');
-                    writer.Write((TimeOnly)value, TimeFormat.ISO8601);
+                    writer.Write((TimeOnly)value, TimeFormatOld.ISO8601);
                     writer.Write('\"');
                     return;
 #endif
@@ -495,7 +494,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToStringJsonCoreType(object value, CoreEnumType coreType, ref CharWriter writer)
+        private static void ToStringJsonCoreType(object value, CoreEnumType coreType, ref CharWriterOld writer)
         {
             switch (coreType)
             {
@@ -536,7 +535,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToStringJsonCoreTypeEnumerable(IEnumerable values, CoreType coreType, ref CharWriter writer)
+        private static void ToStringJsonCoreTypeEnumerable(IEnumerable values, CoreType coreType, ref CharWriterOld writer)
         {
             switch (coreType)
             {
@@ -734,7 +733,7 @@ namespace Zerra.Serialization.Json
                             else
                                 writer.Write(',');
                             writer.Write('\"');
-                            writer.Write(value, DateTimeFormat.ISO8601);
+                            writer.Write(value, DateTimeFormatOld.ISO8601);
                             writer.Write('\"');
                         }
                     }
@@ -749,7 +748,7 @@ namespace Zerra.Serialization.Json
                             else
                                 writer.Write(',');
                             writer.Write('\"');
-                            writer.Write(value, DateTimeFormat.ISO8601);
+                            writer.Write(value, DateTimeFormatOld.ISO8601);
                             writer.Write('\"');
                         }
                     }
@@ -764,7 +763,7 @@ namespace Zerra.Serialization.Json
                             else
                                 writer.Write(',');
                             writer.Write('\"');
-                            writer.Write(value, TimeFormat.ISO8601);
+                            writer.Write(value, TimeFormatOld.ISO8601);
                             writer.Write('\"');
                         }
                     }
@@ -780,7 +779,7 @@ namespace Zerra.Serialization.Json
                             else
                                 writer.Write(',');
                             writer.Write('\"');
-                            writer.Write(value, DateTimeFormat.ISO8601);
+                            writer.Write(value, DateTimeFormatOld.ISO8601);
                             writer.Write('\"');
                         }
                     }
@@ -795,7 +794,7 @@ namespace Zerra.Serialization.Json
                             else
                                 writer.Write(',');
                             writer.Write('\"');
-                            writer.Write(value, TimeFormat.ISO8601);
+                            writer.Write(value, TimeFormatOld.ISO8601);
                             writer.Write('\"');
                         }
                     }
@@ -1041,7 +1040,7 @@ namespace Zerra.Serialization.Json
                             if (value.HasValue)
                             {
                                 writer.Write('\"');
-                                writer.Write(value.Value, DateTimeFormat.ISO8601);
+                                writer.Write(value.Value, DateTimeFormatOld.ISO8601);
                                 writer.Write('\"');
                             }
                             else
@@ -1063,7 +1062,7 @@ namespace Zerra.Serialization.Json
                             if (value.HasValue)
                             {
                                 writer.Write('\"');
-                                writer.Write(value.Value, DateTimeFormat.ISO8601);
+                                writer.Write(value.Value, DateTimeFormatOld.ISO8601);
                                 writer.Write('\"');
                             }
                             else
@@ -1085,7 +1084,7 @@ namespace Zerra.Serialization.Json
                             if (value.HasValue)
                             {
                                 writer.Write('\"');
-                                writer.Write(value.Value, TimeFormat.ISO8601);
+                                writer.Write(value.Value, TimeFormatOld.ISO8601);
                                 writer.Write('\"');
                             }
                             else
@@ -1108,7 +1107,7 @@ namespace Zerra.Serialization.Json
                             if (value.HasValue)
                             {
                                 writer.Write('\"');
-                                writer.Write(value.Value, DateTimeFormat.ISO8601);
+                                writer.Write(value.Value, DateTimeFormatOld.ISO8601);
                                 writer.Write('\"');
                             }
                             else
@@ -1130,7 +1129,7 @@ namespace Zerra.Serialization.Json
                             if (value.HasValue)
                             {
                                 writer.Write('\"');
-                                writer.Write(value.Value, TimeFormat.ISO8601);
+                                writer.Write(value.Value, TimeFormatOld.ISO8601);
                                 writer.Write('\"');
                             }
                             else
@@ -1169,7 +1168,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToStringJsonSpecialType(object value, TypeDetail typeDetail, ref CharWriter writer, ref OptionsStruct options)
+        private static void ToStringJsonSpecialType(object value, TypeDetail typeDetail, ref CharWriterOld writer, ref OptionsStruct options)
         {
             var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType!.Value : typeDetail.SpecialType!.Value;
             switch (specialType)
@@ -1238,7 +1237,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToStringJsonSpecialTypeEnumerable(IEnumerable values, TypeDetail typeDetail, ref CharWriter writer, ref OptionsStruct options)
+        private static void ToStringJsonSpecialTypeEnumerable(IEnumerable values, TypeDetail typeDetail, ref CharWriterOld writer, ref OptionsStruct options)
         {
             var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType!.Value : typeDetail.SpecialType!.Value;
             switch (specialType)
@@ -1323,7 +1322,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void ToStringJsonString(string? value, ref CharWriter writer)
+        internal static void ToStringJsonString(string? value, ref CharWriterOld writer)
         {
             if (value == null)
             {
@@ -1389,7 +1388,7 @@ namespace Zerra.Serialization.Json
             writer.Write('\"');
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToStringJsonChar(char value, ref CharWriter writer)
+        private static void ToStringJsonChar(char value, ref CharWriterOld writer)
         {
             switch (value)
             {

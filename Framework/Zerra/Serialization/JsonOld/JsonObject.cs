@@ -91,7 +91,7 @@ namespace Zerra.Serialization.Json
 
         public override string ToString()
         {
-            var writer = new CharWriter();
+            var writer = new CharWriterOld();
             try
             {
                 ToString(ref writer);
@@ -102,7 +102,7 @@ namespace Zerra.Serialization.Json
                 writer.Dispose();
             }
         }
-        private void ToString(ref CharWriter writer)
+        private void ToString(ref CharWriterOld writer)
         {
             switch (jsonType)
             {

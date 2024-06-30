@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using Zerra.Collections;
 using Zerra.IO;
 using Zerra.Reflection;
@@ -71,81 +72,75 @@ public sealed class EnumName : Attribute
                     }
                 }
 
-                var writer = new CharWriter();
-                try
+                var sb = new StringBuilder();
+                for (long value = 0; value < maxValue; value++)
                 {
-                    for (long value = 0; value < maxValue; value++)
+                    foreach (var enumValue in values)
                     {
-                        foreach (var enumValue in values)
+                        switch (underlyingType)
                         {
-                            switch (underlyingType)
-                            {
-                                case CoreType.Byte:
-                                    var byteValue = (byte)enumValue;
-                                    if ((byteValue > 0 || value == 0) && (value & byteValue) == byteValue)
-                                        break;
-                                    continue;
-                                case CoreType.SByte:
-                                    var sbyteValue = (sbyte)enumValue;
-                                    if ((sbyteValue > 0 || value == 0) && (value & sbyteValue) == sbyteValue)
-                                        break;
-                                    continue;
-                                case CoreType.Int16:
-                                    var shortValue = (short)enumValue;
-                                    if ((shortValue > 0 || value == 0) && (value & shortValue) == shortValue)
-                                        break;
-                                    continue;
-                                case CoreType.UInt16:
-                                    var ushortValue = (ushort)enumValue;
-                                    if ((ushortValue > 0 || value == 0) && (value & ushortValue) == ushortValue)
-                                        break;
-                                    continue;
-                                case CoreType.Int32:
-                                    var intValue = (int)enumValue;
-                                    if ((intValue > 0 || value == 0) && (value & intValue) == intValue)
-                                        break;
-                                    continue;
-                                case CoreType.UInt32:
-                                    var uintValue = (uint)enumValue;
-                                    if ((uintValue > 0 || value == 0) && (value & uintValue) == uintValue)
-                                        break;
-                                    continue;
-                                case CoreType.Int64:
-                                    var longValue = (long)enumValue;
-                                    if ((longValue > 0 || value == 0) && (value & longValue) == longValue)
-                                        break;
-                                    continue;
-                                case CoreType.UInt64:
-                                    var ulongValue = (long)(ulong)enumValue;
-                                    if ((ulongValue > 0 || value == 0) && (value & ulongValue) == ulongValue)
-                                        break;
-                                    continue;
-                                default: throw new NotImplementedException();
-                            }
-
-                            var name = enumValue.ToString();
-                            if (name == null)
+                            case CoreType.Byte:
+                                var byteValue = (byte)enumValue;
+                                if ((byteValue > 0 || value == 0) && (value & byteValue) == byteValue)
+                                    break;
                                 continue;
-
-                            var field = fields.First(x => x.Name == name);
-                            var attribute = field.GetCustomAttribute<EnumName>(false);
-                            if (attribute != null && attribute.Text != null)
-                                name = attribute.Text;
-
-                            if (writer.Length != 0)
-                                writer.Write(seperator);
-                            writer.Write(name);
+                            case CoreType.SByte:
+                                var sbyteValue = (sbyte)enumValue;
+                                if ((sbyteValue > 0 || value == 0) && (value & sbyteValue) == sbyteValue)
+                                    break;
+                                continue;
+                            case CoreType.Int16:
+                                var shortValue = (short)enumValue;
+                                if ((shortValue > 0 || value == 0) && (value & shortValue) == shortValue)
+                                    break;
+                                continue;
+                            case CoreType.UInt16:
+                                var ushortValue = (ushort)enumValue;
+                                if ((ushortValue > 0 || value == 0) && (value & ushortValue) == ushortValue)
+                                    break;
+                                continue;
+                            case CoreType.Int32:
+                                var intValue = (int)enumValue;
+                                if ((intValue > 0 || value == 0) && (value & intValue) == intValue)
+                                    break;
+                                continue;
+                            case CoreType.UInt32:
+                                var uintValue = (uint)enumValue;
+                                if ((uintValue > 0 || value == 0) && (value & uintValue) == uintValue)
+                                    break;
+                                continue;
+                            case CoreType.Int64:
+                                var longValue = (long)enumValue;
+                                if ((longValue > 0 || value == 0) && (value & longValue) == longValue)
+                                    break;
+                                continue;
+                            case CoreType.UInt64:
+                                var ulongValue = (long)(ulong)enumValue;
+                                if ((ulongValue > 0 || value == 0) && (value & ulongValue) == ulongValue)
+                                    break;
+                                continue;
+                            default: throw new NotImplementedException();
                         }
 
-                        var valueString = writer.ToString();
-                        items.Add(value, valueString);
-                        writer.Clear();
+                        var name = enumValue.ToString();
+                        if (name == null)
+                            continue;
+
+                        var field = fields.First(x => x.Name == name);
+                        var attribute = field.GetCustomAttribute<EnumName>(false);
+                        if (attribute != null && attribute.Text != null)
+                            name = attribute.Text;
+
+                        if (sb.Length != 0)
+                            _ = sb.Append(seperator);
+                        _ = sb.Append(name);
                     }
+
+                    var valueString = sb.ToString();
+                    items.Add(value, valueString);
+                    sb.Clear();
                 }
-                finally
-                {
-                    writer.Dispose();
-                }
+
             }
             else
             {
@@ -323,7 +318,7 @@ public sealed class EnumName : Attribute
                         items.Add(((ulong)enumValue).ToString(), enumValue);
                         break;
                 }
-            
+
                 var attribute = field.GetCustomAttribute<EnumName>(false);
                 if (attribute != null)
                 {

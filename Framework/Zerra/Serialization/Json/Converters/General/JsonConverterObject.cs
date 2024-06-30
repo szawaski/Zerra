@@ -134,7 +134,7 @@ namespace Zerra.Serialization.Json.Converters.General
                 {
                     if (!state.Current.WorkingFirstChar.HasValue)
                     {
-                        if (!reader.TryReadSkipWhiteSpace(out c))
+                        if (!reader.TryReadNextSkipWhiteSpace(out c))
                         {
                             state.CharsNeeded = 1;
                             if (collectValues)
@@ -179,7 +179,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
                 if (!state.Current.HasReadSeperator)
                 {
-                    if (!reader.TryReadSkipWhiteSpace(out c))
+                    if (!reader.TryReadNextSkipWhiteSpace(out c))
                     {
                         state.CharsNeeded = 1;
                         state.Current.HasReadProperty = true;
@@ -247,7 +247,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
                 }
 
-                if (!reader.TryReadSkipWhiteSpace(out c))
+                if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
                     state.CharsNeeded = 1;
                     state.Current.HasReadProperty = true;

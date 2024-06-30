@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Text;
 using Zerra.IO;
 
 namespace Zerra
@@ -164,44 +165,37 @@ namespace Zerra
 
         public override string ToString()
         {
-            var writer = new CharWriter(128);
-            try
+            var sb = new StringBuilder();
+            if (str != null)
             {
-                if (str != null)
-                {
-                    writer.Write(str);
-                }
-                if (type1 != null)
-                {
-                    if (writer.Length > 0)
-                        writer.Write(", ");
-                    writer.Write(type1.GetNiceName());
-                }
-                if (type2 != null)
-                {
-                    if (writer.Length > 0)
-                        writer.Write(", ");
-                    writer.Write(type2.GetNiceName());
-                }
-                if (typeArray != null)
-                {
-                    if (writer.Length > 0)
-                        writer.Write(", ");
-                    writer.Write("[");
-                    for (var i = 0; i < typeArray.Length; i++)
-                    {
-                        if (i > 0)
-                            writer.Write(", ");
-                        writer.Write(typeArray[i].GetNiceName());
-                    }
-                    writer.Write("]");
-                }
-                return writer.ToString();
+                _ = sb.Append(str);
             }
-            finally
+            if (type1 != null)
             {
-                writer.Dispose();
+                if (sb.Length > 0)
+                    _ = sb.Append(", ");
+                _ = sb.Append(type1.GetNiceName());
             }
+            if (type2 != null)
+            {
+                if (sb.Length > 0)
+                    _ = sb.Append(", ");
+                _ = sb.Append(type2.GetNiceName());
+            }
+            if (typeArray != null)
+            {
+                if (sb.Length > 0)
+                    _ = sb.Append(", ");
+                _ = sb.Append('[');
+                for (var i = 0; i < typeArray.Length; i++)
+                {
+                    if (i > 0)
+                        _ = sb.Append(", ");
+                    _ = sb.Append(typeArray[i].GetNiceName());
+                }
+                _ = sb.Append(']');
+            }
+            return sb.ToString();
         }
     }
 }

@@ -5,9 +5,9 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Zerra.IO
+namespace Zerra.Serialization.Json
 {
-    public ref partial struct CharReader
+    public ref partial struct CharReaderOld
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out char c)

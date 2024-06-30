@@ -51,7 +51,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
                 {
                     if (!state.Current.WorkingFirstChar.HasValue)
                     {
-                        if (!reader.TryReadSkipWhiteSpace(out c))
+                        if (!reader.TryReadNextSkipWhiteSpace(out c))
                         {
                             state.CharsNeeded = 1;
                             value = default;
@@ -94,7 +94,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
                     }
                 }
 
-                if (!reader.TryReadSkipWhiteSpace(out c))
+                if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
                     state.CharsNeeded = 1;
                     state.Current.HasReadValue = true;
@@ -131,7 +131,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
                 {
                     if (!state.Current.WorkingFirstChar.HasValue)
                     {
-                        if (!reader.TryReadSkipWhiteSpace(out c))
+                        if (!reader.TryReadNextSkipWhiteSpace(out c))
                         {
                             state.CharsNeeded = 1;
                             state.Current.HasReadFirstArrayElement = true;
@@ -163,7 +163,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
                     state.Current.WorkingFirstChar = null;
                 }
 
-                if (!reader.TryReadSkipWhiteSpace(out c))
+                if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
                     state.CharsNeeded = 1;
                     state.Current.HasReadFirstArrayElement = true;

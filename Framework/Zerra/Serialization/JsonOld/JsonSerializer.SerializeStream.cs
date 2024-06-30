@@ -212,7 +212,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Write(Span<char> buffer, ref WriteState state)
         {
-            var writer = new CharWriter(buffer);
+            var writer = new CharWriterOld(buffer);
             for (; ; )
             {
                 switch (state.CurrentFrame.FrameType)
@@ -302,7 +302,7 @@ namespace Zerra.Serialization.Json
             return new WriteFrame() { FrameType = WriteFrameType.Object, TypeDetail = typeDetail, Object = obj, Graph = graph };
         }
 
-        private static void WriteJsonNull(ref CharWriter writer, ref WriteState state)
+        private static void WriteJsonNull(ref CharWriterOld writer, ref WriteState state)
         {
             if (!writer.TryWrite("null", out var sizeNeeded))
             {
@@ -312,7 +312,7 @@ namespace Zerra.Serialization.Json
             state.EndFrame();
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteJsonCoreType(ref CharWriter writer, ref WriteState state)
+        private static void WriteJsonCoreType(ref CharWriterOld writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
 
@@ -451,7 +451,7 @@ namespace Zerra.Serialization.Json
 
                     if (state.CurrentFrame.State == 1)
                     {
-                        if (!writer.TryWrite((DateTime)state.CurrentFrame.Object!, DateTimeFormat.ISO8601, out sizeNeeded))
+                        if (!writer.TryWrite((DateTime)state.CurrentFrame.Object!, DateTimeFormatOld.ISO8601, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -480,7 +480,7 @@ namespace Zerra.Serialization.Json
 
                     if (state.CurrentFrame.State == 1)
                     {
-                        if (!writer.TryWrite((DateTimeOffset)state.CurrentFrame.Object!, DateTimeFormat.ISO8601, out sizeNeeded))
+                        if (!writer.TryWrite((DateTimeOffset)state.CurrentFrame.Object!, DateTimeFormatOld.ISO8601, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -509,7 +509,7 @@ namespace Zerra.Serialization.Json
 
                     if (state.CurrentFrame.State == 1)
                     {
-                        if (!writer.TryWrite((TimeSpan)state.CurrentFrame.Object!, TimeFormat.ISO8601, out sizeNeeded))
+                        if (!writer.TryWrite((TimeSpan)state.CurrentFrame.Object!, TimeFormatOld.ISO8601, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -539,7 +539,7 @@ namespace Zerra.Serialization.Json
 
                     if (state.CurrentFrame.State == 1)
                     {
-                        if (!writer.TryWrite((DateOnly)state.CurrentFrame.Object!, DateTimeFormat.ISO8601, out sizeNeeded))
+                        if (!writer.TryWrite((DateOnly)state.CurrentFrame.Object!, DateTimeFormatOld.ISO8601, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -568,7 +568,7 @@ namespace Zerra.Serialization.Json
 
                     if (state.CurrentFrame.State == 1)
                     {
-                        if (!writer.TryWrite((TimeOnly)state.CurrentFrame.Object!, TimeFormat.ISO8601, out sizeNeeded))
+                        if (!writer.TryWrite((TimeOnly)state.CurrentFrame.Object!, TimeFormatOld.ISO8601, out sizeNeeded))
                         {
                             state.CharsNeeded = sizeNeeded;
                             return;
@@ -619,7 +619,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteJsonEnumType(ref CharWriter writer, ref WriteState state)
+        private static void WriteJsonEnumType(ref CharWriterOld writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
 
@@ -749,7 +749,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteJsonSpecialType(ref CharWriter writer, ref WriteState state)
+        private static void WriteJsonSpecialType(ref CharWriterOld writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
             var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType!.Value : typeDetail.SpecialType!.Value;
@@ -937,7 +937,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteJsonByteArray(ref CharWriter writer, ref WriteState state)
+        private static void WriteJsonByteArray(ref CharWriterOld writer, ref WriteState state)
         {
             if (state.CurrentFrame.State == 0)
             {
@@ -979,7 +979,7 @@ namespace Zerra.Serialization.Json
             state.EndFrame();
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteJsonObject(ref CharWriter writer, ref WriteState state)
+        private static void WriteJsonObject(ref CharWriterOld writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
             var graph = state.CurrentFrame.Graph;
@@ -1108,7 +1108,7 @@ namespace Zerra.Serialization.Json
             }
         }
 
-        private static void WriteJsonCoreTypeEnumerable(ref CharWriter writer, ref WriteState state)
+        private static void WriteJsonCoreTypeEnumerable(ref CharWriterOld writer, ref WriteState state)
         {
             int sizeNeeded;
             var typeDetail = state.CurrentFrame.TypeDetail!.InnerTypeDetails[0];
@@ -1287,7 +1287,7 @@ namespace Zerra.Serialization.Json
 
                         if (state.CurrentFrame.State == 4)
                         {
-                            if (!writer.TryWrite((DateTime)state.CurrentFrame.Enumerator!.Current, DateTimeFormat.ISO8601, out sizeNeeded))
+                            if (!writer.TryWrite((DateTime)state.CurrentFrame.Enumerator!.Current, DateTimeFormatOld.ISO8601, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
@@ -1315,7 +1315,7 @@ namespace Zerra.Serialization.Json
 
                         if (state.CurrentFrame.State == 4)
                         {
-                            if (!writer.TryWrite((DateTimeOffset)state.CurrentFrame.Enumerator!.Current, DateTimeFormat.ISO8601, out sizeNeeded))
+                            if (!writer.TryWrite((DateTimeOffset)state.CurrentFrame.Enumerator!.Current, DateTimeFormatOld.ISO8601, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
@@ -1343,7 +1343,7 @@ namespace Zerra.Serialization.Json
 
                         if (state.CurrentFrame.State == 4)
                         {
-                            if (!writer.TryWrite((TimeSpan)state.CurrentFrame.Enumerator!.Current, TimeFormat.ISO8601, out sizeNeeded))
+                            if (!writer.TryWrite((TimeSpan)state.CurrentFrame.Enumerator!.Current, TimeFormatOld.ISO8601, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
@@ -1372,7 +1372,7 @@ namespace Zerra.Serialization.Json
 
                         if (state.CurrentFrame.State == 4)
                         {
-                            if (!writer.TryWrite((DateOnly)state.CurrentFrame.Enumerator!.Current, DateTimeFormat.ISO8601, out sizeNeeded))
+                            if (!writer.TryWrite((DateOnly)state.CurrentFrame.Enumerator!.Current, DateTimeFormatOld.ISO8601, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
@@ -1400,7 +1400,7 @@ namespace Zerra.Serialization.Json
 
                         if (state.CurrentFrame.State == 4)
                         {
-                            if (!writer.TryWrite((TimeOnly)state.CurrentFrame.Enumerator!.Current, TimeFormat.ISO8601, out sizeNeeded))
+                            if (!writer.TryWrite((TimeOnly)state.CurrentFrame.Enumerator!.Current, TimeFormatOld.ISO8601, out sizeNeeded))
                             {
                                 state.CharsNeeded = sizeNeeded;
                                 return;
@@ -1745,7 +1745,7 @@ namespace Zerra.Serialization.Json
 
                                 if (state.CurrentFrame.State == 4)
                                 {
-                                    if (!writer.TryWrite(value.Value, DateTimeFormat.ISO8601, out sizeNeeded))
+                                    if (!writer.TryWrite(value.Value, DateTimeFormatOld.ISO8601, out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
@@ -1787,7 +1787,7 @@ namespace Zerra.Serialization.Json
 
                                 if (state.CurrentFrame.State == 4)
                                 {
-                                    if (!writer.TryWrite(value.Value, DateTimeFormat.ISO8601, out sizeNeeded))
+                                    if (!writer.TryWrite(value.Value, DateTimeFormatOld.ISO8601, out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
@@ -1829,7 +1829,7 @@ namespace Zerra.Serialization.Json
 
                                 if (state.CurrentFrame.State == 4)
                                 {
-                                    if (!writer.TryWrite(value.Value, TimeFormat.ISO8601, out sizeNeeded))
+                                    if (!writer.TryWrite(value.Value, TimeFormatOld.ISO8601, out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
@@ -1872,7 +1872,7 @@ namespace Zerra.Serialization.Json
 
                                 if (state.CurrentFrame.State == 4)
                                 {
-                                    if (!writer.TryWrite(value.Value, DateTimeFormat.ISO8601, out sizeNeeded))
+                                    if (!writer.TryWrite(value.Value, DateTimeFormatOld.ISO8601, out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
@@ -1914,7 +1914,7 @@ namespace Zerra.Serialization.Json
 
                                 if (state.CurrentFrame.State == 4)
                                 {
-                                    if (!writer.TryWrite(value.Value, TimeFormat.ISO8601, out sizeNeeded))
+                                    if (!writer.TryWrite(value.Value, TimeFormatOld.ISO8601, out sizeNeeded))
                                     {
                                         state.CharsNeeded = sizeNeeded;
                                         return;
@@ -1989,7 +1989,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteJsonEnumEnumerable(ref CharWriter writer, ref WriteState state)
+        private static void WriteJsonEnumEnumerable(ref CharWriterOld writer, ref WriteState state)
         {
             int sizeNeeded;
             var typeDetail = state.CurrentFrame.TypeDetail!.InnerTypeDetails[0];
@@ -2360,7 +2360,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteJsonEnumerable(ref CharWriter writer, ref WriteState state)
+        private static void WriteJsonEnumerable(ref CharWriterOld writer, ref WriteState state)
         {
             int sizeNeeded;
             var typeDetail = state.CurrentFrame.TypeDetail!.InnerTypeDetails[0];
@@ -2425,7 +2425,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void WriteJsonObjectEnumerable(ref CharWriter writer, ref WriteState state)
+        private static void WriteJsonObjectEnumerable(ref CharWriterOld writer, ref WriteState state)
         {
             int sizeNeeded;
             var typeDetail = state.CurrentFrame.TypeDetail!.InnerTypeDetails[0];
@@ -2674,7 +2674,7 @@ namespace Zerra.Serialization.Json
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool WriteJsonString(ref CharWriter writer, ref WriteState state, string value)
+        private static bool WriteJsonString(ref CharWriterOld writer, ref WriteState state, string value)
         {
             int sizeNeeded;
 
@@ -2828,7 +2828,7 @@ namespace Zerra.Serialization.Json
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool WriteJsonChar(ref CharWriter writer, ref WriteState state, char c, byte initialFrameState)
+        private static bool WriteJsonChar(ref CharWriterOld writer, ref WriteState state, char c, byte initialFrameState)
         {
             int sizeNeeded;
 

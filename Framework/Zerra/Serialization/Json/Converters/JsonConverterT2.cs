@@ -359,7 +359,7 @@ namespace Zerra.Serialization.Json.Converters
         startValueContinue:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -445,7 +445,7 @@ namespace Zerra.Serialization.Json.Converters
         startDecimal:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -526,7 +526,7 @@ namespace Zerra.Serialization.Json.Converters
             }
 
         startExponent:
-            if (!reader.TryRead(out c))
+            if (!reader.TryReadNext(out c))
             {
                 if (state.IsFinalBlock)
                 {
@@ -581,7 +581,7 @@ namespace Zerra.Serialization.Json.Converters
         startExponentContinue:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -731,7 +731,7 @@ namespace Zerra.Serialization.Json.Converters
         startValueContinue:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -817,7 +817,7 @@ namespace Zerra.Serialization.Json.Converters
         startDecimal:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -894,7 +894,7 @@ namespace Zerra.Serialization.Json.Converters
             }
 
         startExponent:
-            if (!reader.TryRead(out c))
+            if (!reader.TryReadNext(out c))
             {
                 if (state.IsFinalBlock)
                 {
@@ -947,7 +947,7 @@ namespace Zerra.Serialization.Json.Converters
         startExponentContinue:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -1106,7 +1106,7 @@ namespace Zerra.Serialization.Json.Converters
         startValueContinue:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -1184,7 +1184,7 @@ namespace Zerra.Serialization.Json.Converters
         startDecimal:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -1257,7 +1257,7 @@ namespace Zerra.Serialization.Json.Converters
             }
 
         startExponent:
-            if (!reader.TryRead(out c))
+            if (!reader.TryReadNext(out c))
             {
                 if (state.IsFinalBlock)
                 {
@@ -1308,7 +1308,7 @@ namespace Zerra.Serialization.Json.Converters
         startExponentContinue:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -1460,7 +1460,7 @@ namespace Zerra.Serialization.Json.Converters
         startValueContinue:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -1546,7 +1546,7 @@ namespace Zerra.Serialization.Json.Converters
         startDecimal:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -1629,7 +1629,7 @@ namespace Zerra.Serialization.Json.Converters
             }
 
         startExponent:
-            if (!reader.TryRead(out c))
+            if (!reader.TryReadNext(out c))
             {
                 if (state.IsFinalBlock)
                 {
@@ -1680,7 +1680,7 @@ namespace Zerra.Serialization.Json.Converters
         startExponentContinue:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -1840,7 +1840,7 @@ namespace Zerra.Serialization.Json.Converters
         startValueContinue:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -1926,7 +1926,7 @@ namespace Zerra.Serialization.Json.Converters
         startDecimal:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -2009,7 +2009,7 @@ namespace Zerra.Serialization.Json.Converters
             }
 
         startExponent:
-            if (!reader.TryRead(out c))
+            if (!reader.TryReadNext(out c))
             {
                 if (state.IsFinalBlock)
                 {
@@ -2062,7 +2062,7 @@ namespace Zerra.Serialization.Json.Converters
         startExponentContinue:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {

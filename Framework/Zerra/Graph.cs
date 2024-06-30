@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text;
 using Zerra.Collections;
 using Zerra.IO;
 using Zerra.Reflection;
@@ -125,49 +126,42 @@ namespace Zerra
 
         protected void GenerateSignature()
         {
-            var writer = new CharWriter();
-            try
-            {
-                GenerateSignatureBuilder(ref writer);
-                this.signature = writer.ToString();
-            }
-            finally
-            {
-                writer.Dispose();
-            }
+            var sb = new StringBuilder();
+            GenerateSignatureBuilder(sb);
+            this.signature = sb.ToString();
         }
-        private void GenerateSignatureBuilder(ref CharWriter writer)
+        private void GenerateSignatureBuilder(StringBuilder sb)
         {
             if (!String.IsNullOrEmpty(this.name))
             {
-                writer.Write("N:");
-                writer.Write(this.name);
+                _ = sb.Append("N:");
+                _ = sb.Append(this.name);
             }
 
             if (this.includeAllProperties)
-                writer.Write("A");
+                _ = sb.Append("A");
 
             foreach (var property in this.localProperties.OrderBy(x => x))
             {
-                writer.Write("P:");
-                writer.Write(property);
+                _ = sb.Append("P:");
+                _ = sb.Append(property);
             }
 
             if (includeAllProperties)
             {
                 foreach (var property in this.removedProperties.OrderBy(x => x))
                 {
-                    writer.Write("R:");
-                    writer.Write(property);
+                    _ = sb.Append("R:");
+                    _ = sb.Append(property);
                 }
             }
 
             foreach (var graph in this.childGraphs.Values.OrderBy(x => x.name))
             {
-                writer.Write("G:");
-                writer.Write("(");
-                graph.GenerateSignatureBuilder(ref writer);
-                writer.Write(")");
+                _ = sb.Append("G:");
+                _ = sb.Append("(");
+                graph.GenerateSignatureBuilder(sb);
+                _ = sb.Append(")");
             }
         }
 
@@ -426,26 +420,19 @@ namespace Zerra
 
         public override string ToString()
         {
-            var writer = new CharWriter();
-            try
-            {
-                ToString(ref writer, 0);
-                return writer.ToString();
-            }
-            finally
-            {
-                writer.Dispose();
-            }
+            var sb = new StringBuilder();
+            ToString(sb, 0);
+            return sb.ToString();
         }
-        private void ToString(ref CharWriter writer, int depth)
+        private void ToString(StringBuilder sb, int depth)
         {
             foreach (var property in this.LocalProperties)
             {
                 for (var i = 0; i < depth * 3; i++)
-                    writer.Write(' ');
+                    _ = sb.Append(' ');
 
-                writer.Write(property);
-                writer.Write(Environment.NewLine);
+                _ = sb.Append(property);
+                _ = sb.Append(Environment.NewLine);
             }
             foreach (var childGraph in this.childGraphs.Values)
             {
@@ -453,12 +440,11 @@ namespace Zerra
                     continue;
 
                 for (var i = 0; i < depth * 3; i++)
-                    writer.Write(' ');
+                    _ = sb.Append(' ');
 
-                writer.Write(childGraph.name);
-                writer.Write(Environment.NewLine);
-                childGraph.ToString(ref writer, depth + 1);
-
+                _ = sb.Append(childGraph.name);
+                _ = sb.Append(Environment.NewLine);
+                childGraph.ToString(sb, depth + 1);
             }
         }
 

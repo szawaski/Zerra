@@ -4,9 +4,9 @@
 
 using System;
 
-namespace Zerra.IO
+namespace Zerra.Serialization.Json
 {
-    public ref partial struct CharReader
+    public ref partial struct CharReaderOld
     {
         const int errorHelperLength = 32;
 
@@ -18,13 +18,13 @@ namespace Zerra.IO
         public readonly int Position => position;
         public readonly int Length => length;
 
-        public CharReader(string chars)
+        public CharReaderOld(string chars)
         {
             this.buffer = chars.AsSpan();
             this.position = 0;
             this.length = this.buffer.Length;
         }
-        public CharReader(ReadOnlySpan<char> chars)
+        public CharReaderOld(ReadOnlySpan<char> chars)
         {
             this.buffer = chars;
             this.position = 0;

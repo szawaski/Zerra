@@ -29,7 +29,7 @@ namespace Zerra.Serialization.Json.Converters
         {
             if (state.Current.ValueType == JsonValueType.NotDetermined)
             {
-                if (!reader.TryReadSkipWhiteSpace(out state.Current.FirstChar))
+                if (!reader.TryReadNextSkipWhiteSpace(out state.Current.FirstChar))
                 {
                     state.CharsNeeded = 1;
                     return false;
@@ -56,35 +56,35 @@ namespace Zerra.Serialization.Json.Converters
                     break;
 
                 case 'n':
-                    if (!reader.TryReadSpan(out var s, 3))
+                    if (!reader.TryValidateULL(out var valid))
                     {
                         state.Current.ValueType = JsonValueType.ReadingInProgress;
                         state.CharsNeeded = 3;
                         return false;
                     }
-                    if (s[0] != 'u' || s[1] != 'l' || s[2] != 'l')
+                    if (!valid)
                         throw reader.CreateException("Invalid number/true/false/null");
                     state.Current.ValueType = JsonValueType.Null_Completed;
                     break;
                 case 't':
-                    if (!reader.TryReadSpan(out s, 3))
+                    if (!reader.TryValidateRUE(out valid))
                     {
                         state.Current.ValueType = JsonValueType.ReadingInProgress;
                         state.CharsNeeded = 3;
                         return false;
                     }
-                    if (s[0] != 'r' || s[1] != 'u' || s[2] != 'e')
+                    if (!valid)
                         throw reader.CreateException("Invalid number/true/false/null");
                     state.Current.ValueType = JsonValueType.True_Completed;
                     break;
                 case 'f':
-                    if (!reader.TryReadSpan(out s, 4))
+                    if (!reader.TryValidateALSE(out valid))
                     {
                         state.Current.ValueType = JsonValueType.ReadingInProgress;
                         state.CharsNeeded = 4;
                         return false;
                     }
-                    if (s[0] != 'a' || s[1] != 'l' || s[2] != 's' || s[3] != 'e')
+                    if (!valid)
                         throw reader.CreateException("Invalid number/true/false/null");
                     state.Current.ValueType = JsonValueType.False_Completed;
                     break;
@@ -145,7 +145,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!state.Current.HasReadProperty)
                 {
-                    if (!reader.TryReadSkipWhiteSpace(out c))
+                    if (!reader.TryReadNextSkipWhiteSpace(out c))
                     {
                         state.CharsNeeded = 1;
                         return false;
@@ -166,7 +166,7 @@ namespace Zerra.Serialization.Json.Converters
 
                 if (!state.Current.HasReadSeperator)
                 {
-                    if (!reader.TryReadSkipWhiteSpace(out c))
+                    if (!reader.TryReadNextSkipWhiteSpace(out c))
                     {
                         state.Current.HasReadProperty = true;
                         state.CharsNeeded = 1;
@@ -189,7 +189,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.EndFrame();
                 }
 
-                if (!reader.TryReadSkipWhiteSpace(out c))
+                if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
                     state.CharsNeeded = 1;
                     state.Current.HasReadProperty = true;
@@ -221,7 +221,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (!state.Current.WorkingFirstChar.HasValue)
                     {
-                        if (!reader.TryReadSkipWhiteSpace(out c))
+                        if (!reader.TryReadNextSkipWhiteSpace(out c))
                         {
                             state.CharsNeeded = 1;
                             state.Current.HasReadFirstArrayElement = true;
@@ -250,7 +250,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.Current.WorkingFirstChar = null;
                 }
 
-                if (!reader.TryReadSkipWhiteSpace(out c))
+                if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
                     state.CharsNeeded = 1;
                     state.Current.HasReadValue = true;
@@ -275,7 +275,7 @@ namespace Zerra.Serialization.Json.Converters
                 //reading segment
                 if (!state.ReadStringEscape)
                 {
-                    if (!reader.TryReadSpanUntil(out var s, '\"', '\\'))
+                    if (!reader.TryReadSpanUntilQuoteOrEscape(out var s))
                     {
                         state.CharsNeeded = 1;
                         return false;
@@ -291,7 +291,7 @@ namespace Zerra.Serialization.Json.Converters
                 //reading escape
                 if (!state.ReadStringEscapeUnicode)
                 {
-                    if (!reader.TryRead(out c))
+                    if (!reader.TryReadNext(out c))
                     {
                         state.CharsNeeded = 1;
                         return false;
@@ -304,7 +304,7 @@ namespace Zerra.Serialization.Json.Converters
                 }
 
                 //reading escape unicode
-                if (!reader.TryReadSpan(out var unicodeSpan, 4))
+                if (!reader.TryReadEscapeHex(out var unicodeSpan))
                 {
                     state.CharsNeeded = 4;
                     return false;
@@ -356,7 +356,7 @@ namespace Zerra.Serialization.Json.Converters
         startValueContinue:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -402,7 +402,7 @@ namespace Zerra.Serialization.Json.Converters
         startDecimal:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -444,7 +444,7 @@ namespace Zerra.Serialization.Json.Converters
             }
 
         startExponent:
-            if (!reader.TryRead(out c))
+            if (!reader.TryReadNext(out c))
             {
                 if (state.IsFinalBlock)
                 {
@@ -476,7 +476,7 @@ namespace Zerra.Serialization.Json.Converters
         startExponentContinue:
             for (; ; )
             {
-                if (!reader.TryRead(out c))
+                if (!reader.TryReadNext(out c))
                 {
                     if (state.IsFinalBlock)
                     {
@@ -549,7 +549,7 @@ namespace Zerra.Serialization.Json.Converters
                 //reading segment
                 if (!state.ReadStringEscape)
                 {
-                    if (!reader.TryReadSpanUntil(out var s, '\"', '\\'))
+                    if (!reader.TryReadSpanUntilQuoteOrEscape(out var s))
                     {
                         state.CharsNeeded = 1;
                         if (state.StringBuffer == null)
@@ -589,7 +589,7 @@ namespace Zerra.Serialization.Json.Converters
                 //reading escape
                 if (!state.ReadStringEscapeUnicode)
                 {
-                    if (!reader.TryRead(out c))
+                    if (!reader.TryReadNext(out c))
                     {
                         state.CharsNeeded = 1;
                         if (state.StringBuffer == null)
@@ -644,7 +644,7 @@ namespace Zerra.Serialization.Json.Converters
                 }
 
                 //reading escape unicode
-                if (!reader.TryReadSpan(out var unicodeSpan, 4))
+                if (!reader.TryReadEscapeHex(out var unicodeSpan))
                 {
                     state.CharsNeeded = 4;
                     if (state.StringBuffer == null)

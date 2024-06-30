@@ -3,14 +3,24 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Text;
 
 namespace Zerra.Serialization.Json.IO
 {
     public ref partial struct JsonReader
     {
+        //last byte 128 to 191
+        //1 bytes: 0 to 127
+        //2 bytes: 192 to ?
+        //3 bytes: 224 to ?
+        //4 bytes: 240 to ?
+        private static readonly Encoding encoding = Encoding.UTF8;
+
         const int errorHelperLength = 32;
 
-        private readonly ReadOnlySpan<char> buffer;
+        private readonly ReadOnlySpan<char> bufferChars;
+        private readonly ReadOnlySpan<byte> bufferBytes;
+        private bool useBytes;
 
         private int position;
         private readonly int length;
@@ -18,40 +28,64 @@ namespace Zerra.Serialization.Json.IO
         public readonly int Position => position;
         public readonly int Length => length;
 
-        public JsonReader(string chars)
-        {
-            this.buffer = chars.AsSpan();
-            this.position = 0;
-            this.length = this.buffer.Length;
-        }
         public JsonReader(ReadOnlySpan<char> chars)
         {
-            this.buffer = chars;
+            this.bufferChars = chars;
             this.position = 0;
-            this.length = this.buffer.Length;
+            this.length = chars.Length;
+            this.useBytes = false;
         }
 
-        public readonly bool HasMoreChars()
+        public JsonReader(ReadOnlySpan<byte> bytes)
         {
-            if (length - position > 0)
-                return true;
-
-            return false;
+            this.bufferBytes = bytes;
+            this.position = 0;
+            this.length = bytes.Length;
+            this.useBytes = true;
         }
 
         public readonly FormatException CreateException(string message)
         {
-            var character = buffer[position];
+            if (useBytes)
+            {
+#if NETSTANDARD2_0
+                var character = encoding.GetString(bufferBytes.Slice(position, 3).ToArray())[0];
+#else
+                var character = encoding.GetString(bufferBytes.Slice(position, 3))[0];
+#endif
 
-            var start1 = (position - 1) > errorHelperLength ? (position - 1) - errorHelperLength : 0;
-            var length1 = start1 + errorHelperLength > (position - 1) ? (position - 1) - start1 : errorHelperLength;
-            var helper1 = buffer.Slice(start1, length1).ToString();
+                var start1 = (position - 1) > errorHelperLength ? (position - 1) - errorHelperLength : 0;
+                var length1 = start1 + errorHelperLength > (position - 1) ? (position - 1) - start1 : errorHelperLength;
+#if NETSTANDARD2_0
+                var helper1 = encoding.GetString(bufferBytes.Slice(start1, length1).ToArray());
+#else
+                var helper1 = encoding.GetString(bufferBytes.Slice(start1, length1));
+#endif
 
-            var start2 = position + 1;
-            var length2 = start2 + errorHelperLength > buffer.Length ? buffer.Length - start2 : errorHelperLength;
-            var helper2 = buffer.Slice(start2, length2).ToString();
+                var start2 = position + 1;
+                var length2 = start2 + errorHelperLength > bufferBytes.Length ? bufferBytes.Length - start2 : errorHelperLength;
+#if NETSTANDARD2_0
+                var helper2 = encoding.GetString(bufferBytes.Slice(start2, length2).ToArray());
+#else
+                var helper2 = encoding.GetString(bufferBytes.Slice(start2, length2));
+#endif
 
-            return new FormatException($"JSON Error: {message} at position {position} character {character} between {helper1} and {helper2}");
+                return new FormatException($"JSON Error: {message} at position {position} character {character} between {helper1} and {helper2}");
+            }
+            else
+            {
+                var character = bufferChars[position];
+
+                var start1 = (position - 1) > errorHelperLength ? (position - 1) - errorHelperLength : 0;
+                var length1 = start1 + errorHelperLength > (position - 1) ? (position - 1) - start1 : errorHelperLength;
+                var helper1 = bufferChars.Slice(start1, length1).ToString();
+
+                var start2 = position + 1;
+                var length2 = start2 + errorHelperLength > bufferChars.Length ? bufferChars.Length - start2 : errorHelperLength;
+                var helper2 = bufferChars.Slice(start2, length2).ToString();
+
+                return new FormatException($"JSON Error: {message} at position {position} character {character} between {helper1} and {helper2}");
+            }
         }
     }
 }

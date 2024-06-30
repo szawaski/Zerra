@@ -463,83 +463,102 @@ namespace Zerra.Serialization.Json
             }
         }
 
+        //        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //        private static int Read<T>(JsonConverter<object, T> converter, ReadOnlySpan<byte> buffer, ref ReadState state, out T? result)
+        //        {
+        //            var bufferCharOwner = BufferArrayPool<char>.Rent(buffer.Length);
+        //            try
+        //            {
+        //#if NET5_0_OR_GREATER
+        //                Span<char> chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
+        //                var length = encoding.GetChars(buffer, chars);
+
+        //                var reader = new JsonReader(chars);
+        //                var read = converter.TryRead(ref reader, ref state, out result);
+        //                if (read)
+        //                    state.CharsNeeded = 0;
+
+        //                if (length != buffer.Length)
+        //                    return encoding.GetByteCount(chars.Slice(0, reader.Position));
+        //                else
+        //                    return reader.Position;
+        //#else
+        //                var chars = new char[buffer.Length];
+        //                var length = encoding.GetChars(buffer.ToArray(), 0, buffer.Length, chars, 0);
+        //                var reader = new JsonReader(chars);
+        //                var read = converter.TryRead(ref reader, ref state, out result);
+        //                if (read)
+        //                    state.CharsNeeded = 0;
+
+        //                if (length != reader.Position)
+        //                    return encoding.GetByteCount(chars, 0, reader.Position);
+        //                else
+        //                    return reader.Position;
+        //#endif
+        //            }
+        //            finally
+        //            {
+        //                Array.Clear(bufferCharOwner, 0, bufferCharOwner.Length);
+        //                BufferArrayPool<char>.Return(bufferCharOwner);
+        //            }
+        //        }
+        //        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //        private static int ReadBoxed(JsonConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, out object? result)
+        //        {
+        //            var bufferCharOwner = BufferArrayPool<char>.Rent(buffer.Length);
+        //            try
+        //            {
+        //#if NET5_0_OR_GREATER
+        //                Span<char> chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
+        //                var length = encoding.GetChars(buffer, chars);
+
+        //                var reader = new JsonReader(chars);
+        //                var read = converter.TryReadBoxed(ref reader, ref state, out result);
+        //                if (read)
+        //                    state.CharsNeeded = 0;
+
+        //                if (length != buffer.Length)
+        //                    return encoding.GetByteCount(chars.Slice(0, reader.Position));
+        //                else
+        //                    return reader.Position;
+        //#else
+        //                var chars = new char[buffer.Length];
+        //                var length = encoding.GetChars(buffer.ToArray(), 0, buffer.Length, chars, 0);
+        //                var reader = new JsonReader(chars);
+        //                var read = converter.TryReadBoxed(ref reader, ref state, out result);
+        //                if (read)
+        //                    state.CharsNeeded = 0;
+
+        //                if (length != reader.Position)
+        //                    return encoding.GetByteCount(chars, 0, reader.Position);
+        //                else
+        //                    return reader.Position;
+        //#endif
+        //            }
+        //            finally
+        //            {
+        //                Array.Clear(bufferCharOwner, 0, bufferCharOwner.Length);
+        //                BufferArrayPool<char>.Return(bufferCharOwner);
+        //            }
+        //        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Read<T>(JsonConverter<object, T> converter, ReadOnlySpan<byte> buffer, ref ReadState state, out T? result)
         {
-            var bufferCharOwner = BufferArrayPool<char>.Rent(buffer.Length);
-            try
-            {
-#if NET5_0_OR_GREATER
-                Span<char> chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
-                var length = encoding.GetChars(buffer, chars);
-
-                var reader = new JsonReader(chars);
-                var read = converter.TryRead(ref reader, ref state, out result);
-                if (read)
-                    state.CharsNeeded = 0;
-
-                if (length != buffer.Length)
-                    return encoding.GetByteCount(chars.Slice(0, reader.Position));
-                else
-                    return reader.Position;
-#else
-                var chars = new char[buffer.Length];
-                var length = encoding.GetChars(buffer.ToArray(), 0, buffer.Length, chars, 0);
-                var reader = new JsonReader(chars);
-                var read = converter.TryRead(ref reader, ref state, out result);
-                if (read)
-                    state.CharsNeeded = 0;
-
-                if (length != reader.Position)
-                    return encoding.GetByteCount(chars, 0, reader.Position);
-                else
-                    return reader.Position;
-#endif
-            }
-            finally
-            {
-                Array.Clear(bufferCharOwner, 0, bufferCharOwner.Length);
-                BufferArrayPool<char>.Return(bufferCharOwner);
-            }
+            var reader = new JsonReader(buffer);
+            var read = converter.TryRead(ref reader, ref state, out result);
+            if (read)
+                state.CharsNeeded = 0;
+            return reader.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int ReadBoxed(JsonConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, out object? result)
         {
-            var bufferCharOwner = BufferArrayPool<char>.Rent(buffer.Length);
-            try
-            {
-#if NET5_0_OR_GREATER
-                Span<char> chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
-                var length = encoding.GetChars(buffer, chars);
-
-                var reader = new JsonReader(chars);
-                var read = converter.TryReadBoxed(ref reader, ref state, out result);
-                if (read)
-                    state.CharsNeeded = 0;
-
-                if (length != buffer.Length)
-                    return encoding.GetByteCount(chars.Slice(0, reader.Position));
-                else
-                    return reader.Position;
-#else
-                var chars = new char[buffer.Length];
-                var length = encoding.GetChars(buffer.ToArray(), 0, buffer.Length, chars, 0);
-                var reader = new JsonReader(chars);
-                var read = converter.TryReadBoxed(ref reader, ref state, out result);
-                if (read)
-                    state.CharsNeeded = 0;
-
-                if (length != reader.Position)
-                    return encoding.GetByteCount(chars, 0, reader.Position);
-                else
-                    return reader.Position;
-#endif
-            }
-            finally
-            {
-                Array.Clear(bufferCharOwner, 0, bufferCharOwner.Length);
-                BufferArrayPool<char>.Return(bufferCharOwner);
-            }
+            var reader = new JsonReader(buffer);
+            var read = converter.TryReadBoxed(ref reader, ref state, out result);
+            if (read)
+                state.CharsNeeded = 0;
+            return reader.Position;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

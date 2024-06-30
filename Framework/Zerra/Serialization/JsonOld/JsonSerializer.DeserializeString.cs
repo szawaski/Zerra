@@ -7,7 +7,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Zerra.IO;
 using Zerra.Reflection;
 
 namespace Zerra.Serialization.Json
@@ -28,8 +27,8 @@ namespace Zerra.Serialization.Json
             if (json == null || json.Length == 0)
                 return (T?)ConvertStringToType(String.Empty, typeDetails);
 
-            var reader = new CharReader(json);
-            var decodeBuffer = new CharWriter();
+            var reader = new CharReaderOld(json);
+            var decodeBuffer = new CharWriterOld();
             try
             {
                 if (!reader.TryReadSkipWhiteSpace(out var c))
@@ -58,8 +57,8 @@ namespace Zerra.Serialization.Json
             if (json == null || json.Length == 0)
                 return ConvertStringToType(String.Empty, typeDetails);
 
-            var reader = new CharReader(json);
-            var decodeBuffer = new CharWriter();
+            var reader = new CharReaderOld(json);
+            var decodeBuffer = new CharWriterOld();
             try
             {
                 if (!reader.TryReadSkipWhiteSpace(out var c))
@@ -108,8 +107,8 @@ namespace Zerra.Serialization.Json
             chars = chars.Slice(0, count);
 #endif
 
-            var reader = new CharReader(chars);
-            var decodeBuffer = new CharWriter();
+            var reader = new CharReaderOld(chars);
+            var decodeBuffer = new CharWriterOld();
             try
             {
                 if (!reader.TryReadSkipWhiteSpace(out var c))
@@ -134,10 +133,10 @@ namespace Zerra.Serialization.Json
             if (json.Length == 0)
                 return new JsonObject(null, true);
 
-            var decodeBuffer = new CharWriter();
+            var decodeBuffer = new CharWriterOld();
             try
             {
-                var reader = new CharReader(json);
+                var reader = new CharReaderOld(json);
                 if (!reader.TryReadSkipWhiteSpace(out var c))
                     throw reader.CreateException("Json ended prematurely");
 
@@ -155,7 +154,7 @@ namespace Zerra.Serialization.Json
             }
         }
 
-        private static object? FromStringJson(char c, ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
+        private static object? FromStringJson(char c, ref CharReaderOld reader, ref CharWriterOld decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
         {
             if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.HasIEnumerable)
             {
@@ -183,7 +182,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object? FromStringJsonObject(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
+        private static object? FromStringJsonObject(ref CharReaderOld reader, ref CharWriterOld decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
         {
             var obj = typeDetail != null && typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
             var canExpectComma = false;
@@ -260,7 +259,7 @@ namespace Zerra.Serialization.Json
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object? FromStringJsonDictionary(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail typeDetail, Graph? graph, ref OptionsStruct options)
+        private static object? FromStringJsonDictionary(ref CharReaderOld reader, ref CharWriterOld decodeBuffer, TypeDetail typeDetail, Graph? graph, ref OptionsStruct options)
         {
             object? obj = null;
             MethodDetail? method = null;
@@ -325,7 +324,7 @@ namespace Zerra.Serialization.Json
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object? FromStringJsonArray(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
+        private static object? FromStringJsonArray(ref CharReaderOld reader, ref CharWriterOld decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
         {
             object? collection = null;
             MethodDetail? addMethod = null;
@@ -443,7 +442,7 @@ namespace Zerra.Serialization.Json
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object? FromStringJsonArrayNameless(ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
+        private static object? FromStringJsonArrayNameless(ref CharReaderOld reader, ref CharWriterOld decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
         {
             var obj = typeDetail != null && typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
             var canExpectComma = false;
@@ -531,7 +530,7 @@ namespace Zerra.Serialization.Json
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object? FromStringLiteral(char c, ref CharReader reader, ref CharWriter decodeBuffer, TypeDetail? typeDetail)
+        private static object? FromStringLiteral(char c, ref CharReaderOld reader, ref CharWriterOld decodeBuffer, TypeDetail? typeDetail)
         {
             switch (c)
             {
@@ -618,7 +617,7 @@ namespace Zerra.Serialization.Json
             throw reader.CreateException("Json ended prematurely");
         }
 
-        private static JsonObject FromStringJsonToJsonObject(char c, ref CharReader reader, ref CharWriter decodeBuffer, Graph? graph)
+        private static JsonObject FromStringJsonToJsonObject(char c, ref CharReaderOld reader, ref CharWriterOld decodeBuffer, Graph? graph)
         {
             switch (c)
             {
@@ -634,7 +633,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static JsonObject FromStringObjectToJsonObject(ref CharReader reader, ref CharWriter decodeBuffer, Graph? graph)
+        private static JsonObject FromStringObjectToJsonObject(ref CharReaderOld reader, ref CharWriterOld decodeBuffer, Graph? graph)
         {
             var properties = new Dictionary<string, JsonObject>();
             var canExpectComma = false;
@@ -701,7 +700,7 @@ namespace Zerra.Serialization.Json
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static JsonObject FromStringArrayToJsonObject(ref CharReader reader, ref CharWriter decodeBuffer, Graph? graph)
+        private static JsonObject FromStringArrayToJsonObject(ref CharReaderOld reader, ref CharWriterOld decodeBuffer, Graph? graph)
         {
             var arrayList = new List<JsonObject>();
 
@@ -731,7 +730,7 @@ namespace Zerra.Serialization.Json
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static JsonObject FromStringLiteralToJsonObject(char c, ref CharReader reader, ref CharWriter decodeBuffer)
+        private static JsonObject FromStringLiteralToJsonObject(char c, ref CharReaderOld reader, ref CharWriterOld decodeBuffer)
         {
             switch (c)
             {
@@ -797,7 +796,7 @@ namespace Zerra.Serialization.Json
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void FromStringPropertySeperator(ref CharReader reader)
+        private static void FromStringPropertySeperator(ref CharReaderOld reader)
         {
             if (!reader.TryReadSkipWhiteSpace(out var c))
                 throw reader.CreateException("Json ended prematurely");
@@ -807,7 +806,7 @@ namespace Zerra.Serialization.Json
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static string? FromStringString(ref CharReader reader, ref CharWriter decodeBuffer)
+        private static string? FromStringString(ref CharReaderOld reader, ref CharWriterOld decodeBuffer)
         {
             char c;
             while (reader.TryReadSpanUntil(out var s, '\"', '\\'))
@@ -864,7 +863,7 @@ namespace Zerra.Serialization.Json
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object? FromStringLiteralNumberAsType(char c, CoreType coreType, ref CharReader reader, ref CharWriter decodeBuffer)
+        private static object? FromStringLiteralNumberAsType(char c, CoreType coreType, ref CharReaderOld reader, ref CharWriterOld decodeBuffer)
         {
             unchecked
             {
@@ -910,7 +909,7 @@ namespace Zerra.Serialization.Json
             return null;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static object? FromStringLiteralNumberAsType(char c, CoreEnumType coreType, ref CharReader reader, ref CharWriter decodeBuffer)
+        private static object? FromStringLiteralNumberAsType(char c, CoreEnumType coreType, ref CharReaderOld reader, ref CharWriterOld decodeBuffer)
         {
             unchecked
             {
@@ -945,7 +944,7 @@ namespace Zerra.Serialization.Json
             return null;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static string FromStringLiteralNumberAsString(char c, ref CharReader reader, ref CharWriter decodeBuffer)
+        private static string FromStringLiteralNumberAsString(char c, ref CharReaderOld reader, ref CharWriterOld decodeBuffer)
         {
             switch (c)
             {
@@ -1195,7 +1194,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static long FromStringLiteralNumberAsInt64(char c, ref CharReader reader)
+        private static long FromStringLiteralNumberAsInt64(char c, ref CharReaderOld reader)
         {
             var negative = false;
             long number;
@@ -1431,7 +1430,7 @@ namespace Zerra.Serialization.Json
             return number;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ulong FromStringLiteralNumberAsUInt64(char c, ref CharReader reader)
+        private static ulong FromStringLiteralNumberAsUInt64(char c, ref CharReaderOld reader)
         {
             var number = c switch
             {
@@ -1641,7 +1640,7 @@ namespace Zerra.Serialization.Json
             return number;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static double FromStringLiteralNumberAsDouble(char c, ref CharReader reader)
+        private static double FromStringLiteralNumberAsDouble(char c, ref CharReaderOld reader)
         {
             var negative = false;
             double number;
@@ -1878,7 +1877,7 @@ namespace Zerra.Serialization.Json
             return number;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static decimal FromStringLiteralNumberAsDecimal(char c, ref CharReader reader)
+        private static decimal FromStringLiteralNumberAsDecimal(char c, ref CharReaderOld reader)
         {
             var negative = false;
             decimal number;
@@ -2115,7 +2114,7 @@ namespace Zerra.Serialization.Json
             return number;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void FromStringLiteralNumberAsEmpty(char c, ref CharReader reader)
+        private static void FromStringLiteralNumberAsEmpty(char c, ref CharReaderOld reader)
         {
             switch (c)
             {

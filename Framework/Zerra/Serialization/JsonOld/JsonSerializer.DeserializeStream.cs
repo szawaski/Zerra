@@ -446,9 +446,9 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Read(ReadOnlySpan<char> chars, ref ReadState state, ref char[] decodeBuffer, ref int decodeBufferPosition)
         {
-            var decodeBufferWriter = new CharWriter(decodeBuffer, true, decodeBufferPosition);
+            var decodeBufferWriter = new CharWriterOld(decodeBuffer, true, decodeBufferPosition);
 
-            var reader = new CharReader(chars);
+            var reader = new CharReaderOld(chars);
 
             for (; ; )
             {
@@ -482,7 +482,7 @@ namespace Zerra.Serialization.Json
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadValue(ref CharReader reader, ref ReadState state)
+        private static void ReadValue(ref CharReaderOld reader, ref ReadState state)
         {
             if (state.CurrentFrame.State == 0)
             {
@@ -579,7 +579,7 @@ namespace Zerra.Serialization.Json
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadObject(ref CharReader reader, ref ReadState state)
+        private static void ReadObject(ref CharReaderOld reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
 
@@ -691,7 +691,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadDictionary(ref CharReader reader, ref ReadState state)
+        private static void ReadDictionary(ref CharReaderOld reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
 
@@ -777,7 +777,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadArray(ref CharReader reader, ref ReadState state)
+        private static void ReadArray(ref CharReaderOld reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             var graph = state.CurrentFrame.Graph;
@@ -936,7 +936,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadArrayNameless(ref CharReader reader, ref ReadState state)
+        private static void ReadArrayNameless(ref CharReaderOld reader, ref ReadState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
             var graph = state.CurrentFrame.Graph;
@@ -1051,7 +1051,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadLiteralNumber(ref CharReader reader, ref ReadState state, ref CharWriter decodeBuffer)
+        private static void ReadLiteralNumber(ref CharReaderOld reader, ref ReadState state, ref CharWriterOld decodeBuffer)
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
 
@@ -1427,7 +1427,7 @@ namespace Zerra.Serialization.Json
         //}
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadString(ref CharReader reader, ref ReadState state, ref CharWriter decodeBuffer)
+        private static void ReadString(ref CharReaderOld reader, ref ReadState state, ref CharWriterOld decodeBuffer)
         {
             char c;
             for (; ; )
@@ -1518,7 +1518,7 @@ namespace Zerra.Serialization.Json
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadLiteralNumberAsString(ref CharReader reader, ref ReadState state, ref CharWriter decodeBuffer)
+        private static void ReadLiteralNumberAsString(ref CharReaderOld reader, ref ReadState state, ref CharWriterOld decodeBuffer)
         {
             for (; ; )
             {
@@ -1727,7 +1727,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadLiteralNumberAsEmpty(ref CharReader reader, ref ReadState state)
+        private static void ReadLiteralNumberAsEmpty(ref CharReaderOld reader, ref ReadState state)
         {
             for (; ; )
             {
@@ -1893,7 +1893,7 @@ namespace Zerra.Serialization.Json
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadLiteralNumberAsInt64(ref CharReader reader, ref ReadState state)
+        private static void ReadLiteralNumberAsInt64(ref CharReaderOld reader, ref ReadState state)
         {
             if (state.CurrentFrame.State == 0)
             {
@@ -2139,7 +2139,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadLiteralNumberAsUInt64(ref CharReader reader, ref ReadState state)
+        private static void ReadLiteralNumberAsUInt64(ref CharReaderOld reader, ref ReadState state)
         {
             if (state.CurrentFrame.State == 0)
             {
@@ -2362,7 +2362,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadLiteralNumberAsDouble(ref CharReader reader, ref ReadState state)
+        private static void ReadLiteralNumberAsDouble(ref CharReaderOld reader, ref ReadState state)
         {
             if (state.CurrentFrame.State == 0)
             {
@@ -2610,7 +2610,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReadLiteralNumberAsDecimal(ref CharReader reader, ref ReadState state)
+        private static void ReadLiteralNumberAsDecimal(ref CharReaderOld reader, ref ReadState state)
         {
             if (state.CurrentFrame.State == 0)
             {
