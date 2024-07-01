@@ -13,9 +13,6 @@ namespace Zerra.Serialization.Bytes.IO
     {
         private const int defaultBufferSize = 1024;
 
-        //Unicode = UTF-16 which is what C# uses
-        private static readonly Encoding defaultEncoding = Encoding.Unicode;
-
         private const byte nullByte = 0;
         private const byte notNullByte = 1;
 
@@ -35,20 +32,20 @@ namespace Zerra.Serialization.Bytes.IO
             throw new NotSupportedException($"{nameof(ByteWriter)} cannot use default constructor");
         }
 
-        public ByteWriter(Span<byte> buffer, Encoding? encoding = null)
+        public ByteWriter(Span<byte> buffer, Encoding encoding)
         {
             this.bufferOwner = null;
             this.buffer = buffer;
-            this.encoding = encoding ?? defaultEncoding;
+            this.encoding = encoding;
             this.position = 0;
             this.length = buffer.Length;
         }
 
-        public ByteWriter(int initialSize, Encoding? encoding = null)
+        public ByteWriter(int initialSize, Encoding encoding)
         {
             this.bufferOwner = BufferArrayPool<byte>.Rent(initialSize);
             this.buffer = bufferOwner;
-            this.encoding = encoding ?? defaultEncoding;
+            this.encoding = encoding;
             this.position = 0;
             this.length = buffer.Length;
         }
