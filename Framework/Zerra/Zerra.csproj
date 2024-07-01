@@ -42,36 +42,6 @@ Zerra.Reflection.TypeAnalyzer
     </PropertyGroup>
 
     <ItemGroup>
-      <Compile Remove="Serialization\Bytes\Converters\CoreTypes\Arrays\**" />
-      <Compile Remove="Serialization\Bytes\Converters\CoreTypes\HashSetTs\**" />
-      <Compile Remove="Serialization\Bytes\Converters\CoreTypes\ICollectionTs\**" />
-      <Compile Remove="Serialization\Bytes\Converters\CoreTypes\IListTs\**" />
-      <Compile Remove="Serialization\Bytes\Converters\CoreTypes\IReadOnlyCollectionTs\**" />
-      <Compile Remove="Serialization\Bytes\Converters\CoreTypes\IReadOnlyListTs\**" />
-      <Compile Remove="Serialization\Bytes\Converters\CoreTypes\IReadOnlySetTs\**" />
-      <Compile Remove="Serialization\Bytes\Converters\CoreTypes\ISetTs\**" />
-      <Compile Remove="Serialization\Bytes\Converters\CoreTypes\ListTs\**" />
-      <EmbeddedResource Remove="Serialization\Bytes\Converters\CoreTypes\Arrays\**" />
-      <EmbeddedResource Remove="Serialization\Bytes\Converters\CoreTypes\HashSetTs\**" />
-      <EmbeddedResource Remove="Serialization\Bytes\Converters\CoreTypes\ICollectionTs\**" />
-      <EmbeddedResource Remove="Serialization\Bytes\Converters\CoreTypes\IListTs\**" />
-      <EmbeddedResource Remove="Serialization\Bytes\Converters\CoreTypes\IReadOnlyCollectionTs\**" />
-      <EmbeddedResource Remove="Serialization\Bytes\Converters\CoreTypes\IReadOnlyListTs\**" />
-      <EmbeddedResource Remove="Serialization\Bytes\Converters\CoreTypes\IReadOnlySetTs\**" />
-      <EmbeddedResource Remove="Serialization\Bytes\Converters\CoreTypes\ISetTs\**" />
-      <EmbeddedResource Remove="Serialization\Bytes\Converters\CoreTypes\ListTs\**" />
-      <None Remove="Serialization\Bytes\Converters\CoreTypes\Arrays\**" />
-      <None Remove="Serialization\Bytes\Converters\CoreTypes\HashSetTs\**" />
-      <None Remove="Serialization\Bytes\Converters\CoreTypes\ICollectionTs\**" />
-      <None Remove="Serialization\Bytes\Converters\CoreTypes\IListTs\**" />
-      <None Remove="Serialization\Bytes\Converters\CoreTypes\IReadOnlyCollectionTs\**" />
-      <None Remove="Serialization\Bytes\Converters\CoreTypes\IReadOnlyListTs\**" />
-      <None Remove="Serialization\Bytes\Converters\CoreTypes\IReadOnlySetTs\**" />
-      <None Remove="Serialization\Bytes\Converters\CoreTypes\ISetTs\**" />
-      <None Remove="Serialization\Bytes\Converters\CoreTypes\ListTs\**" />
-    </ItemGroup>
-
-    <ItemGroup>
         <None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\amd64\KernelTraceControl.dll" />
         <None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\amd64\msdia140.dll" />
         <None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\x86\KernelTraceControl.dll" />
