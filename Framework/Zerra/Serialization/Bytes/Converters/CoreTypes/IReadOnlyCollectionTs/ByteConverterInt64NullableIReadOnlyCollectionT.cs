@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlyCollectionTs
 {
     internal sealed class ByteConverterInt64NullableIReadOnlyCollection<TParent> : ByteConverter<TParent, IReadOnlyCollection<long?>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out IReadOnlyCollection<long?>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IReadOnlyCollection<long?>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -49,7 +49,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlyCollectionTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, IReadOnlyCollection<long?>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IReadOnlyCollection<long?>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

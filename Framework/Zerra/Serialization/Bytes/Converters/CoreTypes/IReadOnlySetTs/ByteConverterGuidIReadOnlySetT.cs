@@ -13,7 +13,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlySetTs
 {
     internal sealed class ByteConverterGuidIReadOnlySet<TParent> : ByteConverter<TParent, IReadOnlySet<Guid>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out IReadOnlySet<Guid>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IReadOnlySet<Guid>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -51,7 +51,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlySetTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, IReadOnlySet<Guid>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IReadOnlySet<Guid>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

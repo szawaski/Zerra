@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ISetTs
 {
     internal sealed class ByteConverterTimeSpanNullableISet<TParent> : ByteConverter<TParent, ISet<TimeSpan?>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out ISet<TimeSpan?>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out ISet<TimeSpan?>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -49,7 +49,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ISetTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, ISet<TimeSpan?>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, ISet<TimeSpan?>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

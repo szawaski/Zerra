@@ -11,10 +11,10 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Values
     {
         protected override bool StackRequired => false;
 
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out char value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out char value)
             => reader.TryRead(out value, out state.BytesNeeded);
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, char value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, char value)
             => writer.TryWrite(value, out state.BytesNeeded);
     }
 }

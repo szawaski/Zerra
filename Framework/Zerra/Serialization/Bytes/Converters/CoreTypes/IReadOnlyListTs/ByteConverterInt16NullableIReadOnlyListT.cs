@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlyListTs
 {
     internal sealed class ByteConverterInt16NullableIReadOnlyList<TParent> : ByteConverter<TParent, IReadOnlyList<short?>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out IReadOnlyList<short?>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IReadOnlyList<short?>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -49,7 +49,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlyListTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, IReadOnlyList<short?>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IReadOnlyList<short?>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

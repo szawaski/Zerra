@@ -114,27 +114,12 @@ namespace Zerra.Serialization.Bytes.Converters.General
             }
         }
 
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out TValue? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue? value)
         {
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
 
             Dictionary<string, object?>? collectedValues;
-
-            if (nullFlags && !state.Current.HasNullChecked)
-            {
-                if (!reader.TryReadIsNull(out var isNull, out state.BytesNeeded))
-                {
-                    value = default;
-                    return false;
-                }
-
-                if (isNull)
-                {
-                    value = default;
-                    return true;
-                }
-            }
 
             if (!state.Current.HasCreated)
             {
@@ -185,9 +170,8 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 {
                     if (state.UsePropertyNames)
                     {
-                        if (!reader.TryRead(false, out string? name, out state.BytesNeeded))
+                        if (!reader.TryRead(out string? name, out state.BytesNeeded))
                         {
-                            state.Current.HasNullChecked = true;
                             if (collectValues)
                                 state.Current.Object = collectedValues;
                             else
@@ -210,7 +194,6 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         {
                             if (!reader.TryRead(out propertyIndex, out state.BytesNeeded))
                             {
-                                state.Current.HasNullChecked = true;
                                 if (collectValues)
                                     state.Current.Object = collectedValues;
                                 else
@@ -222,7 +205,6 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         {
                             if (!reader.TryRead(out byte propertyIndexValue, out state.BytesNeeded))
                             {
-                                state.Current.HasNullChecked = true;
                                 if (collectValues)
                                     state.Current.Object = collectedValues;
                                 else
@@ -259,7 +241,6 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     var read = converter.TryReadFromParent(ref reader, ref state, default, false, true);
                     if (!read)
                     {
-                        state.Current.HasNullChecked = true;
                         state.Current.HasReadProperty = true;
                         state.Current.Property = property;
                         if (collectValues)
@@ -276,7 +257,6 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         var read = property.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues, false);
                         if (!read)
                         {
-                            state.Current.HasNullChecked = true;
                             state.Current.HasReadProperty = true;
                             state.Current.Property = property;
                             if (collectValues)
@@ -291,7 +271,6 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         var read = property.Converter.TryReadFromParent(ref reader, ref state, value, false);
                         if (!read)
                         {
-                            state.Current.HasNullChecked = true;
                             state.Current.HasReadProperty = true;
                             state.Current.Property = property;
                             if (collectValues)
@@ -345,27 +324,10 @@ namespace Zerra.Serialization.Bytes.Converters.General
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, TValue? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue value)
         {
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
-
-            if (nullFlags && !state.Current.HasWrittenIsNull)
-            {
-                if (value is null)
-                {
-                    if (!writer.TryWriteNull(out state.BytesNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-                if (!writer.TryWriteNotNull(out state.BytesNeeded))
-                {
-                    return false;
-                }
-                state.Current.HasWrittenIsNull = true;
-            }
 
             if (value is null) throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
 

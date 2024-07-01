@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ICollectionTs
 {
     internal sealed class ByteConverterDoubleICollection<TParent> : ByteConverter<TParent, ICollection<double>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out ICollection<double>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out ICollection<double>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -49,7 +49,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ICollectionTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, ICollection<double>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, ICollection<double>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

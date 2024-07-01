@@ -10,7 +10,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
 {
     internal sealed class ByteConverterInt16NullableArray<TParent> : ByteConverter<TParent, short?[]>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out short?[]? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out short?[]? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -46,7 +46,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, short?[]? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, short?[]? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

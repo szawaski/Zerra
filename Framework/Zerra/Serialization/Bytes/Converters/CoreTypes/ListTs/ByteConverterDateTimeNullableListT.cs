@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs
 {
     internal sealed class ByteConverterDateTimeNullableList<TParent> : ByteConverter<TParent, List<DateTime?>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out List<DateTime?>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out List<DateTime?>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -47,7 +47,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, List<DateTime?>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, List<DateTime?>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

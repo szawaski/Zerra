@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ISetTs
 {
     internal sealed class ByteConverterInt32ISet<TParent> : ByteConverter<TParent, ISet<int>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out ISet<int>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out ISet<int>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -49,7 +49,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ISetTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, ISet<int>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, ISet<int>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

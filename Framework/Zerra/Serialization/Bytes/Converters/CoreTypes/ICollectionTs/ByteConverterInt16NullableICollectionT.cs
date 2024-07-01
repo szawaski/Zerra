@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ICollectionTs
 {
     internal sealed class ByteConverterInt16NullableICollection<TParent> : ByteConverter<TParent, ICollection<short?>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out ICollection<short?>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out ICollection<short?>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -49,7 +49,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ICollectionTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, ICollection<short?>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, ICollection<short?>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

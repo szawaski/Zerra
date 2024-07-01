@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.HashSetTs
 {
     internal sealed class ByteConverterDateTimeHashSet<TParent> : ByteConverter<TParent, HashSet<DateTime>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out HashSet<DateTime>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out HashSet<DateTime>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -47,7 +47,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.HashSetTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, HashSet<DateTime>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, HashSet<DateTime>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

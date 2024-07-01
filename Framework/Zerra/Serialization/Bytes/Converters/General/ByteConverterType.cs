@@ -13,9 +13,9 @@ namespace Zerra.Serialization.Bytes.Converters.General
     {
         protected override bool StackRequired => false;
 
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out Type? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out Type? value)
         {
-            if (!reader.TryRead(nullFlags, out string? typeName, out state.BytesNeeded))
+            if (!reader.TryRead(out string? typeName, out state.BytesNeeded))
             {
                 value = default;
                 return false;
@@ -30,7 +30,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, Type? value)
-            => writer.TryWrite(value?.FullName, nullFlags, out state.BytesNeeded);
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, Type value)
+            => writer.TryWrite(value.FullName, out state.BytesNeeded);
     }
 }

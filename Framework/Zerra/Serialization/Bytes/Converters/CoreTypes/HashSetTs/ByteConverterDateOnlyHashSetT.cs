@@ -13,7 +13,7 @@ namespace Zerra.Serialization.Bytes.Converters.HashSets
 {
     internal sealed class ByteConverterDateOnlyHashSet<TParent> : ByteConverter<TParent, HashSet<DateOnly>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out HashSet<DateOnly>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out HashSet<DateOnly>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -49,7 +49,7 @@ namespace Zerra.Serialization.Bytes.Converters.HashSets
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, HashSet<DateOnly>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, HashSet<DateOnly>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

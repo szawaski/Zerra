@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.HashSetTs
 {
     internal sealed class ByteConverterBooleanNullableHashSet<TParent> : ByteConverter<TParent, HashSet<bool?>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out HashSet<bool?>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out HashSet<bool?>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -47,7 +47,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.HashSetTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, HashSet<bool?>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, HashSet<bool?>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

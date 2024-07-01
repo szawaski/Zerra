@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs
 {
     internal sealed class ByteConverterDateTimeOffsetList<TParent> : ByteConverter<TParent, List<DateTimeOffset>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out List<DateTimeOffset>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out List<DateTimeOffset>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -47,7 +47,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, List<DateTimeOffset>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, List<DateTimeOffset>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

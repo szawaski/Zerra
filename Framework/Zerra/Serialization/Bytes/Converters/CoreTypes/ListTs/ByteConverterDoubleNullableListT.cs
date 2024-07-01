@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs
 {
     internal sealed class ByteConverterDoubleNullableList<TParent> : ByteConverter<TParent, List<double?>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out List<double?>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out List<double?>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -47,7 +47,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, List<double?>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, List<double?>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

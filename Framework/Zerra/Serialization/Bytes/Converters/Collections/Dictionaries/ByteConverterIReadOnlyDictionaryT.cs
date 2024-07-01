@@ -26,30 +26,14 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
             writeConverter = ByteConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(keyValuePairTypeDetail, null, Getter, null);
         }
 
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out IReadOnlyDictionary<TKey, TValue>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IReadOnlyDictionary<TKey, TValue>? value)
         {
-            if (nullFlags && !state.Current.HasNullChecked)
-            {
-                if (!reader.TryReadIsNull(out var isNull, out state.BytesNeeded))
-                {
-                    value = default;
-                    return false;
-                }
-
-                if (isNull)
-                {
-                    value = default;
-                    return true;
-                }
-            }
-
             IDictionary<TKey, TValue> dictionary;
 
             if (!state.Current.EnumerableLength.HasValue)
             {
-                if (!reader.TryRead(false, out state.Current.EnumerableLength, out state.BytesNeeded))
+                if (!reader.TryRead(out state.Current.EnumerableLength, out state.BytesNeeded))
                 {
-                    state.Current.HasNullChecked = true;
                     value = default;
                     return false;
                 }
@@ -86,7 +70,6 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
                 var read = readConverter.TryReadFromParent(ref reader, ref state, dictionary, true);
                 if (!read)
                 {
-                    state.Current.HasNullChecked = true;
                     state.Current.Object = dictionary;
                     return false;
                 }
@@ -96,33 +79,14 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
             }
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, IReadOnlyDictionary<TKey, TValue>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IReadOnlyDictionary<TKey, TValue> value)
         {
-            if (nullFlags && !state.Current.HasWrittenIsNull)
-            {
-                if (value is null)
-                {
-                    if (!writer.TryWriteNull(out state.BytesNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-                if (!writer.TryWriteNotNull(out state.BytesNeeded))
-                {
-                    return false;
-                }
-            }
-
-            if (value is null) throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
-
             IEnumerator<KeyValuePair<TKey, TValue>> enumerator;
 
             if (state.Current.Object is null)
             {
                 if (!writer.TryWrite(value.Count, out state.BytesNeeded))
                 {
-                    state.Current.HasWrittenIsNull = true;
                     return false;
                 }
                 if (value.Count == 0)
@@ -142,7 +106,6 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
                 var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true);
                 if (!write)
                 {
-                    state.Current.HasWrittenIsNull = true;
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;
                     return false;

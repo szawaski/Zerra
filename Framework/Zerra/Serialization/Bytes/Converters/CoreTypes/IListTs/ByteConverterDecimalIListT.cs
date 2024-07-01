@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IListTs
 {
     internal sealed class ByteConverterDecimalIList<TParent> : ByteConverter<TParent, IList<decimal>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out IList<decimal>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IList<decimal>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -49,7 +49,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IListTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, IList<decimal>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IList<decimal>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

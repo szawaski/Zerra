@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IListTs
 {
     internal sealed class ByteConverterInt64NullableIList<TParent> : ByteConverter<TParent, IList<long?>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out IList<long?>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IList<long?>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -49,7 +49,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IListTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, IList<long?>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IList<long?>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

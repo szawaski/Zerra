@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IListTs
 {
     internal sealed class ByteConverterUInt64IList<TParent> : ByteConverter<TParent, IList<ulong>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out IList<ulong>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IList<ulong>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -49,7 +49,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IListTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, IList<ulong>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IList<ulong>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

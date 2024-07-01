@@ -13,7 +13,7 @@ namespace Zerra.Serialization.Bytes.Converters.HashSets
 {
     internal sealed class ByteConverterTimeOnlyNullableArray<TParent> : ByteConverter<TParent, TimeOnly?[]>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out TimeOnly?[]? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TimeOnly?[]? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -49,7 +49,7 @@ namespace Zerra.Serialization.Bytes.Converters.HashSets
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, TimeOnly?[]? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TimeOnly?[]? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

@@ -10,7 +10,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
 {
     internal sealed class ByteConverterDateTimeArray<TParent> : ByteConverter<TParent, DateTime[]>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out DateTime[]? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out DateTime[]? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -46,7 +46,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, DateTime[]? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, DateTime[]? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

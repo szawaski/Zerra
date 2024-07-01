@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs
 {
     internal sealed class ByteConverterTimeSpanList<TParent> : ByteConverter<TParent, List<TimeSpan>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out List<TimeSpan>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out List<TimeSpan>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -47,7 +47,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, List<TimeSpan>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, List<TimeSpan>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

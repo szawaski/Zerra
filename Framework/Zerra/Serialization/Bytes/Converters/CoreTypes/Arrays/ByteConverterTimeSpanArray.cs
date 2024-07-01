@@ -10,7 +10,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
 {
     internal sealed class ByteConverterTimeSpanArray<TParent> : ByteConverter<TParent, TimeSpan[]>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out TimeSpan[]? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TimeSpan[]? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -46,7 +46,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, TimeSpan[]? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TimeSpan[]? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

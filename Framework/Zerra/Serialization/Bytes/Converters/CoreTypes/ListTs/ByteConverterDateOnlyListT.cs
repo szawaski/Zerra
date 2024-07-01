@@ -13,7 +13,7 @@ namespace Zerra.Serialization.Bytes.Converters.Lists
 {
     internal sealed class ByteConverterDateOnlyList<TParent> : ByteConverter<TParent, List<DateOnly>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out List<DateOnly>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out List<DateOnly>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -49,7 +49,7 @@ namespace Zerra.Serialization.Bytes.Converters.Lists
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, List<DateOnly>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, List<DateOnly>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

@@ -13,7 +13,7 @@ namespace Zerra.Serialization.Bytes.Converters.IReadOnlyLists
 {
     internal sealed class ByteConverterDateOnlyNullableIReadOnlyList<TParent> : ByteConverter<TParent, IReadOnlyList<DateOnly?>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out IReadOnlyList<DateOnly?>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IReadOnlyList<DateOnly?>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -51,7 +51,7 @@ namespace Zerra.Serialization.Bytes.Converters.IReadOnlyLists
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, IReadOnlyList<DateOnly?>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IReadOnlyList<DateOnly?>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

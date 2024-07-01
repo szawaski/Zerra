@@ -25,27 +25,11 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
             writeConverter = ByteConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, null, Getter, null);
         }
 
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out TEnumerable? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TEnumerable? value)
             => throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.GetNiceName()} because no interface to populate the collection");
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, TEnumerable? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TEnumerable value)
         {
-            if (nullFlags && !state.Current.HasWrittenIsNull)
-            {
-                if (value is null)
-                {
-                    if (!writer.TryWriteNull(out state.BytesNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-                if (!writer.TryWriteNotNull(out state.BytesNeeded))
-                {
-                    return false;
-                }
-            }
-
             if (value is null) throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
 
             IEnumerator<TValue> enumerator;
@@ -56,7 +40,6 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
                 {
                     if (!writer.TryWrite(collection1.Count, out state.BytesNeeded))
                     {
-                        state.Current.HasWrittenIsNull = true;
                         return false;
                     }
                     if (collection1.Count == 0)
@@ -70,7 +53,6 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
                 {
                     if (!writer.TryWrite(collection2.Count, out state.BytesNeeded))
                     {
-                        state.Current.HasWrittenIsNull = true;
                         return false;
                     }
                     if (collection2.Count == 0)
@@ -90,7 +72,6 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 
                     if (!writer.TryWrite(count, out state.BytesNeeded))
                     {
-                        state.Current.HasWrittenIsNull = true;
                         return false;
                     }
                     if (count == 0)
@@ -111,7 +92,6 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
                 var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true);
                 if (!write)
                 {
-                    state.Current.HasWrittenIsNull = true;
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;
                     return false;

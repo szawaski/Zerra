@@ -42,23 +42,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(bool nullFlags, out bool? value, out int sizeNeeded)
+        public bool TryRead(out bool? value, out int sizeNeeded)
         {
-            sizeNeeded = 2;
+            sizeNeeded = 1;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             value = buffer[position++] != 0;
             return true;
         }
@@ -210,23 +202,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(bool nullFlags, out byte? value, out int sizeNeeded)
+        public bool TryRead(out byte? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 2 : 1;
+            sizeNeeded = 1;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             value = buffer[position++];
             return true;
         }
@@ -380,23 +364,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(bool nullFlags, out sbyte? value, out int sizeNeeded)
+        public bool TryRead(out sbyte? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 2 : 1;
+            sizeNeeded = 1;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             value = (sbyte)buffer[position++];
             return true;
         }
@@ -548,23 +524,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(bool nullFlags, out short? value, out int sizeNeeded)
+        public bool TryRead(out short? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 3 : 2;
+            sizeNeeded = 2;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             value = (short)(buffer[position++] | buffer[position++] << 8);
             return true;
         }
@@ -716,23 +684,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(bool nullFlags, out ushort? value, out int sizeNeeded)
+        public bool TryRead(out ushort? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 3 : 2;
+            sizeNeeded = 2;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             value = (ushort)(buffer[position++] | buffer[position++] << 8);
             return true;
         }
@@ -884,23 +844,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(bool nullFlags, out int? value, out int sizeNeeded)
+        public bool TryRead(out int? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 5 : 4;
+            sizeNeeded = 4;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             value = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             return true;
         }
@@ -1052,23 +1004,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(bool nullFlags, out uint? value, out int sizeNeeded)
+        public bool TryRead(out uint? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 5 : 4;
+            sizeNeeded = 4;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             value = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             return true;
         }
@@ -1222,23 +1166,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(bool nullFlags, out long? value, out int sizeNeeded)
+        public bool TryRead(out long? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 9 : 8;
+            sizeNeeded = 8;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             value = (long)((ulong)hi) << 32 | lo;
@@ -1406,23 +1342,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(bool nullFlags, out ulong? value, out int sizeNeeded)
+        public bool TryRead(out ulong? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 9 : 8;
+            sizeNeeded = 8;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             value = ((ulong)hi) << 32 | lo;
@@ -1589,23 +1517,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(bool nullFlags, out float? value, out int sizeNeeded)
+        public unsafe bool TryRead(out float? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 5 : 4;
+            sizeNeeded = 4;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             value = *((float*)&tmpBuffer);
             return true;
@@ -1767,23 +1687,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(bool nullFlags, out double? value, out int sizeNeeded)
+        public unsafe bool TryRead(out double? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 9 : 8;
+            sizeNeeded = 8;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var tmpBuffer = ((ulong)hi) << 32 | lo;
@@ -1960,23 +1872,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(bool nullFlags, out decimal? value, out int sizeNeeded)
+        public bool TryRead(out decimal? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 17 : 16;
+            sizeNeeded = 16;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
@@ -2159,23 +2063,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(bool nullFlags, out DateTime? value, out int sizeNeeded)
+        public bool TryRead(out DateTime? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 9 : 8;
+            sizeNeeded = 8;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
@@ -2352,23 +2248,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(bool nullFlags, out DateTimeOffset? value, out int sizeNeeded)
+        public bool TryRead(out DateTimeOffset? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 11 : 10;
+            sizeNeeded = 10;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
@@ -2551,23 +2439,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(bool nullFlags, out TimeSpan? value, out int sizeNeeded)
+        public bool TryRead(out TimeSpan? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 9 : 8;
+            sizeNeeded = 8;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
@@ -2742,23 +2622,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(bool nullFlags, out DateOnly? value, out int sizeNeeded)
+        public bool TryRead(out DateOnly? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 5 : 4;
+            sizeNeeded = 4;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             value = DateOnly.FromDayNumber(dayNumber);
             return true;
@@ -2920,23 +2792,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(bool nullFlags, out TimeOnly? value, out int sizeNeeded)
+        public bool TryRead(out TimeOnly? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 9 : 8;
+            sizeNeeded = 8;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
@@ -3115,24 +2979,14 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(bool nullFlags, out Guid? value, out int sizeNeeded)
+        public bool TryRead(out Guid? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 17 : 16;
+            sizeNeeded = 16;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
-
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
-
 
 #if NETSTANDARD2_0
             value = new Guid(buffer.Slice(position, 16).ToArray());
@@ -3324,23 +3178,15 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(bool nullFlags, out char? value, out int sizeNeeded)
+        public unsafe bool TryRead(out char? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 3 : 2;
+            sizeNeeded = 2;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
             }
 
-            if (nullFlags)
-            {
-                if (buffer[position++] == nullByte)
-                {
-                    value = null;
-                    return true;
-                }
-            }
             fixed (byte* pBuffer = &buffer[position])
             {
                 value = (char)*(short*)pBuffer;
@@ -3515,19 +3361,13 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(bool nullFlags, out string? value, out int sizeNeeded)
+        public unsafe bool TryRead(out string? value, out int sizeNeeded)
         {
-            sizeNeeded = nullFlags ? 5 : 4;
+            sizeNeeded = 4;
             if (length - position < sizeNeeded)
             {
                 value = default;
                 return false;
-            }
-
-            if (nullFlags && buffer[position++] == nullByte)
-            {
-                value = null;
-                return true;
             }
 
             var byteLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -3540,10 +3380,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = byteLength;
             if (length - position < sizeNeeded)
             {
-                if (nullFlags)
-                    position -= 5;
-                else
-                    position -= 4;
+                position -= 4;
                 value = default;
                 return false;
             }

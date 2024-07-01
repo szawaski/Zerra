@@ -25,30 +25,14 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
             writeConverter = ByteConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, null, Getter, null);
         }
 
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out TList? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TList? value)
         {
-            if (nullFlags && !state.Current.HasNullChecked)
-            {
-                if (!reader.TryReadIsNull(out var isNull, out state.BytesNeeded))
-                {
-                    value = default;
-                    return false;
-                }
-
-                if (isNull)
-                {
-                    value = default;
-                    return true;
-                }
-            }
-
             IList<TValue> list;
 
             if (!state.Current.EnumerableLength.HasValue)
             {
-                if (!reader.TryRead(false, out state.Current.EnumerableLength, out state.BytesNeeded))
+                if (!reader.TryRead(out state.Current.EnumerableLength, out state.BytesNeeded))
                 {
-                    state.Current.HasNullChecked = true;
                     value = default;
                     return false;
                 }
@@ -85,7 +69,6 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
                 var read = readConverter.TryReadFromParent(ref reader, ref state, list, true);
                 if (!read)
                 {
-                    state.Current.HasNullChecked = true;
                     state.Current.Object = list;
                     return false;
                 }
@@ -95,24 +78,8 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
             }
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, TList? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TList value)
         {
-            if (nullFlags && !state.Current.HasWrittenIsNull)
-            {
-                if (value is null)
-                {
-                    if (!writer.TryWriteNull(out state.BytesNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-                if (!writer.TryWriteNotNull(out state.BytesNeeded))
-                {
-                    return false;
-                }
-            }
-
             if (value is null) throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
 
             IEnumerator<TValue> enumerator;
@@ -123,7 +90,6 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
                 if (!writer.TryWrite(collection.Count, out state.BytesNeeded))
                 {
-                    state.Current.HasWrittenIsNull = true;
                     return false;
                 }
                 if (collection.Count == 0)
@@ -143,7 +109,6 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
                 var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true);
                 if (!write)
                 {
-                    state.Current.HasWrittenIsNull = true;
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;
                     return false;

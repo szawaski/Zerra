@@ -13,7 +13,7 @@ namespace Zerra.Serialization.Bytes.Converters.ICollections
 {
     internal sealed class ByteConverterDateOnlyNullableICollection<TParent> : ByteConverter<TParent, ICollection<DateOnly?>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out ICollection<DateOnly?>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out ICollection<DateOnly?>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -51,7 +51,7 @@ namespace Zerra.Serialization.Bytes.Converters.ICollections
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, ICollection<DateOnly?>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, ICollection<DateOnly?>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

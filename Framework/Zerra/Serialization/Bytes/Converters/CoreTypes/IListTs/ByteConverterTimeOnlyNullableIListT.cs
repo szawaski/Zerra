@@ -13,7 +13,7 @@ namespace Zerra.Serialization.Bytes.Converters.ILists
 {
     internal sealed class ByteConverterTimeOnlyNullableIList<TParent> : ByteConverter<TParent, IList<TimeOnly?>>
     {
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, bool nullFlags, out IList<TimeOnly?>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IList<TimeOnly?>? value)
         {
             if (nullFlags && !state.Current.HasNullChecked)
             {
@@ -51,7 +51,7 @@ namespace Zerra.Serialization.Bytes.Converters.ILists
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, bool nullFlags, IList<TimeOnly?>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IList<TimeOnly?>? value)
         {
             if (nullFlags && !state.Current.HasWrittenIsNull)
             {

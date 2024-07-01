@@ -13,6 +13,8 @@ namespace Zerra.Serialization.Bytes.State
         public Type? ReadType;
         public Type? ChildReadType;
         public bool HasNullChecked;
+        public bool ChildHasNullChecked;
+
         public bool HasCreated;
         public object? Object;
 
