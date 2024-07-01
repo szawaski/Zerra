@@ -32,7 +32,7 @@ namespace Zerra.Test
             };
 
             var model1 = AllTypesModel.Create();
-            var bytes = ByteSerializer.Serialize(model1, options);
+            var bytes = ByteSerializerOld.Serialize(model1, options);
             //Assert.AreEqual(8383, bytes.Length);
             var model2 = ByteSerializer.Deserialize<AllTypesModel>(bytes, options);
             AssertHelper.AreEqual(model1, model2);
