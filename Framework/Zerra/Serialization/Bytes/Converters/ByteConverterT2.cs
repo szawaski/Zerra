@@ -102,7 +102,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     var newTypeDetail = typeFromBytes.GetTypeDetail();
 
                     //overrides potentially boxed type with actual type if exists in assembly
-                    if ((typeDetail.IsNullable && typeDetail.InnerType != newTypeDetail.Type) && !newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
+                    if ((!typeDetail.IsNullable || typeDetail.InnerType != newTypeDetail.Type) && !newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
                         throw new NotSupportedException($"{newTypeDetail.Type.GetNiceName()} does not convert to {typeDetail.Type.GetNiceName()}");
 
                     var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
@@ -315,7 +315,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     var newTypeDetail = typeFromBytes.GetTypeDetail();
 
                     //overrides potentially boxed type with actual type if exists in assembly
-                    if ((typeDetail.IsNullable && typeDetail.InnerType != newTypeDetail.Type) && !newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
+                    if ((!typeDetail.IsNullable || typeDetail.InnerType != newTypeDetail.Type) && !newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
                         throw new NotSupportedException($"{newTypeDetail.Type.GetNiceName()} does not convert to {typeDetail.Type.GetNiceName()}");
 
                     var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
@@ -522,7 +522,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     var newTypeDetail = typeFromBytes.GetTypeDetail();
 
                     //overrides potentially boxed type with actual type if exists in assembly
-                    if ((typeDetail.IsNullable && typeDetail.InnerType != newTypeDetail.Type) && !newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
+                    if ((!typeDetail.IsNullable || typeDetail.InnerType != newTypeDetail.Type) && !newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
                         throw new NotSupportedException($"{newTypeDetail.Type.GetNiceName()} does not convert to {typeDetail.Type.GetNiceName()}");
 
                     var newConverter = ByteConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
