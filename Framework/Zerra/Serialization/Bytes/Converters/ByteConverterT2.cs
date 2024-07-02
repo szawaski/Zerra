@@ -167,21 +167,24 @@ namespace Zerra.Serialization.Bytes.Converters
         }
         public override sealed bool TryWriteBoxed(ref ByteWriter writer, ref WriteState state, object? value)
         {
-            if (value is null)
+            if (isNullable)
             {
-                if (isNullable && !state.Current.HasWrittenIsNull)
+                if (value is null)
                 {
-                    if (!writer.TryWriteNull(out state.BytesNeeded))
-                        return false;
+                    if (!state.Current.HasWrittenIsNull)
+                    {
+                        if (!writer.TryWriteNull(out state.BytesNeeded))
+                            return false;
+                    }
+                    return true;
                 }
-                return true;
-            }
-            else
-            {
-                if (isNullable && !state.Current.HasWrittenIsNull)
+                else
                 {
-                    if (!writer.TryWriteNotNull(out state.BytesNeeded))
-                        return false;
+                    if (!state.Current.HasWrittenIsNull)
+                    {
+                        if (!writer.TryWriteNotNull(out state.BytesNeeded))
+                            return false;
+                    }
                 }
             }
 
@@ -395,21 +398,24 @@ namespace Zerra.Serialization.Bytes.Converters
         }
         public bool TryWrite(ref ByteWriter writer, ref WriteState state, TValue? value)
         {
-            if (value is null)
+            if (isNullable)
             {
-                if (isNullable && !state.Current.HasWrittenIsNull)
+                if (value is null)
                 {
-                    if (!writer.TryWriteNull(out state.BytesNeeded))
-                        return false;
+                    if (!state.Current.HasWrittenIsNull)
+                    {
+                        if (!writer.TryWriteNull(out state.BytesNeeded))
+                            return false;
+                    }
+                    return true;
                 }
-                return true;
-            }
-            else
-            {
-                if (isNullable && !state.Current.HasWrittenIsNull)
+                else
                 {
-                    if (!writer.TryWriteNotNull(out state.BytesNeeded))
-                        return false;
+                    if (!state.Current.HasWrittenIsNull)
+                    {
+                        if (!writer.TryWriteNotNull(out state.BytesNeeded))
+                            return false;
+                    }
                 }
             }
 
@@ -629,27 +635,28 @@ namespace Zerra.Serialization.Bytes.Converters
                 return true;
             var value = getter(parent);
 
-            if (value is null)
-            {
-                if (nullFlags && isNullable && !state.Current.ChildHasWrittenIsNull)
-                {
-                    if (!writer.TryWriteNull(out state.BytesNeeded))
-                        return false;
-                }
-                return true;
-            }
-            else
-            {
-                if (nullFlags && isNullable && !state.Current.ChildHasWrittenIsNull)
-                {
-                    if (!writer.TryWriteNotNull(out state.BytesNeeded))
-                        return false;
-                }
-            }
-
             var writeProperty = !state.UsePropertyNames && indexProperty > 0 || state.UsePropertyNames && indexPropertyName is not null;
+
             if (writeProperty)
             {
+                if (value is null)
+                {
+                    if (nullFlags && isNullable && !state.Current.ChildHasWrittenIsNull)
+                    {
+                        if (!writer.TryWriteNull(out state.BytesNeeded))
+                            return false;
+                    }
+                    return true;
+                }
+                else
+                {
+                    if (nullFlags && isNullable && !state.Current.ChildHasWrittenIsNull)
+                    {
+                        if (!writer.TryWriteNotNull(out state.BytesNeeded))
+                            return false;
+                    }
+                }
+
                 if (!state.Current.HasWrittenPropertyIndex)
                 {
                     if (state.UsePropertyNames)
@@ -686,6 +693,26 @@ namespace Zerra.Serialization.Bytes.Converters
                         }
                     }
                     state.Current.HasWrittenPropertyIndex = true;
+                }
+            }
+            else if (nullFlags && isNullable)
+            {
+                if (value is null)
+                {
+                    if (!state.Current.ChildHasWrittenIsNull)
+                    {
+                        if (!writer.TryWriteNull(out state.BytesNeeded))
+                            return false;
+                    }
+                    return true;
+                }
+                else
+                {
+                    if (!state.Current.ChildHasWrittenIsNull)
+                    {
+                        if (!writer.TryWriteNotNull(out state.BytesNeeded))
+                            return false;
+                    }
                 }
             }
 
