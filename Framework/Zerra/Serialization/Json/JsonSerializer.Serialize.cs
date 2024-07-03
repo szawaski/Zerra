@@ -408,7 +408,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static string Write<T>(JsonConverter<object, T> converter, int initialSize, ref WriteState state, T value)
         {
-            var writer = new JsonWriter(initialSize);
+            var writer = new JsonWriter(false, initialSize);
             try
             {
                 var write = converter.TryWrite(ref writer, ref state, value);
@@ -425,7 +425,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static string WriteBoxed(JsonConverter<object> converter, int initialSize, ref WriteState state, object value)
         {
-            var writer = new JsonWriter(initialSize);
+            var writer = new JsonWriter(false, initialSize);
             try
             {
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
@@ -443,81 +443,35 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Write<T>(JsonConverter<object, T> converter, Span<byte> buffer, ref WriteState state, T value)
         {
-            var bufferCharOwner = BufferArrayPool<char>.Rent(buffer.Length);
+            var writer = new JsonWriter(buffer);
             try
             {
-#if NET5_0_OR_GREATER
-                Span<char> chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
-                var length = encoding.GetChars(buffer, chars);
-
-                var writer = new JsonWriter(chars);
                 var write = converter.TryWrite(ref writer, ref state, value);
                 if (write)
                     state.CharsNeeded = 0;
-
-                if (length != buffer.Length)
-                    return encoding.GetByteCount(chars.Slice(0, writer.Length));
-                else
-                    return writer.Length;
-#else
-                var chars = new char[buffer.Length];
-                var length = encoding.GetChars(buffer.ToArray(), 0, buffer.Length, chars, 0);
-
-                var writer = new JsonWriter(chars);
-                var write = converter.TryWrite(ref writer, ref state, value);
-                if (write)
-                    state.CharsNeeded = 0;
-
-                if (length != buffer.Length)
-                    return encoding.GetByteCount(chars, 0, writer.Length);
-                else
-                    return writer.Length;
-#endif
+                var result = writer.ToString();
+                return writer.Length;
             }
             finally
             {
-                Array.Clear(bufferCharOwner, 0, bufferCharOwner.Length);
-                BufferArrayPool<char>.Return(bufferCharOwner);
+                writer.Dispose();
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int WriteBoxed(JsonConverter<object> converter, Span<byte> buffer, ref WriteState state, object value)
         {
-            var bufferCharOwner = BufferArrayPool<char>.Rent(buffer.Length);
+            var writer = new JsonWriter(buffer);
             try
             {
-#if NET5_0_OR_GREATER
-                Span<char> chars = bufferCharOwner.AsSpan().Slice(0, buffer.Length);
-                var length = encoding.GetChars(buffer, chars);
-
-                var writer = new JsonWriter(chars);
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
                 if (write)
                     state.CharsNeeded = 0;
-
-                if (length != buffer.Length)
-                    return encoding.GetByteCount(chars.Slice(0, writer.Length));
-                else
-                    return writer.Length;
-#else
-                var chars = new char[buffer.Length];
-                var length = encoding.GetChars(buffer.ToArray(), 0, buffer.Length, chars, 0);
-
-                var writer = new JsonWriter(chars);
-                var write = converter.TryWriteBoxed(ref writer, ref state, value);
-                if (write)
-                    state.CharsNeeded = 0;
-
-                if (length != buffer.Length)
-                    return encoding.GetByteCount(chars, 0, writer.Length);
-                else
-                    return writer.Length;
-#endif
+                var result = writer.ToString();
+                return writer.Length;
             }
             finally
             {
-                Array.Clear(bufferCharOwner, 0, bufferCharOwner.Length);
-                BufferArrayPool<char>.Return(bufferCharOwner);
+                writer.Dispose();
             }
         }
     }

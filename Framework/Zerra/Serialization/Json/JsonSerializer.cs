@@ -10,8 +10,6 @@ namespace Zerra.Serialization.Json
     {
         private const int defaultBufferSize = 8 * 1024;
 
-        private static readonly Encoding encoding = Encoding.UTF8;
-
         private static readonly JsonSerializerOptions defaultOptions = new();
     }
 }
