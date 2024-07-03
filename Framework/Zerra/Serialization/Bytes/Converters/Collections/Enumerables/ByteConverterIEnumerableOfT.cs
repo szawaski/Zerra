@@ -31,22 +31,6 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TEnumerable? value)
         {
-            if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
-            {
-                if (value is null)
-                {
-                    if (!writer.TryWriteNull(out state.BytesNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-                if (!writer.TryWriteNotNull(out state.BytesNeeded))
-                {
-                    return false;
-                }
-            }
-
             if (value is null) throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
 
             IEnumerator enumerator;
@@ -57,7 +41,6 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
                 {
                     if (!writer.TryWrite(collection.Count, out state.BytesNeeded))
                     {
-                        state.Current.HasWrittenIsNull = true;
                         return false;
                     }
                     if (collection.Count == 0)
@@ -77,7 +60,6 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 
                     if (!writer.TryWrite(count, out state.BytesNeeded))
                     {
-                        state.Current.HasWrittenIsNull = true;
                         return false;
                     }
                     if (count == 0)
@@ -95,11 +77,9 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                state.PushFrame(true);
-                var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator);
+                var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true);
                 if (!write)
                 {
-                    state.Current.HasWrittenIsNull = true;
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;
                     return false;

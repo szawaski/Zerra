@@ -36,7 +36,6 @@ namespace Zerra.Serialization.Bytes
                 IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                 IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
             };
-            state.PushFrame(true);
             T? result;
 
             Read(converter, bytes, ref state, options.Encoding, out result);
@@ -63,7 +62,6 @@ namespace Zerra.Serialization.Bytes
                 IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                 IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
             };
-            state.PushFrame(true);
             object? result;
 
             ReadBoxed(converter, bytes, ref state, options.Encoding, out result);
@@ -120,7 +118,6 @@ namespace Zerra.Serialization.Bytes
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(true);
                 T? result;
 
                 for (; ; )
@@ -218,7 +215,6 @@ namespace Zerra.Serialization.Bytes
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(true);
                 object? result;
 
                 for (; ; )
@@ -315,7 +311,6 @@ namespace Zerra.Serialization.Bytes
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(true);
                 T? result;
 
                 for (; ; )
@@ -413,7 +408,6 @@ namespace Zerra.Serialization.Bytes
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
                 };
-                state.PushFrame(true);
                 object? result;
 
                 for (; ; )
@@ -468,18 +462,32 @@ namespace Zerra.Serialization.Bytes
         private static int Read<T>(ByteConverter<object, T> converter, ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding, out T? result)
         {
             var reader = new ByteReader(buffer, encoding);
+#if DEBUG
+            again:
+#endif
             var read = converter.TryRead(ref reader, ref state, out result);
             if (read)
                 state.BytesNeeded = 0;
+#if DEBUG
+            if (!read && ByteReader.Testing && reader.Position + state.BytesNeeded <= reader.Length)
+                goto again;
+#endif
             return reader.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int ReadBoxed(ByteConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding, out object? result)
         {
             var reader = new ByteReader(buffer, encoding);
+#if DEBUG
+        again:
+#endif
             var read = converter.TryReadBoxed(ref reader, ref state, out result);
             if (read)
                 state.BytesNeeded = 0;
+#if DEBUG
+            if (!read && ByteReader.Testing && reader.Position + state.BytesNeeded <= reader.Length)
+                goto again;
+#endif
             return reader.Position;
         }
     }

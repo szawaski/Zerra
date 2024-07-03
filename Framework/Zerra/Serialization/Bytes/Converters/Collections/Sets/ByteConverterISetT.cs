@@ -27,26 +27,10 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out ISet<TValue>? value)
         {
-            if (state.Current.NullFlags && !state.Current.HasNullChecked)
-            {
-                if (!reader.TryReadIsNull(out var isNull, out state.BytesNeeded))
-                {
-                    value = default;
-                    return false;
-                }
-
-                if (isNull)
-                {
-                    value = default;
-                    return true;
-                }
-            }
-
             if (!state.Current.EnumerableLength.HasValue)
             {
-                if (!reader.TryRead(false, out state.Current.EnumerableLength, out state.BytesNeeded))
+                if (!reader.TryRead(out state.Current.EnumerableLength, out state.BytesNeeded))
                 {
-                    state.Current.HasNullChecked = true;
                     value = default;
                     return false;
                 }
@@ -79,11 +63,9 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 
             for (; ; )
             {
-                state.PushFrame(true);
-                var read = readConverter.TryReadFromParent(ref reader, ref state, value);
+                var read = readConverter.TryReadFromParent(ref reader, ref state, value, true, false);
                 if (!read)
                 {
-                    state.Current.HasNullChecked = true;
                     state.Current.Object = value;
                     return false;
                 }
@@ -93,33 +75,14 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
             }
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, ISet<TValue>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, ISet<TValue> value)
         {
-            if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
-            {
-                if (value is null)
-                {
-                    if (!writer.TryWriteNull(out state.BytesNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-                if (!writer.TryWriteNotNull(out state.BytesNeeded))
-                {
-                    return false;
-                }
-            }
-
-            if (value is null) throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
-
             IEnumerator<TValue> enumerator;
 
             if (state.Current.Object is null)
             {
                 if (!writer.TryWrite(value.Count, out state.BytesNeeded))
                 {
-                    state.Current.HasWrittenIsNull = true;
                     return false;
                 }
                 if (value.Count == 0)
@@ -136,11 +99,9 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                state.PushFrame(true);
-                var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator);
+                var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true);
                 if (!write)
                 {
-                    state.Current.HasWrittenIsNull = true;
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;
                     return false;

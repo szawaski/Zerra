@@ -10,6 +10,8 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Values
 {
     internal sealed class ByteConverterTimeSpanOffset<TParent> : ByteConverter<TParent, TimeSpan>
     {
+        protected override bool StackRequired => false;
+
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TimeSpan value)
             => reader.TryRead(out value, out state.BytesNeeded);
 

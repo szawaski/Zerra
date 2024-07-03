@@ -12,6 +12,8 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Values
 {
     internal sealed class ByteConverterTimeOnly<TParent> : ByteConverter<TParent, TimeOnly>
     {
+        protected override bool StackRequired => false;
+
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TimeOnly value)
             => reader.TryRead(out value, out state.BytesNeeded);
 

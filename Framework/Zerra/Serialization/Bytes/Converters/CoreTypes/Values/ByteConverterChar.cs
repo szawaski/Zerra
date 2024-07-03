@@ -9,6 +9,8 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Values
 {
     internal sealed class ByteConverterChar<TParent> : ByteConverter<TParent, char>
     {
+        protected override bool StackRequired => false;
+
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out char value)
             => reader.TryRead(out value, out state.BytesNeeded);
 

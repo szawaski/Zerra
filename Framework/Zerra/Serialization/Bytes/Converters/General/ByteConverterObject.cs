@@ -121,21 +121,6 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
             Dictionary<string, object?>? collectedValues;
 
-            if (state.Current.NullFlags && !state.Current.HasNullChecked)
-            {
-                if (!reader.TryReadIsNull(out var isNull, out state.BytesNeeded))
-                {
-                    value = default;
-                    return false;
-                }
-
-                if (isNull)
-                {
-                    value = default;
-                    return true;
-                }
-            }
-
             if (!state.Current.HasCreated)
             {
                 if (!state.Current.DrainBytes)
@@ -185,9 +170,8 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 {
                     if (state.UsePropertyNames)
                     {
-                        if (!reader.TryRead(false, out string? name, out state.BytesNeeded))
+                        if (!reader.TryRead(out string? name, out state.BytesNeeded))
                         {
-                            state.Current.HasNullChecked = true;
                             if (collectValues)
                                 state.Current.Object = collectedValues;
                             else
@@ -210,7 +194,6 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         {
                             if (!reader.TryRead(out propertyIndex, out state.BytesNeeded))
                             {
-                                state.Current.HasNullChecked = true;
                                 if (collectValues)
                                     state.Current.Object = collectedValues;
                                 else
@@ -222,7 +205,6 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         {
                             if (!reader.TryRead(out byte propertyIndexValue, out state.BytesNeeded))
                             {
-                                state.Current.HasNullChecked = true;
                                 if (collectValues)
                                     state.Current.Object = collectedValues;
                                 else
@@ -256,12 +238,9 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
                     //consume bytes but object does not have property
                     var converter = ByteConverterFactory<TValue>.GetTypeRequired();
-                    state.PushFrame(false);
-                    state.Current.DrainBytes = true;
-                    var read = converter.TryReadFromParent(ref reader, ref state, default);
+                    var read = converter.TryReadFromParent(ref reader, ref state, default, false, true);
                     if (!read)
                     {
-                        state.Current.HasNullChecked = true;
                         state.Current.HasReadProperty = true;
                         state.Current.Property = property;
                         if (collectValues)
@@ -275,11 +254,9 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 {
                     if (collectValues)
                     {
-                        state.PushFrame(false);
-                        var read = property.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues);
+                        var read = property.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues, false);
                         if (!read)
                         {
-                            state.Current.HasNullChecked = true;
                             state.Current.HasReadProperty = true;
                             state.Current.Property = property;
                             if (collectValues)
@@ -291,11 +268,9 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                     else
                     {
-                        state.PushFrame(false);
-                        var read = property.Converter.TryReadFromParent(ref reader, ref state, value);
+                        var read = property.Converter.TryReadFromParent(ref reader, ref state, value, false);
                         if (!read)
                         {
-                            state.Current.HasNullChecked = true;
                             state.Current.HasReadProperty = true;
                             state.Current.Property = property;
                             if (collectValues)
@@ -349,27 +324,10 @@ namespace Zerra.Serialization.Bytes.Converters.General
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue value)
         {
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
-
-            if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
-            {
-                if (value is null)
-                {
-                    if (!writer.TryWriteNull(out state.BytesNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-                if (!writer.TryWriteNotNull(out state.BytesNeeded))
-                {
-                    return false;
-                }
-                state.Current.HasWrittenIsNull = true;
-            }
 
             if (value is null) throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
 
@@ -388,15 +346,10 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                state.PushFrame(false);
+                //Base will write the property name or index if the value is not null.
+                //Done this way so we don't have to extract the value twice due to null checking.
+                var write = enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, false, enumerator.Current.Key, enumerator.Current.Value.Member.Name);
 
-                //Base will write the property name or index if the value is not null
-                if (state.UsePropertyNames)
-                    state.Current.IndexPropertyName = enumerator.Current.Value.Member.Name;
-                else
-                    state.Current.IndexProperty = enumerator.Current.Key;
-
-                var write = enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value);
                 if (!write)
                 {
                     state.Current.Enumerator = enumerator;

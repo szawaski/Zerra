@@ -66,39 +66,6 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(bool? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 2;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 1;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                buffer[position++] = (byte)(value.Value ? 1 : 0);
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<bool> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength;
@@ -172,39 +139,6 @@ namespace Zerra.Serialization.Bytes.IO
             if (!EnsureSize(sizeNeeded))
                 return false;
             buffer[position++] = value;
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(byte? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 2;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 1;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                buffer[position++] = value.Value;
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -284,39 +218,6 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(sbyte? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 2;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 1;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                buffer[position++] = (byte)value;
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<sbyte> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength;
@@ -391,39 +292,6 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             buffer[position++] = (byte)value;
             buffer[position++] = (byte)(value >> 8);
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(short? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 3;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 2;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                buffer[position++] = (byte)value;
-                buffer[position++] = (byte)(value >> 8);
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            {
-                sizeNeeded = 0;
-            }
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -508,40 +376,6 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(ushort? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 3;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 2;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                buffer[position++] = (byte)value;
-                buffer[position++] = (byte)(value >> 8);
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<ushort> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
@@ -622,42 +456,6 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(value >> 8);
             buffer[position++] = (byte)(value >> 16);
             buffer[position++] = (byte)(value >> 24);
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(int? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 5;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 4;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                buffer[position++] = (byte)value.Value;
-                buffer[position++] = (byte)(value.Value >> 8);
-                buffer[position++] = (byte)(value.Value >> 16);
-                buffer[position++] = (byte)(value.Value >> 24);
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -749,42 +547,6 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(value >> 8);
             buffer[position++] = (byte)(value >> 16);
             buffer[position++] = (byte)(value >> 24);
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(uint? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 5;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 4;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                buffer[position++] = (byte)value.Value;
-                buffer[position++] = (byte)(value.Value >> 8);
-                buffer[position++] = (byte)(value.Value >> 16);
-                buffer[position++] = (byte)(value.Value >> 24);
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -880,46 +642,6 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(value >> 40);
             buffer[position++] = (byte)(value >> 48);
             buffer[position++] = (byte)(value >> 56);
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(long? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 9;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 8;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                buffer[position++] = (byte)value.Value;
-                buffer[position++] = (byte)(value.Value >> 8);
-                buffer[position++] = (byte)(value.Value >> 16);
-                buffer[position++] = (byte)(value.Value >> 24);
-                buffer[position++] = (byte)(value.Value >> 32);
-                buffer[position++] = (byte)(value.Value >> 40);
-                buffer[position++] = (byte)(value.Value >> 48);
-                buffer[position++] = (byte)(value.Value >> 56);
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1034,46 +756,6 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(ulong? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 9;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 8;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                buffer[position++] = (byte)value.Value;
-                buffer[position++] = (byte)(value.Value >> 8);
-                buffer[position++] = (byte)(value.Value >> 16);
-                buffer[position++] = (byte)(value.Value >> 24);
-                buffer[position++] = (byte)(value.Value >> 32);
-                buffer[position++] = (byte)(value.Value >> 40);
-                buffer[position++] = (byte)(value.Value >> 48);
-                buffer[position++] = (byte)(value.Value >> 56);
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<ulong> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
@@ -1182,44 +864,6 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWrite(float? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 5;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 4;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                var temp = value.Value;
-                var tmpValue = *(uint*)&temp;
-                buffer[position++] = (byte)tmpValue;
-                buffer[position++] = (byte)(tmpValue >> 8);
-                buffer[position++] = (byte)(tmpValue >> 16);
-                buffer[position++] = (byte)(tmpValue >> 24);
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(IEnumerable<float> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
@@ -1319,48 +963,6 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(tmpValue >> 40);
             buffer[position++] = (byte)(tmpValue >> 48);
             buffer[position++] = (byte)(tmpValue >> 56);
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWrite(double? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 9;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 8;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                var temp = value.Value;
-                var tmpValue = *(ulong*)&temp;
-                buffer[position++] = (byte)tmpValue;
-                buffer[position++] = (byte)(tmpValue >> 8);
-                buffer[position++] = (byte)(tmpValue >> 16);
-                buffer[position++] = (byte)(tmpValue >> 24);
-                buffer[position++] = (byte)(tmpValue >> 32);
-                buffer[position++] = (byte)(tmpValue >> 40);
-                buffer[position++] = (byte)(tmpValue >> 48);
-                buffer[position++] = (byte)(tmpValue >> 56);
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1492,59 +1094,6 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(flags >> 8);
             buffer[position++] = (byte)(flags >> 16);
             buffer[position++] = (byte)(flags >> 24);
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(decimal? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 17;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 16;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                var bits = Decimal.GetBits(value.Value);
-                var lo = bits[0];
-                var mid = bits[1];
-                var hi = bits[2];
-                var flags = bits[3];
-                buffer[position++] = (byte)lo;
-                buffer[position++] = (byte)(lo >> 8);
-                buffer[position++] = (byte)(lo >> 16);
-                buffer[position++] = (byte)(lo >> 24);
-                buffer[position++] = (byte)mid;
-                buffer[position++] = (byte)(mid >> 8);
-                buffer[position++] = (byte)(mid >> 16);
-                buffer[position++] = (byte)(mid >> 24);
-                buffer[position++] = (byte)hi;
-                buffer[position++] = (byte)(hi >> 8);
-                buffer[position++] = (byte)(hi >> 16);
-                buffer[position++] = (byte)(hi >> 24);
-                buffer[position++] = (byte)flags;
-                buffer[position++] = (byte)(flags >> 8);
-                buffer[position++] = (byte)(flags >> 16);
-                buffer[position++] = (byte)(flags >> 24);
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1711,46 +1260,6 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(DateTime? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 9;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 8;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                buffer[position++] = (byte)value.Value.Ticks;
-                buffer[position++] = (byte)(value.Value.Ticks >> 8);
-                buffer[position++] = (byte)(value.Value.Ticks >> 16);
-                buffer[position++] = (byte)(value.Value.Ticks >> 24);
-                buffer[position++] = (byte)(value.Value.Ticks >> 32);
-                buffer[position++] = (byte)(value.Value.Ticks >> 40);
-                buffer[position++] = (byte)(value.Value.Ticks >> 48);
-                buffer[position++] = (byte)(value.Value.Ticks >> 56);
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<DateTime> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
@@ -1862,49 +1371,6 @@ namespace Zerra.Serialization.Bytes.IO
             var castedOffset = (short)value.Offset.TotalMinutes;
             buffer[position++] = (byte)castedOffset;
             buffer[position++] = (byte)(castedOffset >> 8);
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(DateTimeOffset? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 11;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 10;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                buffer[position++] = (byte)value.Value.Ticks;
-                buffer[position++] = (byte)(value.Value.Ticks >> 8);
-                buffer[position++] = (byte)(value.Value.Ticks >> 16);
-                buffer[position++] = (byte)(value.Value.Ticks >> 24);
-                buffer[position++] = (byte)(value.Value.Ticks >> 32);
-                buffer[position++] = (byte)(value.Value.Ticks >> 40);
-                buffer[position++] = (byte)(value.Value.Ticks >> 48);
-                buffer[position++] = (byte)(value.Value.Ticks >> 56);
-                var castedOffset = (short)value.Value.Offset.TotalMinutes;
-                buffer[position++] = (byte)castedOffset;
-                buffer[position++] = (byte)(castedOffset >> 8);
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2031,46 +1497,6 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(TimeSpan? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 9;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 8;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                buffer[position++] = (byte)value.Value.Ticks;
-                buffer[position++] = (byte)(value.Value.Ticks >> 8);
-                buffer[position++] = (byte)(value.Value.Ticks >> 16);
-                buffer[position++] = (byte)(value.Value.Ticks >> 24);
-                buffer[position++] = (byte)(value.Value.Ticks >> 32);
-                buffer[position++] = (byte)(value.Value.Ticks >> 40);
-                buffer[position++] = (byte)(value.Value.Ticks >> 48);
-                buffer[position++] = (byte)(value.Value.Ticks >> 56);
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<TimeSpan> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
@@ -2179,42 +1605,6 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(DateOnly? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 5;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 4;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                buffer[position++] = (byte)value.Value.DayNumber;
-                buffer[position++] = (byte)(value.Value.DayNumber >> 8);
-                buffer[position++] = (byte)(value.Value.DayNumber >> 16);
-                buffer[position++] = (byte)(value.Value.DayNumber >> 24);
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<DateOnly> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
@@ -2307,46 +1697,6 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(value.Ticks >> 40);
             buffer[position++] = (byte)(value.Ticks >> 48);
             buffer[position++] = (byte)(value.Ticks >> 56);
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(TimeOnly? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 9;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 8;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                buffer[position++] = (byte)value.Value.Ticks;
-                buffer[position++] = (byte)(value.Value.Ticks >> 8);
-                buffer[position++] = (byte)(value.Value.Ticks >> 16);
-                buffer[position++] = (byte)(value.Value.Ticks >> 24);
-                buffer[position++] = (byte)(value.Value.Ticks >> 32);
-                buffer[position++] = (byte)(value.Value.Ticks >> 40);
-                buffer[position++] = (byte)(value.Value.Ticks >> 48);
-                buffer[position++] = (byte)(value.Value.Ticks >> 56);
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2463,47 +1813,6 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWrite(Guid? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 17;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 16;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                var bytes = value.Value.ToByteArray();
-                fixed (byte* pBuffer = &buffer[position], pBytes = &bytes[0])
-                {
-                    for (var i = 0; i < bytes.Length; i++)
-                    {
-                        pBuffer[i] = pBytes[i];
-                    }
-                }
-                position += 16;
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(IEnumerable<Guid> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 16;
@@ -2613,40 +1922,6 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(char? value, bool nullFlags, out int sizeNeeded)
-        {
-            if (value.HasValue)
-            {
-                if (nullFlags)
-                {
-                    sizeNeeded = 3;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                    buffer[position++] = notNullByte;
-                }
-                else
-                {
-                    sizeNeeded = 2;
-                    if (!EnsureSize(sizeNeeded))
-                        return false;
-                }
-                Unsafe.As<byte, char>(ref buffer[position]) = value.Value;
-                position += 2;
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<char> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
@@ -2718,42 +1993,27 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(string? value, bool nullFlags, out int sizeNeeded)
+        public bool TryWrite(string value, out int sizeNeeded)
         {
-            if (value != null)
-            {
-                sizeNeeded = encoding.GetMaxByteCount(value.Length) + 4 + (nullFlags ? 1 : 0);
-                if (!EnsureSize(sizeNeeded))
-                    return false;
+
+            sizeNeeded = encoding.GetMaxByteCount(value.Length) + 4;
+            if (!EnsureSize(sizeNeeded))
+                return false;
 
 #if NETSTANDARD2_0
                 var charBytes = encoding.GetBytes(value);
-                charBytes.AsSpan().CopyTo(buffer.Slice(position + 4 + (nullFlags ? 1 : 0)));
+                charBytes.AsSpan().CopyTo(buffer.Slice(position + 4));
                 var byteLength = charBytes.Length;
 #else
 
-                var byteLength = encoding.GetBytes(value.AsSpan(), buffer.Slice(position + 4 + (nullFlags ? 1 : 0)));
+            var byteLength = encoding.GetBytes(value.AsSpan(), buffer.Slice(position + 4));
 #endif
-                if (nullFlags)
-                    buffer[position++] = notNullByte;
-                buffer[position++] = (byte)byteLength;
-                buffer[position++] = (byte)(byteLength >> 8);
-                buffer[position++] = (byte)(byteLength >> 16);
-                buffer[position++] = (byte)(byteLength >> 24);
+            buffer[position++] = (byte)byteLength;
+            buffer[position++] = (byte)(byteLength >> 8);
+            buffer[position++] = (byte)(byteLength >> 16);
+            buffer[position++] = (byte)(byteLength >> 24);
 
-                position += byteLength;
-            }
-            else if (nullFlags)
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
-                    return false;
-                buffer[position++] = nullByte;
-            }
-            else
-            {
-                sizeNeeded = 0;
-            }
+            position += byteLength;
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

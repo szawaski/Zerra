@@ -9,9 +9,6 @@ namespace Zerra.Serialization.Bytes.IO
 {
     public ref partial struct ByteReader
     {
-        //Unicode = UTF-16 which is what C# uses
-        private static readonly Encoding defaultEncoding = Encoding.Unicode; 
-
         private const byte nullByte = 0;
 
         private readonly ReadOnlySpan<byte> buffer;
@@ -29,12 +26,12 @@ namespace Zerra.Serialization.Bytes.IO
             throw new NotSupportedException($"{nameof(ByteReader)} cannot use default constructor");
         }
 
-        public ByteReader(ReadOnlySpan<byte> bytes, Encoding? encoding = null)
+        public ByteReader(ReadOnlySpan<byte> bytes, Encoding encoding)
         {
             if (bytes == null)
                 throw new ArgumentNullException(nameof(bytes));
             this.buffer = bytes;
-            this.encoding = encoding ?? defaultEncoding;
+            this.encoding = encoding;
             this.position = 0;
             this.length = bytes.Length;
         }

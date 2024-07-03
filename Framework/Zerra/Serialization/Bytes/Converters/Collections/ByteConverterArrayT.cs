@@ -22,30 +22,14 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
             converter = ByteConverterFactory<ArrayAccessor<TValue>>.Get(valueTypeDetail, null, Getter, Setter);
         }
 
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue[]? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue[] value)
         {
-            if (state.Current.NullFlags && !state.Current.HasNullChecked)
-            {
-                if (!reader.TryReadIsNull(out var isNull, out state.BytesNeeded))
-                {
-                    value = default;
-                    return false;
-                }
-
-                if (isNull)
-                {
-                    value = default;
-                    return true;
-                }
-            }
-
             ArrayAccessor<TValue> accessor;
 
             if (state.Current.Object is null)
             {
                 if (!reader.TryRead(out int length, out state.BytesNeeded))
                 {
-                    state.Current.HasNullChecked = true;
                     value = default;
                     return false;
                 }
@@ -76,11 +60,9 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
 
             for (; ; )
             {
-                state.PushFrame(true);
-                var read = converter.TryReadFromParent(ref reader, ref state, accessor);
+                var read = converter.TryReadFromParent(ref reader, ref state, accessor, true);
                 if (!read)
                 {
-                    state.Current.HasNullChecked = true;
                     state.Current.Object = accessor;
                     return false;
                 }
@@ -90,24 +72,8 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
             }
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue[]? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue[] value)
         {
-            if (state.Current.NullFlags && !state.Current.HasWrittenIsNull)
-            {
-                if (value is null)
-                {
-                    if (!writer.TryWriteNull(out state.BytesNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-                if (!writer.TryWriteNotNull(out state.BytesNeeded))
-                {
-                    return false;
-                }
-            }
-
             if (value is null) throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
 
             ArrayAccessor<TValue> accessor;
@@ -116,7 +82,6 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
             {
                 if (!writer.TryWrite(value.Length, out state.BytesNeeded))
                 {
-                    state.Current.HasWrittenIsNull = true;
                     return false;
                 }
                 if (value.Length == 0)
@@ -134,11 +99,9 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
 
             while (accessor.Index < accessor.Array!.Length)
             {
-                state.PushFrame(true);
-                var write = converter.TryWriteFromParent(ref writer, ref state, accessor);
+                var write = converter.TryWriteFromParent(ref writer, ref state, accessor, true);
                 if (!write)
                 {
-                    state.Current.HasWrittenIsNull = true;
                     state.Current.Object = accessor;
                     return false;
                 }

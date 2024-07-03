@@ -14,6 +14,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Zerra.Serialization.Bytes;
 using Zerra.Test;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Zerra.TestDev
 {
@@ -69,15 +70,17 @@ namespace Zerra.TestDev
                 IndexSize = ByteSerializerIndexSize.UInt16
             };
             var item = AllTypesModel.Create();
-            var data = ByteSerializerOld.Serialize(item, options);
+            var data = ByteSerializer.Serialize(item, options);
+            var dataOld = ByteSerializerOld.Serialize(item, options);
 
             var method = typeof(ByteSerializerTest).GetMethod("TempTestSpeed2", BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());
-            return (Task)method.Invoke(null, new object[] { item, data, options, 5000, 5 });
+            return (Task)method.Invoke(null, new object[] { item, data, dataOld, options, 5000, 5 });
         }
 
-        private static async Task TempTestSpeed2<T>(T item, byte[] data, ByteSerializerOptions options, int iterations, int loops)
+        private static async Task TempTestSpeed2<T>(T item, byte[] data, byte[] dataOld, ByteSerializerOptions options, int iterations, int loops)
         {
             using var readStream = new MemoryStream(data);
+            using var readOldStream = new MemoryStream(dataOld);
             using var writeStream = new MemoryStream();
 
             Console.WriteLine($"Warmup");
@@ -85,11 +88,11 @@ namespace Zerra.TestDev
             var timer = Stopwatch.StartNew();
             for (var i = 0; i < 100; i++)
             {
-                readStream.Position = 0;
-                _ = await ByteSerializerOld.DeserializeAsync<T>(readStream, options);
+                readOldStream.Position = 0;
+                _ = await ByteSerializerOld.DeserializeAsync<T>(readOldStream, options);
                 readStream.Position = 0;
                 _ = await ByteSerializer.DeserializeAsync<T>(readStream, options);
-                _ = ByteSerializerOld.Deserialize<T>(data, options);
+                _ = ByteSerializerOld.Deserialize<T>(dataOld, options);
                 _ = ByteSerializer.Deserialize<T>(data, options);
 
                 writeStream.Position = 0;
@@ -129,8 +132,8 @@ namespace Zerra.TestDev
                 timer = Stopwatch.StartNew();
                 for (var i = 0; i < iterations; i++)
                 {
-                    readStream.Position = 0;
-                    _ = await ByteSerializerOld.DeserializeAsync<T>(readStream, options);
+                    readOldStream.Position = 0;
+                    _ = await ByteSerializerOld.DeserializeAsync<T>(readOldStream, options);
                 }
                 timer.Stop();
                 totalsOld["1 DeserializeAsync"] += timer.ElapsedMilliseconds;
@@ -149,7 +152,7 @@ namespace Zerra.TestDev
                 timer = Stopwatch.StartNew();
                 for (var i = 0; i < iterations; i++)
                 {
-                    _ = ByteSerializerOld.Deserialize<T>(data, options);
+                    _ = ByteSerializerOld.Deserialize<T>(dataOld, options);
                 }
                 timer.Stop();
                 totalsOld["2 Deserialize"] += timer.ElapsedMilliseconds;
