@@ -16,6 +16,15 @@ namespace Zerra.Serialization.Json.IO
         //3 bytes: 224 to ?
         //4 bytes: 240 to ?
 
+        private static readonly byte openBracketByte = (byte)'[';
+        private static readonly byte closeBracketByte = (byte)']';
+        private static readonly byte openBraceByte = (byte)'{';
+        private static readonly byte closeBraceByte = (byte)'}';
+        private static readonly byte quoteByte = (byte)'"';
+        private static readonly byte colonByte = (byte)':';
+        private static readonly byte commaByte = (byte)',';
+        private static readonly byte escapeByte = (byte)'\\';
+
         private static readonly byte zeroByte = (byte)'0';
         private static readonly byte oneByte = (byte)'1';
         private static readonly byte twoByte = (byte)'2';
@@ -26,7 +35,22 @@ namespace Zerra.Serialization.Json.IO
         private static readonly byte sevenByte = (byte)'7';
         private static readonly byte eightByte = (byte)'8';
         private static readonly byte nineByte = (byte)'9';
-        private static readonly byte negativeByte = (byte)'-';
+        private static readonly byte dotByte = (byte)'.';
+        private static readonly byte minusByte = (byte)'-';
+        private static readonly byte plusByte = (byte)'+';
+        private static readonly byte zUpperByte = (byte)'Z';
+        private static readonly byte tUpperByte = (byte)'T';
+
+        private static readonly byte nByte = (byte)'n';
+        private static readonly byte uByte = (byte)'u';
+        private static readonly byte lByte = (byte)'l';
+        private static readonly byte tByte = (byte)'t';
+        private static readonly byte rByte = (byte)'r';
+        private static readonly byte eByte = (byte)'e';
+        private static readonly byte fByte = (byte)'f';
+        private static readonly byte aByte = (byte)'a';
+        private static readonly byte sByte = (byte)'s';
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(byte value, out int sizeNeeded)
@@ -154,13 +178,39 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(char value, out int sizeNeeded)
+        public unsafe bool TryWrite(char value, out int sizeNeeded)
         {
-            sizeNeeded = 1;
-            if (length - position < sizeNeeded)
-                return false;
-            bufferChars[position++] = value;
-            return true;
+            if (useBytes)
+            {
+                if (value < 192)
+                {
+                    sizeNeeded = 1;
+                    if (length - position < sizeNeeded)
+                        return false;
+                    bufferBytes[position++] = (byte)value;
+                    return true;
+                }
+                else
+                {
+                    sizeNeeded = 4;
+                    if (length - position < sizeNeeded)
+                        return false;
+                    var valueArray = stackalloc char[] { value };
+                    fixed (byte* pBuffer = &bufferBytes[position])
+                    {
+                        position += encoding.GetBytes(valueArray, 1, pBuffer, bufferBytes.Length - position);
+                    }
+                    return true;
+                }
+            }
+            else
+            {
+                sizeNeeded = 1;
+                if (length - position < sizeNeeded)
+                    return false;
+                bufferChars[position++] = value;
+                return true;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -218,94 +268,186 @@ namespace Zerra.Serialization.Json.IO
             if (length - position < sizeNeeded)
                 return false;
 
-            if (value.Year < 10)
-                bufferChars[position++] = '0';
-            if (value.Year < 100)
-                bufferChars[position++] = '0';
-            if (value.Year < 1000)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Year);
-            bufferChars[position++] = '-';
-
-            if (value.Month < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Month);
-            bufferChars[position++] = '-';
-
-            if (value.Day < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Day);
-
-            bufferChars[position++] = 'T';
-
-            if (value.Hour < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Hour);
-            bufferChars[position++] = ':';
-
-            if (value.Minute < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Minute);
-            bufferChars[position++] = ':';
-
-            if (value.Second < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Second);
-
-            var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
-            if (fraction > 0)
+            if (useBytes)
             {
-                bufferChars[position++] = '.';
-                if (fraction < 10)
-                    bufferChars[position++] = '0';
-                if (fraction < 100)
-                    bufferChars[position++] = '0';
-                if (fraction < 1000)
-                    bufferChars[position++] = '0';
-                if (fraction < 10000)
-                    bufferChars[position++] = '0';
-                if (fraction < 100000)
-                    bufferChars[position++] = '0';
-                if (fraction < 1000000)
-                    bufferChars[position++] = '0';
-                while (fraction % 10 == 0)
-                    fraction /= 10;
-                WriteInt64Chars(fraction);
-            }
+                if (value.Year < 10)
+                    bufferBytes[position++] = zeroByte;
+                if (value.Year < 100)
+                    bufferBytes[position++] = zeroByte;
+                if (value.Year < 1000)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Year);
+                bufferBytes[position++] = minusByte;
 
-            switch (value.Kind)
+                if (value.Month < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Month);
+                bufferBytes[position++] = minusByte;
+
+                if (value.Day < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Day);
+
+                bufferBytes[position++] = tUpperByte;
+
+                if (value.Hour < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Hour);
+                bufferBytes[position++] = colonByte;
+
+                if (value.Minute < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Minute);
+                bufferBytes[position++] = colonByte;
+
+                if (value.Second < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Second);
+
+                var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
+                if (fraction > 0)
+                {
+                    bufferBytes[position++] = dotByte;
+                    if (fraction < 10)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 100)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 1000)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 10000)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 100000)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 1000000)
+                        bufferBytes[position++] = zeroByte;
+                    while (fraction % 10 == 0)
+                        fraction /= 10;
+                    WriteInt64Bytes(fraction);
+                }
+
+                switch (value.Kind)
+                {
+                    case DateTimeKind.Utc:
+                        {
+                            bufferBytes[position++] = zUpperByte;
+                            break;
+                        }
+                    case DateTimeKind.Local:
+                        {
+                            var offset = (DateTimeOffset)value;
+                            if (offset.Offset.Hours < 0)
+                                bufferBytes[position++] = minusByte;
+                            else
+                                bufferBytes[position++] = plusByte;
+                            if (offset.Offset.Hours < 10)
+                                bufferBytes[position++] = zeroByte;
+                            WriteInt64Bytes(offset.Offset.Hours < 0 ? -offset.Offset.Hours : offset.Offset.Hours);
+                            bufferBytes[position++] = colonByte;
+
+                            if (offset.Offset.Minutes < 10)
+                                bufferBytes[position++] = zeroByte;
+                            WriteInt64Bytes(offset.Offset.Minutes);
+                            break;
+                        }
+                    case DateTimeKind.Unspecified:
+                        {
+                            //nothing
+                            break;
+                        }
+                    default: throw new NotImplementedException();
+                }
+                return true;
+            }
+            else
             {
-                case DateTimeKind.Utc:
-                    {
-                        bufferChars[position++] = 'Z';
-                        break;
-                    }
-                case DateTimeKind.Local:
-                    {
-                        var offset = (DateTimeOffset)value;
-                        if (offset.Offset.Hours < 0)
-                            bufferChars[position++] = '-';
-                        else
-                            bufferChars[position++] = '+';
-                        if (offset.Offset.Hours < 10)
-                            bufferChars[position++] = '0';
-                        WriteInt64Chars(offset.Offset.Hours < 0 ? -offset.Offset.Hours : offset.Offset.Hours);
-                        bufferChars[position++] = ':';
+                if (value.Year < 10)
+                    bufferChars[position++] = '0';
+                if (value.Year < 100)
+                    bufferChars[position++] = '0';
+                if (value.Year < 1000)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Year);
+                bufferChars[position++] = '-';
 
-                        if (offset.Offset.Minutes < 10)
-                            bufferChars[position++] = '0';
-                        WriteInt64Chars(offset.Offset.Minutes);
-                        break;
-                    }
-                case DateTimeKind.Unspecified:
-                    {
-                        //nothing
-                        break;
-                    }
-                default: throw new NotImplementedException();
+                if (value.Month < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Month);
+                bufferChars[position++] = '-';
+
+                if (value.Day < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Day);
+
+                bufferChars[position++] = 'T';
+
+                if (value.Hour < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Hour);
+                bufferChars[position++] = ':';
+
+                if (value.Minute < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Minute);
+                bufferChars[position++] = ':';
+
+                if (value.Second < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Second);
+
+                var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
+                if (fraction > 0)
+                {
+                    bufferChars[position++] = '.';
+                    if (fraction < 10)
+                        bufferChars[position++] = '0';
+                    if (fraction < 100)
+                        bufferChars[position++] = '0';
+                    if (fraction < 1000)
+                        bufferChars[position++] = '0';
+                    if (fraction < 10000)
+                        bufferChars[position++] = '0';
+                    if (fraction < 100000)
+                        bufferChars[position++] = '0';
+                    if (fraction < 1000000)
+                        bufferChars[position++] = '0';
+                    while (fraction % 10 == 0)
+                        fraction /= 10;
+                    WriteInt64Chars(fraction);
+                }
+
+                switch (value.Kind)
+                {
+                    case DateTimeKind.Utc:
+                        {
+                            bufferChars[position++] = 'Z';
+                            break;
+                        }
+                    case DateTimeKind.Local:
+                        {
+                            var offset = (DateTimeOffset)value;
+                            if (offset.Offset.Hours < 0)
+                                bufferChars[position++] = '-';
+                            else
+                                bufferChars[position++] = '+';
+                            if (offset.Offset.Hours < 10)
+                                bufferChars[position++] = '0';
+                            WriteInt64Chars(offset.Offset.Hours < 0 ? -offset.Offset.Hours : offset.Offset.Hours);
+                            bufferChars[position++] = ':';
+
+                            if (offset.Offset.Minutes < 10)
+                                bufferChars[position++] = '0';
+                            WriteInt64Chars(offset.Offset.Minutes);
+                            break;
+                        }
+                    case DateTimeKind.Unspecified:
+                        {
+                            //nothing
+                            break;
+                        }
+                    default: throw new NotImplementedException();
+                }
+                return true;
             }
-
-            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -317,75 +459,150 @@ namespace Zerra.Serialization.Json.IO
             if (length - position < sizeNeeded)
                 return false;
 
-            if (value.Year < 10)
-                bufferChars[position++] = '0';
-            if (value.Year < 100)
-                bufferChars[position++] = '0';
-            if (value.Year < 1000)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Year);
-            bufferChars[position++] = '-';
-
-            if (value.Month < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Month);
-            bufferChars[position++] = '-';
-
-            if (value.Day < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Day);
-
-            bufferChars[position++] = 'T';
-
-            if (value.Hour < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Hour);
-            bufferChars[position++] = ':';
-
-            if (value.Minute < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Minute);
-            bufferChars[position++] = ':';
-
-            if (value.Second < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Second);
-
-            var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
-            if (fraction > 0)
+            if (useBytes)
             {
-                bufferChars[position++] = '.';
-                if (fraction < 10)
-                    bufferChars[position++] = '0';
-                if (fraction < 100)
-                    bufferChars[position++] = '0';
-                if (fraction < 1000)
-                    bufferChars[position++] = '0';
-                if (fraction < 10000)
-                    bufferChars[position++] = '0';
-                if (fraction < 100000)
-                    bufferChars[position++] = '0';
-                if (fraction < 1000000)
-                    bufferChars[position++] = '0';
-                while (fraction % 10 == 0)
-                    fraction /= 10;
-                WriteInt64Chars(fraction);
+                if (value.Year < 10)
+                    bufferBytes[position++] = zeroByte;
+                if (value.Year < 100)
+                    bufferBytes[position++] = zeroByte;
+                if (value.Year < 1000)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Year);
+                bufferBytes[position++] = minusByte;
+
+                if (value.Month < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Month);
+                bufferBytes[position++] = minusByte;
+
+                if (value.Day < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Day);
+
+                bufferBytes[position++] = tUpperByte;
+
+                if (value.Hour < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Hour);
+                bufferBytes[position++] = colonByte;
+
+                if (value.Minute < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Minute);
+                bufferBytes[position++] = colonByte;
+
+                if (value.Second < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Second);
+
+                var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
+                if (fraction > 0)
+                {
+                    bufferBytes[position++] = dotByte;
+                    if (fraction < 10)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 100)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 1000)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 10000)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 100000)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 1000000)
+                        bufferBytes[position++] = zeroByte;
+                    while (fraction % 10 == 0)
+                        fraction /= 10;
+                    WriteInt64Bytes(fraction);
+                }
+
+                if (value.Offset.Hours < 0)
+                    bufferBytes[position++] = minusByte;
+                else
+                    bufferBytes[position++] = plusByte;
+                if (value.Offset.Hours < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
+                bufferBytes[position++] = colonByte;
+
+                if (value.Offset.Minutes < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Offset.Minutes);
+
+                return true;
             }
-
-            if (value.Offset.Hours < 0)
-                bufferChars[position++] = '-';
             else
-                bufferChars[position++] = '+';
-            if (value.Offset.Hours < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
-            bufferChars[position++] = ':';
+            {
+                if (value.Year < 10)
+                    bufferChars[position++] = '0';
+                if (value.Year < 100)
+                    bufferChars[position++] = '0';
+                if (value.Year < 1000)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Year);
+                bufferChars[position++] = '-';
 
-            if (value.Offset.Minutes < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Offset.Minutes);
+                if (value.Month < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Month);
+                bufferChars[position++] = '-';
 
-            return true;
+                if (value.Day < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Day);
+
+                bufferChars[position++] = 'T';
+
+                if (value.Hour < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Hour);
+                bufferChars[position++] = ':';
+
+                if (value.Minute < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Minute);
+                bufferChars[position++] = ':';
+
+                if (value.Second < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Second);
+
+                var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
+                if (fraction > 0)
+                {
+                    bufferChars[position++] = '.';
+                    if (fraction < 10)
+                        bufferChars[position++] = '0';
+                    if (fraction < 100)
+                        bufferChars[position++] = '0';
+                    if (fraction < 1000)
+                        bufferChars[position++] = '0';
+                    if (fraction < 10000)
+                        bufferChars[position++] = '0';
+                    if (fraction < 100000)
+                        bufferChars[position++] = '0';
+                    if (fraction < 1000000)
+                        bufferChars[position++] = '0';
+                    while (fraction % 10 == 0)
+                        fraction /= 10;
+                    WriteInt64Chars(fraction);
+                }
+
+                if (value.Offset.Hours < 0)
+                    bufferChars[position++] = '-';
+                else
+                    bufferChars[position++] = '+';
+                if (value.Offset.Hours < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
+                bufferChars[position++] = ':';
+
+                if (value.Offset.Minutes < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Offset.Minutes);
+
+                return true;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -397,87 +614,174 @@ namespace Zerra.Serialization.Json.IO
             if (length - position < sizeNeeded)
                 return false;
 
-            if (value.Ticks < 0)
-                bufferChars[position++] = '-';
+            if (useBytes)
+            {
+                if (value.Ticks < 0)
+                    bufferBytes[position++] = minusByte;
 
-            if (value.Days > 0)
-            {
-                WriteInt64Chars(value.Days);
-                bufferChars[position++] = '.';
-            }
-            else if (value.Days < 0)
-            {
-                WriteInt64Chars(-value.Days);
-                bufferChars[position++] = '.';
-            }
+                if (value.Days > 0)
+                {
+                    WriteInt64Bytes(value.Days);
+                    bufferBytes[position++] = dotByte;
+                }
+                else if (value.Days < 0)
+                {
+                    WriteInt64Bytes(-value.Days);
+                    bufferBytes[position++] = dotByte;
+                }
 
-            if (value.Hours > -1)
-            {
-                if (value.Hours < 10)
-                    bufferChars[position++] = '0';
-                WriteInt64Chars(value.Hours);
-                bufferChars[position++] = ':';
+                if (value.Hours > -1)
+                {
+                    if (value.Hours < 10)
+                        bufferBytes[position++] = zeroByte;
+                    WriteInt64Bytes(value.Hours);
+                    bufferBytes[position++] = colonByte;
+                }
+                else
+                {
+                    if (-value.Hours < 10)
+                        bufferBytes[position++] = zeroByte;
+                    WriteInt64Bytes(-value.Hours);
+                    bufferBytes[position++] = colonByte;
+                }
+
+                if (value.Minutes > -1)
+                {
+                    if (value.Minutes < 10)
+                        bufferBytes[position++] = zeroByte;
+                    WriteInt64Bytes(value.Minutes);
+                    bufferBytes[position++] = colonByte;
+                }
+                else
+                {
+                    if (-value.Minutes < 10)
+                        bufferBytes[position++] = zeroByte;
+                    WriteInt64Bytes(-value.Minutes);
+                    bufferBytes[position++] = colonByte;
+                }
+
+                if (value.Seconds > -1)
+                {
+                    if (value.Seconds < 10)
+                        bufferBytes[position++] = zeroByte;
+                    WriteInt64Bytes(value.Seconds);
+                }
+                else
+                {
+                    if (-value.Seconds < 10)
+                        bufferBytes[position++] = zeroByte;
+                    WriteInt64Bytes(-value.Seconds);
+                }
+
+                long fraction;
+                if (value.Ticks > -1)
+                    fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
+                else
+                    fraction = -value.Ticks - (-value.Ticks / 10000000) * 10000000;
+                if (fraction > 0)
+                {
+                    bufferBytes[position++] = dotByte;
+                    if (fraction < 10)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 100)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 1000)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 10000)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 100000)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 1000000)
+                        bufferBytes[position++] = zeroByte;
+                    WriteInt64Bytes(fraction);
+                }
+
+                return true;
             }
             else
             {
-                if (-value.Hours < 10)
-                    bufferChars[position++] = '0';
-                WriteInt64Chars(-value.Hours);
-                bufferChars[position++] = ':';
-            }
+                if (value.Ticks < 0)
+                    bufferChars[position++] = '-';
 
-            if (value.Minutes > -1)
-            {
-                if (value.Minutes < 10)
-                    bufferChars[position++] = '0';
-                WriteInt64Chars(value.Minutes);
-                bufferChars[position++] = ':';
-            }
-            else
-            {
-                if (-value.Minutes < 10)
-                    bufferChars[position++] = '0';
-                WriteInt64Chars(-value.Minutes);
-                bufferChars[position++] = ':';
-            }
+                if (value.Days > 0)
+                {
+                    WriteInt64Chars(value.Days);
+                    bufferChars[position++] = '.';
+                }
+                else if (value.Days < 0)
+                {
+                    WriteInt64Chars(-value.Days);
+                    bufferChars[position++] = '.';
+                }
 
-            if (value.Seconds > -1)
-            {
-                if (value.Seconds < 10)
-                    bufferChars[position++] = '0';
-                WriteInt64Chars(value.Seconds);
-            }
-            else
-            {
-                if (-value.Seconds < 10)
-                    bufferChars[position++] = '0';
-                WriteInt64Chars(-value.Seconds);
-            }
+                if (value.Hours > -1)
+                {
+                    if (value.Hours < 10)
+                        bufferChars[position++] = '0';
+                    WriteInt64Chars(value.Hours);
+                    bufferChars[position++] = ':';
+                }
+                else
+                {
+                    if (-value.Hours < 10)
+                        bufferChars[position++] = '0';
+                    WriteInt64Chars(-value.Hours);
+                    bufferChars[position++] = ':';
+                }
 
-            long fraction;
-            if (value.Ticks > -1)
-                fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
-            else
-                fraction = -value.Ticks - (-value.Ticks / 10000000) * 10000000;
-            if (fraction > 0)
-            {
-                bufferChars[position++] = '.';
-                if (fraction < 10)
-                    bufferChars[position++] = '0';
-                if (fraction < 100)
-                    bufferChars[position++] = '0';
-                if (fraction < 1000)
-                    bufferChars[position++] = '0';
-                if (fraction < 10000)
-                    bufferChars[position++] = '0';
-                if (fraction < 100000)
-                    bufferChars[position++] = '0';
-                if (fraction < 1000000)
-                    bufferChars[position++] = '0';
-                WriteInt64Chars(fraction);
-            }
+                if (value.Minutes > -1)
+                {
+                    if (value.Minutes < 10)
+                        bufferChars[position++] = '0';
+                    WriteInt64Chars(value.Minutes);
+                    bufferChars[position++] = ':';
+                }
+                else
+                {
+                    if (-value.Minutes < 10)
+                        bufferChars[position++] = '0';
+                    WriteInt64Chars(-value.Minutes);
+                    bufferChars[position++] = ':';
+                }
 
-            return true;
+                if (value.Seconds > -1)
+                {
+                    if (value.Seconds < 10)
+                        bufferChars[position++] = '0';
+                    WriteInt64Chars(value.Seconds);
+                }
+                else
+                {
+                    if (-value.Seconds < 10)
+                        bufferChars[position++] = '0';
+                    WriteInt64Chars(-value.Seconds);
+                }
+
+                long fraction;
+                if (value.Ticks > -1)
+                    fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
+                else
+                    fraction = -value.Ticks - (-value.Ticks / 10000000) * 10000000;
+                if (fraction > 0)
+                {
+                    bufferChars[position++] = '.';
+                    if (fraction < 10)
+                        bufferChars[position++] = '0';
+                    if (fraction < 100)
+                        bufferChars[position++] = '0';
+                    if (fraction < 1000)
+                        bufferChars[position++] = '0';
+                    if (fraction < 10000)
+                        bufferChars[position++] = '0';
+                    if (fraction < 100000)
+                        bufferChars[position++] = '0';
+                    if (fraction < 1000000)
+                        bufferChars[position++] = '0';
+                    WriteInt64Chars(fraction);
+                }
+
+                return true;
+            }
         }
 
 #if NET6_0_OR_GREATER
@@ -490,25 +794,50 @@ namespace Zerra.Serialization.Json.IO
             if (length - position < sizeNeeded)
                 return false;
 
-            if (value.Year < 10)
-                bufferChars[position++] = '0';
-            if (value.Year < 100)
-                bufferChars[position++] = '0';
-            if (value.Year < 1000)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Year);
-            bufferChars[position++] = '-';
+            if (useBytes)
+            {
+                if (value.Year < 10)
+                    bufferBytes[position++] = zeroByte;
+                if (value.Year < 100)
+                    bufferBytes[position++] = zeroByte;
+                if (value.Year < 1000)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Year);
+                bufferBytes[position++] = minusByte;
 
-            if (value.Month < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Month);
-            bufferChars[position++] = '-';
+                if (value.Month < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Month);
+                bufferBytes[position++] = minusByte;
 
-            if (value.Day < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Day);
+                if (value.Day < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Day);
 
-            return true;
+                return true;
+            }
+            else
+            {
+                if (value.Year < 10)
+                    bufferChars[position++] = '0';
+                if (value.Year < 100)
+                    bufferChars[position++] = '0';
+                if (value.Year < 1000)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Year);
+                bufferChars[position++] = '-';
+
+                if (value.Month < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Month);
+                bufferChars[position++] = '-';
+
+                if (value.Day < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Day);
+
+                return true;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -520,42 +849,84 @@ namespace Zerra.Serialization.Json.IO
             if (length - position < sizeNeeded)
                 return false;
 
-            if (value.Hour < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Hour);
-            bufferChars[position++] = ':';
-
-            if (value.Minute < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Minute);
-            bufferChars[position++] = ':';
-
-            if (value.Second < 10)
-                bufferChars[position++] = '0';
-            WriteInt64Chars(value.Second);
-
-            var fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
-            if (fraction > 0)
+            if (useBytes)
             {
-                bufferChars[position++] = '.';
-                if (fraction < 10)
-                    bufferChars[position++] = '0';
-                if (fraction < 100)
-                    bufferChars[position++] = '0';
-                if (fraction < 1000)
-                    bufferChars[position++] = '0';
-                if (fraction < 10000)
-                    bufferChars[position++] = '0';
-                if (fraction < 100000)
-                    bufferChars[position++] = '0';
-                if (fraction < 1000000)
-                    bufferChars[position++] = '0';
-                //while (fraction % 10 == 0)  System.Text.Json does all figures
-                //    fraction /= 10;
-                WriteInt64Chars(fraction);
-            }
+                if (value.Hour < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Hour);
+                bufferBytes[position++] = colonByte;
 
-            return true;
+                if (value.Minute < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Minute);
+                bufferBytes[position++] = colonByte;
+
+                if (value.Second < 10)
+                    bufferBytes[position++] = zeroByte;
+                WriteInt64Bytes(value.Second);
+
+                var fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
+                if (fraction > 0)
+                {
+                    bufferBytes[position++] = dotByte;
+                    if (fraction < 10)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 100)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 1000)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 10000)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 100000)
+                        bufferBytes[position++] = zeroByte;
+                    if (fraction < 1000000)
+                        bufferBytes[position++] = zeroByte;
+                    //while (fraction % 10 == 0)  System.Text.Json does all figures
+                    //    fraction /= 10;
+                    WriteInt64Bytes(fraction);
+                }
+
+                return true;
+            }
+            else
+            {
+                if (value.Hour < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Hour);
+                bufferChars[position++] = ':';
+
+                if (value.Minute < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Minute);
+                bufferChars[position++] = ':';
+
+                if (value.Second < 10)
+                    bufferChars[position++] = '0';
+                WriteInt64Chars(value.Second);
+
+                var fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
+                if (fraction > 0)
+                {
+                    bufferChars[position++] = '.';
+                    if (fraction < 10)
+                        bufferChars[position++] = '0';
+                    if (fraction < 100)
+                        bufferChars[position++] = '0';
+                    if (fraction < 1000)
+                        bufferChars[position++] = '0';
+                    if (fraction < 10000)
+                        bufferChars[position++] = '0';
+                    if (fraction < 100000)
+                        bufferChars[position++] = '0';
+                    if (fraction < 1000000)
+                        bufferChars[position++] = '0';
+                    //while (fraction % 10 == 0)  System.Text.Json does all figures
+                    //    fraction /= 10;
+                    WriteInt64Chars(fraction);
+                }
+
+                return true;
+            }
         }
 #endif
 
@@ -997,7 +1368,7 @@ namespace Zerra.Serialization.Json.IO
                 {
                     //Min value is one less than max, can't invert signs
                     EnsureBufferSize(20);
-                    bufferBytes[position++] = negativeByte;
+                    bufferBytes[position++] = minusByte;
                     bufferBytes[position++] = nineByte;
                     bufferBytes[position++] = twoByte;
                     bufferBytes[position++] = twoByte;
@@ -1019,7 +1390,7 @@ namespace Zerra.Serialization.Json.IO
                     bufferBytes[position++] = eightByte;
                     return;
                 }
-                bufferBytes[position++] = negativeByte;
+                bufferBytes[position++] = minusByte;
                 num1 = unchecked(-value);
             }
 
@@ -1379,6 +1750,121 @@ namespace Zerra.Serialization.Json.IO
             num1 -= div * 10;
         L1:
             bufferBytes[position++] = (byte)(zeroByte + (num1));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteQuote(out int sizeNeeded)
+        {
+            sizeNeeded = 1;
+            if (length - position < sizeNeeded)
+                return false;
+
+            if (useBytes)
+            {
+                bufferBytes[position++] = quoteByte;
+                return true;
+            }
+            else
+            {
+                bufferChars[position++] = '"';
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteEscape(out int sizeNeeded)
+        {
+            sizeNeeded = 1;
+            if (length - position < sizeNeeded)
+                return false;
+
+            if (useBytes)
+            {
+                bufferBytes[position++] = escapeByte;
+                return true;
+            }
+            else
+            {
+                bufferChars[position++] = '\\';
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteNull(out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded)
+                return false;
+
+            if (useBytes)
+            {
+                bufferBytes[position++] = nByte;
+                bufferBytes[position++] = uByte;
+                bufferBytes[position++] = lByte;
+                bufferBytes[position++] = lByte;
+                return true;
+            }
+            else
+            {
+                bufferChars[position++] = 'n';
+                bufferChars[position++] = 'u';
+                bufferChars[position++] = 'l';
+                bufferChars[position++] = 'l';
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteTrue(out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded)
+                return false;
+
+            if (useBytes)
+            {
+                bufferBytes[position++] = tByte;
+                bufferBytes[position++] = rByte;
+                bufferBytes[position++] = uByte;
+                bufferBytes[position++] = eByte;
+                return true;
+            }
+            else
+            {
+                bufferChars[position++] = 't';
+                bufferChars[position++] = 'r';
+                bufferChars[position++] = 'u';
+                bufferChars[position++] = 'e';
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteFalse(out int sizeNeeded)
+        {
+            sizeNeeded = 5;
+            if (length - position < sizeNeeded)
+                return false;
+
+            if (useBytes)
+            {
+                bufferBytes[position++] = fByte;
+                bufferBytes[position++] = aByte;
+                bufferBytes[position++] = lByte;
+                bufferBytes[position++] = sByte;
+                bufferBytes[position++] = eByte;
+                return true;
+            }
+            else
+            {
+                bufferChars[position++] = 'f';
+                bufferChars[position++] = 'a';
+                bufferChars[position++] = 'l';
+                bufferChars[position++] = 's';
+                bufferChars[position++] = 'e';
+                return true;
+            }
         }
     }
 }

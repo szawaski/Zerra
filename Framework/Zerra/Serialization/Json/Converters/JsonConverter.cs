@@ -670,14 +670,14 @@ namespace Zerra.Serialization.Json.Converters
         {
             if (value == null)
             {
-                if (!writer.TryWrite("null", out state.CharsNeeded))
+                if (!writer.TryWriteNull(out state.CharsNeeded))
                     return false;
                 return true;
             }
 
             if (state.WorkingStringStage == 0)
             {
-                if (!writer.TryWrite('\"', out state.CharsNeeded))
+                if (!writer.TryWriteQuote(out state.CharsNeeded))
                     return false;
                 state.WorkingStringStage = 1;
             }
@@ -686,7 +686,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (value.Length == 0)
                 {
-                    if (!writer.TryWrite('\"', out state.CharsNeeded))
+                    if (!writer.TryWriteQuote(out state.CharsNeeded))
                         return false;
                     state.WorkingStringStage = 0;
                     return true;
@@ -752,7 +752,7 @@ namespace Zerra.Serialization.Json.Converters
                 }
                 if (state.WorkingStringStage == 3)
                 {
-                    if (!writer.TryWrite('\\', out state.CharsNeeded))
+                    if (!writer.TryWriteEscape(out state.CharsNeeded))
                         return false;
                     state.WorkingStringStage = 4;
                 }
@@ -778,7 +778,7 @@ namespace Zerra.Serialization.Json.Converters
                 state.WorkingStringStage = 3;
             }
 
-            if (!writer.TryWrite('\"', out state.CharsNeeded))
+            if (!writer.TryWriteQuote(out state.CharsNeeded))
                 return false;
 
             state.WorkingStringStage = 0;
@@ -792,7 +792,7 @@ namespace Zerra.Serialization.Json.Converters
         {
             if (value == null)
             {
-                if (!writer.TryWrite("null", out state.CharsNeeded))
+                if (!writer.TryWriteNull(out state.CharsNeeded))
                     return false;
                 return true;
             }
@@ -851,7 +851,7 @@ namespace Zerra.Serialization.Json.Converters
 
             if (state.WorkingStringStage == 1)
             {
-                if (!writer.TryWrite('\"', out state.CharsNeeded))
+                if (!writer.TryWriteQuote(out state.CharsNeeded))
                     return false;
                 state.WorkingStringStage = 2;
             }
@@ -865,7 +865,7 @@ namespace Zerra.Serialization.Json.Converters
 
             if (state.WorkingStringStage == 3)
             {
-                if (!writer.TryWrite('\"', out state.CharsNeeded))
+                if (!writer.TryWriteQuote(out state.CharsNeeded))
                     return false;
                 state.WorkingStringStage = 4;
             }
@@ -876,7 +876,7 @@ namespace Zerra.Serialization.Json.Converters
                 state.WorkingStringStage = 10;
             }
 
-            if (!writer.TryWrite('\"', out state.CharsNeeded))
+            if (!writer.TryWriteQuote(out state.CharsNeeded))
                 return false;
 
             state.WorkingStringStage = 0;

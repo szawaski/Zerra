@@ -86,7 +86,7 @@ namespace Zerra.Serialization.Json.Converters.General
         {
             if (value == null)
             {
-                if (!writer.TryWrite("null", out state.CharsNeeded))
+                if (!writer.TryWriteNull(out state.CharsNeeded))
                     return false;
                 return true;
             }
