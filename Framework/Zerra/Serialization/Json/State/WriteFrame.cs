@@ -11,5 +11,6 @@ namespace Zerra.Serialization.Json.State
     public struct WriteFrame
     {
         public bool HasWrittenIsNull;
+        public bool HasWrittenPropertyName;
     }
 }

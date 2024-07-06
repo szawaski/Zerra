@@ -1772,6 +1772,25 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteColon(out int sizeNeeded)
+        {
+            sizeNeeded = 1;
+            if (length - position < sizeNeeded)
+                return false;
+
+            if (useBytes)
+            {
+                bufferBytes[position++] = colonByte;
+                return true;
+            }
+            else
+            {
+                bufferChars[position++] = ':';
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWriteEscape(out int sizeNeeded)
         {
             sizeNeeded = 1;
@@ -1863,6 +1882,64 @@ namespace Zerra.Serialization.Json.IO
                 bufferChars[position++] = 'l';
                 bufferChars[position++] = 's';
                 bufferChars[position++] = 'e';
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWritePropertyName(string? value, out int sizeNeeded)
+        {
+            if (value == null)
+            {
+                sizeNeeded = 3;
+                return true;
+            }
+            if (value.Length == 0)
+            {
+                sizeNeeded = 3;
+                return true;
+            }
+
+            if (useBytes)
+            {
+                sizeNeeded = encoding.GetMaxByteCount(value.Length) + 3;
+                if (length - position < sizeNeeded)
+                    return false;
+
+                bufferBytes[position++] = quoteByte;
+
+                fixed (char* pSource = value)
+                fixed (byte* pBuffer = &bufferBytes[position])
+                {
+                    position += encoding.GetBytes(pSource, value.Length, pBuffer, bufferBytes.Length - position);
+                }
+
+                bufferBytes[position++] = quoteByte;
+                bufferBytes[position++] = colonByte;
+
+                return true;
+            }
+            else
+            {
+                sizeNeeded = value.Length + 3;
+                if (length - position < sizeNeeded)
+                    return false;
+
+                bufferChars[position++] = '"';
+
+                var pCount = value.Length;
+                fixed (char* pSource = value, pBuffer = &bufferChars[position])
+                {
+                    for (var p = 0; p < pCount; p++)
+                    {
+                        pBuffer[p] = pSource[p];
+                    }
+                }
+
+                bufferChars[position++] = '"';
+                bufferChars[position++] = ':';
+
+                position += pCount;
                 return true;
             }
         }

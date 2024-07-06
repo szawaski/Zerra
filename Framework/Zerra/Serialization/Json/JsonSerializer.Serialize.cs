@@ -32,7 +32,6 @@ namespace Zerra.Serialization.Json
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                 EnumAsNumber = options.EnumAsNumber
             };
-            state.PushFrame();
 
             var result = Write(converter, defaultBufferSize, ref state, obj);
 
@@ -57,7 +56,6 @@ namespace Zerra.Serialization.Json
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                 EnumAsNumber = options.EnumAsNumber
             };
-            state.PushFrame();
 
             var result = WriteBoxed(converter, defaultBufferSize, ref state, obj);
 
@@ -85,7 +83,6 @@ namespace Zerra.Serialization.Json
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                 EnumAsNumber = options.EnumAsNumber
             };
-            state.PushFrame();
 
             var result = WriteBoxed(converter, defaultBufferSize, ref state, obj);
 
@@ -117,7 +114,6 @@ namespace Zerra.Serialization.Json
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber
                 };
-                state.PushFrame();
 
                 for (; ; )
                 {
@@ -166,7 +162,6 @@ namespace Zerra.Serialization.Json
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber
                 };
-                state.PushFrame();
 
                 for (; ; )
                 {
@@ -217,7 +212,6 @@ namespace Zerra.Serialization.Json
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber
                 };
-                state.PushFrame();
 
                 for (; ; )
                 {
@@ -267,7 +261,6 @@ namespace Zerra.Serialization.Json
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber
                 };
-                state.PushFrame();
 
                 for (; ; )
                 {
@@ -321,7 +314,6 @@ namespace Zerra.Serialization.Json
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber
                 };
-                state.PushFrame();
 
                 for (; ; )
                 {
@@ -377,7 +369,6 @@ namespace Zerra.Serialization.Json
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber
                 };
-                state.PushFrame();
 
                 for (; ; )
                 {

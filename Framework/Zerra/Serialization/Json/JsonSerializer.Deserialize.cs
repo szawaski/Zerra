@@ -35,7 +35,7 @@ namespace Zerra.Serialization.Json
                 EnumAsNumber = options.EnumAsNumber,
                 ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
             };
-            state.PushFrame();
+            
             T? result;
 
             Read(converter, chars, ref state, out result);
@@ -62,7 +62,7 @@ namespace Zerra.Serialization.Json
                 EnumAsNumber = options.EnumAsNumber,
                 ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
             };
-            state.PushFrame();
+            
             object? result;
 
             ReadBoxed(converter, chars, ref state, out result);
@@ -119,7 +119,7 @@ namespace Zerra.Serialization.Json
                     EnumAsNumber = options.EnumAsNumber,
                     ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
                 };
-                state.PushFrame();
+                
                 T? result;
 
                 for (; ; )
@@ -217,7 +217,7 @@ namespace Zerra.Serialization.Json
                     EnumAsNumber = options.EnumAsNumber,
                     ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
                 };
-                state.PushFrame();
+                
                 object? result;
 
                 for (; ; )
@@ -314,7 +314,7 @@ namespace Zerra.Serialization.Json
                     EnumAsNumber = options.EnumAsNumber,
                     ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
                 };
-                state.PushFrame();
+                
                 T? result;
 
                 for (; ; )
@@ -412,7 +412,7 @@ namespace Zerra.Serialization.Json
                     EnumAsNumber = options.EnumAsNumber,
                     ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
                 };
-                state.PushFrame();
+                
                 object? result;
 
                 for (; ; )

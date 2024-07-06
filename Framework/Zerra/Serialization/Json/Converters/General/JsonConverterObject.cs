@@ -216,7 +216,6 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         if (collectValues)
                         {
-                            state.PushFrame();
                             if (!property.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues))
                             {
                                 state.Current.HasReadProperty = true;
@@ -231,7 +230,6 @@ namespace Zerra.Serialization.Json.Converters.General
                         }
                         else
                         {
-                            state.PushFrame();
                             if (!property.Converter.TryReadFromParent(ref reader, ref state, value))
                             {
                                 state.Current.HasReadProperty = true;

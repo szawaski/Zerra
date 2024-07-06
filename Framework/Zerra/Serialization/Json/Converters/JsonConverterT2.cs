@@ -20,6 +20,7 @@ namespace Zerra.Serialization.Json.Converters
         private Func<TParent, TValue?>? getter;
         private Action<TParent, TValue?>? setter;
 
+        private bool isNullable;
         private bool isInterfacedObject;
 
         public override void Setup(TypeDetail typeDetail, string? memberKey, Delegate? getterDelegate, Delegate? setterDelegate)
@@ -37,6 +38,7 @@ namespace Zerra.Serialization.Json.Converters
                 setter ??= (parent, value) => setterDelegate.DynamicInvoke(parent, value);
             }
 
+            isNullable = typeDetail.IsNullable || !typeDetail.Type.IsValueType;
             isInterfacedObject = typeDetail.Type.IsInterface && !typeDetail.HasIEnumerableGeneric && !typeDetail.HasIEnumerable;
 
             Setup();
@@ -46,6 +48,8 @@ namespace Zerra.Serialization.Json.Converters
 
         public override sealed bool TryReadBoxed(ref JsonReader reader, ref ReadState state, out object? returnValue)
         {
+            state.PushFrame();
+
             if (isInterfacedObject)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
@@ -85,6 +89,25 @@ namespace Zerra.Serialization.Json.Converters
         }
         public override sealed bool TryWriteBoxed(ref JsonWriter writer, ref WriteState state, object? value)
         {
+            state.PushFrame();
+
+            if (isNullable)
+            {
+                if (!state.Current.HasWrittenIsNull)
+                {
+                    if (value is null)
+                    {
+                        if (!writer.TryWriteNull(out state.CharsNeeded))
+                        {
+                            state.StashFrame();
+                            return false;
+                        }
+                        return true;
+                    }
+                    state.Current.HasWrittenIsNull = true;
+                }
+            }
+
             if (isInterfacedObject)
             {
                 var typeFromValue = value is null ? typeDetail : value.GetType().GetTypeDetail();
@@ -113,6 +136,8 @@ namespace Zerra.Serialization.Json.Converters
 
         public bool TryRead(ref JsonReader reader, ref ReadState state, out TValue? returnValue)
         {
+            state.PushFrame();
+
             if (isInterfacedObject)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
@@ -152,6 +177,25 @@ namespace Zerra.Serialization.Json.Converters
         }
         public bool TryWrite(ref JsonWriter writer, ref WriteState state, TValue? value)
         {
+            state.PushFrame();
+
+            if (isNullable)
+            {
+                if (!state.Current.HasWrittenIsNull)
+                {
+                    if (value is null)
+                    {
+                        if (!writer.TryWriteNull(out state.CharsNeeded))
+                        {
+                            state.StashFrame();
+                            return false;
+                        }
+                        return true;
+                    }
+                    state.Current.HasWrittenIsNull = true;
+                }
+            }
+
             if (isInterfacedObject)
             {
                 var typeFromValue = value is null ? typeDetail : value.GetType().GetTypeDetail();
@@ -182,6 +226,7 @@ namespace Zerra.Serialization.Json.Converters
         {
             if (state.StackSize > maxStackDepth)
                 throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+            state.PushFrame();
 
             if (isInterfacedObject)
             {
@@ -219,10 +264,11 @@ namespace Zerra.Serialization.Json.Converters
             state.EndFrame();
             return true;
         }
-        public override sealed bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, TParent parent)
+        public override sealed bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, TParent parent, string? propertyName)
         {
-            if (state.StackSize > maxStackDepth)
+            if (state.StackSize >= maxStackDepth)
                 throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+            state.PushFrame();
 
             if (getter == null)
             {
@@ -230,6 +276,71 @@ namespace Zerra.Serialization.Json.Converters
                 return true;
             }
             var value = getter(parent);
+
+            if (propertyName is not null)
+            {
+                if (isNullable)
+                {
+                    if (!state.Current.HasWrittenIsNull)
+                    {
+                        if (value is null)
+                        {
+                            if (state.DoNotWriteNullProperties)
+                            {
+                                state.EndFrame();
+                                return true;
+                            }
+                            if (!state.Current.HasWrittenPropertyName)
+                            {
+                                if (!writer.TryWritePropertyName(propertyName, out state.CharsNeeded))
+                                {
+                                    state.StashFrame();
+                                    return false;
+                                }
+                                state.Current.HasWrittenPropertyName = true;
+                            }
+                            if (!writer.TryWriteNull(out state.CharsNeeded))
+                            {
+                                state.StashFrame();
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            if (!state.Current.HasWrittenPropertyName)
+                            {
+                                if (!writer.TryWritePropertyName(propertyName, out state.CharsNeeded))
+                                {
+                                    state.StashFrame();
+                                    return false;
+                                }
+                                state.Current.HasWrittenPropertyName = true;
+                            }
+                        }
+                        state.Current.HasWrittenIsNull = true;
+                    }
+                }
+            }
+            else
+            {
+                if (isNullable)
+                {
+                    if (!state.Current.HasWrittenIsNull)
+                    {
+                        if (value is null)
+                        {
+                            if (!writer.TryWriteNull(out state.CharsNeeded))
+                            {
+                                state.StashFrame();
+                                return false;
+                            }
+                            state.EndFrame();
+                            return true;
+                        }
+                        state.Current.HasWrittenIsNull = true;
+                    }
+                }
+            }
 
             if (isInterfacedObject)
             {
@@ -244,6 +355,7 @@ namespace Zerra.Serialization.Json.Converters
                         return false;
                     }
                     state.EndFrame();
+                    state.Current.HasWrittenPropertyName = false;
                     return true;
                 }
             }
@@ -253,7 +365,9 @@ namespace Zerra.Serialization.Json.Converters
                 state.StashFrame();
                 return false;
             }
+
             state.EndFrame();
+            state.Current.HasWrittenPropertyName = false;
             return true;
         }
 

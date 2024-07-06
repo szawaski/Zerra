@@ -73,7 +73,6 @@ namespace Zerra.Serialization.Json.Converters.Collections
 
                     reader.BackOne();
 
-                    state.PushFrame();
                     if (!readConverter.TryReadFromParent(ref reader, ref state, accessor))
                     {
                         state.Current.WorkingFirstChar = c;
@@ -152,7 +151,6 @@ namespace Zerra.Serialization.Json.Converters.Collections
 
                     reader.BackOne();
 
-                    state.PushFrame();
                     if (!readConverter.TryReadFromParent(ref reader, ref state, accessor))
                     {
                         state.Current.HasReadFirstArrayElement = true;
