@@ -22,7 +22,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
             converter = ByteConverterFactory<ArrayAccessor<TValue>>.Get(valueTypeDetail, null, Getter, Setter);
         }
 
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue[] value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue[]? value)
         {
             ArrayAccessor<TValue> accessor;
 

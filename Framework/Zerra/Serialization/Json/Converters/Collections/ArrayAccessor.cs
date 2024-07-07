@@ -20,12 +20,6 @@ namespace Zerra.Serialization.Json.Converters.Collections
             list = null;
             Index = 0;
         }
-        public ArrayAccessor(int length)
-        {
-            this.array = new T[length];
-            list = null;
-            Index = 0;
-        }
         public ArrayAccessor()
         {
             array = null;

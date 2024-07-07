@@ -68,7 +68,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
 
                     if (reader.TryPeakArrayLength(c, out var length))
                     {
-                        accessor = new ArrayAccessor<TValue>(length);
+                        accessor = new ArrayAccessor<TValue>(new TValue[length]);
                     }
                     else
                     {
