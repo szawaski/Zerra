@@ -16,40 +16,40 @@ namespace Zerra.Serialization.Json.IO
         //3 bytes: 224 to ?
         //4 bytes: 240 to ?
 
-        private static readonly byte openBracketByte = (byte)'[';
-        private static readonly byte closeBracketByte = (byte)']';
-        private static readonly byte openBraceByte = (byte)'{';
-        private static readonly byte closeBraceByte = (byte)'}';
-        private static readonly byte quoteByte = (byte)'"';
-        private static readonly byte colonByte = (byte)':';
-        private static readonly byte commaByte = (byte)',';
-        private static readonly byte escapeByte = (byte)'\\';
+        private const byte openBracketByte = (byte)'[';
+        private const byte closeBracketByte = (byte)']';
+        private const byte openBraceByte = (byte)'{';
+        private const byte closeBraceByte = (byte)'}';
+        private const byte quoteByte = (byte)'"';
+        private const byte colonByte = (byte)':';
+        private const byte commaByte = (byte)',';
+        private const byte escapeByte = (byte)'\\';
 
-        private static readonly byte zeroByte = (byte)'0';
-        private static readonly byte oneByte = (byte)'1';
-        private static readonly byte twoByte = (byte)'2';
-        private static readonly byte threeByte = (byte)'3';
-        private static readonly byte fourByte = (byte)'4';
-        private static readonly byte fiveByte = (byte)'5';
-        private static readonly byte sixByte = (byte)'6';
-        private static readonly byte sevenByte = (byte)'7';
-        private static readonly byte eightByte = (byte)'8';
-        private static readonly byte nineByte = (byte)'9';
-        private static readonly byte dotByte = (byte)'.';
-        private static readonly byte minusByte = (byte)'-';
-        private static readonly byte plusByte = (byte)'+';
-        private static readonly byte zUpperByte = (byte)'Z';
-        private static readonly byte tUpperByte = (byte)'T';
+        private const byte zeroByte = (byte)'0';
+        private const byte oneByte = (byte)'1';
+        private const byte twoByte = (byte)'2';
+        private const byte threeByte = (byte)'3';
+        private const byte fourByte = (byte)'4';
+        private const byte fiveByte = (byte)'5';
+        private const byte sixByte = (byte)'6';
+        private const byte sevenByte = (byte)'7';
+        private const byte eightByte = (byte)'8';
+        private const byte nineByte = (byte)'9';
+        private const byte dotByte = (byte)'.';
+        private const byte minusByte = (byte)'-';
+        private const byte plusByte = (byte)'+';
+        private const byte zUpperByte = (byte)'Z';
+        private const byte tUpperByte = (byte)'T';
 
-        private static readonly byte nByte = (byte)'n';
-        private static readonly byte uByte = (byte)'u';
-        private static readonly byte lByte = (byte)'l';
-        private static readonly byte tByte = (byte)'t';
-        private static readonly byte rByte = (byte)'r';
-        private static readonly byte eByte = (byte)'e';
-        private static readonly byte fByte = (byte)'f';
-        private static readonly byte aByte = (byte)'a';
-        private static readonly byte sByte = (byte)'s';
+        private const byte nByte = (byte)'n';
+        private const byte uByte = (byte)'u';
+        private const byte lByte = (byte)'l';
+        private const byte tByte = (byte)'t';
+        private const byte rByte = (byte)'r';
+        private const byte eByte = (byte)'e';
+        private const byte fByte = (byte)'f';
+        private const byte aByte = (byte)'a';
+        private const byte sByte = (byte)'s';
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

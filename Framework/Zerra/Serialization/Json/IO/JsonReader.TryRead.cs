@@ -18,20 +18,24 @@ namespace Zerra.Serialization.Json.IO
         //3 bytes: 224 to ?
         //4 bytes: 240 to ?
 
-        private static readonly byte quoteByte = (byte)'\"';
-        private static readonly byte escapeByte = (byte)'\\';
-        private static readonly byte uByte = (byte)'u';
-        private static readonly byte lByte = (byte)'l';
-        private static readonly byte rByte = (byte)'r';
-        private static readonly byte eByte = (byte)'e';
-        private static readonly byte aByte = (byte)'a';
-        private static readonly byte sByte = (byte)'s';
+        private const byte openBracketByte = (byte)'[';
+        private const byte closeBracketByte = (byte)']';
+        private const byte commaByte = (byte)',';
+        private const byte quoteByte = (byte)'"';
+        private const byte escapeByte = (byte)'\\';
+        private const byte uByte = (byte)'u';
+        private const byte lByte = (byte)'l';
+        private const byte rByte = (byte)'r';
+        private const byte eByte = (byte)'e';
+        private const byte aByte = (byte)'a';
+        private const byte sByte = (byte)'s';
 
         //JSON whitespace
-        private static readonly byte spaceByte = (byte)' ';
-        private static readonly byte tabByte = (byte)'\t';
-        private static readonly byte returnByte = (byte)'\r';
-        private static readonly byte newlineByte = (byte)'\n';
+        private const byte spaceByte = (byte)' ';
+        private const byte tabByte = (byte)'\t';
+        private const byte returnByte = (byte)'\r';
+        private const byte newlineByte = (byte)'\n';
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryReadNext(out char c)
@@ -347,6 +351,119 @@ namespace Zerra.Serialization.Json.IO
                 }
                 s = bufferChars.Slice(start, position - start);
                 return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryPeakArrayLength(char firstChar, out int length)
+        {
+            if (useBytes)
+            {
+                fixed (byte* ptr = &MemoryMarshal.GetReference(bufferBytes.Slice(position)))
+                {
+                    var openBrackets = 0;
+                    var quoted = false;
+                    length = 0;
+
+                    switch (firstChar)
+                    {
+                        case ',':
+                            throw CreateException("Unexpected Character");
+                        case '[':
+                            openBrackets++;
+                            break;
+                        case ']':
+                            return true;
+                        case '"':
+                            quoted = !quoted;
+                            break;
+                    }
+
+                    length++;
+
+                    byte* ptr2 = ptr;
+                    for (var i = position; i < bufferBytes.Length; i++)
+                    {
+                        var b = *ptr2++;
+                        switch (b)
+                        {
+                            case commaByte:
+                                if (!quoted && openBrackets == 0)
+                                    length++;
+                                continue;
+                            case openBracketByte:
+                                if (!quoted)
+                                    openBrackets++;
+                                continue;
+                            case closeBracketByte:
+                                if (!quoted)
+                                {
+                                    if (openBrackets == 0)
+                                        return true;
+                                    openBrackets--;
+                                }
+                                continue;
+                            case quoteByte:
+                                quoted = !quoted;
+                                continue;
+                        }
+                    }
+                }
+                return false;
+            }
+            else
+            {
+                fixed (char* ptr = &MemoryMarshal.GetReference(bufferChars.Slice(position)))
+                {
+                    var openBrackets = 0;
+                    var quoted = false;
+                    length = 0;
+
+                    switch (firstChar)
+                    {
+                        case ',':
+                            throw CreateException("Unexpected Character");
+                        case '[':
+                            openBrackets++;
+                            break;
+                        case ']':
+                            return true;
+                        case '"':
+                            quoted = !quoted;
+                            break;
+                    }
+
+                    length++;
+
+                    char* ptr2 = ptr;
+                    for (var i = position; i < bufferChars.Length; i++)
+                    {
+                        var c = *ptr2++;
+                        switch (c)
+                        {
+                            case ',':
+                                if (!quoted && openBrackets == 0)
+                                    length++;
+                                continue;
+                            case '[':
+                                if (!quoted)
+                                    openBrackets++;
+                                continue;
+                            case ']':
+                                if (!quoted)
+                                {
+                                    if (openBrackets == 0)
+                                        return true;
+                                    openBrackets--;
+                                }
+                                continue;
+                            case '"':
+                                quoted = !quoted;
+                                continue;
+                        }
+                    }
+                }
+                return false;
             }
         }
 

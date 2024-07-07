@@ -29,14 +29,14 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
 
         public T Get()
         {
-            if (array == null)
+            if (array is null)
                 throw new InvalidOperationException();
             return array[Index];
         }
 
         public void Set(T value)
         {
-            if (array == null)
+            if (array is null)
                 return;
             array[Index] = value;
         }

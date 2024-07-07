@@ -6,23 +6,20 @@ using System;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
-using System.Collections.Generic;
 
 namespace Zerra.Serialization.Json.Converters.Collections
 {
     internal sealed class JsonConverterArrayT<TParent, TValue> : JsonConverter<TParent, TValue[]>
     {
-        private JsonConverter<List<TValue>> readConverter = null!;
-        private JsonConverter<IEnumerator<TValue>> writeConverter = null!;
+        private JsonConverter<ArrayAccessor<TValue>> converter = null!;
 
-        private static TValue Getter(IEnumerator<TValue> parent) => parent.Current;
-        private static void Setter(List<TValue> parent, TValue value) => parent.Add(value);
+        private static TValue Getter(ArrayAccessor<TValue> parent) => parent.Get();
+        private static void Setter(ArrayAccessor<TValue> parent, TValue value) => parent.Set(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = JsonConverterFactory<List<TValue>>.Get(valueTypeDetail, null, null, Setter);
-            writeConverter = JsonConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, null, Getter, null);
+            converter = JsonConverterFactory<ArrayAccessor<TValue>>.Get(valueTypeDetail, null, Getter, Setter);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out TValue[]? value)
@@ -43,7 +40,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
             }
 
             char c;
-            List<TValue> accessor;
+            ArrayAccessor<TValue> accessor;
 
             if (!state.Current.HasReadFirstArrayElement)
             {
@@ -69,28 +66,29 @@ namespace Zerra.Serialization.Json.Converters.Collections
                         return true;
                     }
 
-                    accessor = new List<TValue>();
-
+                    if (reader.TryPeakArrayLength(c, out var length))
+                    {
+                        accessor = new ArrayAccessor<TValue>(length);
+                    }
+                    else
+                    {
+                        accessor = new ArrayAccessor<TValue>();
+                    }
+                  
                     reader.BackOne();
 
-                    if (!readConverter.TryReadFromParent(ref reader, ref state, accessor))
+                    if (!converter.TryReadFromParent(ref reader, ref state, accessor))
                     {
                         state.Current.WorkingFirstChar = c;
                         value = default;
                         return false;
                     }
+                    accessor.Index++;
                     state.Current.WorkingFirstChar = null;
                 }
                 else
                 {
-                    if (state.Current.Object is null)
-                    {
-                        accessor = new List<TValue>();
-                    }
-                    else
-                    {
-                        accessor = (List<TValue>)state.Current.Object!;
-                    }
+                    accessor = (ArrayAccessor<TValue>)state.Current.Object!;
                 }
 
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
@@ -114,14 +112,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
             }
             else
             {
-                if (state.Current.Object is null)
-                {
-                    accessor = new List<TValue>();
-                }
-                else
-                {
-                    accessor = (List<TValue>)state.Current.Object!;
-                }
+                accessor = (ArrayAccessor<TValue>)state.Current.Object!;
             }
 
             for (; ; )
@@ -144,20 +135,18 @@ namespace Zerra.Serialization.Json.Converters.Collections
                     }
 
                     if (c == ']')
-                    {
-                        value = Array.Empty<TValue>();
-                        return true;
-                    }
+                        break;
 
                     reader.BackOne();
 
-                    if (!readConverter.TryReadFromParent(ref reader, ref state, accessor))
+                    if (!converter.TryReadFromParent(ref reader, ref state, accessor))
                     {
                         state.Current.HasReadFirstArrayElement = true;
                         state.Current.WorkingFirstChar = c;
                         value = default;
                         return false;
                     }
+                    accessor.Index++;
                     state.Current.WorkingFirstChar = null;
                 }
 
