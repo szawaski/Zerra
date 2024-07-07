@@ -456,7 +456,7 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Write<T>(ByteConverter<object, T> converter, Span<byte> buffer, ref WriteState state, Encoding encoding, T value)
+        private static int Write<T>(ByteConverter<object, T> converter, byte[] buffer, ref WriteState state, Encoding encoding, T value)
         {
             var writer = new ByteWriter(buffer, encoding);
             try
@@ -479,7 +479,7 @@ namespace Zerra.Serialization.Bytes
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int WriteBoxed(ByteConverter<object> converter, Span<byte> buffer, ref WriteState state, Encoding encoding, object value)
+        private static int WriteBoxed(ByteConverter<object> converter, byte[] buffer, ref WriteState state, Encoding encoding, object value)
         {
             var writer = new ByteWriter(buffer, encoding);
             try

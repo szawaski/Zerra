@@ -34,10 +34,9 @@ namespace Zerra.Serialization.Bytes.IO
             throw new NotSupportedException($"{nameof(ByteWriter)} cannot use default constructor");
         }
 
-        public ByteWriter(Span<byte> buffer, Encoding encoding)
+        public ByteWriter(byte[] buffer, Encoding encoding)
         {
-            var r = MemoryMarshal.GetReference(buffer);
-            this.bufferHandle = GCHandle.Alloc(r, GCHandleType.Pinned);
+            this.bufferHandle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
             this.buffer = (byte*)bufferHandle.AddrOfPinnedObject();
 
             this.encoding = encoding;
