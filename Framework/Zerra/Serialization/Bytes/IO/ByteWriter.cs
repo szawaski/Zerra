@@ -4,12 +4,13 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using Zerra.IO;
 
 namespace Zerra.Serialization.Bytes.IO
 {
-    public ref partial struct ByteWriter
+    public unsafe ref partial struct ByteWriter
     {
         private const int defaultBufferSize = 1024;
 
@@ -17,7 +18,8 @@ namespace Zerra.Serialization.Bytes.IO
         private const byte notNullByte = 1;
 
         private byte[]? bufferOwner;
-        private Span<byte> buffer;
+        private GCHandle bufferHandle;
+        private byte* buffer;
 
         private int position;
         private int length;
@@ -34,8 +36,10 @@ namespace Zerra.Serialization.Bytes.IO
 
         public ByteWriter(Span<byte> buffer, Encoding encoding)
         {
-            this.bufferOwner = null;
-            this.buffer = buffer;
+            var r = MemoryMarshal.GetReference(buffer);
+            this.bufferHandle = GCHandle.Alloc(r, GCHandleType.Pinned);
+            this.buffer = (byte*)bufferHandle.AddrOfPinnedObject();
+
             this.encoding = encoding;
             this.position = 0;
             this.length = buffer.Length;
@@ -44,10 +48,12 @@ namespace Zerra.Serialization.Bytes.IO
         public ByteWriter(int initialSize, Encoding encoding)
         {
             this.bufferOwner = BufferArrayPool<byte>.Rent(initialSize);
-            this.buffer = bufferOwner;
+            this.bufferHandle = GCHandle.Alloc(bufferOwner, GCHandleType.Pinned);
+            this.buffer = (byte*)bufferHandle.AddrOfPinnedObject();
+
             this.encoding = encoding;
             this.position = 0;
-            this.length = buffer.Length;
+            this.length = bufferOwner.Length;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -58,30 +64,32 @@ namespace Zerra.Serialization.Bytes.IO
                 if (bufferOwner is null)
                     return false;
 
-                BufferArrayPool<byte>.Grow(ref bufferOwner, Math.Max(buffer.Length * 2, buffer.Length + sizeNeeded));
-                buffer = bufferOwner;
-                length = buffer.Length;
+                this.bufferHandle.Free();
+
+                BufferArrayPool<byte>.Grow(ref bufferOwner, Math.Max(bufferOwner.Length * 2, bufferOwner.Length + sizeNeeded));
+
+                this.bufferHandle = GCHandle.Alloc(bufferOwner, GCHandleType.Pinned);
+                this.buffer = (byte*)bufferHandle.AddrOfPinnedObject();
+                length = bufferOwner.Length;
             }
             return true;
         }
 
-        public readonly Span<byte> ToSpan()
-        {
-            return buffer.Slice(0, position);
-        }
         public readonly byte[] ToArray()
         {
-            return buffer.Slice(0, position).ToArray();
+            return new Span<byte>(buffer, length).Slice(0, position).ToArray();
         }
 
         public void Dispose()
         {
+            this.bufferHandle.Free();
+            buffer = null;
+
             if (bufferOwner != null)
             {
                 Array.Clear(bufferOwner, 0, position);
                 BufferArrayPool<byte>.Return(bufferOwner);
                 bufferOwner = null;
-                buffer = null;
             }
         }
     }

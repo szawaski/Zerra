@@ -459,33 +459,47 @@ namespace Zerra.Serialization.Bytes
         private static int Write<T>(ByteConverter<object, T> converter, Span<byte> buffer, ref WriteState state, Encoding encoding, T value)
         {
             var writer = new ByteWriter(buffer, encoding);
+            try
+            {
 #if DEBUG
-        again:
+            again:
 #endif
-            var write = converter.TryWrite(ref writer, ref state, value);
-            if (write)
-                state.BytesNeeded = 0;
+                var write = converter.TryWrite(ref writer, ref state, value);
+                if (write)
+                    state.BytesNeeded = 0;
 #if DEBUG
-            if (!write && ByteWriter.Testing && writer.Position + state.BytesNeeded <= writer.Length)
-                goto again;
+                if (!write && ByteWriter.Testing && writer.Position + state.BytesNeeded <= writer.Length)
+                    goto again;
 #endif
-            return writer.Position;
+                return writer.Position;
+            }
+            finally
+            {
+                writer.Dispose();
+            }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int WriteBoxed(ByteConverter<object> converter, Span<byte> buffer, ref WriteState state, Encoding encoding, object value)
         {
             var writer = new ByteWriter(buffer, encoding);
+            try
+            {
 #if DEBUG
-        again:
+            again:
 #endif
-            var write = converter.TryWriteBoxed(ref writer, ref state, value);
-            if (write)
-                state.BytesNeeded = 0;
+                var write = converter.TryWriteBoxed(ref writer, ref state, value);
+                if (write)
+                    state.BytesNeeded = 0;
 #if DEBUG
-            if (!write && ByteWriter.Testing && writer.Position + state.BytesNeeded <= writer.Length)
-                goto again;
+                if (!write && ByteWriter.Testing && writer.Position + state.BytesNeeded <= writer.Length)
+                    goto again;
 #endif
-            return writer.Position;
+                return writer.Position;
+            }
+            finally
+            {
+                writer.Dispose();
+            }
         }
     }
 }

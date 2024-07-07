@@ -23,19 +23,18 @@ namespace Zerra.Serialization.Bytes.IO
             if (bytes.Length == 0)
                 return true;
 
-            fixed (byte* pBuffer = &buffer[position], pBytes = bytes)
+            fixed (byte* pBytes = bytes)
             {
                 for (var i = 0; i < bytes.Length; i++)
                 {
-                    pBuffer[i] = pBytes[i];
+                    buffer[position++] = pBytes[i];
                 }
             }
-            position += bytes.Length;
             return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteNull(out int sizeNeeded)
+        public unsafe bool TryWriteNull(out int sizeNeeded)
         {
             sizeNeeded = 1;
             if (!EnsureSize(sizeNeeded))
@@ -45,7 +44,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteNotNull(out int sizeNeeded)
+        public unsafe bool TryWriteNotNull(out int sizeNeeded)
         {
             sizeNeeded = 1;
             if (!EnsureSize(sizeNeeded))
@@ -56,7 +55,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(bool value, out int sizeNeeded)
+        public unsafe bool TryWrite(bool value, out int sizeNeeded)
         {
             sizeNeeded = 1;
             if (!EnsureSize(sizeNeeded))
@@ -66,7 +65,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<bool> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<bool> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength;
             if (!EnsureSize(sizeNeeded))
@@ -78,7 +77,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<bool?> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<bool?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
             if (!EnsureSize(sizeNeeded))
@@ -98,7 +97,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteBoolCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteBoolCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength;
             if (!EnsureSize(sizeNeeded))
@@ -111,7 +110,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteBoolNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteBoolNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
             if (!EnsureSize(sizeNeeded))
@@ -133,7 +132,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(byte value, out int sizeNeeded)
+        public unsafe bool TryWrite(byte value, out int sizeNeeded)
         {
             sizeNeeded = 1;
             if (!EnsureSize(sizeNeeded))
@@ -142,7 +141,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<byte> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<byte> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength;
             if (!EnsureSize(sizeNeeded))
@@ -154,7 +153,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<byte?> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<byte?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
             if (!EnsureSize(sizeNeeded))
@@ -174,7 +173,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteByteCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteByteCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength;
             if (!EnsureSize(sizeNeeded))
@@ -187,7 +186,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteByteNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteByteNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
             if (!EnsureSize(sizeNeeded))
@@ -209,7 +208,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(sbyte value, out int sizeNeeded)
+        public unsafe bool TryWrite(sbyte value, out int sizeNeeded)
         {
             sizeNeeded = 1;
             if (!EnsureSize(sizeNeeded))
@@ -218,7 +217,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<sbyte> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<sbyte> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength;
             if (!EnsureSize(sizeNeeded))
@@ -230,7 +229,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<sbyte?> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<sbyte?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
             if (!EnsureSize(sizeNeeded))
@@ -250,7 +249,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteSByteCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteSByteCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength;
             if (!EnsureSize(sizeNeeded))
@@ -263,7 +262,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteSByteNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteSByteNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
             if (!EnsureSize(sizeNeeded))
@@ -285,7 +284,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(short value, out int sizeNeeded)
+        public unsafe bool TryWrite(short value, out int sizeNeeded)
         {
             sizeNeeded = 2;
             if (!EnsureSize(sizeNeeded))
@@ -295,7 +294,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<short> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<short> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
             if (!EnsureSize(sizeNeeded))
@@ -308,7 +307,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<short?> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<short?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 3;
             if (!EnsureSize(sizeNeeded))
@@ -329,7 +328,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteInt16Cast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteInt16Cast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
             if (!EnsureSize(sizeNeeded))
@@ -343,7 +342,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteInt16NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteInt16NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 3;
             if (!EnsureSize(sizeNeeded))
@@ -366,7 +365,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(ushort value, out int sizeNeeded)
+        public unsafe bool TryWrite(ushort value, out int sizeNeeded)
         {
             sizeNeeded = 2;
             if (!EnsureSize(sizeNeeded))
@@ -376,7 +375,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<ushort> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<ushort> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
             if (!EnsureSize(sizeNeeded))
@@ -389,7 +388,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<ushort?> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<ushort?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 3;
             if (!EnsureSize(sizeNeeded))
@@ -410,7 +409,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteUInt16Cast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteUInt16Cast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
             if (!EnsureSize(sizeNeeded))
@@ -424,7 +423,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteUInt16NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteUInt16NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 3;
             if (!EnsureSize(sizeNeeded))
@@ -447,7 +446,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(int value, out int sizeNeeded)
+        public unsafe bool TryWrite(int value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (!EnsureSize(sizeNeeded))
@@ -459,7 +458,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<int> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<int> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
             if (!EnsureSize(sizeNeeded))
@@ -474,7 +473,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<int?> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<int?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 5;
             if (!EnsureSize(sizeNeeded))
@@ -497,7 +496,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteInt32Cast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteInt32Cast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
             if (!EnsureSize(sizeNeeded))
@@ -513,7 +512,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteInt32NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteInt32NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 5;
             if (!EnsureSize(sizeNeeded))
@@ -538,7 +537,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(uint value, out int sizeNeeded)
+        public unsafe bool TryWrite(uint value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (!EnsureSize(sizeNeeded))
@@ -550,7 +549,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<uint> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<uint> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
             if (!EnsureSize(sizeNeeded))
@@ -565,7 +564,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<uint?> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<uint?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 5;
             if (!EnsureSize(sizeNeeded))
@@ -588,7 +587,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteUInt32Cast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteUInt32Cast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
             if (!EnsureSize(sizeNeeded))
@@ -604,7 +603,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteUInt32NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteUInt32NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 5;
             if (!EnsureSize(sizeNeeded))
@@ -629,7 +628,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(long value, out int sizeNeeded)
+        public unsafe bool TryWrite(long value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (!EnsureSize(sizeNeeded))
@@ -645,7 +644,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<long> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<long> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
             if (!EnsureSize(sizeNeeded))
@@ -664,7 +663,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<long?> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<long?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
             if (!EnsureSize(sizeNeeded))
@@ -691,7 +690,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteInt64Cast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteInt64Cast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
             if (!EnsureSize(sizeNeeded))
@@ -711,7 +710,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteInt64NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteInt64NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
             if (!EnsureSize(sizeNeeded))
@@ -740,7 +739,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(ulong value, out int sizeNeeded)
+        public unsafe bool TryWrite(ulong value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (!EnsureSize(sizeNeeded))
@@ -756,7 +755,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<ulong> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<ulong> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
             if (!EnsureSize(sizeNeeded))
@@ -775,7 +774,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<ulong?> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<ulong?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
             if (!EnsureSize(sizeNeeded))
@@ -802,7 +801,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteUInt64Cast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteUInt64Cast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
             if (!EnsureSize(sizeNeeded))
@@ -822,7 +821,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteUInt64NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteUInt64NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
             if (!EnsureSize(sizeNeeded))
@@ -1067,7 +1066,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(decimal value, out int sizeNeeded)
+        public unsafe bool TryWrite(decimal value, out int sizeNeeded)
         {
             sizeNeeded = 16;
             if (!EnsureSize(sizeNeeded))
@@ -1097,7 +1096,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<decimal> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<decimal> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 16;
             if (!EnsureSize(sizeNeeded))
@@ -1129,7 +1128,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<decimal?> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<decimal?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 17;
             if (!EnsureSize(sizeNeeded))
@@ -1169,7 +1168,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteDecimalCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteDecimalCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 16;
             if (!EnsureSize(sizeNeeded))
@@ -1202,7 +1201,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteDecimalNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteDecimalNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 17;
             if (!EnsureSize(sizeNeeded))
@@ -1244,7 +1243,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(DateTime value, out int sizeNeeded)
+        public unsafe bool TryWrite(DateTime value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (!EnsureSize(sizeNeeded))
@@ -1260,7 +1259,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<DateTime> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<DateTime> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
             if (!EnsureSize(sizeNeeded))
@@ -1279,7 +1278,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<DateTime?> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<DateTime?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
             if (!EnsureSize(sizeNeeded))
@@ -1306,7 +1305,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteDateTimeCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteDateTimeCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
             if (!EnsureSize(sizeNeeded))
@@ -1326,7 +1325,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteDateTimeNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteDateTimeNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
             if (!EnsureSize(sizeNeeded))
@@ -1355,7 +1354,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(DateTimeOffset value, out int sizeNeeded)
+        public unsafe bool TryWrite(DateTimeOffset value, out int sizeNeeded)
         {
             sizeNeeded = 10;
             if (!EnsureSize(sizeNeeded))
@@ -1374,7 +1373,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<DateTimeOffset> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<DateTimeOffset> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 10;
             if (!EnsureSize(sizeNeeded))
@@ -1396,7 +1395,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<DateTimeOffset?> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<DateTimeOffset?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 11;
             if (!EnsureSize(sizeNeeded))
@@ -1426,7 +1425,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteDateTimeOffsetCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteDateTimeOffsetCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 10;
             if (!EnsureSize(sizeNeeded))
@@ -1449,7 +1448,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteDateTimeOffsetNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteDateTimeOffsetNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 11;
             if (!EnsureSize(sizeNeeded))
@@ -1481,7 +1480,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(TimeSpan value, out int sizeNeeded)
+        public unsafe bool TryWrite(TimeSpan value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (!EnsureSize(sizeNeeded))
@@ -1497,7 +1496,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<TimeSpan> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<TimeSpan> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
             if (!EnsureSize(sizeNeeded))
@@ -1516,7 +1515,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<TimeSpan?> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<TimeSpan?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
             if (!EnsureSize(sizeNeeded))
@@ -1543,7 +1542,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteTimeSpanCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteTimeSpanCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
             if (!EnsureSize(sizeNeeded))
@@ -1563,7 +1562,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteTimeSpanNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteTimeSpanNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
             if (!EnsureSize(sizeNeeded))
@@ -1593,7 +1592,7 @@ namespace Zerra.Serialization.Bytes.IO
 
 #if NET6_0_OR_GREATER
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(DateOnly value, out int sizeNeeded)
+        public unsafe bool TryWrite(DateOnly value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (!EnsureSize(sizeNeeded))
@@ -1605,7 +1604,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<DateOnly> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<DateOnly> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
             if (!EnsureSize(sizeNeeded))
@@ -1620,7 +1619,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<DateOnly?> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<DateOnly?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 5;
             if (!EnsureSize(sizeNeeded))
@@ -1643,7 +1642,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteDateOnlyCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteDateOnlyCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
             if (!EnsureSize(sizeNeeded))
@@ -1659,7 +1658,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteDateOnlyNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteDateOnlyNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
             if (!EnsureSize(sizeNeeded))
@@ -1684,7 +1683,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(TimeOnly value, out int sizeNeeded)
+        public unsafe bool TryWrite(TimeOnly value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (!EnsureSize(sizeNeeded))
@@ -1700,7 +1699,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<TimeOnly> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<TimeOnly> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
             if (!EnsureSize(sizeNeeded))
@@ -1719,7 +1718,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<TimeOnly?> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<TimeOnly?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
             if (!EnsureSize(sizeNeeded))
@@ -1746,7 +1745,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteTimeOnlyCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteTimeOnlyCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
             if (!EnsureSize(sizeNeeded))
@@ -1766,7 +1765,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteTimeOnlyNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteTimeOnlyNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
             if (!EnsureSize(sizeNeeded))
@@ -1802,14 +1801,13 @@ namespace Zerra.Serialization.Bytes.IO
             if (!EnsureSize(sizeNeeded))
                 return false;
             var bytes = value.ToByteArray();
-            fixed (byte* pBuffer = &buffer[position], pBytes = &bytes[0])
+            fixed (byte* pBytes = &bytes[0])
             {
                 for (var i = 0; i < bytes.Length; i++)
                 {
-                    pBuffer[i] = pBytes[i];
+                    buffer[position++] = pBytes[i];
                 }
             }
-            position += 16;
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1821,14 +1819,13 @@ namespace Zerra.Serialization.Bytes.IO
             foreach (var value in values)
             {
                 var bytes = value.ToByteArray();
-                fixed (byte* pBuffer = &buffer[position], pBytes = &bytes[0])
+                fixed (byte* pBytes = &bytes[0])
                 {
                     for (var i = 0; i < bytes.Length; i++)
                     {
-                        pBuffer[i] = pBytes[i];
+                        buffer[position++] = pBytes[i];
                     }
                 }
-                position += 16;
             }
             return true;
         }
@@ -1844,14 +1841,13 @@ namespace Zerra.Serialization.Bytes.IO
                 {
                     buffer[position++] = notNullByte;
                     var bytes = value.Value.ToByteArray();
-                    fixed (byte* pBuffer = &buffer[position], pBytes = &bytes[0])
+                    fixed (byte* pBytes = &bytes[0])
                     {
                         for (var i = 0; i < bytes.Length; i++)
                         {
-                            pBuffer[i] = pBytes[i];
+                            buffer[position++] = pBytes[i];
                         }
                     }
-                    position += 16;
                 }
                 else
                 {
@@ -1870,14 +1866,13 @@ namespace Zerra.Serialization.Bytes.IO
             {
                 var cast = (Guid)value;
                 var bytes = cast.ToByteArray();
-                fixed (byte* pBuffer = &buffer[position], pBytes = &bytes[0])
+                fixed (byte* pBytes = &bytes[0])
                 {
                     for (var i = 0; i < bytes.Length; i++)
                     {
-                        pBuffer[i] = pBytes[i];
+                        buffer[position++] = pBytes[i];
                     }
                 }
-                position += 16;
             }
             return true;
         }
@@ -1894,14 +1889,13 @@ namespace Zerra.Serialization.Bytes.IO
                 {
                     buffer[position++] = notNullByte;
                     var bytes = cast.Value.ToByteArray();
-                    fixed (byte* pBuffer = &buffer[position], pBytes = &bytes[0])
+                    fixed (byte* pBytes = &bytes[0])
                     {
                         for (var i = 0; i < bytes.Length; i++)
                         {
-                            pBuffer[i] = pBytes[i];
+                            buffer[position++] = pBytes[i];
                         }
                     }
-                    position += 16;
                 }
                 else
                 {
@@ -1912,7 +1906,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(char value, out int sizeNeeded)
+        public unsafe bool TryWrite(char value, out int sizeNeeded)
         {
             sizeNeeded = 2;
             if (!EnsureSize(sizeNeeded))
@@ -1922,7 +1916,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<char> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<char> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
             if (!EnsureSize(sizeNeeded))
@@ -1935,7 +1929,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<char?> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<char?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 3;
             if (!EnsureSize(sizeNeeded))
@@ -1956,7 +1950,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteCharCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteCharCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
             if (!EnsureSize(sizeNeeded))
@@ -1970,7 +1964,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteCharNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteCharNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 3;
             if (!EnsureSize(sizeNeeded))
@@ -1993,21 +1987,19 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(string value, out int sizeNeeded)
+        public unsafe bool TryWrite(string value, out int sizeNeeded)
         {
 
             sizeNeeded = encoding.GetMaxByteCount(value.Length) + 4;
             if (!EnsureSize(sizeNeeded))
                 return false;
 
-#if NETSTANDARD2_0
-                var charBytes = encoding.GetBytes(value);
-                charBytes.AsSpan().CopyTo(buffer.Slice(position + 4));
-                var byteLength = charBytes.Length;
-#else
+            int byteLength;
+            fixed (char* ptr = value)
+            {
+                byteLength = encoding.GetBytes(ptr, value.Length, buffer + position + 4, value.Length * 4);
+            }
 
-            var byteLength = encoding.GetBytes(value.AsSpan(), buffer.Slice(position + 4));
-#endif
             buffer[position++] = (byte)byteLength;
             buffer[position++] = (byte)(byteLength >> 8);
             buffer[position++] = (byte)(byteLength >> 16);
@@ -2017,7 +2009,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWrite(IEnumerable<string> values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWrite(IEnumerable<string> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = 0;
             foreach (var value in values)
@@ -2029,14 +2021,12 @@ namespace Zerra.Serialization.Bytes.IO
             {
                 if (value != null)
                 {
-#if NETSTANDARD2_0
-                    var charBytes = encoding.GetBytes(value);
-                    charBytes.AsSpan().CopyTo(buffer.Slice(position + 5));
-                    var byteLength = charBytes.Length;
-#else
+                    int byteLength;
+                    fixed (char* ptr = value)
+                    {
+                        byteLength = encoding.GetBytes(ptr, value.Length, buffer + position + 5, value.Length * 4);
+                    }
 
-                    var byteLength = encoding.GetBytes(value.AsSpan(), buffer.Slice(position + 5));
-#endif
                     buffer[position++] = notNullByte;
                     buffer[position++] = (byte)byteLength;
                     buffer[position++] = (byte)(byteLength >> 8);
@@ -2052,7 +2042,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryWriteStringCast(IEnumerable values, int maxLength, out int sizeNeeded)
+        public unsafe bool TryWriteStringCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = 0;
             foreach (string value in values)
@@ -2064,14 +2054,12 @@ namespace Zerra.Serialization.Bytes.IO
             {
                 if (value != null)
                 {
-#if NETSTANDARD2_0
-                    var charBytes = encoding.GetBytes(value);
-                    charBytes.AsSpan().CopyTo(buffer.Slice(position + 5));
-                    var byteLength = charBytes.Length;
-#else
+                    int byteLength;
+                    fixed (char* ptr = value)
+                    {
+                        byteLength = encoding.GetBytes(ptr, value.Length, buffer + position + 5, value.Length * 4);
+                    }
 
-                    var byteLength = encoding.GetBytes(value.AsSpan(), buffer.Slice(position + 5));
-#endif
                     buffer[position++] = notNullByte;
                     buffer[position++] = (byte)byteLength;
                     buffer[position++] = (byte)(byteLength >> 8);
