@@ -391,7 +391,7 @@ namespace Zerra.Serialization.Json.Converters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected abstract bool TryReadValue(ref JsonReader reader, ref ReadState state, out TValue? value);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected abstract bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TValue? value);
+        protected abstract bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TValue value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void CollectedValuesSetter(TParent? parent, object? value)
