@@ -12,5 +12,12 @@ namespace Zerra.Serialization.Json.State
     {
         public bool HasWrittenIsNull;
         public bool HasWrittenPropertyName;
+
+        public object? Object;
+        public bool HasWrittenStart;
+        public bool HasWrittenFirst;
+        public bool HasWrittenSeperator;
+        public object? Enumerator;
+        public bool EnumeratorInProgress;
     }
 }

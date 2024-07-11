@@ -74,7 +74,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
                     {
                         accessor = new ArrayAccessor<TValue>();
                     }
-                  
+
                     reader.BackOne();
 
                     if (!converter.TryReadFromParent(ref reader, ref state, accessor))
@@ -174,7 +174,80 @@ namespace Zerra.Serialization.Json.Converters.Collections
 
         protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TValue[] value)
         {
-            throw new NotImplementedException();
+            if (value.Length == 0)
+            {
+                if (!writer.TryWrite("[]", out state.CharsNeeded))
+                {
+                    return false;
+                }
+                return true;
+            }
+
+            ArrayAccessor<TValue> accessor;
+
+            if (!state.Current.HasWrittenStart)
+            {
+                if (!writer.TryWrite('[', out state.CharsNeeded))
+                {
+                    return false;
+                }
+                accessor = new ArrayAccessor<TValue>(value);
+            }
+            else
+            {
+                accessor = (ArrayAccessor<TValue>)state.Current.Object!;
+            }
+
+            if (!state.Current.HasWrittenFirst)
+            {
+                if (!converter.TryWriteFromParent(ref writer, ref state, accessor))
+                {
+                    state.Current.HasWrittenStart = true;
+                    return false;
+                }
+            }
+
+            if (accessor.Index == accessor.Length)
+            {
+                if (!writer.TryWrite(']', out state.CharsNeeded))
+                {
+                    state.Current.HasWrittenStart = true;
+                    return false;
+                }
+                return true;
+            }
+
+            for (; ; )
+            {
+                if (!state.Current.HasWrittenSeperator)
+                {
+                    if (!writer.TryWrite(',', out state.CharsNeeded))
+                    {
+                        state.Current.HasWrittenStart = true;
+                        state.Current.HasWrittenFirst = true;
+                        return false;
+                    }
+                }
+
+                if (!converter.TryWriteFromParent(ref writer, ref state, accessor))
+                {
+                    state.Current.HasWrittenStart = true;
+                    state.Current.HasWrittenFirst = true;
+                    state.Current.HasWrittenSeperator = true;
+                    return false;
+                }
+
+                if (accessor.Index == accessor.Length)
+                {
+                    if (!writer.TryWrite(']', out state.CharsNeeded))
+                    {
+                        state.Current.HasWrittenStart = true;
+                        return false;
+                    }
+                    return true;
+                }
+                state.Current.HasWrittenSeperator = false;
+            }
         }
     }
 }

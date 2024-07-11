@@ -10,6 +10,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
     internal sealed class ArrayAccessor<T>
     {
         public int Index;
+        public int Length => array?.Length ?? list?.Count ?? throw new InvalidOperationException();
 
         private readonly T[]? array;
         private readonly List<T>? list;

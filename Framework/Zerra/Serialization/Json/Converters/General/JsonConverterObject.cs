@@ -308,9 +308,54 @@ namespace Zerra.Serialization.Json.Converters.General
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TValue? value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TValue value)
         {
-            throw new NotImplementedException();
+            IEnumerator<KeyValuePair<string, JsonConverterObjectMember>> enumerator;
+            if (!state.Current.HasWrittenStart)
+            {
+                if (!writer.TryWrite('{', out state.CharsNeeded))
+                {
+                    return false;
+                }
+                enumerator = membersByName.GetEnumerator();
+            }
+            else
+            {
+                enumerator = (IEnumerator<KeyValuePair<string, JsonConverterObjectMember>>)state.Current.Enumerator!;
+            }
+
+            while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
+            {
+                if (!state.Current.HasWrittenFirst && !state.Current.HasWrittenSeperator)
+                {
+                    if (!writer.TryWrite(',', out state.CharsNeeded))
+                    {
+                        state.Current.HasWrittenStart = true;
+                        state.Current.EnumeratorInProgress = true;
+                        return false;
+                    }
+                }
+
+                if (!enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, enumerator.Current.Key))
+                {
+                    state.Current.HasWrittenStart = true;
+                    state.Current.Enumerator = enumerator;
+                    state.Current.EnumeratorInProgress = true;
+                    return false;
+                }
+
+                if (!state.Current.HasWrittenFirst)
+                    state.Current.HasWrittenFirst = true;
+                if (state.Current.EnumeratorInProgress)
+                    state.Current.EnumeratorInProgress = false;
+            }
+
+            if (!writer.TryWrite('}', out state.CharsNeeded))
+            {
+                state.Current.HasWrittenStart = true;
+                return false;
+            }
+            return true;
         }
     }
 }

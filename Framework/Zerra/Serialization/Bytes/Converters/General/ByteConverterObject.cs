@@ -357,7 +357,8 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     return false;
                 }
 
-                state.Current.EnumeratorInProgress = false;
+                if (state.Current.EnumeratorInProgress)
+                    state.Current.EnumeratorInProgress = false;
             }
 
             if (state.UsePropertyNames)
