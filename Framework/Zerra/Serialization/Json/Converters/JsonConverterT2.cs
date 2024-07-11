@@ -111,7 +111,7 @@ namespace Zerra.Serialization.Json.Converters
                 if (typeFromValue.Type != typeDetail.Type)
                 {
                     var newConverter = JsonConverterFactory<TParent>.Get(typeFromValue, memberKey, getter, setter);
-                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
+                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value!))
                     {
                         state.StashFrame();
                         return false;
@@ -121,7 +121,7 @@ namespace Zerra.Serialization.Json.Converters
                 }
             }
 
-            if (!TryWriteValue(ref writer, ref state, (TValue?)value))
+            if (!TryWriteValue(ref writer, ref state, (TValue?)value!))
             {
                 state.StashFrame();
                 return false;
@@ -205,7 +205,7 @@ namespace Zerra.Serialization.Json.Converters
                 }
             }
 
-            if (!TryWriteValue(ref writer, ref state, value))
+            if (!TryWriteValue(ref writer, ref state, value!))
             {
                 state.StashFrame();
                 return false;
@@ -335,7 +335,7 @@ namespace Zerra.Serialization.Json.Converters
                 if (typeFromValue.Type != typeDetail.Type)
                 {
                     var newConverter = JsonConverterFactory<TParent>.Get(typeFromValue, memberKey, getter, setter);
-                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
+                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value!))
                     {
                         state.StashFrame();
                         return false;
@@ -346,7 +346,7 @@ namespace Zerra.Serialization.Json.Converters
                 }
             }
 
-            if (!TryWriteValue(ref writer, ref state, value))
+            if (!TryWriteValue(ref writer, ref state, value!))
             {
                 state.StashFrame();
                 return false;
@@ -371,8 +371,8 @@ namespace Zerra.Serialization.Json.Converters
             return read;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed bool TryWriteValueBoxed(ref JsonWriter writer, ref WriteState state, object? value)
-            => TryWriteValue(ref writer, ref state, (TValue?)value);
+        public override sealed bool TryWriteValueBoxed(ref JsonWriter writer, ref WriteState state, object value)
+            => TryWriteValue(ref writer, ref state, (TValue)value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected abstract bool TryReadValue(ref JsonReader reader, ref ReadState state, out TValue? value);
