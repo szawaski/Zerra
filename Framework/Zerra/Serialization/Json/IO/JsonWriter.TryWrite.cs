@@ -1960,5 +1960,142 @@ namespace Zerra.Serialization.Json.IO
                 return true;
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteComma(out int sizeNeeded)
+        {
+            sizeNeeded = 1;
+            if (!EnsureSize(sizeNeeded))
+                return false;
+
+            if (useBytes)
+            {
+                bufferBytes[position++] = commaByte;
+                return true;
+            }
+            else
+            {
+                bufferChars[position++] = ',';
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteOpenBracket(out int sizeNeeded)
+        {
+            sizeNeeded = 1;
+            if (!EnsureSize(sizeNeeded))
+                return false;
+
+            if (useBytes)
+            {
+                bufferBytes[position++] = openBraceByte;
+                return true;
+            }
+            else
+            {
+                bufferChars[position++] = '[';
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteCloseBracket(out int sizeNeeded)
+        {
+            sizeNeeded = 1;
+            if (!EnsureSize(sizeNeeded))
+                return false;
+
+            if (useBytes)
+            {
+                bufferBytes[position++] = closeBracketByte;
+                return true;
+            }
+            else
+            {
+                bufferChars[position++] = ']';
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteEmptyBracket(out int sizeNeeded)
+        {
+            sizeNeeded = 2;
+            if (!EnsureSize(sizeNeeded))
+                return false;
+
+            if (useBytes)
+            {
+                bufferBytes[position++] = openBracketByte;
+                bufferBytes[position++] = closeBracketByte;
+                return true;
+            }
+            else
+            {
+                bufferChars[position++] = '[';
+                bufferChars[position++] = ']';
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteOpenBrace(out int sizeNeeded)
+        {
+            sizeNeeded = 1;
+            if (!EnsureSize(sizeNeeded))
+                return false;
+
+            if (useBytes)
+            {
+                bufferBytes[position++] = openBraceByte;
+                return true;
+            }
+            else
+            {
+                bufferChars[position++] = '{';
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteCloseBrace(out int sizeNeeded)
+        {
+            sizeNeeded = 1;
+            if (!EnsureSize(sizeNeeded))
+                return false;
+
+            if (useBytes)
+            {
+                bufferBytes[position++] = closeBraceByte;
+                return true;
+            }
+            else
+            {
+                bufferChars[position++] = '}';
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteEmptyBrace(out int sizeNeeded)
+        {
+            sizeNeeded = 2;
+            if (!EnsureSize(sizeNeeded))
+                return false;
+
+            if (useBytes)
+            {
+                bufferBytes[position++] = openBraceByte;
+                bufferBytes[position++] = closeBraceByte;
+                return true;
+            }
+            else
+            {
+                bufferChars[position++] = '{';
+                bufferChars[position++] = '}';
+                return true;
+            }
+        }
     }
 }

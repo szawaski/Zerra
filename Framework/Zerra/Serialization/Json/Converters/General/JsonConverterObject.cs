@@ -310,10 +310,19 @@ namespace Zerra.Serialization.Json.Converters.General
 
         protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TValue value)
         {
+            if (membersByName.Count == 0)
+            {
+                if (!writer.TryWriteEmptyBrace(out state.CharsNeeded))
+                {
+                    return false;
+                }
+                return true;
+            }
+
             IEnumerator<KeyValuePair<string, JsonConverterObjectMember>> enumerator;
             if (!state.Current.HasWrittenStart)
             {
-                if (!writer.TryWrite('{', out state.CharsNeeded))
+                if (!writer.TryWriteOpenBrace(out state.CharsNeeded))
                 {
                     return false;
                 }
@@ -328,7 +337,7 @@ namespace Zerra.Serialization.Json.Converters.General
             {
                 if (state.Current.HasWrittenFirst && !state.Current.HasWrittenSeperator)
                 {
-                    if (!writer.TryWrite(',', out state.CharsNeeded))
+                    if (!writer.TryWriteComma(out state.CharsNeeded))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.EnumeratorInProgress = true;
@@ -353,7 +362,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     state.Current.EnumeratorInProgress = false;
             }
 
-            if (!writer.TryWrite('}', out state.CharsNeeded))
+            if (!writer.TryWriteCloseBrace(out state.CharsNeeded))
             {
                 state.Current.HasWrittenStart = true;
                 return false;

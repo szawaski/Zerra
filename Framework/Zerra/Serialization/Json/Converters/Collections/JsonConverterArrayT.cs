@@ -176,7 +176,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
         {
             if (value.Length == 0)
             {
-                if (!writer.TryWrite("[]", out state.CharsNeeded))
+                if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
                 {
                     return false;
                 }
@@ -187,7 +187,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
 
             if (!state.Current.HasWrittenStart)
             {
-                if (!writer.TryWrite('[', out state.CharsNeeded))
+                if (!writer.TryWriteOpenBracket(out state.CharsNeeded))
                 {
                     return false;
                 }
@@ -210,7 +210,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
 
             if (accessor.Index == accessor.Length)
             {
-                if (!writer.TryWrite(']', out state.CharsNeeded))
+                if (!writer.TryWriteCloseBracket(out state.CharsNeeded))
                 {
                     state.Current.HasWrittenStart = true;
                     state.Current.Object = accessor;
@@ -223,7 +223,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
             {
                 if (!state.Current.HasWrittenSeperator)
                 {
-                    if (!writer.TryWrite(',', out state.CharsNeeded))
+                    if (!writer.TryWriteComma(out state.CharsNeeded))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.HasWrittenFirst = true;
@@ -245,7 +245,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
 
                 if (accessor.Index == accessor.Length)
                 {
-                    if (!writer.TryWrite(']', out state.CharsNeeded))
+                    if (!writer.TryWriteCloseBracket(out state.CharsNeeded))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.Object = accessor;
