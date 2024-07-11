@@ -173,7 +173,66 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 
         protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, List<TValue> value)
         {
-            throw new NotImplementedException();
+            if (value.Count == 0)
+            {
+                if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
+                {
+                    return false;
+                }
+                return true;
+            }
+
+            IEnumerator<TValue> enumerator;
+
+            if (!state.Current.HasWrittenStart)
+            {
+                if (!writer.TryWriteOpenBracket(out state.CharsNeeded))
+                {
+                    return false;
+                }
+                enumerator = value.GetEnumerator();
+            }
+            else
+            {
+                enumerator = (IEnumerator<TValue>)state.Current.Object!;
+            }
+
+            while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
+            {
+                if (state.Current.HasWrittenFirst && !state.Current.HasWrittenSeperator)
+                {
+                    if (!writer.TryWriteComma(out state.CharsNeeded))
+                    {
+                        state.Current.HasWrittenStart = true;
+                        state.Current.EnumeratorInProgress = true;
+                        state.Current.Object = enumerator;
+                        return false;
+                    }
+                }
+
+                if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator))
+                {
+                    state.Current.HasWrittenStart = true;
+                    state.Current.EnumeratorInProgress = true;
+                    state.Current.Object = enumerator;
+                    return false;
+                }
+
+                if (!state.Current.HasWrittenFirst)
+                    state.Current.HasWrittenFirst = true;
+                if (state.Current.HasWrittenSeperator)
+                    state.Current.HasWrittenSeperator = false;
+                if (state.Current.EnumeratorInProgress)
+                    state.Current.EnumeratorInProgress = false;
+            }
+
+            if (!writer.TryWriteCloseBracket(out state.CharsNeeded))
+            {
+                state.Current.HasWrittenStart = true;
+                state.Current.Object = enumerator;
+                return false;
+            }
+            return true;
         }
     }
 }

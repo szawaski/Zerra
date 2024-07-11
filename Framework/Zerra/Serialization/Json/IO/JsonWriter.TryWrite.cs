@@ -160,25 +160,40 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(float value, out int sizeNeeded)
         {
             sizeNeeded = 16; //min
-            return TryWrite(value.ToString(), out sizeNeeded);
+            if (!EnsureSize(sizeNeeded))
+                return false;
+
+            WriteLowerChars(value.ToString());
+
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(double value, out int sizeNeeded)
         {
             sizeNeeded = 32; //min
-            return TryWrite(value.ToString(), out sizeNeeded);
+            if (!EnsureSize(sizeNeeded))
+                return false;
+
+            WriteLowerChars(value.ToString());
+
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(decimal value, out int sizeNeeded)
         {
             sizeNeeded = 31;
-            return TryWrite(value.ToString(), out sizeNeeded);
+            if (!EnsureSize(sizeNeeded))
+                return false;
+
+            WriteLowerChars(value.ToString());
+
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWrite(char value, out int sizeNeeded)
+        public unsafe bool TryWriteRaw(char value, out int sizeNeeded)
         {
             if (useBytes)
             {
@@ -214,7 +229,53 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWrite(string? value, out int sizeNeeded)
+        public unsafe bool TryWriteQuoted(char value, out int sizeNeeded)
+        {
+            if (useBytes)
+            {
+                if (value < 192)
+                {
+                    sizeNeeded = 3;
+                    if (!EnsureSize(sizeNeeded))
+                        return false;
+                    bufferBytes[position++] = quoteByte;
+                    bufferBytes[position++] = (byte)value;
+                    bufferBytes[position++] = quoteByte;
+                    return true;
+                }
+                else
+                {
+                    sizeNeeded = 6;
+                    if (!EnsureSize(sizeNeeded))
+                        return false;
+
+                    bufferBytes[position++] = quoteByte;
+                    var valueArray = stackalloc char[] { value };
+                    fixed (byte* pBuffer = &bufferBytes[position])
+                    {
+                        position += encoding.GetBytes(valueArray, 1, pBuffer, bufferBytes.Length - position);
+                    }
+                    bufferBytes[position++] = quoteByte;
+
+                    return true;
+                }
+            }
+            else
+            {
+                sizeNeeded = 3;
+                if (!EnsureSize(sizeNeeded))
+                    return false;
+
+                bufferChars[position++] = '"';
+                bufferChars[position++] = value;
+                bufferChars[position++] = '"';
+
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteRaw(string? value, out int sizeNeeded)
         {
             if (value == null)
             {
@@ -260,16 +321,108 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteQuoted(string? value, out int sizeNeeded)
+        {
+            if (value == null)
+            {
+                sizeNeeded = 0;
+                return true;
+            }
+            if (value.Length == 0)
+            {
+                sizeNeeded = 2;
+                if (!EnsureSize(sizeNeeded))
+                    return false;
+                if (useBytes)
+                {
+                    bufferBytes[position++] = quoteByte;
+                    bufferBytes[position++] = quoteByte;
+                }
+                else
+                {
+                    bufferChars[position++] = '"';
+                    bufferChars[position++] = '"';
+                } 
+                return true;
+            }
+
+            if (useBytes)
+            {
+                sizeNeeded = encoding.GetMaxByteCount(value.Length) + 2;
+                if (!EnsureSize(sizeNeeded))
+                    return false;
+
+                bufferBytes[position++] = quoteByte;
+                fixed (char* pSource = value)
+                fixed (byte* pBuffer = &bufferBytes[position])
+                {
+                    position += encoding.GetBytes(pSource, value.Length, pBuffer, bufferBytes.Length - position);
+                }
+                bufferBytes[position++] = quoteByte;
+
+                return true;
+            }
+            else
+            {
+                sizeNeeded = value.Length + 2;
+                if (!EnsureSize(sizeNeeded))
+                    return false;
+
+                bufferChars[position++] = '"';
+                var pCount = value.Length;
+                fixed (char* pSource = value, pBuffer = &bufferChars[position])
+                {
+                    for (var p = 0; p < pCount; p++)
+                    {
+                        pBuffer[p] = pSource[p];
+                    }
+                }
+                position += pCount;
+                bufferChars[position++] = '"';
+
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe void WriteLowerChars(string value)
+        {
+            //This can only be used for chars < 128
+            if (useBytes)
+            {
+                fixed (char* pSource = value)
+                fixed (byte* pBuffer = &bufferBytes[position])
+                {
+                    position += encoding.GetBytes(pSource, value.Length, pBuffer, bufferBytes.Length - position);
+                }
+            }
+            else
+            {
+                var pCount = value.Length;
+                fixed (char* pSource = value, pBuffer = &bufferChars[position])
+                {
+                    for (var p = 0; p < pCount; p++)
+                    {
+                        pBuffer[p] = pSource[p];
+                    }
+                }
+                position += pCount;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(DateTime value, out int sizeNeeded)
         {
             //ISO8601
-            //yyyy-MM-ddTHH:mm:ss.fffffff+00:00
-            sizeNeeded = 33;
+            //"yyyy-MM-ddTHH:mm:ss.fffffff+00:00"
+            sizeNeeded = 35;
             if (!EnsureSize(sizeNeeded))
                 return false;
 
             if (useBytes)
             {
+                bufferBytes[position++] = quoteByte;
+
                 if (value.Year < 10)
                     bufferBytes[position++] = zeroByte;
                 if (value.Year < 100)
@@ -356,10 +509,15 @@ namespace Zerra.Serialization.Json.IO
                         }
                     default: throw new NotImplementedException();
                 }
+
+                bufferBytes[position++] = quoteByte;
+
                 return true;
             }
             else
             {
+                bufferChars[position++] = '"';
+
                 if (value.Year < 10)
                     bufferChars[position++] = '0';
                 if (value.Year < 100)
@@ -446,6 +604,8 @@ namespace Zerra.Serialization.Json.IO
                         }
                     default: throw new NotImplementedException();
                 }
+
+                bufferChars[position++] = '"';
                 return true;
             }
         }
@@ -454,13 +614,15 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(DateTimeOffset value, out int sizeNeeded)
         {
             //ISO8601
-            //yyyy-MM-ddTHH:mm:ss.fffffff+00:00
-            sizeNeeded = 33;
+            //"yyyy-MM-ddTHH:mm:ss.fffffff+00:00"
+            sizeNeeded = 35;
             if (!EnsureSize(sizeNeeded))
                 return false;
 
             if (useBytes)
             {
+                bufferBytes[position++] = quoteByte;
+
                 if (value.Year < 10)
                     bufferBytes[position++] = zeroByte;
                 if (value.Year < 100)
@@ -529,10 +691,14 @@ namespace Zerra.Serialization.Json.IO
                     bufferBytes[position++] = zeroByte;
                 WriteInt64Bytes(value.Offset.Minutes);
 
+                bufferBytes[position++] = quoteByte;
+
                 return true;
             }
             else
             {
+                bufferChars[position++] = '"';
+
                 if (value.Year < 10)
                     bufferChars[position++] = '0';
                 if (value.Year < 100)
@@ -601,6 +767,8 @@ namespace Zerra.Serialization.Json.IO
                     bufferChars[position++] = '0';
                 WriteInt64Chars(value.Offset.Minutes);
 
+                bufferChars[position++] = '"';
+
                 return true;
             }
         }
@@ -610,12 +778,14 @@ namespace Zerra.Serialization.Json.IO
         {
             //ISO8601
             //(-)dddddddd.HH:mm:ss.fffffff
-            sizeNeeded = 26;
+            sizeNeeded = 28;
             if (!EnsureSize(sizeNeeded))
                 return false;
 
             if (useBytes)
             {
+                bufferBytes[position++] = quoteByte;
+
                 if (value.Ticks < 0)
                     bufferBytes[position++] = minusByte;
 
@@ -696,10 +866,14 @@ namespace Zerra.Serialization.Json.IO
                     WriteInt64Bytes(fraction);
                 }
 
+                bufferBytes[position++] = quoteByte;
+
                 return true;
             }
             else
             {
+                bufferChars[position++] = '"';
+
                 if (value.Ticks < 0)
                     bufferChars[position++] = '-';
 
@@ -780,6 +954,8 @@ namespace Zerra.Serialization.Json.IO
                     WriteInt64Chars(fraction);
                 }
 
+                bufferChars[position++] = '"';
+
                 return true;
             }
         }
@@ -789,13 +965,15 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(DateOnly value, out int sizeNeeded)
         {
             //ISO8601
-            //yyyy-MM-dd
-            sizeNeeded = 10;
+            //"yyyy-MM-dd"
+            sizeNeeded = 12;
             if (!EnsureSize(sizeNeeded))
                 return false;
 
             if (useBytes)
             {
+                bufferBytes[position++] = quoteByte;
+
                 if (value.Year < 10)
                     bufferBytes[position++] = zeroByte;
                 if (value.Year < 100)
@@ -813,6 +991,8 @@ namespace Zerra.Serialization.Json.IO
                 if (value.Day < 10)
                     bufferBytes[position++] = zeroByte;
                 WriteInt64Bytes(value.Day);
+
+                bufferBytes[position++] = quoteByte;
 
                 return true;
             }
@@ -844,13 +1024,15 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(TimeOnly value, out int sizeNeeded)
         {
             //ISO8601
-            //HH:mm:ss.fffffff
-            sizeNeeded = 16;
+            //"HH:mm:ss.fffffff"
+            sizeNeeded = 18;
             if (!EnsureSize(sizeNeeded))
                 return false;
 
             if (useBytes)
             {
+                bufferBytes[position++] = quoteByte;
+
                 if (value.Hour < 10)
                     bufferBytes[position++] = zeroByte;
                 WriteInt64Bytes(value.Hour);
@@ -886,10 +1068,14 @@ namespace Zerra.Serialization.Json.IO
                     WriteInt64Bytes(fraction);
                 }
 
+                bufferBytes[position++] = quoteByte;
+
                 return true;
             }
             else
             {
+                bufferChars[position++] = '"';
+
                 if (value.Hour < 10)
                     bufferChars[position++] = '0';
                 WriteInt64Chars(value.Hour);
@@ -925,6 +1111,8 @@ namespace Zerra.Serialization.Json.IO
                     WriteInt64Chars(fraction);
                 }
 
+                bufferChars[position++] = '"';
+
                 return true;
             }
         }
@@ -933,7 +1121,23 @@ namespace Zerra.Serialization.Json.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(Guid value, out int sizeNeeded)
         {
-            return TryWrite(value.ToString(), out sizeNeeded);
+            sizeNeeded = 38;
+            if (!EnsureSize(sizeNeeded))
+                return false;
+
+            if (useBytes)
+                bufferBytes[position++] = quoteByte;
+            else
+                bufferChars[position++] = '"';
+
+            WriteLowerChars(value.ToString());
+
+            if (useBytes)
+                bufferBytes[position++] = quoteByte;
+            else
+                bufferChars[position++] = '"';
+
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1989,7 +2193,7 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-                bufferBytes[position++] = openBraceByte;
+                bufferBytes[position++] = openBracketByte;
                 return true;
             }
             else
@@ -2096,6 +2300,25 @@ namespace Zerra.Serialization.Json.IO
                 bufferChars[position++] = '}';
                 return true;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteEmptyString(out int sizeNeeded)
+        {
+            sizeNeeded = 2;
+            if (!EnsureSize(sizeNeeded))
+                return false;
+            if (useBytes)
+            {
+                bufferBytes[position++] = quoteByte;
+                bufferBytes[position++] = quoteByte;
+            }
+            else
+            {
+                bufferChars[position++] = '"';
+                bufferChars[position++] = '"';
+            }
+            return true;
         }
     }
 }

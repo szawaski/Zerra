@@ -35,12 +35,27 @@ namespace Zerra.Serialization.Json.Converters.Collections
                 return false;
             }
 
+            if (str.Length == 0)
+            {
+                value = Array.Empty<byte>();
+                return true;
+            }
+
             value = Convert.FromBase64String(str);
             return true;
         }
 
         protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, byte[] value)
         {
+            if (value.Length == 0)
+            {
+                if (!writer.TryWriteEmptyString(out state.CharsNeeded))
+                {
+                    return false;
+                }
+                return true;
+            }
+
             string str;
             if (!state.Current.HasWrittenStart)
             {
@@ -51,7 +66,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
                 str = (string)state.Current.Object!;
             }
 
-            if (!writer.TryWrite(str, out state.CharsNeeded))
+            if (!writer.TryWriteQuoted(str, out state.CharsNeeded))
             {
                 state.Current.Object = str;
                 return false;

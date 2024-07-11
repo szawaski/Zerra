@@ -198,35 +198,13 @@ namespace Zerra.Serialization.Json.Converters.Collections
                 accessor = (ArrayAccessor<TValue>)state.Current.Object!;
             }
 
-            if (!state.Current.HasWrittenFirst)
+            while (accessor.Index < accessor.Length)
             {
-                if (!converter.TryWriteFromParent(ref writer, ref state, accessor))
-                {
-                    state.Current.HasWrittenStart = true;
-                    state.Current.Object = accessor;
-                    return false;
-                }
-            }
-
-            if (accessor.Index == accessor.Length)
-            {
-                if (!writer.TryWriteCloseBracket(out state.CharsNeeded))
-                {
-                    state.Current.HasWrittenStart = true;
-                    state.Current.Object = accessor;
-                    return false;
-                }
-                return true;
-            }
-
-            for (; ; )
-            {
-                if (!state.Current.HasWrittenSeperator)
+                if (state.Current.HasWrittenFirst && !state.Current.HasWrittenSeperator)
                 {
                     if (!writer.TryWriteComma(out state.CharsNeeded))
                     {
                         state.Current.HasWrittenStart = true;
-                        state.Current.HasWrittenFirst = true;
                         state.Current.Object = accessor;
                         return false;
                     }
@@ -240,21 +218,24 @@ namespace Zerra.Serialization.Json.Converters.Collections
                     state.Current.Object = accessor;
                     return false;
                 }
-
                 accessor.Index++;
 
-                if (accessor.Index == accessor.Length)
-                {
-                    if (!writer.TryWriteCloseBracket(out state.CharsNeeded))
-                    {
-                        state.Current.HasWrittenStart = true;
-                        state.Current.Object = accessor;
-                        return false;
-                    }
-                    return true;
-                }
-                state.Current.HasWrittenSeperator = false;
+                if (!state.Current.HasWrittenFirst)
+                    state.Current.HasWrittenFirst = true;
+                if (state.Current.HasWrittenSeperator)
+                    state.Current.HasWrittenSeperator = false;
+                if (state.Current.EnumeratorInProgress)
+                    state.Current.EnumeratorInProgress = false;
             }
+
+            if (!writer.TryWriteCloseBracket(out state.CharsNeeded))
+            {
+                state.Current.HasWrittenStart = true;
+                state.Current.HasWrittenFirst = true;
+                state.Current.Object = accessor;
+                return false;
+            }
+            return true;
         }
     }
 }

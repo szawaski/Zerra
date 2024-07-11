@@ -724,7 +724,7 @@ namespace Zerra.Serialization.Json.Converters
                         escapedChar = 't';
                         break;
                     default:
-                        if (c >= ' ')
+                        if (c >= ' ') //32
                             continue;
 
                         if (state.WorkingStringStage == 2)
@@ -736,7 +736,7 @@ namespace Zerra.Serialization.Json.Converters
                         }
 
                         var code = lowUnicodeIntToEncodedHex[c];
-                        if (!writer.TryWrite(code, out state.CharsNeeded))
+                        if (!writer.TryWriteRaw(code, out state.CharsNeeded))
                             return false;
                         state.WorkingStringStage = 2;
                         state.WorkingStringStart = state.WorkingStringIndex + 1;
@@ -756,7 +756,7 @@ namespace Zerra.Serialization.Json.Converters
                         return false;
                     state.WorkingStringStage = 4;
                 }
-                if (!writer.TryWrite(escapedChar, out state.CharsNeeded))
+                if (!writer.TryWriteRaw(escapedChar, out state.CharsNeeded))
                     return false;
                 state.WorkingStringStage = 2;
                 state.WorkingStringStart = state.WorkingStringIndex + 1;
@@ -797,89 +797,60 @@ namespace Zerra.Serialization.Json.Converters
                 return true;
             }
 
-            if (state.WorkingStringStage == 0)
+            switch (value.Value)
             {
-                switch (value.Value)
-                {
-                    case '\\':
-                        if (!writer.TryWrite("\"\\\\\"", out state.CharsNeeded))
-                            return false;
-                        state.WorkingStringStage = 0;
-                        return true;
-                    case '"':
-                        if (!writer.TryWrite("\"\\\"\"", out state.CharsNeeded))
-                            return false;
-                        state.WorkingStringStage = 0;
-                        return true;
-                    case '/':
-                        if (!writer.TryWrite("\"\\/\"", out state.CharsNeeded))
-                            return false;
-                        state.WorkingStringStage = 0;
-                        return true;
-                    case '\b':
-                        if (!writer.TryWrite("\"\\b\"", out state.CharsNeeded))
-                            return false;
-                        state.WorkingStringStage = 0;
-                        return true;
-                    case '\t':
-                        if (!writer.TryWrite("\"\\t\"", out state.CharsNeeded))
-                            return false;
-                        state.WorkingStringStage = 0;
-                        return true;
-                    case '\n':
-                        if (!writer.TryWrite("\"\\n\"", out state.CharsNeeded))
-                            return false;
-                        state.WorkingStringStage = 0;
-                        return true;
-                    case '\f':
-                        if (!writer.TryWrite("\"\\f\"", out state.CharsNeeded))
-                            return false;
-                        state.WorkingStringStage = 0;
-                        return true;
-                    case '\r':
-                        if (!writer.TryWrite("\"\\r\"", out state.CharsNeeded))
-                            return false;
-                        state.WorkingStringStage = 0;
-                        return true;
-                }
-
-                if (value < ' ')
-                    state.WorkingStringStage = 1;
-                else
-                    state.WorkingStringStage = 3;
+                case '\\':
+                    if (!writer.TryWriteQuoted("\\\\", out state.CharsNeeded))
+                        return false;
+                    state.WorkingStringStage = 0;
+                    return true;
+                case '"':
+                    if (!writer.TryWriteQuoted("\\\"", out state.CharsNeeded))
+                        return false;
+                    state.WorkingStringStage = 0;
+                    return true;
+                case '/':
+                    if (!writer.TryWriteQuoted("\\/", out state.CharsNeeded))
+                        return false;
+                    state.WorkingStringStage = 0;
+                    return true;
+                case '\b':
+                    if (!writer.TryWriteQuoted("\\b", out state.CharsNeeded))
+                        return false;
+                    state.WorkingStringStage = 0;
+                    return true;
+                case '\t':
+                    if (!writer.TryWriteQuoted("\\t", out state.CharsNeeded))
+                        return false;
+                    state.WorkingStringStage = 0;
+                    return true;
+                case '\n':
+                    if (!writer.TryWriteQuoted("\\n", out state.CharsNeeded))
+                        return false;
+                    state.WorkingStringStage = 0;
+                    return true;
+                case '\f':
+                    if (!writer.TryWriteQuoted("\\f", out state.CharsNeeded))
+                        return false;
+                    state.WorkingStringStage = 0;
+                    return true;
+                case '\r':
+                    if (!writer.TryWriteQuoted("\\r", out state.CharsNeeded))
+                        return false;
+                    state.WorkingStringStage = 0;
+                    return true;
             }
 
-            if (state.WorkingStringStage == 1)
-            {
-                if (!writer.TryWriteQuote(out state.CharsNeeded))
-                    return false;
-                state.WorkingStringStage = 2;
-            }
-            if (state.WorkingStringStage == 2)
+            if (value < ' ') //32
             {
                 var code = lowUnicodeIntToEncodedHex[value.Value];
-                if (!writer.TryWrite(code, out state.CharsNeeded))
+                if (!writer.TryWriteQuoted(code, out state.CharsNeeded))
                     return false;
-                state.WorkingStringStage = 3;
+                return true;
             }
 
-            if (state.WorkingStringStage == 3)
-            {
-                if (!writer.TryWriteQuote(out state.CharsNeeded))
-                    return false;
-                state.WorkingStringStage = 4;
-            }
-            if (state.WorkingStringStage == 4)
-            {
-                if (!writer.TryWrite(value.Value, out state.CharsNeeded))
-                    return false;
-                state.WorkingStringStage = 10;
-            }
-
-            if (!writer.TryWriteQuote(out state.CharsNeeded))
+            if (!writer.TryWriteQuoted(value.Value, out state.CharsNeeded))
                 return false;
-
-            state.WorkingStringStage = 0;
             return true;
         }
     }
