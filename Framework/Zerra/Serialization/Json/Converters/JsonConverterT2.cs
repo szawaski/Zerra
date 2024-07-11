@@ -93,18 +93,14 @@ namespace Zerra.Serialization.Json.Converters
 
             if (isNullable)
             {
-                if (!state.Current.HasWrittenIsNull)
+                if (value is null)
                 {
-                    if (value is null)
+                    if (!writer.TryWriteNull(out state.CharsNeeded))
                     {
-                        if (!writer.TryWriteNull(out state.CharsNeeded))
-                        {
-                            state.StashFrame();
-                            return false;
-                        }
-                        return true;
+                        state.StashFrame();
+                        return false;
                     }
-                    state.Current.HasWrittenIsNull = true;
+                    return true;
                 }
             }
 
@@ -181,18 +177,14 @@ namespace Zerra.Serialization.Json.Converters
 
             if (isNullable)
             {
-                if (!state.Current.HasWrittenIsNull)
+                if (value is null)
                 {
-                    if (value is null)
+                    if (!writer.TryWriteNull(out state.CharsNeeded))
                     {
-                        if (!writer.TryWriteNull(out state.CharsNeeded))
-                        {
-                            state.StashFrame();
-                            return false;
-                        }
-                        return true;
+                        state.StashFrame();
+                        return false;
                     }
-                    state.Current.HasWrittenIsNull = true;
+                    return true;
                 }
             }
 
@@ -295,14 +287,15 @@ namespace Zerra.Serialization.Json.Converters
                         }
                         state.Current.HasWrittenPropertyName = true;
                     }
-                    if (isNullable && !state.Current.HasWrittenIsNull)
+                    if (isNullable)
                     {
                         if (!writer.TryWriteNull(out state.CharsNeeded))
                         {
                             state.StashFrame();
                             return false;
                         }
-                        state.Current.HasWrittenIsNull = true;
+                        state.EndFrame();
+                        return true;
                     }
                 }
                 else
@@ -320,7 +313,7 @@ namespace Zerra.Serialization.Json.Converters
             }
             else
             {
-                if (isNullable && !state.Current.HasWrittenIsNull)
+                if (isNullable)
                 {
                     if (value is null)
                     {
@@ -332,7 +325,6 @@ namespace Zerra.Serialization.Json.Converters
                         state.EndFrame();
                         return true;
                     }
-                    state.Current.HasWrittenIsNull = true;
                 }
             }
 

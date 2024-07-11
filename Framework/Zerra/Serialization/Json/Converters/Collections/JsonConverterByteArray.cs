@@ -39,9 +39,24 @@ namespace Zerra.Serialization.Json.Converters.Collections
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, byte[]? value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, byte[] value)
         {
-            throw new NotImplementedException();
+            string str;
+            if (!state.Current.HasWrittenStart)
+            {
+                str = Convert.ToBase64String(value);
+            }
+            else
+            {
+                str = (string)state.Current.Object!;
+            }
+
+            if (!writer.TryWrite(str, out state.CharsNeeded))
+            {
+                state.Current.Object = str;
+                return false;
+            }
+            return true;
         }
     }
 }

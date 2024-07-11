@@ -10,7 +10,6 @@ namespace Zerra.Serialization.Json.State
     [StructLayout(LayoutKind.Auto)]
     public struct WriteFrame
     {
-        public bool HasWrittenIsNull;
         public bool HasWrittenPropertyName;
 
         public object? Object;
