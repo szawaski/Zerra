@@ -67,8 +67,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 
             for (; ; )
             {
-                var read = readConverter.TryReadFromParent(ref reader, ref state, set, true, false);
-                if (!read)
+                if (!readConverter.TryReadFromParent(ref reader, ref state, set, true, false))
                 {
                     state.Current.Object = set;
                     return false;
@@ -103,8 +102,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true);
-                if (!write)
+                if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;
