@@ -77,8 +77,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                var write = writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true);
-                if (!write)
+                if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

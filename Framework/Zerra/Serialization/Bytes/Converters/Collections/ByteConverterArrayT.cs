@@ -60,8 +60,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
 
             for (; ; )
             {
-                var read = converter.TryReadFromParent(ref reader, ref state, accessor, true);
-                if (!read)
+                if (!converter.TryReadFromParent(ref reader, ref state, accessor, true))
                 {
                     state.Current.Object = accessor;
                     return false;
@@ -99,8 +98,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
 
             while (accessor.Index < accessor.Array!.Length)
             {
-                var write = converter.TryWriteFromParent(ref writer, ref state, accessor, true);
-                if (!write)
+                if (!converter.TryWriteFromParent(ref writer, ref state, accessor, true))
                 {
                     state.Current.Object = accessor;
                     return false;

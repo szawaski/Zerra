@@ -238,8 +238,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
                     //consume bytes but object does not have property
                     var converter = ByteConverterFactory<TValue>.GetTypeRequired();
-                    var read = converter.TryReadFromParent(ref reader, ref state, default, false, true);
-                    if (!read)
+                    if (!converter.TryReadFromParent(ref reader, ref state, default, false, true))
                     {
                         state.Current.HasReadProperty = true;
                         state.Current.Property = property;
@@ -254,8 +253,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 {
                     if (collectValues)
                     {
-                        var read = property.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues, false);
-                        if (!read)
+                        if (!property.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues, false))
                         {
                             state.Current.HasReadProperty = true;
                             state.Current.Property = property;
@@ -268,8 +266,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                     else
                     {
-                        var read = property.Converter.TryReadFromParent(ref reader, ref state, value, false);
-                        if (!read)
+                        if (!property.Converter.TryReadFromParent(ref reader, ref state, value, false))
                         {
                             state.Current.HasReadProperty = true;
                             state.Current.Property = property;
@@ -348,9 +345,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
             {
                 //Base will write the property name or index if the value is not null.
                 //Done this way so we don't have to extract the value twice due to null checking.
-                var write = enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, false, enumerator.Current.Key, enumerator.Current.Value.Member.Name);
-
-                if (!write)
+                if (!enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, false, enumerator.Current.Key, enumerator.Current.Value.Member.Name))
                 {
                     state.Current.Enumerator = enumerator;
                     state.Current.EnumeratorInProgress = true;

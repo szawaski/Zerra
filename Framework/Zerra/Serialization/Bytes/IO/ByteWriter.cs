@@ -53,15 +53,16 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool EnsureSize(int sizeNeeded)
         {
-            if (length - position < sizeNeeded)
-            {
-                if (bufferOwner is null)
-                    return false;
+            if (length - position >= sizeNeeded)
+                return true;
 
-                BufferArrayPool<byte>.Grow(ref bufferOwner, Math.Max(buffer.Length * 2, buffer.Length + sizeNeeded));
-                buffer = bufferOwner;
-                length = buffer.Length;
-            }
+            if (bufferOwner is null)
+                return false;
+
+            BufferArrayPool<byte>.Grow(ref bufferOwner, Math.Max(bufferOwner.Length * 2, bufferOwner.Length + sizeNeeded));
+            buffer = bufferOwner;
+            length = buffer.Length;
+
             return true;
         }
 
