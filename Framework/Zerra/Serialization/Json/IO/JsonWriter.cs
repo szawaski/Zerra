@@ -23,7 +23,7 @@ namespace Zerra.Serialization.Json.IO
         private bool useBytes;
 
         private int position;
-        private readonly int length;
+        private int length;
 
         public JsonWriter()
         {
@@ -44,13 +44,7 @@ namespace Zerra.Serialization.Json.IO
             }
             this.position = 0;
             this.length = bufferChars.Length;
-        }
-
-        public JsonWriter(Span<char> buffer)
-        {
-            this.bufferChars = buffer;
-            this.position = 0;
-            this.length = buffer.Length;
+            this.useBytes = useBytes;
         }
 
         public JsonWriter(Span<byte> buffer)
@@ -58,37 +52,36 @@ namespace Zerra.Serialization.Json.IO
             this.bufferBytes = buffer;
             this.position = 0;
             this.length = buffer.Length;
+            this.useBytes = true;
         }
 
         public readonly int Length => position;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void EnsureBufferSize(int additionalSize)
+        private bool EnsureSize(int sizeNeeded)
         {
+            if (length - position >= sizeNeeded)
+                return true;
+
             if (useBytes)
             {
-                if (position + additionalSize <= bufferChars.Length)
-                    return;
+                if (bufferBytesOwner == null)
+                    return false;
 
-                if (bufferCharsOwner == null)
-                    throw new InvalidOperationException($"{nameof(JsonWriter)} has reached it's buffer limit");
-
-                var minSize = position + additionalSize;
-                BufferArrayPool<char>.Grow(ref bufferCharsOwner, minSize);
-                bufferChars = bufferCharsOwner;
+                BufferArrayPool<byte>.Grow(ref bufferBytesOwner, Math.Max(bufferBytesOwner.Length * 2, bufferBytesOwner.Length + sizeNeeded));
+                bufferBytes = bufferBytesOwner;
+                length = bufferBytesOwner.Length;
             }
             else
             {
-                if (position + additionalSize <= bufferBytes.Length)
-                    return;
+                if (bufferCharsOwner == null)
+                    return false;
 
-                if (bufferBytesOwner == null)
-                    throw new InvalidOperationException($"{nameof(JsonWriter)} has reached it's buffer limit");
-
-                var minSize = position + additionalSize;
-                BufferArrayPool<byte>.Grow(ref bufferBytesOwner, minSize);
-                bufferBytes = bufferBytesOwner;
+                BufferArrayPool<char>.Grow(ref bufferCharsOwner, Math.Max(bufferCharsOwner.Length * 2, bufferCharsOwner.Length + sizeNeeded));
+                bufferChars = bufferCharsOwner;
+                length = bufferCharsOwner.Length;
             }
+            return true;
         }
 
         public readonly Span<char> ToCharSpan()

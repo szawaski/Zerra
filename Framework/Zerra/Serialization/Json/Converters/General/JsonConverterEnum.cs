@@ -143,7 +143,7 @@ namespace Zerra.Serialization.Json.Converters.General
             }
             else
             {
-                if (!writer.TryWrite(EnumName.GetName(typeDetail.Type, value), out state.CharsNeeded))
+                if (!writer.TryWrite(EnumName.GetName(typeDetail.IsNullable ? typeDetail.InnerType : typeDetail.Type, value), out state.CharsNeeded))
                     return false;
                 return true;
             }

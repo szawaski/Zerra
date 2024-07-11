@@ -326,7 +326,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!state.Current.HasWrittenFirst && !state.Current.HasWrittenSeperator)
+                if (state.Current.HasWrittenFirst && !state.Current.HasWrittenSeperator)
                 {
                     if (!writer.TryWrite(',', out state.CharsNeeded))
                     {
@@ -341,11 +341,14 @@ namespace Zerra.Serialization.Json.Converters.General
                     state.Current.HasWrittenStart = true;
                     state.Current.Enumerator = enumerator;
                     state.Current.EnumeratorInProgress = true;
+                    state.Current.HasWrittenSeperator = true;
                     return false;
                 }
 
                 if (!state.Current.HasWrittenFirst)
                     state.Current.HasWrittenFirst = true;
+                if (state.Current.HasWrittenSeperator)
+                    state.Current.HasWrittenSeperator = false;
                 if (state.Current.EnumeratorInProgress)
                     state.Current.EnumeratorInProgress = false;
             }

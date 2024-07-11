@@ -62,7 +62,7 @@ namespace Zerra.Serialization.Json.IO
                         return false;
                     }
                     var chars = stackalloc char[1];
-                    fixed (byte* bytesPtr = &MemoryMarshal.GetReference(bufferBytes.Slice(position)))
+                    fixed (byte* bytesPtr = bufferBytes.Slice(position))
                     {
                         encoding.GetChars(bytesPtr, 2, chars, 0);
                     }
@@ -78,7 +78,7 @@ namespace Zerra.Serialization.Json.IO
                         return false;
                     }
                     var chars = stackalloc char[1];
-                    fixed (byte* bytesPtr = &MemoryMarshal.GetReference(bufferBytes.Slice(position)))
+                    fixed (byte* bytesPtr = bufferBytes.Slice(position))
                     {
                         encoding.GetChars(bytesPtr, 3, chars, 0);
                         c = chars[0];
@@ -149,7 +149,7 @@ namespace Zerra.Serialization.Json.IO
                         return false;
                     }
                     var chars = stackalloc char[1];
-                    fixed (byte* bytesPtr = &MemoryMarshal.GetReference(bufferBytes.Slice(position)))
+                    fixed (byte* bytesPtr = bufferBytes.Slice(position))
                     {
                         encoding.GetChars(bytesPtr, 3, chars, 0);
                         c = chars[0];
@@ -359,7 +359,7 @@ namespace Zerra.Serialization.Json.IO
         {
             if (useBytes)
             {
-                fixed (byte* ptr = &MemoryMarshal.GetReference(bufferBytes.Slice(position)))
+                fixed (byte* ptr = bufferBytes.Slice(position))
                 {
                     var openBrackets = 0;
                     var quoted = false;
@@ -413,7 +413,7 @@ namespace Zerra.Serialization.Json.IO
             }
             else
             {
-                fixed (char* ptr = &MemoryMarshal.GetReference(bufferChars.Slice(position)))
+                fixed (char* ptr = bufferChars.Slice(position))
                 {
                     var openBrackets = 0;
                     var quoted = false;

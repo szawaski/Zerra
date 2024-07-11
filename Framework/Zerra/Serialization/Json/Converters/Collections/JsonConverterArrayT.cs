@@ -203,6 +203,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
                 if (!converter.TryWriteFromParent(ref writer, ref state, accessor))
                 {
                     state.Current.HasWrittenStart = true;
+                    state.Current.Object = accessor;
                     return false;
                 }
             }
@@ -212,6 +213,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
                 if (!writer.TryWrite(']', out state.CharsNeeded))
                 {
                     state.Current.HasWrittenStart = true;
+                    state.Current.Object = accessor;
                     return false;
                 }
                 return true;
@@ -225,6 +227,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.HasWrittenFirst = true;
+                        state.Current.Object = accessor;
                         return false;
                     }
                 }
@@ -234,14 +237,18 @@ namespace Zerra.Serialization.Json.Converters.Collections
                     state.Current.HasWrittenStart = true;
                     state.Current.HasWrittenFirst = true;
                     state.Current.HasWrittenSeperator = true;
+                    state.Current.Object = accessor;
                     return false;
                 }
+
+                accessor.Index++;
 
                 if (accessor.Index == accessor.Length)
                 {
                     if (!writer.TryWrite(']', out state.CharsNeeded))
                     {
                         state.Current.HasWrittenStart = true;
+                        state.Current.Object = accessor;
                         return false;
                     }
                     return true;

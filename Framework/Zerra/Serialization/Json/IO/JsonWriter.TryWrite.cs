@@ -56,7 +56,7 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(byte value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
             if (useBytes)
                 WriteUInt64Bytes(value);
@@ -69,7 +69,7 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(sbyte value, out int sizeNeeded)
         {
             sizeNeeded = 3;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
             if (useBytes)
                 WriteInt64Bytes(value);
@@ -82,7 +82,7 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(short value, out int sizeNeeded)
         {
             sizeNeeded = 6;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
             if (useBytes)
                 WriteInt64Bytes(value);
@@ -95,7 +95,7 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(ushort value, out int sizeNeeded)
         {
             sizeNeeded = 5;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
             if (useBytes)
                 WriteUInt64Bytes(value);
@@ -108,7 +108,7 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(int value, out int sizeNeeded)
         {
             sizeNeeded = 11;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
             if (useBytes)
                 WriteInt64Bytes(value);
@@ -121,7 +121,7 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(uint value, out int sizeNeeded)
         {
             sizeNeeded = 10;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
             if (useBytes)
                 WriteUInt64Bytes(value);
@@ -134,7 +134,7 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(long value, out int sizeNeeded)
         {
             sizeNeeded = 20;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
             if (useBytes)
                 WriteInt64Bytes(value);
@@ -147,7 +147,7 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(ulong value, out int sizeNeeded)
         {
             sizeNeeded = 20;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
             if (useBytes)
                 WriteUInt64Bytes(value);
@@ -185,7 +185,7 @@ namespace Zerra.Serialization.Json.IO
                 if (value < 192)
                 {
                     sizeNeeded = 1;
-                    if (length - position < sizeNeeded)
+                    if (!EnsureSize(sizeNeeded))
                         return false;
                     bufferBytes[position++] = (byte)value;
                     return true;
@@ -193,7 +193,7 @@ namespace Zerra.Serialization.Json.IO
                 else
                 {
                     sizeNeeded = 4;
-                    if (length - position < sizeNeeded)
+                    if (!EnsureSize(sizeNeeded))
                         return false;
                     var valueArray = stackalloc char[] { value };
                     fixed (byte* pBuffer = &bufferBytes[position])
@@ -206,7 +206,7 @@ namespace Zerra.Serialization.Json.IO
             else
             {
                 sizeNeeded = 1;
-                if (length - position < sizeNeeded)
+                if (!EnsureSize(sizeNeeded))
                     return false;
                 bufferChars[position++] = value;
                 return true;
@@ -230,7 +230,7 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
                 sizeNeeded = encoding.GetMaxByteCount(value.Length);
-                if (length - position < sizeNeeded)
+                if (!EnsureSize(sizeNeeded))
                     return false;
 
                 fixed (char* pSource = value)
@@ -243,7 +243,7 @@ namespace Zerra.Serialization.Json.IO
             else
             {
                 sizeNeeded = value.Length;
-                if (length - position < sizeNeeded)
+                if (!EnsureSize(sizeNeeded))
                     return false;
 
                 var pCount = value.Length;
@@ -265,7 +265,7 @@ namespace Zerra.Serialization.Json.IO
             //ISO8601
             //yyyy-MM-ddTHH:mm:ss.fffffff+00:00
             sizeNeeded = 33;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
 
             if (useBytes)
@@ -456,7 +456,7 @@ namespace Zerra.Serialization.Json.IO
             //ISO8601
             //yyyy-MM-ddTHH:mm:ss.fffffff+00:00
             sizeNeeded = 33;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
 
             if (useBytes)
@@ -611,7 +611,7 @@ namespace Zerra.Serialization.Json.IO
             //ISO8601
             //(-)dddddddd.HH:mm:ss.fffffff
             sizeNeeded = 26;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
 
             if (useBytes)
@@ -791,7 +791,7 @@ namespace Zerra.Serialization.Json.IO
             //ISO8601
             //yyyy-MM-dd
             sizeNeeded = 10;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
 
             if (useBytes)
@@ -846,7 +846,7 @@ namespace Zerra.Serialization.Json.IO
             //ISO8601
             //HH:mm:ss.fffffff
             sizeNeeded = 16;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
 
             if (useBytes)
@@ -946,20 +946,37 @@ namespace Zerra.Serialization.Json.IO
                 sizeNeeded = 0;
                 return true;
             }
-            sizeNeeded = value.Length;
-            if (length - position < sizeNeeded)
-                return false;
 
-            var pCount = value.Length;
-            fixed (char* pSource = value, pBuffer = &bufferChars[position])
+            if (useBytes)
             {
-                for (var p = 0; p < pCount; p++)
+                sizeNeeded = encoding.GetMaxByteCount(value.Length);
+                if (!EnsureSize(sizeNeeded))
+                    return false;
+
+                fixed (char* pSource = value)
+                fixed (byte* pBuffer = &bufferBytes[position])
                 {
-                    pBuffer[p] = pSource[p];
+                    position += encoding.GetBytes(pSource, value.Length, pBuffer, bufferBytes.Length - position);
                 }
+                return true;
             }
-            position += pCount;
-            return true;
+            else
+            {
+                sizeNeeded = value.Length;
+                if (!EnsureSize(sizeNeeded))
+                    return false;
+
+                var pCount = value.Length;
+                fixed (char* pSource = value, pBuffer = &bufferChars[position])
+                {
+                    for (var p = 0; p < pCount; p++)
+                    {
+                        pBuffer[p] = pSource[p];
+                    }
+                }
+                position += pCount;
+                return true;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -972,7 +989,7 @@ namespace Zerra.Serialization.Json.IO
                 if (value == Int64.MinValue)
                 {
                     //Min value is one less than max, can't invert signs
-                    EnsureBufferSize(20);
+                    EnsureSize(20);
                     bufferChars[position++] = '-';
                     bufferChars[position++] = '9';
                     bufferChars[position++] = '2';
@@ -1003,20 +1020,20 @@ namespace Zerra.Serialization.Json.IO
             {
                 if (num1 < 10)
                 {
-                    EnsureBufferSize(1);
+                    EnsureSize(1);
                     goto L1;
                 }
                 if (num1 < 100)
                 {
-                    EnsureBufferSize(2);
+                    EnsureSize(2);
                     goto L2;
                 }
                 if (num1 < 1000)
                 {
-                    EnsureBufferSize(3);
+                    EnsureSize(3);
                     goto L3;
                 }
-                EnsureBufferSize(4);
+                EnsureSize(4);
                 goto L4;
             }
             else
@@ -1027,20 +1044,20 @@ namespace Zerra.Serialization.Json.IO
                 {
                     if (num2 < 10)
                     {
-                        EnsureBufferSize(5);
+                        EnsureSize(5);
                         goto L5;
                     }
                     if (num2 < 100)
                     {
-                        EnsureBufferSize(6);
+                        EnsureSize(6);
                         goto L6;
                     }
                     if (num2 < 1000)
                     {
-                        EnsureBufferSize(7);
+                        EnsureSize(7);
                         goto L7;
                     }
-                    EnsureBufferSize(8);
+                    EnsureSize(8);
                     goto L8;
                 }
                 else
@@ -1051,20 +1068,20 @@ namespace Zerra.Serialization.Json.IO
                     {
                         if (num3 < 10)
                         {
-                            EnsureBufferSize(9);
+                            EnsureSize(9);
                             goto L9;
                         }
                         if (num3 < 100)
                         {
-                            EnsureBufferSize(10);
+                            EnsureSize(10);
                             goto L10;
                         }
                         if (num3 < 1000)
                         {
-                            EnsureBufferSize(11);
+                            EnsureSize(11);
                             goto L11;
                         }
-                        EnsureBufferSize(12);
+                        EnsureSize(12);
                         goto L12;
                     }
                     else
@@ -1075,20 +1092,20 @@ namespace Zerra.Serialization.Json.IO
                         {
                             if (num4 < 10)
                             {
-                                EnsureBufferSize(13);
+                                EnsureSize(13);
                                 goto L13;
                             }
                             if (num4 < 100)
                             {
-                                EnsureBufferSize(14);
+                                EnsureSize(14);
                                 goto L14;
                             }
                             if (num4 < 1000)
                             {
-                                EnsureBufferSize(15);
+                                EnsureSize(15);
                                 goto L15;
                             }
-                            EnsureBufferSize(16);
+                            EnsureSize(16);
                             goto L16;
                         }
                         else
@@ -1099,20 +1116,20 @@ namespace Zerra.Serialization.Json.IO
                             {
                                 if (num5 < 10)
                                 {
-                                    EnsureBufferSize(17);
+                                    EnsureSize(17);
                                     goto L17;
                                 }
                                 if (num5 < 100)
                                 {
-                                    EnsureBufferSize(18);
+                                    EnsureSize(18);
                                     goto L18;
                                 }
                                 if (num5 < 1000)
                                 {
-                                    EnsureBufferSize(19);
+                                    EnsureSize(19);
                                     goto L19;
                                 }
-                                EnsureBufferSize(20);
+                                EnsureSize(20);
                                 goto L20;
                             }
                         L20:
@@ -1184,20 +1201,20 @@ namespace Zerra.Serialization.Json.IO
             {
                 if (num1 < 10)
                 {
-                    EnsureBufferSize(1);
+                    EnsureSize(1);
                     goto L1;
                 }
                 if (num1 < 100)
                 {
-                    EnsureBufferSize(2);
+                    EnsureSize(2);
                     goto L2;
                 }
                 if (num1 < 1000)
                 {
-                    EnsureBufferSize(3);
+                    EnsureSize(3);
                     goto L3;
                 }
-                EnsureBufferSize(4);
+                EnsureSize(4);
                 goto L4;
             }
             else
@@ -1208,20 +1225,20 @@ namespace Zerra.Serialization.Json.IO
                 {
                     if (num2 < 10)
                     {
-                        EnsureBufferSize(5);
+                        EnsureSize(5);
                         goto L5;
                     }
                     if (num2 < 100)
                     {
-                        EnsureBufferSize(6);
+                        EnsureSize(6);
                         goto L6;
                     }
                     if (num2 < 1000)
                     {
-                        EnsureBufferSize(7);
+                        EnsureSize(7);
                         goto L7;
                     }
-                    EnsureBufferSize(8);
+                    EnsureSize(8);
                     goto L8;
                 }
                 else
@@ -1232,20 +1249,20 @@ namespace Zerra.Serialization.Json.IO
                     {
                         if (num3 < 10)
                         {
-                            EnsureBufferSize(9);
+                            EnsureSize(9);
                             goto L9;
                         }
                         if (num3 < 100)
                         {
-                            EnsureBufferSize(10);
+                            EnsureSize(10);
                             goto L10;
                         }
                         if (num3 < 1000)
                         {
-                            EnsureBufferSize(11);
+                            EnsureSize(11);
                             goto L11;
                         }
-                        EnsureBufferSize(12);
+                        EnsureSize(12);
                         goto L12;
                     }
                     else
@@ -1256,20 +1273,20 @@ namespace Zerra.Serialization.Json.IO
                         {
                             if (num4 < 10)
                             {
-                                EnsureBufferSize(13);
+                                EnsureSize(13);
                                 goto L13;
                             }
                             if (num4 < 100)
                             {
-                                EnsureBufferSize(14);
+                                EnsureSize(14);
                                 goto L14;
                             }
                             if (num4 < 1000)
                             {
-                                EnsureBufferSize(15);
+                                EnsureSize(15);
                                 goto L15;
                             }
-                            EnsureBufferSize(16);
+                            EnsureSize(16);
                             goto L16;
                         }
                         else
@@ -1280,20 +1297,20 @@ namespace Zerra.Serialization.Json.IO
                             {
                                 if (num5 < 10)
                                 {
-                                    EnsureBufferSize(17);
+                                    EnsureSize(17);
                                     goto L17;
                                 }
                                 if (num5 < 100)
                                 {
-                                    EnsureBufferSize(18);
+                                    EnsureSize(18);
                                     goto L18;
                                 }
                                 if (num5 < 1000)
                                 {
-                                    EnsureBufferSize(19);
+                                    EnsureSize(19);
                                     goto L19;
                                 }
-                                EnsureBufferSize(20);
+                                EnsureSize(20);
                                 goto L20;
                             }
                         L20:
@@ -1367,7 +1384,7 @@ namespace Zerra.Serialization.Json.IO
                 if (value == Int64.MinValue)
                 {
                     //Min value is one less than max, can't invert signs
-                    EnsureBufferSize(20);
+                    EnsureSize(20);
                     bufferBytes[position++] = minusByte;
                     bufferBytes[position++] = nineByte;
                     bufferBytes[position++] = twoByte;
@@ -1398,20 +1415,20 @@ namespace Zerra.Serialization.Json.IO
             {
                 if (num1 < 10)
                 {
-                    EnsureBufferSize(1);
+                    EnsureSize(1);
                     goto L1;
                 }
                 if (num1 < 100)
                 {
-                    EnsureBufferSize(2);
+                    EnsureSize(2);
                     goto L2;
                 }
                 if (num1 < 1000)
                 {
-                    EnsureBufferSize(3);
+                    EnsureSize(3);
                     goto L3;
                 }
-                EnsureBufferSize(4);
+                EnsureSize(4);
                 goto L4;
             }
             else
@@ -1422,20 +1439,20 @@ namespace Zerra.Serialization.Json.IO
                 {
                     if (num2 < 10)
                     {
-                        EnsureBufferSize(5);
+                        EnsureSize(5);
                         goto L5;
                     }
                     if (num2 < 100)
                     {
-                        EnsureBufferSize(6);
+                        EnsureSize(6);
                         goto L6;
                     }
                     if (num2 < 1000)
                     {
-                        EnsureBufferSize(7);
+                        EnsureSize(7);
                         goto L7;
                     }
-                    EnsureBufferSize(8);
+                    EnsureSize(8);
                     goto L8;
                 }
                 else
@@ -1446,20 +1463,20 @@ namespace Zerra.Serialization.Json.IO
                     {
                         if (num3 < 10)
                         {
-                            EnsureBufferSize(9);
+                            EnsureSize(9);
                             goto L9;
                         }
                         if (num3 < 100)
                         {
-                            EnsureBufferSize(10);
+                            EnsureSize(10);
                             goto L10;
                         }
                         if (num3 < 1000)
                         {
-                            EnsureBufferSize(11);
+                            EnsureSize(11);
                             goto L11;
                         }
-                        EnsureBufferSize(12);
+                        EnsureSize(12);
                         goto L12;
                     }
                     else
@@ -1470,20 +1487,20 @@ namespace Zerra.Serialization.Json.IO
                         {
                             if (num4 < 10)
                             {
-                                EnsureBufferSize(13);
+                                EnsureSize(13);
                                 goto L13;
                             }
                             if (num4 < 100)
                             {
-                                EnsureBufferSize(14);
+                                EnsureSize(14);
                                 goto L14;
                             }
                             if (num4 < 1000)
                             {
-                                EnsureBufferSize(15);
+                                EnsureSize(15);
                                 goto L15;
                             }
-                            EnsureBufferSize(16);
+                            EnsureSize(16);
                             goto L16;
                         }
                         else
@@ -1494,20 +1511,20 @@ namespace Zerra.Serialization.Json.IO
                             {
                                 if (num5 < 10)
                                 {
-                                    EnsureBufferSize(17);
+                                    EnsureSize(17);
                                     goto L17;
                                 }
                                 if (num5 < 100)
                                 {
-                                    EnsureBufferSize(18);
+                                    EnsureSize(18);
                                     goto L18;
                                 }
                                 if (num5 < 1000)
                                 {
-                                    EnsureBufferSize(19);
+                                    EnsureSize(19);
                                     goto L19;
                                 }
-                                EnsureBufferSize(20);
+                                EnsureSize(20);
                                 goto L20;
                             }
                         L20:
@@ -1579,20 +1596,20 @@ namespace Zerra.Serialization.Json.IO
             {
                 if (num1 < 10)
                 {
-                    EnsureBufferSize(1);
+                    EnsureSize(1);
                     goto L1;
                 }
                 if (num1 < 100)
                 {
-                    EnsureBufferSize(2);
+                    EnsureSize(2);
                     goto L2;
                 }
                 if (num1 < 1000)
                 {
-                    EnsureBufferSize(3);
+                    EnsureSize(3);
                     goto L3;
                 }
-                EnsureBufferSize(4);
+                EnsureSize(4);
                 goto L4;
             }
             else
@@ -1603,20 +1620,20 @@ namespace Zerra.Serialization.Json.IO
                 {
                     if (num2 < 10)
                     {
-                        EnsureBufferSize(5);
+                        EnsureSize(5);
                         goto L5;
                     }
                     if (num2 < 100)
                     {
-                        EnsureBufferSize(6);
+                        EnsureSize(6);
                         goto L6;
                     }
                     if (num2 < 1000)
                     {
-                        EnsureBufferSize(7);
+                        EnsureSize(7);
                         goto L7;
                     }
-                    EnsureBufferSize(8);
+                    EnsureSize(8);
                     goto L8;
                 }
                 else
@@ -1627,20 +1644,20 @@ namespace Zerra.Serialization.Json.IO
                     {
                         if (num3 < 10)
                         {
-                            EnsureBufferSize(9);
+                            EnsureSize(9);
                             goto L9;
                         }
                         if (num3 < 100)
                         {
-                            EnsureBufferSize(10);
+                            EnsureSize(10);
                             goto L10;
                         }
                         if (num3 < 1000)
                         {
-                            EnsureBufferSize(11);
+                            EnsureSize(11);
                             goto L11;
                         }
-                        EnsureBufferSize(12);
+                        EnsureSize(12);
                         goto L12;
                     }
                     else
@@ -1651,20 +1668,20 @@ namespace Zerra.Serialization.Json.IO
                         {
                             if (num4 < 10)
                             {
-                                EnsureBufferSize(13);
+                                EnsureSize(13);
                                 goto L13;
                             }
                             if (num4 < 100)
                             {
-                                EnsureBufferSize(14);
+                                EnsureSize(14);
                                 goto L14;
                             }
                             if (num4 < 1000)
                             {
-                                EnsureBufferSize(15);
+                                EnsureSize(15);
                                 goto L15;
                             }
-                            EnsureBufferSize(16);
+                            EnsureSize(16);
                             goto L16;
                         }
                         else
@@ -1675,20 +1692,20 @@ namespace Zerra.Serialization.Json.IO
                             {
                                 if (num5 < 10)
                                 {
-                                    EnsureBufferSize(17);
+                                    EnsureSize(17);
                                     goto L17;
                                 }
                                 if (num5 < 100)
                                 {
-                                    EnsureBufferSize(18);
+                                    EnsureSize(18);
                                     goto L18;
                                 }
                                 if (num5 < 1000)
                                 {
-                                    EnsureBufferSize(19);
+                                    EnsureSize(19);
                                     goto L19;
                                 }
-                                EnsureBufferSize(20);
+                                EnsureSize(20);
                                 goto L20;
                             }
                         L20:
@@ -1756,7 +1773,7 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteQuote(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
 
             if (useBytes)
@@ -1775,7 +1792,7 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteColon(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
 
             if (useBytes)
@@ -1794,7 +1811,7 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteEscape(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
 
             if (useBytes)
@@ -1813,7 +1830,7 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteNull(out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
 
             if (useBytes)
@@ -1838,7 +1855,7 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteTrue(out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
 
             if (useBytes)
@@ -1863,7 +1880,7 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteFalse(out int sizeNeeded)
         {
             sizeNeeded = 5;
-            if (length - position < sizeNeeded)
+            if (!EnsureSize(sizeNeeded))
                 return false;
 
             if (useBytes)
@@ -1903,7 +1920,7 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
                 sizeNeeded = encoding.GetMaxByteCount(value.Length) + 3;
-                if (length - position < sizeNeeded)
+                if (!EnsureSize(sizeNeeded))
                     return false;
 
                 bufferBytes[position++] = quoteByte;
@@ -1922,7 +1939,7 @@ namespace Zerra.Serialization.Json.IO
             else
             {
                 sizeNeeded = value.Length + 3;
-                if (length - position < sizeNeeded)
+                if (!EnsureSize(sizeNeeded))
                     return false;
 
                 bufferChars[position++] = '"';

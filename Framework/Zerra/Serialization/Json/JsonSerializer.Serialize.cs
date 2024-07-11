@@ -440,7 +440,6 @@ namespace Zerra.Serialization.Json
                 var write = converter.TryWrite(ref writer, ref state, value);
                 if (write)
                     state.CharsNeeded = 0;
-                var result = writer.ToString();
                 return writer.Length;
             }
             finally
@@ -457,7 +456,6 @@ namespace Zerra.Serialization.Json
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
                 if (write)
                     state.CharsNeeded = 0;
-                var result = writer.ToString();
                 return writer.Length;
             }
             finally

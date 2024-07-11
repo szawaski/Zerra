@@ -279,66 +279,60 @@ namespace Zerra.Serialization.Json.Converters
 
             if (propertyName is not null)
             {
-                if (isNullable)
+                if (value is null)
                 {
-                    if (!state.Current.HasWrittenIsNull)
+                    if (state.DoNotWriteNullProperties)
                     {
-                        if (value is null)
+                        state.EndFrame();
+                        return true;
+                    }
+                    if (!state.Current.HasWrittenPropertyName)
+                    {
+                        if (!writer.TryWritePropertyName(propertyName, out state.CharsNeeded))
                         {
-                            if (state.DoNotWriteNullProperties)
-                            {
-                                state.EndFrame();
-                                return true;
-                            }
-                            if (!state.Current.HasWrittenPropertyName)
-                            {
-                                if (!writer.TryWritePropertyName(propertyName, out state.CharsNeeded))
-                                {
-                                    state.StashFrame();
-                                    return false;
-                                }
-                                state.Current.HasWrittenPropertyName = true;
-                            }
-                            if (!writer.TryWriteNull(out state.CharsNeeded))
-                            {
-                                state.StashFrame();
-                                return false;
-                            }
+                            state.StashFrame();
+                            return false;
                         }
-                        else
+                        state.Current.HasWrittenPropertyName = true;
+                    }
+                    if (isNullable && !state.Current.HasWrittenIsNull)
+                    {
+                        if (!writer.TryWriteNull(out state.CharsNeeded))
                         {
-                            if (!state.Current.HasWrittenPropertyName)
-                            {
-                                if (!writer.TryWritePropertyName(propertyName, out state.CharsNeeded))
-                                {
-                                    state.StashFrame();
-                                    return false;
-                                }
-                                state.Current.HasWrittenPropertyName = true;
-                            }
+                            state.StashFrame();
+                            return false;
                         }
                         state.Current.HasWrittenIsNull = true;
+                    }
+                }
+                else
+                {
+                    if (!state.Current.HasWrittenPropertyName)
+                    {
+                        if (!writer.TryWritePropertyName(propertyName, out state.CharsNeeded))
+                        {
+                            state.StashFrame();
+                            return false;
+                        }
+                        state.Current.HasWrittenPropertyName = true;
                     }
                 }
             }
             else
             {
-                if (isNullable)
+                if (isNullable && !state.Current.HasWrittenIsNull)
                 {
-                    if (!state.Current.HasWrittenIsNull)
+                    if (value is null)
                     {
-                        if (value is null)
+                        if (!writer.TryWriteNull(out state.CharsNeeded))
                         {
-                            if (!writer.TryWriteNull(out state.CharsNeeded))
-                            {
-                                state.StashFrame();
-                                return false;
-                            }
-                            state.EndFrame();
-                            return true;
+                            state.StashFrame();
+                            return false;
                         }
-                        state.Current.HasWrittenIsNull = true;
+                        state.EndFrame();
+                        return true;
                     }
+                    state.Current.HasWrittenIsNull = true;
                 }
             }
 
