@@ -93,7 +93,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
             }
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
-            {s
+            {
                 if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true))
                 {
                     state.Current.Object = enumerator;
