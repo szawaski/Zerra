@@ -27,7 +27,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IReadOnlyList<TValue>? value)
         {
-            List<TValue> list;
+            IList<TValue> list;
 
             if (!state.Current.EnumerableLength.HasValue)
             {
@@ -40,7 +40,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
                 if (!state.Current.DrainBytes)
                 {
                     list = new List<TValue>();
-                    value = list;
+                    value = (IReadOnlyList<TValue>)list;
                     if (state.Current.EnumerableLength!.Value == 0)
                         return true;
                 }
@@ -49,12 +49,12 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
                     value = default;
                     if (state.Current.EnumerableLength!.Value == 0)
                         return true;
-                    list = new List<TValue>();
+                    list = new IListTCounter<TValue>();
                 }
             }
             else
             {
-                list = (List<TValue>)state.Current.Object!;
+                list = (IList<TValue>)state.Current.Object!;
                 if (!state.Current.DrainBytes)
                     value = (IReadOnlyList<TValue>?)state.Current.Object;
                 else
