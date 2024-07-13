@@ -29,7 +29,8 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IReadOnlySet<TValue>? value)
         {
-            HashSet<TValue> set;
+            ISet<TValue> set;
+
             if (!state.Current.EnumerableLength.HasValue)
             {
                 if (!reader.TryRead(out state.Current.EnumerableLength, out state.BytesNeeded))
@@ -41,7 +42,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
                 if (!state.Current.DrainBytes)
                 {
                     set = new HashSet<TValue>();
-                    value = set;
+                    value = (IReadOnlySet<TValue>)set;
                     if (state.Current.EnumerableLength!.Value == 0)
                         return true;
                 }
@@ -50,7 +51,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
                     value = default;
                     if (state.Current.EnumerableLength!.Value == 0)
                         return true;
-                    set = new HashSet<TValue>();
+                    set = new ISetTCounter<TValue>();
                 }
             }
             else
