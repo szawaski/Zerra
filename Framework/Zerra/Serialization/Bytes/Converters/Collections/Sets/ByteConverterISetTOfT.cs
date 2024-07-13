@@ -28,6 +28,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TSet? value)
         {
             ISet<TValue> set;
+
             if (!state.Current.EnumerableLength.HasValue)
             {
                 if (!reader.TryRead(out state.Current.EnumerableLength, out state.BytesNeeded))
