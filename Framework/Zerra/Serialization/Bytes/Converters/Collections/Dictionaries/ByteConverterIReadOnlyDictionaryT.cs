@@ -41,7 +41,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
                 if (!state.Current.DrainBytes)
                 {
                     dictionary = new Dictionary<TKey, TValue>();
-                    value = (IReadOnlyDictionary<TKey, TValue>?)dictionary;
+                    value = (IReadOnlyDictionary<TKey, TValue>)dictionary;
                     if (state.Current.EnumerableLength!.Value == 0)
                         return true;
                 }
