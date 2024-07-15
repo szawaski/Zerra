@@ -4,8 +4,11 @@
 
 using BenchmarkDotNet.Attributes;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Zerra.Serialization.Json;
@@ -35,6 +38,205 @@ namespace Zerra.TestDev
             obj = AllTypesModel.Create();
             json = JsonSerializerOld.Serialize(obj);
             jsonnameless = JsonSerializerOld.Serialize(obj, optionsNameless);
+        }
+
+        public static Task TempTestSpeed()
+        {
+            var item = CoreTypesModel.Create();
+            var data = System.Text.Json.JsonSerializer.Serialize(item);
+
+            var method = typeof(JsonSerializerTest).GetMethod(nameof(TempTestSpeed2), BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());
+            return (Task)method.Invoke(null, new object[] { item, data, 5000, 5 });
+        }
+
+        private static async Task TempTestSpeed2<T>(T item, string data, int iterations, int loops)
+        {
+            using var readStream = new MemoryStream(Encoding.UTF8.GetBytes(data));
+            using var writeStream = new MemoryStream();
+
+            Console.WriteLine($"Warmup");
+
+            var timer = Stopwatch.StartNew();
+            for (var i = 0; i < 100; i++)
+            {
+                readStream.Position = 0;
+                _ = await JsonSerializerOld.DeserializeAsync<T>(readStream);
+                readStream.Position = 0;
+                _ = await JsonSerializer.DeserializeAsync<T>(readStream);
+                _ = JsonSerializerOld.Deserialize<T>(data);
+                _ = JsonSerializer.Deserialize<T>(data);
+                _ = System.Text.Json.JsonSerializer.Deserialize<T>(data);
+
+                writeStream.Position = 0;
+                await JsonSerializerOld.SerializeAsync(writeStream, item);
+                writeStream.Position = 0;
+                await JsonSerializer.SerializeAsync(writeStream, item);
+                _ = JsonSerializerOld.Serialize(item);
+                _ = JsonSerializer.Serialize(item);
+                _ = System.Text.Json.JsonSerializer.Serialize(item);
+
+                GC.Collect();
+            }
+            Console.WriteLine();
+            Console.WriteLine();
+            Console.WriteLine($"Done {timer.ElapsedMilliseconds:n0}ms");
+
+            Console.WriteLine();
+            Console.WriteLine($"Running");
+
+            var totalsOld = new Dictionary<string, long>();
+            var totals = new Dictionary<string, long>();
+            var totalsMs = new Dictionary<string, long>();
+
+            totalsOld["1 DeserializeAsync"] = 0;
+            totalsOld["2 Deserialize"] = 0;
+            totalsOld["3 SerializeAsync"] = 0;
+            totalsOld["4 Serialize"] = 0;
+
+            totals["1 DeserializeAsync"] = 0;
+            totals["2 Deserialize"] = 0;
+            totals["3 SerializeAsync"] = 0;
+            totals["4 Serialize"] = 0;
+
+            totalsMs["1 DeserializeAsync"] = 0;
+            totalsMs["2 Deserialize"] = 0;
+            totalsMs["3 SerializeAsync"] = 0;
+            totalsMs["4 Serialize"] = 0;
+
+            for (var j = 0; j < loops; j++)
+            {
+                Console.Write(".");
+
+                GC.Collect();
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    readStream.Position = 0;
+                    _ = await JsonSerializerOld.DeserializeAsync<T>(readStream);
+                }
+                timer.Stop();
+                totalsOld["1 DeserializeAsync"] += timer.ElapsedMilliseconds;
+
+                GC.Collect();
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    readStream.Position = 0;
+                    _ = await JsonSerializer.DeserializeAsync<T>(readStream);
+                }
+                timer.Stop();
+                totals["1 DeserializeAsync"] += timer.ElapsedMilliseconds;
+
+                GC.Collect();
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    readStream.Position = 0;
+                    _ = await System.Text.Json.JsonSerializer.DeserializeAsync<T>(readStream);
+                }
+                timer.Stop();
+                totalsMs["1 DeserializeAsync"] += timer.ElapsedMilliseconds;
+
+                GC.Collect();
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    _ = JsonSerializerOld.Deserialize<T>(data);
+                }
+                timer.Stop();
+                totalsOld["2 Deserialize"] += timer.ElapsedMilliseconds;
+
+                GC.Collect();
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    _ = JsonSerializer.Deserialize<T>(data);
+                }
+                timer.Stop();
+                totals["2 Deserialize"] += timer.ElapsedMilliseconds;
+
+                GC.Collect();
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    _ = System.Text.Json.JsonSerializer.Deserialize<T>(data);
+                }
+                timer.Stop();
+                totalsMs["2 Deserialize"] += timer.ElapsedMilliseconds;
+
+                GC.Collect();
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    writeStream.Position = 0;
+                    await JsonSerializerOld.SerializeAsync(writeStream, item);
+                }
+                timer.Stop();
+                totalsOld["3 SerializeAsync"] += timer.ElapsedMilliseconds;
+
+                GC.Collect();
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    writeStream.Position = 0;
+                    await JsonSerializer.SerializeAsync(writeStream, item);
+                }
+                timer.Stop();
+                totals["3 SerializeAsync"] += timer.ElapsedMilliseconds;
+
+                GC.Collect();
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    writeStream.Position = 0;
+                    await System.Text.Json.JsonSerializer.SerializeAsync(writeStream, item);
+                }
+                timer.Stop();
+                totalsMs["3 SerializeAsync"] += timer.ElapsedMilliseconds;
+
+                GC.Collect();
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    _ = JsonSerializerOld.Serialize(item);
+                }
+                timer.Stop();
+                totalsOld["4 Serialize"] += timer.ElapsedMilliseconds;
+
+                GC.Collect();
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    _ = JsonSerializer.Serialize(item);
+                }
+                timer.Stop();
+                totals["4 Serialize"] += timer.ElapsedMilliseconds;
+
+                GC.Collect();
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    _ = System.Text.Json.JsonSerializer.Serialize(item);
+                }
+                timer.Stop();
+                totalsMs["4 Serialize"] += timer.ElapsedMilliseconds;
+            }
+
+            Console.WriteLine();
+            foreach (var total in totals.OrderBy(x => x.Key))
+            {
+                var totalOld = totalsOld[total.Key];
+                Console.WriteLine($"{total.Key} {total.Value / loops}/{totalOld / loops} {Math.Round((((decimal)total.Value / loops) / ((decimal)totalOld / loops)) * 100, 2)}%");
+            }
+
+            Console.WriteLine();
+            foreach (var total in totals.OrderBy(x => x.Key))
+            {
+                var totalMs = totalsMs[total.Key];
+                Console.WriteLine($"{total.Key} {total.Value / loops}/{totalMs / loops} {Math.Round((((decimal)total.Value / loops) / ((decimal)totalMs / loops)) * 100, 2)}%");
+            }
+
+            Console.WriteLine();
         }
 
         public static async Task TestSpeed()

@@ -202,8 +202,8 @@ namespace Zerra.Serialization.Json.IO
                 }
                 valid = true;
                 valid &= bufferChars[position++] == 'u';
-                valid &= bufferBytes[position++] == 'l';
-                valid &= bufferBytes[position++] == 'l';
+                valid &= bufferChars[position++] == 'l';
+                valid &= bufferChars[position++] == 'l';
                 return true;
             }
         }
@@ -232,8 +232,8 @@ namespace Zerra.Serialization.Json.IO
                 }
                 valid = true;
                 valid &= bufferChars[position++] == 'r';
-                valid &= bufferBytes[position++] == 'u';
-                valid &= bufferBytes[position++] == 'e';
+                valid &= bufferChars[position++] == 'u';
+                valid &= bufferChars[position++] == 'e';
                 return true;
             }
         }
@@ -263,9 +263,9 @@ namespace Zerra.Serialization.Json.IO
                 }
                 valid = true;
                 valid &= bufferChars[position++] == 'a';
-                valid &= bufferBytes[position++] == 'l';
-                valid &= bufferBytes[position++] == 's';
-                valid &= bufferBytes[position++] == 'e';
+                valid &= bufferChars[position++] == 'l';
+                valid &= bufferChars[position++] == 's';
+                valid &= bufferChars[position++] == 'e';
                 return true;
             }
         }

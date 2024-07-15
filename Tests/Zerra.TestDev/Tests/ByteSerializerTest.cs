@@ -73,7 +73,7 @@ namespace Zerra.TestDev
             var data = ByteSerializer.Serialize(item, options);
             var dataOld = ByteSerializerOld.Serialize(item, options);
 
-            var method = typeof(ByteSerializerTest).GetMethod("TempTestSpeed2", BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());
+            var method = typeof(ByteSerializerTest).GetMethod(nameof(TempTestSpeed2), BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());
             return (Task)method.Invoke(null, new object[] { item, data, dataOld, options, 5000, 5 });
         }
 
