@@ -30,8 +30,6 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TEnumerable value)
         {
-            if (value is null) throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
-
             IEnumerator<TValue> enumerator;
 
             if (state.Current.Object is null)

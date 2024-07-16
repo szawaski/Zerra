@@ -32,11 +32,8 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ICollectionTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, ICollection<ulong>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, ICollection<ulong> value)
         {
-            if (value is null)
-                throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state.");
-
             if (!state.Current.HasWrittenLength)
             {
                 if (!writer.TryWrite(value.Count, out state.BytesNeeded))

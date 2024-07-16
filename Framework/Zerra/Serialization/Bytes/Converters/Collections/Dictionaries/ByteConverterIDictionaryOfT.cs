@@ -79,8 +79,6 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TDictionary value)
         {
-            if (value is null) throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
-
             IDictionaryEnumerator enumerator;
 
             if (state.Current.Object is null)

@@ -73,8 +73,6 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue[] value)
         {
-            if (value is null) throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
-
             ArrayAccessor<TValue> accessor;
 
             if (state.Current.Object is null)

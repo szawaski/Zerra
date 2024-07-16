@@ -326,8 +326,6 @@ namespace Zerra.Serialization.Bytes.Converters.General
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
 
-            if (value is null) throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state");
-
             IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember>> enumerator;
             if (state.Current.Enumerator == null)
             {
