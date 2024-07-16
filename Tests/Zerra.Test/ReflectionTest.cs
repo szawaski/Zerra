@@ -17,7 +17,7 @@ namespace Zerra.Test
         [TestMethod]
         public void TestTypeDetails()
         {
-            var typeDetail = TypeAnalyzer<AllTypesModel>.GetTypeDetail();
+            var typeDetail = TypeAnalyzer<TypesAllModel>.GetTypeDetail();
             InspectTypeDetail(typeDetail, new Stack<Type>());
         }
 

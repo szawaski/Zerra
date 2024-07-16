@@ -18,7 +18,7 @@ namespace Zerra.TestDev
     {
         private static readonly System.Text.Json.JsonSerializerOptions systemTextJsonOptions;
         private static readonly Newtonsoft.Json.Converters.StringEnumConverter newtonsoftConverter;
-        private static readonly AllTypesModel obj;
+        private static readonly TypesAllModel obj;
         private static readonly string json;
         private static readonly string jsonnameless;
 
@@ -32,7 +32,7 @@ namespace Zerra.TestDev
             systemTextJsonOptions = new System.Text.Json.JsonSerializerOptions();
             systemTextJsonOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
             newtonsoftConverter = new Newtonsoft.Json.Converters.StringEnumConverter();
-            obj = AllTypesModel.Create();
+            obj = TypesAllModel.Create();
             json = JsonSerializer.Serialize(obj);
             jsonnameless = JsonSerializer.Serialize(obj, optionsNameless);
         }
@@ -53,16 +53,16 @@ namespace Zerra.TestDev
             for (var i = 0; i < warmupLength; i++)
             {
                 _ = Newtonsoft.Json.JsonConvert.SerializeObject(obj, newtonsoftConverter);
-                _ = Newtonsoft.Json.JsonConvert.DeserializeObject<AllTypesModel>(json, newtonsoftConverter);
+                _ = Newtonsoft.Json.JsonConvert.DeserializeObject<TypesAllModel>(json, newtonsoftConverter);
 
                 _ = Encoding.UTF8.GetString(Utf8Json.JsonSerializer.Serialize(obj));
-                _ = Utf8Json.JsonSerializer.Deserialize<AllTypesModel>(Encoding.UTF8.GetBytes(json));
+                _ = Utf8Json.JsonSerializer.Deserialize<TypesAllModel>(Encoding.UTF8.GetBytes(json));
 
                 _ = System.Text.Json.JsonSerializer.Serialize(obj, systemTextJsonOptions);
-                _ = System.Text.Json.JsonSerializer.Deserialize<AllTypesModel>(json, systemTextJsonOptions);
+                _ = System.Text.Json.JsonSerializer.Deserialize<TypesAllModel>(json, systemTextJsonOptions);
 
                 _ = JsonSerializer.Serialize(obj);
-                _ = JsonSerializer.Deserialize<AllTypesModel>(json);
+                _ = JsonSerializer.Deserialize<TypesAllModel>(json);
             }
             timer.Start();
             Console.WriteLine("{0} Warmup", timer.ElapsedMilliseconds);
@@ -199,7 +199,7 @@ namespace Zerra.TestDev
             timer = Stopwatch.StartNew();
             for (var i = 0; i < testlength; i++)
             {
-                var result = Newtonsoft.Json.JsonConvert.DeserializeObject<AllTypesModel>(json);
+                var result = Newtonsoft.Json.JsonConvert.DeserializeObject<TypesAllModel>(json);
             }
             timer.Stop();
             Console.WriteLine("{0} JsonConvert", timer.ElapsedMilliseconds);
@@ -208,7 +208,7 @@ namespace Zerra.TestDev
             timer = Stopwatch.StartNew();
             for (var i = 0; i < testlength; i++)
             {
-                var result = Utf8Json.JsonSerializer.Deserialize<AllTypesModel>(Encoding.UTF8.GetBytes(json));
+                var result = Utf8Json.JsonSerializer.Deserialize<TypesAllModel>(Encoding.UTF8.GetBytes(json));
             }
             timer.Stop();
             Console.WriteLine("{0} Utf8Json", timer.ElapsedMilliseconds);
@@ -217,7 +217,7 @@ namespace Zerra.TestDev
             timer = Stopwatch.StartNew();
             for (var i = 0; i < testlength; i++)
             {
-                var result = System.Text.Json.JsonSerializer.Deserialize<AllTypesModel>(json, systemTextJsonOptions);
+                var result = System.Text.Json.JsonSerializer.Deserialize<TypesAllModel>(json, systemTextJsonOptions);
             }
             timer.Stop();
             Console.WriteLine("{0} System.Text.Json", timer.ElapsedMilliseconds);
@@ -226,7 +226,7 @@ namespace Zerra.TestDev
             timer = Stopwatch.StartNew();
             for (var i = 0; i < testlength; i++)
             {
-                var result = JsonSerializer.Deserialize<AllTypesModel>(json);
+                var result = JsonSerializer.Deserialize<TypesAllModel>(json);
             }
             timer.Stop();
             Console.WriteLine("{0} Zerra.Serialization", timer.ElapsedMilliseconds);
@@ -234,7 +234,7 @@ namespace Zerra.TestDev
             timer = Stopwatch.StartNew();
             for (var i = 0; i < testlength; i++)
             {
-                var result = JsonSerializer.Deserialize<AllTypesModel>(jsonnameless, optionsNameless);
+                var result = JsonSerializer.Deserialize<TypesAllModel>(jsonnameless, optionsNameless);
             }
             timer.Stop();
             Console.WriteLine("{0} Zerra.Serialization-Nameless", timer.ElapsedMilliseconds);
@@ -251,7 +251,7 @@ namespace Zerra.TestDev
                 for (var i = 0; i < testlength; i++)
                 {
                     stream.Position = 0;
-                    var result = await Utf8Json.JsonSerializer.DeserializeAsync<AllTypesModel>(stream);
+                    var result = await Utf8Json.JsonSerializer.DeserializeAsync<TypesAllModel>(stream);
                 }
                 timer.Stop();
                 Console.WriteLine("{0} Utf8Json", timer.ElapsedMilliseconds);
@@ -261,7 +261,7 @@ namespace Zerra.TestDev
                 for (var i = 0; i < testlength; i++)
                 {
                     stream.Position = 0;
-                    var result = await System.Text.Json.JsonSerializer.DeserializeAsync<AllTypesModel>(stream, systemTextJsonOptions);
+                    var result = await System.Text.Json.JsonSerializer.DeserializeAsync<TypesAllModel>(stream, systemTextJsonOptions);
                 }
                 timer.Stop();
                 Console.WriteLine("{0} System.Text.Json", timer.ElapsedMilliseconds);
@@ -271,7 +271,7 @@ namespace Zerra.TestDev
                 for (var i = 0; i < testlength; i++)
                 {
                     stream.Position = 0;
-                    var result = await JsonSerializer.DeserializeAsync<AllTypesModel>(stream);
+                    var result = await JsonSerializer.DeserializeAsync<TypesAllModel>(stream);
                 }
                 timer.Stop();
                 Console.WriteLine("{0} Zerra.Serialization", timer.ElapsedMilliseconds);
@@ -280,7 +280,7 @@ namespace Zerra.TestDev
                 for (var i = 0; i < testlength; i++)
                 {
                     streamNameless.Position = 0;
-                    var result = await JsonSerializer.DeserializeAsync<AllTypesModel>(streamNameless, optionsNameless);
+                    var result = await JsonSerializer.DeserializeAsync<TypesAllModel>(streamNameless, optionsNameless);
                 }
                 timer.Stop();
                 Console.WriteLine("{0} Zerra.Serialization-Nameless", timer.ElapsedMilliseconds);

@@ -136,8 +136,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out bool?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 1, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -157,8 +156,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out List<bool?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 1, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -182,8 +180,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out HashSet<bool?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 1, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -298,8 +295,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out byte?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 1, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -319,8 +315,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out List<byte?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 1, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -344,8 +339,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out HashSet<byte?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 1, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -458,8 +452,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out sbyte?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 1, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -479,8 +472,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out List<sbyte?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 1, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -504,8 +496,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out HashSet<sbyte?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 1, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -618,8 +609,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out short?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 2, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -639,8 +629,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out List<short?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 2, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -664,8 +653,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out HashSet<short?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 2, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -778,8 +766,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out ushort?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 2, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -799,8 +786,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out List<ushort?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 2, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -824,8 +810,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out HashSet<ushort?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 2, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -938,8 +923,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out int?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 4, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -959,8 +943,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out List<int?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 4, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -984,8 +967,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out HashSet<int?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 4, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -1098,8 +1080,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out uint?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 4, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -1119,8 +1100,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out List<uint?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 4, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -1144,8 +1124,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out HashSet<uint?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 4, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -1268,8 +1247,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out long?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -1291,8 +1269,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out List<long?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -1318,8 +1295,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out HashSet<long?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -1444,8 +1420,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out ulong?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -1467,8 +1442,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out List<ulong?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -1494,8 +1468,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out HashSet<ulong?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -1615,8 +1588,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(int length, out float?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 4, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -1637,8 +1609,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(int length, out List<float?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 4, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -1663,8 +1634,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(int length, out HashSet<float?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 4, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -1793,8 +1763,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(int length, out double?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -1817,8 +1786,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(int length, out List<double?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -1845,8 +1813,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(int length, out HashSet<double?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -1982,8 +1949,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out decimal?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 17;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 16, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2007,8 +1973,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out List<decimal?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 17;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 16, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2036,8 +2001,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out HashSet<decimal?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 17;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 16, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2169,8 +2133,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out DateTime?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2193,8 +2156,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out List<DateTime?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2221,8 +2183,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out HashSet<DateTime?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2358,8 +2319,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out DateTimeOffset?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 11;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 10, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2383,8 +2343,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out List<DateTimeOffset?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 11;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 10, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2412,8 +2371,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out HashSet<DateTimeOffset?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 11;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 10, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2545,8 +2503,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out TimeSpan?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2569,8 +2526,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out List<TimeSpan?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2597,8 +2553,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out HashSet<TimeSpan?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2720,8 +2675,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out DateOnly?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 4, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2742,8 +2696,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out List<DateOnly?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 4, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2768,8 +2721,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out HashSet<DateOnly?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 5;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 4, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2898,8 +2850,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out TimeOnly?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2922,8 +2873,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out List<TimeOnly?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -2950,8 +2900,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out HashSet<TimeOnly?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 9;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 8, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -3094,8 +3043,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out Guid?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 17;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 16, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -3120,8 +3068,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out List<Guid?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 17;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 16, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -3150,8 +3097,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(int length, out HashSet<Guid?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 17;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 16, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -3293,8 +3239,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(int length, out char?[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 2, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -3320,8 +3265,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(int length, out List<char?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 2, out sizeNeeded))
             {
                 value = default;
                 return false;
@@ -3350,8 +3294,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(int length, out HashSet<char?>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 3;
-            if (this.length - position < sizeNeeded)
+            if (!CalcNullableSizeNeeded(length, 2, out sizeNeeded))
             {
                 value = default;
                 return false;

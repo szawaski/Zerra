@@ -14,7 +14,7 @@ namespace Zerra.Test
         [TestMethod]
         public void TestToString()
         {
-            Expression<Func<AllTypesModel, decimal>> exp = x => (decimal)x.Int16Thing;
+            Expression<Func<TypesAllModel, decimal>> exp = x => (decimal)x.Int16Thing;
             var str = exp.ToLinqString();
         }
 
@@ -43,17 +43,17 @@ namespace Zerra.Test
         public void TestToStringExternalReference()
         {
             var external = 15m;
-            Expression<Func<AllTypesModel, decimal>> exp = x => (decimal)x.Int16Thing + external;
+            Expression<Func<TypesAllModel, decimal>> exp = x => (decimal)x.Int16Thing + external;
             var str = exp.ToLinqString();
         }
 
         [TestMethod]
         public void TestToStringMethods()
         {
-            Expression<Func<AllTypesModel, string>> exp1 = x => x.Int32Thing.ToString();
+            Expression<Func<TypesAllModel, string>> exp1 = x => x.Int32Thing.ToString();
             var str1 = exp1.ToLinqString();
 
-            Expression<Func<AllTypesModel, string>> exp2 = x => Convert(x.Int32Thing);
+            Expression<Func<TypesAllModel, string>> exp2 = x => Convert(x.Int32Thing);
             var str2 = exp2.ToLinqString();
         }
 

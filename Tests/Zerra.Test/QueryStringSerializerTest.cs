@@ -13,9 +13,9 @@ namespace Zerra.Test
         [TestMethod]
         public void Types()
         {
-            var model1 = CoreTypesModel.Create();
+            var model1 = TypesCoreModel.Create();
             var str = QueryStringSerializer.Serialize(model1);
-            var model2 = QueryStringSerializer.Deserialize<CoreTypesModel>(str);
+            var model2 = QueryStringSerializer.Deserialize<TypesCoreModel>(str);
             AssertHelper.AreEqual(model1, model2);
         }
     }

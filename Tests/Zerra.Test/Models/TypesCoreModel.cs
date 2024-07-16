@@ -7,7 +7,7 @@ using System;
 
 namespace Zerra.Test
 {
-    public class CoreTypesModel
+    public class TypesCoreModel
     {
         public bool BooleanThing { get; set; }
         public byte ByteThing { get; set; }
@@ -53,9 +53,9 @@ namespace Zerra.Test
 #endif
         public Guid? GuidThingNullable { get; set; }
 
-        public static CoreTypesModel Create()
+        public static TypesCoreModel Create()
         {
-            var model = new CoreTypesModel()
+            var model = new TypesCoreModel()
             {
                 BooleanThing = true,
                 ByteThing = 1,
@@ -104,7 +104,7 @@ namespace Zerra.Test
             return model;
         }
 
-        public static void AssertAreEqual(CoreTypesModel model1, CoreTypesAsStringsModel model2)
+        public static void AssertAreEqual(TypesCoreModel model1, TypesCoreAsStringsModel model2)
         {
             Assert.IsNotNull(model1);
             Assert.IsNotNull(model2);

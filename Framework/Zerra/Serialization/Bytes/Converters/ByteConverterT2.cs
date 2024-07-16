@@ -614,9 +614,9 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (!TryReadValue(ref reader, ref state, out var value))
             {
-                state.Current.ChildHasNullChecked = true;
                 if (StackRequired)
                     state.StashFrame();
+                state.Current.ChildHasNullChecked = true;
                 return false;
             }
 
@@ -805,9 +805,9 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (!TryWriteValue(ref writer, ref state, value))
             {
-                state.Current.ChildHasWrittenIsNull = true;
                 if (StackRequired)
                     state.StashFrame();
+                state.Current.ChildHasWrittenIsNull = true;
                 return false;
             }
 

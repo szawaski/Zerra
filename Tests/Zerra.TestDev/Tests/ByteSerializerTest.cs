@@ -69,7 +69,7 @@ namespace Zerra.TestDev
             {
                 IndexSize = ByteSerializerIndexSize.UInt16
             };
-            var item = AllTypesModel.Create();
+            var item = TypesAllModel.Create();
             var data = ByteSerializer.Serialize(item, options);
             var dataOld = ByteSerializerOld.Serialize(item, options);
 

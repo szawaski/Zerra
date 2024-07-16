@@ -461,13 +461,13 @@ namespace Zerra.Test.Map
         [TestMethod]
         public void StringConversions()
         {
-            var model = CoreTypesModel.Create();
+            var model = TypesCoreModel.Create();
 
-            var modelStrings = model.Map<CoreTypesAsStringsModel>();
-            CoreTypesModel.AssertAreEqual(model, modelStrings);
+            var modelStrings = model.Map<TypesCoreAsStringsModel>();
+            TypesCoreModel.AssertAreEqual(model, modelStrings);
 
-            model = modelStrings.Map<CoreTypesModel>();
-            CoreTypesModel.AssertAreEqual(model, modelStrings);
+            model = modelStrings.Map<TypesCoreModel>();
+            TypesCoreModel.AssertAreEqual(model, modelStrings);
         }
     }
 }

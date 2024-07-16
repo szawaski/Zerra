@@ -52,12 +52,12 @@ namespace Zerra.Serialization.Bytes.Converters.General
             //Members by Index with Attributes
             foreach (var member in memberSets.Where(x => x.Item2 != null))
             {
-                if (member.Item2?.Index > byte.MaxValue - indexOffset)
-                    indexSizeUInt16Only = true;
-                if (member.Item2?.Index > ushort.MaxValue - indexOffset)
-                    throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members to serialize");
-
                 var index = (ushort)(member.Item2!.Index + indexOffset);
+
+                if (index > byte.MaxValue)
+                    indexSizeUInt16Only = true;
+                if (index > ushort.MaxValue)
+                    throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members to serialize");
 
                 var detail = ByteConverterObjectMember.New(typeDetail, member.Item1);
                 membersByIndex.Add(index, detail);
@@ -68,12 +68,12 @@ namespace Zerra.Serialization.Bytes.Converters.General
             var orderIndex = 0;
             foreach (var member in memberSets)
             {
-                if (member.Item2?.Index > byte.MaxValue - indexOffset)
-                    indexSizeUInt16Only = true;
-                if (member.Item2?.Index > ushort.MaxValue - indexOffset)
-                    throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members to serialize");
-
                 var index = (ushort)(orderIndex + indexOffset);
+
+                if (index > byte.MaxValue)
+                    indexSizeUInt16Only = true;
+                if (index > ushort.MaxValue)
+                    throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members to serialize");
 
                 var detail = ByteConverterObjectMember.New(typeDetail, member.Item1);
                 if (!hasAttributes)
