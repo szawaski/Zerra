@@ -38,7 +38,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool CalcNullableSizeNeeded(int length, int sizePerElement, out int sizeNeeded)
+        public bool SeekNullableSizeNeeded(int length, int sizePerElement, out int sizeNeeded)
         {
             if (length == 0)
             {

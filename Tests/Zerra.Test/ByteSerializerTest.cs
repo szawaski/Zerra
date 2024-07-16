@@ -15,6 +15,14 @@ namespace Zerra.Test
     [TestClass]
     public class ByteSerializerTest
     {
+        public ByteSerializerTest()
+        {
+#if DEBUG
+            Zerra.Serialization.Bytes.IO.ByteReader.Testing = true;
+            Zerra.Serialization.Bytes.IO.ByteWriter.Testing = true;
+#endif
+        }
+
         [TestMethod]
         public void TypesBasic()
         {
@@ -406,6 +414,7 @@ namespace Zerra.Test
             using (var ms = new MemoryStream())
             {
                 await ByteSerializer.SerializeAsync(ms, model1, options);
+                Assert.AreEqual(8393, ms.Length);
                 ms.Position = 0;
                 var model2 = await ByteSerializer.DeserializeAsync<TypesAllModel>(ms, options);
                 AssertHelper.AreEqual(model1, model2);
