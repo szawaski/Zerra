@@ -104,9 +104,10 @@ namespace Zerra.CQRS.Kafka
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
-                var message = new KafkaCommandMessage()
+                var message = new KafkaMessage()
                 {
-                    Message = command,
+                    MessageData = KafkaCommon.Serialize(command),
+                    MessageType = command.GetType(),
                     Claims = claims,
                     Source = source
                 };
@@ -185,7 +186,13 @@ namespace Zerra.CQRS.Kafka
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
-                var message = new KafkaEventMessage(@event, claims, source);
+                var message = new KafkaMessage()
+                {
+                    MessageData = KafkaCommon.Serialize(@event),
+                    MessageType = @event.GetType(),
+                    Claims = claims,
+                    Source = source
+                };
 
                 var body = KafkaCommon.Serialize(message);
                 if (symmetricConfig != null)

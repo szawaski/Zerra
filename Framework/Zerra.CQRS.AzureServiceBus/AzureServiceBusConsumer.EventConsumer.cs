@@ -53,7 +53,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
             public async Task ListeningThread(string host, ServiceBusClient client, HandleRemoteEventDispatch handlerAsync)
             {
-                
+
             retry:
 
                 var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
@@ -111,20 +111,24 @@ namespace Zerra.CQRS.AzureServiceBus
                 try
                 {
                     var body = serviceBusMessage.Body.ToStream();
-                    AzureServiceBusEventMessage? message;
+                    AzureServiceBusMessage? message;
                     try
                     {
                         if (symmetricConfig != null)
                             body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
 
-                        message = await AzureServiceBusCommon.DeserializeAsync<AzureServiceBusEventMessage>(body);
+                        message = await AzureServiceBusCommon.DeserializeAsync<AzureServiceBusMessage>(body);
                     }
                     finally
                     {
                         body.Dispose();
                     }
 
-                    if (message == null || message.Message == null || message.Source == null)
+                    if (message == null || message.MessageType == null || message.MessageData == null || message.Source == null)
+                        throw new Exception("Invalid Message");
+
+                    var @event = AzureServiceBusCommon.Deserialize(message.MessageType, message.MessageData) as IEvent;
+                    if (@event == null)
                         throw new Exception("Invalid Message");
 
                     if (message.Claims != null)
@@ -134,7 +138,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     }
 
                     inHandlerContext = true;
-                    await handlerAsync(message.Message, message.Source, false);
+                    await handlerAsync(@event, message.Source, false);
                     inHandlerContext = false;
                 }
                 catch (Exception ex)

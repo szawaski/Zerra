@@ -115,8 +115,13 @@ namespace Zerra.CQRS.Kafka
                         if (symmetricConfig != null)
                             body = SymmetricEncryptor.Decrypt(symmetricConfig, body);
 
-                        var message = KafkaCommon.Deserialize<KafkaEventMessage>(body);
-                        if (message == null)
+                        var message = KafkaCommon.Deserialize<KafkaMessage>(body);
+
+                        if (message == null || message.MessageType == null || message.MessageData == null || message.Source == null)
+                            throw new Exception("Invalid Message");
+
+                        var @event = KafkaCommon.Deserialize(message.MessageType, message.MessageData) as IEvent;
+                        if (@event == null)
                             throw new Exception("Invalid Message");
 
                         if (message.Claims != null)
@@ -126,7 +131,7 @@ namespace Zerra.CQRS.Kafka
                         }
 
                         inHandlerContext = true;
-                        await handlerAsync(message.Message, message.Source, false);
+                        await handlerAsync(@event, message.Source, false);
                         inHandlerContext = false;
                     }
                     else

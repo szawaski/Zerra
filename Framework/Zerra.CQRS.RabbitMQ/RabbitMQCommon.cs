@@ -9,25 +9,23 @@ namespace Zerra.CQRS.RabbitMQ
 {
     internal static class RabbitMQCommon
     {
-        private static readonly ByteSerializerOptions byteSerializerOptions = new()
-        {
-            UsePropertyNames = true,
-            UseTypes = true,
-            IgnoreIndexAttribute = true
-        };
-
         public const int TopicMaxLength = 255;
 
         public const int RetryDelay = 5000;
 
         public static byte[] Serialize(object obj)
         {
-            return ByteSerializer.Serialize(obj, byteSerializerOptions);
+            return ByteSerializer.Serialize(obj);
+        }
+
+        public static object? Deserialize(Type type, byte[] data)
+        {
+            return ByteSerializer.Deserialize(type, data);
         }
 
         public static T? Deserialize<T>(ReadOnlySpan<byte> bytes)
         {
-            return ByteSerializer.Deserialize<T>(bytes, byteSerializerOptions);
+            return ByteSerializer.Deserialize<T>(bytes);
         }
     }
 }

@@ -7,19 +7,13 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Zerra.CQRS.Network;
 using Zerra.Serialization.Bytes;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
     internal static class AzureServiceBusCommon
     {
-        private static readonly ByteSerializerOptions byteSerializerOptions = new()
-        {
-            UsePropertyNames = true,
-            UseTypes = true,
-            IgnoreIndexAttribute = true
-        };
-
         private static readonly SemaphoreSlim locker = new(1, 1);
         private static readonly TimeSpan deleteWhenIdleTimeout = new(0, 5, 0);
 
@@ -27,14 +21,18 @@ namespace Zerra.CQRS.AzureServiceBus
 
         public const int RetryDelay = 5000;
 
-        public static byte[] Serialize(object obj)
+        public static byte[] Serialize<T>(T obj)
         {
-            return ByteSerializer.Serialize(obj, byteSerializerOptions);
+            return ByteSerializer.Serialize(obj);
+        }
+        public static object? Deserialize(Type type, byte[] data)
+        {
+            return ByteSerializer.Deserialize(type, data);
         }
 
         public static Task<T?> DeserializeAsync<T>(Stream stream)
         {
-            return ByteSerializer.DeserializeAsync<T>(stream, byteSerializerOptions);
+            return ByteSerializer.DeserializeAsync<T>(stream);
         }
 
         public static async Task EnsureQueue(string host, string queue, bool deleteWhenIdle)

@@ -94,7 +94,8 @@ namespace Zerra.CQRS.AzureEventHub
 
                 var message = new AzureEventHubMessage()
                 {
-                    Message = command,
+                    MessageData = AzureEventHubCommon.Serialize(command),
+                    MessageType = command.GetType(),
                     Claims = claims,
                     Source = source
                 };
@@ -169,7 +170,8 @@ namespace Zerra.CQRS.AzureEventHub
 
                 var message = new AzureEventHubMessage()
                 {
-                    Message = @event,
+                    MessageData = AzureEventHubCommon.Serialize(@event),
+                    MessageType = @event.GetType(),
                     Claims = claims,
                     Source = source
                 };

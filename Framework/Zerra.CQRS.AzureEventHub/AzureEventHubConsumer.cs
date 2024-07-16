@@ -198,7 +198,11 @@ namespace Zerra.CQRS.AzureEventHub
                     body = SymmetricEncryptor.Decrypt(symmetricConfig, body);
 
                 var message = AzureEventHubCommon.Deserialize<AzureEventHubMessage>(body);
-                if (message == null || message.Message == null || message.Source == null)
+                if (message == null || message.MessageType == null || message.MessageData == null || message.Source == null)
+                    throw new Exception("Invalid Message");
+
+                var commandOrEvent = AzureEventHubCommon.Deserialize(message.MessageType, message.MessageData);
+                if (commandOrEvent == null)
                     throw new Exception("Invalid Message");
 
                 if (message.Claims != null)
@@ -211,13 +215,13 @@ namespace Zerra.CQRS.AzureEventHub
                 if (isCommand)
                 {
                     if (awaitResponse)
-                        await commandHandlerAwaitAsync!((ICommand)message.Message, message.Source, false);
+                        await commandHandlerAwaitAsync!((ICommand)commandOrEvent, message.Source, false);
                     else
-                        await commandHandlerAsync!((ICommand)message.Message, message.Source, false);
+                        await commandHandlerAsync!((ICommand)commandOrEvent, message.Source, false);
                 }
                 else if (isEvent)
                 {
-                    await eventHandlerAsync!((IEvent)message.Message, message.Source, false);
+                    await eventHandlerAsync!((IEvent)commandOrEvent, message.Source, false);
                 }
                 inHandlerContext = false;
             }

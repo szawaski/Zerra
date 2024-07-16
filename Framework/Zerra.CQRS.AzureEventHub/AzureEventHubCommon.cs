@@ -15,13 +15,6 @@ namespace Zerra.CQRS.AzureEventHub
 {
     internal static class AzureEventHubCommon
     {
-        private static readonly ByteSerializerOptions byteSerializerOptions = new()
-        {
-            UsePropertyNames = true,
-            UseTypes = true,
-            IgnoreIndexAttribute = true
-        };
-
         private static readonly SemaphoreSlim locker = new(1, 1);
 
         public const int RetryDelay = 5000;
@@ -39,12 +32,17 @@ namespace Zerra.CQRS.AzureEventHub
 
         public static byte[] Serialize(object obj)
         {
-            return ByteSerializer.Serialize(obj, byteSerializerOptions);
+            return ByteSerializer.Serialize(obj);
+        }
+
+        public static object? Deserialize(Type type, byte[] data)
+        {
+            return ByteSerializer.Deserialize(type, data);
         }
 
         public static T? Deserialize<T>(byte[] bytes)
         {
-            return ByteSerializer.Deserialize<T>(bytes, byteSerializerOptions);
+            return ByteSerializer.Deserialize<T>(bytes);
         }
 
         public static async Task<string> GetEnsuredConsumerGroup(string requestedConsumerGroup, string connectionString, string eventHubName)

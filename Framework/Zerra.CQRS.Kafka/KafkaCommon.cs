@@ -14,13 +14,6 @@ namespace Zerra.CQRS.Kafka
 {
     internal static class KafkaCommon
     {
-        private static readonly ByteSerializerOptions byteSerializerOptions = new()
-        {
-            UsePropertyNames = true,
-            UseTypes = true,
-            IgnoreIndexAttribute = true
-        };
-
         private static readonly SemaphoreSlim locker = new(1, 1);
 
         public const int TopicMaxLength = 249;
@@ -34,12 +27,17 @@ namespace Zerra.CQRS.Kafka
 
         public static byte[] Serialize(object obj)
         {
-            return ByteSerializer.Serialize(obj, byteSerializerOptions);
+            return ByteSerializer.Serialize(obj);
+        }
+
+        public static object? Deserialize(Type type, byte[] data)
+        {
+            return ByteSerializer.Deserialize(type, data);
         }
 
         public static T? Deserialize<T>(byte[] bytes)
         {
-            return ByteSerializer.Deserialize<T>(bytes, byteSerializerOptions);
+            return ByteSerializer.Deserialize<T>(bytes);
         }
 
         public static async Task EnsureTopic(string host, string topic)
