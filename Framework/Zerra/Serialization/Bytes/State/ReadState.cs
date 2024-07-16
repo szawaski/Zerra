@@ -61,6 +61,7 @@ namespace Zerra.Serialization.Bytes.State
 
         public void StashFrame()
         {
+            Debug.Assert(stackCount > 0);
             if (stashCount == 0)
             {
                 stashCount = stackCount;
